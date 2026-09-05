@@ -2,17 +2,9 @@ import SpanStatusElement from "../Span/SpanStatusElement";
 import ProjectUtil from "Common/UI/Utils/Project";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
-import RumSession from "Common/Models/AnalyticsModels/RumSession";
 import AnalyticsModelTable from "Common/UI/Components/ModelTable/AnalyticsModelTable";
-import AnalyticsModelAPI, {
-  ListResult,
-} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Includes from "Common/Types/BaseDatabase/Includes";
-import Query from "Common/Types/BaseDatabase/Query";
 import Route from "Common/Types/API/Route";
-import ObjectID from "Common/Types/ObjectID";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import React, {
   Fragment,
   FunctionComponent,
@@ -31,12 +23,14 @@ import PageMap from "../../Utils/PageMap";
 import { formatDroppedScopeHint } from "../../Utils/LogsCrossSignalPivot";
 import {
   OccurrenceLogsLink,
-  RumSessionAnchor,
   buildOccurrenceLogsExplorerLink,
-  buildRumSessionAnchorMap,
   collectDistinctSessionIds,
-  getReplayAnchorOffsetMs,
 } from "../../Utils/ExceptionCorrelation";
+import {
+  RumSessionLookupResult,
+  lookupRumSessionsBySessionIds,
+} from "../../Utils/RumSessionLookup";
+import { makeExceptionSignalId } from "../SessionReplay/Rail/ReplaySignalTypes";
 
 export interface ComponentProps {
   exceptionFingerprint: string;
@@ -46,16 +40,18 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   /*
-   * A replay link needs the session's application id and start time, which
-   * an occurrence row does not carry. Resolved per fetched page through ONE
-   * batched RumSession lookup (nothing fires when the page has no session
-   * ids), and cached across pages.
+   * A replay link needs the session's application id, which an occurrence
+   * row does not carry. Resolved per fetched page through ONE batched read
+   * in the shared RumSessionLookup cache (nothing fires when the page has
+   * no session ids, ids already known are not re-fetched), so a session
+   * seen here is also known to the log and span surfaces.
    */
   const [sessionAnchors, setSessionAnchors] = useState<
-    Map<string, RumSessionAnchor>
+    Map<string, RumSessionLookupResult>
   >(new Map());
-  const sessionAnchorsRef: MutableRefObject<Map<string, RumSessionAnchor>> =
-    useRef<Map<string, RumSessionAnchor>>(new Map());
+  const sessionAnchorsRef: MutableRefObject<
+    Map<string, RumSessionLookupResult>
+  > = useRef<Map<string, RumSessionLookupResult>>(new Map());
   const attemptedSessionIdsRef: MutableRefObject<Set<string>> = useRef<
     Set<string>
   >(new Set());
@@ -79,46 +75,14 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
       }
 
       try {
-        const result: ListResult<RumSession> =
-          await AnalyticsModelAPI.getList<RumSession>({
-            modelType: RumSession,
-            query: {
-              sessionId: new Includes(sessionIds),
-            } as Query<RumSession>,
-            select: {
-              sessionId: true,
-              rumApplicationId: true,
-              startTime: true,
-            },
-            sort: {},
-            skip: 0,
-            limit: LIMIT_PER_PROJECT,
-          });
-
-        const resolved: Map<string, RumSessionAnchor> =
-          buildRumSessionAnchorMap(
-            result.data.map(
-              (
-                session: RumSession,
-              ): {
-                sessionId?: string | undefined;
-                rumApplicationId?: string | undefined;
-                startTime?: unknown;
-              } => {
-                return {
-                  sessionId: session.sessionId?.toString(),
-                  rumApplicationId: session.rumApplicationId?.toString(),
-                  startTime: session.startTime,
-                };
-              },
-            ),
-          );
+        const resolved: Map<string, RumSessionLookupResult> =
+          await lookupRumSessionsBySessionIds(sessionIds);
 
         if (resolved.size === 0) {
           return;
         }
 
-        const merged: Map<string, RumSessionAnchor> = new Map(
+        const merged: Map<string, RumSessionLookupResult> = new Map(
           sessionAnchorsRef.current,
         );
 
@@ -335,7 +299,7 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
               ): ReactElement => {
                 const sessionId: string =
                   exceptionInstance.sessionId?.toString() || "";
-                const anchor: RumSessionAnchor | undefined =
+                const anchor: RumSessionLookupResult | undefined =
                   sessionAnchors.get(sessionId);
 
                 if (!sessionId || !anchor) {
@@ -343,16 +307,32 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
                   return <></>;
                 }
 
-                const offsetMs: number | null = getReplayAnchorOffsetMs(
-                  exceptionInstance.time,
-                  anchor.startTime,
-                );
+                /*
+                 * The occurrence's own timestamp travels as ?at=; the
+                 * player converts it against the manifest's start, so no
+                 * offset arithmetic (and no clock-skew guess) happens here.
+                 * The instance id selects the row in the errors rail.
+                 */
+                const occurredAt: Date | undefined =
+                  exceptionInstance.time instanceof Date
+                    ? exceptionInstance.time
+                    : exceptionInstance.time
+                      ? new Date(exceptionInstance.time as unknown as string)
+                      : undefined;
+                const instanceId: string =
+                  exceptionInstance.id?.toString() || "";
 
                 return (
                   <ReplayLink
-                    rumApplicationId={new ObjectID(anchor.rumApplicationId)}
+                    rumApplicationId={anchor.rumApplicationId}
                     sessionId={sessionId}
-                    {...(offsetMs !== null ? { atOffsetMs: offsetMs } : {})}
+                    {...(occurredAt && !Number.isNaN(occurredAt.getTime())
+                      ? { atTime: occurredAt }
+                      : {})}
+                    {...(instanceId
+                      ? { signal: makeExceptionSignalId(instanceId) }
+                      : {})}
+                    rail="errors"
                     label="Watch replay"
                   />
                 );

@@ -126,9 +126,21 @@ const RECORDER_MAX_BYTES = 320 * 1024;
  *
  * The budgets are set just above the measured values so a regression fails
  * the build rather than being discovered in a customer's Core Web Vitals.
+ *
+ * Raised from 78 KB for the session-replay overhaul (September 2026). What
+ * the extra ~12 KB gzip buys, all of it customer-visible: web vitals
+ * (LCP/FCP/CLS/INP/TTFB) on every page; a transport that retries with
+ * backoff, honours throttle directives and splits the terminal flush so a
+ * tab switch no longer drops the last chunk; cross-tab session adoption;
+ * attribute masking under MaskAllText and hidden-input masking; the public
+ * API (identify with traits, track, setTags/addTag, onSessionChange,
+ * diagnostics decisions); labelled click, visibility and custom events.
+ * Measured after: recorder.js 288.9 KB raw / 87.5 KB gzip; before the
+ * overhaul 245 KB / 75.7 KB. rrweb's record entry point is still the
+ * fixed 57.8 KB floor of that number.
  */
 const LOADER_MAX_GZIP_BYTES = 5 * 1024;
-const RECORDER_MAX_GZIP_BYTES = 78 * 1024;
+const RECORDER_MAX_GZIP_BYTES = 90 * 1024;
 
 function isInside(directory, candidate) {
   const withSeparator = directory.endsWith(path.sep)

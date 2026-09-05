@@ -6,15 +6,29 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Route from "Common/Types/API/Route";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import Log from "Common/Models/AnalyticsModels/Log";
+import Span from "Common/Models/AnalyticsModels/Span";
+import Dictionary from "Common/Types/Dictionary";
+import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import {
+  REPLAY_LOGS_MOMENT_HALF_WINDOW_MS,
   REPLAY_PANEL_DEFAULT_WIDTH_CLASS,
   REPLAY_PANEL_WIDE_WIDTH_CLASS,
   REPLAY_SESSION_WINDOW_PADDING_MS,
+  ReplayExceptionGroupLink,
   ReplayFingerprintLink,
+  buildReplayExceptionGroupLinks,
   buildReplayFingerprintLinks,
+  buildReplayLogsAtMomentQueryParams,
+  buildReplayLogsAtMomentRoute,
   buildReplaySessionExceptionsQuery,
   buildReplaySessionLogsQuery,
+  buildReplaySessionSpansQuery,
+  formatReplayClockSkew,
+  formatReplayMilliseconds,
+  getReplayConsentStateLabel,
+  getReplayMomentWindow,
   getReplayPanelWidthClassName,
+  getReplayTriggerReasonLabel,
   getReplaySessionWindow,
 } from "../../FeatureSet/Dashboard/src/Utils/ReplayCorrelation";
 
@@ -324,13 +338,221 @@ describe("empty session", () => {
   });
 });
 
+describe("buildReplaySessionSpansQuery", () => {
+  const window: InBetween<Date> = getReplaySessionWindow({
+    startTime: SESSION_START,
+    endTime: SESSION_END,
+  })!;
+
+  test("filters spans by session id equality, windowed on startTime", () => {
+    const query: Query<Span> | null = buildReplaySessionSpansQuery({
+      sessionId: "session-1",
+      window: window,
+    });
+
+    expect(query).not.toBeNull();
+    expect((query as Record<string, unknown>)["sessionId"]).toBe("session-1");
+    expect((query as Record<string, unknown>)["startTime"]).toBe(window);
+    expect(Object.keys(query as Record<string, unknown>).sort()).toEqual([
+      "sessionId",
+      "startTime",
+    ]);
+  });
+
+  test("trims the session id and omits the window when there is none", () => {
+    const query: Query<Span> | null = buildReplaySessionSpansQuery({
+      sessionId: "  session-1  ",
+      window: null,
+    });
+
+    expect((query as Record<string, unknown>)["sessionId"]).toBe("session-1");
+    expect(Object.keys(query as Record<string, unknown>)).toEqual([
+      "sessionId",
+    ]);
+  });
+
+  test("a blank session id yields null rather than an unscoped query", () => {
+    expect(buildReplaySessionSpansQuery({ sessionId: "", window })).toBeNull();
+    expect(
+      buildReplaySessionSpansQuery({ sessionId: "   ", window }),
+    ).toBeNull();
+  });
+});
+
+describe("getReplayMomentWindow", () => {
+  const MOMENT: number = new Date("2026-08-14T10:05:00.000Z").getTime();
+
+  test("is +-30s around the moment by default", () => {
+    const window: InBetween<Date> | null = getReplayMomentWindow({
+      momentUnixMs: MOMENT,
+    });
+
+    expect(REPLAY_LOGS_MOMENT_HALF_WINDOW_MS).toBe(30 * 1000);
+    expect(window!.startValue.getTime()).toBe(MOMENT - 30 * 1000);
+    expect(window!.endValue.getTime()).toBe(MOMENT + 30 * 1000);
+  });
+
+  test("honours a custom half-window and ignores a negative one", () => {
+    expect(
+      getReplayMomentWindow({
+        momentUnixMs: MOMENT,
+        halfWindowMs: 5000,
+      })!.startValue.getTime(),
+    ).toBe(MOMENT - 5000);
+    expect(
+      getReplayMomentWindow({
+        momentUnixMs: MOMENT,
+        halfWindowMs: -1,
+      })!.startValue.getTime(),
+    ).toBe(MOMENT - REPLAY_LOGS_MOMENT_HALF_WINDOW_MS);
+  });
+
+  test("a moment that is not a positive finite timestamp yields no window", () => {
+    for (const bad of [0, -1, NaN, Infinity]) {
+      expect(getReplayMomentWindow({ momentUnixMs: bad })).toBeNull();
+    }
+  });
+});
+
+describe("buildReplayLogsAtMomentQueryParams / Route", () => {
+  const MOMENT: number = new Date("2026-08-14T10:05:00.000Z").getTime();
+  const LOGS_ROUTE: Route = new Route("/dashboard/project-1/logs");
+
+  test("emits the logs explorer's own grammar: a sessionId filter tuple and a pinned custom window", () => {
+    const params: Dictionary<string> | null =
+      buildReplayLogsAtMomentQueryParams({
+        sessionId: "session-1",
+        momentUnixMs: MOMENT,
+      });
+
+    expect(params).not.toBeNull();
+    expect(JSON.parse(params!["filters"] as string)).toEqual([
+      ["sessionId", ["session-1"]],
+    ]);
+    expect(params!["range"]).toBe("Custom");
+    expect(new Date(params!["start"] as string).getTime()).toBe(
+      MOMENT - REPLAY_LOGS_MOMENT_HALF_WINDOW_MS,
+    );
+    expect(new Date(params!["end"] as string).getTime()).toBe(
+      MOMENT + REPLAY_LOGS_MOMENT_HALF_WINDOW_MS,
+    );
+  });
+
+  test("the route carries the params encoded so the explorer decodes them back", () => {
+    const route: Route | null = buildReplayLogsAtMomentRoute({
+      logsExplorerRoute: LOGS_ROUTE,
+      sessionId: "session-1",
+      momentUnixMs: MOMENT,
+    });
+
+    expect(route).not.toBeNull();
+
+    const url: URL = new URL(`https://example.com${route!.toString()}`);
+
+    expect(url.pathname).toBe("/dashboard/project-1/logs");
+    expect(JSON.parse(url.searchParams.get("filters") as string)).toEqual([
+      ["sessionId", ["session-1"]],
+    ]);
+    expect(url.searchParams.get("range")).toBe("Custom");
+    expect(url.searchParams.get("start")).toBe(
+      new Date(MOMENT - REPLAY_LOGS_MOMENT_HALF_WINDOW_MS).toISOString(),
+    );
+    /* Never mutates the route it was handed. */
+    expect(LOGS_ROUTE.toString()).toBe("/dashboard/project-1/logs");
+  });
+
+  test("no session id or no usable moment means no link", () => {
+    expect(
+      buildReplayLogsAtMomentQueryParams({
+        sessionId: "",
+        momentUnixMs: MOMENT,
+      }),
+    ).toBeNull();
+    expect(
+      buildReplayLogsAtMomentQueryParams({
+        sessionId: "session-1",
+        momentUnixMs: NaN,
+      }),
+    ).toBeNull();
+    expect(
+      buildReplayLogsAtMomentRoute({
+        logsExplorerRoute: LOGS_ROUTE,
+        sessionId: "session-1",
+        momentUnixMs: 0,
+      }),
+    ).toBeNull();
+  });
+});
+
 /*
- * The panel component itself is renderer-bound, so its integration contract
- * is pinned at the source level (the same pattern as
- * AIInvestigationHeaderWiring.test.ts): the Logs tab must scope by
- * sessionIds AND pin the window through logQuery, the Errors tab must keep
- * URL state off so a restored filter cannot replace the pinned window, and
- * the fingerprints must link out through the shared group-route builder.
+ * correlation-13: sub-second skew and gaps used to round to "0s", which
+ * printed "0s (server-clamped)" and listed a "0s missing" gap - copy that
+ * contradicted itself. Milliseconds below a second, and the raw enum tokens
+ * never reach the panel.
+ */
+describe("formatReplayMilliseconds", () => {
+  test("milliseconds below a second, seconds below a minute, minutes beyond", () => {
+    expect(formatReplayMilliseconds(0)).toBe("0 ms");
+    expect(formatReplayMilliseconds(420)).toBe("420 ms");
+    expect(formatReplayMilliseconds(999)).toBe("999 ms");
+    expect(formatReplayMilliseconds(1000)).toBe("1s");
+    expect(formatReplayMilliseconds(1500)).toBe("1.5s");
+    expect(formatReplayMilliseconds(12_400)).toBe("12s");
+    expect(formatReplayMilliseconds(65_000)).toBe("1m 05s");
+    expect(formatReplayMilliseconds(-300)).toBe("-300 ms");
+  });
+
+  test("a non-finite value is unknown rather than NaN", () => {
+    expect(formatReplayMilliseconds(NaN)).toBe("unknown");
+  });
+});
+
+describe("formatReplayClockSkew", () => {
+  test("a sub-second skew is shown in milliseconds with its direction", () => {
+    expect(formatReplayClockSkew(300)).toBe("300 ms ahead (server-clamped)");
+    expect(formatReplayClockSkew(-2500)).toBe("2.5s behind (server-clamped)");
+  });
+
+  test("zero means none measured, never '0s (server-clamped)'", () => {
+    expect(formatReplayClockSkew(0)).toBe("None");
+    expect(formatReplayClockSkew(NaN)).toBe("None");
+  });
+});
+
+describe("enum labels", () => {
+  test("every trigger reason has readable copy", () => {
+    for (const reason of Object.values(SessionReplayTriggerReason)) {
+      const label: string = getReplayTriggerReasonLabel(reason);
+
+      expect(label.length).toBeGreaterThan(0);
+      expect(label).not.toBe(reason);
+      expect(label).not.toMatch(/^[a-z-]+$/);
+    }
+  });
+
+  test("consent states read as sentences", () => {
+    expect(getReplayConsentStateLabel("Granted")).toContain("Granted");
+    expect(getReplayConsentStateLabel("NotRequired")).toContain("Not required");
+    expect(getReplayConsentStateLabel("Unknown")).toContain("Unknown");
+  });
+
+  test("an unknown token is humanised, never shown raw; blank stays blank", () => {
+    expect(getReplayTriggerReasonLabel("some-new-reason")).toBe(
+      "Some New Reason",
+    );
+    expect(getReplayConsentStateLabel("some-new-state")).toBe("Some New State");
+    expect(getReplayTriggerReasonLabel("")).toBe("");
+    expect(getReplayConsentStateLabel("  ")).toBe("");
+  });
+});
+
+/*
+ * The panel component itself is renderer-bound (its rendered behaviour is
+ * pinned in Common/Tests/UI/Rum/ReplayCorrelationPanel.test.tsx); its
+ * integration contract is pinned at the source level here: the panel has
+ * exactly the Session / Privacy / Fidelity tabs, embeds neither the logs
+ * viewer nor the exceptions table (the rail owns those rows now), and the
+ * fingerprints link out through the shared group-route builder.
  */
 describe("replay correlation panel wiring", () => {
   const panelSource: string = fs
@@ -353,29 +575,129 @@ describe("replay correlation panel wiring", () => {
     .replace(/\s+/g, " ")
     .trim();
 
-  test("the logs tab rides the sessionIds prop and pins the window via logQuery", () => {
-    expect(panelSource).toContain("sessionIds={[props.sessionId]}");
-    expect(panelSource).toContain("logQuery={logsQuery}");
-    // Embedded viewer: syncUrlState must never be opted into here.
+  test("has the three tabs and no embedded data surfaces", () => {
+    expect(panelSource).toContain('id: "session"');
+    expect(panelSource).toContain('id: "provenance"');
+    expect(panelSource).toContain('id: "fidelity"');
+    expect(panelSource).not.toContain('id: "logs"');
+    expect(panelSource).not.toContain('id: "errors"');
+    expect(panelSource).not.toContain('id: "correlation"');
+    expect(panelSource).not.toContain("DashboardLogsViewer");
+    expect(panelSource).not.toContain("ExceptionInstanceTable");
+    // Embedded viewer opt-ins must never come back here.
     expect(panelSource).not.toContain("syncUrlState");
   });
 
-  test("the errors tab pins its window and disables URL state restoration", () => {
-    expect(panelSource).toContain("query={exceptionsQuery}");
-    expect(panelSource).toContain("disableUrlState={true}");
-  });
-
   test("fingerprints link out through the shared exceptions group route", () => {
-    expect(panelSource).toContain("buildReplayFingerprintLinks(");
+    expect(panelSource).toContain("buildReplayExceptionGroupLinks({");
     expect(panelSource).toContain("PageMap.EXCEPTIONS_UNRESOLVED");
+    expect(panelSource).toContain("PageMap.EXCEPTIONS_VIEW");
     expect(panelSource).toContain("to={link.route}");
+    /* correlation-7: the label is the error, never the raw hash. */
+    expect(panelSource).toContain("{link.label}");
   });
 
-  test("the new tabs are gated behind the lazily-mounting detail panel", () => {
-    expect(panelSource).toContain('id: "logs"');
-    expect(panelSource).toContain('id: "errors"');
+  test("the exception groups are resolved in one batched lookup", () => {
+    expect(panelSource).toContain("new Includes(fingerprints)");
+    expect(panelSource).toContain("indexExceptionGroupsByFingerprint(");
+    /* Injectable, so the panel renders without a server. */
     expect(panelSource).toContain(
-      "widthClassName={getReplayPanelWidthClassName(props.activeTabId)}",
+      "resolveExceptionGroups || fetchExceptionGroupsByFingerprint",
     );
+  });
+
+  test("the sub-second formatters and enum labels are what the panel renders", () => {
+    expect(panelSource).toContain("formatReplayClockSkew(d.clockSkewMs)");
+    expect(panelSource).toContain("formatReplayMilliseconds(gap.missingMs)");
+    expect(panelSource).toContain("getReplayConsentStateLabel(d.consentState)");
+    expect(panelSource).toContain(
+      "getReplayTriggerReasonLabel(d.triggerReason)",
+    );
+    expect(panelSource).not.toContain("Math.round(d.clockSkewMs / 1000)");
+    expect(panelSource).not.toContain("Math.round(gap.missingMs / 1000)");
+  });
+
+  test("the panel keeps the width gate on the active tab", () => {
+    expect(panelSource).toContain(
+      "widthClassName={getReplayPanelWidthClassName(activeTabId)}",
+    );
+  });
+});
+
+/*
+ * correlation-7: the details panel used to render a bare fingerprint hash
+ * linked to a filtered list. With the group rows resolved it reads as the
+ * error and goes straight to it; without them it still links.
+ */
+describe("buildReplayExceptionGroupLinks", () => {
+  function listRoute(): Route {
+    return new Route("/dashboard/project-1/exceptions/unresolved");
+  }
+
+  function viewRoute(id: string): Route {
+    return new Route(`/dashboard/project-1/exceptions/${id}`);
+  }
+
+  test("titles a resolved group with its error and links directly to it", () => {
+    const links: Array<ReplayExceptionGroupLink> =
+      buildReplayExceptionGroupLinks({
+        fingerprints: ["abc123"],
+        groups: new Map([
+          [
+            "abc123",
+            {
+              id: "exc-1",
+              fingerprint: "abc123",
+              exceptionType: "TypeError",
+              message: "x is not a function",
+            },
+          ],
+        ]),
+        exceptionsListRoute: listRoute(),
+        exceptionViewRouteForId: viewRoute,
+      });
+
+    expect(links).toHaveLength(1);
+    expect(links[0]!.label).toBe("TypeError: x is not a function");
+    expect(links[0]!.isDirect).toBe(true);
+    expect(links[0]!.route?.toString()).toBe(
+      "/dashboard/project-1/exceptions/exc-1",
+    );
+  });
+
+  test("an unresolved fingerprint keeps the filtered-list link and a short label", () => {
+    const links: Array<ReplayExceptionGroupLink> =
+      buildReplayExceptionGroupLinks({
+        fingerprints: ["0123456789abcdef"],
+        exceptionsListRoute: listRoute(),
+        exceptionViewRouteForId: viewRoute,
+      });
+
+    expect(links[0]!.isDirect).toBe(false);
+    expect(links[0]!.label).toBe("Error 0123456789ab…");
+    expect(links[0]!.route?.toString()).toContain("%40fingerprint%3A");
+  });
+
+  test("trims, dedupes in first-appearance order and drops blanks", () => {
+    const links: Array<ReplayExceptionGroupLink> =
+      buildReplayExceptionGroupLinks({
+        fingerprints: ["b", " ", "a", "b", "  a  ", ""],
+        exceptionsListRoute: listRoute(),
+      });
+
+    expect(
+      links.map((link: ReplayExceptionGroupLink): string => {
+        return link.fingerprint;
+      }),
+    ).toEqual(["b", "a"]);
+  });
+
+  test("no fingerprints is no links, not a throw", () => {
+    expect(
+      buildReplayExceptionGroupLinks({
+        fingerprints: null,
+        exceptionsListRoute: listRoute(),
+      }),
+    ).toEqual([]);
   });
 });

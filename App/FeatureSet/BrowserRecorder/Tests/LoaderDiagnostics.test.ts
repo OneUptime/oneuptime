@@ -276,11 +276,17 @@ describe("Loader diagnostics", (): void => {
 
       await runLoader();
 
+      /*
+       * "policy-decides" rather than true: the page set no preference, and
+       * the log has to be able to say that - a customer debugging why their
+       * policy's respectDoNotTrack has no effect needs to see whether their
+       * own page overrode it.
+       */
       expect(detailOf("init-options-read")).toEqual({
         source: "init-global",
         host: "https://oneuptime.com",
         appIdentifier: "app-1",
-        respectDoNotTrack: true,
+        respectDoNotTrack: "policy-decides",
       });
 
       const timeline: string = JSON.stringify(getDebugRecords());

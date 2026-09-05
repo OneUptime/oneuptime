@@ -216,6 +216,35 @@ describe("Loader", (): void => {
     expect(bootstrapCalls).toHaveLength(0);
   });
 
+  /*
+   * recorder-signals-22: the page's preference is a tri-state, and with no
+   * page value the server policy decides - but the stub can only learn the
+   * policy by making a request about a user who asked not to be tracked, so
+   * a SILENT page under a signal stands down BEFORE the fetch whatever the
+   * policy would have said. The policy-side override is reachable only
+   * through an explicit page value here, or on the direct-artifact path
+   * (see RecorderPublicApi.test.ts). Pinned so a change to the pre-fetch
+   * gate is a decision, not an accident.
+   */
+  it("stands down before the fetch when the page is silent, even though the policy would not honour the signal", async (): Promise<void> => {
+    setNavigatorSignal(true);
+
+    (window as unknown as Record<string, unknown>)[
+      "__ONEUPTIME_SESSION_REPLAY__"
+    ] = {
+      host: "https://oneuptime.com",
+      token: "tok",
+      appIdentifier: "app-1",
+    };
+
+    setConfigResponse({ ...CONFIG_BODY, respectDoNotTrack: false });
+
+    await runLoader();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(bootstrapCalls).toHaveLength(0);
+  });
+
   /* No config, no recording. */
   it("fails closed when the config request fails", async (): Promise<void> => {
     setConfigResponse(null);

@@ -71,7 +71,7 @@ By default a RUM application's telemetry follows the project's retention setting
 - **Retain Telemetry Data For Days** — a single value for all of this application's telemetry.
 - **Telemetry Data Retention Overrides** — per-pillar values (logs, metrics, traces separately). Anything left unset falls back to the application default, then to the project setting.
 
-Session Replay recordings have their **own** retention, set on the session-replay settings and defaulting to 7 days — deliberately much shorter, because a recording is far more sensitive and far larger than a span. Setting a 90-day telemetry retention does not extend recordings.
+Session Replay recordings have their **own** retention, set on the application's _Replay Policy_ page and defaulting to 7 days (1, 14, 30 and 90 are the other choices) — deliberately much shorter, because a recording is far more sensitive and far larger than a span. Setting a 90-day telemetry retention does not extend recordings, and the session's metadata (counts, signals, device) expires together with its footage; only the logs, spans and exceptions of that session follow the telemetry retention. See [Retention and deletion](/docs/telemetry/session-replay#retention-and-deletion).
 
 RUM is often the highest-volume telemetry in a project, because it scales with your users rather than with your servers. A shorter retention here, with a longer one on backend services, is a common and sensible configuration.
 
@@ -81,7 +81,7 @@ RUM is often the highest-volume telemetry in a project, because it scales with y
 
 **Delete** — _View Application → Delete Application_ — is permanent and removes the application. If the app is still emitting telemetry, auto-discovery will simply recreate it on the next batch, with none of its previous settings, so stop the instrumentation first.
 
-To erase a specific *user's* data rather than the application, use a session erasure request instead — see [Session Replay](/docs/telemetry/session-replay).
+To erase a specific *user's* data rather than the application, use a session erasure request instead — see [Erasing sessions](/docs/telemetry/session-replay#erasing-sessions).
 
 ## Permissions
 
@@ -99,9 +99,7 @@ RUM applications are readable by the project-wide Viewer role. Session replay de
 | `ReadRumApplicationLabelRule` / `ReadRumApplicationOwnerRule` (+ Create/Edit/Delete) | Manage the rules above. |
 | `ReadRumApplicationOwnerUser` / `ReadRumApplicationOwnerTeam` (+ Create/Edit/Delete) | Manage owners directly. |
 
-The useful split: a support engineer with `ReadRumApplication` + `ReadRumSessionReplay` can triage *which* sessions errored without being able to watch anyone's screen. Add `ReadRumSessionReplayPayload` only for the people who need to.
-
-Every playback is written to an audit trail visible under the application's **Replay Access Log** tab.
+The useful split: a support engineer with `ReadRumApplication` + `ReadRumSessionReplay` can triage *which* sessions errored without being able to watch anyone's screen or learn who the user was — the identified user's reference and traits are shown only to roles that hold `ReadRumSessionReplayPayload`. Add that permission only for the people who need it; the `ReadRumSessionReplayAudit` holders can then see, under the application's **Replay Access Log** tab, who watched what. Every playback is written there. See [Who can watch a recording](/docs/telemetry/session-replay#who-can-watch-a-recording) for what each permission unlocks in the session list and the player.
 
 ## Alerting on RUM data
 

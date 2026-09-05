@@ -110,9 +110,17 @@ describe("Index bootstrap ordering", (): void => {
     await tick();
     await tick();
 
-    /* No recorder survives, and not one byte left the page. */
-    expect(index.getSessionId()).toBeNull();
+    /*
+     * Not one byte left the page. The recorder itself survives the revoke
+     * (recording into memory, uploading nothing) so a later grantConsent()
+     * can pick up on a fresh session - but every gate says why it is quiet.
+     */
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(index.getDiagnostics().isUploading).toBe(false);
+    expect(index.getDiagnostics().decisions?.uploadBlockedBy).toBe("consent");
+    expect(index.getDiagnostics().decisions?.uploadsAllowed).toBe(false);
+
+    index.stop();
   });
 
   it("without a queued revoke, the same early error uploads (positive control)", async (): Promise<void> => {

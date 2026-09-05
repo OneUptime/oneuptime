@@ -104,9 +104,9 @@ localStorage.setItem("oneuptime.sessionReplay.debug", "true");
 // then reload the page
 ```
 
-The **Test your installation** panel in _RUM → Session Replay Settings_ checks the token, origin allowlist and CSP from the server's side; the console tells you the half the server cannot see.
+The **Recording health** card and the **Test your installation** panel on _RUM → your application → Replay Policy_ check the token, the origin allowlists and the CSP from the server's side, and say why nothing is arriving when that is the case; the console tells you the half the server cannot see.
 
-Worth naming here: under the default capture trigger (`Always`) a session replay recorder posts a chunk roughly every 15 seconds, so **no chunk requests at all** means something is wrong. If the application's capture trigger is set to `On error or frustration` instead, silence is expected — it uploads only when something goes wrong. Call `OneUptimeReplay.captureSession()` to force an upload and prove the path either way.
+Worth naming here: under the default capture trigger (`Always`) a session replay recorder posts a chunk roughly every 15 seconds **while the user is interacting** — an idle tab has nothing to send, so click or move the mouse first — and after that **no chunk requests at all** means something is wrong. If the application's capture trigger is set to `On error or frustration` instead, silence is expected — it uploads only when something goes wrong. Call `OneUptimeReplay.captureSession()` to force an upload and prove the path either way.
 
 The two pipelines are independent: a working RUM application is **not** a prerequisite for the recorder to load, and a working recorder does not imply RUM telemetry is arriving. They are configured independently and can each fail alone.
 

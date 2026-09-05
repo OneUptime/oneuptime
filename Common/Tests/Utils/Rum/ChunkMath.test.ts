@@ -284,3 +284,86 @@ describe("ChunkMath", () => {
     });
   });
 });
+
+describe("ChunkMath player helpers", () => {
+  const entry: (
+    chunkIndex: number,
+    eventCount: number,
+  ) => SessionReplayChunkManifestEntry = (
+    chunkIndex: number,
+    eventCount: number,
+  ): SessionReplayChunkManifestEntry => {
+    return {
+      chunkIndex: chunkIndex,
+      tabId: "tab-1",
+      chunkStartOffsetMs: chunkIndex * 15000,
+      chunkEndOffsetMs: (chunkIndex + 1) * 15000,
+      eventCount: eventCount,
+      hasFullSnapshot: false,
+      payloadBytes: 100,
+      errorCount: 0,
+      rageClickCount: 0,
+      deadClickCount: 0,
+      errorClickCount: 0,
+      refreshRageCount: 0,
+      routeCount: 0,
+    };
+  };
+
+  describe("isTerminatorEntry", () => {
+    it("recognises the recorder's zero-event closing rows", () => {
+      expect(ChunkMath.isTerminatorEntry(entry(3, 0))).toBe(true);
+      expect(ChunkMath.isTerminatorEntry(entry(3, 1))).toBe(false);
+      /* A malformed count is not footage either. */
+      expect(ChunkMath.isTerminatorEntry(entry(3, Number.NaN))).toBe(true);
+    });
+  });
+
+  describe("findNextAnchorAfter", () => {
+    it("returns the smallest anchor strictly after the index", () => {
+      expect(ChunkMath.findNextAnchorAfter([0, 4, 8], 4)).toBe(8);
+      expect(ChunkMath.findNextAnchorAfter([8, 0, 4], 1)).toBe(4);
+      expect(ChunkMath.findNextAnchorAfter([0, 4, 8], 8)).toBeNull();
+      expect(ChunkMath.findNextAnchorAfter([], 0)).toBeNull();
+    });
+  });
+
+  describe("isContiguousRange", () => {
+    it("is true only when every index in the range is present", () => {
+      const present: Set<number> = new Set<number>([0, 1, 2, 4]);
+
+      expect(ChunkMath.isContiguousRange(present, 0, 2)).toBe(true);
+      expect(ChunkMath.isContiguousRange(present, 1, 4)).toBe(false);
+      expect(ChunkMath.isContiguousRange(present, 2, 2)).toBe(true);
+      expect(ChunkMath.isContiguousRange(present, 3, 2)).toBe(false);
+    });
+  });
+
+  describe("planPriorityPage", () => {
+    it("pairs the anchor with the chunk after it, else the one before it", () => {
+      expect(ChunkMath.planPriorityPage(new Set<number>([0, 1, 2]), 0)).toEqual(
+        [0, 1],
+      );
+      expect(ChunkMath.planPriorityPage(new Set<number>([0, 1, 2]), 2)).toEqual(
+        [1, 2],
+      );
+      expect(ChunkMath.planPriorityPage(new Set<number>([5]), 5)).toEqual([5]);
+      expect(ChunkMath.planPriorityPage(new Set<number>([5]), 6)).toEqual([]);
+    });
+  });
+
+  describe("clampSeekOffset", () => {
+    it("clamps into [earliest playable, duration] and never below the first snapshot", () => {
+      expect(ChunkMath.clampSeekOffset(0, 15000, 60000)).toBe(15000);
+      expect(ChunkMath.clampSeekOffset(-5, 0, 60000)).toBe(0);
+      expect(ChunkMath.clampSeekOffset(30000, 15000, 60000)).toBe(30000);
+      expect(ChunkMath.clampSeekOffset(99000, 15000, 60000)).toBe(60000);
+      expect(ChunkMath.clampSeekOffset(Number.NaN, 15000, 60000)).toBe(15000);
+    });
+
+    it("lands on the earliest playable moment when the duration is behind it", () => {
+      /* A manifest whose only anchor sits past its stated end still plays. */
+      expect(ChunkMath.clampSeekOffset(0, 30000, 20000)).toBe(30000);
+    });
+  });
+});

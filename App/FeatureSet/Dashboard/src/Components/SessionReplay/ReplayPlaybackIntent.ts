@@ -63,3 +63,61 @@ export function shouldRewindBeforePlay(
 
   return currentTimeMs >= durationMs - END_OF_RECORDING_TOLERANCE_MS;
 }
+
+/*
+ * How far ahead of the playhead the fed range is kept, per speed.
+ *
+ * The floor is two flush intervals (30s): enough to absorb one slow
+ * /chunks round trip at 1x. At 8x the same 30s of footage plays out in
+ * under four seconds, less than a slow fetch, so the window grows with
+ * speed - 20s of wall-clock headroom per unit of speed - and playback
+ * stops stalling the moment the viewer speeds up.
+ */
+export const FEED_AHEAD_FLOOR_MS: number = 30 * 1000;
+export const FEED_AHEAD_PER_SPEED_MS: number = 20 * 1000;
+
+export function computeFeedAheadMs(speed: number): number {
+  if (!isFinite(speed) || speed <= 0) {
+    return FEED_AHEAD_FLOOR_MS;
+  }
+
+  return Math.max(FEED_AHEAD_FLOOR_MS, FEED_AHEAD_PER_SPEED_MS * speed);
+}
+
+/*
+ * How many 8-chunk pages to warm past the fed range: two at ordinary
+ * speeds (~4 minutes of footage), four from 4x up, where the viewer
+ * burns through a page every 30 seconds of wall clock.
+ */
+export const DEFAULT_PREFETCH_PAGES_AHEAD: number = 2;
+
+/*
+ * The most any speed asks for. ChunkLoader sizes its decoded cache from
+ * this: a cache smaller than one page plus the pages prefetched past it
+ * evicts unfed footage and fetches it again, so the two numbers are not
+ * allowed to drift apart.
+ */
+export const MAX_PREFETCH_PAGES_AHEAD: number = 4;
+
+export function computePrefetchPagesAhead(speed: number): number {
+  return isFinite(speed) && speed >= 4
+    ? MAX_PREFETCH_PAGES_AHEAD
+    : DEFAULT_PREFETCH_PAGES_AHEAD;
+}
+
+/*
+ * Where an idle skip lands: one second before the band ends, so the
+ * viewer sees the moment activity resumes rather than the first frame of
+ * it, and the jump reads as "skipped ahead" instead of "cut".
+ */
+export const IDLE_SKIP_PREROLL_MS: number = 1000;
+
+/* Bands with less than this left in them are not worth a jump. */
+export const IDLE_SKIP_MIN_REMAINING_MS: number = 1500;
+
+export function getIdleSkipTargetMs(band: {
+  startMs: number;
+  endMs: number;
+}): number {
+  return Math.max(band.startMs, band.endMs - IDLE_SKIP_PREROLL_MS);
+}

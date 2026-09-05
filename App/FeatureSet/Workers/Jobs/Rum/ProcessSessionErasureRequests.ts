@@ -11,6 +11,7 @@ import RumSessionErasureRequest, {
   RumSessionErasureRequestType,
 } from "Common/Models/DatabaseModels/RumSessionErasureRequest";
 import RumSessionErasureRequestService from "Common/Server/Services/RumSessionErasureRequestService";
+import RumSessionPinService from "Common/Server/Services/RumSessionPinService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
@@ -35,11 +36,12 @@ import logger from "Common/Server/Utils/Logger";
 import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { EVERY_DAY } from "Common/Utils/CronTime";
+import { EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
 
 /*
  * ------------------------------------------------------------------
@@ -60,16 +62,16 @@ import { EVERY_DAY } from "Common/Utils/CronTime";
  *    resurrect part of an erased recording.
  *
  *    Consumers of the tombstone today: Rum:FinalizeSessions refuses to
- *    write a session header for a tombstoned session, and this job takes
- *    the erased sessions off the finalizer's activity queue outright.
- *    STILL MISSING: the chunk INGEST path
- *    (App/FeatureSet/Telemetry/Services/SessionReplayIngestService) does
- *    NOT yet SISMEMBER the tombstone before staging a chunk or before
- *    inserting it from the queue, so a chunk staged before the erasure and
- *    drained afterwards can still land in a new part the mutation will
- *    never see. Use isSessionErased() from
- *    Common/Server/Utils/SessionReplay/SessionReplayErasureTombstone there
- *    and drop the chunk on a hit.
+ *    write a session header for a tombstoned session; the chunk ingest
+ *    worker (App/FeatureSet/Telemetry/Services/SessionReplayIngestService)
+ *    checks isSessionErased() per frame at INSERT time and drops the chunk
+ *    on a hit, which is what closes the "staged before the erasure,
+ *    drained afterwards" window; Rum:MaterializePinnedSessions refuses to
+ *    copy a tombstoned session and deletes its pin; and this job takes
+ *    the erased sessions off the finalizer's activity queue outright. The
+ *    HTTP accept path still stages a chunk into Redis without consulting
+ *    the tombstone — that is fine, because the staged body is only ever
+ *    written to ClickHouse by the worker that does check.
  *
  *  - Deletes route through the MIGRATION connection pool. The app pool's
  *    ClickHouse client enforces request_timeout as a socket-IDLE timer at
@@ -77,11 +79,21 @@ import { EVERY_DAY } from "Common/Utils/CronTime";
  *    bytes at all — so the app pool would destroy the request and the
  *    erasure would look like a failure while possibly having been applied.
  *
- *  - Batched daily, capped per mutation, one project at a time. ALTER ...
- *    DELETE creates a ClickHouse mutation per statement and mutations are
- *    bounded by number_of_mutations_to_throw (default 1000); an
- *    unthrottled erasure over a large date range would exhaust that queue
- *    and start failing ordinary telemetry ALTERs.
+ *  - Runs every 15 minutes, capped per mutation and per run, one project
+ *    at a time. ALTER ... DELETE creates a ClickHouse mutation per
+ *    statement and mutations are bounded by number_of_mutations_to_throw
+ *    (default 1000); an unthrottled erasure over a large date range would
+ *    exhaust that queue and start failing ordinary telemetry ALTERs. The
+ *    cadence sets how long a subject waits for anything to happen; the
+ *    caps set how much lands per run — and because a run skips sessions
+ *    that are already tombstoned, a large erasure cannot submit new
+ *    mutations faster than ClickHouse finishes the previous ones.
+ *
+ *  - Erasure removes the PIN too. A pinned recording keeps a Postgres
+ *    RumSessionPin row that the Dashboard renders as "Pinned"; leaving it
+ *    behind would show a protected badge over a recording that no longer
+ *    exists and keep the pin's reason and incident link as a record of
+ *    the erased subject.
  * ------------------------------------------------------------------
  */
 
@@ -95,13 +107,29 @@ const JOB_NAME: string = "Rum:ProcessSessionErasureRequests";
 export const MAX_SESSION_IDS_PER_MUTATION: number = 1000;
 
 /*
- * Ids one request may erase in a single daily run. A request that hits
- * this cap is returned to Pending with its counters accumulated, so an
- * application-wide erasure drains over consecutive days instead of
+ * Ids one request may erase in a single run. A request that hits this cap
+ * is returned to Pending with its counters accumulated, so an
+ * application-wide erasure drains over consecutive runs instead of
  * queueing thousands of mutations in one burst. The remaining sessions
- * are found again next run because the erased ones no longer match.
+ * are found again next run because the erased ones no longer match —
+ * and while the mutation is still rewriting parts and they DO still
+ * match, the tombstone filter in resolveTargetSessionIds keeps them from
+ * being submitted twice.
  */
 export const MAX_SESSION_IDS_PER_REQUEST_PER_RUN: number = 10000;
+
+/*
+ * How often pending requests are picked up. Daily was the original
+ * cadence, which meant a subject's right-to-erasure request sat visibly
+ * "Pending" for up to a day with the recording still playable, and a
+ * 50k-session application erasure took five days. The throttles that
+ * actually protect ClickHouse are the per-mutation and per-run caps above
+ * plus the tombstone filter, none of which depend on the cadence, so it
+ * can be short. Runs overlap safely: markInProgress claims a request
+ * before any work, and the stale reclaim below is longer than the job
+ * timeout.
+ */
+export const ERASURE_JOB_SCHEDULE: string = EVERY_FIFTEEN_MINUTE;
 
 /*
  * Appended as raw SQL rather than bound as a parameter: a template
@@ -245,6 +273,43 @@ export function buildRumApplicationScopeClause(
   }}`;
 }
 
+export interface ResolvedErasureTargets {
+  /* Sessions this run should erase: matched, and not already tombstoned. */
+  sessionIds: Array<string>;
+  /*
+   * True when the subject may still have sessions beyond this run's cap
+   * (the lookup hit the cap, or an explicit list was longer than it), so
+   * the request must go back to Pending rather than be marked complete.
+   */
+  moreMayRemain: boolean;
+  /* Matched sessions skipped because an earlier run already erased them. */
+  alreadyErased: number;
+}
+
+/*
+ * The project's tombstoned session ids. Read once per resolution rather
+ * than one SISMEMBER per candidate: a run considers up to ten thousand
+ * ids, while the tombstone set only holds what was erased in the last
+ * seven days.
+ *
+ * Fails closed like writeErasureTombstones: without Redis the batch could
+ * not tombstone anything anyway, so the request is requeued as a
+ * transient failure instead of guessing.
+ */
+async function readErasedSessionIds(projectId: string): Promise<Set<string>> {
+  const client: ClientType | null = Redis.getClient();
+
+  if (!client || !Redis.isConnected()) {
+    throw new Error(
+      "Redis is not connected; cannot read the session replay erasure tombstones",
+    );
+  }
+
+  return new Set<string>(
+    await client.smembers(getErasedSessionsKey(projectId)),
+  );
+}
+
 /*
  * Resolve the erasure subject to a concrete set of session ids.
  *
@@ -252,11 +317,21 @@ export function buildRumApplicationScopeClause(
  * of a header visible until merge, and all we need from the header table
  * is the id set — so collapsing duplicates is enough and no version
  * arithmetic is required.
+ *
+ * Sessions that already carry a tombstone are dropped from the result on
+ * a FIRST attempt: the mutation that erases them was submitted by an
+ * earlier run and merely has not finished rewriting parts, so
+ * re-submitting it would double the mutation load and double-count the
+ * subject's sessions. On a RETRY (attempts > 0) nothing is dropped: the
+ * failed attempt may have written its tombstones and died before the
+ * mutations, and those sessions still owe the subject a delete — the
+ * job's own guarantee is that every step is idempotent, so re-doing them
+ * costs one duplicate mutation at most.
  */
 export async function resolveTargetSessionIds(data: {
   databaseName: string;
   request: RumSessionErasureRequest;
-}): Promise<Array<string>> {
+}): Promise<ResolvedErasureTargets> {
   const request: RumSessionErasureRequest = data.request;
   const projectId: ObjectID | undefined = request.projectId;
 
@@ -269,14 +344,23 @@ export async function resolveTargetSessionIds(data: {
   const targetValue: string = (request.targetValue || "").trim();
   const applicationScope: Statement = buildRumApplicationScopeClause(request);
 
+  const isRetry: boolean = (request.attempts || 0) > 0;
+  const erased: Set<string> = isRetry
+    ? new Set<string>()
+    : await readErasedSessionIds(projectId.toString());
+
   if (requestType === RumSessionErasureRequestType.BySessionId) {
     /*
      * An explicit id list needs no lookup at all, and must NOT be looked
      * up: the header row may already have expired by TTL while the chunk
      * rows (or correlated logs) live on under a longer retention, and the
      * subject is still entitled to have those removed.
+     *
+     * The cap is applied AFTER the tombstone filter, so a list longer
+     * than one run's worth advances through the list run by run instead
+     * of erasing the same first slice forever.
      */
-    return Array.from(
+    const explicitIds: Array<string> = Array.from(
       new Set<string>(
         targetValue
           .split(",")
@@ -287,8 +371,61 @@ export async function resolveTargetSessionIds(data: {
             return value.length > 0;
           }),
       ),
-    ).slice(0, MAX_SESSION_IDS_PER_REQUEST_PER_RUN);
+    );
+
+    const remaining: Array<string> = explicitIds.filter(
+      (id: string): boolean => {
+        return !erased.has(id);
+      },
+    );
+
+    return {
+      sessionIds: remaining.slice(0, MAX_SESSION_IDS_PER_REQUEST_PER_RUN),
+      moreMayRemain: remaining.length > MAX_SESSION_IDS_PER_REQUEST_PER_RUN,
+      alreadyErased: explicitIds.length - remaining.length,
+    };
   }
+
+  const matched: Array<string> = await resolveMatchedSessionIds({
+    databaseName: data.databaseName,
+    request: request,
+    projectId: projectId,
+    requestType: requestType,
+    targetValue: targetValue,
+    applicationScope: applicationScope,
+  });
+
+  const sessionIds: Array<string> = matched.filter((id: string): boolean => {
+    return !erased.has(id);
+  });
+
+  return {
+    sessionIds: sessionIds,
+    /*
+     * A full page means the lookup was cut off by its LIMIT, so the
+     * subject may have more — including rows an in-flight mutation has
+     * not removed yet, which is why the filtered count is not the test.
+     */
+    moreMayRemain: matched.length >= MAX_SESSION_IDS_PER_REQUEST_PER_RUN,
+    alreadyErased: matched.length - sessionIds.length,
+  };
+}
+
+/* The ClickHouse lookup behind every request type that is not an id list. */
+async function resolveMatchedSessionIds(data: {
+  databaseName: string;
+  request: RumSessionErasureRequest;
+  projectId: ObjectID;
+  requestType: RumSessionErasureRequestType | undefined;
+  targetValue: string;
+  applicationScope: Statement;
+}): Promise<Array<string>> {
+  const request: RumSessionErasureRequest = data.request;
+  const projectId: ObjectID = data.projectId;
+  const requestType: RumSessionErasureRequestType | undefined =
+    data.requestType;
+  const targetValue: string = data.targetValue;
+  const applicationScope: Statement = data.applicationScope;
 
   if (requestType === RumSessionErasureRequestType.ByIdentifiedUserKey) {
     return await readSessionIds(
@@ -364,11 +501,18 @@ export async function resolveTargetSessionIds(data: {
   throw new Error(`Unsupported erasure request type "${String(requestType)}"`);
 }
 
+/*
+ * `pinnedCopiesOnly` narrows the delete to the rows the pin materializer
+ * wrote (isPinnedCopy = true), so unpinning a recording removes its
+ * far-future copies with the very same mutation shape erasure uses, while
+ * the ordinary rows keep their ordinary retention.
+ */
 export function buildSessionDeleteStatement(data: {
   databaseName: string;
   tableName: string;
   projectId: ObjectID;
   sessionIds: Array<string>;
+  pinnedCopiesOnly?: boolean | undefined;
 }): Statement {
   /*
    * Lightweight DELETE cannot target a Distributed table and does not
@@ -379,7 +523,7 @@ export function buildSessionDeleteStatement(data: {
    */
   const localTableName: string = getStorageTableName(data.tableName);
 
-  return SQL`
+  const statement: Statement = SQL`
       ALTER TABLE ${data.databaseName}.${localTableName}`
     .append(onClusterClause())
     .append(
@@ -392,6 +536,12 @@ export function buildSessionDeleteStatement(data: {
         value: new Includes(data.sessionIds),
       }}`,
     );
+
+  if (data.pinnedCopiesOnly) {
+    statement.append(" AND isPinnedCopy = true");
+  }
+
+  return statement;
 }
 
 /*
@@ -619,6 +769,30 @@ export async function eraseSessionBatch(data: {
     });
   }
 
+  /*
+   * Last, once every mutation is queued: the pin row is the Dashboard's
+   * "Pinned" badge and the materializer's queue entry, and it must not
+   * outlive the recording. Deleting it earlier would let the pin
+   * reconcile see far-future copies with no pin and try to "revert" a
+   * session whose erasure is in flight (it checks the tombstone and
+   * stands down, but there is no reason to race it).
+   */
+  const pinsRemoved: number = await RumSessionPinService.deleteBy({
+    query: {
+      projectId: data.projectId,
+      sessionId: QueryHelper.any(data.sessionIds),
+    },
+    limit: LIMIT_MAX,
+    skip: 0,
+    props: { isRoot: true },
+  });
+
+  if (pinsRemoved > 0) {
+    logger.info(
+      `${JOB_NAME}: removed ${pinsRemoved} pin(s) for erased sessions in project ${data.projectId.toString()}`,
+    );
+  }
+
   return chunksDeleted;
 }
 
@@ -657,10 +831,17 @@ export async function processErasureRequest(data: {
   });
 
   try {
-    const sessionIds: Array<string> = await resolveTargetSessionIds({
+    const targets: ResolvedErasureTargets = await resolveTargetSessionIds({
       databaseName: data.databaseName,
       request: request,
     });
+    const sessionIds: Array<string> = targets.sessionIds;
+
+    if (targets.alreadyErased > 0) {
+      logger.info(
+        `${JOB_NAME}: request ${requestId.toString()} matched ${targets.alreadyErased} session(s) an earlier run already erased; their mutations are still in flight and were not re-submitted`,
+      );
+    }
 
     let chunksDeleted: number = 0;
 
@@ -687,17 +868,18 @@ export async function processErasureRequest(data: {
       (request.chunksDeleted || 0) + chunksDeleted;
 
     /*
-     * Hitting the per-run cap means more of this subject remains, so the
-     * request goes back to Pending with its progress accumulated rather
-     * than reporting a completion it has not achieved. The next daily run
-     * finds the remainder because the erased sessions no longer match.
+     * Hitting the per-run cap means more of this subject may remain, so
+     * the request goes back to Pending with its progress accumulated
+     * rather than reporting a completion it has not achieved. The next
+     * run finds the remainder because the erased sessions no longer
+     * match (and skips the ones whose mutation is still running).
      *
      * This is the one status transition the service exposes no helper for -
      * markCompleted / markFailed are both terminal - so it is written
      * directly. completedAt stays unset: a requeued request must not look
      * finished to the UI or to a compliance export.
      */
-    if (sessionIds.length >= MAX_SESSION_IDS_PER_REQUEST_PER_RUN) {
+    if (targets.moreMayRemain) {
       await RumSessionErasureRequestService.updateOneById({
         id: requestId,
         data: {
@@ -916,7 +1098,7 @@ export async function processPendingErasureRequests(): Promise<void> {
 RunCron(
   JOB_NAME,
   {
-    schedule: EVERY_DAY,
+    schedule: ERASURE_JOB_SCHEDULE,
     runOnStartup: false,
     timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(60),
   },

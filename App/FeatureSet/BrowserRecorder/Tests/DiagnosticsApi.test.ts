@@ -563,5 +563,54 @@ describe("Diagnostics API", (): void => {
 
       expect(codes()).toContain("api-no-recorder");
     });
+
+    /*
+     * REGRESSION (recorder-8). identify/track/setTags/addTag returned in
+     * silence when no recorder existed, so a customer whose identify() ran
+     * before the artifact loaded (or after stop()) saw "Identity hidden" in
+     * the dashboard, no tags, nothing in getDiagnostics().records - while
+     * the troubleshooting docs name api-no-recorder as the line to look for.
+     */
+    it.each([
+      [
+        "identify()",
+        (index: typeof import("../src/Index")): void => {
+          index.identify("user-42", { plan: "pro" });
+        },
+      ],
+      [
+        "track()",
+        (index: typeof import("../src/Index")): void => {
+          index.track("checkout_failed");
+        },
+      ],
+      [
+        "setTags()",
+        (index: typeof import("../src/Index")): void => {
+          index.setTags({ build: "9" });
+        },
+      ],
+      [
+        "addTag()",
+        (index: typeof import("../src/Index")): void => {
+          index.addTag("arm", "b");
+        },
+      ],
+    ])(
+      "says api-no-recorder when %s finds nothing running",
+      async (
+        call: string,
+        run: (index: typeof import("../src/Index")) => void,
+      ): Promise<void> => {
+        const index: typeof import("../src/Index") = await importIndex();
+
+        run(index);
+
+        expect(codes()).toContain("api-no-recorder");
+
+        /* Naming WHICH call it was; four of them share the code. */
+        expect(JSON.stringify(index.getDiagnostics().records)).toContain(call);
+      },
+    );
   });
 });

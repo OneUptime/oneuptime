@@ -7,61 +7,136 @@ import React, {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import Navigation from "Common/UI/Utils/Navigation";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import Skeleton from "Common/UI/Components/Skeleton/Skeleton";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
+import Route from "Common/Types/API/Route";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import { JSONArray, JSONObject } from "Common/Types/JSON";
+import { JSONObject } from "Common/Types/JSON";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
-import {
-  SessionReplayChunkManifestEntry,
-  SessionReplayGap,
-} from "Common/Types/Rum/SessionReplay";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import ChunkLoader, {
-  ReplayTimelineEvent,
+  SessionReplayChunkFetchRequest,
   SessionReplayRecordedEvent,
 } from "./ChunkLoader";
-import ReplayDevtoolsPanel from "./ReplayDevtoolsPanel";
-import ReplayPinControl from "./ReplayPinControl";
 import {
-  FidelityNoticeCopy,
-  getFidelityNoticeCopy,
-  getFidelityNoticeSeverity,
-} from "./FidelityNoticeCopy";
-import ReplayStage, {
-  ReplaySeekRequest,
+  createBrowserReplayEngineDeps,
+  createReplayEngine,
+} from "./Engine/ReplayEngine";
+import {
+  ReplayEngine,
+  ReplayEngineListener,
+  ReplayEngineReplayerEvent,
+  ReplayEngineSnapshot,
+  ReplayIdleBand,
+  ReplayRecordedSize,
   ReplayerFactory,
   ReplayerLike,
-} from "./ReplayStage";
-import ReplayScrubber, {
-  ReplayBand,
-  ReplayBandState,
-  ReplayMarker,
-} from "./ReplayScrubber";
+} from "./Engine/ReplayEngineTypes";
+import ReplayStage, { ReplayStageFit } from "./ReplayStage";
+import ReplayStageOverlays, { findIdleBandAt } from "./ReplayStageOverlays";
+import ReplayHeader, {
+  ReplayHeaderFact,
+  ReplayHeaderHandle,
+  ReplayHeaderTab,
+} from "./ReplayHeader";
+import ReplayScrubber from "./ReplayScrubber";
+import ReplayRail, { ReplayRailHandle } from "./Rail/ReplayRail";
+import {
+  ReplayBackendSignalsSnapshot,
+  ReplayBackendSignalsStore,
+  makeIdleBackendSignalsState,
+} from "./Rail/ReplayBackendSignals";
+import {
+  REPLAY_RAIL_TAB_IDS,
+  ReplayClockAlignmentState,
+  ReplayRailTabId,
+  ReplaySignal,
+} from "./Rail/ReplaySignalTypes";
+import { isSignalInTab } from "./Rail/ReplayRailFilters";
+import { fromTimelineEvents, mergeSignals } from "./Rail/ReplaySignals";
+import ReplayPinControl from "./ReplayPinControl";
 import ReplayCorrelationPanel, {
-  ReplaySessionDetails,
+  ReplayRailCounts,
 } from "./ReplayCorrelationPanel";
 import {
-  DEFAULT_SKIP_INACTIVE,
-  shouldRewindBeforePlay,
-} from "./ReplayPlaybackIntent";
+  FidelityNoticeCopy,
+  SealedReasonCopy,
+  getFidelityNoticeCopy,
+  getFidelityNoticeSeverity,
+  getSealedReasonCopy,
+} from "./FidelityNoticeCopy";
+import {
+  REPLAY_URL_PARAM_RAIL,
+  REPLAY_URL_PARAM_RAIL_SEARCH,
+  REPLAY_URL_PARAM_SIGNAL,
+  REPLAY_URL_PARAM_TAB,
+  ReplayInitialMoment,
+  ReplayPlayerUrlState,
+  buildReplayMomentRoute,
+  describeReplayAccessReason,
+  describeReplayMomentNotice,
+  makeEmptyReplayPlayerUrlState,
+  resolveReplayInitialMoment,
+} from "./ReplayPlayerUrlState";
+import {
+  ReplayFootageAbsence,
+  ReplayManifestFailure,
+  SessionReplayManifest,
+  SessionReplayManifestChunk,
+  SessionReplayManifestTab,
+  classifyManifestFailure,
+  describeFootageAbsence,
+  findTab,
+  findTabContinuingAfter,
+  parseManifest,
+  pickInitialTab,
+  tabHasFootage,
+} from "./ReplayManifest";
+import {
+  REPLAY_RAIL_MAX_WIDTH_REM,
+  REPLAY_RAIL_MIN_WIDTH_REM,
+  ReplayViewPrefs,
+  getReplayViewPrefsSnapshot,
+  readReplayListUrl,
+  replayViewPrefsStore,
+  subscribeToReplayViewPrefs,
+} from "./ReplayViewPrefs";
+import {
+  ReplayActivityBucket,
+  ReplayTimelineMarker,
+  ReplayTrackBand,
+  buildActivityHeat,
+  buildTimelineMarkers,
+  buildTrackBands,
+} from "./ReplayTimelineMath";
+import { formatReplayOffset } from "./ReplayTimeFormat";
 
 /*
- * The loader half of the player: manifest, authenticated chunk transport, the
- * single lazy rrweb import, and the assembly of stage + scrubber + panel.
+ * The composition root of the player: manifest transport, the chunk
+ * transport, the single lazy rrweb import, the engine's lifetime, the
+ * heartbeat, live polling, URL state, preferences - and the assembly of
+ * ReplayHeader -> (ReplayStageOverlays(ReplayStage) + ReplayScrubber) +
+ * ReplayRail -> ReplayCorrelationPanel.
  *
- * Fetch shape copied from Components/Profiles/ProfileFlamegraph.tsx, including
- * its loadGenerationRef staleness guard.
+ * Nothing about WHAT plays lives here any more: that is
+ * Engine/ReplayEngine.ts, read through useSyncExternalStore. This file
+ * owns the things that need the page - fetch, the URL, storage, the
+ * document's fullscreen element - and hands the engine what it needs.
  *
  * THIS IS THE ONLY FILE IN THE DASHBOARD THAT MAY REFERENCE rrweb, and only
  * through the dynamic import below. Common/UI/esbuild-config.js hardcodes
@@ -69,6 +144,7 @@ import {
  * lands the ~450KB Replayer in its own lazily fetched chunk. A single
  * top-level `import { Replayer } from "rrweb"` anywhere would move all of it
  * into the shared chunk downloaded by every user who never opens a replay.
+ * SessionReplayRoutes.test.ts and SessionReplayPlayerWiring.test.ts pin it.
  */
 
 const MANIFEST_ROUTE: string = "/telemetry/rum/session-replay/manifest";
@@ -76,419 +152,316 @@ const CHUNKS_ROUTE: string = "/telemetry/rum/session-replay/chunks";
 const HEARTBEAT_ROUTE: string = "/telemetry/rum/session-replay/heartbeat";
 
 /* Matches the server-side throttle; anything finer is discarded there. */
-const HEARTBEAT_INTERVAL_MS: number = 15 * 1000;
+export const HEARTBEAT_INTERVAL_MS: number = 15 * 1000;
+
+/* How often the watched-time accumulator samples the engine. */
+const HEARTBEAT_TICK_MS: number = 1000;
 
 /*
- * Per-chunk manifest row.
- *
- * The signal counters are projected by the manifest endpoint's SELECT
- * (Common/Server/Utils/SessionReplay/SessionReplayReadService.getManifest)
- * and feed the frustration, error and route lanes plus the "next error"
- * jump. They are still read defensively (missing -> 0) so a manifest from
- * an older server renders as an empty lane rather than a parse failure.
+ * Live sessions re-fetch the manifest this often. The request carries
+ * isRefresh + viewId so the server reuses the audit row (WP-S2): ONE
+ * audit row per view, however long the viewer follows a live session.
  */
-export type SessionReplayManifestChunk = SessionReplayChunkManifestEntry;
+export const LIVE_MANIFEST_POLL_MS: number = 30 * 1000;
 
-export interface SessionReplayManifestTab {
-  tabId: string;
-  chunks: Array<SessionReplayManifestChunk>;
-  gaps: Array<SessionReplayGap>;
-}
+/* "Opened at the moment of the log line" stays up this long. */
+const SHELL_NOTICE_MS: number = 4000;
 
-export interface SessionReplayManifest {
-  /*
-   * The audit row the manifest read just created. Every heartbeat advances
-   * THIS row; the endpoint takes a viewId and nothing else identifies it.
-   */
-  viewId: string;
-  sessionId: string;
-  durationMs: number;
-  isFinalized: boolean;
-  sealedReason: string;
-  /* True when the chunk index itself was cut short server-side. */
-  isChunkIndexTruncated: boolean;
-  tabs: Array<SessionReplayManifestTab>;
-  gaps: Array<SessionReplayGap>;
-  fidelityNotices: Array<string>;
-  missingAssets: Array<string>;
-  details: ReplaySessionDetails;
-  /*
-   * Exact-timestamp network markers from the manifest endpoint. Still not
-   * produced there; the player now derives its network lane from the
-   * type-5 custom events the ChunkLoader extracts, which are exact to the
-   * recorder's clock. Kept on the type so a future server-side producer
-   * slots in without a shape change.
-   */
-  networkMarkers: Array<ReplayMarker>;
-}
+type ReplayerConstructor = new (
+  events: Array<SessionReplayRecordedEvent>,
+  config: Record<string, unknown>,
+) => ReplayerLike;
 
-function readNumber(row: JSONObject, key: string): number {
-  const parsed: number = Number(row[key]);
-
-  return isFinite(parsed) ? parsed : 0;
-}
-
-function readString(row: JSONObject, key: string): string {
-  const value: unknown = row[key];
-
-  return value === null || value === undefined ? "" : String(value);
-}
-
-function readStringArray(row: JSONObject, key: string): Array<string> {
-  const value: unknown = row[key];
-
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.map((entry: unknown): string => {
-    return String(entry);
-  });
-}
-
-function parseManifestChunk(row: JSONObject): SessionReplayManifestChunk {
-  return {
-    chunkIndex: readNumber(row, "chunkIndex"),
-    tabId: readString(row, "tabId"),
-    chunkStartOffsetMs: readNumber(row, "chunkStartOffsetMs"),
-    chunkEndOffsetMs: readNumber(row, "chunkEndOffsetMs"),
-    eventCount: readNumber(row, "eventCount"),
-    hasFullSnapshot:
-      row["hasFullSnapshot"] === true ||
-      row["hasFullSnapshot"] === 1 ||
-      row["hasFullSnapshot"] === "1",
-    payloadBytes: readNumber(row, "payloadBytes"),
-    errorCount: readNumber(row, "errorCount"),
-    rageClickCount: readNumber(row, "rageClickCount"),
-    deadClickCount: readNumber(row, "deadClickCount"),
-    errorClickCount: readNumber(row, "errorClickCount"),
-    refreshRageCount: readNumber(row, "refreshRageCount"),
-    routeCount: readNumber(row, "routeCount"),
-  };
-}
-
-function readBoolean(row: JSONObject, key: string): boolean {
-  const value: unknown = row[key];
-
-  // ClickHouse UInt8 booleans arrive as 0/1, sometimes as the strings "0"/"1".
-  return value === true || value === 1 || value === "1";
-}
-
-function parseGap(row: JSONObject): SessionReplayGap {
-  return {
-    fromIndex: readNumber(row, "fromIndex"),
-    toIndex: readNumber(row, "toIndex"),
-    missingMs: readNumber(row, "missingMs"),
-  };
-}
-
-/*
- * Maps the /manifest response onto what the player needs.
- *
- * The endpoint answers { viewId, header, tabs, isChunkIndexTruncated }: the
- * session-level facts live under `header`, and gaps are per TAB rather than
- * per session because chunkIndex is minted per tab. This function is the one
- * place that knows that shape.
- */
-function parseManifest(data: JSONObject): SessionReplayManifest {
-  const header: JSONObject = (data["header"] as JSONObject) || {};
-  const tabRows: JSONArray = (data["tabs"] as JSONArray) || [];
-  const networkRows: JSONArray = (data["networkMarkers"] as JSONArray) || [];
-
-  const tabs: Array<SessionReplayManifestTab> = tabRows.map(
-    (row: JSONObject): SessionReplayManifestTab => {
-      const chunkRows: JSONArray = (row["chunks"] as JSONArray) || [];
-      const tabGapRows: JSONArray = (row["gaps"] as JSONArray) || [];
-
-      return {
-        tabId: readString(row, "tabId"),
-        chunks: chunkRows.map(parseManifestChunk),
-        gaps: tabGapRows.map(parseGap),
-      };
-    },
-  );
-
-  return {
-    viewId: readString(data, "viewId"),
-    sessionId: readString(header, "sessionId"),
-    durationMs: readNumber(header, "durationMs"),
-    isFinalized: readBoolean(header, "isFinalized"),
-    sealedReason: readString(header, "sealedReason"),
-    isChunkIndexTruncated: readBoolean(data, "isChunkIndexTruncated"),
-    tabs: tabs,
-    /*
-     * Every tab's holes, so the notice count and the correlation panel
-     * describe the whole recording rather than whichever tab is on screen.
-     */
-    gaps: tabs.flatMap(
-      (tab: SessionReplayManifestTab): Array<SessionReplayGap> => {
-        return tab.gaps;
-      },
-    ),
-    fidelityNotices: readStringArray(header, "fidelityNotices"),
-    /*
-     * Not part of the manifest response. Left empty rather than inferred:
-     * claiming an asset was captured when nothing says so is worse than
-     * saying nothing.
-     */
-    missingAssets: [],
-    networkMarkers: networkRows.map((row: JSONObject): ReplayMarker => {
-      return {
-        atMs: readNumber(row, "atMs"),
-        label: readString(row, "label"),
-      };
-    }),
-    details: {
-      entryUrl: readString(header, "entryUrl"),
-      exitUrl: readString(header, "exitUrl"),
-      browserName: readString(header, "browserName"),
-      browserVersion: readString(header, "browserVersion"),
-      osName: readString(header, "osName"),
-      deviceType: readString(header, "deviceType"),
-      countryCode: readString(header, "countryCode"),
-      /*
-       * The header projection has no identity column - the raw end-user
-       * identifier has a narrower ACL and is only served by /list, to
-       * callers holding it. Blank here means pseudonymous to the panel.
-       */
-      identifiedUserLabel: "",
-      maskingMode: readString(header, "maskingMode"),
-      consentState: readString(header, "consentState"),
-      triggerReason: readString(header, "triggerReason"),
-      recorderVersion: readString(header, "recorderVersion"),
-      rrwebVersion: readString(header, "rrwebVersion"),
-      viewportWidth: readNumber(header, "viewportWidth"),
-      viewportHeight: readNumber(header, "viewportHeight"),
-      clockSkewMs: readNumber(header, "clockSkewMs"),
-      payloadBytes: readNumber(header, "payloadBytes"),
-      startTime: readString(header, "startTime"),
-      endTime: readString(header, "endTime"),
-      traceIds: readStringArray(header, "traceIds"),
-      exceptionFingerprints: readStringArray(header, "exceptionFingerprints"),
-    },
-  };
+interface RrwebModule {
+  Replayer: unknown;
 }
 
 export interface SessionReplayPlayerProps {
   rumApplicationId: ObjectID;
   sessionId: string;
-  /* Deep-link start position in seconds, from the ?t= query param. */
+  /* ?t / ?at / ?tab / ?rail / ?signal / ?q, parsed by the page. */
+  initialUrlState?: ReplayPlayerUrlState | undefined;
+  /* Older callers' ?t= in seconds; folded into initialUrlState. */
   initialOffsetSeconds?: number | undefined;
 }
+
+/* What the shell renders from before the engine exists. */
+function makeIdleSnapshot(tabId: string): ReplayEngineSnapshot {
+  return {
+    phase: "loading",
+    intent: "paused",
+    buffer: "empty",
+    currentTimeMs: 0,
+    durationMs: 0,
+    speed: 1,
+    skipInactive: false,
+    fedRange: null,
+    loadedChunkIndexes: [],
+    activeTabId: tabId,
+    recordedSize: null,
+    bufferingSinceMs: null,
+    lastGap: null,
+    lastIdleSkip: null,
+    error: null,
+    pendingSeekMs: null,
+    generation: 0,
+    notice: null,
+    idleBands: [],
+    feedAheadMs: 30000,
+    earliestPlayableMs: null,
+  };
+}
+
+const EMPTY_BACKEND_SNAPSHOT: ReplayBackendSignalsSnapshot = {
+  slots: makeIdleBackendSignalsState(),
+  rows: { log: [], span: [], exception: [] },
+};
+
+function noopUnsubscribe(): () => void {
+  return (): void => {
+    return;
+  };
+}
+
+const NO_SIGNALS: Array<ReplaySignal> = [];
+const NO_CHUNKS: Array<SessionReplayManifestChunk> = [];
+
+/*
+ * The rail tab a row lives on. "all" shows everything, so a signal that
+ * is already visible on the open tab never forces a switch; otherwise the
+ * first kind-specific tab that claims it wins - the same rule ReplayRail
+ * applies internally when it reveals a row.
+ */
+function homeRailTabForSignal(signal: ReplaySignal): ReplayRailTabId {
+  for (const tabId of REPLAY_RAIL_TAB_IDS) {
+    if (tabId !== "all" && isSignalInTab(signal, tabId)) {
+      return tabId;
+    }
+  }
+
+  return "all";
+}
+
+/* ---- Transport. ---- */
+
+async function fetchManifest(args: {
+  rumApplicationId: string;
+  sessionId: string;
+  refresh?: { viewId: string } | undefined;
+  /* Why this playback was opened; written to the audit row. */
+  accessReason?: string | null | undefined;
+}): Promise<SessionReplayManifest> {
+  /*
+   * The manifest request is also the audit event - the server writes a
+   * RumSessionReplayView row for it. That is why the payload endpoint is
+   * never called first: the record of who watched must exist before a
+   * single recorded byte is served. A refresh names the existing view so
+   * no second row is written.
+   */
+  const body: JSONObject = {
+    rumApplicationId: args.rumApplicationId,
+    sessionId: args.sessionId,
+  };
+
+  if (args.refresh) {
+    body["isRefresh"] = true;
+    body["viewId"] = args.refresh.viewId;
+  } else if (args.accessReason) {
+    /*
+     * ux-12 / integration-004: the audit page exists to answer "why did
+     * this person watch this customer's session", and it read "None
+     * given" on every row because nothing ever sent a reason. A refresh
+     * writes no row, so the reason travels only with the first request.
+     */
+    body["accessReason"] = args.accessReason;
+  }
+
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
+    {
+      url: URL.fromString(APP_API_URL.toString()).addRoute(MANIFEST_ROUTE),
+      data: body,
+      headers: {
+        ...ModelAPI.getCommonHeaders(),
+      },
+    },
+  );
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
+  }
+
+  return parseManifest(response.data);
+}
+
+/*
+ * Watch-time heartbeat. fetch with keepalive rather than the shared API
+ * util so the final flush on pagehide / unmount survives the page going
+ * away; the same headers the chunk transport sends. Fire-and-forget: a
+ * failed heartbeat must never interrupt playback.
+ */
+function postHeartbeat(
+  viewId: string,
+  secondsWatched: number,
+  keepalive: boolean,
+): void {
+  try {
+    const headers: Dictionary<string> = {
+      ...ModelAPI.getCommonHeaders(),
+      "Content-Type": "application/json",
+    };
+
+    void fetch(
+      URL.fromString(APP_API_URL.toString())
+        .addRoute(HEARTBEAT_ROUTE)
+        .toString(),
+      {
+        method: "POST",
+        headers: headers,
+        credentials: "same-origin",
+        keepalive: keepalive,
+        body: JSON.stringify({
+          viewId: viewId,
+          secondsWatched: secondsWatched,
+        }),
+      },
+    ).catch((): void => {
+      /* Deliberately ignored - see above. */
+    });
+  } catch {
+    /* A throwing fetch (no window, blocked) is not worth a render. */
+  }
+}
+
+/* ---- Component. ---- */
 
 const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   props: SessionReplayPlayerProps,
 ): ReactElement => {
-  const [manifest, setManifest] = useState<SessionReplayManifest | null>(null);
-  const [replayerFactory, setReplayerFactory] =
-    useState<ReplayerFactory | null>(null);
-  const [activeTabId, setActiveTabId] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
-  const [stageError, setStageError] = useState<string>("");
-
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [speed, setSpeed] = useState<number>(1);
-  /* Off by default; see DEFAULT_SKIP_INACTIVE for why that reversed. */
-  const [skipInactive, setSkipInactive] = useState<boolean>(
-    DEFAULT_SKIP_INACTIVE,
-  );
-  const [currentTimeMs, setCurrentTimeMs] = useState<number>(0);
-  const [seekRequest, setSeekRequest] = useState<ReplaySeekRequest | null>(
-    null,
-  );
-  const [loadedChunkIndexes, setLoadedChunkIndexes] = useState<Array<number>>(
-    [],
-  );
-  const [crossedGaps, setCrossedGaps] = useState<Array<SessionReplayGap>>([]);
-  const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
-  const [panelTabId, setPanelTabId] = useState<string>("session");
-  const [timelineEvents, setTimelineEvents] = useState<
-    Array<ReplayTimelineEvent>
-  >([]);
-  const [areEventsTruncated, setAreEventsTruncated] = useState<boolean>(false);
-  const [isBuffering, setIsBuffering] = useState<boolean>(false);
-  const [isPermalinkCopied, setIsPermalinkCopied] = useState<boolean>(false);
-  const [isTheaterMode, setIsTheaterMode] = useState<boolean>(false);
-
-  const theaterRef: React.MutableRefObject<HTMLDivElement | null> =
-    useRef<HTMLDivElement | null>(null);
-
   /*
-   * Navigation.getLastParamAsObjectID mints a NEW ObjectID on every call, and
-   * the page component recomputes it every render, so props.rumApplicationId
-   * is a different object identity each time even though the id never
-   * changes. Keying anything on the object itself - fetchChunks, the loader
-   * memo - would dispose the ChunkLoader and restart playback from the top on
-   * any unrelated parent re-render. Everything below keys on the string.
+   * Navigation.getLastParamAsObjectID mints a NEW ObjectID on every call, so
+   * props.rumApplicationId is a different object each render even though
+   * the id never changes. Everything below keys on the string.
    */
   const rumApplicationIdString: string = props.rumApplicationId.toString();
+  const { sessionId } = props;
 
-  const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
-  const seekTokenRef: React.MutableRefObject<number> = useRef<number>(0);
-  /* Highest offset actually reached, which is what secondsWatched means. */
-  const watchedMsRef: React.MutableRefObject<number> = useRef<number>(0);
-
-  const load: (generation: number) => Promise<void> = useCallback(
-    async (generation: number): Promise<void> => {
-      try {
-        setIsLoading(true);
-        setError("");
-
-        /*
-         * The manifest request is also the audit event - the server writes a
-         * RumSessionReplayView row for it. That is why the payload endpoint
-         * is never called first: the record of who watched must exist before
-         * a single recorded byte is served.
-         */
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.post({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              MANIFEST_ROUTE,
-            ),
-            data: {
-              rumApplicationId: rumApplicationIdString,
-              sessionId: props.sessionId,
-            },
-            headers: {
-              ...ModelAPI.getCommonHeaders(),
-            },
-          });
-
-        if (generation !== loadGenerationRef.current) {
-          return;
-        }
-
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
-
-        const parsed: SessionReplayManifest = parseManifest(response.data);
-
-        /*
-         * Loaded only once the manifest proves there is something to play.
-         * Fetching 450KB of Replayer for a session whose chunks have already
-         * expired would be pure waste on the most common failure path.
-         */
-        const rrweb: { Replayer: unknown } = (await import(
-          "rrweb"
-        )) as unknown as {
-          Replayer: unknown;
-        };
-
-        if (generation !== loadGenerationRef.current) {
-          return;
-        }
-
-        const ReplayerConstructor: new (
-          events: Array<SessionReplayRecordedEvent>,
-          config: Record<string, unknown>,
-        ) => ReplayerLike = rrweb.Replayer as new (
-          events: Array<SessionReplayRecordedEvent>,
-          config: Record<string, unknown>,
-        ) => ReplayerLike;
-
-        setManifest(parsed);
-        /*
-         * The first tab that actually has footage, not simply the first tab.
-         * A duplicated tab mints a tabId before anything is flushed, and one
-         * tab's chunks can expire before another's, so tabs[0] is routinely
-         * empty on a session that plays perfectly well.
-         */
-        setActiveTabId(
-          parsed.tabs.find((tab: SessionReplayManifestTab): boolean => {
-            return tab.chunks.length > 0;
-          })?.tabId ??
-            parsed.tabs[0]?.tabId ??
-            "",
-        );
-        /*
-         * Wrapped in a thunk: useState treats a bare function argument as a
-         * lazy initialiser and would call the factory instead of storing it.
-         */
-        setReplayerFactory((): ReplayerFactory => {
-          return (
-            events: Array<SessionReplayRecordedEvent>,
-            config: Record<string, unknown>,
-          ): ReplayerLike => {
-            return new ReplayerConstructor(events, config);
-          };
-        });
-      } catch (err) {
-        if (generation === loadGenerationRef.current) {
-          setError(API.getFriendlyMessage(err));
-        }
-      } finally {
-        if (generation === loadGenerationRef.current) {
-          setIsLoading(false);
-        }
-      }
-    },
-    [rumApplicationIdString, props.sessionId],
-  );
-
-  useEffect(() => {
-    loadGenerationRef.current += 1;
-    void load(loadGenerationRef.current);
-
-    return () => {
-      loadGenerationRef.current += 1;
-    };
-  }, [load]);
-
-  const activeTab: SessionReplayManifestTab | null = useMemo(() => {
-    if (!manifest) {
-      return null;
+  const urlState: ReplayPlayerUrlState = useMemo((): ReplayPlayerUrlState => {
+    if (props.initialUrlState) {
+      return props.initialUrlState;
     }
 
-    return (
-      manifest.tabs.find((tab: SessionReplayManifestTab): boolean => {
-        return tab.tabId === activeTabId;
-      }) ??
-      manifest.tabs[0] ??
-      null
-    );
-  }, [manifest, activeTabId]);
+    const legacy: ReplayPlayerUrlState = makeEmptyReplayPlayerUrlState();
 
-  /*
-   * Authenticated binary transport for chunk payloads.
-   *
-   * fetch rather than the shared API util: the response is
-   * application/octet-stream and the axios-based helper deserialises JSON.
-   * Same-origin credentials carry the session cookie exactly as every other
-   * Dashboard request does.
-   */
-  const fetchChunks: (request: {
-    sessionId: string;
-    tabId: string;
-    chunkIndexes: Array<number>;
-  }) => Promise<ArrayBuffer> = useCallback(
-    async (request: {
-      sessionId: string;
-      tabId: string;
-      chunkIndexes: Array<number>;
-    }): Promise<ArrayBuffer> => {
+    if (
+      typeof props.initialOffsetSeconds === "number" &&
+      Number.isFinite(props.initialOffsetSeconds) &&
+      props.initialOffsetSeconds > 0
+    ) {
+      legacy.offsetMs = Math.round(props.initialOffsetSeconds * 1000);
+    }
+
+    return legacy;
+    /* Read once per session: the URL is input on load, then the player writes it. */
+  }, [sessionId]);
+
+  const prefs: ReplayViewPrefs = useSyncExternalStore(
+    subscribeToReplayViewPrefs,
+    getReplayViewPrefsSnapshot,
+    getReplayViewPrefsSnapshot,
+  );
+
+  const [manifest, setManifest] = useState<SessionReplayManifest | null>(null);
+  const [manifestFailure, setManifestFailure] =
+    useState<ReplayManifestFailure | null>(null);
+  const [reloadToken, setReloadToken] = useState<number>(0);
+  const [replayerFactory, setReplayerFactory] =
+    useState<ReplayerFactory | null>(null);
+  const [engine, setEngine] = useState<ReplayEngine | null>(null);
+  const [activeTabId, setActiveTabId] = useState<string>("");
+  const [fit, setFit] = useState<ReplayStageFit>("contain");
+  const [scale, setScale] = useState<number>(1);
+  const [isTheater, setIsTheater] = useState<boolean>(false);
+  const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
+  const [selectedSignalId, setSelectedSignalId] = useState<string | null>(
+    urlState.signalId,
+  );
+  const [ghostMs, setGhostMs] = useState<number | null>(null);
+  const [telemetrySignals, setTelemetrySignals] =
+    useState<Array<ReplaySignal>>(NO_SIGNALS);
+  const [railTab, setRailTab] = useState<ReplayRailTabId>(
+    urlState.railTab ?? prefs.railTab,
+  );
+  const [railQuery, setRailQuery] = useState<string>(urlState.railSearch ?? "");
+  const [shellNotice, setShellNotice] = useState<string | null>(null);
+  const [backendStore, setBackendStore] =
+    useState<ReplayBackendSignalsStore | null>(null);
+
+  const rootRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+  const railContainerRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const railRef: React.RefObject<ReplayRailHandle> =
+    useRef<ReplayRailHandle>(null);
+  const headerRef: React.RefObject<ReplayHeaderHandle> =
+    useRef<ReplayHeaderHandle>(null);
+  const engineRef: React.MutableRefObject<ReplayEngine | null> =
+    useRef<ReplayEngine | null>(null);
+  const loaderRef: React.MutableRefObject<ChunkLoader | null> =
+    useRef<ChunkLoader | null>(null);
+  /* The loader created the moment the manifest landed, before rrweb arrived. */
+  const pendingLoaderRef: React.MutableRefObject<ChunkLoader | null> =
+    useRef<ChunkLoader | null>(null);
+  const replayerRef: React.MutableRefObject<ReplayerLike | null> =
+    useRef<ReplayerLike | null>(null);
+  const manifestRef: React.MutableRefObject<SessionReplayManifest | null> =
+    useRef<SessionReplayManifest | null>(null);
+  const activeTabIdRef: React.MutableRefObject<string> = useRef<string>("");
+  const seekTokenRef: React.MutableRefObject<number> = useRef<number>(0);
+  const hasRevealedSignalRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  engineRef.current = engine;
+  manifestRef.current = manifest;
+  activeTabIdRef.current = activeTabId;
+
+  /* ---- Chunk transport. ---- */
+
+  const fetchChunks: (
+    request: SessionReplayChunkFetchRequest,
+  ) => Promise<ArrayBuffer> = useCallback(
+    async (request: SessionReplayChunkFetchRequest): Promise<ArrayBuffer> => {
+      /*
+       * fetch rather than the shared API util: the response is
+       * application/octet-stream and the axios-based helper deserialises
+       * JSON. The loader's abort signal is forwarded so a timeout or a
+       * dispose frees the connection, not just the promise.
+       */
       const headers: Dictionary<string> = {
         ...ModelAPI.getCommonHeaders(),
         "Content-Type": "application/json",
         Accept: "application/octet-stream",
       };
 
+      const init: RequestInit = {
+        method: "POST",
+        headers: headers,
+        credentials: "same-origin",
+        body: JSON.stringify({
+          rumApplicationId: rumApplicationIdString,
+          sessionId: request.sessionId,
+          tabId: request.tabId,
+          chunkIndexes: request.chunkIndexes,
+        }),
+      };
+
+      if (request.signal) {
+        init.signal = request.signal;
+      }
+
       const response: Response = await fetch(
         URL.fromString(APP_API_URL.toString())
           .addRoute(CHUNKS_ROUTE)
           .toString(),
-        {
-          method: "POST",
-          headers: headers,
-          credentials: "same-origin",
-          body: JSON.stringify({
-            rumApplicationId: rumApplicationIdString,
-            sessionId: request.sessionId,
-            tabId: request.tabId,
-            chunkIndexes: request.chunkIndexes,
-          }),
-        },
+        init,
       );
 
       if (!response.ok) {
@@ -502,74 +475,507 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     [rumApplicationIdString],
   );
 
-  const loader: ChunkLoader | null = useMemo(() => {
-    if (!activeTab || activeTab.chunks.length === 0) {
-      return null;
-    }
+  const createLoader: (tab: SessionReplayManifestTab) => ChunkLoader =
+    useCallback(
+      (tab: SessionReplayManifestTab): ChunkLoader => {
+        /*
+         * One loader per tab, and only one tab plays at a time. chunkIndex
+         * is minted per tab and rrweb node ids are per document, so two tabs
+         * are two independent recordings that merely share a sessionId.
+         */
+        return new ChunkLoader({
+          sessionId: sessionId,
+          tabId: tab.tabId,
+          entries: tab.chunks,
+          fetcher: fetchChunks,
+        });
+      },
+      [sessionId, fetchChunks],
+    );
+
+  /* ---- Manifest + rrweb, in parallel. ---- */
+
+  useEffect(() => {
+    let isCancelled: boolean = false;
+
+    setManifest(null);
+    setManifestFailure(null);
+    setEngine(null);
+    setReplayerFactory(null);
+    setActiveTabId("");
+    setTelemetrySignals(NO_SIGNALS);
+    hasRevealedSignalRef.current = false;
 
     /*
-     * One loader per tab, and only one tab plays at a time. chunkIndex is
-     * minted per tab and rrweb node ids are per document, so two tabs are two
-     * independent recordings that merely share a sessionId - interleaving
-     * them into one Replayer would resolve mutations against the wrong nodes.
+     * INSTANT FEEL: the rrweb download starts at mount, the manifest is
+     * fetched alongside it, and the first chunks go on the wire the moment
+     * the manifest resolves - before the Replayer has finished arriving.
      */
-    return new ChunkLoader({
-      sessionId: props.sessionId,
-      tabId: activeTab.tabId,
-      entries: activeTab.chunks,
-      fetcher: fetchChunks,
+    const rrwebModulePromise: Promise<RrwebModule> =
+      (async (): Promise<RrwebModule> => {
+        return (await import("rrweb")) as unknown as RrwebModule;
+      })();
+
+    const manifestPromise: Promise<SessionReplayManifest> = fetchManifest({
+      rumApplicationId: rumApplicationIdString,
+      sessionId: sessionId,
+      accessReason: describeReplayAccessReason(urlState),
     });
-    /*
-     * activeTab is a memo over manifest+activeTabId, both of which only
-     * change when there is genuinely a different tab to play.
-     */
-  }, [activeTab, props.sessionId, fetchChunks]);
 
-  useEffect(() => {
+    void (async (): Promise<void> => {
+      try {
+        const parsed: SessionReplayManifest = await manifestPromise;
+
+        if (isCancelled) {
+          return;
+        }
+
+        setManifest(parsed);
+
+        const initialTab: SessionReplayManifestTab | null = pickInitialTab(
+          parsed,
+          urlState.tabId,
+        );
+
+        setActiveTabId(initialTab?.tabId ?? parsed.tabs[0]?.tabId ?? "");
+
+        if (initialTab) {
+          const loader: ChunkLoader = createLoader(initialTab);
+          const moment: ReplayInitialMoment = resolveReplayInitialMoment({
+            state: urlState,
+            startTimeUnixMs: parsed.startTimeUnixMs,
+            durationMs: loader.getDurationMs(),
+          });
+          const chunkAtMoment: number | null = loader.getChunkIndexForOffset(
+            moment.offsetMs,
+          );
+          const anchor: number | null =
+            (chunkAtMoment !== null
+              ? loader.getSeekAnchor(chunkAtMoment)
+              : null) ?? loader.getFirstPlayableChunkIndex();
+
+          pendingLoaderRef.current = loader;
+
+          if (anchor !== null) {
+            void loader.loadFirst(anchor).catch((): void => {
+              /* Surfaces through the engine's own LOAD when it runs. */
+            });
+          }
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          setManifestFailure(classifyManifestFailure(err));
+        }
+      }
+    })();
+
+    void (async (): Promise<void> => {
+      try {
+        const rrweb: RrwebModule = await rrwebModulePromise;
+
+        if (isCancelled) {
+          return;
+        }
+
+        const ReplayerConstructor: ReplayerConstructor =
+          rrweb.Replayer as ReplayerConstructor;
+
+        /*
+         * Wrapped in a thunk: useState treats a bare function argument as a
+         * lazy initialiser and would call the factory instead of storing it.
+         */
+        setReplayerFactory((): ReplayerFactory => {
+          return (
+            events: Array<SessionReplayRecordedEvent>,
+            config: Record<string, unknown>,
+          ): ReplayerLike => {
+            return new ReplayerConstructor(events, config);
+          };
+        });
+      } catch (err) {
+        if (!isCancelled) {
+          setManifestFailure({
+            kind: "error",
+            message: `The replay engine could not be downloaded. ${API.getFriendlyMessage(
+              err,
+            )}`,
+            isRetryable: true,
+          });
+        }
+      }
+    })();
+
     return () => {
-      loader?.dispose();
+      isCancelled = true;
+      pendingLoaderRef.current?.dispose();
+      pendingLoaderRef.current = null;
     };
-  }, [loader]);
+  }, [rumApplicationIdString, sessionId, reloadToken, createLoader, urlState]);
 
-  /* Reset transport-derived UI whenever the tab (and therefore loader) changes. */
-  useEffect(() => {
-    setCrossedGaps([]);
-    setLoadedChunkIndexes([]);
-    setStageError("");
-    setCurrentTimeMs(0);
-    setTimelineEvents([]);
-    setAreEventsTruncated(false);
-    /*
-     * isBuffering is deliberately NOT reset here: the stage's initial
-     * build effect (keyed on the same loader, and run BEFORE this parent
-     * effect) has already asserted buffering=true, and buildSegment's
-     * generation-guarded finally owns clearing it.
-     */
-    watchedMsRef.current = 0;
-  }, [loader]);
+  /* ---- Engine lifetime: once per session, the moment both halves exist. ---- */
 
-  /*
-   * Timeline events are extracted as chunks are admitted, so the loaded
-   * set changing is exactly the signal that new events may exist. Pulled
-   * rather than pushed: the loader stays a plain class with no React.
-   */
   useEffect(() => {
-    if (!loader) {
+    if (!manifest || !replayerFactory || engine) {
       return;
     }
 
-    setTimelineEvents(loader.getTimelineEvents());
-    setAreEventsTruncated(loader.areTimelineEventsTruncated());
-  }, [loader, loadedChunkIndexes]);
+    const tab: SessionReplayManifestTab | null = pickInitialTab(
+      manifest,
+      activeTabIdRef.current || urlState.tabId,
+    );
 
-  /*
-   * Native fullscreen for theater mode. State follows the DOCUMENT's
-   * fullscreen element rather than the button, so Esc — which exits
-   * fullscreen without consulting us — cannot leave the toggle lying.
-   */
+    if (!tab) {
+      return;
+    }
+
+    const pending: ChunkLoader | null = pendingLoaderRef.current;
+    const loader: ChunkLoader =
+      pending && pending.getTabId() === tab.tabId ? pending : createLoader(tab);
+
+    pendingLoaderRef.current = null;
+    loaderRef.current = loader;
+
+    const created: ReplayEngine = createReplayEngine(
+      createBrowserReplayEngineDeps(loader, replayerFactory),
+      {
+        tabId: tab.tabId,
+        headerViewport:
+          manifest.details.viewportWidth > 0 &&
+          manifest.details.viewportHeight > 0
+            ? {
+                width: manifest.details.viewportWidth,
+                height: manifest.details.viewportHeight,
+              }
+            : null,
+        initialSpeed: prefs.speed,
+        initialSkipInactive: prefs.skipIdle,
+      },
+    );
+
+    const moment: ReplayInitialMoment = resolveReplayInitialMoment({
+      state: urlState,
+      startTimeUnixMs: manifest.startTimeUnixMs,
+      durationMs: loader.getDurationMs(),
+    });
+    const chunkAtMoment: number | null = loader.getChunkIndexForOffset(
+      moment.offsetMs,
+    );
+    const anchor: number =
+      (chunkAtMoment !== null ? loader.getSeekAnchor(chunkAtMoment) : null) ??
+      loader.getFirstPlayableChunkIndex() ??
+      0;
+
+    created.dispatch({
+      type: "LOAD",
+      anchorChunkIndex: anchor,
+      targetMs: moment.offsetMs,
+    });
+
+    /*
+     * Start playing as soon as there is something to play. Opening a
+     * recording is an unambiguous request to watch it, and by the time the
+     * viewer reaches for a control the transport is already proven to be
+     * moving. Once per session: the engine keeps the viewer's intent from
+     * here on, so a pause is never overridden.
+     */
+    created.dispatch({ type: "PLAY" });
+
+    if (moment.source === "at" || moment.wasClamped) {
+      setShellNotice(
+        describeReplayMomentNotice({
+          wasClamped: moment.wasClamped,
+          signal: urlState.signalId,
+        }),
+      );
+    }
+
+    setActiveTabId(tab.tabId);
+    setEngine(created);
+  }, [
+    manifest,
+    replayerFactory,
+    engine,
+    createLoader,
+    urlState,
+    prefs.speed,
+    prefs.skipIdle,
+  ]);
+
+  useEffect(() => {
+    if (!engine) {
+      return;
+    }
+
+    return () => {
+      engine.dispose();
+      loaderRef.current = null;
+      replayerRef.current = null;
+    };
+  }, [engine]);
+
+  /* Transient shell notices clear themselves. */
+  useEffect(() => {
+    if (!shellNotice) {
+      return;
+    }
+
+    const timer: ReturnType<typeof setTimeout> = setTimeout((): void => {
+      setShellNotice(null);
+    }, SHELL_NOTICE_MS);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [shellNotice]);
+
+  /* ---- Snapshot. ---- */
+
+  const idleSnapshot: ReplayEngineSnapshot = useMemo(() => {
+    return makeIdleSnapshot(activeTabId);
+  }, [activeTabId]);
+
+  const subscribeToEngine: (listener: ReplayEngineListener) => () => void =
+    useCallback(
+      (listener: ReplayEngineListener): (() => void) => {
+        return engine ? engine.subscribe(listener) : noopUnsubscribe();
+      },
+      [engine],
+    );
+  const getEngineSnapshot: () => ReplayEngineSnapshot =
+    useCallback((): ReplayEngineSnapshot => {
+      return engine ? engine.getSnapshot() : idleSnapshot;
+    }, [engine, idleSnapshot]);
+
+  const snapshot: ReplayEngineSnapshot = useSyncExternalStore(
+    subscribeToEngine,
+    getEngineSnapshot,
+    getEngineSnapshot,
+  );
+
+  /* ---- Mouse trail: applied to every Replayer the engine creates. ---- */
+
+  useEffect(() => {
+    if (!engine) {
+      return;
+    }
+
+    return engine.onReplayer((event: ReplayEngineReplayerEvent): void => {
+      if (event.type === "created") {
+        replayerRef.current = event.replayer;
+
+        if (!prefs.mouseTrail) {
+          try {
+            event.replayer.setConfig({ mouseTail: false });
+          } catch {
+            /* A config rrweb rejects is cosmetic; playback continues. */
+          }
+        }
+      } else if (
+        event.type === "destroyed" &&
+        replayerRef.current === event.replayer
+      ) {
+        replayerRef.current = null;
+      }
+    });
+  }, [engine, prefs.mouseTrail]);
+
+  /* ---- Backend signals store: one per session. ---- */
+
+  useEffect(() => {
+    if (!manifest || manifest.startTimeUnixMs === null) {
+      return;
+    }
+
+    const store: ReplayBackendSignalsStore = new ReplayBackendSignalsStore({
+      sessionId: manifest.sessionId || sessionId,
+      startTimeUnixMs: manifest.startTimeUnixMs,
+      endTimeUnixMs: manifest.endTimeUnixMs,
+      isFinalized: manifest.isFinalized,
+    });
+
+    setBackendStore(store);
+
+    return () => {
+      store.dispose();
+      setBackendStore(null);
+    };
+    /* The clock's zero never changes for a session; refreshes update bounds below. */
+  }, [sessionId, manifest?.startTimeUnixMs]);
+
+  const subscribeToBackend: (listener: () => void) => () => void = useCallback(
+    (listener: () => void): (() => void) => {
+      return backendStore
+        ? backendStore.subscribe(listener)
+        : noopUnsubscribe();
+    },
+    [backendStore],
+  );
+  const getBackendSnapshot: () => ReplayBackendSignalsSnapshot =
+    useCallback((): ReplayBackendSignalsSnapshot => {
+      return backendStore ? backendStore.getSnapshot() : EMPTY_BACKEND_SNAPSHOT;
+    }, [backendStore]);
+  const backendSnapshot: ReplayBackendSignalsSnapshot = useSyncExternalStore(
+    subscribeToBackend,
+    getBackendSnapshot,
+    getBackendSnapshot,
+  );
+
+  /* ---- Live sessions: re-poll the manifest and append new footage. ---- */
+
+  const isLive: boolean = manifest !== null && !manifest.isFinalized;
+  const viewId: string = manifest?.viewId ?? "";
+
+  useEffect(() => {
+    if (!isLive) {
+      return;
+    }
+
+    let isCancelled: boolean = false;
+    let isInFlight: boolean = false;
+
+    const poll: () => Promise<void> = async (): Promise<void> => {
+      if (isInFlight) {
+        return;
+      }
+
+      isInFlight = true;
+
+      try {
+        const refreshed: SessionReplayManifest = await fetchManifest({
+          rumApplicationId: rumApplicationIdString,
+          sessionId: sessionId,
+          refresh: { viewId: viewId },
+        });
+
+        if (isCancelled) {
+          return;
+        }
+
+        /* The server echoes the same viewId; keep ours if it sent none. */
+        setManifest((previous: SessionReplayManifest | null) => {
+          return {
+            ...refreshed,
+            viewId: refreshed.viewId || previous?.viewId || "",
+          };
+        });
+
+        const tab: SessionReplayManifestTab | null = findTab(
+          refreshed,
+          activeTabIdRef.current,
+        );
+
+        if (engineRef.current && tab && tab.chunks.length > 0) {
+          engineRef.current.dispatch({
+            type: "APPEND_ENTRIES",
+            entries: tab.chunks,
+          });
+        }
+
+        backendStore?.setSessionBounds({
+          endTimeUnixMs: refreshed.endTimeUnixMs,
+          isFinalized: refreshed.isFinalized,
+        });
+      } catch {
+        /* A missed poll is retried on the next tick; the footage is unchanged. */
+      } finally {
+        isInFlight = false;
+      }
+    };
+
+    const timer: ReturnType<typeof setInterval> = setInterval((): void => {
+      void poll();
+    }, LIVE_MANIFEST_POLL_MS);
+
+    return () => {
+      isCancelled = true;
+      clearInterval(timer);
+    };
+  }, [isLive, viewId, rumApplicationIdString, sessionId, backendStore]);
+
+  /* ---- Heartbeat: time actually WATCHED, flushed on the way out. ---- */
+
+  useEffect(() => {
+    /*
+     * The endpoint identifies the audit row by viewId and nothing else, so
+     * without one from the manifest response there is no row to advance.
+     */
+    if (!engine || !viewId) {
+      return;
+    }
+
+    /*
+     * secondsWatched is the time footage actually PLAYED (scaled by speed),
+     * accumulated only while the engine phase is "playing". The old shell
+     * reported the furthest offset reached, so one drag to the end of the
+     * scrubber told the audit the whole session had been watched
+     * (player-shell-3); and it never flushed under 15s or on unmount
+     * (player-shell-4).
+     */
+    let watchedMs: number = 0;
+    let lastSampleAt: number = performance.now();
+    let lastSentSeconds: number = 0;
+
+    const accrue: () => void = (): void => {
+      const now: number = performance.now();
+      const current: ReplayEngineSnapshot = engine.getSnapshot();
+
+      if (current.phase === "playing") {
+        watchedMs += Math.max(0, now - lastSampleAt) * current.speed;
+      }
+
+      lastSampleAt = now;
+    };
+
+    const send: (keepalive: boolean) => void = (keepalive: boolean): void => {
+      accrue();
+
+      const seconds: number = Math.floor(watchedMs / 1000);
+
+      if (seconds <= 0 || seconds === lastSentSeconds) {
+        return;
+      }
+
+      lastSentSeconds = seconds;
+      postHeartbeat(viewId, seconds, keepalive);
+    };
+
+    const sampleTimer: ReturnType<typeof setInterval> = setInterval(
+      accrue,
+      HEARTBEAT_TICK_MS,
+    );
+    const flushTimer: ReturnType<typeof setInterval> = setInterval((): void => {
+      send(false);
+    }, HEARTBEAT_INTERVAL_MS);
+
+    const onPageHide: () => void = (): void => {
+      send(true);
+    };
+    const onVisibilityChange: () => void = (): void => {
+      if (document.visibilityState === "hidden") {
+        send(true);
+      }
+    };
+
+    window.addEventListener("pagehide", onPageHide);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      clearInterval(sampleTimer);
+      clearInterval(flushTimer);
+      window.removeEventListener("pagehide", onPageHide);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      send(true);
+    };
+  }, [engine, viewId]);
+
+  /* ---- Theater: follows the DOCUMENT's fullscreen element. ---- */
+
   useEffect(() => {
     const onFullscreenChange: () => void = (): void => {
-      setIsTheaterMode(document.fullscreenElement === theaterRef.current);
+      setIsTheater(
+        Boolean(rootRef.current) &&
+          document.fullscreenElement === rootRef.current,
+      );
     };
 
     document.addEventListener("fullscreenchange", onFullscreenChange);
@@ -579,710 +985,1264 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     };
   }, []);
 
+  /* ---- Derived view models. ---- */
+
+  const activeTab: SessionReplayManifestTab | null = useMemo(() => {
+    return manifest ? findTab(manifest, activeTabId) : null;
+  }, [manifest, activeTabId]);
+
+  const chunks: Array<SessionReplayManifestChunk> =
+    activeTab?.chunks ?? NO_CHUNKS;
+  const startTimeUnixMs: number | null = manifest?.startTimeUnixMs ?? null;
+
   /*
-   * Start playing as soon as there is something to play.
-   *
-   * Opening a recording is an unambiguous request to watch it - nobody
-   * navigates into a session replay to look at a still frame - and every
-   * comparable tool starts on open. It also removes the whole class of "I
-   * pressed Play and nothing happened" from the first thirty seconds of
-   * using the feature, because by the time the viewer reaches for a
-   * control the transport is already proven to be moving.
-   *
-   * Once per loader, and only from a standing start: a ?t= deep link seeks
-   * first and then plays from there, and a viewer who pauses is never
-   * overridden, because this only ever runs on the transition into having
-   * a loader at all.
+   * Recording rows, re-adapted when the fed range grows (that is when a
+   * chunk's extraction has definitely happened) or the tab changes.
    */
-  const hasAutoPlayedRef: React.MutableRefObject<boolean> =
-    useRef<boolean>(false);
+  const recordingSignals: Array<ReplaySignal> = useMemo(() => {
+    const loader: ChunkLoader | null = loaderRef.current;
+
+    if (!engine || !loader) {
+      return NO_SIGNALS;
+    }
+
+    return fromTimelineEvents(loader.getTimelineEvents(), {
+      startTimeUnixMs: startTimeUnixMs,
+    });
+  }, [
+    engine,
+    snapshot.loadedChunkIndexes,
+    snapshot.generation,
+    startTimeUnixMs,
+  ]);
+
+  const allSignals: Array<ReplaySignal> = useMemo(() => {
+    return mergeSignals(recordingSignals, telemetrySignals);
+  }, [recordingSignals, telemetrySignals]);
+
+  const bands: Array<ReplayTrackBand> = useMemo(() => {
+    return buildTrackBands({
+      chunks: chunks,
+      gaps: activeTab?.gaps ?? [],
+      loadedChunkIndexes: snapshot.loadedChunkIndexes,
+      idleBands: snapshot.idleBands ?? [],
+      durationMs: snapshot.durationMs,
+    });
+  }, [
+    chunks,
+    activeTab,
+    snapshot.loadedChunkIndexes,
+    snapshot.idleBands,
+    snapshot.durationMs,
+  ]);
+
+  const activity: Array<ReplayActivityBucket> = useMemo(() => {
+    return buildActivityHeat(chunks, snapshot.durationMs);
+  }, [chunks, snapshot.durationMs]);
+
+  const markers: Array<ReplayTimelineMarker> = useMemo(() => {
+    return buildTimelineMarkers({
+      signals: allSignals,
+      chunks: chunks,
+      loadedChunkIndexes: snapshot.loadedChunkIndexes,
+      durationMs: snapshot.durationMs,
+    });
+  }, [allSignals, chunks, snapshot.loadedChunkIndexes, snapshot.durationMs]);
+
+  const headerTabs: Array<ReplayHeaderTab> = useMemo(() => {
+    if (!manifest) {
+      return [];
+    }
+
+    return manifest.tabs.map(
+      (tab: SessionReplayManifestTab, index: number): ReplayHeaderTab => {
+        return {
+          tabId: tab.tabId,
+          label: `Tab ${index + 1}`,
+          durationMs: tab.durationMs,
+          openedAtMs: tab.firstChunkStartOffsetMs,
+          hasFootage: tabHasFootage(tab),
+          isActive: tab.tabId === activeTabId,
+        };
+      },
+    );
+  }, [manifest, activeTabId]);
+
+  const continueInTab: ReplayHeaderTab | null = useMemo(() => {
+    if (!manifest || snapshot.phase !== "ended") {
+      return null;
+    }
+
+    const next: SessionReplayManifestTab | null = findTabContinuingAfter(
+      manifest,
+      activeTabId,
+      snapshot.currentTimeMs,
+    );
+
+    if (!next) {
+      return null;
+    }
+
+    return (
+      headerTabs.find((tab: ReplayHeaderTab): boolean => {
+        return tab.tabId === next.tabId;
+      }) ?? null
+    );
+  }, [
+    manifest,
+    snapshot.phase,
+    snapshot.currentTimeMs,
+    activeTabId,
+    headerTabs,
+  ]);
+
+  const facts: Array<ReplayHeaderFact> = useMemo(() => {
+    if (!manifest) {
+      return [];
+    }
+
+    const details: SessionReplayManifest["details"] = manifest.details;
+
+    /*
+     * Blank values are dropped rather than rendered as an em dash, so a
+     * session that lacks a fact does not advertise the field it lacks.
+     */
+    return [
+      {
+        label: "Browser",
+        value: [details.browserName, details.browserVersion]
+          .filter(Boolean)
+          .join(" "),
+      },
+      { label: "OS", value: details.osName },
+      { label: "Device", value: details.deviceType },
+      { label: "Country", value: details.countryCode },
+      {
+        label: "Viewport",
+        value:
+          details.viewportWidth > 0 && details.viewportHeight > 0
+            ? `${details.viewportWidth}x${details.viewportHeight}`
+            : "",
+      },
+    ].filter((fact: ReplayHeaderFact): boolean => {
+      return Boolean(fact.value);
+    });
+  }, [manifest]);
+
+  const sealedReason: SealedReasonCopy | null = useMemo(() => {
+    return manifest && manifest.isFinalized
+      ? getSealedReasonCopy(manifest.sealedReason)
+      : null;
+  }, [manifest]);
+
+  const absence: ReplayFootageAbsence | null = useMemo(() => {
+    return manifest ? describeFootageAbsence(manifest, Date.now()) : null;
+  }, [manifest]);
+
+  const recordedSize: ReplayRecordedSize | null = useMemo(() => {
+    if (snapshot.recordedSize) {
+      return snapshot.recordedSize;
+    }
+
+    if (
+      manifest &&
+      manifest.details.viewportWidth > 0 &&
+      manifest.details.viewportHeight > 0
+    ) {
+      return {
+        width: manifest.details.viewportWidth,
+        height: manifest.details.viewportHeight,
+      };
+    }
+
+    return null;
+  }, [snapshot.recordedSize, manifest]);
+
+  /* Counts the details panel quotes; null until the rail fetched them. */
+  const railCounts: ReplayRailCounts = useMemo(() => {
+    const logs: number | null =
+      backendSnapshot.slots.log.status === "ready"
+        ? backendSnapshot.slots.log.rowCount
+        : null;
+    const traces: number | null =
+      backendSnapshot.slots.span.status === "ready"
+        ? telemetrySignals.filter((signal: ReplaySignal): boolean => {
+            return signal.kind === "span";
+          }).length
+        : null;
+    const errors: number | null =
+      backendSnapshot.slots.exception.status === "ready"
+        ? allSignals.filter((signal: ReplaySignal): boolean => {
+            return (
+              signal.kind === "client-error" || signal.kind === "server-error"
+            );
+          }).length
+        : null;
+
+    return { logs: logs, traces: traces, errors: errors };
+  }, [backendSnapshot, telemetrySignals, allSignals]);
+
+  /* Static, manifest-level notes about the recording (not runtime state). */
+  const recordingNotes: Array<string> = useMemo(() => {
+    if (!manifest) {
+      return [];
+    }
+
+    const notes: Array<string> = [];
+
+    if (manifest.isChunkIndexTruncated) {
+      notes.push(
+        "This session has more chunks than the index can return, so the timeline stops short of the full recording.",
+      );
+    }
+
+    if (manifest.gaps.length > 0) {
+      notes.push(
+        `${manifest.gaps.length} gap${
+          manifest.gaps.length === 1 ? "" : "s"
+        } in this recording; playback jumps forward at each one instead of guessing what happened.`,
+      );
+    }
+
+    for (const notice of manifest.fidelityNotices) {
+      const copy: FidelityNoticeCopy = getFidelityNoticeCopy(notice);
+
+      if (getFidelityNoticeSeverity(notice) === "playback") {
+        notes.push(`${copy.title}. ${copy.description}`);
+      }
+    }
+
+    if (sealedReason && sealedReason.severity === "warn") {
+      notes.push(`${sealedReason.title}. ${sealedReason.description}`);
+    }
+
+    return notes;
+  }, [manifest, sealedReason]);
+
+  const captureNotes: Array<FidelityNoticeCopy> = useMemo(() => {
+    if (!manifest) {
+      return [];
+    }
+
+    return manifest.fidelityNotices
+      .filter((notice: string): boolean => {
+        return getFidelityNoticeSeverity(notice) !== "playback";
+      })
+      .map(getFidelityNoticeCopy);
+  }, [manifest]);
+
+  /* ---- URL: rail / q / tab / signal mirror the view state. ---- */
 
   useEffect(() => {
-    if (!loader || !replayerFactory || hasAutoPlayedRef.current) {
+    if (!manifest) {
       return;
     }
 
-    hasAutoPlayedRef.current = true;
-    setIsPlaying(true);
-  }, [loader, replayerFactory]);
+    Navigation.setQueryString({
+      [REPLAY_URL_PARAM_TAB]:
+        manifest.tabs.length > 1 && activeTabId ? activeTabId : null,
+      [REPLAY_URL_PARAM_RAIL]: railTab === "all" ? null : railTab,
+      [REPLAY_URL_PARAM_RAIL_SEARCH]: railQuery || null,
+      [REPLAY_URL_PARAM_SIGNAL]: selectedSignalId,
+    });
+  }, [manifest, activeTabId, railTab, railQuery, selectedSignalId]);
 
-  /* Honour the ?t= deep link once, after the loader exists. */
-  const hasAppliedInitialSeekRef: React.MutableRefObject<boolean> =
-    useRef<boolean>(false);
-
+  /* ?signal= on load: reveal the row once it exists in the merged list. */
   useEffect(() => {
     if (
-      !loader ||
-      hasAppliedInitialSeekRef.current ||
-      props.initialOffsetSeconds === undefined ||
-      props.initialOffsetSeconds <= 0
+      hasRevealedSignalRef.current ||
+      !urlState.signalId ||
+      !railRef.current
     ) {
       return;
     }
 
-    hasAppliedInitialSeekRef.current = true;
-    seekTokenRef.current += 1;
-    setSeekRequest({
-      offsetMs: props.initialOffsetSeconds * 1000,
-      token: seekTokenRef.current,
-    });
-  }, [loader, props.initialOffsetSeconds]);
+    const target: ReplaySignal | undefined = allSignals.find(
+      (signal: ReplaySignal): boolean => {
+        return signal.id === urlState.signalId;
+      },
+    );
+
+    if (!target) {
+      return;
+    }
+
+    hasRevealedSignalRef.current = true;
+
+    /*
+     * With an explicit moment (t / at) the row is only selected: the
+     * pre-roll seek is what a bare ?signal= asks for, and the URL's own
+     * moment is the more specific statement of intent.
+     *
+     * ux-11: the shared link still has to put the row where it can be
+     * seen. The rail tab is a per-viewer preference, so a teammate whose
+     * last tab was Network opened a link to a console error and saw the
+     * Network tab with nothing selected. A signal named in the URL wins
+     * over that preference: if the open tab does not show this kind of
+     * row, the player switches to the tab that does before selecting.
+     */
+    if (urlState.offsetMs !== null || urlState.atUnixMs !== null) {
+      setRailTab((current: ReplayRailTabId): ReplayRailTabId => {
+        return isSignalInTab(target, current)
+          ? current
+          : homeRailTabForSignal(target);
+      });
+      setSelectedSignalId(urlState.signalId);
+      return;
+    }
+
+    /* revealSignal switches tab, selects AND seeks - what a bare ?signal= means. */
+    railRef.current.revealSignal(urlState.signalId);
+  }, [allSignals, urlState]);
+
+  /* ---- Actions. ---- */
 
   const seekTo: (offsetMs: number) => void = useCallback(
     (offsetMs: number): void => {
       seekTokenRef.current += 1;
-      setCurrentTimeMs(offsetMs);
-      /*
-       * A stale stage error must not outlive the action that recovers
-       * from it: seeking rebuilds the segment, and keeping the old
-       * banner up makes a successful rebuild look broken.
-       */
-      setStageError("");
-      setSeekRequest({ offsetMs: offsetMs, token: seekTokenRef.current });
+      engineRef.current?.dispatch({
+        type: "SEEK",
+        offsetMs: Math.max(0, offsetMs),
+        token: seekTokenRef.current,
+      });
     },
     [],
   );
 
-  const copyPermalink: () => void = useCallback((): void => {
-    /*
-     * The permalink is the CURRENT page address with the playhead stamped
-     * into ?t= — the parameter the player already honours on load. Kept as
-     * whole seconds: sub-second precision implies an exactness the seek
-     * anchors cannot deliver.
-     */
-    const url: globalThis.URL = new globalThis.URL(window.location.href);
+  const playPause: () => void = useCallback((): void => {
+    const current: ReplayEngine | null = engineRef.current;
 
-    url.searchParams.set("t", String(Math.floor(currentTimeMs / 1000)));
+    if (!current) {
+      return;
+    }
 
-    void navigator.clipboard
-      ?.writeText(url.toString())
-      .then((): void => {
-        setIsPermalinkCopied(true);
+    current.dispatch({
+      type: current.getSnapshot().intent === "playing" ? "PAUSE" : "PLAY",
+    });
+  }, []);
 
-        setTimeout((): void => {
-          setIsPermalinkCopied(false);
-        }, 2000);
-      })
-      .catch((): void => {
-        /* Clipboard denied: nothing useful to do beyond not crashing. */
+  const watchAgain: () => void = useCallback((): void => {
+    seekTo(0);
+    engineRef.current?.dispatch({ type: "PLAY" });
+  }, [seekTo]);
+
+  const retry: () => void = useCallback((): void => {
+    engineRef.current?.dispatch({ type: "RETRY" });
+  }, []);
+
+  const stillLoadingRetry: () => void = useCallback((): void => {
+    const current: ReplayEngine | null = engineRef.current;
+
+    if (!current) {
+      return;
+    }
+
+    const latest: ReplayEngineSnapshot = current.getSnapshot();
+
+    if (latest.error && latest.error.retryable) {
+      current.dispatch({ type: "RETRY" });
+      return;
+    }
+
+    /* Nothing halted: a fresh seek to the same offset restarts the fetch. */
+    seekTo(latest.currentTimeMs);
+  }, [seekTo]);
+
+  const setSpeed: (speed: number) => void = useCallback(
+    (speed: number): void => {
+      engineRef.current?.dispatch({ type: "SET_SPEED", speed: speed });
+      replayViewPrefsStore.update({ speed: speed });
+    },
+    [],
+  );
+
+  const setSkipInactive: (isEnabled: boolean) => void = useCallback(
+    (isEnabled: boolean): void => {
+      engineRef.current?.dispatch({
+        type: "SET_SKIP_INACTIVE",
+        enabled: isEnabled,
       });
-  }, [currentTimeMs]);
+      replayViewPrefsStore.update({ skipIdle: isEnabled });
+    },
+    [],
+  );
 
-  const toggleTheaterMode: () => void = useCallback((): void => {
+  const skipIdle: (band: ReplayIdleBand) => void = useCallback(
+    (band: ReplayIdleBand): void => {
+      engineRef.current?.dispatch({ type: "IDLE_SKIP", band: band });
+    },
+    [],
+  );
+
+  const skipIdleJump: () => void = useCallback((): void => {
+    const current: ReplayEngine | null = engineRef.current;
+
+    if (!current) {
+      return;
+    }
+
+    const latest: ReplayEngineSnapshot = current.getSnapshot();
+    const band: ReplayIdleBand | null = findIdleBandAt(
+      latest.idleBands,
+      latest.currentTimeMs,
+    );
+
+    if (band) {
+      current.dispatch({ type: "IDLE_SKIP", band: band });
+    }
+  }, []);
+
+  const switchTab: (tabId: string) => void = useCallback(
+    (tabId: string): void => {
+      const current: SessionReplayManifest | null = manifestRef.current;
+      const target: SessionReplayManifestTab | null = current
+        ? findTab(current, tabId)
+        : null;
+
+      if (
+        !target ||
+        !tabHasFootage(target) ||
+        tabId === activeTabIdRef.current
+      ) {
+        return;
+      }
+
+      const loader: ChunkLoader = createLoader(target);
+
+      if (engineRef.current) {
+        loaderRef.current = loader;
+        /* TAB_SWITCH preserves the session-clock playhead when the tab covers it. */
+        engineRef.current.dispatch({
+          type: "TAB_SWITCH",
+          tabId: tabId,
+          loader: loader,
+        });
+      } else {
+        pendingLoaderRef.current?.dispose();
+        pendingLoaderRef.current = loader;
+      }
+
+      setActiveTabId(tabId);
+    },
+    [createLoader],
+  );
+
+  const toggleTheater: () => void = useCallback((): void => {
     if (document.fullscreenElement) {
       void document.exitFullscreen?.().catch((): void => {
-        /* Ignored: the fullscreenchange listener owns the state. */
+        /* The fullscreenchange listener owns the state. */
       });
       return;
     }
 
-    void theaterRef.current?.requestFullscreen?.().catch((): void => {
+    void rootRef.current?.requestFullscreen?.().catch((): void => {
       /* Fullscreen denied (iframe policy, user setting). Stay inline. */
     });
   }, []);
 
-  const handleTimeUpdate: (offsetMs: number) => void = useCallback(
-    (offsetMs: number): void => {
-      setCurrentTimeMs(offsetMs);
-      watchedMsRef.current = Math.max(watchedMsRef.current, offsetMs);
-    },
-    [],
-  );
+  const toggleWide: () => void = useCallback((): void => {
+    replayViewPrefsStore.update({
+      wide: !replayViewPrefsStore.getSnapshot().wide,
+    });
+  }, []);
 
-  /*
-   * Watch-time heartbeat. Fire-and-forget on purpose: a failed heartbeat must
-   * never interrupt playback, and the audit row already exists from the
-   * manifest call - this only refines how long it was watched for.
-   */
-  const viewId: string = manifest?.viewId ?? "";
+  const toggleDetails: () => void = useCallback((): void => {
+    setIsPanelOpen((isOpen: boolean): boolean => {
+      return !isOpen;
+    });
+  }, []);
 
-  useEffect(() => {
-    /*
-     * The endpoint identifies the audit row by viewId and nothing else, so
-     * without one from the manifest response there is no row to advance and
-     * the request would only be a guaranteed 400.
-     */
-    if (!viewId) {
-      return;
+  const openDetails: () => void = useCallback((): void => {
+    setIsPanelOpen(true);
+  }, []);
+
+  const closeDetails: () => void = useCallback((): void => {
+    setIsPanelOpen(false);
+  }, []);
+
+  const buildMomentUrl: () => string | null = useCallback((): string | null => {
+    const latest: ReplayEngineSnapshot | null =
+      engineRef.current?.getSnapshot() ?? null;
+    const route: Route | null = buildReplayMomentRoute({
+      rumApplicationId: rumApplicationIdString,
+      sessionId: sessionId,
+      t: latest ? latest.currentTimeMs : 0,
+      signal: selectedSignalId,
+      /*
+       * ux-11: written even when it is "all". Omitting the default meant a
+       * link copied from the All tab opened on whatever tab the RECIPIENT
+       * happened to have open last, which is where a shared &signal= row
+       * went missing.
+       */
+      rail: railTab,
+      tab:
+        manifestRef.current && manifestRef.current.tabs.length > 1
+          ? activeTabIdRef.current
+          : null,
+      /* "At this moment" means exactly here, not a second before. */
+      preRollMs: 0,
+    });
+
+    if (!route) {
+      return null;
     }
 
-    const timer: ReturnType<typeof setInterval> = setInterval((): void => {
-      const secondsWatched: number = Math.round(watchedMsRef.current / 1000);
+    return `${window.location.origin}${route.toString()}`;
+  }, [rumApplicationIdString, sessionId, selectedSignalId, railTab]);
 
-      if (secondsWatched <= 0) {
+  const copyLink: () => void = useCallback((): void => {
+    headerRef.current?.copyLink();
+  }, []);
+
+  const copySignalLink: (signal: ReplaySignal) => void = useCallback(
+    (signal: ReplaySignal): void => {
+      const route: Route | null = buildReplayMomentRoute({
+        rumApplicationId: rumApplicationIdString,
+        sessionId: sessionId,
+        t: signal.offsetMs,
+        signal: signal.id,
+        /* The tab the recipient must land on to see this row (ux-11). */
+        rail: isSignalInTab(signal, railTab)
+          ? railTab
+          : homeRailTabForSignal(signal),
+      });
+
+      if (!route) {
         return;
       }
 
-      void API.post({
-        url: URL.fromString(APP_API_URL.toString()).addRoute(HEARTBEAT_ROUTE),
-        data: {
-          viewId: viewId,
-          secondsWatched: secondsWatched,
-        },
-        headers: {
-          ...ModelAPI.getCommonHeaders(),
-        },
-      }).catch(() => {
-        // Deliberately ignored - see comment above.
-      });
-    }, HEARTBEAT_INTERVAL_MS);
-
-    return () => {
-      clearInterval(timer);
-    };
-  }, [viewId]);
-
-  const durationMs: number = loader?.getDurationMs() ?? 0;
-
-  /* See shouldRewindBeforePlay for why Play at the end has to seek first. */
-  const togglePlayPause: () => void = useCallback((): void => {
-    if (isPlaying) {
-      setIsPlaying(false);
-      return;
-    }
-
-    if (shouldRewindBeforePlay(currentTimeMs, durationMs)) {
-      seekTo(0);
-    }
-
-    setIsPlaying(true);
-  }, [isPlaying, durationMs, currentTimeMs, seekTo]);
-
-  const bands: Array<ReplayBand> = useMemo(() => {
-    if (!loader) {
-      return [];
-    }
-
-    const loaded: Set<number> = new Set<number>(loadedChunkIndexes);
-    const entries: Array<SessionReplayChunkManifestEntry> = loader.getEntries();
-    const result: Array<ReplayBand> = [];
-
-    for (let i: number = 0; i < entries.length; i++) {
-      const entry: SessionReplayChunkManifestEntry | undefined = entries[i];
-
-      if (!entry) {
-        continue;
-      }
-
-      result.push({
-        startMs: entry.chunkStartOffsetMs,
-        endMs: entry.chunkEndOffsetMs,
-        state: loaded.has(entry.chunkIndex)
-          ? ReplayBandState.Loaded
-          : ReplayBandState.Available,
-      });
-
-      const next: SessionReplayChunkManifestEntry | undefined = entries[i + 1];
-
-      if (next && next.chunkIndex !== entry.chunkIndex + 1) {
-        result.push({
-          startMs: entry.chunkEndOffsetMs,
-          endMs: next.chunkStartOffsetMs,
-          state: ReplayBandState.Missing,
-          missingMs: Math.max(
-            0,
-            next.chunkStartOffsetMs - entry.chunkEndOffsetMs,
-          ),
-        });
-      }
-    }
-
-    return result;
-  }, [loader, loadedChunkIndexes]);
-
-  /*
-   * Markers derived from the per-chunk counters. Accurate to one flush
-   * interval (15s), not to the millisecond - the counters live on the chunk
-   * row precisely so the timeline can be drawn without decompressing
-   * payloads. The label says so rather than implying a precision we do not
-   * have.
-   */
-  const chunkMarkers: {
-    errors: Array<ReplayMarker>;
-    frustration: Array<ReplayMarker>;
-    routes: Array<ReplayMarker>;
-  } = useMemo(() => {
-    const errors: Array<ReplayMarker> = [];
-    const frustration: Array<ReplayMarker> = [];
-    const routes: Array<ReplayMarker> = [];
-
-    for (const chunk of activeTab?.chunks ?? []) {
-      const atMs: number =
-        (chunk.chunkStartOffsetMs + chunk.chunkEndOffsetMs) / 2;
-
-      if (chunk.errorCount > 0) {
-        errors.push({
-          atMs: atMs,
-          label: `${chunk.errorCount} error${
-            chunk.errorCount === 1 ? "" : "s"
-          } in this ~15s window`,
-        });
-      }
-
-      const frustrationCount: number =
-        chunk.rageClickCount + chunk.deadClickCount + chunk.errorClickCount;
-
-      if (frustrationCount + chunk.refreshRageCount > 0) {
-        frustration.push({
-          atMs: atMs,
-          label: `${chunk.rageClickCount} rage · ${chunk.deadClickCount} dead · ${chunk.errorClickCount} error clicks · ${chunk.refreshRageCount} refresh rage`,
-        });
-      }
-
-      if (chunk.routeCount > 0) {
-        routes.push({
-          atMs: atMs,
-          label: `${chunk.routeCount} route change${
-            chunk.routeCount === 1 ? "" : "s"
-          }`,
-        });
-      }
-    }
-
-    return { errors: errors, frustration: frustration, routes: routes };
-  }, [activeTab]);
-
-  /*
-   * Exact-timestamp network markers, from the extracted timeline events.
-   * 4xx/5xx only — 2xx noise would make the lane useless. This replaces
-   * the manifest's never-produced markers with positions accurate to the
-   * recorder's own clock, filling in as chunks load.
-   */
-  const networkMarkers: Array<ReplayMarker> = useMemo(() => {
-    return timelineEvents
-      .filter((event: ReplayTimelineEvent): boolean => {
-        return event.kind === "network" && (event.status ?? 0) >= 400;
-      })
-      .map((event: ReplayTimelineEvent): ReplayMarker => {
-        return {
-          atMs: event.offsetMs,
-          label: `${event.method ?? ""} ${event.status ?? ""} ${
-            event.url ?? ""
-          }`.trim(),
-        };
-      });
-  }, [timelineEvents]);
-
-  const jumpToNextError: () => void = useCallback((): void => {
-    const next: ReplayMarker | undefined = chunkMarkers.errors.find(
-      (marker: ReplayMarker): boolean => {
-        return marker.atMs > currentTimeMs;
-      },
-    );
-
-    if (next) {
       /*
-       * Land a little before the marker. The counter is per chunk, so the
-       * error happened somewhere inside that window and starting at its
-       * midpoint would often begin after the interesting part.
+       * ux-10: through the header's copy path, so the row action announces
+       * "Link copied" and offers the read-only field when the clipboard is
+       * missing (plain http) or refuses (unfocused document) - instead of
+       * writing straight to navigator.clipboard and swallowing both
+       * outcomes.
        */
-      seekTo(Math.max(0, next.atMs - 10000));
-    }
-  }, [chunkMarkers.errors, currentTimeMs, seekTo]);
-
-  const handleGapCrossed: (gap: SessionReplayGap) => void = useCallback(
-    (gap: SessionReplayGap): void => {
-      setCrossedGaps(
-        (existing: Array<SessionReplayGap>): Array<SessionReplayGap> => {
-          const isKnown: boolean = existing.some(
-            (candidate: SessionReplayGap): boolean => {
-              return (
-                candidate.fromIndex === gap.fromIndex &&
-                candidate.toIndex === gap.toIndex
-              );
-            },
-          );
-
-          return isKnown ? existing : [...existing, gap];
-        },
+      headerRef.current?.copyUrl(
+        `${window.location.origin}${route.toString()}`,
       );
+    },
+    [rumApplicationIdString, sessionId, railTab],
+  );
+
+  const selectSignal: (signalId: string | null) => void = useCallback(
+    (signalId: string | null): void => {
+      setSelectedSignalId(signalId);
     },
     [],
   );
 
-  if (isLoading) {
-    return <PageLoader isVisible={true} />;
-  }
+  const selectSignalFromTimeline: (signalId: string) => void = useCallback(
+    (signalId: string): void => {
+      setSelectedSignalId(signalId);
+      railRef.current?.revealSignal(signalId);
+    },
+    [],
+  );
 
-  if (error) {
+  const handleRailTabChange: (tabId: ReplayRailTabId) => void = useCallback(
+    (tabId: ReplayRailTabId): void => {
+      setRailTab(tabId);
+      replayViewPrefsStore.update({ railTab: tabId });
+    },
+    [],
+  );
+
+  const openRailTab: (tabId: ReplayRailTabId) => void = useCallback(
+    (tabId: ReplayRailTabId): void => {
+      handleRailTabChange(tabId);
+      setIsPanelOpen(false);
+    },
+    [handleRailTabChange],
+  );
+
+  const handleFollowChange: (isEnabled: boolean) => void = useCallback(
+    (isEnabled: boolean): void => {
+      replayViewPrefsStore.update({ follow: isEnabled });
+    },
+    [],
+  );
+
+  const handleMouseTrailChange: (isEnabled: boolean) => void = useCallback(
+    (isEnabled: boolean): void => {
+      replayViewPrefsStore.update({ mouseTrail: isEnabled });
+
+      try {
+        replayerRef.current?.setConfig({
+          mouseTail: isEnabled
+            ? {
+                duration: 800,
+                lineCap: "round",
+                lineWidth: 3,
+                strokeStyle: "rgba(73, 80, 246, 0.5)",
+              }
+            : false,
+        });
+      } catch {
+        /* Cosmetic. */
+      }
+    },
+    [],
+  );
+
+  const handleTelemetrySignalsChange: (
+    signals: Array<ReplaySignal>,
+    alignment: ReplayClockAlignmentState,
+  ) => void = useCallback((signals: Array<ReplaySignal>): void => {
+    setTelemetrySignals(signals);
+  }, []);
+
+  const handleShowOnStage: (x: number, y: number) => void = useCallback(
+    (x: number, y: number): void => {
+      /* Flash a ring at the recorded coordinates, through the stage's own path. */
+      const host: HTMLElement | null =
+        engineRef.current?.getHostElement() ?? null;
+
+      if (!host) {
+        return;
+      }
+
+      const ring: HTMLDivElement = document.createElement("div");
+      ring.className = "oneuptime-replay-touch-ring";
+      ring.style.left = `${Math.round(x)}px`;
+      ring.style.top = `${Math.round(y)}px`;
+      ring.style.position = "absolute";
+      ring.style.pointerEvents = "none";
+      host.appendChild(ring);
+
+      setTimeout((): void => {
+        ring.remove();
+      }, 900);
+    },
+    [],
+  );
+
+  const handleEscape: () => void = useCallback((): void => {
+    if (isPanelOpen) {
+      setIsPanelOpen(false);
+      return;
+    }
+
+    if (document.fullscreenElement) {
+      void document.exitFullscreen?.().catch((): void => {
+        /* Owned by the fullscreenchange listener. */
+      });
+      return;
+    }
+
+    railRef.current?.clearSelection();
+  }, [isPanelOpen]);
+
+  const getKeyboardScope: () => "player" | "rail" = useCallback(():
+    | "player"
+    | "rail" => {
+    const container: HTMLDivElement | null = railContainerRef.current;
+
+    return container &&
+      typeof document !== "undefined" &&
+      document.activeElement &&
+      container.contains(document.activeElement)
+      ? "rail"
+      : "player";
+  }, []);
+
+  const getDiagnostic: () => string = useCallback((): string => {
+    const current: ReplayEngine | null = engineRef.current;
+    const latest: ReplayEngineSnapshot | null = current?.getSnapshot() ?? null;
+    const currentManifest: SessionReplayManifest | null = manifestRef.current;
+
+    return JSON.stringify(
+      {
+        sessionId: sessionId,
+        rumApplicationId: rumApplicationIdString,
+        tabId: activeTabIdRef.current,
+        viewId: currentManifest?.viewId ?? null,
+        recorderVersion: currentManifest?.details.recorderVersion ?? null,
+        rrwebVersion: currentManifest?.details.rrwebVersion ?? null,
+        phase: latest?.phase ?? null,
+        buffer: latest?.buffer ?? null,
+        currentTimeMs: latest?.currentTimeMs ?? null,
+        durationMs: latest?.durationMs ?? null,
+        loadedChunkIndexes: latest?.loadedChunkIndexes ?? [],
+        error: latest?.error ?? null,
+        engine: current?.getDiagnostics() ?? null,
+        userAgent:
+          typeof navigator !== "undefined" ? navigator.userAgent : null,
+        at: new Date().toISOString(),
+      },
+      null,
+      2,
+    );
+  }, [sessionId, rumApplicationIdString]);
+
+  const backHref: string = useMemo((): string => {
+    const stored: string | null = readReplayListUrl();
+
+    if (stored) {
+      return stored;
+    }
+
+    try {
+      return RouteUtil.populateRouteParams(
+        RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY] as Route,
+        { modelId: new ObjectID(rumApplicationIdString) },
+      ).toString();
+    } catch {
+      return "";
+    }
+  }, [rumApplicationIdString]);
+
+  const goBack: () => void = useCallback((): void => {
+    if (backHref && Navigation.isSafeInternalRoute(backHref)) {
+      Navigation.navigate(new Route(backHref));
+    }
+  }, [backHref]);
+
+  const reload: () => void = useCallback((): void => {
+    setReloadToken((token: number): number => {
+      return token + 1;
+    });
+  }, []);
+
+  /* ---- Rail width drag. ---- */
+
+  const handleRailResizeStart: (
+    event: React.PointerEvent<HTMLDivElement>,
+  ) => void = useCallback((event: React.PointerEvent<HTMLDivElement>): void => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const startX: number = event.clientX;
+    const startRem: number = replayViewPrefsStore.getSnapshot().railWidthRem;
+    const pxPerRem: number =
+      parseFloat(getComputedStyle(document.documentElement).fontSize || "16") ||
+      16;
+
+    const onMove: (moveEvent: PointerEvent) => void = (
+      moveEvent: PointerEvent,
+    ): void => {
+      /* The handle sits on the rail's LEFT edge: dragging left widens it. */
+      const deltaRem: number = (startX - moveEvent.clientX) / pxPerRem;
+
+      replayViewPrefsStore.update({
+        railWidthRem: Math.min(
+          REPLAY_RAIL_MAX_WIDTH_REM,
+          Math.max(REPLAY_RAIL_MIN_WIDTH_REM, startRem + deltaRem),
+        ),
+      });
+    };
+
+    const onUp: () => void = (): void => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  }, []);
+
+  const toggleRailCollapsed: () => void = useCallback((): void => {
+    replayViewPrefsStore.update({
+      railCollapsed: !replayViewPrefsStore.getSnapshot().railCollapsed,
+    });
+  }, []);
+
+  /* ---- Render. ---- */
+
+  if (manifestFailure) {
+    if (manifestFailure.kind === "error") {
+      return (
+        <ErrorMessage
+          message={manifestFailure.message}
+          onRefreshClick={reload}
+        />
+      );
+    }
+
+    const emptyCopy: { title: string; description: string; icon: IconProp } =
+      manifestFailure.kind === "expired"
+        ? {
+            title: "Footage expired",
+            description: `${manifestFailure.message}${
+              manifestFailure.expiresAtIso
+                ? ` Expired on ${OneUptimeDate.getDateAsLocalFormattedString(
+                    manifestFailure.expiresAtIso,
+                    true,
+                  )}.`
+                : ""
+            } Its logs, traces and exceptions can still be found by session id.`,
+            icon: IconProp.VideoCameraSlash,
+          }
+        : manifestFailure.kind === "erased"
+          ? {
+              title: "Recording erased",
+              description: manifestFailure.message,
+              icon: IconProp.Trash,
+            }
+          : manifestFailure.kind === "forbidden"
+            ? {
+                title: "You cannot watch this recording",
+                description: manifestFailure.message,
+                icon: IconProp.Lock,
+              }
+            : {
+                title: "Recording not found",
+                description: manifestFailure.message,
+                icon: IconProp.MagnifyingGlass,
+              };
+
     return (
-      <ErrorMessage
-        message={error}
-        onRefreshClick={(): void => {
-          loadGenerationRef.current += 1;
-          void load(loadGenerationRef.current);
-        }}
-      />
+      <div
+        data-testid="replay-manifest-failure"
+        data-kind={manifestFailure.kind}
+      >
+        <EmptyState
+          id="replay-manifest-failure"
+          icon={emptyCopy.icon}
+          title={emptyCopy.title}
+          description={emptyCopy.description}
+          paddingClassName="pt-24 pb-24"
+          footer={
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button
+                title="Back to sessions"
+                icon={IconProp.ArrowLeft}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                onClick={goBack}
+              />
+              <span
+                className="font-mono text-xs text-gray-400"
+                title="Session id"
+              >
+                {sessionId}
+              </span>
+            </div>
+          }
+        />
+      </div>
     );
   }
 
   if (!manifest) {
-    return <ErrorMessage message="This session could not be found." />;
-  }
-
-  /*
-   * Built before the "no recording" early return, not inside the happy path.
-   * A session whose FIRST tab has no chunks is otherwise a dead end: the
-   * viewer is told the whole recording is gone with no control to reach the
-   * tab that does have footage.
-   */
-  const tabSwitcher: ReactElement | null =
-    manifest.tabs.length > 1 ? (
-      <div className="inline-flex gap-1">
-        {manifest.tabs.map((tab: SessionReplayManifestTab): ReactElement => {
-          const isActive: boolean = tab.tabId === activeTabId;
-
-          return (
-            <button
-              key={tab.tabId}
-              type="button"
-              className={`rounded-md px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${
-                isActive
-                  ? "bg-indigo-100 text-indigo-800 ring-indigo-200"
-                  : "bg-white text-gray-600 ring-gray-200 hover:bg-gray-50"
-              }`}
-              title={
-                tab.chunks.length === 0
-                  ? "No recording available for this tab"
-                  : `${tab.chunks.length} chunks`
-              }
-              onClick={(): void => {
-                setActiveTabId(tab.tabId);
-              }}
-            >
-              Tab {tab.tabId.slice(0, 6)}
-              {tab.chunks.length === 0 ? " (empty)" : ""}
-            </button>
-          );
-        })}
-      </div>
-    ) : null;
-
-  if (!loader || !replayerFactory || !activeTab) {
     /*
-     * The header row survives longer than the chunks under the metadata-only
-     * retention tier, so "expired" is a normal outcome and gets its own copy
-     * rather than a generic error.
+     * Loading: the header's shape, a stage box at a 16:9 aspect, and the
+     * rail's own skeleton rows, so the page lays out once and fills in.
      */
     return (
-      <Fragment>
-        {tabSwitcher && (
-          <div className="mb-4 flex flex-wrap items-center gap-3">
-            {tabSwitcher}
+      <div data-testid="replay-loading" className="flex flex-col">
+        <div className="mb-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
+          <Skeleton className="h-4" widthVariantIndex={0} />
+          <Skeleton className="mt-2 h-4" widthVariantIndex={1} />
+        </div>
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-stretch">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div
+              className="w-full animate-pulse rounded-lg bg-gray-900"
+              style={{
+                aspectRatio: "16 / 9",
+                minHeight: "24rem",
+                maxHeight: "70vh",
+              }}
+              role="status"
+              aria-label="Loading the recording"
+            />
           </div>
-        )}
-        <ErrorMessage
-          message={
-            activeTab &&
-            activeTab.chunks.length === 0 &&
-            manifest.tabs.length > 1
-              ? "No recording was stored for this tab. Try another tab of this session."
-              : "The recording for this session is no longer available. Session metadata is retained for longer than the recording itself, so the counts and signals on the session list remain accurate."
-          }
-        />
-      </Fragment>
+          <div className="w-full shrink-0 xl:w-[30rem]">
+            <ReplayRail
+              signals={NO_SIGNALS}
+              sessionId={sessionId}
+              startTimeUnixMs={null}
+              isFinalized={false}
+              isExpiredFootage={false}
+              isLoading={true}
+              currentTimeMs={0}
+              isPlaying={false}
+              selectedSignalId={null}
+              onSeek={seekTo}
+              onSelectSignal={selectSignal}
+            />
+          </div>
+        </div>
+      </div>
     );
   }
 
-  /*
-   * Two lists, not one, and the split is by consequence.
-   *
-   * `notices` is "there is footage you cannot watch, or the timeline is not
-   * what it claims" - worth interrupting for. `captureNotes` is "everything
-   * IS playable, it just does not look pixel-exact": a system font instead
-   * of a web font, an unstyled region, a black box where a payment iframe
-   * was. Those are permanent, deliberate properties of how the recorder
-   * works and appear on a large share of recordings.
-   *
-   * Stacking both into one amber block - which is what this did - opened a
-   * perfectly good recording of a perfectly ordinary page behind a wall of
-   * alarm, and taught people to skim past the block that sometimes says a
-   * stretch of the timeline is missing.
-   */
-  const notices: Array<string> = [];
+  const isPlayable: boolean = absence === null;
+  const railWidthStyle: React.CSSProperties = (
+    prefs.railCollapsed
+      ? {}
+      : { "--oneuptime-replay-rail-width": `${prefs.railWidthRem}rem` }
+  ) as React.CSSProperties;
 
-  if (!manifest.isFinalized) {
-    notices.push(
-      "This session is still being recorded or has not been finalized yet. Counts and duration may change.",
-    );
-  }
-
-  if (manifest.isChunkIndexTruncated) {
-    notices.push(
-      "This session has more chunks than the index can return, so the timeline below stops short of the full recording.",
-    );
-  }
-
-  if (manifest.gaps.length > 0) {
-    notices.push(
-      `${manifest.gaps.length} gap${
-        manifest.gaps.length === 1 ? "" : "s"
-      } in this recording. Playback jumps forward at each one instead of guessing what happened.`,
-    );
-  }
-
-  const captureNotes: Array<FidelityNoticeCopy> = [];
-
-  for (const notice of manifest.fidelityNotices) {
-    const copy: FidelityNoticeCopy = getFidelityNoticeCopy(notice);
-
-    if (getFidelityNoticeSeverity(notice) === "playback") {
-      notices.push(`${copy.title}. ${copy.description}`);
-    } else {
-      captureNotes.push(copy);
-    }
-  }
-
-  /*
-   * The facts a viewer needs before deciding whether this is the right
-   * session, on screen rather than behind the details drawer. Everything
-   * here already arrived with the manifest, so it costs nothing to show;
-   * hiding it behind a button meant the header carried a bare timestamp
-   * and nothing else. Blank values are dropped rather than rendered as an
-   * em dash, so a pseudonymous session does not advertise the field it
-   * does not have.
-   */
-  const summaryFacts: Array<{ label: string; value: string }> = [
-    {
-      label: "User",
-      value: manifest.details.identifiedUserLabel,
-    },
-    {
-      label: "Browser",
-      value: [manifest.details.browserName, manifest.details.browserVersion]
-        .filter(Boolean)
-        .join(" "),
-    },
-    { label: "OS", value: manifest.details.osName },
-    { label: "Device", value: manifest.details.deviceType },
-    { label: "Country", value: manifest.details.countryCode },
-    { label: "Entry", value: manifest.details.entryUrl },
-  ].filter((fact: { label: string; value: string }): boolean => {
-    return Boolean(fact.value);
-  });
+  const railElement: ReactElement = (
+    <ReplayRail
+      ref={railRef}
+      signals={recordingSignals}
+      backendStore={backendStore}
+      sessionId={manifest.sessionId || sessionId}
+      startTimeUnixMs={startTimeUnixMs}
+      clockSkewMs={manifest.details.clockSkewMs}
+      isFinalized={manifest.isFinalized}
+      isExpiredFootage={!isPlayable}
+      isLoading={isPlayable && !engine}
+      currentTimeMs={snapshot.currentTimeMs}
+      isPlaying={snapshot.phase === "playing"}
+      selectedSignalId={selectedSignalId}
+      onSeek={seekTo}
+      onSelectSignal={selectSignal}
+      onHoverSignal={setGhostMs}
+      activeTab={railTab}
+      onTabChange={handleRailTabChange}
+      query={railQuery}
+      onQueryChange={setRailQuery}
+      follow={prefs.follow}
+      onFollowChange={handleFollowChange}
+      truncatedKinds={
+        loaderRef.current?.getExtractionStats().truncatedKinds ?? null
+      }
+      loadedChunkCount={
+        loaderRef.current?.getExtractedChunkIndexes().length ?? null
+      }
+      totalChunkCount={chunks.length > 0 ? chunks.length : null}
+      recorderCapabilities={manifest.recorderCapabilities}
+      onShowOnStage={handleShowOnStage}
+      onCopyLink={copySignalLink}
+      onTelemetrySignalsChange={handleTelemetrySignalsChange}
+      /*
+       * flex-1 + min-h-0 inside a column whose height is bounded above
+       * (see the rail column) is what lets the rail's own list overflow
+       * and scroll. `h-full` resolved to the rail's full CONTENT height,
+       * which is why nothing in the rail ever scrolled (ux-02).
+       */
+      className="min-h-0 flex-1"
+    />
+  );
 
   return (
     <Fragment>
-      <div className="mb-3 flex flex-wrap items-center gap-3">
-        {tabSwitcher}
-
-        <div className="text-xs text-gray-500">
-          {manifest.details.startTime
-            ? OneUptimeDate.getDateAsLocalFormattedString(
-                OneUptimeDate.fromString(manifest.details.startTime),
-              )
-            : ""}
-        </div>
-
-        {isBuffering && (
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-indigo-500" />
-            Buffering…
-          </div>
-        )}
-
-        <div className="ml-auto flex items-center gap-2">
-          <ReplayPinControl
-            rumApplicationId={props.rumApplicationId}
-            sessionId={props.sessionId}
-          />
-
-          <Button
-            title={isPermalinkCopied ? "Copied!" : "Copy link at this moment"}
-            icon={IconProp.Link}
-            buttonStyle={ButtonStyleType.OUTLINE}
-            onClick={copyPermalink}
-          />
-
-          <Button
-            title={isTheaterMode ? "Exit theater" : "Theater"}
-            icon={IconProp.Window}
-            buttonStyle={ButtonStyleType.OUTLINE}
-            onClick={toggleTheaterMode}
-          />
-
-          <Button
-            title="Session details"
-            icon={IconProp.Info}
-            buttonStyle={ButtonStyleType.OUTLINE}
-            onClick={(): void => {
-              setIsPanelOpen(true);
-            }}
-          />
-        </div>
-      </div>
-
-      {summaryFacts.length > 0 && (
-        <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2">
-          {summaryFacts.map(
-            (fact: { label: string; value: string }): ReactElement => {
-              return (
-                <div
-                  key={fact.label}
-                  className="flex min-w-0 items-baseline gap-1.5"
-                >
-                  <span className="text-[11px] uppercase tracking-wide text-gray-400">
-                    {fact.label}
-                  </span>
-                  <span
-                    className="max-w-xs truncate text-xs text-gray-800"
-                    title={fact.value}
-                  >
-                    {fact.value}
-                  </span>
-                </div>
-              );
-            },
-          )}
-        </div>
-      )}
-
-      {notices.length > 0 && (
-        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-          {notices.map((notice: string, index: number): ReactElement => {
-            return (
-              <div
-                key={index}
-                className="flex items-start gap-2 py-0.5 text-xs text-amber-800"
-              >
-                <Icon icon={IconProp.Alert} className="mt-0.5 h-3 w-3" />
-                <span>{notice}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {captureNotes.length > 0 && (
-        <details className="mb-4 rounded-lg border border-gray-200 bg-white px-3 py-2">
-          <summary className="cursor-pointer text-xs text-gray-500">
-            {captureNotes.length} capture note
-            {captureNotes.length === 1 ? "" : "s"} —{" "}
-            {captureNotes
-              .map((note: FidelityNoticeCopy): string => {
-                return note.title.toLowerCase();
-              })
-              .join(", ")}
-          </summary>
-
-          <div className="mt-2 space-y-2">
-            {captureNotes.map(
-              (note: FidelityNoticeCopy, index: number): ReactElement => {
-                return (
-                  <div key={index} className="text-xs">
-                    <div className="font-medium text-gray-700">
-                      {note.title}
-                    </div>
-                    <div className="text-gray-500">{note.description}</div>
-                  </div>
-                );
-              },
-            )}
-          </div>
-        </details>
-      )}
-
-      {crossedGaps.length > 0 && (
-        <div className="mb-4 rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs text-amber-800">
-          {crossedGaps.map(
-            (gap: SessionReplayGap, index: number): ReactElement => {
-              return (
-                <div key={index}>
-                  Skipped {Math.round(gap.missingMs / 1000)}s of missing
-                  recording between chunk {gap.fromIndex} and {gap.toIndex}.
-                </div>
-              );
-            },
-          )}
-        </div>
-      )}
-
-      {stageError && (
-        <div className="mb-4">
-          <ErrorMessage message={stageError} />
-        </div>
-      )}
-
-      {/*
-       * Picture and correlated events side by side on a wide screen, stacked
-       * below ~1280px. The events rail is the half of this view that answers
-       * "what was the app doing when that happened", and putting it under the
-       * fold behind a disclosure - which is where it used to live - meant the
-       * two halves could never be read together, which is the entire point of
-       * having both.
-       */}
       <div
-        ref={theaterRef}
+        ref={rootRef}
+        data-testid="replay-player"
+        data-replay-live={isLive ? "true" : "false"}
         className={
-          isTheaterMode
-            ? "flex flex-col overflow-auto bg-white p-4"
+          isTheater
+            ? "flex h-full flex-col overflow-auto bg-gray-950 p-3"
             : "flex flex-col"
         }
       >
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-stretch">
-          <div className="flex min-w-0 flex-1 flex-col">
-            <ReplayStage
-              loader={loader}
-              replayerFactory={replayerFactory}
-              isPlaying={isPlaying}
-              speed={speed}
-              skipInactive={skipInactive}
-              seekRequest={seekRequest}
-              onTimeUpdate={handleTimeUpdate}
-              onPlayingChange={setIsPlaying}
-              onGapCrossed={handleGapCrossed}
-              onLoadedChunkIndexesChange={setLoadedChunkIndexes}
-              onError={setStageError}
-              onBufferingChange={setIsBuffering}
+        <ReplayHeader
+          ref={headerRef}
+          sessionId={manifest.sessionId || sessionId}
+          backHref={backHref}
+          onBack={goBack}
+          identity={{
+            label: manifest.details.identifiedUserLabel,
+            traits: manifest.details.identifiedUserTraits,
+          }}
+          facts={facts}
+          startTimeUnixMs={startTimeUnixMs}
+          currentTimeMs={snapshot.currentTimeMs}
+          durationMs={snapshot.durationMs || manifest.durationMs}
+          isLive={isLive}
+          tabs={headerTabs}
+          onSwitchTab={switchTab}
+          continueInTab={continueInTab}
+          sealedReason={sealedReason}
+          isWide={prefs.wide}
+          onToggleWide={toggleWide}
+          isTheater={isTheater}
+          onToggleTheater={toggleTheater}
+          onOpenDetails={openDetails}
+          buildMomentUrl={buildMomentUrl}
+          pinControl={
+            <ReplayPinControl
+              rumApplicationId={props.rumApplicationId}
+              sessionId={sessionId}
             />
+          }
+        />
 
-            <div className="mt-3">
-              <ReplayScrubber
-                durationMs={durationMs}
-                currentTimeMs={currentTimeMs}
-                isPlaying={isPlaying}
-                speed={speed}
-                skipInactive={skipInactive}
-                bands={bands}
-                frustrationMarkers={chunkMarkers.frustration}
-                errorMarkers={chunkMarkers.errors}
-                networkMarkers={networkMarkers}
-                routeMarkers={chunkMarkers.routes}
-                onSeek={seekTo}
-                onPlayPauseToggle={togglePlayPause}
-                onSpeedChange={setSpeed}
-                onSkipInactiveChange={setSkipInactive}
-                onJumpToNextError={jumpToNextError}
-                areShortcutsEnabled={!isPanelOpen}
-              />
-            </div>
+        {recordingNotes.length > 0 && (
+          <details
+            className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5"
+            data-testid="replay-recording-notes"
+          >
+            <summary className="cursor-pointer text-xs text-amber-800">
+              <Icon icon={IconProp.Alert} className="mr-1 inline h-3 w-3" />
+              {recordingNotes.length} note
+              {recordingNotes.length === 1 ? "" : "s"} about this recording
+            </summary>
+            <ul className="mt-1 space-y-0.5 text-xs text-amber-800">
+              {recordingNotes.map(
+                (note: string, index: number): ReactElement => {
+                  return <li key={index}>{note}</li>;
+                },
+              )}
+            </ul>
+          </details>
+        )}
+
+        <div
+          className="flex flex-col gap-4 xl:flex-row xl:items-stretch"
+          style={railWidthStyle}
+        >
+          <div className="flex min-w-0 flex-1 flex-col">
+            <ReplayStageOverlays
+              snapshot={snapshot}
+              signals={recordingSignals}
+              chunks={chunks}
+              entryUrl={manifest.details.entryUrl}
+              recordedSize={recordedSize}
+              scale={scale}
+              fit={fit}
+              onFitChange={setFit}
+              onPlayPause={playPause}
+              onWatchAgain={watchAgain}
+              onRetry={retry}
+              onStillLoadingRetry={stillLoadingRetry}
+              onSkipIdle={skipIdle}
+              getDiagnostic={getDiagnostic}
+              continueInTab={continueInTab}
+              onSwitchTab={switchTab}
+              shellNotice={shellNotice}
+              absence={absence}
+              sealedReason={sealedReason}
+              isLive={isLive}
+            >
+              {isPlayable && engine && (
+                <ReplayStage
+                  engine={engine}
+                  viewportWidth={manifest.details.viewportWidth}
+                  viewportHeight={manifest.details.viewportHeight}
+                  isTheater={isTheater}
+                  fit={fit}
+                  onScaleChange={setScale}
+                />
+              )}
+              {isPlayable && !engine && (
+                <div
+                  className="w-full animate-pulse rounded-lg bg-gray-900"
+                  style={{
+                    aspectRatio:
+                      recordedSize && recordedSize.height > 0
+                        ? `${recordedSize.width} / ${recordedSize.height}`
+                        : "16 / 9",
+                    minHeight: "24rem",
+                    maxHeight: "70vh",
+                  }}
+                  role="status"
+                  aria-label="Loading the replay engine"
+                  data-testid="replay-stage-placeholder"
+                />
+              )}
+            </ReplayStageOverlays>
+
+            {isPlayable && (
+              <div className="mt-3">
+                <ReplayScrubber
+                  snapshot={snapshot}
+                  bands={bands}
+                  activity={activity}
+                  markers={markers}
+                  signals={allSignals}
+                  ghostMs={ghostMs}
+                  selectedSignalId={selectedSignalId}
+                  startTimeUnixMs={startTimeUnixMs}
+                  errorMessage={snapshot.error?.message ?? null}
+                  areShortcutsEnabled={!isPanelOpen}
+                  keyboardScope={getKeyboardScope}
+                  isFollowEnabled={prefs.follow}
+                  isMouseTrailEnabled={prefs.mouseTrail}
+                  onSeek={seekTo}
+                  onPlayPause={playPause}
+                  onSpeedChange={setSpeed}
+                  onSkipInactiveChange={setSkipInactive}
+                  onSkipIdleJump={skipIdleJump}
+                  onRetry={retry}
+                  onSelectSignal={selectSignalFromTimeline}
+                  onHoverTimeline={setGhostMs}
+                  onNextSignal={(): void => {
+                    railRef.current?.stepSignal(1);
+                  }}
+                  onPrevSignal={(): void => {
+                    railRef.current?.stepSignal(-1);
+                  }}
+                  onToggleTheater={toggleTheater}
+                  onToggleWide={toggleWide}
+                  onFollowChange={handleFollowChange}
+                  onMouseTrailChange={handleMouseTrailChange}
+                  onFocusRailSearch={(): void => {
+                    railRef.current?.focusSearch();
+                  }}
+                  onCopyLink={copyLink}
+                  onToggleDetails={toggleDetails}
+                  onEscape={handleEscape}
+                  onRailRowDown={(): void => {
+                    railRef.current?.moveSelection(1);
+                  }}
+                  onRailRowUp={(): void => {
+                    railRef.current?.moveSelection(-1);
+                  }}
+                  onRailSeekSelected={(): void => {
+                    railRef.current?.seekSelected();
+                  }}
+                  onRailClear={(): void => {
+                    railRef.current?.clearSelection();
+                  }}
+                />
+              </div>
+            )}
+
+            {captureNotes.length > 0 && (
+              <details
+                className="mt-3 rounded-lg border border-gray-200 bg-white px-3 py-1.5"
+                data-testid="replay-capture-notes"
+              >
+                <summary className="cursor-pointer text-xs text-gray-500">
+                  {captureNotes.length} capture note
+                  {captureNotes.length === 1 ? "" : "s"}:{" "}
+                  {captureNotes
+                    .map((note: FidelityNoticeCopy): string => {
+                      return note.title.toLowerCase();
+                    })
+                    .join(", ")}
+                </summary>
+                <div className="mt-2 space-y-2">
+                  {captureNotes.map(
+                    (note: FidelityNoticeCopy, index: number): ReactElement => {
+                      return (
+                        <div key={index} className="text-xs">
+                          <div className="font-medium text-gray-700">
+                            {note.title}
+                          </div>
+                          <div className="text-gray-500">
+                            {note.description}
+                          </div>
+                        </div>
+                      );
+                    },
+                  )}
+                </div>
+              </details>
+            )}
           </div>
 
-          <div className="w-full shrink-0 xl:w-[26rem]">
-            <ReplayDevtoolsPanel
-              events={timelineEvents}
-              isTruncated={areEventsTruncated}
-              currentTimeMs={currentTimeMs}
-              isPlaying={isPlaying}
-              onSeek={seekTo}
-            />
+          {/*
+           * The rail beside the picture on xl and up (22-44rem, dragged at
+           * its left edge), under the scrubber below that. Collapsed, it
+           * is a 2.5rem strip with one button to bring it back.
+           *
+           * ux-02: the column's height is BOUNDED, and that is what makes
+           * the rail a rail. Without a bound, `xl:items-stretch` sized the
+           * flex line to the rail's whole content, so the list never
+           * overflowed: follow, the 40% now-divider anchoring, "Jump to
+           * now" and the >500-row windowing were all inert, and an
+           * 800-signal session produced a page tens of thousands of pixels
+           * tall beside a 70vh stage. Stacked below xl the design's
+           * 22rem sheet applies; beside the stage the column tracks the
+           * viewport. Every wrapper down to ReplayRail's own list carries
+           * min-h-0 so the overflow lands on the list, not on the page.
+           */}
+          <div
+            ref={railContainerRef}
+            data-testid="replay-rail-column"
+            data-collapsed={prefs.railCollapsed ? "true" : "false"}
+            className={`relative flex max-h-[22rem] w-full shrink-0 xl:max-h-[calc(100vh-11rem)] ${
+              prefs.railCollapsed
+                ? "xl:w-10"
+                : isTheater
+                  ? "xl:w-[22rem]"
+                  : "xl:w-[var(--oneuptime-replay-rail-width,30rem)]"
+            }`}
+          >
+            {!prefs.railCollapsed && !isTheater && (
+              <div
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Resize the events rail"
+                title="Drag to resize the rail"
+                data-testid="replay-rail-resize-handle"
+                className="absolute -left-2 top-0 hidden h-full w-3 cursor-col-resize xl:block"
+                onPointerDown={handleRailResizeStart}
+              />
+            )}
+            {prefs.railCollapsed && (
+              <button
+                type="button"
+                data-testid="replay-rail-expand"
+                className="hidden h-full w-10 flex-col items-center justify-start gap-2 rounded-lg border border-gray-200 bg-white py-3 text-gray-500 hover:text-gray-800 xl:flex"
+                title="Show the events rail"
+                onClick={toggleRailCollapsed}
+              >
+                <Icon icon={IconProp.ChevronLeft} className="h-4 w-4" />
+                <span className="text-[10px] [writing-mode:vertical-rl]">
+                  Events {allSignals.length > 0 ? `(${allSignals.length})` : ""}
+                </span>
+              </button>
+            )}
+            {/* Stays mounted while collapsed (hidden on xl only) so the rail keeps its state. */}
+            <div
+              className={`flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden ${
+                prefs.railCollapsed ? "xl:hidden" : ""
+              }`}
+            >
+              {!prefs.railCollapsed && (
+                <div className="mb-1 hidden justify-end xl:flex">
+                  <button
+                    type="button"
+                    data-testid="replay-rail-collapse"
+                    className="rounded px-1.5 py-0.5 text-[11px] text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                    title="Collapse the events rail"
+                    onClick={toggleRailCollapsed}
+                  >
+                    <Icon
+                      icon={IconProp.ChevronRight}
+                      className="inline h-3 w-3"
+                    />{" "}
+                    Collapse
+                  </button>
+                </div>
+              )}
+              {railElement}
+            </div>
           </div>
         </div>
       </div>
 
       <ReplayCorrelationPanel
         isOpen={isPanelOpen}
-        onClose={(): void => {
-          setIsPanelOpen(false);
+        onClose={closeDetails}
+        activeTabId={prefs.detailsTab}
+        onTabChange={(tabId: string): void => {
+          if (
+            tabId === "session" ||
+            tabId === "provenance" ||
+            tabId === "fidelity"
+          ) {
+            replayViewPrefsStore.update({ detailsTab: tabId });
+          }
         }}
-        activeTabId={panelTabId}
-        onTabChange={setPanelTabId}
-        sessionId={manifest.sessionId}
+        sessionId={manifest.sessionId || sessionId}
         details={manifest.details}
         fidelityNotices={manifest.fidelityNotices}
-        missingAssets={manifest.missingAssets}
         gaps={manifest.gaps}
+        onOpenRailTab={openRailTab}
+        railCounts={railCounts}
       />
+
+      {/* The playhead as text for assistive tech, at a calm cadence. */}
+      <span
+        className="sr-only"
+        aria-live="off"
+        data-testid="replay-offset-text"
+      >
+        {formatReplayOffset(snapshot.currentTimeMs)}
+      </span>
     </Fragment>
   );
 };

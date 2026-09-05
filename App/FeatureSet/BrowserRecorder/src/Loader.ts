@@ -138,13 +138,15 @@ export async function load(): Promise<void> {
   }
 
   /*
-   * Re-checked with the server's own respectDoNotTrack: either side insisting
-   * is enough to honour the signal, and only both sides agreeing can turn it
-   * off.
+   * Re-checked with the server's own respectDoNotTrack. The page's value is
+   * passed RAW, as the tri-state it is: an explicit page value wins (the
+   * customer owns the lawful basis for their own site), and with no page
+   * value the server policy decides. Collapsing it to a boolean here used
+   * to turn "the page said nothing" into "the page said true".
    */
   if (
     !Consent.isRecordingPermitted(
-      options.respectDoNotTrack !== false,
+      options.respectDoNotTrack,
       config.respectDoNotTrack,
       navigator,
     )

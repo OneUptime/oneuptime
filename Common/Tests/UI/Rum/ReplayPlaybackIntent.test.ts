@@ -2,6 +2,12 @@ import { describe, expect, it } from "@jest/globals";
 import {
   DEFAULT_SKIP_INACTIVE,
   END_OF_RECORDING_TOLERANCE_MS,
+  FEED_AHEAD_FLOOR_MS,
+  IDLE_SKIP_PREROLL_MS,
+  MAX_PREFETCH_PAGES_AHEAD,
+  computeFeedAheadMs,
+  computePrefetchPagesAhead,
+  getIdleSkipTargetMs,
   shouldRewindBeforePlay,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayPlaybackIntent";
 
@@ -88,5 +94,59 @@ describe("shouldRewindBeforePlay", () => {
     expect(shouldRewindBeforePlay(Number.NaN, 60000)).toBe(false);
     expect(shouldRewindBeforePlay(1000, Number.NaN)).toBe(false);
     expect(shouldRewindBeforePlay(1000, Number.POSITIVE_INFINITY)).toBe(false);
+  });
+});
+
+describe("computeFeedAheadMs", () => {
+  it("keeps two flush intervals of headroom at ordinary speeds", () => {
+    expect(computeFeedAheadMs(0.5)).toBe(FEED_AHEAD_FLOOR_MS);
+    expect(computeFeedAheadMs(1)).toBe(FEED_AHEAD_FLOOR_MS);
+    expect(computeFeedAheadMs(1.5)).toBe(FEED_AHEAD_FLOOR_MS);
+  });
+
+  it("grows with the speed so 8x cannot outrun a slow fetch", () => {
+    /*
+     * At 8x, 30s of footage plays out in under four seconds - less than
+     * one slow /chunks round trip - so the window has to grow with speed.
+     */
+    expect(computeFeedAheadMs(2)).toBe(40000);
+    expect(computeFeedAheadMs(4)).toBe(80000);
+    expect(computeFeedAheadMs(8)).toBe(160000);
+  });
+
+  it("falls back to the floor for a nonsense speed", () => {
+    expect(computeFeedAheadMs(0)).toBe(FEED_AHEAD_FLOOR_MS);
+    expect(computeFeedAheadMs(Number.NaN)).toBe(FEED_AHEAD_FLOOR_MS);
+  });
+});
+
+describe("computePrefetchPagesAhead", () => {
+  it("warms two pages normally and four from 4x", () => {
+    expect(computePrefetchPagesAhead(1)).toBe(2);
+    expect(computePrefetchPagesAhead(2)).toBe(2);
+    expect(computePrefetchPagesAhead(4)).toBe(4);
+    expect(computePrefetchPagesAhead(8)).toBe(4);
+  });
+
+  it("never asks for more pages than MAX_PREFETCH_PAGES_AHEAD", () => {
+    /*
+     * ChunkLoader sizes its decoded cache from this constant. If a speed
+     * could ask for more, the cache would evict footage that had been
+     * fetched and not yet fed, and the feed loop would fetch it back.
+     */
+    for (const speed of [0.25, 0.5, 1, 2, 4, 8, 16, Number.NaN]) {
+      expect(computePrefetchPagesAhead(speed)).toBeLessThanOrEqual(
+        MAX_PREFETCH_PAGES_AHEAD,
+      );
+    }
+  });
+});
+
+describe("getIdleSkipTargetMs", () => {
+  it("lands one second before the band ends, never before it starts", () => {
+    expect(getIdleSkipTargetMs({ startMs: 10000, endMs: 40000 })).toBe(
+      40000 - IDLE_SKIP_PREROLL_MS,
+    );
+    expect(getIdleSkipTargetMs({ startMs: 10000, endMs: 10500 })).toBe(10000);
   });
 });

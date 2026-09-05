@@ -158,6 +158,111 @@ export const SESSION_REPLAY_ALLOWED_RETENTION_DAYS: Array<number> = [
  */
 export const DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS: number = 7;
 
+/*
+ * ---- Caps on host-page supplied strings (identify / setTags / track). ----
+ *
+ * Every one of these is enforced twice, on the client before the bytes
+ * leave the page and again at ingest, and the two sides MUST agree: a
+ * recorder that sends more than the server keeps produces silent
+ * truncation nobody can explain from the dashboard, and a server that
+ * keeps more than the recorder sends is a cap that protects nothing. The
+ * numbers are small on purpose. These maps ride on the header row of a
+ * ReplacingMergeTree that is rewritten by the finalizer, so every byte
+ * here is merge amplification, and they are rendered in list cells that
+ * have to stay one line.
+ */
+
+/* identify(ref, traits): the traits map. */
+export const SESSION_REPLAY_MAX_TRAIT_KEYS: number = 20;
+export const SESSION_REPLAY_MAX_TRAIT_KEY_LENGTH: number = 40;
+export const SESSION_REPLAY_MAX_TRAIT_VALUE_LENGTH: number = 200;
+
+/*
+ * setTags()/addTag(): tighter than traits because tags are indexed for the
+ * tag:key=value search and shown as pills, where a 200-character value is
+ * unreadable anyway.
+ */
+export const SESSION_REPLAY_MAX_TAG_KEYS: number = 20;
+export const SESSION_REPLAY_MAX_TAG_KEY_LENGTH: number = 32;
+export const SESSION_REPLAY_MAX_TAG_VALUE_LENGTH: number = 128;
+
+/*
+ * track(name, properties): a custom event's name is a rail row title, and
+ * its properties map shares the trait caps for key/value length.
+ */
+export const SESSION_REPLAY_MAX_CUSTOM_EVENT_NAME_LENGTH: number = 64;
+export const SESSION_REPLAY_MAX_CUSTOM_EVENT_PROPERTY_KEYS: number = 20;
+
+/*
+ * Per-CHUNK caps on the two custom-event kinds the host page can fire in a
+ * loop. Per chunk rather than per session so a long session keeps
+ * recording interactions after a busy minute; the recorder emits one
+ * "-dropped { count }" event per chunk once a cap is hit, so the player
+ * can say "212 clicks not labelled" instead of showing a quiet stretch.
+ */
+export const SESSION_REPLAY_MAX_CUSTOM_EVENTS_PER_CHUNK: number = 50;
+export const SESSION_REPLAY_MAX_CLICK_EVENTS_PER_CHUNK: number = 100;
+
+/*
+ * The visible text carried on a click event (aria-label, name or text
+ * content, after the active masking transform). Enough to read "Place
+ * order", short enough that a click on a paragraph cannot smuggle it.
+ */
+export const SESSION_REPLAY_MAX_CLICK_TEXT_LENGTH: number = 40;
+
+/* captureSession(reason): the reason becomes a custom event property. */
+export const SESSION_REPLAY_MAX_CAPTURE_REASON_LENGTH: number = 80;
+
+/*
+ * ---- Player-side activity model. ----
+ *
+ * A stretch with no user input for at least this long is an idle band on
+ * the timeline and a candidate for "skip idle". 5s is the smallest gap a
+ * viewer perceives as waiting rather than reading; shorter bands would
+ * turn every pause-to-read into a jump.
+ */
+export const SESSION_REPLAY_IDLE_THRESHOLD_MS: number = 5 * 1000;
+
+/*
+ * Coarse activity from the manifest alone: a chunk carrying fewer events
+ * than this is provisionally idle before it is decoded. A chunk always
+ * holds a handful of housekeeping events (meta, viewport, the flush
+ * checkout), so "3 or fewer" means nothing the user did reached it. The
+ * finalizer uses the same threshold to compute activeMs on the header, so
+ * the list's "idle 40%" and the timeline's hatched bands agree.
+ */
+export const SESSION_REPLAY_ACTIVE_CHUNK_MIN_EVENTS: number = 4;
+
+/*
+ * ---- List search. ----
+ *
+ * Free-text search runs as a case-insensitive substring match over several
+ * argMax'd header columns, which cannot use an index. The string cap keeps
+ * the predicate cheap; the window cap bounds how many partitions it may
+ * scan, and the handler answers "narrow the range" rather than timing out
+ * against a wider window.
+ */
+export const SESSION_REPLAY_LIST_SEARCH_MAX_LENGTH: number = 200;
+export const SESSION_REPLAY_LIST_SEARCH_MAX_WINDOW_DAYS: number = 30;
+
+/*
+ * Everything a current recorder build can capture beyond the rrweb DOM
+ * stream. The recorder sends the subset it implements on chunk 0
+ * (SessionReplayChunkEnvelope.capabilities); the player and the setup page
+ * compare a recording against this list to explain what an older cached
+ * artifact could not have captured, e.g. "click labels: no". Additive
+ * only: a value is never removed or renamed, because stored headers quote
+ * these strings.
+ */
+export const SESSION_REPLAY_RECORDER_CAPABILITIES: ReadonlyArray<string> = [
+  "click-events",
+  "web-vitals",
+  "custom-events",
+  "traits",
+  "tags",
+  "visibility",
+];
+
 /* How the payload bytes were compressed by the recorder. */
 export type SessionReplayPayloadEncoding = "gzip" | "identity";
 
@@ -197,6 +302,21 @@ export enum SessionReplayFidelityNotice {
    * may be noisier than the application's settings intend.
    */
   IgnorePatternsDiscarded = "ignore-patterns-discarded",
+  /*
+   * A per-session cap on recorded console lines, errors, network requests
+   * or route changes was reached, so later signals of that kind were not
+   * recorded. The footage itself is complete; only the rail is truncated
+   * past this point. The recorder emits an in-band cap marker too, so the
+   * rail can show WHERE the truncation started.
+   */
+  SignalCapReached = "signal-cap-reached",
+  /*
+   * rrweb threw inside the recorder's own emit path (its errorHandler
+   * swallowed it so the host page kept working) three or more times on
+   * this page. The recorder took a fresh checkout after the burst, so the
+   * footage recovers, but playback may skip or freeze around those points.
+   */
+  RecorderError = "recorder-error",
 }
 
 /* Why a session stopped accumulating chunks. */
@@ -227,6 +347,19 @@ export interface SessionReplaySignalCounts {
   errorClickCount: number;
   refreshRageCount: number;
   routeCount: number;
+
+  /*
+   * Engagement counters, optional because a recorder that predates them
+   * omits them and the server reads absence as 0. clickCount counts the
+   * oneuptime.click events the chunk carries (capped per chunk, see
+   * SESSION_REPLAY_MAX_CLICK_EVENTS_PER_CHUNK), customEventCount the
+   * oneuptime.custom events from the host page's track() calls. Both are
+   * summed into the session header by the finalizer like the others, and
+   * feed the list's "41 clicks" column and the player's activity lane
+   * before any chunk is decoded.
+   */
+  clickCount?: number;
+  customEventCount?: number;
 }
 
 /*
@@ -249,6 +382,27 @@ export interface SessionReplayChunkMeta {
    * explicitly enabled user-identity capture.
    */
   identifiedUserRef?: string;
+
+  /*
+   * Traits the host page attached to the identified user through
+   * identify(ref, traits): plan, role, tenant - never the reference itself.
+   * Already stringified, capped (SESSION_REPLAY_MAX_TRAIT_*) and masked on
+   * the client; the server re-caps and stores them ONLY when the
+   * application has user-identity capture on, in a column under the same
+   * narrow identity ACL as identifiedUserLabel. Absent from an older
+   * recorder, and absent whenever identify() was never called.
+   */
+  identifiedUserTraits?: Record<string, string>;
+
+  /*
+   * Per-session key/value tags from setTags()/addTag(): a build id, an
+   * experiment arm, a customer tier. Unlike traits these describe the
+   * session rather than the person, so they live under the ordinary
+   * session ACL and are searchable from the list (tag:key=value). Carried
+   * on whichever chunk carries meta so a tag set after chunk 0 still
+   * reaches the header.
+   */
+  tags?: Record<string, string>;
 }
 
 /*
@@ -346,6 +500,17 @@ export interface SessionReplayChunkEnvelope {
 
   /* Trace ids observed in this chunk's network events, for correlation. */
   traceIds?: Array<string>;
+
+  /*
+   * What this recorder build can capture, as a subset of
+   * SESSION_REPLAY_RECORDER_CAPABILITIES. Sent on chunk 0 only and purely
+   * informational: the server stores it on the header so the player can
+   * say "this recording predates click labels" instead of rendering an
+   * empty Interactions tab, and the setup page can tell a customer on a
+   * stale cached artifact which features their visitors' browsers are
+   * still missing. Never used to gate ingest.
+   */
+  capabilities?: Array<string>;
 }
 
 /*
@@ -388,6 +553,15 @@ export enum SessionReplayDisabledReason {
    * not match one, or a kill key is set.
    */
   NotEnabledForApplication = "not-enabled-for-application",
+
+  /*
+   * The project's daily byte budget or the application's monthly budget
+   * is already spent, so the recorder is told at config time not to
+   * record at all. Without this every new page load would record,
+   * compress and upload a chunk only to be refused. `disabledDetail`
+   * says which budget and `budgetResetsAt` when it clears.
+   */
+  BudgetExhausted = "budget-exhausted",
 }
 
 /*
@@ -487,6 +661,25 @@ export interface SessionReplayConfigResponse {
   disabledReason?: SessionReplayDisabledReason;
 
   /*
+   * Narrows disabledReason so the customer's console and the Dashboard's
+   * installation test can name the exact switch or budget: for
+   * NotEnabledForApplication one of project-not-allowed,
+   * application-not-enabled, application-unknown, project-killed; for
+   * BudgetExhausted one of project-daily-budget-exhausted,
+   * app-monthly-budget-exhausted. Free-form on purpose - the vocabulary
+   * belongs to the server's gate cache, and an older recorder just logs
+   * whatever string it receives.
+   */
+  disabledDetail?: string;
+
+  /*
+   * ISO timestamp of when a spent budget clears, set only alongside
+   * BudgetExhausted, so the recorder's diagnostics can say "resets at
+   * 00:00 UTC" instead of "disabled".
+   */
+  budgetResetsAt?: string;
+
+  /*
    * Ask every recorder that reads this policy to print its decisions to
    * the browser console (SESSION_REPLAY_DEBUG on the deployment).
    *
@@ -538,6 +731,22 @@ export interface SessionReplayChunkManifestEntry {
   errorClickCount: number;
   refreshRageCount: number;
   routeCount: number;
+
+  /*
+   * Optional because a manifest from a server that predates the column
+   * simply omits it, and the player must not draw "0 clicks" for a chunk
+   * that was never counted. Feeds the coarse activity heat on the timeline
+   * before the chunk is decoded.
+   */
+  clickCount?: number;
+
+  /*
+   * Scrubbed URL the chunk was flushed from (the chunk row's url column).
+   * Lets the stage's URL bar and the timeline preview name the page for a
+   * chunk that is not loaded yet; the exact navigation events take over
+   * once it is decoded.
+   */
+  url?: string;
 }
 
 /* A hole in the chunk sequence. Never crossed silently during playback. */

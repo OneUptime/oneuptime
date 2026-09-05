@@ -57,7 +57,6 @@ import AnalyticsModelAPI, {
 import Query from "Common/Types/BaseDatabase/Query";
 import Realtime from "Common/UI/Utils/Realtime";
 import Log from "Common/Models/AnalyticsModels/Log";
-import RumSession from "Common/Models/AnalyticsModels/RumSession";
 import Span from "Common/Models/AnalyticsModels/Span";
 import React, {
   FunctionComponent,
@@ -116,16 +115,18 @@ import {
   applyLogsFacetFiltersToQuery,
   applyLogsSessionScopeToQuery,
   buildLogsPivotScope,
-  buildSessionReplayRoute,
   buildSpanChipOpenRoute,
   buildTraceViewRoute,
-  extractRumApplicationIdFromRumSessions,
+  carrySessionScopeIntoTracesPivot,
+  dropSessionScopeFromPivot,
   extractTraceIdFromSpans,
   formatDroppedScopeHint,
   LogsPivotScopeInput,
   LogsPivotScopeResult,
   mergeDroppedScopeFields,
 } from "../../Utils/LogsCrossSignalPivot";
+import { resolveReplayMomentRouteForSession } from "../../Utils/RumSessionLookup";
+import { makeLogSignalId } from "../SessionReplay/Rail/ReplaySignalTypes";
 
 export interface ComponentProps {
   id: string;
@@ -1874,57 +1875,46 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   /*
    * The session replay route needs the rumApplicationId, which a bare log row
    * doesn't carry — resolved lazily (the details panel calls this on expand)
-   * via one RumSession lookup by session id, and cached.
+   * through Utils/RumSessionLookup, one cached read per session id shared
+   * with the span panel and the occurrence table.
    */
-  const sessionRumApplicationIdCacheRef: React.MutableRefObject<
-    Map<string, string | null>
-  > = useRef<Map<string, string | null>>(new Map());
-
   const getSessionRoute: (
     sessionId: string,
     log: Log,
   ) => Promise<Route | URL | undefined> = useCallback(
-    async (sessionId: string, _log: Log): Promise<Route | URL | undefined> => {
+    async (sessionId: string, log: Log): Promise<Route | URL | undefined> => {
       if (!sessionId) {
         return undefined;
       }
 
-      let rumApplicationId: string | null | undefined =
-        sessionRumApplicationIdCacheRef.current.get(sessionId);
+      /*
+       * The log's own timestamp travels as ?at= and its id as
+       * ?signal=log:<id>, so the player opens on the moment of THIS line
+       * with the row selected in the logs rail - not at 0:00 of a possibly
+       * twenty-minute recording (correlation-4). The application lookup is
+       * the shared cached one; a failure rejects and is left uncached so
+       * the next expand can retry.
+       */
+      const logTime: Date | undefined =
+        log.time instanceof Date
+          ? log.time
+          : log.time
+            ? new Date(log.time as unknown as string)
+            : undefined;
+      const logId: string = log.id?.toString() || "";
 
-      if (rumApplicationId === undefined) {
-        try {
-          const listResult: ListResult<RumSession> =
-            await AnalyticsModelAPI.getList<RumSession>({
-              modelType: RumSession,
-              query: { sessionId: sessionId } as Query<RumSession>,
-              limit: 1,
-              skip: 0,
-              select: {
-                rumApplicationId: true,
-              },
-              sort: {},
-            });
-
-          rumApplicationId = extractRumApplicationIdFromRumSessions(
-            listResult.data,
-          );
-        } catch {
-          // Left uncached so a transient failure can retry on the next expand.
-          return undefined;
-        }
-
-        sessionRumApplicationIdCacheRef.current.set(
-          sessionId,
-          rumApplicationId,
-        );
-      }
-
-      if (!rumApplicationId) {
+      try {
+        return await resolveReplayMomentRouteForSession({
+          sessionId: sessionId,
+          ...(logTime && !Number.isNaN(logTime.getTime())
+            ? { at: logTime }
+            : {}),
+          ...(logId ? { signal: makeLogSignalId(logId) } : {}),
+          rail: "logs",
+        });
+      } catch {
         return undefined;
       }
-
-      return buildSessionReplayRoute(rumApplicationId, sessionId);
     },
     [],
   );
@@ -1982,8 +1972,16 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     useCallback((): CrossSignalQueryParams => {
       const { scope, dropped }: LogsPivotScopeResult =
         buildLogsPivotScope(pivotScopeInput);
+      /*
+       * The shared serializer has no session field; the session scope is
+       * appended as Span.sessionId filter tuples afterwards so "traces of
+       * this session" means that and not "every trace in the window".
+       */
       const serialized: CrossSignalQueryParams =
-        toTracesExplorerQueryParams(scope);
+        carrySessionScopeIntoTracesPivot(
+          toTracesExplorerQueryParams(scope),
+          scope.sessionIds,
+        );
 
       return {
         params: serialized.params,
@@ -1995,8 +1993,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     useCallback((): CrossSignalQueryParams => {
       const { scope, dropped }: LogsPivotScopeResult =
         buildLogsPivotScope(pivotScopeInput);
-      const serialized: CrossSignalQueryParams =
-        toMetricsExplorerQueryParams(scope);
+      const serialized: CrossSignalQueryParams = dropSessionScopeFromPivot(
+        toMetricsExplorerQueryParams(scope),
+        scope.sessionIds,
+      );
 
       return {
         params: serialized.params,

@@ -19,6 +19,15 @@ import logger, {
  *  - It does not gunzip. Decompression is CPU-bound and belongs in the
  *    worker; the HTTP path stages opaque bytes and answers 202.
  *  - It does not destroy the socket on an oversized body. See below.
+ *
+ * On 413 versus 422 (audit finding ingest-8): a REAL body over the cap is
+ * 413ed here, while reading, and the recorder drops that chunk. The route's
+ * 422 - "an indivisible snapshot that will not fit, the session survives
+ * with a fidelity notice" - is reached only by a frame that DECLARES an
+ * over-cap payloadBytes with little or no payload behind it, which is the
+ * stub frame a recorder sends when its compressed snapshot exceeds the
+ * request cap. A recorder that posts the oversized bytes instead of the stub
+ * gets the 413 and no notice; the stub is the recorder's job.
  */
 export default class SessionReplayRequestMiddleware {
   @CaptureSpan()

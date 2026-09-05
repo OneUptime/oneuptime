@@ -1,8 +1,14 @@
 import {
   MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST,
-  MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
   MAX_SESSION_REPLAY_CHUNK_BYTES,
+  SESSION_REPLAY_MAX_TAG_KEYS,
+  SESSION_REPLAY_MAX_TAG_KEY_LENGTH,
+  SESSION_REPLAY_MAX_TAG_VALUE_LENGTH,
+  SESSION_REPLAY_MAX_TRAIT_KEYS,
+  SESSION_REPLAY_MAX_TRAIT_KEY_LENGTH,
+  SESSION_REPLAY_MAX_TRAIT_VALUE_LENGTH,
   SESSION_REPLAY_MAX_USER_REF_LENGTH,
+  SESSION_REPLAY_RECORDER_CAPABILITIES,
   SESSION_REPLAY_WIRE_VERSION,
   SessionReplayChunkEnvelope,
   SessionReplayChunkMeta,
@@ -11,6 +17,7 @@ import {
   SessionReplayRecorderKind,
   SessionReplaySignalCounts,
 } from "Common/Types/Rum/SessionReplay";
+import { sanitizeSessionReplayStringMap } from "Common/Utils/Rum/SessionReplayStringMap";
 import SessionReplayMaskingMode, {
   parseSessionReplayMaskingMode,
 } from "Common/Types/Rum/SessionReplayMaskingMode";
@@ -65,6 +72,19 @@ const MAX_TRACE_ID_LENGTH: number = 64;
 const MAX_META_STRING_LENGTH: number = 128;
 
 /*
+ * Sanity ceiling on chunkIndex, well above anything a recorder can mint
+ * (MAX_SESSION_REPLAY_CHUNKS_PER_SESSION is 480). The PER-SESSION cap is
+ * deliberately NOT enforced here: reaching it is a normal end-of-session
+ * condition that the gate answers per frame with an orderly "stop", and a
+ * parser that rejected the whole body on the first over-cap frame threw
+ * away the valid frames in front of it (audit finding ingest-4). What the
+ * parser bounds is the shape: a non-integer, negative or absurd index is a
+ * malformed frame, and a frame missing the field is a recorder bug that
+ * used to be answered as "session-chunk-cap" (ingest-3).
+ */
+const MAX_PLAUSIBLE_CHUNK_INDEX: number = 1_000_000;
+
+/*
  * Reasons a body is refused, kept as codes rather than prose so the route
  * can map them to distinct status codes and the metrics can be labelled by
  * cause. The split that matters is SnapshotTooLarge (422) against
@@ -82,7 +102,14 @@ export enum SessionReplayEnvelopeError {
   TooManyFrames = "too-many-frames",
   SnapshotTooLarge = "snapshot-too-large",
   AppIdentifierMismatch = "app-identifier-mismatch",
-  ChunkIndexOutOfRange = "chunk-index-out-of-range",
+
+  /*
+   * chunkIndex missing, negative, fractional or absurd. A 400 for the
+   * recorder, and a deterministic one: the same build will mint the same
+   * shape again. Distinct from the per-session cap, which is not a parse
+   * error at all (see MAX_PLAUSIBLE_CHUNK_INDEX).
+   */
+  ChunkIndexMalformed = "chunk-index-malformed",
 }
 
 export interface ParsedSessionReplayFrame {
@@ -94,6 +121,14 @@ export interface ParsedSessionReplayFrame {
    * it base64-encodes or writes to Redis.
    */
   payload: Buffer;
+
+  /*
+   * The whole frame as it arrived - envelope line, separator and payload -
+   * also a view. Lets the route stage a SUBSET of a request's frames byte
+   * for byte (the frames under the per-session cap when later ones are
+   * over it) without re-serialising an envelope it did not author.
+   */
+  raw: Buffer;
 }
 
 export type SessionReplayParseResult =
@@ -294,12 +329,12 @@ export default class SessionReplayEnvelopeParser {
       if (
         !Number.isInteger(chunkIndex) ||
         chunkIndex < 0 ||
-        chunkIndex >= MAX_SESSION_REPLAY_CHUNKS_PER_SESSION
+        chunkIndex > MAX_PLAUSIBLE_CHUNK_INDEX
       ) {
         return {
           isValid: false,
-          error: SessionReplayEnvelopeError.ChunkIndexOutOfRange,
-          message: `chunkIndex must be an integer in [0, ${MAX_SESSION_REPLAY_CHUNKS_PER_SESSION}).`,
+          error: SessionReplayEnvelopeError.ChunkIndexMalformed,
+          message: `chunkIndex must be a non-negative integer no greater than ${MAX_PLAUSIBLE_CHUNK_INDEX}.`,
         };
       }
 
@@ -391,9 +426,25 @@ export default class SessionReplayEnvelopeParser {
         envelope.routes = routes;
       }
 
+      /*
+       * What this recorder build can capture. Filtered against the known
+       * list rather than stored verbatim: the header quotes these strings
+       * to the player, and an attacker-controllable envelope must not be
+       * able to put arbitrary text there. Absence (an older recorder, or a
+       * frame other than chunk 0) is simply absence.
+       */
+      const capabilities: Array<string> = this.readCapabilities(
+        raw["capabilities"],
+      );
+
+      if (capabilities.length > 0) {
+        envelope.capabilities = capabilities;
+      }
+
       frames.push({
         envelope: envelope,
         payload: body.subarray(payloadStart, payloadEnd),
+        raw: body.subarray(offset, payloadEnd),
       });
 
       totalPayloadBytes += declaredPayloadBytes;
@@ -501,7 +552,7 @@ export default class SessionReplayEnvelopeParser {
     const raw: JSONObject =
       value && typeof value === "object" ? (value as JSONObject) : {};
 
-    return {
+    const signals: SessionReplaySignalCounts = {
       errorCount: this.readNonNegativeInteger(raw["errorCount"]),
       rageClickCount: this.readNonNegativeInteger(raw["rageClickCount"]),
       deadClickCount: this.readNonNegativeInteger(raw["deadClickCount"]),
@@ -509,6 +560,70 @@ export default class SessionReplayEnvelopeParser {
       refreshRageCount: this.readNonNegativeInteger(raw["refreshRageCount"]),
       routeCount: this.readNonNegativeInteger(raw["routeCount"]),
     };
+
+    /*
+     * Engagement counters are OPTIONAL on the wire and stay absent here
+     * when the recorder did not send them, so the ingest can write 0 to the
+     * column (the column has to hold something) while an older envelope
+     * still parses to exactly the object it parsed to before these fields
+     * existed. A garbled value reads as absent, never as a rejection.
+     */
+    const clickCount: number | undefined = this.readOptionalNonNegativeInteger(
+      raw["clickCount"],
+    );
+
+    if (clickCount !== undefined) {
+      signals.clickCount = clickCount;
+    }
+
+    const customEventCount: number | undefined =
+      this.readOptionalNonNegativeInteger(raw["customEventCount"]);
+
+    if (customEventCount !== undefined) {
+      signals.customEventCount = customEventCount;
+    }
+
+    return signals;
+  }
+
+  private static readOptionalNonNegativeInteger(
+    value: unknown,
+  ): number | undefined {
+    if (
+      typeof value !== "number" ||
+      !Number.isFinite(value) ||
+      !Number.isInteger(value) ||
+      value < 0
+    ) {
+      return undefined;
+    }
+
+    return value;
+  }
+
+  /*
+   * The subset of SESSION_REPLAY_RECORDER_CAPABILITIES the envelope names,
+   * in the canonical list's order and without duplicates, so two recorders
+   * that spell the same set differently store the same header value.
+   */
+  private static readCapabilities(value: unknown): Array<string> {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    const named: Set<string> = new Set<string>();
+
+    for (const entry of value) {
+      if (typeof entry === "string") {
+        named.add(entry.trim());
+      }
+    }
+
+    return SESSION_REPLAY_RECORDER_CAPABILITIES.filter(
+      (capability: string): boolean => {
+        return named.has(capability);
+      },
+    );
   }
 
   private static readSnapshotPart(
@@ -573,6 +688,39 @@ export default class SessionReplayEnvelopeParser {
 
     if (identifiedUserRef) {
       meta.identifiedUserRef = identifiedUserRef;
+    }
+
+    /*
+     * Host-page supplied maps, re-capped with the SAME function and the SAME
+     * limits the recorder applied before sending. Oversized input is
+     * TRUNCATED, never rejected: a page that sets one tag too many must not
+     * lose its recording over it, and the caps exist to bound a row, not to
+     * police the page. Attached only when non-empty so an envelope from a
+     * recorder that predates these fields parses to the object it always
+     * parsed to.
+     */
+    const identifiedUserTraits: Record<string, string> =
+      sanitizeSessionReplayStringMap(raw["identifiedUserTraits"], {
+        maxKeys: SESSION_REPLAY_MAX_TRAIT_KEYS,
+        maxKeyLength: SESSION_REPLAY_MAX_TRAIT_KEY_LENGTH,
+        maxValueLength: SESSION_REPLAY_MAX_TRAIT_VALUE_LENGTH,
+      });
+
+    if (Object.keys(identifiedUserTraits).length > 0) {
+      meta.identifiedUserTraits = identifiedUserTraits;
+    }
+
+    const tags: Record<string, string> = sanitizeSessionReplayStringMap(
+      raw["tags"],
+      {
+        maxKeys: SESSION_REPLAY_MAX_TAG_KEYS,
+        maxKeyLength: SESSION_REPLAY_MAX_TAG_KEY_LENGTH,
+        maxValueLength: SESSION_REPLAY_MAX_TAG_VALUE_LENGTH,
+      },
+    );
+
+    if (Object.keys(tags).length > 0) {
+      meta.tags = tags;
     }
 
     return meta;

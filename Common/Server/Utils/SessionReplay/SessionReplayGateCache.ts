@@ -23,17 +23,30 @@ import SessionIdentity from "../../../Utils/Rum/SessionIdentity";
 import OriginAllowList from "../../../Utils/Telemetry/OriginAllowList";
 
 /*
+ * RumApplication.sessionReplaySamplePercentage's column default. Declared
+ * here rather than read off the model because this file compiles against
+ * checkouts whose model predates the column (see buildSelect).
+ */
+const DEFAULT_SESSION_REPLAY_SAMPLE_PERCENTAGE: number = 100;
+
+/*
  * Resolves the session-replay policy for one (project, appIdentifier) pair,
  * which is what all three ingest-time gates need: the org-wide allow flag,
  * the per-application enable flag, and the origin allowlist.
  *
- * Every default in here is the REFUSING one. An application that has never
- * been configured, a project that has never opted in, a row whose policy
- * columns have not been migrated yet, and a lookup that fails outright all
- * resolve to "do not accept recordings". That is the opposite posture from
- * the log and trace scrub loaders, which continue with empty rules on
- * failure, and it is deliberate: a span recorded by mistake is a span, a
- * session recorded by mistake is a video of a real person.
+ * The two SWITCHES default to refusing. An application that has never been
+ * configured, a project that has never opted in, a row whose enable columns
+ * have not been migrated yet, and a lookup that fails outright all resolve
+ * to "do not accept recordings". That is the opposite posture from the log
+ * and trace scrub loaders, which continue with empty rules on failure, and
+ * it is deliberate: a span recorded by mistake is a span, a session
+ * recorded by mistake is a video of a real person.
+ *
+ * Once both switches say yes, the remaining policy columns default to what
+ * the MODEL defaults to (consent NotRequired, trigger Always, sample 100),
+ * because those are instructions to a recorder the customer has already
+ * switched on, and a silent downgrade to "record nothing" is the failure
+ * the Dashboard cannot explain. See loadPolicy.
  *
  * Cache shape follows the house convention for hot-path policy (a
  * process-local Map with a 60s TTL, as in LogScrubRuleService), with one
@@ -163,6 +176,62 @@ export interface SessionReplayGatePolicy {
   configEpoch: number;
 }
 
+/*
+ * WHY a policy lookup came back empty.
+ *
+ * getPolicy() folds every refusing state into null, which is the right
+ * shape for the gate (it must refuse, and the recorder is told "stop"), but
+ * the config endpoint, the /validate probe and the health counters all owe
+ * the customer a NAME: a project that was switched off, an application that
+ * was switched off, an identifier that matches no application, and a
+ * project killed by the operator's kill key are four different settings
+ * pages. Answering "not enabled for application" for all four sends the
+ * customer to the wrong one.
+ *
+ * A closed vocabulary that carries no project data; it is only ever
+ * answered to a request already holding a valid ingestion key for the
+ * project.
+ */
+export enum SessionReplayPolicyRefusal {
+  /* Project.isSessionReplayAllowed is false: the org-wide switch. */
+  ProjectNotAllowed = "project-not-allowed",
+
+  /* RumApplication.isSessionReplayEnabled is false for this application. */
+  ApplicationNotEnabled = "application-not-enabled",
+
+  /*
+   * No application by that identifier could be found or created. With a
+   * project that allows replay the application is created on first sight,
+   * so this is either a project that does not allow it or a creation that
+   * failed.
+   */
+  ApplicationUnknown = "application-unknown",
+
+  /* The gate cache's Redis kill key is set for the project. */
+  ProjectKilled = "project-killed",
+
+  /* No identifier was supplied at all. */
+  IdentifierMissing = "app-identifier-missing",
+}
+
+export interface SessionReplayPolicyResolution {
+  policy: SessionReplayGatePolicy | null;
+  /* Set exactly when policy is null. */
+  refusal: SessionReplayPolicyRefusal | null;
+}
+
+/*
+ * What the cache slot holds. The store is untyped by design (see its
+ * header); this resolver is its only writer and reader, and it caches the
+ * REFUSAL alongside the policy so a repeat lookup for a switched-off
+ * application can still say which switch is off without another round trip
+ * to Postgres.
+ */
+interface CachedPolicySlot {
+  policy: SessionReplayGatePolicy | null;
+  refusal: SessionReplayPolicyRefusal | null;
+}
+
 export default class SessionReplayGateCache {
   /*
    * Resolve the policy for one application.
@@ -174,64 +243,94 @@ export default class SessionReplayGateCache {
    * produce different HTTP answers - a terminal 204 that stops the
    * recorder, versus a retryable 503 that does not silently discard a
    * recording during a database blip.
+   *
+   * Callers that need to say WHY the answer was null use resolvePolicy.
    */
   public static async getPolicy(data: {
     projectId: ObjectID;
     appIdentifier: string;
   }): Promise<SessionReplayGatePolicy | null> {
+    const resolution: SessionReplayPolicyResolution =
+      await this.resolvePolicy(data);
+
+    return resolution.policy;
+  }
+
+  /*
+   * getPolicy with the refusal reason attached. Same caching, same kill-key
+   * check, same throw-on-lookup-failure contract.
+   */
+  public static async resolvePolicy(data: {
+    projectId: ObjectID;
+    appIdentifier: string;
+  }): Promise<SessionReplayPolicyResolution> {
     const appIdentifier: string = data.appIdentifier.trim();
 
     if (!appIdentifier) {
-      return null;
+      return {
+        policy: null,
+        refusal: SessionReplayPolicyRefusal.IdentifierMissing,
+      };
     }
 
     const cacheKey: string = `${data.projectId.toString()}:${appIdentifier.toLowerCase()}`;
 
-    const cached: PolicyCacheEntry<SessionReplayGatePolicy> | undefined =
-      SessionReplayGateCacheStore.getPolicyEntry<SessionReplayGatePolicy>(
-        cacheKey,
-      );
+    const cached: PolicyCacheEntry<CachedPolicySlot> | undefined =
+      SessionReplayGateCacheStore.getPolicyEntry<CachedPolicySlot>(cacheKey);
 
-    if (cached && Date.now() - cached.loadedAt < POLICY_CACHE_TTL_MS) {
+    if (
+      cached &&
+      cached.policy &&
+      Date.now() - cached.loadedAt < POLICY_CACHE_TTL_MS
+    ) {
       /*
        * The kill key is consulted even on a cache hit - that is the whole
        * point of it. A cached "enabled" policy is only honoured while the
        * project has not been switched off in the last few seconds.
        */
       if (
-        cached.policy &&
+        cached.policy.policy &&
         (await SessionReplayGateCacheStore.isProjectKilled(data.projectId))
       ) {
-        return null;
+        return {
+          policy: null,
+          refusal: SessionReplayPolicyRefusal.ProjectKilled,
+        };
       }
 
-      return cached.policy;
+      return {
+        policy: cached.policy.policy,
+        refusal: cached.policy.refusal,
+      };
     }
 
-    const policy: SessionReplayGatePolicy | null = await this.loadPolicy({
+    const loaded: SessionReplayPolicyResolution = await this.loadPolicy({
       projectId: data.projectId,
       appIdentifier: appIdentifier,
     });
 
-    SessionReplayGateCacheStore.setPolicyEntry<SessionReplayGatePolicy>(
-      cacheKey,
-      policy,
-    );
+    SessionReplayGateCacheStore.setPolicyEntry<CachedPolicySlot>(cacheKey, {
+      policy: loaded.policy,
+      refusal: loaded.refusal,
+    });
 
     if (
-      policy &&
+      loaded.policy &&
       (await SessionReplayGateCacheStore.isProjectKilled(data.projectId))
     ) {
-      return null;
+      return {
+        policy: null,
+        refusal: SessionReplayPolicyRefusal.ProjectKilled,
+      };
     }
 
-    return policy;
+    return loaded;
   }
 
   private static async loadPolicy(data: {
     projectId: ObjectID;
     appIdentifier: string;
-  }): Promise<SessionReplayGatePolicy | null> {
+  }): Promise<SessionReplayPolicyResolution> {
     const project: Project | null = await ProjectService.findOneBy({
       query: {
         _id: data.projectId.toString(),
@@ -243,7 +342,14 @@ export default class SessionReplayGateCache {
     });
 
     if (!project) {
-      return null;
+      /*
+       * The key authenticated a project that no longer exists (deleted
+       * between the key check and here). Nothing about it is allowed.
+       */
+      return {
+        policy: null,
+        refusal: SessionReplayPolicyRefusal.ProjectNotAllowed,
+      };
     }
 
     const projectView: RumApplicationPolicyView =
@@ -282,7 +388,10 @@ export default class SessionReplayGateCache {
      */
     if (!app) {
       if (!isProjectAllowed) {
-        return null;
+        return {
+          policy: null,
+          refusal: SessionReplayPolicyRefusal.ProjectNotAllowed,
+        };
       }
 
       await RumApplicationService.findOrCreateByAppIdentifier({
@@ -306,7 +415,10 @@ export default class SessionReplayGateCache {
     }
 
     if (!app || !app.id) {
-      return null;
+      return {
+        policy: null,
+        refusal: SessionReplayPolicyRefusal.ApplicationUnknown,
+      };
     }
 
     const appView: RumApplicationPolicyView =
@@ -317,10 +429,22 @@ export default class SessionReplayGateCache {
     /*
      * Both flags are required. Returning null rather than a disabled policy
      * keeps every caller from having to remember to check them: if this
-     * function hands back an object at all, recording is permitted.
+     * function hands back an object at all, recording is permitted. The
+     * project switch is reported ahead of the application switch because
+     * flipping the application on does nothing while the project is off.
      */
-    if (!isProjectAllowed || !isAppEnabled) {
-      return null;
+    if (!isProjectAllowed) {
+      return {
+        policy: null,
+        refusal: SessionReplayPolicyRefusal.ProjectNotAllowed,
+      };
+    }
+
+    if (!isAppEnabled) {
+      return {
+        policy: null,
+        refusal: SessionReplayPolicyRefusal.ApplicationNotEnabled,
+      };
     }
 
     const requestedRetentionDays: number = this.readNumber(
@@ -328,64 +452,80 @@ export default class SessionReplayGateCache {
       DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS,
     );
 
+    /*
+     * Null-column fallbacks are the MODEL defaults (RumApplication.ts:
+     * consent NotRequired, trigger Always, sample 100), not the refusing
+     * ones. This gate refuses through the two boolean switches above; once
+     * those say yes, a policy column that is null - an explicit null via the
+     * CRUD API, a partially applied migration, a checkout behind on
+     * migrations - must read as "the default the settings page shows", or
+     * the row silently reverts to "capture only on error, sample 0%" while
+     * the ingest-status page reports the row's own (null) values and cannot
+     * explain the silence. The recorder honours these three as instructions,
+     * so they must match what the Dashboard says the application does.
+     */
     return {
-      projectId: data.projectId,
-      rumApplicationId: app.id,
-      isProjectAllowed: true,
-      isAppEnabled: true,
-      allowedOrigins: this.readStringArray(
-        appView["sessionReplayAllowedOrigins"],
-      ),
-      maskingMode: parseSessionReplayMaskingMode(
-        appView["sessionReplayMaskingMode"],
-      ),
-      consentMode:
-        appView["sessionReplayConsentMode"] ===
-        SessionReplayConsentMode.NotRequired
-          ? SessionReplayConsentMode.NotRequired
-          : SessionReplayConsentMode.RequireExplicit,
-      captureTrigger:
-        appView["sessionReplayCaptureTrigger"] ===
-        SessionReplayCaptureTrigger.Always
-          ? SessionReplayCaptureTrigger.Always
-          : SessionReplayCaptureTrigger.OnErrorOrFrustration,
-      samplePercentage: this.readNumber(
-        appView["sessionReplaySamplePercentage"],
-        0,
-      ),
-      maskSelectors: this.readStringArray(
-        appView["sessionReplayMaskSelectors"],
-      ),
-      blockSelectors: this.readStringArray(
-        appView["sessionReplayBlockSelectors"],
-      ),
-      recordCanvas: appView["sessionReplayRecordCanvas"] === true,
-      captureUserIdentity: appView["sessionReplayCaptureUserIdentity"] === true,
-      captureGeo: appView["sessionReplayCaptureGeo"] === true,
-      retentionInDays: SessionIdentity.clampRetentionDays(
-        requestedRetentionDays,
-        SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
-        DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS,
-      ),
-      monthlyBudgetInGB: this.readNullableNumber(
-        appView["sessionReplayMonthlyBudgetInGB"],
-      ),
-      ignoreErrorPatterns: this.readStringArray(
-        appView["sessionReplayIgnoreErrorPatterns"],
-      ),
-      tracePropagationOrigins: this.readStringArray(
-        appView["sessionReplayTracePropagationOrigins"],
-      ),
-      lcpBudgetMs: this.readNumber(appView["sessionReplayLcpBudgetMs"], 0),
-      longTaskBudgetMs: this.readNumber(
-        appView["sessionReplayLongTaskBudgetMs"],
-        0,
-      ),
-      slowRequestBudgetMs: this.readNumber(
-        appView["sessionReplaySlowRequestBudgetMs"],
-        0,
-      ),
-      configEpoch: this.getConfigEpoch(app),
+      policy: {
+        projectId: data.projectId,
+        rumApplicationId: app.id,
+        isProjectAllowed: true,
+        isAppEnabled: true,
+        allowedOrigins: this.readStringArray(
+          appView["sessionReplayAllowedOrigins"],
+        ),
+        maskingMode: parseSessionReplayMaskingMode(
+          appView["sessionReplayMaskingMode"],
+        ),
+        consentMode:
+          appView["sessionReplayConsentMode"] ===
+          SessionReplayConsentMode.RequireExplicit
+            ? SessionReplayConsentMode.RequireExplicit
+            : SessionReplayConsentMode.NotRequired,
+        captureTrigger:
+          appView["sessionReplayCaptureTrigger"] ===
+          SessionReplayCaptureTrigger.OnErrorOrFrustration
+            ? SessionReplayCaptureTrigger.OnErrorOrFrustration
+            : SessionReplayCaptureTrigger.Always,
+        samplePercentage: this.readNumber(
+          appView["sessionReplaySamplePercentage"],
+          DEFAULT_SESSION_REPLAY_SAMPLE_PERCENTAGE,
+        ),
+        maskSelectors: this.readStringArray(
+          appView["sessionReplayMaskSelectors"],
+        ),
+        blockSelectors: this.readStringArray(
+          appView["sessionReplayBlockSelectors"],
+        ),
+        recordCanvas: appView["sessionReplayRecordCanvas"] === true,
+        captureUserIdentity:
+          appView["sessionReplayCaptureUserIdentity"] === true,
+        captureGeo: appView["sessionReplayCaptureGeo"] === true,
+        retentionInDays: SessionIdentity.clampRetentionDays(
+          requestedRetentionDays,
+          SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
+          DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS,
+        ),
+        monthlyBudgetInGB: this.readNullableNumber(
+          appView["sessionReplayMonthlyBudgetInGB"],
+        ),
+        ignoreErrorPatterns: this.readStringArray(
+          appView["sessionReplayIgnoreErrorPatterns"],
+        ),
+        tracePropagationOrigins: this.readStringArray(
+          appView["sessionReplayTracePropagationOrigins"],
+        ),
+        lcpBudgetMs: this.readNumber(appView["sessionReplayLcpBudgetMs"], 0),
+        longTaskBudgetMs: this.readNumber(
+          appView["sessionReplayLongTaskBudgetMs"],
+          0,
+        ),
+        slowRequestBudgetMs: this.readNumber(
+          appView["sessionReplaySlowRequestBudgetMs"],
+          0,
+        ),
+        configEpoch: this.getConfigEpoch(app),
+      },
+      refusal: null,
     };
   }
 

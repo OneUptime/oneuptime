@@ -23,9 +23,11 @@ import zlib from "zlib";
 
 /*
  * Capture every handler registered per route so the middleware ORDER can be
- * asserted, not just the terminal handler. The order matters: the byte cap
- * has to run before auth (so an oversized unauthenticated body is still
- * bounded) and auth has to run before the gate (which needs req.projectId).
+ * asserted, not just the terminal handler. The order matters: auth reads
+ * headers only and has to run BEFORE the body reader (so an unauthenticated
+ * client cannot make this process buffer 2 MiB per request - audit finding
+ * ingest-2), the body reader before the metrics (which meter the body), and
+ * all of them before the gate (which needs req.projectId and req.body).
  */
 const registeredPostHandlers: Record<string, Array<unknown>> = {};
 const registeredGetHandlers: Record<string, Array<unknown>> = {};
@@ -195,6 +197,7 @@ jest.mock(
       SessionReplayGateOutcome: {
         Accepted: "accepted",
         Stop: "stop",
+        Refused: "refused",
         OriginRefused: "origin-refused",
         RateLimited: "rate-limited",
         StorageUnavailable: "storage-unavailable",
@@ -441,11 +444,20 @@ describe("POST /session-replay/v1/chunk", () => {
     expect(handlers).toContain(ingestionDisabledMiddleware);
     expect(handlers).toContain(SessionReplayRequestMiddleware.parseBody);
 
-    /* Byte cap before auth; auth before the terminal gate handler. */
+    /*
+     * Auth before the body reader (ingest-2): an unauthenticated request is
+     * answered 401 without a single body byte being buffered or metered.
+     * The byte cap in parseBody still bounds every authenticated body.
+     */
+    expect(handlers.indexOf(ingestionDisabledMiddleware)).toBeLessThan(
+      handlers.indexOf(authMiddleware),
+    );
+    expect(handlers.indexOf(authMiddleware)).toBeLessThan(
+      handlers.indexOf(SessionReplayRequestMiddleware.parseBody),
+    );
     expect(
       handlers.indexOf(SessionReplayRequestMiddleware.parseBody),
-    ).toBeLessThan(handlers.indexOf(authMiddleware));
-    expect(handlers.indexOf(authMiddleware)).toBe(handlers.length - 2);
+    ).toBeLessThan(handlers.length - 1);
   });
 
   test("answers 202 only AFTER the enqueue succeeds", async () => {
@@ -502,12 +514,17 @@ describe("POST /session-replay/v1/chunk", () => {
     expect(addJobMock).not.toHaveBeenCalled();
   });
 
-  test("records recording health on an accepted chunk, after the enqueue", async () => {
+  /*
+   * Audit finding ingest-5. The route used to stamp "last chunk received"
+   * right after the enqueue, so the Dashboard reported recordings arriving
+   * while every one of them was being dropped in the worker. The stamp now
+   * belongs to the worker, after the ClickHouse flush acknowledges.
+   */
+  test("does NOT stamp last-chunk-received on the accept path - the worker does, after the flush", async () => {
     const { res } = await invokeChunkRoute({ body: buildBody() });
 
     expect(getStatus(res)).toBe(202);
-    expect(markChunkReceivedMock).toHaveBeenCalledTimes(1);
-    expect(markChunkReceivedMock).toHaveBeenCalledWith(RUM_APPLICATION_ID);
+    expect(markChunkReceivedMock).not.toHaveBeenCalled();
     expect(markBudgetExceededMock).not.toHaveBeenCalled();
   });
 
@@ -593,25 +610,143 @@ describe("POST /session-replay/v1/chunk", () => {
 
   /*
    * Running past the per-session chunk cap is a normal end-of-session
-   * condition for a long-lived tab. The envelope parser rejects the index
-   * before the gate ever sees it, so without this mapping the recorder gets a
-   * hard 400 "malformed frame" with no directive and no way to stand down -
-   * and the gate's own session-chunk-cap branch is unreachable from the
-   * route, so it cannot supply the 204 either.
+   * condition for a long-lived tab, decided by the GATE per frame (audit
+   * findings ingest-3 and ingest-4): the parser no longer rejects the index,
+   * so the orderly 204 + "stop" comes from the gate like every other refusal,
+   * and a request whose every frame is over the cap stages nothing.
    */
-  test("answers 204 with a stop directive at the per-session chunk cap", async () => {
+  describe("the per-session chunk cap", () => {
+    function buildTwoFrameBody(
+      firstIndex: number,
+      secondIndex: number,
+    ): { body: Buffer; first: Buffer; second: Buffer } {
+      const first: Buffer = buildBody({ chunkIndex: firstIndex });
+      const second: Buffer = buildBody({ chunkIndex: secondIndex });
+
+      return {
+        body: Buffer.concat([new Uint8Array(first), new Uint8Array(second)]),
+        first,
+        second,
+      };
+    }
+
+    test("a request entirely over the cap is answered 204 stop by the gate", async () => {
+      gateMock.mockResolvedValue({
+        outcome: SessionReplayGateOutcome.Stop,
+        directive: "stop",
+        configEpoch: 7,
+        reason: "session-chunk-cap",
+        policy: { samplePercentage: 100, rumApplicationId: RUM_APPLICATION_ID },
+      } as never);
+
+      const { res } = await invokeChunkRoute({
+        body: buildBody({ chunkIndex: MAX_SESSION_REPLAY_CHUNKS_PER_SESSION }),
+      });
+
+      expect(res.statusCode).toBe(204);
+      expect(res.headers["x-oneuptime-replay-directive"]).toBe("stop");
+      expect(res.headers["x-oneuptime-replay-reason"]).toBe(
+        "session-chunk-cap",
+      );
+      expect(addJobMock).not.toHaveBeenCalled();
+
+      /* The gate saw the over-cap index and every frame counted as over it. */
+      const gateInput: JSONObject = gateMock.mock.calls[0]![0] as JSONObject;
+      expect(gateInput["maxChunkIndex"]).toBe(
+        MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
+      );
+      expect(gateInput["overCapChunkCount"]).toBe(1);
+    });
+
+    test("a request straddling the cap stages the frames under it and answers 202 with a stop", async () => {
+      gateMock.mockResolvedValue({
+        outcome: SessionReplayGateOutcome.Accepted,
+        directive: "stop",
+        configEpoch: 7,
+        reason: "session-chunk-cap",
+        policy: { samplePercentage: 100, rumApplicationId: RUM_APPLICATION_ID },
+      } as never);
+
+      const { body, first } = buildTwoFrameBody(
+        MAX_SESSION_REPLAY_CHUNKS_PER_SESSION - 1,
+        MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
+      );
+
+      const { res } = await invokeChunkRoute({ body });
+
+      expect(getStatus(res)).toBe(202);
+
+      const payload: JSONObject = sendJsonMock.mock
+        .calls[0]![2] as unknown as JSONObject;
+      expect(payload["directive"]).toBe("stop");
+      expect(payload["reason"]).toBe("session-chunk-cap");
+
+      /* Only the frame under the cap is staged, byte for byte. */
+      const args: JSONObject = addJobMock.mock.calls[0]![0] as JSONObject;
+      expect((args["body"] as Buffer).toString("base64")).toBe(
+        first.toString("base64"),
+      );
+
+      const gateInput: JSONObject = gateMock.mock.calls[0]![0] as JSONObject;
+      expect(gateInput["maxChunkIndex"]).toBe(
+        MAX_SESSION_REPLAY_CHUNKS_PER_SESSION - 1,
+      );
+      expect(gateInput["chunkCount"]).toBe(1);
+      expect(gateInput["overCapChunkCount"]).toBe(1);
+      /* Budgets are charged for what is staged, not for what is refused. */
+      expect(gateInput["payloadBytes"]).toBe(first.length);
+    });
+
+    test("a missing chunkIndex is a malformed frame, never 'session-chunk-cap'", async () => {
+      const envelope: Record<string, unknown> = { ...buildEnvelope() };
+      delete envelope["chunkIndex"];
+
+      const payload: Buffer = zlib.gzipSync(
+        new Uint8Array(Buffer.from(JSON.stringify([{ type: 2, data: {} }]))),
+      );
+      envelope["payloadBytes"] = payload.length;
+
+      const body: Buffer = Buffer.concat([
+        new Uint8Array(Buffer.from(`${JSON.stringify(envelope)}\n`)),
+        new Uint8Array(payload),
+      ]);
+
+      const { res } = await invokeChunkRoute({ body });
+
+      expect(getStatus(res)).toBe(400);
+      const rejection: JSONObject = sendJsonMock.mock
+        .calls[0]![2] as unknown as JSONObject;
+      expect(rejection["error"]).toBe("chunk-index-malformed");
+      expect(rejection["directive"]).toBe("stop");
+      expect(gateMock).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * Audit finding ingest-5 (gate half): a request asserting consent Unknown
+   * under a RequireExplicit policy is refused with a reason, and WITHOUT a
+   * stop, so the page that grants consent a moment later keeps recording.
+   */
+  test("a consent refusal is a 204 with directive continue, and the gate sees the consent states", async () => {
+    gateMock.mockResolvedValue({
+      outcome: SessionReplayGateOutcome.Refused,
+      directive: "continue",
+      configEpoch: 7,
+      reason: "consent-required",
+      policy: { samplePercentage: 100, rumApplicationId: RUM_APPLICATION_ID },
+    } as never);
+
     const { res } = await invokeChunkRoute({
-      body: buildBody({ chunkIndex: MAX_SESSION_REPLAY_CHUNKS_PER_SESSION }),
+      body: buildBody({ consentState: "Unknown" }),
     });
 
     expect(res.statusCode).toBe(204);
-    expect(res.ended).toBe(true);
-    expect(res.headers["x-oneuptime-replay-directive"]).toBe("stop");
-    /* Not a 400, and specifically not a bare parse error with no directive. */
-    expect(sendJsonMock).not.toHaveBeenCalled();
+    expect(res.headers["x-oneuptime-replay-directive"]).toBe("continue");
+    expect(res.headers["x-oneuptime-replay-reason"]).toBe("consent-required");
     expect(addJobMock).not.toHaveBeenCalled();
-    /* The gate is never even reached - the parser rejected first. */
-    expect(gateMock).not.toHaveBeenCalled();
+
+    const gateInput: JSONObject = gateMock.mock.calls[0]![0] as JSONObject;
+    expect(gateInput["consentStates"]).toEqual(["Unknown"]);
   });
 
   test("answers 403 for an origin that is not on the allowlist", async () => {
@@ -651,17 +786,31 @@ describe("POST /session-replay/v1/chunk", () => {
     expect(addJobMock).not.toHaveBeenCalled();
   });
 
-  test("rejects a request with no app identifier header", async () => {
+  /*
+   * Audit finding ingest-11. A 400 about the RECORDER (its wire version,
+   * its application, its framing) is deterministic - the next chunk gets the
+   * same answer - so the body carries directive "stop" and a stable error
+   * code the recorder disables on, instead of a bare rejection it treats as
+   * a per-chunk drop and retries every 15s for the life of the page.
+   */
+  function lastRejection(): JSONObject {
+    return sendJsonMock.mock.calls[0]![2] as unknown as JSONObject;
+  }
+
+  test("rejects a request with no app identifier header, with a stop", async () => {
     const { res } = await invokeChunkRoute({
       body: buildBody(),
       headers: { [SESSION_REPLAY_APP_IDENTIFIER_HEADER]: "" },
     });
 
     expect(getStatus(res)).toBe(400);
+    expect(lastRejection()["error"]).toBe("missing-app-identifier");
+    expect(lastRejection()["directive"]).toBe("stop");
+    expect(lastRejection()["reason"]).toBe("missing-app-identifier");
     expect(gateMock).not.toHaveBeenCalled();
   });
 
-  test("rejects a frame whose appIdentifier disagrees with the header", async () => {
+  test("rejects a frame whose appIdentifier disagrees with the header, with a stop", async () => {
     /*
      * Otherwise a client could pass the gate for a permissive application
      * and write rows attributed to a different one.
@@ -671,7 +820,19 @@ describe("POST /session-replay/v1/chunk", () => {
     });
 
     expect(getStatus(res)).toBe(400);
+    expect(lastRejection()["error"]).toBe("app-identifier-mismatch");
+    expect(lastRejection()["directive"]).toBe("stop");
     expect(gateMock).not.toHaveBeenCalled();
+  });
+
+  test("rejects an unsupported wire version with a stop", async () => {
+    const { res } = await invokeChunkRoute({
+      body: buildBody({ v: SESSION_REPLAY_WIRE_VERSION + 1 }),
+    });
+
+    expect(getStatus(res)).toBe(400);
+    expect(lastRejection()["error"]).toBe("unsupported-wire-version");
+    expect(lastRejection()["directive"]).toBe("stop");
   });
 
   test("a parsed (non-Buffer) body is refused rather than silently accepted", async () => {
@@ -696,9 +857,13 @@ describe("POST /session-replay/v1/chunk", () => {
 
     /*
      * 422 keeps the session alive with a fidelity notice instead of making
-     * the whole recording vanish behind a size error.
+     * the whole recording vanish behind a size error. It is PER CHUNK, so
+     * unlike the deterministic 400s it carries no stop.
      */
     expect(getStatus(res)).toBe(422);
+    const payload: JSONObject = sendJsonMock.mock
+      .calls[0]![2] as unknown as JSONObject;
+    expect(payload["directive"]).toBeUndefined();
   });
 
   test("stages the raw request body, unchanged", async () => {

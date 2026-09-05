@@ -121,11 +121,17 @@ describe("Transport directives and diagnostics", (): void => {
   let directives: Array<ReceivedDirective> = [];
   let permanentFailures: Array<string> = [];
 
+  /*
+   * A retryable failure arms a real retry timer; every transport built here
+   * is discarded afterwards so no timer outlives its test.
+   */
+  let transports: Array<Transport> = [];
+
   const makeTransport: () => Transport = (): Transport => {
     directives = [];
     permanentFailures = [];
 
-    return new Transport({
+    const transport: Transport = new Transport({
       url: "https://oneuptime.com/session-replay/v1/chunk",
       headers: {
         "x-oneuptime-token": INGEST_TOKEN,
@@ -141,6 +147,10 @@ describe("Transport directives and diagnostics", (): void => {
         permanentFailures.push(reason);
       },
     });
+
+    transports.push(transport);
+
+    return transport;
   };
 
   const respond: (
@@ -180,6 +190,12 @@ describe("Transport directives and diagnostics", (): void => {
   });
 
   afterEach((): void => {
+    for (const transport of transports) {
+      transport.discardQueue();
+    }
+
+    transports = [];
+
     jest.restoreAllMocks();
     resetDebugState();
   });
@@ -647,7 +663,9 @@ describe("Transport directives and diagnostics", (): void => {
       const transport: Transport = makeTransport();
       const huge: string = `[${"x".repeat(SESSION_REPLAY_KEEPALIVE_MAX_BYTES)}]`;
 
-      expect(transport.sendTerminal(envelope, huge)).toBe(false);
+      expect(
+        transport.sendTerminal([{ envelope: envelope, payload: huge }]),
+      ).toBe(false);
 
       const detail: Record<string, unknown> = detailOf("final-chunk-too-large");
 
@@ -687,6 +705,130 @@ describe("Transport directives and diagnostics", (): void => {
     });
 
     /*
+     * The server's 503 is a throttle in its own vocabulary: directive
+     * "throttle", retryAfterSeconds, and a reason such as staging-failed.
+     * The record says so, and the recorder is told the reason, because a
+     * recorder pausing on the server's instruction and a recorder that has
+     * lost its network look identical from the page.
+     */
+    it("records a 503 throttle with its reason and never a strike", async (): Promise<void> => {
+      const transport: Transport = makeTransport();
+
+      setFetch(
+        respond(
+          503,
+          '{"directive":"throttle","configEpoch":2,"retryAfterSeconds":30,"reason":"staging-failed"}',
+          { "retry-after": "30" },
+        ),
+      );
+
+      await transport.send(envelope, "[{}]");
+
+      expect(detailOf("chunk-throttled")).toMatchObject({
+        status: 503,
+        retryAfterSeconds: 30,
+        reason: "staging-failed",
+      });
+      expect(codes()).not.toContain("chunk-post-server-error");
+      expect(codes()).not.toContain("transport-disabled");
+      expect(directives).toEqual([
+        { directive: "throttle", reason: "staging-failed" },
+      ]);
+      expect(transport.getFlushFailureCount()).toBe(0);
+    });
+
+    /*
+     * REGRESSION (recorder-6). A 429 or 503 whose body carries directive
+     * "stop" is still a stop. The throttle path notified the recorder
+     * (which shuts down and discards its queue) and THEN re-queued the chunk
+     * and scheduled a drain, so one more request of page content went out
+     * after the operator's kill switch had explicitly asked for none.
+     */
+    it("does not re-queue or retry a chunk when a throttle response says stop", async (): Promise<void> => {
+      jest.useFakeTimers();
+
+      const transport: Transport = makeTransport();
+
+      setFetch(
+        respond(
+          503,
+          '{"directive":"stop","reason":"budget-exhausted","retryAfterSeconds":30}',
+          { "retry-after": "30" },
+        ),
+      );
+
+      await transport.send(envelope, "[{}]");
+
+      expect(directives).toEqual([
+        { directive: "stop", reason: "budget-exhausted" },
+      ]);
+      expect(detailOf("server-directive")["directive"]).toBe("stop");
+
+      /* Nothing waiting, and nothing scheduled to send it. */
+      expect(transport.getQueueDepth()).toBe(0);
+      expect(transport.getRetryDueAtUnixMs()).toBe(0);
+      expect(transport.getDroppedChunkCount()).toBe(1);
+
+      /* And a throttle it is not: no pause was reported to the customer. */
+      expect(codes()).not.toContain("chunk-throttled");
+
+      const posted: jest.Mock = globalRecord()["fetch"] as jest.Mock;
+      const before: number = posted.mock.calls.length;
+
+      jest.advanceTimersByTime(120_000);
+      await Promise.resolve();
+
+      expect(posted.mock.calls.length).toBe(before);
+
+      jest.useRealTimers();
+    });
+
+    /*
+     * A 400 the server will answer identically forever is recorded as a
+     * terminal refusal naming the server's own error code, so the ticket
+     * says "unsupported-wire-version" rather than "it stopped".
+     */
+    it("records chunk-refused-terminal with the server's error on a deterministic 400", async (): Promise<void> => {
+      const transport: Transport = makeTransport();
+
+      setFetch(
+        respond(
+          400,
+          '{"error":"unsupported-wire-version","message":"Wire version 9 is not supported."}',
+        ),
+      );
+
+      await transport.send({ ...envelope, chunkIndex: 5 }, "[{}]");
+
+      expect(detailOf("chunk-refused-terminal")).toMatchObject({
+        status: 400,
+        error: "unsupported-wire-version",
+        chunkIndex: 5,
+      });
+      expect(detailOf("transport-disabled")["reason"]).toBe(
+        "http-400:unsupported-wire-version",
+      );
+      expect(permanentFailures).toEqual(["http-400:unsupported-wire-version"]);
+    });
+
+    /* A retry that is scheduled says when, so a paused recorder is legible. */
+    it("records chunk-retry-scheduled with the pause after a retryable failure", async (): Promise<void> => {
+      const transport: Transport = makeTransport();
+
+      setFetch(respond(500));
+
+      await transport.send(envelope, "[{}]");
+
+      expect(detailOf("chunk-retry-scheduled")).toMatchObject({
+        inMs: 15_000,
+        consecutiveFailures: 1,
+        maxFlushFailures: SESSION_REPLAY_MAX_FLUSH_FAILURES,
+        queueDepth: 1,
+      });
+      expect(transport.getRetryDueAtUnixMs()).toBeGreaterThan(0);
+    });
+
+    /*
      * The transport is the one module holding the ingest credential, and it
      * is also the one writing records a customer is asked to paste into a
      * support ticket. The token must not appear in any of them - not in the
@@ -708,13 +850,22 @@ describe("Transport directives and diagnostics", (): void => {
         .mockRejectedValue(new Error("offline"));
       await transport.send(envelope, "[{}]");
 
-      setFetch(respond(401));
-      await transport.send(envelope, "[{}]");
+      /*
+       * The offline failure above put the first transport into a retry
+       * backoff, during which nothing is posted - so the auth failure and
+       * the terminal path run on a second transport with the same token.
+       */
+      const second: Transport = makeTransport();
 
-      transport.sendTerminal(
-        envelope,
-        `[${"x".repeat(SESSION_REPLAY_KEEPALIVE_MAX_BYTES)}]`,
-      );
+      setFetch(respond(401));
+      await second.send(envelope, "[{}]");
+
+      second.sendTerminal([
+        {
+          envelope: envelope,
+          payload: `[${"x".repeat(SESSION_REPLAY_KEEPALIVE_MAX_BYTES)}]`,
+        },
+      ]);
 
       /* The gamut really did produce records before they were searched. */
       expect(codes()).toEqual(

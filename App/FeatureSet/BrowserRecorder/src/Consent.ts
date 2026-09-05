@@ -13,12 +13,44 @@ import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode"
  *    fills its rolling ring buffer while a cookie banner is on screen,
  *    because the seconds leading up to an error are exactly the seconds a
  *    banner is usually covering. revokeConsent() drops that buffer.
+ *
+ * A revoke is NOT the end of the page. Consent-management platforms fire
+ * reject-then-accept inside one page life all the time (a preference
+ * centre, a banner re-opened from the footer), and a recorder that treated
+ * the first revoke as final left every one of those users unrecorded until a
+ * reload, with nothing on the page to say why. What a revoke guarantees is
+ * narrower and stronger: everything held or queued under the withdrawn
+ * consent is dropped, the session identity is forgotten, and nothing is
+ * uploaded until a NEW grant arrives - at which point recording covers only
+ * what happens after it, under a fresh session id.
  */
+
+/*
+ * What the page said on its script tag about honouring Do Not Track / GPC.
+ *
+ *   true       "honour the signal" - an explicit promise made in markup
+ *   false      "do not honour it" - the customer owns the lawful basis for
+ *              their own site and has said the signal is not it
+ *   undefined  nothing said; the server policy decides
+ *
+ * Config collapses omitted and explicit true into the same boolean, which is
+ * why the recorder could not tell a page that PROMISED from one that said
+ * nothing, and let a dashboard policy of false record users the page had
+ * promised not to. Callers pass the raw optional value.
+ */
+export type PageDoNotTrackPreference = boolean | undefined;
 
 export default class Consent {
   private mode: SessionReplayConsentMode;
   private granted: boolean = false;
   private revoked: boolean = false;
+
+  /*
+   * How many times consent has been withdrawn on this page. A grant after a
+   * revoke starts a new consent epoch; the recorder uses the change to know
+   * that a fresh session identity is owed.
+   */
+  private revocationCount: number = 0;
 
   public constructor(mode: SessionReplayConsentMode) {
     this.mode = mode;
@@ -55,42 +87,34 @@ export default class Consent {
   /*
    * Should the recorder run at all?
    *
-   * The PAGE decides whether DNT/GPC is honoured, and the server's value is
-   * only the default it starts from - see the inline note below, which is
-   * the behaviour the code actually implements and the one the install docs
-   * describe (data-oneuptime-respect-do-not-track="false" overrides the
-   * deployment default, because the customer owns the lawful basis for
-   * their own site).
+   * ONE rule, stated once, that Loader.ts, Index.ts and the install docs all
+   * defer to:
    *
-   * This comment used to describe the opposite - an AND, "either side may
-   * insist on honouring the signal" - which is what the code did before the
-   * override was added and has not been true since.
+   *   1. An explicit page value wins. `data-oneuptime-respect-do-not-track`
+   *      set to "true" honours the signal whatever the dashboard policy says
+   *      (a privacy promise made in the customer's own markup is theirs to
+   *      keep, and an admin flipping a project setting must not break it);
+   *      set to "false" it records regardless of the signal (the customer
+   *      owns the lawful basis for their site, and without this the
+   *      attribute was dead config because the server always sends true).
+   *   2. With no page value, the server policy decides.
+   *   3. Nobody asking to honour the signal means recording proceeds.
+   *
+   * The previous shape - page false wins, then policy false wins, then the
+   * signal - let a false policy override a page that had explicitly said
+   * true, and its comments described the precedence three different ways.
    */
   public static isRecordingPermitted(
-    pageRespectsDoNotTrack: boolean,
+    pageRespectsDoNotTrack: PageDoNotTrackPreference,
     policyRespectsDoNotTrack: boolean,
     navigatorRef: Navigator = navigator,
   ): boolean {
-    /*
-     * The PAGE decides, and the server's value is the default it starts from.
-     *
-     * This used to be "either side insisting wins", which sounds safer but
-     * made data-oneuptime-respect-do-not-track="false" dead config: the server
-     * always sends true, so the attribute could never take effect and a
-     * customer with a lawful basis that does not depend on DNT had no way to
-     * record at all. Silent, undocumented, and impossible to debug from the
-     * page - which is exactly how it was found.
-     *
-     * The customer owns the lawful basis for their own site, so an explicit
-     * opt-out on their own script tag is theirs to make. Omitting the
-     * attribute leaves pageRespectsDoNotTrack true, so the default for
-     * everyone who does nothing is still to honour the signal.
-     */
-    if (!pageRespectsDoNotTrack) {
-      return true;
-    }
+    const honourSignal: boolean =
+      pageRespectsDoNotTrack !== undefined
+        ? pageRespectsDoNotTrack
+        : policyRespectsDoNotTrack;
 
-    if (!policyRespectsDoNotTrack) {
+    if (!honourSignal) {
       return true;
     }
 
@@ -101,26 +125,31 @@ export default class Consent {
     return this.mode;
   }
 
+  /*
+   * Consent given. Also the way back after a revoke: the revoke already
+   * dropped everything held under the earlier consent, so a later grant
+   * covers only what is recorded from here on, under a new session.
+   */
   public grant(): void {
-    /*
-     * A revoke is final for the life of the page. Re-granting after a
-     * revoke would let a page that mishandles its own banner state resume
-     * uploading data the user just refused.
-     */
-    if (this.revoked) {
-      return;
-    }
-
+    this.revoked = false;
     this.granted = true;
   }
 
   public revoke(): void {
+    if (!this.revoked) {
+      this.revocationCount++;
+    }
+
     this.revoked = true;
     this.granted = false;
   }
 
   public isRevoked(): boolean {
     return this.revoked;
+  }
+
+  public getRevocationCount(): number {
+    return this.revocationCount;
   }
 
   /* May the recorder POST anything right now? */
@@ -139,9 +168,16 @@ export default class Consent {
   /*
    * Value stamped on the envelope. Never "Granted" unless a grant actually
    * happened, so the ingest worker's own fail-closed check on Unknown has
-   * something truthful to act on.
+   * something truthful to act on. A revoked NotRequired page reports Unknown
+   * rather than NotRequired: nothing is uploaded while revoked, and the one
+   * way a chunk could still carry this value is a bug, in which case the
+   * worker's fail-closed branch is the right reader.
    */
   public getState(): SessionReplayConsentState {
+    if (this.revoked) {
+      return "Unknown";
+    }
+
     if (this.mode === SessionReplayConsentMode.NotRequired) {
       return "NotRequired";
     }

@@ -13,6 +13,9 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import AppLink from "../../../Components/AppLink/AppLink";
+import ProjectUser from "../../../Utils/ProjectUser";
+import ProjectUtil from "Common/UI/Utils/Project";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 
 /*
  * Who watched a real end user's screen, and for how long.
@@ -21,6 +24,32 @@ import AppLink from "../../../Components/AppLink/AppLink";
  * served, and they are never editable or deletable from the UI - the whole
  * point of an access log is that the people it records cannot edit it.
  */
+
+/*
+ * settings-setup-10: the heartbeat floors watched time to 15-second
+ * buckets, so a reviewer who watched 14 seconds of a customer's screen has
+ * 0 on record. The old opened-only label claimed more than the data can
+ * support; the honest reading of 0 is "less than one bucket".
+ */
+/*
+ * Mirrors SESSION_REPLAY_WATCH_BUCKET_SECONDS in
+ * Common/Server/Services/RumSessionReplayViewService.ts, which the browser
+ * bundle cannot import. App/Tests/Dashboard/SessionReplaySettingsWiring.test.ts
+ * pins the two together.
+ */
+export const SESSION_REPLAY_WATCH_BUCKET_SECONDS: number = 15;
+
+export function describeSecondsWatched(
+  secondsWatched: number | undefined | null,
+): string {
+  const seconds: number = secondsWatched ?? 0;
+
+  if (seconds <= 0) {
+    return `< ${SESSION_REPLAY_WATCH_BUCKET_SECONDS}s`;
+  }
+
+  return `${seconds}s`;
+}
 const RumApplicationSessionReplayAudit: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -60,10 +89,29 @@ const RumApplicationSessionReplayAudit: FunctionComponent<
         }}
         noItemsMessage="No one has watched a recording for this application yet."
         filters={[
+          /*
+           * settings-setup-9: an Entity filter without filterEntityType and
+           * filterDropdownField is skipped by BaseModelTable and rendered
+           * as a label with no control, so "did person X watch any of our
+           * users' screens?" could not be asked. Same wiring as the User
+           * filter on Pages/Settings/RunnerView.tsx.
+           */
           {
             field: { viewedByUser: true },
             title: "Viewed By",
             type: FieldType.Entity,
+            filterEntityType: User,
+            fetchFilterDropdownOptions: async (): Promise<
+              Array<DropdownOption>
+            > => {
+              return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+                ProjectUtil.getCurrentProjectId()!,
+              );
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
           },
           {
             field: { viewedAt: true },
@@ -138,11 +186,9 @@ const RumApplicationSessionReplayAudit: FunctionComponent<
             title: "Watched",
             type: FieldType.Element,
             getElement: (item: RumSessionReplayView): ReactElement => {
-              const seconds: number = item.secondsWatched ?? 0;
-
               return (
                 <span className="font-mono text-sm tabular-nums text-gray-900">
-                  {seconds > 0 ? `${seconds}s` : "Opened only"}
+                  {describeSecondsWatched(item.secondsWatched)}
                 </span>
               );
             },
@@ -150,8 +196,28 @@ const RumApplicationSessionReplayAudit: FunctionComponent<
           {
             field: { accessReason: true },
             title: "Reason",
-            type: FieldType.Text,
+            type: FieldType.Element,
             hideOnMobile: true,
+            getElement: (item: RumSessionReplayView): ReactElement => {
+              /*
+               * settings-setup-10: written by the manifest route from the
+               * player's linked incident or exception, when there is one.
+               * A plain open has none, and an empty cell read as a bug.
+               */
+              if (!item.accessReason || item.accessReason.trim().length === 0) {
+                return (
+                  <span className="text-xs text-gray-500">
+                    None given (opened from the list)
+                  </span>
+                );
+              }
+
+              return (
+                <span className="text-sm text-gray-700">
+                  {item.accessReason}
+                </span>
+              );
+            },
           },
           {
             field: { ipAddress: true },

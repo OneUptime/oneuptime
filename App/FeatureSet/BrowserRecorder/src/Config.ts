@@ -1,5 +1,6 @@
 import {
   SESSION_REPLAY_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_RECORDER_CAPABILITIES,
   SESSION_REPLAY_USER_REF_HEADER,
   SessionReplayConfigResponse,
 } from "Common/Types/Rum/SessionReplay";
@@ -11,12 +12,28 @@ import { debugLog, debugWarn, setEnabled } from "./Debug";
 /*
  * Init options and the policy fetch.
  *
- * The recorder holds NO defaults of its own for anything privacy-relevant.
  * Every masking, consent and sampling decision comes from the config
  * endpoint, and a config fetch that fails for any reason means no
  * recording at all. That is the whole reason the endpoint exists: without
  * it, a customer flipping "mask everything" in the Dashboard would never
  * reach a browser that had already loaded the script.
+ *
+ * Two different things can be wrong with an individual policy field, and
+ * they resolve differently on purpose:
+ *
+ *   - The field is ABSENT. That is an older server (or a proxy that drops
+ *     unknown keys) and the recorder fills in the PRODUCT default - the
+ *     same value a fresh RumApplication row carries (Always / 100% /
+ *     NotRequired / MaskSensitiveInputsOnly). The previous behaviour was
+ *     to fall to the strictest option instead, which turned an absent
+ *     field into "record into memory, upload nothing, wait for a consent
+ *     call nobody makes" while the Dashboard showed the opposite policy -
+ *     a silent no-recording bug indistinguishable from a broken install.
+ *
+ *   - The field is PRESENT but this build does not recognise the value.
+ *     That is a newer server or a tampered body, and the recorder collapses
+ *     to the STRICTEST option, because an unknown value must never be able
+ *     to relax masking or consent. See config-value-unrecognised below.
  */
 
 /*
@@ -61,6 +78,30 @@ export const CHUNK_PATH: string = "/telemetry/session-replay/v1/chunk";
  */
 export function getChunkUrl(options: RecorderInitOptions): string {
   return `${options.host}${CHUNK_PATH}`;
+}
+
+/*
+ * What THIS recorder build can capture, advertised on chunk 0's envelope
+ * (see SessionReplayChunkEnvelope.capabilities). Purely informational: the
+ * player uses it to say "this recording predates click labels" instead of
+ * showing an empty tab. A standalone function for the same reason as
+ * getChunkUrl - only the artifact posts chunks, and a class static would
+ * ride along in the byte-budgeted loader stub as dead weight.
+ *
+ * Web vitals are the one capability a config can switch off, so a
+ * recording made with them off says so rather than claiming a capability
+ * the viewer will never find events for.
+ */
+export function getRecorderCapabilities(options?: {
+  captureWebVitals?: boolean;
+}): Array<string> {
+  return SESSION_REPLAY_RECORDER_CAPABILITIES.filter(
+    (capability: string): boolean => {
+      return !(
+        capability === "web-vitals" && options?.captureWebVitals === false
+      );
+    },
+  );
 }
 
 /* Where the pinned, immutable artifact lives. */
@@ -139,8 +180,14 @@ export interface RecorderInitOptions {
 
   /*
    * The one override that can turn off DNT/GPC honouring locally, for a
-   * customer whose lawful basis does not depend on it. Defaults to true,
-   * and the server's own respectDoNotTrack still applies on top.
+   * customer whose lawful basis does not depend on it.
+   *
+   * A TRI-STATE, deliberately: absent means the page said nothing and the
+   * server policy decides (Consent.isRecordingPermitted). It used to be
+   * coerced to `true` the moment it was read, here and in the script-tag
+   * reader, so "the page said nothing" and "the page said honour it" were
+   * the same value and the policy's own respectDoNotTrack could never be
+   * reached from a page - while three comments promised it could.
    */
   respectDoNotTrack?: boolean;
 
@@ -202,7 +249,10 @@ export default class Config {
       source: source,
       host: options.host,
       appIdentifier: options.appIdentifier,
-      respectDoNotTrack: options.respectDoNotTrack !== false,
+      respectDoNotTrack:
+        options.respectDoNotTrack === undefined
+          ? "policy-decides"
+          : options.respectDoNotTrack,
     });
 
     return options;
@@ -260,8 +310,14 @@ export default class Config {
       token: tag.getAttribute("data-oneuptime-token"),
       appIdentifier: tag.getAttribute("data-oneuptime-app-identifier"),
       userRef: tag.getAttribute("data-oneuptime-user-ref"),
-      respectDoNotTrack:
-        tag.getAttribute("data-oneuptime-respect-do-not-track") !== "false",
+      /*
+       * Absent stays absent. hasAttribute rather than a !== "false" on the
+       * value, so a tag that does not mention it leaves the decision to the
+       * server policy instead of asserting "honour it".
+       */
+      respectDoNotTrack: tag.hasAttribute("data-oneuptime-respect-do-not-track")
+        ? tag.getAttribute("data-oneuptime-respect-do-not-track") !== "false"
+        : undefined,
       debug: tag.getAttribute("data-oneuptime-debug"),
     };
 
@@ -343,8 +399,19 @@ export default class Config {
       host: host.replace(/\/+$/, ""),
       token: token,
       appIdentifier: appIdentifier,
-      respectDoNotTrack: respectDoNotTrack !== false,
     };
+
+    /*
+     * Only an explicit value is carried. `undefined` is the third state -
+     * "the page did not say" - and exactOptionalPropertyTypes makes an
+     * assigned undefined a different type from an absent key, so it is
+     * assigned conditionally like userRef below.
+     */
+    if (respectDoNotTrack === false || respectDoNotTrack === "false") {
+      options.respectDoNotTrack = false;
+    } else if (respectDoNotTrack === true || respectDoNotTrack === "true") {
+      options.respectDoNotTrack = true;
+    }
 
     if (Config.readBooleanOption(raw["debug"])) {
       options.debug = true;
@@ -541,10 +608,13 @@ export default class Config {
   /*
    * Validate and normalise a config body.
    *
-   * Every unrecognised or missing value resolves to the SAFE option, not
-   * the useful one: unknown masking mode becomes MaskAllText, unknown
-   * consent mode becomes RequireExplicit, a missing sample percentage
-   * becomes 0.
+   * A MISSING policy field takes the product default (the value a fresh
+   * RumApplication carries), so an older server records exactly what its
+   * Dashboard says it does. An UNRECOGNISED value resolves to the SAFE
+   * option, not the useful one: an unknown masking mode becomes
+   * MaskAllText, an unknown consent mode RequireExplicit, an unknown
+   * capture trigger OnErrorOrFrustration, an unreadable sample percentage
+   * 0. See the file header for why the two cases differ.
    */
   public static validateConfig(body: unknown): LoaderConfig | null {
     if (!body || typeof body !== "object") {
@@ -579,12 +649,27 @@ export default class Config {
        */
       const reason: unknown = raw["disabledReason"];
 
+      /*
+       * disabledDetail narrows the reason to the switch or the budget that
+       * did it, and budgetResetsAt says when a budget clears. "Off because
+       * the monthly session budget is exhausted, back on the 1st" is a
+       * different ticket from "off because someone turned it off".
+       */
+      const detail: unknown = raw["disabledDetail"];
+      const budgetResetsAt: unknown = raw["budgetResetsAt"];
+
       debugWarn(
         "config-disabled",
         "The server says replay is off here. Nothing will be recorded.",
         {
           disabledReason:
             typeof reason === "string" && reason ? reason : "not-reported",
+          disabledDetail:
+            typeof detail === "string" && detail ? detail : "not-reported",
+          budgetResetsAt:
+            typeof budgetResetsAt === "string" && budgetResetsAt
+              ? budgetResetsAt
+              : "not-reported",
         },
       );
 
@@ -615,27 +700,42 @@ export default class Config {
      * Fail-closed on an unrecognised value: a config from a newer server
      * than this recorder build, or a tampered response, must not be able
      * to relax masking. Only the modes this build actually implements are
-     * honoured, and everything else collapses to the strictest one - NOT
-     * to the application's configured default, which this recorder has no
-     * trustworthy way to learn.
+     * honoured, and everything else collapses to the strictest one.
+     *
+     * An ABSENT field is different: nothing was sent to distrust, and the
+     * strictest option is not the one the customer's Dashboard shows. The
+     * product default (the RumApplication column default) is.
      */
     const maskingMode: SessionReplayMaskingMode =
       raw["maskingMode"] === SessionReplayMaskingMode.MaskInputsOnly
         ? SessionReplayMaskingMode.MaskInputsOnly
         : raw["maskingMode"] ===
-            SessionReplayMaskingMode.MaskSensitiveInputsOnly
+              SessionReplayMaskingMode.MaskSensitiveInputsOnly ||
+            raw["maskingMode"] === undefined
           ? SessionReplayMaskingMode.MaskSensitiveInputsOnly
           : SessionReplayMaskingMode.MaskAllText;
 
     const consentMode: SessionReplayConsentMode =
-      raw["consentMode"] === SessionReplayConsentMode.NotRequired
+      raw["consentMode"] === SessionReplayConsentMode.NotRequired ||
+      raw["consentMode"] === undefined
         ? SessionReplayConsentMode.NotRequired
         : SessionReplayConsentMode.RequireExplicit;
 
     const captureTrigger: string =
-      raw["captureTrigger"] === SessionReplayCaptureTrigger.Always
+      raw["captureTrigger"] === SessionReplayCaptureTrigger.Always ||
+      raw["captureTrigger"] === undefined
         ? SessionReplayCaptureTrigger.Always
         : SessionReplayCaptureTrigger.OnErrorOrFrustration;
+
+    /*
+     * Absent is 100 (the column default: every sampled session). Present
+     * but unreadable - a string, NaN, null - is 0: a value that exists and
+     * cannot be trusted must not be able to widen sampling.
+     */
+    const samplePercentage: number =
+      raw["samplePercentage"] === undefined
+        ? 100
+        : Config.readNumber(raw["samplePercentage"], 0);
 
     const integrity: unknown = raw["recorderIntegrity"];
 
@@ -645,7 +745,7 @@ export default class Config {
       maskingMode: maskingMode,
       captureTrigger: captureTrigger,
       consentMode: consentMode,
-      samplePercentage: Config.readNumber(raw["samplePercentage"], 0),
+      samplePercentage: samplePercentage,
       maskSelectors: Config.readStringArray(raw["maskSelectors"]),
       blockSelectors: Config.readStringArray(raw["blockSelectors"]),
       urlAllowlist: Config.readStringArray(raw["urlAllowlist"]),
@@ -702,14 +802,31 @@ export default class Config {
      * body, can leave a customer looking at MaskAllText while the dashboard
      * shows something else entirely - and silently.
      *
-     * One loop rather than three blocks: this file is bundled into the
+     * A field that was never sent is the other case worth a line: the
+     * recorder filled in the product default, and if the Dashboard was
+     * changed away from that default the server is too old to say so.
+     *
+     * One loop rather than four blocks: this file is bundled into the
      * loader stub, which every visitor to a customer's site downloads.
      */
-    for (const field of ["maskingMode", "consentMode", "captureTrigger"]) {
+    for (const field of [
+      "maskingMode",
+      "consentMode",
+      "captureTrigger",
+      "samplePercentage",
+    ]) {
       const sent: unknown = raw[field];
+      const using: string = String(
+        (config as unknown as Record<string, unknown>)[field],
+      );
 
-      if (
-        sent !== undefined &&
+      if (sent === undefined) {
+        debugLog(
+          "config-field-defaulted",
+          "The server sent no value for this field; using the product default.",
+          { field: field, using: using },
+        );
+      } else if (
         sent !== (config as unknown as Record<string, unknown>)[field]
       ) {
         debugWarn(
@@ -718,9 +835,7 @@ export default class Config {
           {
             field: field,
             sent: typeof sent === "string" ? sent : typeof sent,
-            using: String(
-              (config as unknown as Record<string, unknown>)[field],
-            ),
+            using: using,
           },
         );
       }

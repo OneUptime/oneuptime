@@ -11,6 +11,7 @@ import {
   isDebugEnabled,
   setEnabled,
 } from "../src/Debug";
+import ConsoleRecorder, { RecordedConsoleEntry } from "../src/ConsoleRecorder";
 
 /*
  * The diagnostics module.
@@ -670,6 +671,54 @@ describe("Debug", (): void => {
       ) as typeof import("../src/Debug");
 
       expect(reloaded.isDebugEnabled()).toBe(true);
+    });
+  });
+
+  /*
+   * Diagnostics are written through console.warn / console.info, which the
+   * ConsoleRecorder patches. Enabling them used to record every line - and
+   * the whole flushed backlog - into the customer's replay as console
+   * entries, spending the per-page console cap on OneUptime's own output.
+   */
+  describe("with the console recorder listening", (): void => {
+    it("never records its own lines, including the backlog flushed on enable", (): void => {
+      const entries: Array<RecordedConsoleEntry> = [];
+
+      const recorder: ConsoleRecorder = new ConsoleRecorder({
+        emitCustomEvent: (): void => {
+          /* Not under test. */
+        },
+        maskArgument: (value: string): string => {
+          return value;
+        },
+        onConsole: (_atUnixMs: number, entry: RecordedConsoleEntry): void => {
+          entries.push(entry);
+        },
+      });
+
+      recorder.start(console);
+
+      try {
+        for (let index: number = 0; index < 30; index++) {
+          debugWarn(`backlog-${index}`, "recorded before diagnostics were on");
+        }
+
+        setEnabled(true, "test");
+
+        debugWarn("after-enable", "a warning", { chunkIndex: 3 });
+        debugLog("after-enable-info", "an info line");
+
+        /* The page's own output is still recorded. */
+        // eslint-disable-next-line no-console
+        console.warn("customer warning");
+
+        expect(spies.warn.mock.calls.length).toBeGreaterThan(30);
+        expect(entries).toHaveLength(1);
+        expect(entries[0]?.message).toBe("customer warning");
+        expect(recorder.getRecordedCount()).toBe(1);
+      } finally {
+        recorder.stop(console);
+      }
     });
   });
 });

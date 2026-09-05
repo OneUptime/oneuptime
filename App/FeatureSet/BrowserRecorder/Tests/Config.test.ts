@@ -1,10 +1,13 @@
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
+import { SESSION_REPLAY_RECORDER_CAPABILITIES } from "Common/Types/Rum/SessionReplay";
+import Consent from "../src/Consent";
 import Config, {
   LoaderConfig,
   RecorderInitOptions,
   getChunkUrl,
+  getRecorderCapabilities,
 } from "../src/Config";
 
 describe("Config", (): void => {
@@ -47,13 +50,19 @@ describe("Config", (): void => {
 
       const options: RecorderInitOptions | null = Config.readInitOptions();
 
+      /*
+       * respectDoNotTrack is ABSENT, not true: a page that says nothing has
+       * said nothing, and Consent.isRecordingPermitted then lets the server
+       * policy decide. Coercing it to true here made the tri-state the
+       * loader, Consent and the docs all describe unreachable from a page.
+       */
       expect(options).toEqual({
         host: "https://oneuptime.com",
         token: "tok",
         appIdentifier: "app",
         userRef: "user-1",
-        respectDoNotTrack: true,
       });
+      expect(options?.respectDoNotTrack).toBeUndefined();
     });
 
     it("reads script tag data attributes", (): void => {
@@ -64,7 +73,21 @@ describe("Config", (): void => {
 
       expect(options?.host).toBe("https://x.example.com");
       expect(options?.appIdentifier).toBe("a");
-      expect(options?.respectDoNotTrack).toBe(true);
+
+      /* No attribute, no page opinion; the DNT signal is still honoured. */
+      expect(options?.respectDoNotTrack).toBeUndefined();
+      expect(
+        Consent.isRecordingPermitted(options?.respectDoNotTrack, true, {
+          doNotTrack: "1",
+        } as unknown as Navigator),
+      ).toBe(false);
+    });
+
+    it("carries an explicit honour-DNT attribute as a page decision", (): void => {
+      document.head.innerHTML =
+        '<script data-oneuptime-host="https://x.example.com" data-oneuptime-token="t" data-oneuptime-app-identifier="a" data-oneuptime-respect-do-not-track="true"></script>';
+
+      expect(Config.readInitOptions()?.respectDoNotTrack).toBe(true);
     });
 
     it("allows the page to opt out of honouring DNT explicitly", (): void => {
@@ -281,13 +304,118 @@ describe("Config", (): void => {
       );
     });
 
-    it("defaults a missing sample percentage to 0", (): void => {
+    it("defaults an unknown capture trigger to OnErrorOrFrustration", (): void => {
       const config: LoaderConfig | null = Config.validateConfig({
         enabled: true,
         recorderVersion: "1.0.0",
+        captureTrigger: "OnRageClickOnly",
       });
 
-      expect(config?.samplePercentage).toBe(0);
+      expect(config?.captureTrigger).toBe(
+        SessionReplayCaptureTrigger.OnErrorOrFrustration,
+      );
+    });
+
+    /*
+     * recorder-core-12. A MISSING field is an older server, not a
+     * downgrade, and the recorder used to answer it with the strictest
+     * option on every axis at once: OnErrorOrFrustration + 0% +
+     * RequireExplicit is a recorder that records into memory, uploads
+     * nothing and waits for a grantConsent() nobody calls - while the
+     * Dashboard shows Always / 100% / NotRequired. The defaults for an
+     * absent field must be the product defaults, i.e. the RumApplication
+     * column defaults.
+     */
+    describe("missing policy fields take the product defaults", (): void => {
+      const minimal: Record<string, unknown> = {
+        enabled: true,
+        recorderVersion: "1.0.0",
+      };
+
+      it("captureTrigger -> Always", (): void => {
+        expect(Config.validateConfig(minimal)?.captureTrigger).toBe(
+          SessionReplayCaptureTrigger.Always,
+        );
+      });
+
+      it("samplePercentage -> 100", (): void => {
+        expect(Config.validateConfig(minimal)?.samplePercentage).toBe(100);
+      });
+
+      it("consentMode -> NotRequired", (): void => {
+        expect(Config.validateConfig(minimal)?.consentMode).toBe(
+          SessionReplayConsentMode.NotRequired,
+        );
+      });
+
+      it("maskingMode -> MaskSensitiveInputsOnly", (): void => {
+        expect(Config.validateConfig(minimal)?.maskingMode).toBe(
+          SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+        );
+      });
+
+      it("is never the record-into-memory-upload-nothing combination", (): void => {
+        const config: LoaderConfig | null = Config.validateConfig(minimal);
+
+        expect(
+          config?.captureTrigger ===
+            SessionReplayCaptureTrigger.OnErrorOrFrustration &&
+            config?.samplePercentage === 0,
+        ).toBe(false);
+        expect(config?.consentMode).not.toBe(
+          SessionReplayConsentMode.RequireExplicit,
+        );
+      });
+
+      /*
+       * The other half of the rule: a value that IS present but cannot be
+       * read is not an older server, it is a body this build must not
+       * trust, and it fails closed exactly as before.
+       */
+      it("still fails closed on a present-but-unreadable sample percentage", (): void => {
+        for (const hostile of ["50", null, NaN, true, {}]) {
+          expect(
+            Config.validateConfig({ ...minimal, samplePercentage: hostile })
+              ?.samplePercentage,
+          ).toBe(0);
+        }
+      });
+
+      it("still fails closed on present-but-unknown enum values", (): void => {
+        const config: LoaderConfig | null = Config.validateConfig({
+          ...minimal,
+          maskingMode: "MaskNothing",
+          consentMode: "ImpliedByVisit",
+          captureTrigger: "Sometimes",
+        });
+
+        expect(config?.maskingMode).toBe(SessionReplayMaskingMode.MaskAllText);
+        expect(config?.consentMode).toBe(
+          SessionReplayConsentMode.RequireExplicit,
+        );
+        expect(config?.captureTrigger).toBe(
+          SessionReplayCaptureTrigger.OnErrorOrFrustration,
+        );
+      });
+
+      it("still honours every explicit value over the default", (): void => {
+        const config: LoaderConfig | null = Config.validateConfig({
+          ...minimal,
+          captureTrigger: SessionReplayCaptureTrigger.OnErrorOrFrustration,
+          samplePercentage: 0,
+          consentMode: SessionReplayConsentMode.RequireExplicit,
+          maskingMode: SessionReplayMaskingMode.MaskAllText,
+        });
+
+        expect(config?.captureTrigger).toBe(
+          SessionReplayCaptureTrigger.OnErrorOrFrustration,
+        );
+        expect(config?.samplePercentage).toBe(0);
+        expect(config?.consentMode).toBe(
+          SessionReplayConsentMode.RequireExplicit,
+        );
+        expect(config?.maskingMode).toBe(SessionReplayMaskingMode.MaskAllText);
+      });
     });
 
     it("defaults respectDoNotTrack to true when absent", (): void => {
@@ -321,6 +449,50 @@ describe("Config", (): void => {
           "recorderIntegrity",
         ),
       ).toBe(false);
+    });
+  });
+
+  /*
+   * Advertised on chunk 0 so the player can say "this recording predates
+   * click labels" instead of rendering an empty tab. Informational, but
+   * it must be honest: a recording made with vitals switched off must
+   * not claim them.
+   */
+  describe("getRecorderCapabilities", (): void => {
+    it("advertises the shared capability list by default", (): void => {
+      expect(getRecorderCapabilities()).toEqual([
+        ...SESSION_REPLAY_RECORDER_CAPABILITIES,
+      ]);
+      expect(getRecorderCapabilities({})).toEqual([
+        ...SESSION_REPLAY_RECORDER_CAPABILITIES,
+      ]);
+      expect(getRecorderCapabilities({ captureWebVitals: true })).toContain(
+        "web-vitals",
+      );
+    });
+
+    it("drops web-vitals when the config switched them off", (): void => {
+      const advertised: Array<string> = getRecorderCapabilities({
+        captureWebVitals: false,
+      });
+
+      expect(advertised).not.toContain("web-vitals");
+      expect(advertised).toEqual(
+        SESSION_REPLAY_RECORDER_CAPABILITIES.filter(
+          (capability: string): boolean => {
+            return capability !== "web-vitals";
+          },
+        ),
+      );
+    });
+
+    it("hands out a copy the caller may mutate", (): void => {
+      const advertised: Array<string> = getRecorderCapabilities();
+
+      advertised.push("time-travel");
+
+      expect(getRecorderCapabilities()).not.toContain("time-travel");
+      expect(SESSION_REPLAY_RECORDER_CAPABILITIES).not.toContain("time-travel");
     });
   });
 
