@@ -7,6 +7,7 @@ import {
   getIoTAlertTemplatesByCategory,
 } from "../../../Types/Monitor/IotAlertTemplates";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import { hasRecoveryDeadBand } from "./Utils/RecommendationCriteriaAssertions";
 import MonitorStepIoTMonitor from "../../../Types/Monitor/MonitorStepIoTMonitor";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import {
@@ -235,7 +236,7 @@ describe("IotAlertTemplates", () => {
   );
 
   test.each(IOT_TEMPLATES)(
-    "$id unhealthy/healthy criteria partition the range at $threshold",
+    "$id unhealthy/healthy criteria leave a recovery dead band around $threshold",
     (tc: IoTTemplateCase) => {
       const template: IoTAlertTemplate = getIoTAlertTemplateById(tc.id)!;
       const step: MonitorStep = template.getMonitorStep(buildArgs());
@@ -255,7 +256,26 @@ describe("IotAlertTemplates", () => {
         tc.metricAlias,
       );
       expect(offlineFilter.value).toBe(tc.threshold);
-      expect(onlineFilter.value).toBe(tc.threshold);
+      /*
+       * The healthy criteria recovers at a threshold strictly INSIDE the
+       * firing one, so a metric hovering at the boundary cannot satisfy
+       * both on consecutive evaluations. This assertion used to be
+       * `expect(onlineFilter.value).toBe(tc.threshold)` — the two criteria
+       * exactly partitioned the range, which is the flapping configuration
+       * this suite existed to lock in.
+       */
+      expect(
+        hasRecoveryDeadBand(
+          {
+            filterType: offlineFilter.filterType,
+            value: offlineFilter.value as number,
+          },
+          {
+            filterType: onlineFilter.filterType,
+            value: onlineFilter.value as number,
+          },
+        ),
+      ).toBe(true);
 
       /*
        * Decision (1): pin the exact comparison direction per template — the

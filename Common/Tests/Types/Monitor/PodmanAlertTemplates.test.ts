@@ -7,6 +7,7 @@ import {
   getPodmanAlertTemplatesByCategory,
 } from "../../../Types/Monitor/PodmanAlertTemplates";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import { hasRecoveryDeadBand } from "./Utils/RecommendationCriteriaAssertions";
 import MonitorStepPodmanMonitor from "../../../Types/Monitor/MonitorStepPodmanMonitor";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
@@ -217,7 +218,7 @@ describe("PodmanAlertTemplates", () => {
   );
 
   test.each(PODMAN_TEMPLATES)(
-    "$id unhealthy/healthy criteria partition the range at $threshold",
+    "$id unhealthy/healthy criteria leave a recovery dead band around $threshold",
     (tc: PodmanTemplateCase) => {
       const template: PodmanAlertTemplate = getPodmanAlertTemplateById(tc.id)!;
       const step: MonitorStep = template.getMonitorStep(buildArgs());
@@ -237,7 +238,26 @@ describe("PodmanAlertTemplates", () => {
         tc.metricAlias,
       );
       expect(offlineFilter.value).toBe(tc.threshold);
-      expect(onlineFilter.value).toBe(tc.threshold);
+      /*
+       * The healthy criteria recovers at a threshold strictly INSIDE the
+       * firing one, so a metric hovering at the boundary cannot satisfy
+       * both on consecutive evaluations. This assertion used to be
+       * `expect(onlineFilter.value).toBe(tc.threshold)` — the two criteria
+       * exactly partitioned the range, which is the flapping configuration
+       * this suite existed to lock in.
+       */
+      expect(
+        hasRecoveryDeadBand(
+          {
+            filterType: offlineFilter.filterType,
+            value: offlineFilter.value as number,
+          },
+          {
+            filterType: onlineFilter.filterType,
+            value: onlineFilter.value as number,
+          },
+        ),
+      ).toBe(true);
 
       expect(offlineFilter.filterType).toBe(tc.offlineFilterType);
       expect(onlineFilter.filterType).toBe(tc.onlineFilterType);

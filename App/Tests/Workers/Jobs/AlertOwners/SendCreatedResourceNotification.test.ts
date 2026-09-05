@@ -6,6 +6,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
+import { JSONObject } from "Common/Types/JSON";
 import Email from "Common/Types/Email";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -193,6 +194,7 @@ function makeAlert(data: {
   description?: string | undefined;
   remediationNotes?: string | undefined;
   rootCause?: string | undefined;
+  seriesLabels?: JSONObject | undefined;
 }): Alert {
   const alert: Alert = new Alert(ALERT_ID);
   alert.projectId = PROJECT_ID;
@@ -208,6 +210,10 @@ function makeAlert(data: {
 
   if (data.rootCause !== undefined) {
     alert.rootCause = data.rootCause;
+  }
+
+  if (data.seriesLabels !== undefined) {
+    alert.seriesLabels = data.seriesLabels;
   }
 
   const project: Project = new Project();
@@ -380,6 +386,75 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
     expect(alertService.getAlertLinkInDashboard).toHaveBeenCalledTimes(4);
 
     expect(feedService.createAlertFeedItem).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * "Resources Affected" used to be `alert.monitor.name`.
+   *
+   * A grouped metric monitor raises one alert per breaching series, so a
+   * customer's per-pod CPU alert read:
+   *
+   *   RESOURCES AFFECTED: oneuptime-test - Pod CPU Saturating Container Limit
+   *
+   * — the monitor's own name, which the subject line and the alert title
+   * already carried, and which names the monitor rather than the pod. The
+   * pod identity was on the alert row the whole time, under `seriesLabels`,
+   * and the dashboard was already rendering it as "Affected Resource".
+   */
+  describe("resourcesAffected names the series, not the monitor", () => {
+    test("a grouped metric alert names the pod that actually breached", async () => {
+      alertService.findAllBy.mockResolvedValue([
+        makeAlert({
+          seriesLabels: {
+            "resource.k8s.pod.name": "kubernetes-agent-logs-7t88f",
+            "resource.k8s.namespace.name": "default",
+          },
+        }),
+      ] as never);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+
+      await runWorkerTick();
+
+      const resourcesAffected: string = sentVars()[0]!["resourcesAffected"]!;
+
+      expect(resourcesAffected).toContain("kubernetes-agent-logs-7t88f");
+      expect(resourcesAffected).toContain("default");
+      expect(resourcesAffected).not.toBe("API Monitor");
+    });
+
+    test("an ungrouped monitor still falls back to the monitor name", async () => {
+      alertService.findAllBy.mockResolvedValue([makeAlert({})] as never);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+
+      await runWorkerTick();
+
+      expect(sentVars()[0]!["resourcesAffected"]).toBe("API Monitor");
+    });
+
+    test("empty series labels fall back rather than rendering blank", async () => {
+      alertService.findAllBy.mockResolvedValue([
+        makeAlert({ seriesLabels: {} }),
+      ] as never);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+
+      await runWorkerTick();
+
+      expect(sentVars()[0]!["resourcesAffected"]).toBe("API Monitor");
+    });
+
+    test("the worker selects seriesLabels, or the column comes back undefined", async () => {
+      alertService.findAllBy.mockResolvedValue([]);
+
+      await runWorkerTick();
+
+      const select: Record<string, unknown> = (
+        alertService.findAllBy.mock.calls[0]![0] as {
+          select: Record<string, unknown>;
+        }
+      ).select;
+
+      expect(select["seriesLabels"]).toBe(true);
+    });
   });
 
   test("the timezone-dependent declaredAt var STAYS per-user while the conversions are still shared", async () => {

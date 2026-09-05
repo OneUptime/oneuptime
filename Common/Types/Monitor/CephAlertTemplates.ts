@@ -2,13 +2,13 @@ import ObjectID from "../ObjectID";
 import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
-import FilterCondition from "../Filter/FilterCondition";
 import {
-  CheckOn,
-  FilterType,
-  EvaluateOverTimeType,
-  NoDataPolicy,
-} from "./CriteriaFilter";
+  AdditionalCriteriaFilterSpec,
+  buildHealthyCriteriaInstance,
+  buildUnhealthyCriteriaInstance,
+} from "./Recommendation/RecommendationCriteriaBuilder";
+import FilterCondition from "../Filter/FilterCondition";
+import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
 import MonitorStepCephMonitor from "./MonitorStepCephMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
@@ -136,78 +136,19 @@ export function buildCephOfflineCriteriaInstance(args: {
   incidentDescription?: string;
   criteriaName?: string;
   criteriaDescription?: string;
+  metricAggregationType?: EvaluateOverTimeType | undefined;
   /*
    * Extra OR'd filters (the instance is FilterCondition.Any) — fires when
    * EITHER the primary alias or any additional alias breaches, e.g.
    * PG_DAMAGED OR OSD_SCRUB_ERRORS.
    */
-  additionalFilters?: Array<CephCriteriaFilterSpec> | undefined;
+  additionalFilters?: Array<AdditionalCriteriaFilterSpec> | undefined;
+  treatNoDataAsZero?: boolean | undefined;
 }): MonitorCriteriaInstance {
-  const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
-
-  const incidentTitle: string =
-    args.incidentTitle || `${args.monitorName} - Alert Triggered`;
-  const incidentDescription: string =
-    args.incidentDescription ||
-    `${args.monitorName} has triggered an alert condition. See root cause for detailed Ceph cluster information.`;
-
-  instance.data = {
-    id: ObjectID.generate().toString(),
-    monitorStatusId: args.offlineMonitorStatusId,
-    filterCondition: FilterCondition.Any,
-    filters: [
-      {
-        checkOn: CheckOn.MetricValue,
-        filterType: args.filterType,
-        metricMonitorOptions: {
-          metricAggregationType: EvaluateOverTimeType.AnyValue,
-          metricAlias: args.metricAlias,
-        },
-        value: args.value,
-      },
-      ...(args.additionalFilters || []).map(
-        (filter: CephCriteriaFilterSpec) => {
-          return {
-            checkOn: CheckOn.MetricValue,
-            filterType: filter.filterType,
-            metricMonitorOptions: {
-              metricAggregationType: EvaluateOverTimeType.AnyValue,
-              metricAlias: filter.metricAlias,
-            },
-            value: filter.value,
-          };
-        },
-      ),
-    ],
-    incidents: [
-      {
-        title: incidentTitle,
-        description: incidentDescription,
-        incidentSeverityId: args.incidentSeverityId,
-        autoResolveIncident: true,
-        id: ObjectID.generate().toString(),
-        onCallPolicyIds: [],
-      },
-    ],
-    alerts: [
-      {
-        title: incidentTitle,
-        description: incidentDescription,
-        alertSeverityId: args.alertSeverityId,
-        autoResolveAlert: true,
-        id: ObjectID.generate().toString(),
-        onCallPolicyIds: [],
-      },
-    ],
-    changeMonitorStatus: true,
-    createIncidents: true,
-    createAlerts: true,
-    name: args.criteriaName || `${args.monitorName} - Unhealthy`,
-    description:
-      args.criteriaDescription || `Criteria for detecting unhealthy state.`,
-  };
-
-  return instance;
+  return buildUnhealthyCriteriaInstance({
+    ...args,
+    resourceNoun: "Ceph cluster",
+  });
 }
 
 export function buildCephOnlineCriteriaInstance(args: {
@@ -215,12 +156,15 @@ export function buildCephOnlineCriteriaInstance(args: {
   metricAlias: string;
   filterType: FilterType;
   value: number;
+  recoveryValue?: number | undefined;
+  marginFraction?: number | undefined;
+  metricAggregationType?: EvaluateOverTimeType | undefined;
   /*
    * Extra filters for multi-alias recovery. Pass FilterCondition.All with
    * them so the monitor only recovers when EVERY watched health check has
    * cleared (the complement of the offline instance's Any).
    */
-  additionalFilters?: Array<CephCriteriaFilterSpec> | undefined;
+  additionalFilters?: Array<AdditionalCriteriaFilterSpec> | undefined;
   filterCondition?: FilterCondition | undefined;
   /*
    * Health-detail series exist only while the check is active, so the
@@ -230,52 +174,7 @@ export function buildCephOnlineCriteriaInstance(args: {
    */
   treatNoDataAsZero?: boolean | undefined;
 }): MonitorCriteriaInstance {
-  const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
-
-  const onNoDataPolicy: NoDataPolicy | undefined = args.treatNoDataAsZero
-    ? NoDataPolicy.TreatAsZero
-    : undefined;
-
-  instance.data = {
-    id: ObjectID.generate().toString(),
-    monitorStatusId: args.onlineMonitorStatusId,
-    filterCondition: args.filterCondition || FilterCondition.Any,
-    filters: [
-      {
-        checkOn: CheckOn.MetricValue,
-        filterType: args.filterType,
-        metricMonitorOptions: {
-          metricAggregationType: EvaluateOverTimeType.AnyValue,
-          metricAlias: args.metricAlias,
-          onNoDataPolicy: onNoDataPolicy,
-        },
-        value: args.value,
-      },
-      ...(args.additionalFilters || []).map(
-        (filter: CephCriteriaFilterSpec) => {
-          return {
-            checkOn: CheckOn.MetricValue,
-            filterType: filter.filterType,
-            metricMonitorOptions: {
-              metricAggregationType: EvaluateOverTimeType.AnyValue,
-              metricAlias: filter.metricAlias,
-              onNoDataPolicy: onNoDataPolicy,
-            },
-            value: filter.value,
-          };
-        },
-      ),
-    ],
-    incidents: [],
-    alerts: [],
-    changeMonitorStatus: true,
-    createIncidents: false,
-    createAlerts: false,
-    name: "Healthy",
-    description: "Criteria for healthy state.",
-  };
-
-  return instance;
+  return buildHealthyCriteriaInstance(args);
 }
 
 export function buildCephMonitorConfig(args: {

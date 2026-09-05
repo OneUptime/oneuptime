@@ -5,6 +5,9 @@ import {
   getCephAlertTemplateById,
 } from "../../../Types/Monitor/CephAlertTemplates";
 import { getCephMetricByMetricName } from "../../../Types/Monitor/CephMetricCatalog";
+import { getRecoveryThreshold } from "../../../Types/Monitor/Recommendation/RecommendationCriteriaBuilder";
+import { getComplementFilterType } from "./Utils/RecommendationCriteriaAssertions";
+import { hasRecoveryDeadBand } from "./Utils/RecommendationCriteriaAssertions";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorStepCephMonitor from "../../../Types/Monitor/MonitorStepCephMonitor";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
@@ -841,28 +844,18 @@ function getReferencableAliases(monitor: MonitorStepCephMonitor): Set<string> {
   return aliases;
 }
 
+/*
+ * Delegates to the shared assertion so all eight recommendation suites
+ * agree on what a correct fire/recover pair looks like. This function used
+ * to require `fire.value === recover.value` — see the comment in
+ * RecommendationCriteriaAssertions for why that was the bug rather than
+ * the invariant.
+ */
 function isDisjointComplement(
   fire: { filterType: FilterType; value: number },
   recover: { filterType: FilterType; value: number },
 ): boolean {
-  if (fire.value !== recover.value) {
-    return false;
-  }
-  switch (fire.filterType) {
-    case FilterType.GreaterThan:
-      return (
-        recover.filterType === FilterType.LessThanOrEqualTo ||
-        (fire.value === 0 && recover.filterType === FilterType.EqualTo)
-      );
-    case FilterType.GreaterThanOrEqualTo:
-      return recover.filterType === FilterType.LessThan;
-    case FilterType.LessThan:
-      return recover.filterType === FilterType.GreaterThanOrEqualTo;
-    case FilterType.LessThanOrEqualTo:
-      return recover.filterType === FilterType.GreaterThan;
-    default:
-      return false;
-  }
+  return hasRecoveryDeadBand(fire, recover);
 }
 
 // Health-check series exist only while their check is active.
@@ -1215,7 +1208,19 @@ describe("CephAlertTemplates - spec table expectations", () => {
           expectedFilter.alias,
         );
         expect(onlineFilters[j].filterType).toBe(expectedFilter.filterType);
-        expect(onlineFilters[j].value).toBe(expectedFilter.value);
+        /*
+         * The spec table states the FIRING threshold. The recovery
+         * threshold is derived from it, so the table does not have to
+         * restate every dead-banded number — and so a change to the dead
+         * band shows up as a behaviour change in one place rather than as
+         * a diff across nine spec tables.
+         */
+        expect(onlineFilters[j].value).toBe(
+          getRecoveryThreshold({
+            filterType: getComplementFilterType(expectedFilter.filterType)!,
+            value: expectedFilter.value,
+          }) ?? expectedFilter.value,
+        );
         if (tc.recover.treatNoDataAsZero) {
           expect(onlineFilters[j].metricMonitorOptions.onNoDataPolicy).toBe(
             NoDataPolicy.TreatAsZero,
