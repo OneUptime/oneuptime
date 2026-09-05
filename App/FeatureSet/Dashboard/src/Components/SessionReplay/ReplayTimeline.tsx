@@ -595,6 +595,22 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
   }, [updateHover]);
 
   /*
+   * Notice markers sit INSIDE the slider track, so without this a click on
+   * one would start the track's own gesture on pointerdown, commit a seek
+   * to the cursor on pointerup, and then seek AGAIN to marker - 1s on
+   * click: two seeks (each a possible Replayer rebuild) for one press. The
+   * button owns its pointer; the track never sees it.
+   */
+  const stopTrackGesture: (
+    event: React.PointerEvent<HTMLButtonElement>,
+  ) => void = useCallback(
+    (event: React.PointerEvent<HTMLButtonElement>): void => {
+      event.stopPropagation();
+    },
+    [],
+  );
+
+  /*
    * The WAI-ARIA slider keys, on the element itself, so they work whenever
    * the track has focus - including while the page-level shortcuts are
    * off. stopPropagation keeps the window listener from seeing the same
@@ -820,6 +836,8 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
                   style={{
                     left: `${offsetToPercent(marker.offsetMs, durationMs)}%`,
                   }}
+                  onPointerDown={stopTrackGesture}
+                  onPointerUp={stopTrackGesture}
                   onClick={(): void => {
                     handleMarkerActivate(marker);
                   }}

@@ -98,6 +98,14 @@ export type ReplayNavigationSignalDetail = {
   from: string | null;
   to: string;
   kind: SessionReplayRouteKind | "full-load";
+  /*
+   * Full loads only: the viewport rrweb's Meta event declared for the
+   * page, so the detail can say "1440x900" next to the URL. null on
+   * history-API routes (the viewport did not change) and on chunks whose
+   * Meta lived in an earlier chunk.
+   */
+  viewportWidth: number | null;
+  viewportHeight: number | null;
   atUnixMs: number | null;
 };
 
@@ -480,6 +488,8 @@ function navigationSignal(
     from: stringOrNull(event.from),
     to: to,
     kind: kind,
+    viewportWidth: numberOrNull(event.viewportWidth),
+    viewportHeight: numberOrNull(event.viewportHeight),
     atUnixMs: wallClockFor(event, ctx),
   };
 

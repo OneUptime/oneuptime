@@ -114,16 +114,20 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
 
       <SideMenuSection title="Settings">
         {/*
-         * This application's replay policy - masking, consent, sampling,
-         * origins, retention. It lives here rather than on a project-wide
+         * This application's replay policy, health, installation test and
+         * targeted capture. It lives here rather than on a project-wide
          * settings page because it governs THIS application's recordings
-         * and belongs next to them. The project master switch, the
-         * installation test and targeted capture are project-shaped and
-         * live in Real User Monitoring > Settings > Session Replay.
+         * and belongs next to them. Only the project master switch is
+         * project-shaped and lives in Real User Monitoring > Settings >
+         * Session Replay.
+         *
+         * settings-setup-5: named "Replay Policy" rather than "Session
+         * Replay" so it cannot be confused with the recordings entry under
+         * Observability, which used to share the name.
          */}
         <SideMenuItem
           link={{
-            title: "Session Replay",
+            title: "Replay Policy",
             to: RouteUtil.populateRouteParams(
               RouteMap[
                 PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS

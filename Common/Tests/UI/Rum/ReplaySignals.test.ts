@@ -441,6 +441,27 @@ describe("navigation rows", () => {
     expect(load.detail["kind"]).toBe("full-load");
     expect(load.detail["from"]).toBeNull();
   });
+
+  it("carries the declared viewport of a full load and never invents one", () => {
+    const load: ReplaySignal = fromTimelineEvent(
+      makeEvent("navigation", {
+        to: "https://app.example.com/login",
+        viewportWidth: 1440,
+        viewportHeight: 900,
+      }),
+      { startTimeUnixMs: null },
+    );
+    const route: ReplaySignal = fromTimelineEvent(
+      makeEvent("route", { to: "/checkout", routeKind: "pushState" }),
+      { startTimeUnixMs: null },
+    );
+
+    expect(load.detail["viewportWidth"]).toBe(1440);
+    expect(load.detail["viewportHeight"]).toBe(900);
+    /* A route change does not carry a viewport; the detail must say so, not 0. */
+    expect(route.detail["viewportWidth"]).toBeNull();
+    expect(route.detail["viewportHeight"]).toBeNull();
+  });
 });
 
 describe("client error rows", () => {

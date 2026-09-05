@@ -34,6 +34,13 @@ export interface ComponentProps {
   filters: SessionReplayAdvancedFilters;
   onApply: (filters: SessionReplayAdvancedFilters) => void;
   onClose: () => void;
+  /*
+   * True when the server has been observed dropping the user filter for
+   * this viewer (no end-user identity permission). The field stays
+   * editable - the permission may be granted later - but says so, rather
+   * than letting the viewer believe the list will narrow.
+   */
+  isIdentityFilterIgnored?: boolean | undefined;
 }
 
 const SessionReplayFilterModal: FunctionComponent<ComponentProps> = (
@@ -83,6 +90,8 @@ const SessionReplayFilterModal: FunctionComponent<ComponentProps> = (
             return option.value.toString() === value;
           })}
           placeholder={`Filter by ${field.title}`}
+          ariaLabel={field.title}
+          dataTestId={`session-filter-${field.field}`}
           className="relative rounded-md w-full overflow-visible"
           onChange={(
             dropdownValue: DropdownValue | Array<DropdownValue> | null,
@@ -111,6 +120,8 @@ const SessionReplayFilterModal: FunctionComponent<ComponentProps> = (
          * these rows taller than the ones FiltersForm renders.
          */
         outerDivClassName="relative rounded-md shadow-sm w-full"
+        ariaLabel={field.title}
+        dataTestId={`session-filter-${field.field}`}
         onChange={(inputValue: string): void => {
           setField(field.field, inputValue);
         }}
@@ -119,6 +130,18 @@ const SessionReplayFilterModal: FunctionComponent<ComponentProps> = (
         }}
       />
     );
+  };
+
+  type GetHintFunction = (field: SessionReplayFilterField) => string | null;
+
+  const getHint: GetHintFunction = (
+    field: SessionReplayFilterField,
+  ): string | null => {
+    if (field.field === "identifiedUserRef" && props.isIdentityFilterIgnored) {
+      return "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the session replay identity permission.";
+    }
+
+    return field.hint ?? null;
   };
 
   return (
@@ -146,28 +169,43 @@ const SessionReplayFilterModal: FunctionComponent<ComponentProps> = (
         {SESSION_REPLAY_FILTER_FIELDS.map(
           (field: SessionReplayFilterField): ReactElement => {
             const hasValue: boolean = Boolean(draft[field.field]);
+            const hint: string | null = getHint(field);
 
             return (
               <div
                 key={field.field}
-                className="grid grid-cols-[140px_1fr_auto] gap-3 items-center"
+                className="grid grid-cols-[140px_1fr_auto] gap-3 items-start"
               >
                 {/* Label column */}
-                <div className="flex items-center min-w-0">
+                <div className="flex items-center min-w-0 pt-2">
                   <label className="text-sm font-medium text-gray-700 truncate">
                     {field.title}
                   </label>
                 </div>
 
                 {/* Controls column */}
-                <div className="min-w-0">{getControl(field)}</div>
+                <div className="min-w-0">
+                  {getControl(field)}
+                  {hint && (
+                    <p
+                      className={`mt-1 text-xs ${
+                        field.field === "identifiedUserRef" &&
+                        props.isIdentityFilterIgnored
+                          ? "text-amber-700"
+                          : "text-gray-500"
+                      }`}
+                    >
+                      {hint}
+                    </p>
+                  )}
+                </div>
 
                 {/*
                  * Clear column. Copied from FiltersForm rather than built
                  * from Button so a row here is pixel-identical to a row in
                  * every other filter modal.
                  */}
-                <div className="flex items-center">
+                <div className="flex items-center pt-1">
                   {hasValue ? (
                     <button
                       type="button"

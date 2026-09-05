@@ -433,9 +433,10 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
       </div>
 
       {/*
-       * Off by default; see DEFAULT_SKIP_INACTIVE. Idle stretches are
-       * drawn on the track and every skip shows a toast, so a jump is
-       * never mistaken for a bug.
+       * The value is the engine's stored intent (snapshot.skipInactive);
+       * the shell owns the default and the persisted preference. Idle
+       * stretches are drawn on the track and every skip shows a toast, so
+       * a jump is never mistaken for a bug.
        */}
       <div
         className="inline-flex items-center"

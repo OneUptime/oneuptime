@@ -404,6 +404,15 @@ describe("ReplayTimeline markers", () => {
 
     expect(notice.getAttribute("title")).toContain("Snapshot too large");
 
+    /*
+     * The real browser sequence: pointerdown and pointerup bubble up to
+     * the slider track that contains the button, then click fires on the
+     * button. The track must not treat that as its own click-to-seek, or
+     * one press seeks twice (to the cursor, then to the marker).
+     */
+    getTrack();
+    firePointer(notice, "pointerdown", 150);
+    firePointer(notice, "pointerup", 150);
     fireEvent.click(notice);
 
     expect(seeks).toEqual([89000]);

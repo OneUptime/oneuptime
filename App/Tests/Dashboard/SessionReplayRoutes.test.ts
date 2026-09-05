@@ -70,15 +70,41 @@ const routeSource: string = fs.readFileSync(
   ),
   "utf8",
 );
-const replayStageSource: string = stripComments(
+/*
+ * The Replayer is configured by the engine now (Engine/ReplayEngine.ts);
+ * ReplayStage.tsx is a thin React binding that never constructs one.
+ */
+const replayEngineSource: string = stripComments(
   fs.readFileSync(
     nodePath.join(
       __dirname,
-      "../../FeatureSet/Dashboard/src/Components/SessionReplay/ReplayStage.tsx",
+      "../../FeatureSet/Dashboard/src/Components/SessionReplay/Engine/ReplayEngine.ts",
     ),
     "utf8",
   ),
 );
+
+const sessionReplayComponentsDirectory: string = nodePath.join(
+  __dirname,
+  "../../FeatureSet/Dashboard/src/Components/SessionReplay",
+);
+
+/* Every .ts/.tsx under the session replay components, subfolders included. */
+function listSessionReplaySources(directory: string): Array<string> {
+  const files: Array<string> = [];
+
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const fullPath: string = nodePath.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      files.push(...listSessionReplaySources(fullPath));
+    } else if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
 const sessionReplayPlayerSource: string = stripComments(
   fs.readFileSync(
     nodePath.join(
@@ -312,16 +338,32 @@ describe("Session replay page wiring", () => {
     expect(occurrences).toBe(1);
   });
 
-  test("canvas replay stays disabled in the stage", () => {
+  test("canvas replay stays disabled wherever a Replayer is configured", () => {
     /*
      * rrweb implements canvas replay by dropping the strict sandbox for
      * "allow-same-origin allow-scripts", which is script execution inside a
      * document built from attacker-influenceable end-user HTML on the
      * Dashboard's own origin. This is a security invariant, and a comment is
-     * not a mechanism.
+     * not a mechanism: the engine must set it false, and nothing under the
+     * session replay components may ever set it true.
      */
-    expect(replayStageSource).toContain("UNSAFE_replayCanvas: false");
-    expect(replayStageSource).not.toMatch(/UNSAFE_replayCanvas:\s*true/);
+    expect(replayEngineSource).toContain("UNSAFE_replayCanvas: false");
+
+    const canvasEnabled: RegExp = /UNSAFE_replayCanvas:\s*true/;
+
+    for (const file of listSessionReplaySources(
+      sessionReplayComponentsDirectory,
+    )) {
+      const source: string = stripComments(fs.readFileSync(file, "utf8"));
+
+      expect([
+        nodePath.relative(sessionReplayComponentsDirectory, file),
+        canvasEnabled.test(source),
+      ]).toEqual([
+        nodePath.relative(sessionReplayComponentsDirectory, file),
+        false,
+      ]);
+    }
   });
 
   test("rrweb is reachable only through the dynamic import in the player", () => {
@@ -332,19 +374,14 @@ describe("Session replay page wiring", () => {
      * boundary is the whole reason ReplayStage takes a replayerFactory
      * instead of constructing one.
      */
-    const componentsDirectory: string = nodePath.join(
-      __dirname,
-      "../../FeatureSet/Dashboard/src/Components/SessionReplay",
-    );
-
-    for (const fileName of fs.readdirSync(componentsDirectory)) {
-      if (!fileName.endsWith(".ts") && !fileName.endsWith(".tsx")) {
-        continue;
-      }
-
-      const source: string = stripComments(
-        fs.readFileSync(nodePath.join(componentsDirectory, fileName), "utf8"),
+    for (const file of listSessionReplaySources(
+      sessionReplayComponentsDirectory,
+    )) {
+      const fileName: string = nodePath.relative(
+        sessionReplayComponentsDirectory,
+        file,
       );
+      const source: string = stripComments(fs.readFileSync(file, "utf8"));
 
       // A static import in any form: `from "rrweb"` or `require("rrweb")`.
       const staticImport: RegExp = /from\s+["']rrweb["']/;

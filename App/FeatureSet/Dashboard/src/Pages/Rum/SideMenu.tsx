@@ -32,9 +32,13 @@ const RumSideMenu: FunctionComponent = (): ReactElement => {
         },
       ],
     },
+    /*
+     * settings-setup-5: this section used to start collapsed, which hid the
+     * project-wide replay switch that every piece of replay copy points at.
+     * Three items do not need collapsing.
+     */
     {
       title: "Settings",
-      defaultCollapsed: true,
       items: [
         {
           link: {
