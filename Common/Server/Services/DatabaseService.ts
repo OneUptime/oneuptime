@@ -1636,12 +1636,28 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * A query builder scoped to exactly the rows this read may see, and — this
    * is the whole point — scoped so that each of them appears ONCE.
    *
-   * The permission pipeline expresses a label-scoped read as a condition on
-   * the access-control RELATION: `{ labels: [permittedIds] }` for an allow
-   * permission, `{ labels: { _id: NotIn([...]) } }` for a block. Handed to
-   * TypeORM's FindOptions machinery those become a join through the
-   * many-to-many junction table — and a join multiplies rows. A device
-   * carrying two permitted labels comes back twice.
+   * The permission pipeline expresses a label-scoped ALLOW as a condition on
+   * the access-control RELATION — `{ labels: [permittedIds] }`, which
+   * QueryUtil.serializeQuery then nests into `{ labels: { _id: <a set
+   * membership operator> } }`. Handed to TypeORM's FindOptions machinery that
+   * becomes a join through the many-to-many junction table — and a join
+   * multiplies rows. A device carrying two permitted labels comes back twice.
+   *
+   * A label BLOCK no longer takes that route, and it is worth being precise
+   * about why, because the shape reads like the allow half's mirror image and
+   * is not. A relation condition cannot express "has NONE of these labels" at
+   * all: a device labelled {blocked, other} still matches the join through its
+   * "other" row. So ReadPermission writes the block as a flat predicate on the
+   * owner's own id instead — `_id NOT IN (SELECT ownerId FROM the junction
+   * table WHERE labelId IN (...))`. Flat means no join, which means no
+   * duplicate rows, which means the block half needs nothing from this method
+   * beyond the cheap path below.
+   *
+   * The allow half is not the only producer of relation-keyed conditions
+   * either. `@CanAccessIfCanReadOn` makes BasePermission write
+   * `query[relation] = { <the related model's access-control column>: ids }`
+   * for StatusPageResource, IncidentInternalNote, AlertEpisodeMember and
+   * others, and that arrives here indistinguishable from a label allow.
    *
    * `findBy` never notices, because entity hydration de-duplicates by primary
    * key on the way out. An aggregate has no such step: COUNT(*) would report
@@ -1656,9 +1672,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * by a DISTINCT subquery of ids. The joins live inside that subquery, where
    * duplicate rows collapse before anything is added up.
    *
-   * The subquery is skipped when the query is flat — which is every read by a
-   * user whose permissions are not label-scoped, i.e. the hot path — so the
-   * ordinary full-fleet aggregate stays a single sequential scan.
+   * The subquery is skipped when the query is flat — every read by a user with
+   * no label-scoped allow grant and no `@CanAccessIfCanReadOn` relation, which
+   * is the hot path, and the block half above with it — so the ordinary
+   * full-fleet aggregate stays a single sequential scan.
    */
   private buildAggregateScope(
     query: Query<TBaseModel>,
@@ -1698,10 +1715,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       `"${this.modelName}"."_id" IN (${scopeBuilder.getQuery()})`,
     );
     /*
-     * The subquery's own bound values. Its placeholders are auto-named
-     * (`orm_param_N`) and the outer builder generates none of its own here —
-     * its only WHERE is the raw string above — so there is nothing to clash
-     * with. Caller-supplied parameters are named and applied later.
+     * The subquery's own bound values, copied across under whatever names they
+     * already carry. Two naming schemes reach this line: TypeORM auto-names
+     * the parameters it creates itself (`orm_param_N`), but a label predicate
+     * arrives as a `Raw` operator carrying its own object-literal parameters,
+     * and TypeORM registers those verbatim — QueryHelper names them with ten
+     * random characters apiece. Neither can clash with the outer builder,
+     * which generates no parameters of its own here: its only WHERE is the raw
+     * string above. Caller-supplied parameters are named and applied later.
      */
     queryBuilder.setParameters(scopeBuilder.getParameters());
 
