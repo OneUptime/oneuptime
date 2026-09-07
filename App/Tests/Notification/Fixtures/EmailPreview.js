@@ -120,39 +120,41 @@ function defaultVars(source) {
 
 const richDescription =
   "<p>Checkout requests in the European region are experiencing elevated latency and intermittent errors.</p><p>The on-call team is investigating the payment gateway connection pool.</p><ul><li>API and web checkout are affected.</li><li>Existing orders and account data remain available.</li></ul>";
+// Match the nested report regression fixture. A narrow viewport must retain
+// enough name-column space for the resource at the deepest, 64px indentation.
 const reportRows = [
   {
-    isGroup: true,
-    name: "Customer services",
+    isGroup: false,
+    name: "Website",
     indentInPixels: 0,
-    totalResources: 3,
+    uptimePercentAsString: "100%",
+    downtimeInHoursAndMinutes: "0 minutes",
+    totalIncidentCount: 0,
+  },
+  ...["Corporate", "Region", "Market", "Unit"].map((name, index) => ({
+    isGroup: true,
+    name,
+    indentInPixels: index * 16,
+    totalResources: 2,
     uptimePercentAsString: "99.97%",
     downtimeInHoursAndMinutes: "13 minutes",
     totalIncidentCount: 2,
-  },
+  })),
   {
     isGroup: false,
-    name: "Payments API",
-    indentInPixels: 16,
+    name: "Router",
+    indentInPixels: 64,
     uptimePercentAsString: "99.95%",
     downtimeInHoursAndMinutes: "22 minutes",
     totalIncidentCount: 2,
   },
   {
     isGroup: false,
-    name: "Dashboard",
-    indentInPixels: 16,
+    name: "Switch 01",
+    indentInPixels: 64,
     uptimePercentAsString: "99.99%",
     downtimeInHoursAndMinutes: "4 minutes",
     totalIncidentCount: 1,
-  },
-  {
-    isGroup: false,
-    name: "Website",
-    indentInPixels: 16,
-    uptimePercentAsString: "100%",
-    downtimeInHoursAndMinutes: "0 minutes",
-    totalIncidentCount: 0,
   },
 ];
 const common = {
@@ -470,11 +472,11 @@ fs.writeFileSync(
 
 fs.writeFileSync(
   path.join(output, "overflow-check.html"),
-  `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Email narrow viewport check</title><style>body{font:14px Arial,sans-serif;margin:28px;color:#172133}h1{font-size:24px}table{border-collapse:collapse}td,th{padding:8px 12px;border:1px solid #dbe2eb;text-align:left}.pass{color:#047857}.fail{color:#b91c1c}iframe{position:absolute;left:-10000px;border:0;height:900px}</style></head><body><h1>All-template narrow viewport check</h1><p>Renders every template and curated stress case at 320px and 375px. Customer-provided BlankTemplate bodies are excluded. Generated previews use synthetic data.</p><p id="status">Loading…</p><table><thead><tr><th>Template</th><th>Width</th><th>Content width</th><th>Result</th></tr></thead><tbody id="results"></tbody></table><script>window.emailOverflowResults=[];window.emailOverflowComplete=false;(async()=>{const manifest=await(await fetch('manifest.json')).json();const version=new URLSearchParams(location.search).get('version')||'after';for(const item of [...manifest.versions[version].filter(item=>!item.passthrough),...manifest.cases.map(fixture=>({template:'Example: '+fixture.label,url:version+'/'+fixture.slug+'.html'}))]){for(const width of [320,375]){const frame=document.createElement('iframe');frame.style.width=width+'px';const ready=new Promise(resolve=>frame.onload=resolve);frame.src=item.url;document.body.append(frame);await ready;await new Promise(resolve=>setTimeout(resolve,20));const doc=frame.contentDocument;const actual=Math.max(doc.documentElement.scrollWidth,doc.body.scrollWidth);const result={template:item.template,width,actual,pass:actual<=width+1};window.emailOverflowResults.push(result);const row=document.createElement('tr');row.innerHTML='<td>'+item.template+'</td><td>'+width+'</td><td>'+actual+'</td><td class="'+(result.pass?'pass':'fail')+'">'+(result.pass?'PASS':'OVERFLOW')+'</td>';document.getElementById('results').append(row);frame.remove();document.getElementById('status').textContent=window.emailOverflowResults.length+' checks completed';}}window.emailOverflowComplete=true;const failed=window.emailOverflowResults.filter(item=>!item.pass);document.getElementById('status').textContent=window.emailOverflowResults.length+' checks complete · '+failed.length+' overflow failures';})().catch(error=>{window.emailOverflowError=String(error);document.getElementById('status').textContent=String(error)});</script></body></html>`,
+  `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Email narrow viewport check</title><style>body{font:14px Arial,sans-serif;margin:28px;color:#172133}h1{font-size:24px}table{border-collapse:collapse}td,th{padding:8px 12px;border:1px solid #dbe2eb;text-align:left}.pass{color:#047857}.fail{color:#b91c1c}iframe{position:absolute;left:-10000px;border:0;height:900px}</style></head><body><h1>All-template narrow viewport check</h1><p>Renders every template and curated stress case at 320px and 375px. Customer-provided BlankTemplate bodies are excluded. Generated previews use synthetic data.</p><p id="status">Loading…</p><table><thead><tr><th>Template</th><th>Width</th><th>Content width</th><th>Result</th></tr></thead><tbody id="results"></tbody></table><script>window.emailOverflowResults=[];window.emailReportNameMetrics=[];window.emailOverflowComplete=false;(async()=>{const manifest=await(await fetch('manifest.json')).json();const version=new URLSearchParams(location.search).get('version')||'after';for(const item of [...manifest.versions[version].filter(item=>!item.passthrough),...manifest.cases.map(fixture=>({template:'Example: '+fixture.label,url:version+'/'+fixture.slug+'.html'}))]){for(const width of [320,375]){const frame=document.createElement('iframe');frame.style.width=width+'px';const ready=new Promise(resolve=>frame.onload=resolve);frame.src=item.url;document.body.append(frame);await ready;await new Promise(resolve=>setTimeout(resolve,20));const doc=frame.contentDocument;const actual=Math.max(doc.documentElement.scrollWidth,doc.body.scrollWidth);for(const name of doc.querySelectorAll('.st-ReportIndent')){const bounds=name.getBoundingClientRect();const style=frame.contentWindow.getComputedStyle(name);const lineHeight=Number.parseFloat(style.lineHeight);window.emailReportNameMetrics.push({template:item.template,viewport:width,name:name.firstChild?.textContent.trim()||name.textContent.trim(),nameWidth:Math.round(bounds.width*10)/10,height:Math.round(bounds.height*10)/10,lineHeight,estimatedLines:Number.isFinite(lineHeight)?Math.round(bounds.height/lineHeight):null,marginLeft:style.marginLeft})}const result={template:item.template,width,actual,pass:actual<=width+1};window.emailOverflowResults.push(result);const row=document.createElement('tr');row.innerHTML='<td>'+item.template+'</td><td>'+width+'</td><td>'+actual+'</td><td class="'+(result.pass?'pass':'fail')+'">'+(result.pass?'PASS':'OVERFLOW')+'</td>';document.getElementById('results').append(row);frame.remove();document.getElementById('status').textContent=window.emailOverflowResults.length+' checks completed';}}window.emailOverflowComplete=true;const failed=window.emailOverflowResults.filter(item=>!item.pass);document.getElementById('status').textContent=window.emailOverflowResults.length+' checks complete · '+failed.length+' overflow failures';})().catch(error=>{window.emailOverflowError=String(error);document.getElementById('status').textContent=String(error)});</script></body></html>`,
 );
 fs.writeFileSync(
   path.join(output, "README.md"),
-  `# Local email previews\n\nRegenerate from the repository root:\n\n\`node App/Tests/Notification/Fixtures/EmailPreview.js\`\n\nServe this directory on localhost using a static server. Open \`index.html\` for the before/after gallery, or \`overflow-check.html\` for the 320/375px check across all templates and curated cases. The browser exposes \`window.emailOverflowResults\` and \`window.emailOverflowComplete\` for automation.\n\nIndividual curated cases are under \`before/\` and \`after/\`. All-template renders are under each version's \`all/\`. \`manifest.json\` lists both catalogs. Default baseline is \`${beforeRef}\`; override with \`EMAIL_PREVIEW_BASE\`.\n\nData is synthetic. No mail is sent, no credentials are read, and no database is used. This is browser layout verification, not a claim of certification across email clients.\n`,
+  `# Local email previews\n\nRegenerate from the repository root:\n\n\`node App/Tests/Notification/Fixtures/EmailPreview.js\`\n\nServe this directory on localhost using a static server. Open \`index.html\` for the before/after gallery, or \`overflow-check.html\` for the 320/375px check across all templates and curated cases. The browser exposes \`window.emailOverflowResults\` and \`window.emailOverflowComplete\` for automation. \`window.emailReportNameMetrics\` also records each report name's usable width, height, line height and computed indentation, so checks can detect squeezed names even when the page has no horizontal overflow. Filter by \`name === "Router"\` to inspect the deepest resource.\n\nIndividual curated cases are under \`before/\` and \`after/\`. All-template renders are under each version's \`all/\`. \`manifest.json\` lists both catalogs. Default baseline is \`${beforeRef}\`; override with \`EMAIL_PREVIEW_BASE\`.\n\nData is synthetic. No mail is sent, no credentials are read, and no database is used. This is browser layout verification, not a claim of certification across email clients.\n`,
 );
 console.log(
   `Rendered ${cases.length} curated cases and ${manifest.versions.after.length} templates per version into ${output}`,

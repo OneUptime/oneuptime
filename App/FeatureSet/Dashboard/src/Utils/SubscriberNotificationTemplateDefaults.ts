@@ -783,6 +783,8 @@ const reportDefaults: EventDefaults = {
     body: `<style>
   @media only screen and (max-width: 600px) {
     .st-StandaloneReport .st-ReportIndent { margin-left: 0 !important; }
+    .st-StandaloneReport table[aria-label="Uptime by resource"] td { padding: 10px 6px !important; font-size: 12px !important; line-height: 18px !important; }
+    .st-StandaloneReport table[aria-label="Uptime by resource"] th { padding: 10px 4px !important; font-size: 11px !important; line-height: 16px !important; }
   }
 </style>
 <div class="st-StandaloneReport" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; width: 100%; max-width: 600px; box-sizing: border-box; margin: 0 auto; padding: 32px 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff; color: #475569; overflow-wrap: anywhere; word-break: break-word;">
