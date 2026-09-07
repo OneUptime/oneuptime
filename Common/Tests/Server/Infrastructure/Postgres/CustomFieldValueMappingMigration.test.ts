@@ -64,8 +64,25 @@ const MAPPING_COLUMNS: ReadonlyArray<string> = [
   "mapFromCustomFieldName",
 ];
 
-/** The `<timestamp>-<Name>.ts` prefix TypeORM orders migrations by. */
-const MIGRATION_TIMESTAMP_PREFIX: RegExp = /^(\d+)-/;
+/*
+ * The timestamp read off the CLASS name, which is what TypeORM actually sorts
+ * by and what the migrations table records. Null for the one registered class
+ * that predates the convention (InitialMigration).
+ */
+const MIGRATION_CLASS_TIMESTAMP: RegExp = /(\d{10,})$/;
+
+const OWN_CLASS_NAME: string = "AddCustomFieldValueMapping1791600000000";
+
+type TimestampOfClassNameFunction = (className: string) => number | null;
+
+const timestampOfClassName: TimestampOfClassNameFunction = (
+  className: string,
+): number | null => {
+  const match: RegExpExecArray | null =
+    MIGRATION_CLASS_TIMESTAMP.exec(className);
+
+  return match ? parseInt(match[1]!, 10) : null;
+};
 
 /*
  * What TypeORM's metadata storage keys entities by: the class itself. Only
@@ -174,29 +191,51 @@ describe("the value-mapping migration", () => {
 
   /*
    * TypeORM orders migrations by the timestamp in the class name, not by the
-   * order of the array. A timestamp below one already registered would run
-   * this migration before migrations that shipped earlier — harmless here, but
-   * the convention in this directory is a monotonic timestamp and breaking it
-   * makes the ordering unreadable.
+   * position in SchemaMigrations/Index.ts. A timestamp BELOW one already
+   * registered would run this migration ahead of migrations that shipped
+   * before it — against a schema that does not yet have the columns those
+   * migrations added.
+   *
+   * This used to assert the timestamp was the newest in the whole DIRECTORY,
+   * which is a claim any later migration falsifies: the next one to land
+   * (AddMacAddressToNetworkDevice, 1791700000000) turned it red without going
+   * anywhere near the value-mapping columns it guards. The migrations
+   * registered AFTER this one run after it whichever way round they are, and
+   * are none of this test's business; the ones registered BEFORE it are the
+   * queue it must not jump.
+   *
+   * Note this is deliberately not a claim that the whole registry is
+   * monotonic. It is not — eleven adjacent pairs are already inverted, from
+   * branches that landed out of order — and asserting otherwise here would be
+   * failing this suite for somebody else's history.
    */
-  test("its timestamp is the newest in the directory", () => {
-    const timestamps: Array<number> = fs
-      .readdirSync(MIGRATIONS_DIRECTORY)
-      .map((fileName: string) => {
-        return MIGRATION_TIMESTAMP_PREFIX.exec(fileName);
-      })
-      .filter((match: RegExpExecArray | null): match is RegExpExecArray => {
-        return Boolean(match);
-      })
-      .map((match: RegExpExecArray) => {
-        return parseInt(match[1]!, 10);
-      });
-
-    const ownTimestamp: number = parseInt(
-      MIGRATION_TIMESTAMP_PREFIX.exec(path.basename(MIGRATION_PATH))![1]!,
-      10,
+  test("its timestamp keeps it behind every migration registered before it", () => {
+    const registered: Array<string> = SchemaMigrations.map(
+      (migration: { name: string }): string => {
+        return migration.name;
+      },
     );
 
-    expect(Math.max(...timestamps)).toBe(ownTimestamp);
+    const ownIndex: number = registered.indexOf(OWN_CLASS_NAME);
+
+    /*
+     * Asserted rather than assumed: indexOf returning -1 would silently make
+     * the slice below empty and the whole test vacuous. Registration itself
+     * has its own test above; this is about the failure MODE of this one.
+     */
+    expect(ownIndex).toBeGreaterThan(0);
+
+    const ownTimestamp: number = timestampOfClassName(OWN_CLASS_NAME)!;
+
+    const laterThanUs: Array<string> = registered
+      .slice(0, ownIndex)
+      .filter((className: string): boolean => {
+        const timestamp: number | null = timestampOfClassName(className);
+
+        return timestamp !== null && timestamp >= ownTimestamp;
+      });
+
+    // Named, not counted, so a failure says which migration it would jump.
+    expect(laterThanUs).toEqual([]);
   });
 });
