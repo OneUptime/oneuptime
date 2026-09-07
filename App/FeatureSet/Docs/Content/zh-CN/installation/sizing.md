@@ -1,6 +1,6 @@
 # 容量规划与配置选型
 
-本指南帮助你在 Kubernetes（Helm）上为自托管的 OneUptime 部署进行容量规划。它涵盖 OneUptime 依赖的三个数据存储——**PostgreSQL**、**Redis** 和 **ClickHouse**——以及应用计算资源，并给出可在掌握真实数据后再调整的起始档位。
+本指南帮助你在 Kubernetes（Helm）上为自托管的 OneUptime 部署进行容量规划。它涵盖 OneUptime 依赖的三个数据存储——**PostgreSQL**、**Valkey** 和 **ClickHouse**——以及应用计算资源，并给出可在掌握真实数据后再调整的起始档位。
 
 > **请先阅读：** Helm chart 发布时**未设置任何 CPU/内存的 requests 或 limits**，并为 PostgreSQL 和 ClickHouse 配置了较小的 **25 Gi** 默认卷。这些默认值的存在是为了让 chart 能在任何集群上安装并运行——它们**并非**生产环境的容量配置。对于超出快速试用范围的任何场景，请使用下面的数字显式设置资源和存储。
 
@@ -14,7 +14,7 @@ OneUptime 在生产环境中需要三个数据存储。它们的规模取决于�
 | -------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------ |
 | **ClickHouse** | 全部遥测数据——日志、指标、追踪、异常、性能剖析                           | 遥测**写入速率 × 保留期**。这约占你存储的 ~95%，是主要成本来源。   |
 | **PostgreSQL** | 配置与状态——监控器、事件、告警、用户、团队、项目、工作流、状态页、仪表盘 | **实体数量与历史记录**，而非遥测量。增长缓慢。                     |
-| **Redis**      | 缓存、工作队列和会话                                                     | **队列深度与活跃会话数**。受内存约束且规模适中。不是数据真实来源。 |
+| **Valkey**     | 缓存、工作队列和会话                                                     | **队列深度与活跃会话数**。受内存约束且规模适中。不是数据真实来源。 |
 
 对象存储（S3/MinIO）**不是** OneUptime 运行的必需项。它仅可选地用于数据库**备份**（PostgreSQL 通过 CloudNativePG Barman 插件，ClickHouse 通过 `clickhouse-backup`）。OneUptime 不会将遥测数据分层存储到对象存储——参见下文的“保留期及其对存储的影响”一节。
 
@@ -57,7 +57,7 @@ PostgreSQL 存储你的配置和运行状态，而非遥测数据，因此它增
 
 如果你运行了许多应用、worker 和探针副本，数据库连接数可能在存储之前就成为瓶颈。OneUptime 的 Helm chart 包含一个可选的 **PgBouncer** 连接池（`pgbouncer.enabled`），正是为此而设——为高副本数部署启用它。
 
-## Redis——缓存、队列与会话
+## Valkey——缓存、队列与会话
 
 缓存层运行 [Valkey](https://valkey.io)，即采用 BSD 许可证的 Redis 7.2 分支，用作缓存、工作队列和会话存储。任何支持 Redis 协议的服务器都可以替代它；下面的配置选型对两者同样适用。它**受内存约束**，并且默认**禁用持久化**（这里的 Redis 不是数据真实来源——它可以被重建）。按预期的队列深度和并发会话数来配置；2–8 GB 内存可覆盖大多数部署。注意默认的逐出策略为 `noeviction`，因此如果队列在持续过载下积压，请监控 Redis 内存。
 
@@ -77,7 +77,7 @@ PostgreSQL 存储你的配置和运行状态，而非遥测数据，因此它增
 | -------------- | ---------------------------- | ---------------------------- | --------------------------------------------- |
 | **ClickHouse** | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe，**分片** |
 | **PostgreSQL** | 2 vCPU / 4 GB / 50 GB SSD    | 4 vCPU / 8 GB / 100 GB SSD   | 8 vCPU / 16–32 GB / 250 GB SSD（+ PgBouncer） |
-| **Redis**      | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                              |
+| **Valkey**     | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                              |
 | **假定保留期** | 30 天                        | 30–90 天                     | 90 天                                         |
 
 这些是为 OneUptime **后端**进行的配置选型。在每个被监控集群上运行的 OneUptime 采集器需要单独进行配置选型——参见 [Kubernetes Agent](/docs/telemetry/kubernetes-agent) 的配置档位。
@@ -88,7 +88,7 @@ chart 内置的数据存储默认以**单实例**运行。对于生产环境的�
 
 - **PostgreSQL** —— 启用捆绑的 [CloudNativePG](https://cloudnative-pg.io) operator（`postgresOperator.cnpg.enabled`），配置 **3 个实例**（1 个主节点 + 2 个热备）以实现自动故障转移。
 - **ClickHouse** —— 启用捆绑的 [Altinity](https://github.com/Altinity/clickhouse-operator) operator（`clickhouseOperator.altinity.enabled`），配置**每个分片 ≥2 个副本**以及 **3 个 ClickHouse Keeper** 节点以形成法定人数。一旦单个节点的磁盘或 RAM 成为限制，就增加分片。
-- **Redis** —— chart 内不提供副本机制。要实现高可用，请将 OneUptime 指向**外部托管的 Redis**（或 AI/集群部署）。
+- **Valkey** —— chart 内不提供副本机制。要实现高可用，请将 OneUptime 指向**外部托管的 Redis**（或 AI/集群部署）。
 
 ## 保留期及其对存储的影响
 

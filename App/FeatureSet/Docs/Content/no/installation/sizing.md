@@ -1,6 +1,6 @@
 # Dimensjonering og kapasitetsplanlegging
 
-Denne veiledningen hjelper deg med å dimensjonere en selvhostet OneUptime-distribusjon på Kubernetes (Helm). Den dekker de tre datalagrene OneUptime er avhengig av — **PostgreSQL**, **Redis** og **ClickHouse** — i tillegg til applikasjonsberegningen, og gir startnivåer du kan justere når du har reelle tall.
+Denne veiledningen hjelper deg med å dimensjonere en selvhostet OneUptime-distribusjon på Kubernetes (Helm). Den dekker de tre datalagrene OneUptime er avhengig av — **PostgreSQL**, **Valkey** og **ClickHouse** — i tillegg til applikasjonsberegningen, og gir startnivåer du kan justere når du har reelle tall.
 
 > **Les dette først:** Helm-charten leveres med **ingen CPU-/minneforespørsler eller -grenser satt** og små **25 Gi** standardvolumer for PostgreSQL og ClickHouse. Disse standardene finnes for at charten skal installere og kjøre på enhver klynge — de er **ikke** produksjonsdimensjonering. For alt utover en rask prøvekjøring bør du sette ressurser og lagring eksplisitt ved hjelp av tallene nedenfor.
 
@@ -14,7 +14,7 @@ OneUptime krever tre datalagre i produksjon. De skalerer på helt forskjellige i
 | -------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | **ClickHouse** | All telemetri — logger, metrikker, sporinger, unntak, profiler                                                             | Telemetri-**inntaksrate × oppbevaring**. Dette er ~95 % av lagringen din og den dominerende kostnaden. |
 | **PostgreSQL** | Konfigurasjon og tilstand — monitorer, hendelser, varsler, brukere, team, prosjekter, arbeidsflyter, statussider, dashbord | **Antall entiteter og historikk**, ikke telemetrivolum. Vokser sakte.                                  |
-| **Redis**      | Cache, arbeidskøer og økter                                                                                                | **Kødybde og aktive økter**. Minnebundet og beskjedent. Ikke en kilde til sannhet.                     |
+| **Valkey**     | Cache, arbeidskøer og økter                                                                                                | **Kødybde og aktive økter**. Minnebundet og beskjedent. Ikke en kilde til sannhet.                     |
 
 Objektlagring (S3/MinIO) er **ikke** påkrevd for at OneUptime skal kjøre. Den brukes kun valgfritt for database-**sikkerhetskopier** (via CloudNativePG Barman-pluginen for PostgreSQL, eller `clickhouse-backup` for ClickHouse). OneUptime nivådeler ikke telemetri til objektlagring — se avsnittet "Oppbevaring og hvordan det påvirker lagring" nedenfor.
 
@@ -57,7 +57,7 @@ PostgreSQL lagrer konfigurasjonen og driftstilstanden din, ikke telemetri, så d
 
 Hvis du kjører mange applikasjons-, arbeider- og probe-replikaer, kan antallet databasekoblinger bli flaskehalsen før lagringen gjør det. OneUptimes Helm-chart inkluderer en valgfri **PgBouncer** koblingspooler (`pgbouncer.enabled`) for nettopp dette — aktiver den for distribusjoner med mange replikaer.
 
-## Redis — cache, køer og økter
+## Valkey — cache, køer og økter
 
 Cache-laget kjører [Valkey](https://valkey.io), den BSD-lisensierte forgreningen av Redis 7.2, og brukes som en cache, en arbeidskø og et øktlager. Enhver server som snakker Redis-protokollen kan tre inn i stedet; dimensjoneringen nedenfor gjelder uansett. Den er **minnebundet** og persistens er **deaktivert som standard** (Redis her er ikke en kilde til sannhet — den kan bygges på nytt). Dimensjoner den etter forventet kødybde og samtidige økter; 2–8 GB minne dekker de fleste distribusjoner. Merk at standard utkastelsespolicy er `noeviction`, så hvis køer hoper seg opp under vedvarende overbelastning, overvåk Redis-minne.
 
@@ -77,7 +77,7 @@ Velg nivået nærmest miljøet ditt som utgangspunkt, og overvåk deretter fakti
 | ---------------------- | ---------------------------- | ---------------------------- | ------------------------------------------------ |
 | **ClickHouse**         | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe, **shardet** |
 | **PostgreSQL**         | 2 vCPU / 4 GB / 50 GB SSD    | 4 vCPU / 8 GB / 100 GB SSD   | 8 vCPU / 16–32 GB / 250 GB SSD (+ PgBouncer)     |
-| **Redis**              | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                 |
+| **Valkey**             | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                 |
 | **Oppbevaring antatt** | 30 days                      | 30–90 days                   | 90 days                                          |
 
 Disse dimensjonerer OneUptime-**backend**. OneUptime-innsamlerne som kjører på hver overvåket klynge dimensjoneres separat — se dimensjoneringsnivåene for [Kubernetes Agent](/docs/telemetry/kubernetes-agent).
@@ -88,7 +88,7 @@ Chartens innebygde datalagre kjører som **enkeltinstanser** som standard. For p
 
 - **PostgreSQL** — aktiver den medfølgende [CloudNativePG](https://cloudnative-pg.io)-operatoren (`postgresOperator.cnpg.enabled`) med **3 instanser** (1 primær + 2 varme standby-er) for automatisk failover.
 - **ClickHouse** — aktiver den medfølgende [Altinity](https://github.com/Altinity/clickhouse-operator)-operatoren (`clickhouseOperator.altinity.enabled`) med **≥2 replikaer per shard** og **3 ClickHouse Keeper**-noder for kvorum. Legg til shards når en enkelt nodes disk eller RAM blir begrensningen.
-- **Redis** — charten har ingen replikering innebygd i charten. For HA, pek OneUptime mot en **ekstern administrert Redis** (eller en AI-/klyngedistribusjon).
+- **Valkey** — charten har ingen replikering innebygd i charten. For HA, pek OneUptime mot en **ekstern administrert Redis** (eller en AI-/klyngedistribusjon).
 
 ## Oppbevaring og hvordan det påvirker lagring
 

@@ -22,11 +22,17 @@ See [Installation & Upgrades](installation.md#upgrading) for the upgrade command
     ones it found. Where you set the same setting under both names, the legacy
     one wins.
   - Objects: `<release>-redis` → `<release>-valkey`, `<release>-redis-master` →
-    `<release>-valkey-master`, and the generated Secret's key `redis-password` →
-    `valkey-password`. The chart reads your existing `<release>-redis` Secret and
-    carries the password across, so nothing rotates. That old Secret is annotated
-    `helm.sh/resource-policy: keep`, so it stays behind holding a now-unused
-    copy — delete it once the upgrade has stuck.
+    `<release>-valkey-master`, the generated Secret's key `redis-password` →
+    `valkey-password`, and — if you bring your own cache — the Secret
+    `<release>-external-redis` → `<release>-external-valkey`. The chart reads
+    your existing `<release>-redis` Secret and carries the password across, so
+    nothing rotates; the external one is re-rendered from your values (legacy
+    `externalRedis:` keys included), so its contents carry across too. Both old
+    Secrets are annotated `helm.sh/resource-policy: keep`, so they stay behind
+    holding now-unused copies — delete them once the upgrade has stuck. Until
+    you do, your own manifests that reference `<release>-external-redis` by name
+    keep resolving, but against a copy the chart no longer updates: repoint them
+    at `<release>-external-valkey`.
   - Environment: the app now reads `VALKEY_*` and falls back to `REDIS_*`. The
     chart emits both, from the same values and the same secret key, so an app
     image pinned to an older release keeps working.

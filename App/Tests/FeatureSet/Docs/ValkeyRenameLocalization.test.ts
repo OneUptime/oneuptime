@@ -56,6 +56,7 @@ const FENCE_LINE: RegExp = /^\s*```/;
 const HEADING_LINE: RegExp = /^(#{1,6})\s+(.*)$/;
 const LIST_ITEM_LINE: RegExp = /^\s*[-*]\s+/;
 const CODE_SPAN: RegExp = /`([^`\n]+)`/g;
+const REDIS_MENTION: RegExp = /Redis/i;
 
 function readPage(lang: string, page: string): string {
   return fs.readFileSync(path.join(CONTENT_DIR, lang, `${page}.md`), "utf8");
@@ -341,7 +342,7 @@ describe("Valkey rename — installation docs localization", () => {
 
         const mentioningRedis: Array<string> = bullets.filter(
           (line: string): boolean => {
-            return /Redis/i.test(line) && !line.includes(VALKEY_LINK);
+            return REDIS_MENTION.test(line) && !line.includes(VALKEY_LINK);
           },
         );
 

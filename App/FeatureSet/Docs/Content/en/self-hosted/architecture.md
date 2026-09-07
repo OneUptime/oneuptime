@@ -48,7 +48,7 @@ flowchart TB
       direction LR
       PG[("PostgreSQL\n(config, state, metadata)")]
       CH[("ClickHouse\n(metrics, traces, logs)")]
-      REDIS[("Redis\n(cache, queues, sessions)")]
+      REDIS[("Valkey\n(cache, queues, sessions)")]
     end
 
   end
@@ -115,11 +115,11 @@ flowchart TB
 ## What this shows
 
 - End users access OneUptime through your cluster’s Ingress (NGINX), which routes to the UI and API.
-- Core services read/write state to PostgreSQL, Redis, and ClickHouse.
+- Core services read/write state to PostgreSQL, Valkey (the BSD-licensed fork of Redis 7.2), and ClickHouse.
 - Probes can run inside your cluster (recommended) and/or elsewhere on your network. They can monitor:
   - Internal/private services behind your firewall.
   - External/public resources on the internet.
-- Probe results are sent to Probe Ingest inside your cluster, queued via Redis, and processed by the Background Worker into your data stores.
+- Probe results are sent to Probe Ingest inside your cluster, queued via Valkey, and processed by the Background Worker into your data stores.
 - Telemetry (metrics/traces/logs) and server/agent data can be ingested via dedicated ingest services and stored in ClickHouse.
 
 > Note: If you use external PostgreSQL, Redis, or ClickHouse instead of the built-in ones, the connections from API/Worker/Ingest point to your external endpoints. The logical flow remains the same.

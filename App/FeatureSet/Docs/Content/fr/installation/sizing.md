@@ -1,6 +1,6 @@
 # Dimensionnement et planification de la capacité
 
-Ce guide vous aide à dimensionner un déploiement OneUptime auto-hébergé sur Kubernetes (Helm). Il couvre les trois magasins de données dont OneUptime dépend — **PostgreSQL**, **Redis** et **ClickHouse** — ainsi que la puissance de calcul de l'application, et propose des paliers de départ que vous pourrez ajuster une fois que vous disposerez de chiffres réels.
+Ce guide vous aide à dimensionner un déploiement OneUptime auto-hébergé sur Kubernetes (Helm). Il couvre les trois magasins de données dont OneUptime dépend — **PostgreSQL**, **Valkey** et **ClickHouse** — ainsi que la puissance de calcul de l'application, et propose des paliers de départ que vous pourrez ajuster une fois que vous disposerez de chiffres réels.
 
 > **À lire en premier :** le chart Helm est livré avec **aucune requête ni limite de CPU/mémoire définie** et de petits volumes par défaut de **25 Gi** pour PostgreSQL et ClickHouse. Ces valeurs par défaut existent pour que le chart s'installe et fonctionne sur n'importe quel cluster — ce **n'est pas** un dimensionnement de production. Pour tout ce qui dépasse un essai rapide, définissez explicitement les ressources et le stockage à l'aide des chiffres ci-dessous.
 
@@ -14,7 +14,7 @@ OneUptime nécessite trois magasins de données en production. Ils évoluent sel
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | **ClickHouse**     | Toute la télémétrie — logs, métriques, traces, exceptions, profils                                                                  | **Débit d'ingestion × rétention** de la télémétrie. Cela représente ~95 % de votre stockage et le coût dominant. |
 | **PostgreSQL**     | Configuration et état — moniteurs, incidents, alertes, utilisateurs, équipes, projets, workflows, pages de statut, tableaux de bord | **Nombre d'entités et historique**, et non le volume de télémétrie. Croît lentement.                             |
-| **Redis**          | Cache, files de travail et sessions                                                                                                 | **Profondeur des files et sessions actives**. Limité par la mémoire et modeste. Pas une source de vérité.        |
+| **Valkey**         | Cache, files de travail et sessions                                                                                                 | **Profondeur des files et sessions actives**. Limité par la mémoire et modeste. Pas une source de vérité.        |
 
 Le stockage objet (S3/MinIO) **n'est pas** requis pour faire fonctionner OneUptime. Il n'est utilisé que de manière optionnelle pour les **sauvegardes** de base de données (via le plugin Barman de CloudNativePG pour PostgreSQL, ou `clickhouse-backup` pour ClickHouse). OneUptime ne hiérarchise pas la télémétrie vers le stockage objet — voir la section « Rétention et son impact sur le stockage » ci-dessous.
 
@@ -57,7 +57,7 @@ PostgreSQL stocke votre configuration et votre état opérationnel, et non la t�
 
 Si vous exécutez de nombreux réplicas d'application, de worker et de sonde, le nombre de connexions à la base de données peut devenir le goulot d'étranglement avant le stockage. Le chart Helm de OneUptime inclut un pooler de connexions **PgBouncer** optionnel (`pgbouncer.enabled`) exactement pour cela — activez-le pour les déploiements à fort nombre de réplicas.
 
-## Redis — cache, files et sessions
+## Valkey — cache, files et sessions
 
 La couche de cache exécute [Valkey](https://valkey.io), le fork sous licence BSD de Redis 7.2, et sert de cache, de file de travail et de magasin de sessions. N'importe quel serveur parlant le protocole Redis peut la remplacer ; le dimensionnement ci-dessous s'applique dans les deux cas. Elle est **limitée par la mémoire** et la persistance est **désactivée par défaut** (Redis ici n'est pas une source de vérité — il peut être reconstruit). Dimensionnez-la selon la profondeur de file attendue et les sessions concurrentes ; 2–8 GB de mémoire couvrent la plupart des déploiements. Notez que la politique d'éviction par défaut est `noeviction`, donc si les files s'accumulent sous une surcharge soutenue, surveillez la mémoire de Redis.
 
@@ -77,7 +77,7 @@ Choisissez le palier le plus proche de votre environnement comme point de dépar
 | ---------------------- | ---------------------------- | ---------------------------- | ----------------------------------------------- |
 | **ClickHouse**         | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe, **shardé** |
 | **PostgreSQL**         | 2 vCPU / 4 GB / 50 GB SSD    | 4 vCPU / 8 GB / 100 GB SSD   | 8 vCPU / 16–32 GB / 250 GB SSD (+ PgBouncer)    |
-| **Redis**              | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                |
+| **Valkey**             | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                |
 | **Rétention supposée** | 30 days                      | 30–90 days                   | 90 days                                         |
 
 Ces valeurs dimensionnent le **backend** de OneUptime. Les collecteurs OneUptime qui s'exécutent sur chaque cluster surveillé sont dimensionnés séparément — voir les paliers de dimensionnement de l'[Agent Kubernetes](/docs/telemetry/kubernetes-agent).
@@ -88,7 +88,7 @@ Les magasins de données intégrés au chart s'exécutent en **instances uniques
 
 - **PostgreSQL** — activez l'opérateur [CloudNativePG](https://cloudnative-pg.io) embarqué (`postgresOperator.cnpg.enabled`) avec **3 instances** (1 primaire + 2 standbys à chaud) pour un basculement automatique.
 - **ClickHouse** — activez l'opérateur [Altinity](https://github.com/Altinity/clickhouse-operator) embarqué (`clickhouseOperator.altinity.enabled`) avec **≥2 réplicas par shard** et **3 nœuds ClickHouse Keeper** pour le quorum. Ajoutez des shards une fois que le disque ou la RAM d'un seul nœud devient la limite.
-- **Redis** — le chart n'a pas de réplication intégrée. Pour la HA, pointez OneUptime vers un **Redis managé externe** (ou un déploiement AI/cluster).
+- **Valkey** — le chart n'a pas de réplication intégrée. Pour la HA, pointez OneUptime vers un **Redis managé externe** (ou un déploiement AI/cluster).
 
 ## Rétention et son impact sur le stockage
 

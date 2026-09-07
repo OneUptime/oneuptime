@@ -48,7 +48,7 @@ flowchart TB
       direction LR
       PG[("PostgreSQL\n(konfigurasjon, tilstand, metadata)")]
       CH[("ClickHouse\n(metrikker, spor, logger)")]
-      REDIS[("Redis\n(hurtigbuffer, køer, sesjoner)")]
+      REDIS[("Valkey\n(hurtigbuffer, køer, sesjoner)")]
     end
 
   end
@@ -115,11 +115,11 @@ flowchart TB
 ## Hva dette viser
 
 - Sluttbrukere får tilgang til OneUptime gjennom klyngens inngang (NGINX), som ruter til UI og API.
-- Kjernetjenester leser/skriver tilstand til PostgreSQL, Redis og ClickHouse.
+- Kjernetjenester leser/skriver tilstand til PostgreSQL, Valkey (den BSD-lisensierte forgreningen av Redis 7.2) og ClickHouse.
 - Prober kan kjøre inne i klyngen din (anbefalt) og/eller andre steder i nettverket ditt. De kan overvåke:
   - Interne/private tjenester bak brannmuren din.
   - Eksterne/offentlige ressurser på internett.
-- Probe-resultater sendes til Probe-innhenting inne i klyngen, settes i kø via Redis og behandles av bakgrunnsarbeideren inn i datalagerne.
+- Probe-resultater sendes til Probe-innhenting inne i klyngen, settes i kø via Valkey og behandles av bakgrunnsarbeideren inn i datalagerne.
 - Telemetri (metrikker/spor/logger) og server-/agentdata kan hentes inn via dedikerte innhentingstjenester og lagres i ClickHouse.
 
 > Merk: Hvis du bruker ekstern PostgreSQL, Redis eller ClickHouse i stedet for de innebygde, peker tilkoblingene fra API/Worker/Ingest til de eksterne endepunktene. Den logiske flyten forblir den samme.

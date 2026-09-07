@@ -1,6 +1,6 @@
 # 規模規劃與容量規劃
 
-本指南協助您在 Kubernetes（Helm）上規劃自架 OneUptime 部署的規模。內容涵蓋 OneUptime 所依賴的三個資料儲存區 — **PostgreSQL**、**Redis** 與 **ClickHouse** — 以及應用程式運算資源，並提供您在掌握實際數據後可加以調整的起始層級。
+本指南協助您在 Kubernetes（Helm）上規劃自架 OneUptime 部署的規模。內容涵蓋 OneUptime 所依賴的三個資料儲存區 — **PostgreSQL**、**Valkey** 與 **ClickHouse** — 以及應用程式運算資源，並提供您在掌握實際數據後可加以調整的起始層級。
 
 > **請先閱讀此處：** Helm chart 出貨時**未設定任何 CPU/記憶體 requests 或 limits**，且 PostgreSQL 與 ClickHouse 採用較小的 **25 Gi** 預設磁碟區。這些預設值的存在是為了讓 chart 能在任何叢集上安裝並執行 — 它們**並非**正式環境的規模規劃。對於超出快速試用範圍的任何用途，請使用下方的數字明確設定資源與儲存空間。
 
@@ -14,7 +14,7 @@ OneUptime 在正式環境中需要三個資料儲存區。它們依完全不同�
 | -------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | **ClickHouse** | 所有遙測資料 — logs、metrics、traces、exceptions、profiles                                        | 遙測**擷取速率 × 保留期**。這約佔您儲存空間的 95%，也是最主要的成本。 |
 | **PostgreSQL** | 設定與狀態 — monitors、incidents、alerts、使用者、團隊、專案、workflows、status pages、dashboards | **實體數量與歷史紀錄**，而非遙測資料量。增長緩慢。                    |
-| **Redis**      | 快取、工作佇列與工作階段                                                                          | **佇列深度與作用中工作階段**。受記憶體限制且規模不大。並非真實來源。  |
+| **Valkey**     | 快取、工作佇列與工作階段                                                                          | **佇列深度與作用中工作階段**。受記憶體限制且規模不大。並非真實來源。  |
 
 OneUptime 執行**不**需要物件儲存（S3/MinIO）。它僅選擇性地用於資料庫**備份**（透過 PostgreSQL 的 CloudNativePG Barman plugin，或 ClickHouse 的 `clickhouse-backup`）。OneUptime 不會將遙測資料分層儲存至物件儲存 — 請參閱下方「保留期及其對儲存空間的影響」一節。
 
@@ -57,7 +57,7 @@ PostgreSQL 儲存您的設定與營運狀態，而非遙測資料，因此相對
 
 如果您執行許多 application、worker 與 probe replicas，資料庫連線數量可能在儲存空間之前先成為瓶頸。OneUptime 的 Helm chart 包含選用的 **PgBouncer** 連線池（`pgbouncer.enabled`），正是為此而設 — 對於高 replica 數的部署請啟用它。
 
-## Redis — 快取、佇列與工作階段
+## Valkey — 快取、佇列與工作階段
 
 快取層執行的是 [Valkey](https://valkey.io)（Redis 7.2 的 BSD 授權分支），用作快取、工作佇列與工作階段儲存。任何使用 Redis 通訊協定的伺服器都可以取代它；下方的規模規劃在兩種情況下皆適用。它**受記憶體限制**，且持久化**預設為停用**（此處的 Redis 並非真實來源 — 它可被重建）。請依預期的佇列深度與並行工作階段進行規模規劃；2–8 GB 的記憶體可涵蓋大多數部署。請注意預設的逐出策略為 `noeviction`，因此如果佇列在持續超載下堆積，請監控 Redis 記憶體。
 
@@ -77,7 +77,7 @@ PostgreSQL 儲存您的設定與營運狀態，而非遙測資料，因此相對
 | ---------------- | ---------------------------- | ---------------------------- | -------------------------------------------------------- |
 | **ClickHouse**   | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe，**分片（sharded）** |
 | **PostgreSQL**   | 2 vCPU / 4 GB / 50 GB SSD    | 4 vCPU / 8 GB / 100 GB SSD   | 8 vCPU / 16–32 GB / 250 GB SSD（+ PgBouncer）            |
-| **Redis**        | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                         |
+| **Valkey**       | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                         |
 | **假設的保留期** | 30 天                        | 30–90 天                     | 90 天                                                    |
 
 這些是 OneUptime **後端**的規模。在每個受監控叢集上執行的 OneUptime 收集器需各自規劃規模 — 請參閱 [Kubernetes Agent](/docs/telemetry/kubernetes-agent) 的規模層級。
@@ -88,7 +88,7 @@ chart 內建的資料儲存區預設以**單一執行個體**執行。對於正�
 
 - **PostgreSQL** — 啟用內建的 [CloudNativePG](https://cloudnative-pg.io) operator（`postgresOperator.cnpg.enabled`），搭配 **3 個執行個體**（1 個 primary + 2 個 hot standbys）以實現自動容錯移轉。
 - **ClickHouse** — 啟用內建的 [Altinity](https://github.com/Altinity/clickhouse-operator) operator（`clickhouseOperator.altinity.enabled`），搭配**每個分片 ≥2 個 replicas** 與 **3 個 ClickHouse Keeper** 節點以達成法定人數（quorum）。一旦單一節點的磁碟或 RAM 成為瓶頸，便加入分片。
-- **Redis** — chart 內並無 chart 內建的複寫機制。若要實現 HA，請將 OneUptime 指向**外部代管的 Redis**（或 AI/cluster 部署）。
+- **Valkey** — chart 內並無 chart 內建的複寫機制。若要實現 HA，請將 OneUptime 指向**外部代管的 Redis**（或 AI/cluster 部署）。
 
 ## 保留期及其對儲存空間的影響
 

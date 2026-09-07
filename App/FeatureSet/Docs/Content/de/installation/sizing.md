@@ -1,6 +1,6 @@
 # Sizing & Kapazitätsplanung
 
-Dieser Leitfaden hilft Ihnen, ein selbst gehostetes OneUptime-Deployment auf Kubernetes (Helm) zu dimensionieren. Er behandelt die drei Datenspeicher, von denen OneUptime abhängt — **PostgreSQL**, **Redis** und **ClickHouse** — sowie die Anwendungs-Rechenleistung und gibt Ihnen Ausgangsstufen an die Hand, die Sie anpassen können, sobald Sie reale Zahlen haben.
+Dieser Leitfaden hilft Ihnen, ein selbst gehostetes OneUptime-Deployment auf Kubernetes (Helm) zu dimensionieren. Er behandelt die drei Datenspeicher, von denen OneUptime abhängt — **PostgreSQL**, **Valkey** und **ClickHouse** — sowie die Anwendungs-Rechenleistung und gibt Ihnen Ausgangsstufen an die Hand, die Sie anpassen können, sobald Sie reale Zahlen haben.
 
 > **Lesen Sie dies zuerst:** Das Helm-Chart wird mit **keinen gesetzten CPU-/Speicheranforderungen oder -limits** und kleinen **25 Gi** Standard-Volumes für PostgreSQL und ClickHouse ausgeliefert. Diese Standardwerte existieren, damit sich das Chart auf jedem Cluster installieren und ausführen lässt — sie sind **kein** Produktions-Sizing. Für alles, was über einen schnellen Test hinausgeht, legen Sie Ressourcen und Speicher explizit anhand der untenstehenden Zahlen fest.
 
@@ -14,7 +14,7 @@ OneUptime benötigt in der Produktion drei Datenspeicher. Sie skalieren auf völ
 | -------------- | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
 | **ClickHouse** | Alle Telemetrie — Logs, Metriken, Traces, Exceptions, Profile                                                            | Telemetrie-**Aufnahmerate × Aufbewahrung**. Dies sind ~95 % Ihres Speichers und der dominierende Kostenfaktor. |
 | **PostgreSQL** | Konfiguration und Zustand — Monitore, Incidents, Alerts, Benutzer, Teams, Projekte, Workflows, Status-Seiten, Dashboards | **Entitätsanzahl und Historie**, nicht Telemetrievolumen. Wächst langsam.                                      |
-| **Redis**      | Cache, Arbeitswarteschlangen und Sitzungen                                                                               | **Warteschlangentiefe und aktive Sitzungen**. Speichergebunden und bescheiden. Keine maßgebliche Datenquelle.  |
+| **Valkey**     | Cache, Arbeitswarteschlangen und Sitzungen                                                                               | **Warteschlangentiefe und aktive Sitzungen**. Speichergebunden und bescheiden. Keine maßgebliche Datenquelle.  |
 
 Objektspeicher (S3/MinIO) ist für den Betrieb von OneUptime **nicht** erforderlich. Er wird nur optional für Datenbank-**Backups** verwendet (über das CloudNativePG Barman-Plugin für PostgreSQL oder `clickhouse-backup` für ClickHouse). OneUptime stuft Telemetrie nicht in Objektspeicher um — siehe den Abschnitt "Aufbewahrung und wie sie sich auf den Speicher auswirkt" weiter unten.
 
@@ -57,7 +57,7 @@ PostgreSQL speichert Ihre Konfiguration und Ihren Betriebszustand, nicht die Tel
 
 Wenn Sie viele Anwendungs-, Worker- und Probe-Repliken betreiben, kann die Anzahl der Datenbankverbindungen zum Engpass werden, bevor es der Speicher tut. Das Helm-Chart von OneUptime enthält einen optionalen **PgBouncer** Verbindungs-Pooler (`pgbouncer.enabled`) genau dafür — aktivieren Sie ihn für Deployments mit vielen Repliken.
 
-## Redis — Cache, Warteschlangen und Sitzungen
+## Valkey — Cache, Warteschlangen und Sitzungen
 
 Auf der Cache-Ebene läuft [Valkey](https://valkey.io), der BSD-lizenzierte Fork von Redis 7.2, und sie wird als Cache, Arbeitswarteschlange und Sitzungsspeicher verwendet. Jeder Server, der das Redis-Protokoll spricht, kann an ihre Stelle treten; das nachfolgende Sizing gilt in beiden Fällen. Sie ist **speichergebunden** und die Persistenz ist **standardmäßig deaktiviert** (Redis ist hier keine maßgebliche Datenquelle — es kann neu aufgebaut werden). Dimensionieren Sie sie nach der erwarteten Warteschlangentiefe und den gleichzeitigen Sitzungen; 2–8 GB Speicher decken die meisten Deployments ab. Beachten Sie, dass die standardmäßige Eviction-Richtlinie `noeviction` ist, daher überwachen Sie den Redis-Speicher, falls sich Warteschlangen bei anhaltender Überlast stauen.
 
@@ -77,7 +77,7 @@ Wählen Sie als Ausgangspunkt die Stufe, die Ihrer Umgebung am nächsten kommt, 
 | ---------------------------- | ---------------------------- | ---------------------------- | ------------------------------------------------ |
 | **ClickHouse**               | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe, **sharded** |
 | **PostgreSQL**               | 2 vCPU / 4 GB / 50 GB SSD    | 4 vCPU / 8 GB / 100 GB SSD   | 8 vCPU / 16–32 GB / 250 GB SSD (+ PgBouncer)     |
-| **Redis**                    | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                 |
+| **Valkey**                   | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                 |
 | **Angenommene Aufbewahrung** | 30 Tage                      | 30–90 Tage                   | 90 Tage                                          |
 
 Diese dimensionieren das OneUptime-**Backend**. Die OneUptime-Collectors, die auf jedem überwachten Cluster laufen, werden separat dimensioniert — siehe die Sizing-Stufen des [Kubernetes-Agenten](/docs/telemetry/kubernetes-agent).
@@ -88,7 +88,7 @@ Die im Chart integrierten Datenspeicher laufen standardmäßig als **Einzelinsta
 
 - **PostgreSQL** — aktivieren Sie den gebündelten [CloudNativePG](https://cloudnative-pg.io)-Operator (`postgresOperator.cnpg.enabled`) mit **3 Instanzen** (1 Primary + 2 Hot Standbys) für automatisches Failover.
 - **ClickHouse** — aktivieren Sie den gebündelten [Altinity](https://github.com/Altinity/clickhouse-operator)-Operator (`clickhouseOperator.altinity.enabled`) mit **≥2 Repliken pro Shard** und **3 ClickHouse Keeper**-Knoten für Quorum. Fügen Sie Shards hinzu, sobald die Festplatte oder der RAM eines einzelnen Knotens zum Limit wird.
-- **Redis** — das Chart hat keine chart-interne Replikation. Für HA verweisen Sie OneUptime auf ein **externes verwaltetes Redis** (oder ein AI-/Cluster-Deployment).
+- **Valkey** — das Chart hat keine chart-interne Replikation. Für HA verweisen Sie OneUptime auf ein **externes verwaltetes Redis** (oder ein AI-/Cluster-Deployment).
 
 ## Aufbewahrung und wie sie sich auf den Speicher auswirkt
 
