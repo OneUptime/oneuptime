@@ -41,11 +41,17 @@ import {
   MAX_SCOPED_FINGERPRINTS,
   applyExceptionFingerprintScope,
   buildExceptionInstanceScopeQuery,
+  mergeExceptionInstanceScopes,
   getExceptionAttributeSelections,
   getExceptionInstanceScopeKey,
   hasExceptionInstanceScope,
   isExceptionAttributeFacetKey,
 } from "../../Utils/ExceptionsAttributeScope";
+import {
+  ExceptionQueryScope,
+  buildExceptionQueryScope,
+} from "../../Utils/ExceptionQueryScope";
+import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import {
   EXCEPTION_ERROR_CLASS_COLUMN,
   EXCEPTION_FIELD_ALIASES,
@@ -390,17 +396,102 @@ function readInitialUrlState(): InitialUrlState {
 
 export interface ExceptionsViewerProps {
   defaultStatus?: ExceptionStatus;
+  /*
+   * Opening lens. The standalone tabs keep the "Issues" default, which hides
+   * user errors and expected denials; a host showing the exceptions of ONE
+   * event has to pass "all", or an exception the classifier called a user
+   * error vanishes from the event that fired on it.
+   */
+  defaultClassScope?: ExceptionClassScope | undefined;
   primaryEntityId?: ObjectID | undefined;
+  /*
+   * A STORED exception-instance query to host — the slice an exception
+   * monitor evaluated, kept on the incident / alert row.
+   *
+   * This viewer lists Postgres exception GROUPS while the stored query
+   * selects ClickHouse instances, and `fingerprint` is the only join between
+   * them. So the query is resolved through the instance scope this viewer
+   * already owns: one `GROUP BY fingerprint` read narrows the list, the
+   * histogram and the facet counts together. See Utils/ExceptionQueryScope.
+   *
+   * Its `time` window is adopted as a pinned CUSTOM range, and — because the
+   * fingerprints were resolved INSIDE that window — the group query's own
+   * `lastSeenAt` clause is dropped while it is set. Keeping both would hide
+   * every exception still firing after the snapshot ended, which is the set
+   * an operator most needs to see.
+   */
+  exceptionInstanceQuery?: Query<ExceptionInstance> | undefined;
+  /*
+   * Initial page size. Embedded snapshot cards pass a small number so the
+   * block does not run the length of the page.
+   */
+  limit?: number | undefined;
+  /** Empty-state copy, so an embed can name the window it searched. */
+  emptyMessage?: string | undefined;
+  /*
+   * Embedded hosts own the page URL: when true the viewer neither seeds from
+   * nor mirrors state to the query string. Same polarity as TracesViewer's
+   * prop of this name.
+   */
+  disableUrlSync?: boolean | undefined;
 }
 
 const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   props: ExceptionsViewerProps,
 ): ReactElement => {
   /*
+   * The host's stored exception-instance query, read once into the instance
+   * scope this viewer resolves fingerprints from. See
+   * Utils/ExceptionQueryScope.
+   */
+  const hostScope: ExceptionQueryScope = useMemo(() => {
+    return buildExceptionQueryScope(props.exceptionInstanceQuery);
+  }, [props.exceptionInstanceQuery]);
+
+  /*
+   * The window the monitor evaluated over, as a picker value. Always CUSTOM,
+   * so live re-anchoring cannot walk it forward off the event.
+   */
+  const pinnedTimeRange: RangeStartAndEndDateTime | null = useMemo(() => {
+    return TelemetryQueryTimeRange.toRangeStartAndEndDateTime(hostScope.window);
+  }, [hostScope.window]);
+
+  /*
+   * Whether the HOST, not the URL, owns what this view shows: do not seed
+   * from the query string, and do not write back to it. An embed on an
+   * incident page would otherwise rewrite that page's address bar, and the
+   * user would come back from an exception to `?search=…&range=…&status=…`
+   * hanging off the incident.
+   */
+  const hostOwnsView: boolean = Boolean(
+    props.disableUrlSync || props.exceptionInstanceQuery,
+  );
+
+  /*
    * Parse filter state from the URL once on first mount so refresh and
    * back-from-exception-detail restore the view.
    */
-  const initialUrlState: InitialUrlState = useMemo(readInitialUrlState, []);
+  const initialUrlState: InitialUrlState = useMemo((): InitialUrlState => {
+    if (hostOwnsView) {
+      return {
+        search: "",
+        filters: [],
+        timeRange: pinnedTimeRange || { range: TimeRange.PAST_ONE_DAY },
+        page: 1,
+        pageSize: props.limit || DEFAULT_PAGE_SIZE,
+        status: null,
+        classScope: null,
+      };
+    }
+
+    /*
+     * Seeded once on mount, exactly as the bare `useMemo(readInitialUrlState,
+     * [])` this replaced: it is a seed, not a derivation. A later render must
+     * not recompute it, or a host rebuilding its query would keep yanking the
+     * user back to the pin.
+     */
+    return readInitialUrlState();
+  }, []);
 
   const defaultStatus: ExceptionStatus = props.defaultStatus || "unresolved";
 
@@ -409,7 +500,9 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   );
 
   const [classScope, setClassScope] = useState<ExceptionClassScope>(
-    initialUrlState.classScope || DEFAULT_EXCEPTION_CLASS_SCOPE,
+    initialUrlState.classScope ||
+      props.defaultClassScope ||
+      DEFAULT_EXCEPTION_CLASS_SCOPE,
   );
 
   const [exceptions, setExceptions] = useState<Array<TelemetryException>>([]);
@@ -486,6 +579,15 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
    * tweaks don't push extra entries.
    */
   useEffect(() => {
+    /*
+     * An embedded viewer must not rewrite its host page's address bar. Left
+     * on, an incident page would grow `?search=…&range=…&status=…` the moment
+     * this mounted, and the user would land back on that URL from Back.
+     */
+    if (hostOwnsView) {
+      return;
+    }
+
     const params: URLSearchParams = new URLSearchParams();
     if (submittedSearch) {
       params.set("search", submittedSearch);
@@ -534,6 +636,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       class: classScope === DEFAULT_EXCEPTION_CLASS_SCOPE ? null : classScope,
     });
   }, [
+    hostOwnsView,
     submittedSearch,
     activeFilters,
     timeRange,
@@ -942,15 +1045,40 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       ];
     }
 
-    return {
+    const userScope: ExceptionInstanceScope = {
       attributeSelections: getExceptionAttributeSelections({ facetGroups }),
       attributePredicates,
       columnPredicates,
     };
-  }, [facetGroups, parsedSearch, searchFieldFilters, resolvedServices]);
+
+    /*
+     * ANDed with the host's stored scope, not layered over it: an incident
+     * whose monitor matched `exceptionType IN (...)` still means that when
+     * the user adds a chip. The merge concatenates per-key predicate lists,
+     * which is what makes the two filters intersect rather than the later
+     * one silently replacing the earlier.
+     */
+    return hostScope.hasScope
+      ? mergeExceptionInstanceScopes(hostScope.instanceScope, userScope)
+      : userScope;
+  }, [
+    facetGroups,
+    parsedSearch,
+    searchFieldFilters,
+    resolvedServices,
+    hostScope,
+  ]);
 
   const instanceScopeKey: string | null = useMemo(() => {
-    if (!hasExceptionInstanceScope(instanceScope)) {
+    /*
+     * A hosted view ALWAYS resolves, even with nothing to filter on. The very
+     * common "any exception in the last 60 seconds" monitor stores only its
+     * window, and the window is the scope: the groups to show are the ones
+     * that OCCURRED in it. Falling back to the group query's `lastSeenAt`
+     * would answer a different question — where each group was last seen
+     * anywhere — and silently drop every exception still firing.
+     */
+    if (!hasExceptionInstanceScope(instanceScope) && !hostScope.isHosted) {
       return null;
     }
     const dateRange: InBetween<Date> =
@@ -960,7 +1088,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       windowStartMs: dateRange.startValue.getTime(),
       windowEndMs: dateRange.endValue.getTime(),
     });
-  }, [instanceScope, timeRange]);
+  }, [instanceScope, timeRange, hostScope.isHosted]);
 
   const [scopeResolution, setScopeResolution] = useState<{
     key: string;
@@ -1050,6 +1178,17 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     instanceScopeKey && scopeResolution?.key === instanceScopeKey
       ? scopeResolution.fingerprints
       : null;
+
+  /*
+   * While the fingerprints for the CURRENT scope are still in flight the list
+   * query carries the no-match sentinel, so it comes back empty by design —
+   * showing more would be a lie. But rendering that as the empty STATE is a
+   * different lie: an incident card would flash "No exceptions found" and
+   * then fill in. Report it as loading instead.
+   */
+  const isResolvingScope: boolean = Boolean(
+    instanceScopeKey && scopeResolution?.key !== instanceScopeKey,
+  );
 
   const query: Query<TelemetryException> = useMemo(() => {
     const q: Query<TelemetryException> = {};
@@ -1144,13 +1283,23 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     /*
      * Scope the list by the selected time range using lastSeenAt so the
      * viewer + histogram share the same window.
+     *
+     * NOT when a host pinned an instance query. The fingerprints below were
+     * resolved from instances INSIDE the window, so the group set is already
+     * window-correct — and `lastSeenAt` is the group's LAST occurrence
+     * anywhere, which for an exception still firing after the snapshot ended
+     * sits past the window. ANDing both would drop exactly the exceptions an
+     * operator opens an incident to find, and drop them silently: the list
+     * would read "No exceptions found".
      */
-    const dateRange: InBetween<Date> =
-      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
-    (q as Record<string, unknown>)["lastSeenAt"] = new InBetween<Date>(
-      dateRange.startValue,
-      dateRange.endValue,
-    );
+    if (!hostScope.isHosted) {
+      const dateRange: InBetween<Date> =
+        RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+      (q as Record<string, unknown>)["lastSeenAt"] = new InBetween<Date>(
+        dateRange.startValue,
+        dateRange.endValue,
+      );
+    }
 
     /*
      * Instance scope: resolved fingerprints narrow the list; while the
@@ -1172,6 +1321,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     resolvedServices,
     parsedSearch,
     timeRange,
+    hostScope,
     instanceScopeKey,
     resolvedScopeFingerprints,
   ]);
@@ -1726,8 +1876,24 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         }),
       );
     }
+    /*
+     * The host's stored scope, as chips the user can see but not remove — a
+     * snapshot that filters silently makes a short list look like the whole
+     * truth.
+     */
+    for (const chip of hostScope.chips) {
+      base.push(
+        resolveDisplay({
+          facetKey: chip.facetKey,
+          value: chip.value,
+          displayKey: chip.displayKey,
+          displayValue: chip.displayValue,
+          readOnly: true,
+        }),
+      );
+    }
     return [...base, ...activeFilters.map(resolveDisplay)];
-  }, [props.primaryEntityId, activeFilters, facetConfigs]);
+  }, [props.primaryEntityId, hostScope, activeFilters, facetConfigs]);
 
   // Row click → navigate to exception detail
   const handleRowClick: (exception: TelemetryException) => void = useCallback(
@@ -1890,13 +2056,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   return (
     <TelemetryViewer<TelemetryException>
       items={exceptions}
-      isLoading={isLoading}
+      isLoading={isLoading || isResolvingScope}
       error={error || undefined}
       onRefresh={() => {
         void fetchExceptions();
         void fetchHistogram();
       }}
-      emptyMessage="No exceptions found"
+      emptyMessage={props.emptyMessage || "No exceptions found"}
       itemLabel="exceptions"
       renderRow={(exception: TelemetryException): ReactElement => {
         const service: Service | undefined = exception.primaryEntityId

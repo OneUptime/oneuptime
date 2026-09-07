@@ -83,6 +83,12 @@ import TraceRecordingRuleDefinition, {
   TraceRecordingRuleAttributeFilter,
 } from "Common/Types/Trace/TraceRecordingRuleDefinition";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
+import {
+  SpanQueryScope,
+  SpanScopeChip,
+  buildSpanQueryScope,
+} from "../../Utils/SpanQueryScope";
+import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import { buildUrlScopeOverrides } from "../../Utils/InitialSavedView";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -498,9 +504,62 @@ interface Props {
    * for incident embeds. Standalone explorer pages leave this unset.
    */
   disableUrlSync?: boolean | undefined;
+  /*
+   * A STORED span query to host — the slice a trace monitor evaluated, kept
+   * on the incident / alert row. This is the traces counterpart of the logs
+   * viewer's `logQuery`: the query's filters become a read-only scope on the
+   * list, the histogram and the facets alike (one reading, in
+   * buildSpanQueryScope, so the chart cannot count rows the list excludes),
+   * and its `startTime` window is adopted as a pinned CUSTOM range so the
+   * view describes the moment the monitor fired rather than the past hour.
+   *
+   * A query with a window makes the host the owner of the view: the URL is
+   * not read, and the project's default saved view does not auto-apply over
+   * the pin.
+   */
+  spanQuery?: Query<Span> | undefined;
+  /*
+   * Initial page size. Embedded snapshot cards pass a small number (the logs
+   * embed uses 10) so the block does not run the length of the page; the
+   * user can still change it in the pagination footer.
+   */
+  limit?: number | undefined;
+  /** Empty-state copy, so an embed can name the window it searched. */
+  emptyMessage?: string | undefined;
 }
 
 const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
+  /*
+   * The host's stored span query, read once into every vocabulary the viewer
+   * speaks. See Utils/SpanQueryScope — the single reading is what keeps the
+   * list, the histogram and the facet counts describing the same rows.
+   */
+  const spanScope: SpanQueryScope = useMemo(() => {
+    return buildSpanQueryScope(props.spanQuery);
+  }, [props.spanQuery]);
+
+  /*
+   * The window the monitor evaluated over, as a picker value. Always CUSTOM
+   * (see TelemetryQueryTimeRange): the window is an absolute instant in the
+   * past and must never re-anchor to "now" the way a relative range does —
+   * the failure that renders the last hour of unrelated spans under an
+   * incident's heading.
+   */
+  const pinnedTimeRange: RangeStartAndEndDateTime | null = useMemo(() => {
+    return TelemetryQueryTimeRange.toRangeStartAndEndDateTime(spanScope.window);
+  }, [spanScope.window]);
+
+  /*
+   * Whether the HOST, not the URL, owns what this view shows. A pinned
+   * window, a controlled window or an explicit opt-out all mean the same
+   * thing: do not seed from the query string, and do not let a default saved
+   * view apply itself over the host's scope a tick after mount. The logs
+   * viewer makes the identical guarantee for its incident embeds.
+   */
+  const hostOwnsView: boolean = Boolean(
+    props.disableUrlSync || props.spanQuery || props.timeRangeOverride,
+  );
+
   /*
    * Parse all filter state from the URL once on first mount. SpanViewer's
    * "filter by" action lands here with `?search=...` so users arrive with
@@ -512,19 +571,21 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    * host page's query params are not this viewer's state.
    */
   const [initialUrlState] = useState<InitialUrlState>((): InitialUrlState => {
-    if (props.disableUrlSync) {
+    if (hostOwnsView) {
       return {
         search: "",
         filters: [],
-        timeRange: props.timeRangeOverride || {
-          range: TimeRange.PAST_ONE_HOUR,
-        },
+        timeRange: pinnedTimeRange ||
+          props.timeRangeOverride || {
+            range: TimeRange.PAST_ONE_HOUR,
+          },
         page: 1,
-        pageSize: DEFAULT_PAGE_SIZE,
+        pageSize: props.limit || DEFAULT_PAGE_SIZE,
         viewMode: "spans",
-        rootOnly: false,
+        // Host scope may pin it; a snapshot otherwise shows every span it matched.
+        rootOnly: spanScope.rootOnly,
         savedViewId: null,
-        hasRange: false,
+        hasRange: Boolean(pinnedTimeRange || props.timeRangeOverride),
       };
     }
     return readInitialUrlState();
@@ -580,8 +641,13 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     Array<KubernetesCluster>
   >([]);
 
+  /*
+   * A pinned snapshot window outranks a controlled one and the URL: it
+   * describes the moment being investigated, not a window the user or a
+   * sibling view is steering.
+   */
   const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(
-    props.timeRangeOverride || initialUrlState.timeRange,
+    pinnedTimeRange || props.timeRangeOverride || initialUrlState.timeRange,
   );
 
   /*
@@ -600,6 +666,16 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    * equal and is skipped, which is what breaks the feedback loop.
    */
   useEffect(() => {
+    /*
+     * A pin describes the moment being investigated; a controlled window is a
+     * sibling view steering. The pin wins, or a host that passes both would
+     * have the snapshot yanked off the event on mount while its window badge
+     * kept claiming the original.
+     */
+    if (pinnedTimeRange) {
+      return;
+    }
+
     if (
       !shouldAdoptTimeRangeOverride(
         props.timeRangeOverride,
@@ -610,7 +686,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
     setTimeRange(props.timeRangeOverride!);
     setPage(1);
-  }, [props.timeRangeOverride]);
+  }, [props.timeRangeOverride, pinnedTimeRange]);
 
   const [searchValue, setSearchValue] = useState<string>(
     initialUrlState.search,
@@ -721,6 +797,84 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     if (props.primaryEntityId) {
       query.primaryEntityId = props.primaryEntityId;
+    }
+
+    /*
+     * The host's stored span scope, written BEFORE the user's filters so a
+     * facet click or a typed token on the same column narrows within it
+     * rather than being overwritten by it — the same precedence
+     * `props.primaryEntityId` has always had. `attributes` is the documented
+     * exception: it rides compileTraceAttributeFilters' `scope`, which owns
+     * its keys outright. `entityKeys` is merged after the facets, with the
+     * entityKeysFilter prop.
+     */
+    for (const [key, value] of Object.entries(spanScope.passthrough)) {
+      (query as Record<string, unknown>)[key] = value;
+    }
+
+    if (spanScope.serviceIds.length > 0) {
+      (query as Record<string, unknown>)["primaryEntityId"] =
+        spanScope.serviceIds.length === 1
+          ? spanScope.serviceIds[0]!
+          : new Includes(spanScope.serviceIds);
+    }
+
+    if (spanScope.statusCodes.length > 0) {
+      (query as Record<string, unknown>)["statusCode"] =
+        spanScope.statusCodes.length === 1
+          ? spanScope.statusCodes[0]!
+          : new Includes(spanScope.statusCodes);
+    }
+
+    if (spanScope.spanKinds.length > 0) {
+      (query as Record<string, unknown>)["kind"] =
+        spanScope.spanKinds.length === 1
+          ? spanScope.spanKinds[0]!
+          : new Includes(spanScope.spanKinds);
+    }
+
+    if (spanScope.traceIds.length > 0) {
+      (query as Record<string, unknown>)["traceId"] =
+        spanScope.traceIds.length === 1
+          ? spanScope.traceIds[0]!
+          : new Includes(spanScope.traceIds);
+    }
+
+    if (spanScope.spanIds.length > 0) {
+      (query as Record<string, unknown>)["spanId"] =
+        spanScope.spanIds.length === 1
+          ? spanScope.spanIds[0]!
+          : new Includes(spanScope.spanIds);
+    }
+
+    if (spanScope.hasException !== null) {
+      (query as Record<string, unknown>)["hasException"] =
+        spanScope.hasException;
+    }
+
+    /*
+     * A single stored name is a SUBSTRING match, exactly as a single chip
+     * value is (TEXT_CHIP_FIELDS below) — a monitor stores `new Search(...)`,
+     * and exact-matching a fragment against a full span name returns nothing.
+     */
+    if (spanScope.spanNameSearch) {
+      (query as Record<string, unknown>)["name"] = new Search(
+        spanScope.spanNameSearch,
+      );
+    } else if (spanScope.spanNames.length > 0) {
+      (query as Record<string, unknown>)["name"] = new Includes(
+        spanScope.spanNames,
+      );
+    }
+
+    if (spanScope.statusMessageSearch) {
+      (query as Record<string, unknown>)["statusMessage"] = new Search(
+        spanScope.statusMessageSearch,
+      );
+    } else if (spanScope.statusMessages.length > 0) {
+      (query as Record<string, unknown>)["statusMessage"] = new Includes(
+        spanScope.statusMessages,
+      );
     }
 
     const dateRange: InBetween<Date> =
@@ -961,16 +1115,31 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         chipValues: attributeChipValues,
         parsed: parsed.attributeFilters,
         legacyContainsChips: attributeSearchChips,
-        scope: props.attributeFilters || {},
+        scope: { ...(props.attributeFilters || {}), ...spanScope.attributes },
       });
-    if (Object.keys(attributeFilters.queryAttributes).length > 0) {
-      (query as Record<string, unknown>)["attributes"] =
-        attributeFilters.queryAttributes;
+    /*
+     * Attribute filters the scope reader could not model ride the LIST only:
+     * the analytics compiler understands more value shapes than the
+     * aggregation payload does, and a narrower list with a hint beats a list
+     * that quietly shows spans the monitor never matched. The widening of the
+     * chart is reported through spanScope.notCarried.
+     */
+    const queryAttributes: Record<string, unknown> = {
+      ...spanScope.attributesPassthrough,
+      ...attributeFilters.queryAttributes,
+    };
+    if (Object.keys(queryAttributes).length > 0) {
+      (query as Record<string, unknown>)["attributes"] = queryAttributes;
     }
 
-    if (props.entityKeysFilter && props.entityKeysFilter.length > 0) {
+    const scopedEntityKeys: Array<string> = [
+      ...(props.entityKeysFilter || []),
+      ...spanScope.entityKeys,
+    ];
+
+    if (scopedEntityKeys.length > 0) {
       (query as Record<string, unknown>)["entityKeys"] = new Includes(
-        props.entityKeysFilter,
+        Array.from(new Set(scopedEntityKeys)),
       );
     }
 
@@ -985,6 +1154,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     props.attributeFilters,
     props.entityKeysFilter,
     props.entityScope,
+    spanScope,
     timeRange,
     activeFilters,
     submittedSearch,
@@ -1016,7 +1186,13 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    * link from before this change.
    */
   useEffect(() => {
-    if (props.disableUrlSync) {
+    /*
+     * hostOwnsView, not disableUrlSync alone: a host that pins a query or a
+     * window owns the address bar just as much as one that opted out by name,
+     * and an embed writing `?search=…&range=…` onto an incident page is the
+     * URL the user comes back to from Back.
+     */
+    if (hostOwnsView) {
       return;
     }
     const params: URLSearchParams = new URLSearchParams();
@@ -1061,7 +1237,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     writeTelemetryViewerUrlState(Object.fromEntries(params.entries()));
   }, [
-    props.disableUrlSync,
+    hostOwnsView,
     submittedSearch,
     activeFilters,
     timeRange,
@@ -1330,7 +1506,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         chipValues: attributeChipValues,
         parsed: parsed.attributeFilters,
         legacyContainsChips: attributeSearchChips,
-        scope: props.attributeFilters || {},
+        scope: { ...(props.attributeFilters || {}), ...spanScope.attributes },
       });
     if (Object.keys(attributeFilters.payloadAttributes).length > 0) {
       payload["attributes"] = attributeFilters.payloadAttributes;
@@ -1343,16 +1519,72 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
      * Entity scope must constrain the histogram/facets too, not just the
      * span list — otherwise the counts above the list are project-wide.
      */
-    if (props.entityKeysFilter && props.entityKeysFilter.length > 0) {
-      payload["entityKeys"] = [...props.entityKeysFilter];
+    const scopedEntityKeys: Array<string> = Array.from(
+      new Set([...(props.entityKeysFilter || []), ...spanScope.entityKeys]),
+    );
+
+    if (scopedEntityKeys.length > 0) {
+      payload["entityKeys"] = scopedEntityKeys;
     }
 
-    // Scope by primaryEntityId prop if present
-    if (props.primaryEntityId) {
-      if (!groups["primaryEntityId"]) {
-        groups["primaryEntityId"] = [];
+    /*
+     * The host's stored span scope, seeded into the SAME groups the chips and
+     * search tokens feed — and only where the user has not filtered that
+     * column. That reproduces the list's precedence exactly: there the scope
+     * is written first and an explicit selection overwrites it. Reading the
+     * scope once, in buildSpanQueryScope, and rendering it into both
+     * transports from that one reading is what stops the chart above the list
+     * counting rows the list excludes.
+     *
+     * The `primaryEntityId` PROP goes through the same gate, last, so the
+     * three-way precedence — user selection, then stored scope, then the host
+     * page's own resource — is the one the list applies rather than a union
+     * of all three.
+     */
+    const applyScopeGroup: (key: string, values: Array<string>) => void = (
+      key: string,
+      values: Array<string>,
+    ): void => {
+      if (values.length === 0) {
+        return;
       }
-      groups["primaryEntityId"]!.push(props.primaryEntityId.toString());
+
+      if (groups[key] && groups[key]!.length > 0) {
+        return;
+      }
+
+      groups[key] = [...values];
+    };
+
+    applyScopeGroup("primaryEntityId", spanScope.serviceIds);
+    applyScopeGroup(
+      "statusCode",
+      spanScope.statusCodes.map((statusCode: number): string => {
+        return String(statusCode);
+      }),
+    );
+    applyScopeGroup("kind", spanScope.spanKinds);
+    applyScopeGroup("traceId", spanScope.traceIds);
+    applyScopeGroup("spanId", spanScope.spanIds);
+    applyScopeGroup(
+      "name",
+      spanScope.spanNameSearch
+        ? [spanScope.spanNameSearch]
+        : spanScope.spanNames,
+    );
+    applyScopeGroup(
+      "statusMessage",
+      spanScope.statusMessageSearch
+        ? [spanScope.statusMessageSearch]
+        : spanScope.statusMessages,
+    );
+
+    if (spanScope.hasException !== null) {
+      applyScopeGroup("hasException", [String(spanScope.hasException)]);
+    }
+
+    if (props.primaryEntityId) {
+      applyScopeGroup("primaryEntityId", [props.primaryEntityId.toString()]);
     }
 
     /*
@@ -1466,7 +1698,19 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
     }
 
-    if (freeText && freeText.length > 0) {
+    /*
+     * Bare free text matches span names as a substring — but ONLY when
+     * nothing else has claimed the name column, which is exactly the rule the
+     * list applies (`Query<Span>` holds one predicate per column, so an
+     * explicit name filter wins there). Sending it unconditionally used to
+     * make the chart narrower than the list; with a stored scope pinning
+     * `name` that stopped being an edge case, so the two now agree.
+     */
+    if (
+      freeText &&
+      freeText.length > 0 &&
+      !(groups["name"] && groups["name"].length > 0)
+    ) {
       payload["nameSearchText"] = freeText;
     }
 
@@ -1478,6 +1722,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     props.primaryEntityId,
     props.attributeFilters,
     props.entityKeysFilter,
+    spanScope,
     rootOnly,
   ]);
 
@@ -2027,6 +2272,60 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         }),
       );
     }
+    /*
+     * The host's stored scope, as chips the user can see but not remove. A
+     * snapshot that filters silently is the thing that makes a short list
+     * look like the whole truth.
+     *
+     * A column the user has since filtered themselves is skipped: on that
+     * column their selection REPLACES the scope (drill-down, the precedence
+     * `primaryEntityId` has always had), so leaving the scope's chip up would
+     * show a filter the query no longer applies. The exceptions viewer needs
+     * no such rule — there the two AND together.
+     */
+    const userFilteredFacetKeys: Set<string> = new Set<string>(
+      activeFilters.map((filter: ActiveFilter): string => {
+        return filter.facetKey;
+      }),
+    );
+
+    /*
+     * Chips are not the only way a user claims a column. `status:`, `kind:`
+     * and `duration:` — and any value carrying grammar (a wildcard, a
+     * negation, a range) — deliberately do NOT become chips
+     * (resolveTraceSearchChip returns null, and the search bar leaves the
+     * token in the input); they live in the submitted search string and are
+     * folded into the same overwrite path by MERGED_CHIP_FIELDS. Reading
+     * only `activeFilters` would leave the scope's chip on screen while a
+     * typed `status:ok` had already replaced it in the query.
+     */
+    const typedSearch: ParsedTraceSearch = parseTraceSearch(submittedSearch);
+
+    for (const fieldKey of Object.keys(typedSearch.fieldFilters)) {
+      userFilteredFacetKeys.add(fieldKey);
+    }
+
+    for (const attributeFilter of typedSearch.attributeFilters) {
+      userFilteredFacetKeys.add(
+        `${ATTRIBUTE_CHIP_PREFIX}${attributeFilter.key}`,
+      );
+    }
+
+    for (const chip of spanScope.chips as Array<SpanScopeChip>) {
+      if (userFilteredFacetKeys.has(chip.facetKey)) {
+        continue;
+      }
+
+      base.push(
+        resolveDisplay({
+          facetKey: chip.facetKey,
+          value: chip.value,
+          displayKey: chip.displayKey,
+          displayValue: chip.displayValue,
+          readOnly: true,
+        }),
+      );
+    }
     if (props.attributeFilters) {
       for (const [key, value] of Object.entries(props.attributeFilters)) {
         if (!value) {
@@ -2066,7 +2365,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     props.primaryEntityId,
     props.attributeFilters,
     props.attributeFilterDisplayKeys,
+    spanScope,
     activeFilters,
+    submittedSearch,
     facetConfigs,
     rootOnly,
   ]);
@@ -2372,6 +2673,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   const enableSavedViews: boolean =
     !props.primaryEntityId &&
     !props.entityScope &&
+    // A hosted view (a pinned incident snapshot, a controlled window) is not the user's to save over.
+    !hostOwnsView &&
+    !spanScope.hasScope &&
     (!props.attributeFilters ||
       Object.keys(props.attributeFilters).length === 0);
 
@@ -2383,12 +2687,21 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    */
   const hasInitialUrlState: boolean = useMemo((): boolean => {
     return (
+      /*
+       * A host-owned view counts as scope of its own. Without this, an embed
+       * pinned to an incident's window would have the project's DEFAULT saved
+       * view auto-applied over the pin a tick after mount — the same defect
+       * the logs viewer guards against for its incident embeds. Belt and
+       * braces: `enableSavedViews` already hides the control for such hosts,
+       * so nothing would resolve a view at all.
+       */
+      hostOwnsView ||
       Boolean(props.timeRangeOverride) ||
       initialUrlState.search.length > 0 ||
       initialUrlState.filters.length > 0 ||
       initialUrlState.timeRange.range !== TimeRange.PAST_ONE_HOUR
     );
-  }, [initialUrlState, props.timeRangeOverride]);
+  }, [initialUrlState, props.timeRangeOverride, hostOwnsView]);
 
   // Capture the current explorer state for Save / Update of a saved view.
   const captureCurrentState: () => TelemetrySavedViewState =
@@ -2436,7 +2749,15 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       setPage(1);
     }, []);
 
-  return (
+  /*
+   * The half of the host's scope the aggregation payload cannot express. The
+   * list applies it, the chart and the facet counts above the list do not, so
+   * it is named on screen — the module computes it precisely so this never
+   * has to be silent.
+   */
+  const scopeHint: string = spanScope.notCarried.join(", ");
+
+  const viewer: ReactElement = (
     <TelemetryViewer<Span>
       items={spans}
       isLoading={isLoading}
@@ -2472,8 +2793,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
            * tooltip lists any filters the target grammar cannot express so
            * the narrowing is never silent.
            */}
+          {/*
+           * Hidden for a hosted snapshot: the pivots carry the chips and the
+           * window, not the host's stored scope, so from an incident card
+           * they would open the logs / metrics explorer project-wide under a
+           * button that promises "scoped like this view". The snapshot card
+           * already offers correctly-scoped Logs and Metrics tabs of its own.
+           */}
           <div
-            className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5 shadow-sm"
+            className={`items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5 shadow-sm ${
+              props.spanQuery ? "hidden" : "inline-flex"
+            }`}
             aria-label="Related telemetry signals"
           >
             <Tooltip
@@ -2545,7 +2875,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
            */}
         </>
       }
-      emptyMessage="No traces found"
+      emptyMessage={props.emptyMessage || "No traces found"}
       itemLabel="traces"
       renderRow={(span: Span): ReactElement => {
         const service: Service | undefined = span.primaryEntityId
@@ -2736,6 +3066,19 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         setPage(1);
       }}
     />
+  );
+
+  if (!scopeHint) {
+    return viewer;
+  }
+
+  return (
+    <div className="flex min-h-0 w-full flex-1 flex-col gap-3">
+      <div className="text-xs text-gray-500">
+        {`The chart and facet counts above are not narrowed by: ${scopeHint}. The list is.`}
+      </div>
+      {viewer}
+    </div>
   );
 };
 

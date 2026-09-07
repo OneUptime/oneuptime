@@ -9,9 +9,9 @@ import Log from "Common/Models/AnalyticsModels/Log";
 import Span from "Common/Models/AnalyticsModels/Span";
 import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../Logs/LogsViewer";
-import ExceptionInstanceTable from "../Exceptions/ExceptionInstanceTable";
+import ExceptionsViewer from "../Exceptions/ExceptionsViewer";
 import MetricView from "../Metrics/MetricView";
-import TraceTable from "../Traces/TraceTable";
+import TracesViewer from "../Traces/TracesViewer";
 import TelemetryCompanionSignalTabs from "./TelemetryCompanionSignalTabs";
 import TelemetrySnapshotWindowAlert from "./TelemetrySnapshotWindowAlert";
 
@@ -79,12 +79,22 @@ const TelemetrySnapshotPanel: FunctionComponent<ComponentProps> = (
           {telemetryQuery.telemetryType === TelemetryType.Trace &&
             telemetryQuery.telemetryQuery && (
               <div>
-                <TraceTable
-                  spanQuery={telemetryQuery.telemetryQuery as Query<Span>}
+                <Card
+                  title={"Spans"}
+                  description={`Spans for this ${eventNoun}.`}
                   rightElement={snapshotWindowAlert}
-                  // Pinned to the snapshot; a URL-restored filter must not replace it.
-                  disableUrlState={true}
-                />
+                >
+                  <TracesViewer
+                    spanQuery={telemetryQuery.telemetryQuery as Query<Span>}
+                    limit={10}
+                    /*
+                     * Pinned to the snapshot: the host page owns the URL, so the
+                     * viewer neither reads a filter out of it nor writes back.
+                     */
+                    disableUrlSync={true}
+                    emptyMessage="No spans found"
+                  />
+                </Card>
               </div>
             )}
 
@@ -115,16 +125,27 @@ const TelemetrySnapshotPanel: FunctionComponent<ComponentProps> = (
 
           {telemetryQuery.telemetryType === TelemetryType.Exception &&
             telemetryQuery.telemetryQuery && (
-              <ExceptionInstanceTable
-                title="Exceptions"
+              <Card
+                title={"Exceptions"}
                 description={`Exceptions related to this ${eventNoun}.`}
-                query={
-                  telemetryQuery.telemetryQuery as Query<ExceptionInstance>
-                }
                 rightElement={snapshotWindowAlert}
-                // Pinned to the snapshot; a URL-restored filter must not replace it.
-                disableUrlState={true}
-              />
+              >
+                <ExceptionsViewer
+                  exceptionInstanceQuery={
+                    telemetryQuery.telemetryQuery as Query<ExceptionInstance>
+                  }
+                  /*
+                   * An event shows the exceptions it fired on, whoever has since
+                   * resolved them and whatever the classifier made of them.
+                   */
+                  defaultStatus="all"
+                  defaultClassScope="all"
+                  limit={10}
+                  // Pinned to the snapshot; the host page owns the URL.
+                  disableUrlSync={true}
+                  emptyMessage="No exceptions found"
+                />
+              </Card>
             )}
         </Fragment>
       }
