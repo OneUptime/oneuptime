@@ -24,7 +24,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 /*
  * "What do I still have to do here?", answered on one page.
  *
- * User Settings is eleven destinations, and the two that sound most alike -
+ * User Settings is twelve destinations, and the two that sound most alike -
  * Notification Methods and Notification Settings - do completely different
  * jobs, while the four that decide whether you get woken up are split across
  * three side-menu sections. Nothing in that navigation says which of them you

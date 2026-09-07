@@ -6141,5 +6141,14 @@
   "No shifts could be listed for the next 30 days.": "Non è stato possibile elencare alcun turno per i prossimi 30 giorni.",
   "Calendar feeds require the Growth plan": "I feed di calendario richiedono il piano Growth",
   "This project's plan does not include calendar feeds, so a link generated here would always show an empty calendar.": "Il piano di questo progetto non include i feed di calendario: un link generato qui mostrerebbe sempre un calendario vuoto.",
-  "Upgrade your plan in Billing settings": "Aggiorna il tuo piano nelle impostazioni di fatturazione"
+  "Upgrade your plan in Billing settings": "Aggiorna il tuo piano nelle impostazioni di fatturazione",
+  "Email Preferences": "Preferenze e-mail",
+  "Applies to you in this project.": "Si applica a te in questo progetto.",
+  "Turn individual emails back on in Notification Settings": "Riattiva singole e-mail nelle impostazioni di notifica",
+  "Routine emails turned off.": "E-mail di routine disattivate.",
+  "Review your individual preferences in Notification Settings": "Rivedi le tue preferenze individuali nelle impostazioni di notifica",
+  "These switches decide which notifications reach you, not how much email they add up to.": "Questi interruttori decidono quali notifiche ti raggiungono, non quante e-mail diventano.",
+  "Reduce routine emails or change email rollup in Email Preferences": "Riduci le e-mail di routine o modifica il raggruppamento e-mail nelle preferenze e-mail",
+  "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "Disattiva le e-mail su note, aggiunta come proprietario, nuovi monitor e pagine di stato, elementi aggiunti agli episodi e modifiche di appartenenza alle policy di reperibilità.",
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Le tue scelte per creazione di incidenti e avvisi, cambi di stato, promemoria, assegnazioni, salute dei monitor e turni di reperibilità restano invariate. Altri canali di notifica, le chiamate di reperibilità e le e-mail di account e fatturazione non sono interessati."
 }

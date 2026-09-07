@@ -629,8 +629,8 @@ export const buildRollupEmail: BuildRollupEmailFunction = (
    */
   const preferencesText: string =
     "OneUptime groups owner notifications into a single email when several arrive at once for the same project. " +
-    "To go back to one email per notification, sent the moment it happens, turn off email rollup for this project in your notification settings. " +
-    "The same page is where you choose which notifications you receive, or turn email off entirely:";
+    "To go back to one email per notification, sent the moment it happens, turn off email rollup for this project in your email preferences. " +
+    "The same page can also switch off routine emails in bulk, and it links on to the per-event settings:";
 
   /*
    * ONE FLAT ARRAY, WITH THE SECTION HEADING CARRIED ON ITS FIRST ROW.

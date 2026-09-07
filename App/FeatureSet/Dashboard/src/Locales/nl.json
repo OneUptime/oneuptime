@@ -6141,5 +6141,14 @@
   "No shifts could be listed for the next 30 days.": "Er konden geen diensten worden weergegeven voor de komende 30 dagen.",
   "Calendar feeds require the Growth plan": "Agenda-feeds vereisen het Growth-abonnement",
   "This project's plan does not include calendar feeds, so a link generated here would always show an empty calendar.": "Het abonnement van dit project bevat geen agenda-feeds, dus een hier gegenereerde link zou altijd een lege agenda tonen.",
-  "Upgrade your plan in Billing settings": "Upgrade uw abonnement in de facturatie-instellingen"
+  "Upgrade your plan in Billing settings": "Upgrade uw abonnement in de facturatie-instellingen",
+  "Email Preferences": "E-mailvoorkeuren",
+  "Applies to you in this project.": "Geldt voor u in dit project.",
+  "Turn individual emails back on in Notification Settings": "Individuele e-mails weer inschakelen in meldingsinstellingen",
+  "Routine emails turned off.": "Routine-e-mails uitgeschakeld.",
+  "Review your individual preferences in Notification Settings": "Uw individuele voorkeuren bekijken in meldingsinstellingen",
+  "These switches decide which notifications reach you, not how much email they add up to.": "Deze schakelaars bepalen welke meldingen u bereiken, niet hoeveel e-mail dat oplevert.",
+  "Reduce routine emails or change email rollup in Email Preferences": "Routine-e-mails verminderen of e-mailbundeling wijzigen in e-mailvoorkeuren",
+  "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "Schakel e-mails uit over notities, toegevoegd worden als eigenaar, nieuwe monitors en statuspagina's, items die aan afleveringen zijn toegevoegd en wijzigingen in het lidmaatschap van piketregels.",
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Uw keuzes voor het aanmaken van incidenten en waarschuwingen, statuswijzigingen, herinneringen, toewijzingen, monitorstatus en piketdiensten blijven ongewijzigd. Andere meldingskanalen, piketoproepen en account- en facturatie-e-mails blijven onaangetast."
 }

@@ -6141,5 +6141,14 @@
   "No shifts could be listed for the next 30 days.": "無法列出未來 30 天的班次。",
   "Calendar feeds require the Growth plan": "行事曆訂閱需要 Growth 方案",
   "This project's plan does not include calendar feeds, so a link generated here would always show an empty calendar.": "此專案的方案不包含行事曆訂閱，因此在此產生的連結將永遠顯示空的行事曆。",
-  "Upgrade your plan in Billing settings": "在帳單設定中升級方案"
+  "Upgrade your plan in Billing settings": "在帳單設定中升級方案",
+  "Email Preferences": "郵件偏好設定",
+  "Applies to you in this project.": "在本專案中對您生效。",
+  "Turn individual emails back on in Notification Settings": "在通知設定中重新開啟個別郵件",
+  "Routine emails turned off.": "已關閉例行郵件。",
+  "Review your individual preferences in Notification Settings": "在通知設定中檢視您的個別偏好",
+  "These switches decide which notifications reach you, not how much email they add up to.": "這些開關決定哪些通知會送達您，而不是它們會變成多少封郵件。",
+  "Reduce routine emails or change email rollup in Email Preferences": "在郵件偏好設定中減少例行郵件或變更郵件合併",
+  "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "關閉有關備註、被加入為擁有者、新監控器和狀態頁、加入事件集的項目，以及待命政策成員變更的郵件。",
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "您對事件和警示建立、狀態變更、提醒、指派、監控器健康狀況和待命輪班的選擇維持不變。其他通知管道、待命呼叫以及帳戶和帳單郵件均不受影響。"
 }

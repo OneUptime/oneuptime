@@ -6141,5 +6141,14 @@
   "No shifts could be listed for the next 30 days.": "Не удалось показать смены на ближайшие 30 дней.",
   "Calendar feeds require the Growth plan": "Календарные ленты доступны на тарифе Growth",
   "This project's plan does not include calendar feeds, so a link generated here would always show an empty calendar.": "Тариф этого проекта не включает календарные ленты, поэтому созданная здесь ссылка всегда показывала бы пустой календарь.",
-  "Upgrade your plan in Billing settings": "Обновите тариф в настройках оплаты"
+  "Upgrade your plan in Billing settings": "Обновите тариф в настройках оплаты",
+  "Email Preferences": "Настройки электронной почты",
+  "Applies to you in this project.": "Применяется к вам в этом проекте.",
+  "Turn individual emails back on in Notification Settings": "Снова включить отдельные письма в настройках уведомлений",
+  "Routine emails turned off.": "Рутинные письма отключены.",
+  "Review your individual preferences in Notification Settings": "Просмотреть ваши отдельные настройки в настройках уведомлений",
+  "These switches decide which notifications reach you, not how much email they add up to.": "Эти переключатели определяют, какие уведомления доходят до вас, а не сколько писем из них получится.",
+  "Reduce routine emails or change email rollup in Email Preferences": "Сократить рутинные письма или изменить объединение писем в настройках электронной почты",
+  "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "Отключите письма о заметках, назначении вас владельцем, новых мониторах и страницах статуса, элементах, добавленных в эпизоды, и изменениях состава политик дежурств.",
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Ваши настройки для создания инцидентов и оповещений, изменений состояния, напоминаний, назначений, состояния мониторов и дежурных смен остаются без изменений. Другие каналы уведомлений, вызовы дежурных, письма об аккаунте и оплате не затрагиваются."
 }

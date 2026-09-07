@@ -110,7 +110,7 @@ const makeItem: MakeItemFunction = (
 const PROJECT_HOME_LINK: string =
   "https://oneuptime.example.com/dashboard/6560/home";
 const PREFERENCES_LINK: string =
-  "https://oneuptime.example.com/dashboard/6560/user-settings/notification-settings";
+  "https://oneuptime.example.com/dashboard/6560/user-settings/email-preferences";
 const INCIDENT_LINK: string =
   "https://oneuptime.example.com/dashboard/6560/incidents/i1";
 const MONITOR_LINK: string =
@@ -447,7 +447,13 @@ describe("NotificationRollup.hbs rendered with the builder's own vars", () => {
     expect(html).toContain(`href=${PROJECT_HOME_LINK}`);
     expect(html).toContain("Why did I get one email instead of several?");
     expect(html).toContain(`href="${PREFERENCES_LINK}"`);
-    expect(html).toContain("user-settings/notification-settings");
+    /*
+     * Email Preferences, not Notification Settings: this footer's whole job
+     * is to offer a way out of BATCHING, and the rollup switch is on Email
+     * Preferences. A link to the per-event matrix would land the reader on a
+     * page with no rollup control and nothing saying where one is.
+     */
+    expect(html).toContain("user-settings/email-preferences");
   });
 
   test("leaves no unresolved mustache and no empty href", () => {

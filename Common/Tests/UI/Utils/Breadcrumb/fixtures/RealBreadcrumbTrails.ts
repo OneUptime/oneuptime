@@ -2841,6 +2841,11 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getUserSettingsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/user-settings/email-preferences",
+    titles: ["Project", "User Settings", "Email Preferences"],
+  },
+  {
+    getter: "getUserSettingsBreadcrumbs",
     pagePattern:
       "/dashboard/:projectId/user-settings/incident-episode-on-call-rules",
     titles: ["Project", "User Settings", "Incident Episode On-Call Rules"],

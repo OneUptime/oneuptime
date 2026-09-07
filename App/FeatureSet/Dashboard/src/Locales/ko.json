@@ -6141,5 +6141,14 @@
   "No shifts could be listed for the next 30 days.": "향후 30일간의 근무를 표시할 수 없습니다.",
   "Calendar feeds require the Growth plan": "캘린더 피드는 Growth 요금제가 필요합니다",
   "This project's plan does not include calendar feeds, so a link generated here would always show an empty calendar.": "이 프로젝트의 요금제에는 캘린더 피드가 포함되어 있지 않아 여기서 생성한 링크는 항상 빈 캘린더를 표시합니다.",
-  "Upgrade your plan in Billing settings": "결제 설정에서 요금제 업그레이드"
+  "Upgrade your plan in Billing settings": "결제 설정에서 요금제 업그레이드",
+  "Email Preferences": "이메일 환경설정",
+  "Applies to you in this project.": "이 프로젝트의 회원님에게 적용됩니다.",
+  "Turn individual emails back on in Notification Settings": "알림 설정에서 개별 이메일 다시 켜기",
+  "Routine emails turned off.": "정기 이메일을 껐습니다.",
+  "Review your individual preferences in Notification Settings": "알림 설정에서 개별 환경설정 검토하기",
+  "These switches decide which notifications reach you, not how much email they add up to.": "이 스위치는 어떤 알림이 도착할지를 정할 뿐, 이메일이 몇 통이 될지를 정하지는 않습니다.",
+  "Reduce routine emails or change email rollup in Email Preferences": "이메일 환경설정에서 정기 이메일 줄이기 또는 이메일 묶음 발송 변경하기",
+  "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "메모, 소유자로 추가됨, 새 모니터 및 상태 페이지, 에피소드에 추가된 항목, 온콜 정책 구성원 변경에 대한 이메일을 끕니다.",
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "인시던트 및 알림 생성, 상태 변경, 알림 재통지, 할당, 모니터 상태, 온콜 근무에 대한 설정은 그대로 유지됩니다. 다른 알림 채널, 온콜 호출, 계정 및 청구 이메일은 영향을 받지 않습니다."
 }

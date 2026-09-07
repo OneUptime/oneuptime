@@ -6141,5 +6141,14 @@
   "No shifts could be listed for the next 30 days.": "Für die nächsten 30 Tage konnten keine Schichten aufgelistet werden.",
   "Calendar feeds require the Growth plan": "Kalender-Feeds erfordern den Growth-Tarif",
   "This project's plan does not include calendar feeds, so a link generated here would always show an empty calendar.": "Der Tarif dieses Projekts enthält keine Kalender-Feeds; ein hier erzeugter Link würde immer einen leeren Kalender anzeigen.",
-  "Upgrade your plan in Billing settings": "Tarif in den Abrechnungseinstellungen upgraden"
+  "Upgrade your plan in Billing settings": "Tarif in den Abrechnungseinstellungen upgraden",
+  "Email Preferences": "E-Mail-Einstellungen",
+  "Applies to you in this project.": "Gilt für Sie in diesem Projekt.",
+  "Turn individual emails back on in Notification Settings": "Einzelne E-Mails in den Benachrichtigungseinstellungen wieder aktivieren",
+  "Routine emails turned off.": "Routine-E-Mails deaktiviert.",
+  "Review your individual preferences in Notification Settings": "Ihre einzelnen Einstellungen in den Benachrichtigungseinstellungen prüfen",
+  "These switches decide which notifications reach you, not how much email they add up to.": "Diese Schalter bestimmen, welche Benachrichtigungen Sie erreichen, nicht wie viele E-Mails daraus entstehen.",
+  "Reduce routine emails or change email rollup in Email Preferences": "Routine-E-Mails reduzieren oder E-Mail-Zusammenfassung ändern in den E-Mail-Einstellungen",
+  "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "Deaktivieren Sie E-Mails über Notizen, das Hinzufügen als Eigentümer, neue Monitore und Statusseiten, zu Episoden hinzugefügte Elemente und Änderungen der Mitgliedschaft in Rufbereitschaftsrichtlinien.",
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Ihre Einstellungen für das Erstellen von Vorfällen und Warnungen, Statusänderungen, Erinnerungen, Zuweisungen, Monitorzustand und Rufbereitschaftsschichten bleiben unverändert. Andere Benachrichtigungskanäle, Alarmierung sowie Konto- und Abrechnungs-E-Mails sind nicht betroffen."
 }

@@ -182,7 +182,7 @@ describe("EmailRollupFlushRunner - one flush", () => {
         `${HARNESS_DASHBOARD_URL}/${PROJECT_ID.toString()}/home`,
       );
       expect(vars["preferencesLink"]).toBe(
-        `${HARNESS_DASHBOARD_URL}/${PROJECT_ID.toString()}/user-settings/notification-settings`,
+        `${HARNESS_DASHBOARD_URL}/${PROJECT_ID.toString()}/user-settings/email-preferences`,
       );
     });
 

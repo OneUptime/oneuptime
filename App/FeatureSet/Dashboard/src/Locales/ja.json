@@ -6141,5 +6141,14 @@
   "No shifts could be listed for the next 30 days.": "今後 30 日間のシフトを一覧できませんでした。",
   "Calendar feeds require the Growth plan": "カレンダーフィードには Growth プランが必要です",
   "This project's plan does not include calendar feeds, so a link generated here would always show an empty calendar.": "このプロジェクトのプランにはカレンダーフィードが含まれていないため、ここで生成したリンクは常に空のカレンダーを表示します。",
-  "Upgrade your plan in Billing settings": "請求設定でプランをアップグレード"
+  "Upgrade your plan in Billing settings": "請求設定でプランをアップグレード",
+  "Email Preferences": "メール設定",
+  "Applies to you in this project.": "このプロジェクトのあなたに適用されます。",
+  "Turn individual emails back on in Notification Settings": "通知設定で個別のメールを再度オンにする",
+  "Routine emails turned off.": "定型メールをオフにしました。",
+  "Review your individual preferences in Notification Settings": "通知設定で個別の設定を確認する",
+  "These switches decide which notifications reach you, not how much email they add up to.": "これらのスイッチが決めるのは、どの通知が届くかであって、メールが何通になるかではありません。",
+  "Reduce routine emails or change email rollup in Email Preferences": "メール設定で定型メールを減らす、またはメールのまとめ送信を変更する",
+  "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "メモ、オーナーへの追加、新しいモニターとステータスページ、エピソードへの項目追加、オンコールポリシーのメンバー変更に関するメールをオフにします。",
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "インシデントとアラートの作成、状態変更、リマインダー、割り当て、モニターの健全性、オンコールシフトに関する設定はそのまま維持されます。他の通知チャネル、オンコール呼び出し、アカウントおよび請求のメールには影響しません。"
 }

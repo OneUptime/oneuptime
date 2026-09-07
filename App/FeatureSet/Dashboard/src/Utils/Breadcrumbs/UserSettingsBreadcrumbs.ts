@@ -59,6 +59,11 @@ export function getUserSettingsBreadcrumbs(
       PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED,
       ["Project", "User Settings", "Calendar Feed"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.USER_SETTINGS_EMAIL_PREFERENCES, [
+      "Project",
+      "User Settings",
+      "Email Preferences",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }
