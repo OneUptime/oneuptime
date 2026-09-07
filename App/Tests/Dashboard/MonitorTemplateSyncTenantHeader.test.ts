@@ -20,7 +20,9 @@ import path from "path";
  * of these permissions: Project Owner, ..." — a message that sends project
  * owners hunting for a role they already hold.
  *
- * All six calls shipped without the header. This pins every one of them: the
+ * All six calls the page had at the time shipped without the header, and the
+ * count below moves with the page as sync buttons are added — a new post is
+ * exactly the thing that reintroduces this. This pins every one of them: the
  * component is a React page with no extractable logic, and the App suite runs
  * in a plain Node environment with no renderer, so this reads the source the
  * same way the sibling *Invariants tests do.
@@ -104,7 +106,7 @@ describe("Monitor Template sync/link endpoints send the tenant header", () => {
      */
     const calls: Array<string> = getApiPostArguments(code);
 
-    expect(calls.length).toBe(6);
+    expect(calls.length).toBe(7);
     expect(code).toContain("/sync-to-linked-monitors");
     expect(code).toContain("/sync-to-monitor/");
     expect(code).toContain("/link-monitor/");

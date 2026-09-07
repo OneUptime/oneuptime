@@ -304,6 +304,8 @@ function createConfig(options) {
   const isDev = process.env.NODE_ENV !== "production";
   const isAnalyze = process.env.analyze === "true";
   const reactRoot = resolvePackageRoot("react");
+  const reactRouterRoot = resolvePackageRoot("react-router");
+  const reactRouterDomRoot = resolvePackageRoot("react-router-dom");
   const reactI18nextRoot = resolvePackageRoot("react-i18next");
   const i18nextRoot = resolvePackageRoot("i18next");
 
@@ -356,6 +358,10 @@ function createConfig(options) {
       react: reactRoot,
       "react/jsx-runtime": path.join(reactRoot, "jsx-runtime.js"),
       "react/jsx-dev-runtime": path.join(reactRoot, "jsx-dev-runtime.js"),
+      // Public dashboards reuse widgets from the private dashboard package.
+      // Their links must share the router context installed by the entry app.
+      "react-router": reactRouterRoot,
+      "react-router-dom": reactRouterDomRoot,
       // Force a single instance of i18next/react-i18next so that translations
       // initialized in the service entry are visible to Common UI components.
       // Without this, Common's own node_modules copy gets a separate, never-

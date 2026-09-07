@@ -1,3 +1,4 @@
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -27,6 +28,7 @@ export interface ComponentProps {
   onComponentDuplicate: (component: DashboardBaseComponent) => void;
   componentId: ObjectID;
   dashboardViewConfig: DashboardViewConfig;
+  variables?: Array<DashboardVariable> | undefined;
   dashboardStartAndEndDate: RangeStartAndEndDateTime;
   totalCurrentDashboardWidthInPx: number;
   metrics: {
@@ -178,6 +180,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                   }}
                 >
                   <DashboardBaseComponentElement
+                    variables={props.variables}
                     componentId={props.componentId}
                     isEditMode={false}
                     isSelected={false}
@@ -213,6 +216,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
               Settings
             </h4>
             <ArgumentsForm
+              variables={props.variables}
               component={component}
               onFormChange={(component: DashboardBaseComponent) => {
                 props.onComponentUpdate(component);

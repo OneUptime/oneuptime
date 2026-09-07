@@ -100,6 +100,11 @@ import MonitorStepPodmanMonitor from "../../../Types/Monitor/MonitorStepPodmanMo
 import MonitorStepProxmoxMonitor from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
 import MonitorStepCephMonitor from "../../../Types/Monitor/MonitorStepCephMonitor";
 import MonitorStepDockerSwarmMonitor from "../../../Types/Monitor/MonitorStepDockerSwarmMonitor";
+import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
+import { getKubernetesMetricByMetricName } from "../../../Types/Monitor/KubernetesMetricCatalog";
+import { getProxmoxMetricByMetricName } from "../../../Types/Monitor/ProxmoxMetricCatalog";
+import { getCephMetricByMetricName } from "../../../Types/Monitor/CephMetricCatalog";
+import { getDockerSwarmMetricByMetricName } from "../../../Types/Monitor/DockerSwarmMetricCatalog";
 
 /**
  * A cross-signal deep link into a telemetry explorer, plus the scope
@@ -1433,13 +1438,28 @@ ${contextBlock}
       return null;
     }
 
+    const unitHeuristicMetricName: string | undefined =
+      MonitorCriteriaEvaluator.metricNameForUnitHeuristics({
+        metricName: ctx.metricName,
+        isFormula: ctx.isFormula,
+      });
+
     const lines: Array<string> = [];
     lines.push(`- Metric: \`${ctx.metricName}\``);
     if (ctx.alias) {
       lines.push(`- Alias: \`${ctx.alias}\``);
     }
-    if (ctx.unit) {
-      lines.push(`- Unit: ${ctx.unit}`);
+    /*
+     * Spell the unit out — "Bytes", not the UCUM "By" the exporter wrote —
+     * and drop the line entirely for units that name no dimension, so a
+     * ratio metric no longer reports the bare "Unit: 1".
+     */
+    const readableUnit: string | null = MetricValueFormatter.getReadableUnit(
+      ctx.unit,
+      unitHeuristicMetricName,
+    );
+    if (readableUnit) {
+      lines.push(`- Unit: ${readableUnit}`);
     }
     if (ctx.aggregationType) {
       lines.push(`- Aggregation: ${ctx.aggregationType}`);
@@ -1459,8 +1479,16 @@ ${contextBlock}
     if (ctx.components && ctx.components.length > 0) {
       const componentLines: Array<string> = ctx.components.map(
         (component: MetricComponent) => {
-          const unitSuffix: string = component.unit
-            ? ` — unit: ${component.unit}`
+          const componentUnit: string | null =
+            MetricValueFormatter.getReadableUnit(
+              component.unit,
+              MonitorCriteriaEvaluator.metricNameForUnitHeuristics({
+                metricName: component.name,
+                isFormula: component.isFormula,
+              }),
+            );
+          const unitSuffix: string = componentUnit
+            ? ` — unit: ${componentUnit}`
             : "";
           const typeSuffix: string = component.isFormula ? " (formula)" : "";
           return `  - \`${component.alias}\` = \`${component.name}\`${typeSuffix}${unitSuffix}`;
@@ -1504,6 +1532,7 @@ ${contextBlock}
           totalSamples: ctx.totalSamplesInWindow,
           unit: ctx.unit,
           metricName: ctx.metricName,
+          unitHeuristicMetricName: unitHeuristicMetricName,
           alias: ctx.alias,
           components: ctx.components || [],
         })}`,
@@ -1575,6 +1604,11 @@ ${contextBlock}
     totalSamples?: number | undefined;
     unit: string | null;
     metricName: string;
+    /**
+     * The metric name to reason about, or undefined for a formula.
+     * See MonitorCriteriaEvaluator.metricNameForUnitHeuristics.
+     */
+    unitHeuristicMetricName: string | undefined;
     alias: string;
     components: Array<MetricComponent>;
   }): string {
@@ -1628,16 +1662,19 @@ ${contextBlock}
       "Value",
     ];
 
+    /*
+     * The component columns carry no unit in their header any more. Each
+     * cell now names the unit it actually landed on, and auto-scaling
+     * means neighbouring rows can land on different ones — a header that
+     * read "a (By)" over cells reading "900 KB" and "1.2 MB" states a
+     * unit that neither row uses. The configured unit is not lost: the
+     * Components bullet list above the table still records it.
+     */
     for (const component of input.components) {
-      const label: string = component.unit
-        ? `${component.alias} (${component.unit})`
-        : component.alias;
-      headerCells.push(label);
+      headerCells.push(component.alias);
     }
 
     headerCells.push(...attrKeys);
-
-    const unitSuffix: string = input.unit ? ` ${input.unit}` : "";
 
     const headerRow: string = `| ${headerCells.join(" | ")} |`;
     const dividerRow: string = `| ${headerCells
@@ -1658,7 +1695,11 @@ ${contextBlock}
           `\`${timestampIso}\``,
           metricCell,
           aliasCell,
-          `${MonitorCriteriaEvaluator.formatNumberForDisplay(s.value)}${unitSuffix}`,
+          MetricValueFormatter.format({
+            value: s.value,
+            unit: input.unit,
+            metricName: input.unitHeuristicMetricName,
+          }),
         ];
 
         for (const component of input.components) {
@@ -1668,11 +1709,24 @@ ${contextBlock}
             return cv.alias === component.alias;
           });
           if (match && typeof match.value === "number") {
-            const componentUnitSuffix: string = component.unit
-              ? ` ${component.unit}`
-              : "";
+            /*
+             * Each component keeps its OWN unit. Component values are
+             * indexed off the per-query series and never go through the
+             * sample→threshold-unit conversion the main Value column
+             * does, so they are in the component's legendUnit — mixing
+             * units across the row is deliberate, and is why every cell
+             * has to say which one it is in.
+             */
             cells.push(
-              `${MonitorCriteriaEvaluator.formatNumberForDisplay(match.value)}${componentUnitSuffix}`,
+              MetricValueFormatter.format({
+                value: match.value,
+                unit: component.unit,
+                metricName:
+                  MonitorCriteriaEvaluator.metricNameForUnitHeuristics({
+                    metricName: component.name,
+                    isFormula: component.isFormula,
+                  }),
+              }),
             );
           } else {
             cells.push("-");
@@ -1720,16 +1774,6 @@ ${contextBlock}
       return `${input.breachingCount} of ${input.totalSamples} samples breached the threshold.`;
     }
     return `${input.breachingCount} sample${input.breachingCount === 1 ? "" : "s"} breached the threshold.`;
-  }
-
-  private static formatNumberForDisplay(value: number): string {
-    if (!Number.isFinite(value)) {
-      return String(value);
-    }
-    if (Number.isInteger(value)) {
-      return value.toString();
-    }
-    return Number(value.toFixed(2)).toString();
   }
 
   private static buildMetricExplorerDeepLink(input: {
@@ -1923,12 +1967,88 @@ ${contextBlock}
     };
   }
 
+  /**
+   * The metric name to hand a unit heuristic, or undefined when there
+   * isn't one.
+   *
+   * `MetricCriteriaContext.metricName` and `MetricComponent.name` are the
+   * FORMULA EXPRESSION when the criteria (or the component) targets a
+   * formula — MetricMonitorCriteria.buildContext falls back to
+   * `metricFormula`. The only thing a name is used for downstream is
+   * ValueFormatter.isFractionMetric, which asks whether the name ends in
+   * `.utilization` / `_ratio` / `_percent` and multiplies a "1"-unit value
+   * by 100 when it does. A formula written as `a / b_ratio` ends in
+   * `_ratio` and would silently be reported at 100× its real value, so a
+   * formula gets no name at all.
+   */
+  private static metricNameForUnitHeuristics(input: {
+    metricName: string | undefined;
+    isFormula: boolean | undefined;
+  }): string | undefined {
+    return input.isFormula ? undefined : input.metricName;
+  }
+
   private static formatScopeDroppedHint(dropped: Array<string>): string {
     if (dropped.length === 0) {
       return "";
     }
 
     return ` _(scope partially carried — not applied: ${dropped.join(", ")})_`;
+  }
+
+  /**
+   * The unit for a value in a per-platform "Affected Resources" table.
+   *
+   * These rows are NOT the same numbers as the criteria's breaching
+   * samples: the worker collects them with a raw `MetricService.findBy`
+   * scan and never runs them through MetricResultUnitConverter, so they
+   * are in the metric's NATIVE unit while the criteria threshold was
+   * compared in the user's chosen display unit. Labelling them with the
+   * query's legendUnit would therefore attach a confidently wrong unit to
+   * a correct number.
+   *
+   * The catalog is the right source precisely because it also declares
+   * the native unit. It is the same lookup, on the same metric name, that
+   * the worker already ran to resolve `metricFriendlyName`, so the unit
+   * shown here can never disagree with the metric name shown beside it.
+   */
+  private static getPlatformMetricUnit(input: {
+    platform: "kubernetes" | "proxmox" | "dockerSwarm" | "ceph";
+    metricName: string;
+  }): string | undefined {
+    switch (input.platform) {
+      case "kubernetes":
+        return getKubernetesMetricByMetricName(input.metricName)?.unit;
+      case "proxmox":
+        return getProxmoxMetricByMetricName(input.metricName)?.unit;
+      case "dockerSwarm":
+        return getDockerSwarmMetricByMetricName(input.metricName)?.unit;
+      case "ceph":
+        return getCephMetricByMetricName(input.metricName)?.unit;
+      default:
+        return undefined;
+    }
+  }
+
+  /**
+   * Render one cell of a platform breakdown table's Value column.
+   *
+   * Bold, because that is how these tables have always drawn the value —
+   * it is the one number in the row a reader scans for.
+   */
+  private static formatPlatformResourceValue(input: {
+    platform: "kubernetes" | "proxmox" | "dockerSwarm" | "ceph";
+    metricName: string;
+    value: number;
+  }): string {
+    return `**${MetricValueFormatter.format({
+      value: input.value,
+      unit: MonitorCriteriaEvaluator.getPlatformMetricUnit({
+        platform: input.platform,
+        metricName: input.metricName,
+      }),
+      metricName: input.metricName,
+    })}**`;
   }
 
   private static async buildKubernetesRootCauseContext(input: {
@@ -2071,7 +2191,13 @@ ${contextBlock}
           cells.push(resource.nodeName ? `\`${resource.nodeName}\`` : "-");
         }
 
-        cells.push(`**${resource.metricValue}**`);
+        cells.push(
+          MonitorCriteriaEvaluator.formatPlatformResourceValue({
+            platform: "kubernetes",
+            metricName: breakdown.metricName,
+            value: resource.metricValue,
+          }),
+        );
 
         resourceLines.push(`| ${cells.join(" | ")} |`);
       }
@@ -2478,7 +2604,13 @@ ${contextBlock}
             : "-";
 
           resourceLines.push(
-            `| ${resourceCell} | ${typeCell} | ${nodeCell} | **${resource.metricValue}** |`,
+            `| ${resourceCell} | ${typeCell} | ${nodeCell} | ${MonitorCriteriaEvaluator.formatPlatformResourceValue(
+              {
+                platform: "proxmox",
+                metricName: breakdown.metricName,
+                value: resource.metricValue,
+              },
+            )} |`,
           );
         }
 
@@ -2640,7 +2772,13 @@ ${contextBlock}
             : "-";
 
           resourceLines.push(
-            `| ${taskCell} | ${serviceCell} | ${nodeCell} | **${resource.metricValue}** |`,
+            `| ${taskCell} | ${serviceCell} | ${nodeCell} | ${MonitorCriteriaEvaluator.formatPlatformResourceValue(
+              {
+                platform: "dockerSwarm",
+                metricName: breakdown.metricName,
+                value: resource.metricValue,
+              },
+            )} |`,
           );
         }
 
@@ -2865,7 +3003,13 @@ ${contextBlock}
             : "-";
 
           resourceLines.push(
-            `| ${daemonCell} | ${poolCell} | ${hostCell} | **${resource.metricValue}** |`,
+            `| ${daemonCell} | ${poolCell} | ${hostCell} | ${MonitorCriteriaEvaluator.formatPlatformResourceValue(
+              {
+                platform: "ceph",
+                metricName: breakdown.metricName,
+                value: resource.metricValue,
+              },
+            )} |`,
           );
         }
 
@@ -2914,6 +3058,27 @@ ${contextBlock}
     const metricName: string = breakdown.metricName;
     const lines: Array<string> = [];
 
+    /*
+     * The top resource's value, in the unit the catalog says the metric
+     * is actually reported in.
+     *
+     * The three "is at N%" sentences below used to hardcode that percent
+     * sign. Two of the three metrics they fire for are not percentages at
+     * all — k8s.node.memory.usage and k8s.node.filesystem.usage are
+     * `bytes`, so a node holding 8 GiB reported "memory usage is at
+     * 8589934592.0%" — and the third, k8s.node.cpu.utilization, is the
+     * kubeletstats cores gauge that four other places in this repo warn
+     * is misnamed, so 1.4 cores in use read as "1.4% CPU utilization".
+     */
+    const topResourceValue: string = MetricValueFormatter.format({
+      value: topResource.metricValue,
+      unit: MonitorCriteriaEvaluator.getPlatformMetricUnit({
+        platform: "kubernetes",
+        metricName: metricName,
+      }),
+      metricName: metricName,
+    });
+
     if (
       metricName === "k8s.container.restarts" ||
       metricName.includes("restart")
@@ -2923,7 +3088,7 @@ ${contextBlock}
       );
       if (topResource.containerName) {
         lines.push(
-          `The container \`${topResource.containerName}\` in pod \`${topResource.podName || "unknown"}\` has restarted **${topResource.metricValue}** times.`,
+          `The container \`${topResource.containerName}\` in pod \`${topResource.podName || "unknown"}\` has restarted **${topResourceValue}** times.`,
         );
       }
       lines.push(
@@ -2959,7 +3124,7 @@ ${contextBlock}
       lines.push(`One or more nodes have transitioned to a NotReady state.`);
       if (topResource.nodeName) {
         lines.push(
-          `Node \`${topResource.nodeName}\` is reporting NotReady (value: ${topResource.metricValue}).`,
+          `Node \`${topResource.nodeName}\` is reporting NotReady (value: ${topResourceValue}).`,
         );
       }
       lines.push(
@@ -2986,7 +3151,7 @@ ${contextBlock}
       lines.push(`Node CPU utilization has exceeded the configured threshold.`);
       if (topResource.nodeName) {
         lines.push(
-          `Node \`${topResource.nodeName}\` is at **${topResource.metricValue.toFixed(1)}%** CPU utilization.`,
+          `Node \`${topResource.nodeName}\` is at **${topResourceValue}** CPU utilization.`,
         );
       }
       lines.push(
@@ -3007,7 +3172,7 @@ ${contextBlock}
       );
       if (topResource.nodeName) {
         lines.push(
-          `Node \`${topResource.nodeName}\` memory usage is at **${topResource.metricValue.toFixed(1)}%**.`,
+          `Node \`${topResource.nodeName}\` memory usage is at **${topResourceValue}**.`,
         );
       }
       lines.push(
@@ -3025,7 +3190,7 @@ ${contextBlock}
       );
       if (topResource.workloadName) {
         lines.push(
-          `${topResource.workloadType || "Deployment"} \`${topResource.workloadName}\` has **${topResource.metricValue}** unavailable replica(s).`,
+          `${topResource.workloadType || "Deployment"} \`${topResource.workloadName}\` has **${topResourceValue}** unavailable replica(s).`,
         );
       }
       lines.push(
@@ -3041,7 +3206,7 @@ ${contextBlock}
       lines.push(`Kubernetes Job has failed pods.`);
       if (topResource.workloadName) {
         lines.push(
-          `Job \`${topResource.workloadName}\` has **${topResource.metricValue}** failed pod(s).`,
+          `Job \`${topResource.workloadName}\` has **${topResourceValue}** failed pod(s).`,
         );
       }
       lines.push(
@@ -3060,7 +3225,7 @@ ${contextBlock}
       );
       if (topResource.nodeName) {
         lines.push(
-          `Node \`${topResource.nodeName}\` filesystem usage is at **${topResource.metricValue.toFixed(1)}%**.`,
+          `Node \`${topResource.nodeName}\` filesystem usage is at **${topResourceValue}**.`,
         );
       }
       lines.push(
@@ -3076,7 +3241,7 @@ ${contextBlock}
       lines.push(`DaemonSet has misscheduled or unavailable nodes.`);
       if (topResource.workloadName) {
         lines.push(
-          `DaemonSet \`${topResource.workloadName}\` has **${topResource.metricValue}** misscheduled node(s).`,
+          `DaemonSet \`${topResource.workloadName}\` has **${topResourceValue}** misscheduled node(s).`,
         );
       }
       lines.push(

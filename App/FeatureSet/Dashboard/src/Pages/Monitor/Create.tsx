@@ -4,6 +4,7 @@ import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
+import MonitorTemplateCustomFieldUtil from "Common/Utils/Monitor/MonitorTemplateCustomFieldUtil";
 import Label from "Common/Models/DatabaseModels/Label";
 import React, {
   Fragment,
@@ -241,6 +242,21 @@ const MonitorCreate: FunctionComponent<
   const bindToNetworkDeviceId: MutableRefObject<ObjectID | null> =
     useRef<ObjectID | null>(null);
   const [isBinding, setIsBinding] = useState<boolean>(false);
+
+  /*
+   * The template's custom field defaults, carried to onBeforeCreate.
+   *
+   * Every other template default reaches the new monitor through a form field
+   * seeded from initialValues, but custom fields have no input on this form —
+   * they are edited on the monitor's own Custom Fields page after it exists —
+   * so a value put in initialValues would simply never be submitted. Applying
+   * it at create time instead is what makes a monitor a person makes from a
+   * template carry the same defaults as one an auto-import rule provisions
+   * from it (issue #3548). A ref for the same reason as the bind above:
+   * nothing renders from it.
+   */
+  const templateCustomFields: MutableRefObject<JSONObject | null> =
+    useRef<JSONObject | null>(null);
 
   const loadProbes: () => Promise<void> = async (): Promise<void> => {
     try {
@@ -924,11 +940,14 @@ const MonitorCreate: FunctionComponent<
             monitorType: true,
             monitorSteps: true,
             monitoringInterval: true,
+            customFields: true,
             labels: true,
           },
         });
 
       if (template) {
+        templateCustomFields.current = template.customFields || null;
+
         const templateJSON: JSONObject = BaseModel.toJSONObject(
           template,
           MonitorTemplate,
@@ -1207,6 +1226,11 @@ const MonitorCreate: FunctionComponent<
               onBeforeCreate={async (item: Monitor): Promise<Monitor> => {
                 if (monitorTemplateId) {
                   item.monitorTemplateId = new ObjectID(monitorTemplateId);
+                }
+                if (templateCustomFields.current) {
+                  item.customFields = MonitorTemplateCustomFieldUtil.clone(
+                    templateCustomFields.current,
+                  );
                 }
                 return item;
               }}

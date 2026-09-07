@@ -476,8 +476,15 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
                   fetchDropdownOptions: fetchNetworkDeviceMonitorTemplates,
                   required: false,
                   placeholder: "Import device only (no monitor)",
+                  /*
+                   * The custom fields half names where they are SET, because
+                   * that is what issue #3548 could not find: the values were
+                   * always copied from the template onto every imported
+                   * device's monitor, and the template had nowhere to enter
+                   * them until the Custom Field Defaults card existed.
+                   */
                   description:
-                    "Alert criteria, interval, minimum probe agreement, custom fields and monitor labels are copied from this template. Health OIDs and other polling settings remain on the Network Device. Matching rules that select different templates can create multiple monitors per device.",
+                    "Alert criteria, interval, minimum probe agreement, monitor labels and custom field defaults (set on the template's own Custom Field Defaults card) are copied from this template onto every monitor it creates. Health OIDs and other polling settings remain on the Network Device. Matching rules that select different templates can create multiple monitors per device.",
                   showIf: canSelectAutoImportMonitorTemplate,
                 },
               ]

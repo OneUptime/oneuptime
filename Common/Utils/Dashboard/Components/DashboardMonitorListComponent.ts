@@ -74,7 +74,8 @@ export default class DashboardMonitorListComponentUtil extends DashboardBaseComp
 
     componentArguments.push({
       name: "Title",
-      description: "Header shown above the monitor list",
+      description:
+        "Header shown above the monitor list. Use {{UNIT}} to show a dashboard variable’s selected label; configure Label Variable separately to filter monitors.",
       required: false,
       type: ComponentInputType.Text,
       id: "title",
@@ -140,6 +141,16 @@ export default class DashboardMonitorListComponentUtil extends DashboardBaseComp
       placeholder: "All labels",
       section: FiltersSection,
       entityFilterModelType: EntityFilterModelType.Label,
+    });
+
+    componentArguments.push({
+      name: "Label Variable",
+      description:
+        "Filter monitors using a Project Labels dashboard variable. This is combined with the fixed filters above. All removes only the variable filter.",
+      required: false,
+      type: ComponentInputType.ProjectLabelVariable,
+      id: "labelVariableId",
+      section: FiltersSection,
     });
 
     return componentArguments;

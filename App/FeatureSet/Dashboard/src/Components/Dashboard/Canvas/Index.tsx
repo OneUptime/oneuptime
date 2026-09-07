@@ -401,6 +401,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
       </div>
       {props.selectedComponentId && props.isEditMode && (
         <ComponentSettingsModal
+          variables={props.variables}
           title="Component Settings"
           description="Edit the settings of this component"
           dashboardViewConfig={props.dashboardViewConfig}

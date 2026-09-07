@@ -37,6 +37,7 @@ import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import DashboardVariableSelector from "./DashboardVariableSelector";
+import { VariableValueChange } from "Common/UI/Components/Dashboard/DashboardVariableControl";
 import MetricUtil from "../../../../Dashboard/src/Components/Metrics/Utils/Metrics";
 import { setPublicDashboardContext } from "../../../../Dashboard/src/Components/Dashboard/Utils/PublicDashboardContext";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
@@ -401,12 +402,19 @@ const DashboardViewPage: FunctionComponent<ComponentProps> = (
                     dashboardId={props.dashboardId}
                     onVariableValueChange={(
                       variableId: string,
-                      value: string,
+                      change: VariableValueChange,
                     ) => {
                       const updated: Array<DashboardVariable> =
                         dashboardVariables.map((v: DashboardVariable) => {
                           if (v.id === variableId) {
-                            return { ...v, selectedValue: value };
+                            return {
+                              ...v,
+                              selectedValue:
+                                change.selectedValues !== undefined
+                                  ? undefined
+                                  : change.selectedValue,
+                              selectedValues: change.selectedValues,
+                            };
                           }
                           return v;
                         });

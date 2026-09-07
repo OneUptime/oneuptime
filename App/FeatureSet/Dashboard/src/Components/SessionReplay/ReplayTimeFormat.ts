@@ -70,11 +70,37 @@ export function formatReplayClock(
   durationMs: number,
   isPaused: boolean,
 ): string {
-  const current: string = isPaused
-    ? formatReplayOffsetPrecise(currentTimeMs)
-    : formatReplayOffset(currentTimeMs);
+  const parts: ReplayClockParts = splitReplayClock(
+    currentTimeMs,
+    durationMs,
+    isPaused,
+  );
 
-  return `${current} / ${formatReplayOffset(durationMs)}`;
+  return `${parts.current} / ${parts.total}`;
+}
+
+export interface ReplayClockParts {
+  current: string;
+  total: string;
+}
+
+/*
+ * The same clock the controls row prints, as its two halves, so the
+ * readout can weight the elapsed time and mute the total without either
+ * component re-deriving the "tenths only while paused" rule.
+ * formatReplayClock stays the single definition of the joined string.
+ */
+export function splitReplayClock(
+  currentTimeMs: number,
+  durationMs: number,
+  isPaused: boolean,
+): ReplayClockParts {
+  return {
+    current: isPaused
+      ? formatReplayOffsetPrecise(currentTimeMs)
+      : formatReplayOffset(currentTimeMs),
+    total: formatReplayOffset(durationMs),
+  };
 }
 
 /*

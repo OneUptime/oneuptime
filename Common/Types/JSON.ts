@@ -8,6 +8,7 @@ import GreaterThanOrEqual from "./BaseDatabase/GreaterThanOrEqual";
 import InBetween from "./BaseDatabase/InBetween";
 import Includes from "./BaseDatabase/Includes";
 import IncludesAll from "./BaseDatabase/IncludesAll";
+import IncludesAnyOfGroups from "./BaseDatabase/IncludesAnyOfGroups";
 import IncludesNone from "./BaseDatabase/IncludesNone";
 import StartsWith from "./BaseDatabase/StartsWith";
 import EndsWith from "./BaseDatabase/EndsWith";
@@ -81,6 +82,7 @@ export enum ObjectType {
   IsNull = "IsNull",
   Includes = "Includes",
   IncludesAll = "IncludesAll",
+  IncludesAnyOfGroups = "IncludesAnyOfGroups",
   IncludesNone = "IncludesNone",
   StartsWith = "StartsWith",
   EndsWith = "EndsWith",
@@ -176,6 +178,8 @@ export type JSONValue =
   | Array<Includes>
   | IncludesAll
   | Array<IncludesAll>
+  | IncludesAnyOfGroups
+  | Array<IncludesAnyOfGroups>
   | IncludesNone
   | Array<IncludesNone>
   | StartsWith<string>

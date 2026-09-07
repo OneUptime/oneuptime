@@ -5,7 +5,7 @@ import PermissionGate, {
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
 import { ButtonStyleType } from "../Button/Button";
-import Card from "../Card/Card";
+import Card, { CardButtonSchema } from "../Card/Card";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Detail from "../Detail/Detail";
 import { DropdownOption } from "../Dropdown/Dropdown";
@@ -79,6 +79,22 @@ export interface ComponentProps {
    * real reason.
    */
   hideIfEmpty?: boolean | undefined;
+  /*
+   * Card buttons that belong beside "Edit Fields" rather than on a card of
+   * their own — the Monitor Template's "Sync Custom Fields to Linked Monitors"
+   * being the one that exists. They render after the edit button and are not
+   * touched by the gating above: whether a push to other records is offered is
+   * the caller's decision, not this card's.
+   */
+  additionalButtons?: Array<CardButtonSchema> | undefined;
+  /*
+   * The record's stored bag, handed back after every load — including the
+   * reload that follows a save — so a caller whose extra button acts on those
+   * values can enable and word it from what is actually stored, rather than
+   * re-reading the record behind this card's back and going stale the moment
+   * somebody edits it here.
+   */
+  onValuesLoaded?: ((customFields: JSONObject) => void) | undefined;
 }
 
 const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
@@ -219,6 +235,12 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
       setSchemaList(schemaList.data);
       setModel(item);
 
+      if (props.onValuesLoaded) {
+        props.onValuesLoaded(
+          ((item as any)?.["customFields"] as JSONObject) || {},
+        );
+      }
+
       setIsLoading(false);
     } catch (err) {
       setIsLoading(false);
@@ -313,30 +335,33 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
   const showEditButton: boolean =
     canEdit && (updateGate.isAllowed || Boolean(updateGate.disabledReason));
 
+  const cardButtons: Array<CardButtonSchema> = [
+    ...(showEditButton
+      ? [
+          {
+            title: "Edit Fields",
+            buttonStyle: ButtonStyleType.NORMAL,
+            disabled: !updateGate.isAllowed,
+            tooltip: updateGate.disabledReason,
+            onClick: () => {
+              if (!updateGate.isAllowed) {
+                return;
+              }
+
+              setShowModelForm(true);
+            },
+            icon: IconProp.Edit,
+          } as CardButtonSchema,
+        ]
+      : []),
+    ...(props.additionalButtons || []),
+  ];
+
   return (
     <Card
       title={props.title}
       description={props.description}
-      buttons={
-        showEditButton
-          ? [
-              {
-                title: "Edit Fields",
-                buttonStyle: ButtonStyleType.NORMAL,
-                disabled: !updateGate.isAllowed,
-                tooltip: updateGate.disabledReason,
-                onClick: () => {
-                  if (!updateGate.isAllowed) {
-                    return;
-                  }
-
-                  setShowModelForm(true);
-                },
-                icon: IconProp.Edit,
-              },
-            ]
-          : []
-      }
+      buttons={cardButtons}
     >
       <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
         {isLoading && !loadError && <ComponentLoader />}

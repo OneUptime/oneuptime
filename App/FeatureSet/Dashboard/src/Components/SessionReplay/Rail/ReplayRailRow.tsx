@@ -38,6 +38,16 @@ import {
  * row (indigo-50 with a ring) and future rows (gray-400). Selection is
  * separate from activity so a clicked row stays visibly chosen while the
  * playhead sits in its pre-roll window.
+ *
+ * TYPOGRAPHY. The whole row used to be font-mono at 11px - the glyph, the
+ * timestamp, the event title, the subtitle, the tags. Monospace is right
+ * for the ONE column that has to align down the list (the offset) and
+ * wrong for everything else: prose set in it is wider, harder to scan and
+ * makes a list of a few hundred rows read like a log dump rather than a
+ * story of what the user did. Only the offset and the numeric metas stay
+ * mono and tabular; the title is set in the UI face, and the glyph is
+ * large enough to be a legible category marker rather than a 9px letter
+ * in a 14px box.
  */
 
 export interface ReplayRailRowProps {
@@ -132,7 +142,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
   const rowClass: string = props.isActive
     ? "bg-indigo-50 ring-1 ring-inset ring-indigo-200"
     : props.isSelected
-      ? "bg-gray-50 ring-1 ring-inset ring-gray-200"
+      ? "bg-gray-100 ring-1 ring-inset ring-gray-200"
       : "hover:bg-gray-50";
 
   return (
@@ -144,7 +154,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
       data-future={props.isFuture ? "true" : "false"}
       data-selected={props.isSelected ? "true" : "false"}
       data-active={props.isActive ? "true" : "false"}
-      className={`group rounded font-mono text-[11px] leading-relaxed ${rowClass}`}
+      className={`group rounded-lg text-[11px] leading-relaxed transition-colors ${rowClass}`}
       style={{ contentVisibility: "auto" } as React.CSSProperties}
       onMouseEnter={(): void => {
         props.onHover(signal.offsetMs);
@@ -153,7 +163,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
         props.onHover(null);
       }}
     >
-      <div className="flex items-start gap-1.5 px-2 py-1">
+      <div className="flex items-start gap-1.5 px-2 py-1.5">
         <button
           type="button"
           data-rail-row-body="true"
@@ -169,7 +179,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
           }}
         >
           <span
-            className={`mt-px inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm text-[9px] font-bold ${glyph.className}`}
+            className={`mt-px inline-flex h-4 w-4 shrink-0 items-center justify-center rounded font-mono text-[10px] font-bold leading-none ${glyph.className}`}
             aria-hidden="true"
           >
             {glyph.label}
@@ -181,13 +191,17 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
             </span>
           )}
 
-          <span className="shrink-0 tabular-nums text-gray-400">{time}</span>
+          <span className="w-12 shrink-0 font-mono text-[10px] tabular-nums text-gray-400">
+            {time}
+          </span>
 
-          <span className="min-w-0 flex-1 truncate">{signal.title}</span>
+          <span className="min-w-0 flex-1 truncate text-xs">
+            {signal.title}
+          </span>
 
           {props.row.repeatCount > 1 && (
             <span
-              className="shrink-0 rounded bg-gray-200 px-1 text-[10px] font-semibold text-gray-700"
+              className="shrink-0 rounded bg-gray-200 px-1 font-mono text-[10px] font-semibold tabular-nums text-gray-700"
               title={`Repeated ${props.row.repeatCount} times in a row`}
             >
               ×{props.row.repeatCount}
@@ -195,7 +209,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
           )}
 
           {tag && (
-            <span className="shrink-0 rounded bg-gray-100 px-1 text-[10px] text-gray-500">
+            <span className="shrink-0 rounded bg-gray-100 px-1 text-[10px] font-medium uppercase tracking-wide text-gray-500">
               {tag}
             </span>
           )}
@@ -210,12 +224,14 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
           )}
 
           {signal.subtitle && (
-            <span className="shrink-0 text-gray-400">{signal.subtitle}</span>
+            <span className="shrink-0 font-mono text-[10px] tabular-nums text-gray-400">
+              {signal.subtitle}
+            </span>
           )}
 
           {props.uncertaintyLabel && (
             <span
-              className="shrink-0 text-gray-400"
+              className="shrink-0 font-mono text-[10px] text-gray-400"
               title="Server-stamped time; not anchored to the recording's clock"
             >
               {props.uncertaintyLabel}
@@ -226,7 +242,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
         <div className="flex shrink-0 items-center gap-1 opacity-0 focus-within:opacity-100 group-hover:opacity-100">
           <button
             type="button"
-            className="rounded p-0.5 text-gray-400 hover:bg-white hover:text-indigo-600"
+            className="rounded-md p-1 text-gray-400 transition-colors hover:bg-white hover:text-indigo-600"
             aria-label={`Seek to ${time}`}
             title="Seek here (1s before)"
             onClick={(event: React.MouseEvent<HTMLButtonElement>): void => {
@@ -240,7 +256,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
           {props.onCopyLink && (
             <button
               type="button"
-              className="rounded p-0.5 text-gray-400 hover:bg-white hover:text-indigo-600"
+              className="rounded-md p-1 text-gray-400 transition-colors hover:bg-white hover:text-indigo-600"
               aria-label="Copy link to this moment"
               title="Copy link to this moment"
               onClick={(event: React.MouseEvent<HTMLButtonElement>): void => {
@@ -255,7 +271,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
           {props.link && (
             <AppLink
               to={props.link.route}
-              className="rounded px-1 text-[10px] text-indigo-600 hover:underline"
+              className="rounded px-1 text-[10px] font-medium text-indigo-600 hover:underline"
             >
               {props.link.label}
             </AppLink>
@@ -269,7 +285,7 @@ const ReplayRailRowComponent: FunctionComponent<ReplayRailRowProps> = (
           data-testid="rail-row-detail"
           role="group"
           aria-label={`Detail for ${signal.title}`}
-          className="border-t border-gray-100 px-2 py-2 font-sans"
+          className="border-t border-gray-200 px-2 py-2"
           onClick={(event: React.MouseEvent<HTMLDivElement>): void => {
             /* Clicks inside the detail never re-seek the row. */
             event.stopPropagation();

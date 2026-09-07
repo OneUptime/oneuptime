@@ -522,50 +522,58 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
   });
 
   return (
-    <div
-      data-testid="replay-scrubber"
-      className="rounded-lg border border-gray-200 bg-white p-3"
-    >
-      <ReplayControls
-        phase={snapshot.phase}
-        currentTimeMs={currentTimeMs}
+    /*
+     * The transport BELOW the track, not above it.
+     *
+     * The old order put ten buttons between the picture and the timeline,
+     * so the two things a viewer moves between - the frame and the
+     * position they want it at - were separated by the noisiest strip on
+     * the page. Every media player ever shipped stacks them
+     * picture -> track -> transport, and the player reads as one object
+     * once it does: no border of its own here, because the shell wraps
+     * stage and scrubber in a single card.
+     */
+    <div data-testid="replay-scrubber" className="px-3 pb-3 pt-2.5">
+      <ReplayTimeline
         durationMs={durationMs}
-        speed={snapshot.speed}
-        isSkipInactiveEnabled={snapshot.skipInactive}
-        pendingSeekMs={snapshot.pendingSeekMs}
-        errorMessage={props.errorMessage ?? snapshot.error?.message ?? null}
-        hasPrevError={prevError !== null}
-        hasNextError={nextError !== null}
-        hasNextFrustration={nextFrustration !== null}
-        isFollowEnabled={props.isFollowEnabled}
-        isMouseTrailEnabled={props.isMouseTrailEnabled}
-        onPlayPause={props.onPlayPause}
-        onSeekRelative={handleSeekRelative}
-        onSpeedChange={props.onSpeedChange}
-        onSkipInactiveChange={props.onSkipInactiveChange}
-        onPrevError={handlePrevError}
-        onNextError={handleNextError}
-        onNextFrustration={handleNextFrustration}
-        onShowShortcuts={openShortcuts}
-        onRetry={props.onRetry}
-        onFollowChange={props.onFollowChange}
-        onMouseTrailChange={props.onMouseTrailChange}
+        currentTimeMs={currentTimeMs}
+        bands={props.bands}
+        activity={props.activity}
+        markers={markers}
+        signals={props.signals}
+        ghostMs={props.ghostMs}
+        selectedSignalId={props.selectedSignalId}
+        startTimeUnixMs={props.startTimeUnixMs}
+        onSeek={onSeek}
+        onSelectSignal={onSelectSignal}
+        onHover={props.onHoverTimeline}
       />
 
       <div className="mt-3">
-        <ReplayTimeline
-          durationMs={durationMs}
+        <ReplayControls
+          phase={snapshot.phase}
           currentTimeMs={currentTimeMs}
-          bands={props.bands}
-          activity={props.activity}
-          markers={markers}
-          signals={props.signals}
-          ghostMs={props.ghostMs}
-          selectedSignalId={props.selectedSignalId}
-          startTimeUnixMs={props.startTimeUnixMs}
-          onSeek={onSeek}
-          onSelectSignal={onSelectSignal}
-          onHover={props.onHoverTimeline}
+          durationMs={durationMs}
+          speed={snapshot.speed}
+          isSkipInactiveEnabled={snapshot.skipInactive}
+          pendingSeekMs={snapshot.pendingSeekMs}
+          errorMessage={props.errorMessage ?? snapshot.error?.message ?? null}
+          hasPrevError={prevError !== null}
+          hasNextError={nextError !== null}
+          hasNextFrustration={nextFrustration !== null}
+          isFollowEnabled={props.isFollowEnabled}
+          isMouseTrailEnabled={props.isMouseTrailEnabled}
+          onPlayPause={props.onPlayPause}
+          onSeekRelative={handleSeekRelative}
+          onSpeedChange={props.onSpeedChange}
+          onSkipInactiveChange={props.onSkipInactiveChange}
+          onPrevError={handlePrevError}
+          onNextError={handleNextError}
+          onNextFrustration={handleNextFrustration}
+          onShowShortcuts={openShortcuts}
+          onRetry={props.onRetry}
+          onFollowChange={props.onFollowChange}
+          onMouseTrailChange={props.onMouseTrailChange}
         />
       </div>
 
