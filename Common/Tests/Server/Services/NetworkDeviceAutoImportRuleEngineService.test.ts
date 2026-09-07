@@ -117,6 +117,7 @@ import NetworkDeviceAutoImportRuleEngineService, {
   AUTO_IMPORT_SWEEP_LOCK_TIMEOUT_MS,
   ExistingHostnamesByProjectId,
   ImportAttemptBudgetsByProjectId,
+  MAX_CONSECUTIVE_MONITOR_CREATE_FAILURES,
   MAX_DEVICES_PER_AUTO_IMPORT_RUN,
   MAX_MONITORS_PER_AUTO_IMPORT_RUN,
   MAX_RESULT_AGE_IN_HOURS,
@@ -1380,7 +1381,89 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
       expect(monitorCreateMock).not.toHaveBeenCalled();
     });
 
-    it("caps missing-template failures across a large existing estate", async () => {
+    /*
+     * OneUptime/oneuptime#3643, the report this whole block exists for.
+     *
+     * An estate of 501 devices that a previous run already imported, and a
+     * rule whose Monitor Template no longer resolves. The template is a
+     * property of the RULE: it fails for the first device and for all 500
+     * after it, and no amount of running again changes that.
+     *
+     * What the customer saw was the engine re-proving that 500 times, one
+     * wasted monitor budget slot at a time, until the budget ran out — then
+     * reporting "Stopped at the run cap - run again to continue", with no hint
+     * of what was actually wrong. What it must do instead is settle the
+     * verdict once, count every monitor that is genuinely missing, and say
+     * why.
+     */
+    it("settles an unresolvable template once instead of re-failing it per device", async () => {
+      const hosts: Array<DiscoveredNetworkDevice> = Array.from(
+        { length: MAX_MONITORS_PER_AUTO_IMPORT_RUN + 1 },
+        (_value: unknown, index: number): DiscoveredNetworkDevice => {
+          return makeHost({
+            ipAddress: `10.2.${Math.floor(index / 256)}.${index % 256}`,
+            sysName: `missing-template-switch-${index}`,
+          });
+        },
+      );
+      const devices: Array<NetworkDevice> = hosts.map(
+        (host: DiscoveredNetworkDevice): NetworkDevice => {
+          return makeExistingDevice({
+            id: ObjectID.generate(),
+            hostname: host.ipAddress,
+            name: host.sysName,
+          });
+        },
+      );
+
+      ruleFindOneByMock.mockResolvedValue(
+        makeRule({
+          ipMatchTarget: "10.0.0.0/8",
+          monitorTemplateId: TEMPLATE_ID,
+        }),
+      );
+      ruleFindByMock.mockResolvedValue([]);
+      deviceFindByMock.mockResolvedValue(devices);
+      monitorTemplateFindByMock.mockResolvedValue([]);
+      mockRunNowScans([makeScan({ discoveredDevices: hosts })]);
+
+      const result: AutoImportRuleRunResult = await runRule(false);
+
+      expect(result).toMatchObject({
+        hostsMatched: hosts.length,
+        hostsSkippedAlreadyRegistered: hosts.length,
+        devicesCreated: 0,
+        monitorsCreated: 0,
+        // Every device really is missing its monitor, so every one is counted.
+        monitorsFailed: hosts.length,
+        monitorProvisioningHalted: true,
+        /*
+         * Nothing was cut short by a cap, so nothing is waiting for another
+         * run. This is the misleading half of the customer's dialog.
+         */
+        isTruncated: false,
+      });
+
+      expect(result.monitorFailureReasons).toEqual([
+        "This rule's Monitor Template could not be loaded. It may have been deleted, moved to another project, or changed to a monitor type other than Network Device. Edit the rule and select a Network Device Monitor Template.",
+      ]);
+      expect(monitorCreateMock).not.toHaveBeenCalled();
+
+      /*
+       * And it costs one log line and one budget slot, not 500 of each. The
+       * per-device race check is an unindexed search of the monitor step
+       * payload; running it 500 times to reach the same verdict is the other
+       * half of what made this run expensive.
+       */
+      expect(
+        loggerErrorMock.mock.calls.filter((call: Array<unknown>): boolean => {
+          return String(call[0]).includes("is missing, deleted, or not valid");
+        }),
+      ).toHaveLength(1);
+      expect(monitorFindByMock.mock.calls.length).toBeLessThanOrEqual(2);
+    });
+
+    it("reports the same unresolvable template on a dry run without a cap", async () => {
       const hosts: Array<DiscoveredNetworkDevice> = Array.from(
         { length: MAX_MONITORS_PER_AUTO_IMPORT_RUN + 1 },
         (_value: unknown, index: number): DiscoveredNetworkDevice => {
@@ -1415,11 +1498,305 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
 
       expect(result).toMatchObject({
         monitorsWouldCreate: 0,
-        monitorsFailed: MAX_MONITORS_PER_AUTO_IMPORT_RUN,
-        isTruncated: true,
+        monitorsFailed: hosts.length,
+        monitorProvisioningHalted: true,
+        isTruncated: false,
         isDryRun: true,
       });
       expect(monitorCreateMock).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The other shape of the same report: the template resolves fine, and
+     * every create fails the same way anyway — a plan limit, criteria naming
+     * a monitor status that no longer exists, a database refusing writes.
+     * Indistinguishable from a per-host failure on the first device, so the
+     * engine tries, and stops once the evidence is decisive.
+     */
+    it("stops provisioning after the same create failure repeats for every device", async () => {
+      const hosts: Array<DiscoveredNetworkDevice> = Array.from(
+        { length: MAX_MONITORS_PER_AUTO_IMPORT_RUN + 1 },
+        (_value: unknown, index: number): DiscoveredNetworkDevice => {
+          return makeHost({
+            ipAddress: `10.3.${Math.floor(index / 256)}.${index % 256}`,
+            sysName: `systemic-switch-${index}`,
+          });
+        },
+      );
+      const devices: Array<NetworkDevice> = hosts.map(
+        (host: DiscoveredNetworkDevice): NetworkDevice => {
+          return makeExistingDevice({
+            id: ObjectID.generate(),
+            hostname: host.ipAddress,
+            name: host.sysName,
+          });
+        },
+      );
+
+      ruleFindOneByMock.mockResolvedValue(
+        makeRule({
+          ipMatchTarget: "10.0.0.0/8",
+          monitorTemplateId: TEMPLATE_ID,
+        }),
+      );
+      ruleFindByMock.mockResolvedValue([]);
+      deviceFindByMock.mockResolvedValue(devices);
+      monitorFindByMock.mockResolvedValue([]);
+      monitorFindOneByMock.mockResolvedValue(null);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+      monitorCreateMock.mockRejectedValue(
+        new BadDataException(
+          "You have reached the maximum allowed monitor limit for the free plan.",
+        ),
+      );
+      mockRunNowScans([makeScan({ discoveredDevices: hosts })]);
+
+      const result: AutoImportRuleRunResult = await runRule(false);
+
+      expect(monitorCreateMock).toHaveBeenCalledTimes(
+        MAX_CONSECUTIVE_MONITOR_CREATE_FAILURES,
+      );
+      expect(result).toMatchObject({
+        monitorsCreated: 0,
+        monitorsFailed: hosts.length,
+        monitorProvisioningHalted: true,
+        isTruncated: false,
+      });
+      expect(result.monitorFailureReasons).toEqual([
+        "You have reached the maximum allowed monitor limit for the free plan.",
+      ]);
+    });
+
+    /*
+     * The guard has to stay narrow, or it becomes a new way to lose monitors.
+     * Failures that differ are per-host failures: every device still gets its
+     * try.
+     */
+    it("keeps trying every device when the failures are not identical", async () => {
+      const hosts: Array<DiscoveredNetworkDevice> = Array.from(
+        { length: 30 },
+        (_value: unknown, index: number): DiscoveredNetworkDevice => {
+          return makeHost({
+            ipAddress: `10.4.0.${index}`,
+            sysName: `varied-switch-${index}`,
+          });
+        },
+      );
+      const devices: Array<NetworkDevice> = hosts.map(
+        (host: DiscoveredNetworkDevice): NetworkDevice => {
+          return makeExistingDevice({
+            id: ObjectID.generate(),
+            hostname: host.ipAddress,
+            name: host.sysName,
+          });
+        },
+      );
+
+      ruleFindOneByMock.mockResolvedValue(
+        makeRule({
+          ipMatchTarget: "10.0.0.0/8",
+          monitorTemplateId: TEMPLATE_ID,
+        }),
+      );
+      ruleFindByMock.mockResolvedValue([]);
+      deviceFindByMock.mockResolvedValue(devices);
+      monitorFindByMock.mockResolvedValue([]);
+      monitorFindOneByMock.mockResolvedValue(null);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      let attempt: number = 0;
+      monitorCreateMock.mockImplementation((): Promise<Monitor> => {
+        attempt++;
+        return Promise.reject(new Error(`name collision on device ${attempt}`));
+      });
+      mockRunNowScans([makeScan({ discoveredDevices: hosts })]);
+
+      const result: AutoImportRuleRunResult = await runRule(false);
+
+      expect(monitorCreateMock).toHaveBeenCalledTimes(hosts.length);
+      expect(result).toMatchObject({
+        monitorsFailed: hosts.length,
+        monitorProvisioningHalted: false,
+      });
+      // Distinct reasons are reported, bounded.
+      expect(result.monitorFailureReasons).toHaveLength(3);
+    });
+
+    /*
+     * The guard must never cost an established estate its monitors. Once this
+     * run has provisioned even one, the create pipeline is known to work, and
+     * everything after it is a per-host failure however many of them there are
+     * and however alike they read.
+     */
+    it("never gives up once the run has created a monitor at all", async () => {
+      const hosts: Array<DiscoveredNetworkDevice> = Array.from(
+        { length: MAX_CONSECUTIVE_MONITOR_CREATE_FAILURES * 3 },
+        (_value: unknown, index: number): DiscoveredNetworkDevice => {
+          return makeHost({
+            ipAddress: `10.7.0.${index}`,
+            sysName: `established-switch-${index}`,
+          });
+        },
+      );
+      const devices: Array<NetworkDevice> = hosts.map(
+        (host: DiscoveredNetworkDevice): NetworkDevice => {
+          return makeExistingDevice({
+            id: ObjectID.generate(),
+            hostname: host.ipAddress,
+            name: host.sysName,
+          });
+        },
+      );
+
+      ruleFindOneByMock.mockResolvedValue(
+        makeRule({
+          ipMatchTarget: "10.0.0.0/8",
+          monitorTemplateId: TEMPLATE_ID,
+        }),
+      );
+      ruleFindByMock.mockResolvedValue([]);
+      deviceFindByMock.mockResolvedValue(devices);
+      monitorFindByMock.mockResolvedValue([]);
+      monitorFindOneByMock.mockResolvedValue(null);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      let call: number = 0;
+      monitorCreateMock.mockImplementation(
+        ({ data }: { data: Monitor }): Promise<Monitor> => {
+          call++;
+          if (call === 1) {
+            return Promise.resolve(data);
+          }
+          return Promise.reject(new Error("name already in use"));
+        },
+      );
+      mockRunNowScans([makeScan({ discoveredDevices: hosts })]);
+
+      const result: AutoImportRuleRunResult = await runRule(false);
+
+      expect(monitorCreateMock).toHaveBeenCalledTimes(hosts.length);
+      expect(result).toMatchObject({
+        monitorsCreated: 1,
+        monitorsFailed: hosts.length - 1,
+        monitorProvisioningHalted: false,
+      });
+    });
+
+    it("lets one success reset the systemic-failure streak", async () => {
+      const hosts: Array<DiscoveredNetworkDevice> = Array.from(
+        { length: MAX_CONSECUTIVE_MONITOR_CREATE_FAILURES * 2 - 1 },
+        (_value: unknown, index: number): DiscoveredNetworkDevice => {
+          return makeHost({
+            ipAddress: `10.5.0.${index}`,
+            sysName: `recovering-switch-${index}`,
+          });
+        },
+      );
+      const devices: Array<NetworkDevice> = hosts.map(
+        (host: DiscoveredNetworkDevice): NetworkDevice => {
+          return makeExistingDevice({
+            id: ObjectID.generate(),
+            hostname: host.ipAddress,
+            name: host.sysName,
+          });
+        },
+      );
+
+      ruleFindOneByMock.mockResolvedValue(
+        makeRule({
+          ipMatchTarget: "10.0.0.0/8",
+          monitorTemplateId: TEMPLATE_ID,
+        }),
+      );
+      ruleFindByMock.mockResolvedValue([]);
+      deviceFindByMock.mockResolvedValue(devices);
+      monitorFindByMock.mockResolvedValue([]);
+      monitorFindOneByMock.mockResolvedValue(null);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      /*
+       * Fail one short of the threshold, succeed once, then fail one short
+       * again. Without the reset the second stretch would inherit the first
+       * and halt the run.
+       */
+      let call: number = 0;
+      monitorCreateMock.mockImplementation(
+        ({ data }: { data: Monitor }): Promise<Monitor> => {
+          call++;
+          if (call === MAX_CONSECUTIVE_MONITOR_CREATE_FAILURES) {
+            return Promise.resolve(data);
+          }
+          return Promise.reject(new Error("transient write failure"));
+        },
+      );
+      mockRunNowScans([makeScan({ discoveredDevices: hosts })]);
+
+      const result: AutoImportRuleRunResult = await runRule(false);
+
+      expect(monitorCreateMock).toHaveBeenCalledTimes(hosts.length);
+      expect(result).toMatchObject({
+        monitorsCreated: 1,
+        monitorsFailed: hosts.length - 1,
+        monitorProvisioningHalted: false,
+      });
+    });
+
+    /*
+     * Overlapping scans of the same subnet are normal, and a host in both is
+     * ONE device with one missing monitor. The short circuit has to keep the
+     * same (device, template) bookkeeping a real attempt does, or the report
+     * inflates itself once per scan that mentions the host.
+     */
+    it("counts a halted device once even when two scans carry the same host", async () => {
+      const host: DiscoveredNetworkDevice = makeHost({
+        ipAddress: "10.6.0.1",
+        sysName: "overlapping-switch",
+      });
+      const device: NetworkDevice = makeExistingDevice({
+        id: ObjectID.generate(),
+        hostname: host.ipAddress,
+        name: host.sysName,
+      });
+
+      ruleFindOneByMock.mockResolvedValue(
+        makeRule({
+          ipMatchTarget: "10.0.0.0/8",
+          monitorTemplateId: TEMPLATE_ID,
+        }),
+      );
+      ruleFindByMock.mockResolvedValue([]);
+      deviceFindByMock.mockResolvedValue([device]);
+      monitorTemplateFindByMock.mockResolvedValue([]);
+      mockRunNowScans([
+        makeScan({ discoveredDevices: [host] }),
+        makeScan({ discoveredDevices: [host] }),
+      ]);
+
+      const result: AutoImportRuleRunResult = await runRule(false);
+
+      expect(result).toMatchObject({
+        hostsMatched: 2,
+        monitorsFailed: 1,
+        monitorProvisioningHalted: true,
+      });
+    });
+
+    it("records why a device could not be imported", async () => {
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      ruleFindByMock.mockResolvedValue([makeRule()]);
+      deviceFindOneByMock.mockResolvedValue(null);
+      createMock.mockRejectedValue(
+        new BadDataException("Network device name is too long."),
+      );
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({ devicesCreated: 0, devicesFailed: 1 });
+      expect(result?.deviceFailureReasons).toEqual([
+        "Network device name is too long.",
+      ]);
     });
   });
 

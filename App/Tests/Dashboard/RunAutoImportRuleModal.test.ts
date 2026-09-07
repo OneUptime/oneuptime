@@ -27,6 +27,9 @@ function result(
     monitorsSkippedAlreadyExisting: 0,
     monitorsSkippedUnsupportedHost: 0,
     monitorsFailed: 0,
+    deviceFailureReasons: [],
+    monitorFailureReasons: [],
+    monitorProvisioningHalted: false,
     isTruncated: false,
     hasMoreScans: false,
     isDryRun: false,
@@ -60,5 +63,38 @@ describe("auto-import rule run summary", () => {
 
     expect(summary).toContain("device-import and active-monitor creation");
     expect(summary).not.toContain("imports this many");
+  });
+
+  /*
+   * The report issue #3643 was actually given: 501 matched, 501 already had
+   * devices, 500 monitors failed, and the only advice was to run it again.
+   * This is that whole dialog, as the fixed engine now fills it in.
+   */
+  it("tells an operator whose run created nothing what to do about it", () => {
+    const summary: string = describeAutoImportRun(
+      result({
+        hostsEvaluated: 501,
+        hostsMatched: 501,
+        hostsSkippedAlreadyRegistered: 501,
+        devicesCreated: 0,
+        monitorsCreated: 0,
+        monitorsFailed: 501,
+        monitorProvisioningHalted: true,
+        monitorFailureReasons: [
+          "This rule's Monitor Template could not be loaded. It may have been deleted, moved to another project, or changed to a monitor type other than Network Device. Edit the rule and select a Network Device Monitor Template.",
+        ],
+      }),
+    );
+
+    expect(summary).toContain(
+      "501 active Network Device monitors could not be created",
+    );
+    expect(summary).toContain(
+      "Edit the rule and select a Network Device Monitor Template.",
+    );
+    expect(summary).toContain("Monitor provisioning stopped");
+    // The advice that sent this operator in a circle.
+    expect(summary).not.toContain("run again to continue");
+    expect(summary).not.toContain("check the server logs");
   });
 });

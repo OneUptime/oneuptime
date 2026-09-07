@@ -428,7 +428,10 @@ describe("Network automation rule run endpoints", () => {
         monitorsCreated: 1,
         monitorsSkippedAlreadyExisting: 1,
         monitorsSkippedUnsupportedHost: 0,
-        monitorsFailed: 0,
+        monitorsFailed: 2,
+        deviceFailureReasons: [],
+        monitorFailureReasons: ["Plan limit reached."],
+        monitorProvisioningHalted: true,
         isTruncated: false,
         hasMoreScans: false,
         isDryRun: false,
@@ -465,11 +468,17 @@ describe("Network automation rule run endpoints", () => {
       expect(run["isDryRun"]).toBe(false);
       expect(run["expectedMonitorTemplateId"]).toBeNull();
 
-      expect(
-        (responseUtil.sendJsonObjectResponse.mock.calls[0]![2] as JSONObject)[
-          "monitorsCreated"
-        ],
-      ).toBe(1);
+      const body: JSONObject = responseUtil.sendJsonObjectResponse.mock
+        .calls[0]![2] as JSONObject;
+      expect(body["monitorsCreated"]).toBe(1);
+
+      /*
+       * The reason a monitor could not be created has to survive the wire, or
+       * the dialog is back to telling a self-hosted operator to read logs they
+       * may not have (issue #3643).
+       */
+      expect(body["monitorFailureReasons"]).toEqual(["Plan limit reached."]);
+      expect(body["monitorProvisioningHalted"]).toBe(true);
     });
 
     test("passes a literal dryRun through after applying the existing create-permission policy", async () => {
