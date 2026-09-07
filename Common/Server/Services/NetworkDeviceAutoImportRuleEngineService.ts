@@ -244,6 +244,11 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         },
         props: {
           isRoot: true,
+          /*
+           * Keep the stored payload for stampScan; the engine checks live
+           * inventory itself before evaluating these hosts.
+           */
+          ignoreHooks: true,
         },
       });
 
@@ -605,7 +610,8 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
             discoveredDevices: true,
             ...AUTO_IMPORT_SCAN_CREDENTIAL_SELECT,
           },
-          props: { isRoot: true },
+          // Preserve the raw scan rows for the compare-and-set write-back.
+          props: { isRoot: true, ignoreHooks: true },
         });
 
       // Re-queued or deleted since the stub query — nothing to evaluate.
@@ -1180,22 +1186,13 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       let deviceWasCreated: boolean = false;
 
       /*
-       * The frozen isAlreadyRegistered flag AND the live set: the flag is a
-       * point-in-time answer from the last upload, the set covers devices
-       * created since — including by this very run, which is what collapses
-       * duplicate rows and overlapping scans into one device.
+       * Current inventory is authoritative. The stored isAlreadyRegistered
+       * flag can outlive a deleted device and must not veto re-importing it.
+       * The map also includes devices created during this run, keeping
+       * duplicate rows and overlapping scans idempotent.
        */
-      if (host.isAlreadyRegistered || networkDevice) {
+      if (networkDevice) {
         result.hostsSkippedAlreadyRegistered++;
-
-        /*
-         * A stale scan can claim a deleted device is still registered. With
-         * no live row there is neither a safe binding nor enough intent to
-         * recreate it from old data, so preserve the established skip.
-         */
-        if (!networkDevice) {
-          continue;
-        }
       }
 
       if (result.matchedIpAddressSample.length < MAX_MATCHED_IP_SAMPLE) {

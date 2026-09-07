@@ -334,11 +334,9 @@ export function isSelectableDiscoveredHost(
  * The scan's hosts with the ones imported during this sitting flipped to
  * already-registered.
  *
- * `isAlreadyRegistered` is computed server-side when the probe uploads its
- * results and then frozen into the jsonb column — nothing recomputes it on
- * read. So a host imported a moment ago still reports false, and the dialog
- * would happily offer it again, pre-checked, creating a second Network Device
- * for the same address.
+ * The server refreshes `isAlreadyRegistered` when a review opens. Imports
+ * made after that read are overlaid here so another batch in the same dialog
+ * cannot create a second Network Device for the same address.
  *
  * That was survivable when one press imported everything and closed the
  * dialog. Importing group by group is now the intended flow (#3322), which
@@ -380,11 +378,9 @@ export function markDiscoveredHostsAsRegistered(data: {
  *     different scan meanwhile, and a bare set written when that run finally
  *     lands would mark the OTHER scan's same-addressed hosts "Already added" —
  *     disabled, unticked, silently skipped by Import.
- *   - Keeping the record per scan lets it outlive the dialog, so closing and
- *     reopening the same scan does not resurrect what was just imported.
- *     `isAlreadyRegistered` is frozen into the jsonb at probe-upload time and
- *     never recomputed, so without that the reopened dialog offers imported
- *     hosts again, pre-checked, and Import creates duplicates.
+ *   - A successful refresh replaces only that scan's record with current
+ *     inventory state. Until then the record preserves what we know was
+ *     imported, including imports that finish during the refresh.
  *
  * A plain Record of arrays rather than a Map of Sets so the value stays
  * JSON-shaped: it is React state, it gets compared and asserted on, and
