@@ -7,6 +7,18 @@
 - Azureアカウント — [https://azure.com](https://azure.com) でアカウントを作成できます
 - OneUptimeサーバー設定へのアクセス
 
+### プライベートネットワークへのデプロイ
+
+OneUptimeのTeams統合はAzure Botを使用します。Incoming WebhookやTeams WorkflowのURLは、このボットのメッセージングエンドポイントの代わりにはなりません。Microsoftは、[セルフホスト型ボットに公開アクセス可能なHTTPSエンドポイント](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0)を要求しています。プライベートIPアドレス、内部DNS名、従業員のVPN接続では、Azure Bot ServiceからOneUptimeにアクセスできません。
+
+設定を続ける前に、[統合のプライベートネットワークアクセス](/docs/self-hosted/integration-network-access)に従ってください。このガイドでは、公開DNS、信頼されたTLS、プライベート環境に転送するリバースプロキシ、ファイアウォールルール、検証を説明しています。Teamsでは`/api/microsoft-bot/messages`を公開し、ステップ4のAzure Botの**メッセージングエンドポイント**に、その完全な公開HTTPS URLを設定します。`/api`プレフィックス、リクエスト本文、`Authorization`ヘッダーを維持してください。リクエストの検証はボットの認証に任せます。プロキシへの対話型ログインやブラウザーチャレンジがあると、Microsoftからリクエストを配信できません。
+
+アプリ登録のリダイレクト先`/api/microsoft-teams/auth`と`/api/microsoft-teams/admin-consent/callback`へのアクセスは、ユーザーのブラウザーを経由します。そのブラウザーは、社内ネットワークやVPNなどを通じてOneUptimeに到達する必要があります。ボットメッセージやカードの操作はMicrosoftのサーバーから届くため、別途到達可能なイングレスが必要です。アウトバウンドアラートの配信だけではインバウンド接続は検証できません。
+
+開発向けには、Microsoftの[Teamsテストガイド](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/debug)で、トンネルによるローカルサービスの公開を説明しています。OneUptimeのイングレスに転送し、Microsoftの例の`/api/messages`パスを`/api/microsoft-bot/messages`に置き換えてください。公開トンネルのURLが変わるたびにAzure Botのエンドポイントを更新し、本番環境では安定したイングレスを使用します。
+
+Azure Bot Private Endpointは、このTeamsイングレスの代わりにはなりません。Microsoftの[ネットワーク分離手順](https://learn.microsoft.com/en-us/azure/bot-service/dl-network-isolation-how-to?view=azure-bot-service-4.0)はDirect Lineの分離について説明しており、公開ネットワークアクセスを無効にするとTeamsチャネルの設定が解除されると明記しています。
+
 ## セットアップ手順
 
 ### ステップ1：Azureアプリの登録を作成
@@ -37,7 +49,8 @@
 
 - **Team.ReadBasic.All** — 管理者の同意が付与された後、組織内のすべてのチームを一覧表示するために必要
 - **Channel.ReadBasic.All** — チャンネルの存在を確認し、チャンネルの詳細を取得するために必要
-- **ChannelMessage.Send** — プログラムでチャンネルにメッセージを送信するために必要
+
+`ChannelMessage.Send`は委任されたアクセス許可のみです。[Microsoft Graphアクセス許可リファレンス](https://learn.microsoft.com/en-us/graph/permissions-reference#channelmessagesend)にアプリケーションアクセス許可の種類はありません。上記の委任されたアクセス許可の一覧に残してください。
 
 **注意：** ボットフレームワークは、TeamsアプリのマニフェストにあるResource-Specific Consent（RSC）権限を使用してメッセージ配信を処理します。これらの権限は：
 

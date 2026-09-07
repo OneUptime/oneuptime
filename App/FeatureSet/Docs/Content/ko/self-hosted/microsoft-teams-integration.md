@@ -7,6 +7,18 @@
 - Azure 계정 - [https://azure.com](https://azure.com)에서 생성할 수 있습니다
 - OneUptime 서버 구성에 대한 액세스
 
+### 사설 네트워크에 배포
+
+OneUptime은 Teams 통합에 Azure Bot을 사용합니다. Incoming Webhook이나 Teams Workflow URL은 이 봇의 메시징 엔드포인트를 대체하지 않습니다. Microsoft는 [자체 호스팅 봇에 공개적으로 접근 가능한 HTTPS 엔드포인트](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0)를 요구합니다. 사설 IP 주소, 내부 DNS 이름, 직원의 VPN 연결은 Azure Bot Service에 OneUptime 액세스를 제공하지 않습니다.
+
+설정을 계속하기 전에 [통합을 위한 사설 네트워크 액세스](/docs/self-hosted/integration-network-access)를 따르세요. 이 가이드는 공개 DNS, 신뢰할 수 있는 TLS, 비공개 배포로 전달하는 역방향 프록시, 방화벽 규칙, 검증을 설명합니다. Teams의 경우 `/api/microsoft-bot/messages`를 공개하고 4단계의 Azure Bot **메시징 엔드포인트**를 해당 전체 공개 HTTPS URL로 설정하세요. `/api` 접두사, 요청 본문, `Authorization` 헤더를 보존합니다. 봇의 인증이 요청을 검증하도록 하세요. 대화형 프록시 로그인이나 브라우저 확인 절차가 있으면 Microsoft가 요청을 전달할 수 없습니다.
+
+앱 등록 리디렉션 `/api/microsoft-teams/auth`와 `/api/microsoft-teams/admin-consent/callback`은 사용자 브라우저를 통해 돌아옵니다. 이 브라우저는 회사 네트워크나 VPN 등을 통해 OneUptime에 접근할 수 있어야 합니다. 봇 메시지와 카드 동작은 Microsoft 서버에서 도착하므로 별도로 접근 가능한 인그레스가 필요합니다. 아웃바운드 알림 전달만으로는 인바운드 연결을 검증할 수 없습니다.
+
+개발 환경을 위해 Microsoft의 [Teams 테스트 가이드](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/debug)는 터널로 로컬 서비스를 공개하는 방법을 설명합니다. OneUptime 인그레스로 전달하고 Microsoft 예시의 `/api/messages` 경로 대신 `/api/microsoft-bot/messages`를 사용하세요. 공개 터널 URL이 바뀔 때마다 Azure Bot 엔드포인트를 업데이트하고 프로덕션에서는 안정적인 인그레스를 사용합니다.
+
+Azure Bot Private Endpoint는 이 Teams 인그레스를 대체하지 않습니다. Microsoft의 [네트워크 격리 지침](https://learn.microsoft.com/en-us/azure/bot-service/dl-network-isolation-how-to?view=azure-bot-service-4.0)은 Direct Line 격리를 설명하며, 공개 네트워크 액세스를 끄면 Teams 채널 설정이 해제된다고 명시합니다.
+
 ## 설정 지침
 
 ### 1단계: Azure 앱 등록 생성
@@ -37,7 +49,8 @@
 
 - **Team.ReadBasic.All** - 관리자 동의가 부여된 후 조직의 모든 팀을 나열하는 데 필요합니다
 - **Channel.ReadBasic.All** - 채널 존재 확인 및 채널 세부 정보 검색에 필요합니다
-- **ChannelMessage.Send** - 프로그래밍 방식으로 채널에 메시지를 전송하는 데 필요합니다
+
+`ChannelMessage.Send`는 위임된 권한만 제공합니다. [Microsoft Graph 권한 참조](https://learn.microsoft.com/en-us/graph/permissions-reference#channelmessagesend)에 애플리케이션 권한 유형은 없습니다. 위의 위임된 권한 목록에 유지하세요.
 
 **참고:** Bot Framework는 Teams 앱 매니페스트에 정의된 리소스별 동의 (RSC) 권한을 사용하여 메시지 전달을 처리합니다. 이러한 권한은:
 

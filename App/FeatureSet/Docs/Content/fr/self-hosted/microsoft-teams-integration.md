@@ -7,6 +7,18 @@ Pour intégrer Microsoft Teams avec votre instance auto-hébergée OneUptime, vo
 - Compte Azure — Vous pouvez en créer un en allant sur [https://azure.com](https://azure.com)
 - Accès à la configuration de votre serveur OneUptime
 
+### Déploiements sur des réseaux privés
+
+OneUptime utilise un Azure Bot pour son intégration Teams. Une URL Incoming Webhook ou Teams Workflow ne remplace pas le point de terminaison de messagerie de ce bot. Microsoft exige un [point de terminaison HTTPS accessible publiquement pour un bot auto-hébergé](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0). Une adresse IP privée, un nom DNS interne ou la connexion VPN d'un employé ne donne pas à Azure Bot Service accès à OneUptime.
+
+Suivez le guide d'[accès aux réseaux privés pour les intégrations](/docs/self-hosted/integration-network-access) avant de poursuivre la configuration. Il couvre le DNS public, TLS avec des certificats de confiance, un proxy inverse transmettant les requêtes vers votre déploiement privé, les règles de pare-feu et la vérification. Pour Teams, publiez `/api/microsoft-bot/messages` et définissez le **point de terminaison de messagerie** Azure Bot à l'étape 4 sur cette URL HTTPS publique complète. Conservez le préfixe `/api`, le corps de la requête et l'en-tête `Authorization`. Laissez l'authentification du bot valider les requêtes ; une connexion interactive au proxy ou un contrôle par navigateur empêche Microsoft de les transmettre.
+
+Les redirections de l'inscription d'application `/api/microsoft-teams/auth` et `/api/microsoft-teams/admin-consent/callback` reviennent par le navigateur de l'utilisateur. Ce navigateur doit pouvoir joindre OneUptime, par exemple via le réseau de votre entreprise ou un VPN. Les messages du bot et les actions des cartes arrivent depuis les serveurs Microsoft et nécessitent leur propre ingress accessible. La livraison d'alertes sortantes ne vérifie pas à elle seule la connectivité entrante.
+
+Pour le développement, le [guide de test Teams de Microsoft](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/debug) décrit l'exposition d'un service local par un tunnel. Transmettez les requêtes vers l'ingress OneUptime et utilisez `/api/microsoft-bot/messages` à la place du chemin d'exemple Microsoft `/api/messages`. Mettez à jour le point de terminaison Azure Bot chaque fois que l'URL publique du tunnel change et utilisez un ingress stable en production.
+
+Azure Bot Private Endpoint ne remplace pas cet ingress Teams. Les [instructions d'isolation réseau Microsoft](https://learn.microsoft.com/en-us/azure/bot-service/dl-network-isolation-how-to?view=azure-bot-service-4.0) décrivent l'isolation de Direct Line et précisent que désactiver l'accès au réseau public supprime la configuration des canaux Teams.
+
 ## Instructions de configuration
 
 ### Étape 1 : Créer un enregistrement d'application Azure
@@ -37,7 +49,8 @@ Pour intégrer Microsoft Teams avec votre instance auto-hébergée OneUptime, vo
 
 - **Team.ReadBasic.All** — Requis pour lister toutes les équipes de l'organisation après l'octroi du consentement administrateur
 - **Channel.ReadBasic.All** — Requis pour vérifier l'existence du canal et récupérer les détails du canal
-- **ChannelMessage.Send** — Requis pour envoyer des messages aux canaux par programmation
+
+`ChannelMessage.Send` est uniquement une autorisation déléguée ; elle n'a pas de variante d'autorisation d'application dans la [référence des autorisations Microsoft Graph](https://learn.microsoft.com/en-us/graph/permissions-reference#channelmessagesend). Conservez-la dans la liste des autorisations déléguées ci-dessus.
 
 **Remarque :** Le Bot Framework gère la livraison des messages en utilisant les permissions de consentement spécifique aux ressources (RSC) définies dans le manifeste de l'application Teams. Ces permissions sont :
 

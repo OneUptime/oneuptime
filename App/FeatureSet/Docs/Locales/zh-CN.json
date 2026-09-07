@@ -196,6 +196,8 @@
     "OneUptime API Reference": "OneUptime API 参考",
     "Slack Integration": "Slack 集成",
     "Microsoft Teams Integration": "Microsoft Teams 集成",
+    "Twilio Integration": "Twilio 集成",
+    "Integration Access from Private Networks": "从私有网络访问集成",
     "GitHub Integration": "GitHub 集成",
     "Push Notifications": "推送通知",
     "SendGrid Inbound Email": "SendGrid 入站邮件",
