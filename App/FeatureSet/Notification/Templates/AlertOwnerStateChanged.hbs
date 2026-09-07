@@ -5,9 +5,6 @@
   every few minutes and every one of them previewed as "Alert state has
   changed", so the list gave the reader nothing to triage on.
 --}}
-<!-- Preheader (hidden inbox preview) -->
-<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#f3f4f6;opacity:0;">{{preheader}}</div>
-
 {{> Logo this}}
 {{> EmailTitle title=(concat "Alert " alertNumber ": " alertTitle) }}
 
@@ -48,8 +45,7 @@
 
 {{> ButtonBlock buttonUrl=alertViewLink buttonText="View on Dashboard"}}
 
-{{> InfoBlock info="You can also copy and paste this link:"}}
-{{> InfoBlock info=alertViewLink}}
+{{> LinkBlock linkUrl=alertViewLink linkLabel="You can also copy and paste this link:"}}
 
 {{> OwnerInfo this }}
 {{> UnsubscribeOwnerEmail this }}

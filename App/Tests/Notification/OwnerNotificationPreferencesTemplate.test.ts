@@ -140,7 +140,7 @@ describe("owner notification preferences footer", () => {
         "Choose which notifications you receive in this project.",
       );
       expect(html).not.toContain("how emails are grouped");
-      expect(html).not.toContain(FALLBACK);
+      expect(html).not.toContain(Handlebars.escapeExpression(FALLBACK));
     },
   );
 
@@ -149,7 +149,7 @@ describe("owner notification preferences footer", () => {
     (vars: Record<string, string>) => {
       const html: string = render("Partials/UnsubscribeOwnerEmail.hbs", vars);
 
-      expect(html).toContain(FALLBACK);
+      expect(html).toContain(Handlebars.escapeExpression(FALLBACK));
       expect(html).toContain("choose which notification emails you receive");
       expect(html).not.toContain("href=");
       expect(html).not.toContain("Manage notification preferences");

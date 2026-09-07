@@ -443,9 +443,9 @@ describe("NotificationRollup.hbs rendered with the builder's own vars", () => {
       email.vars,
     );
 
-    expect(html).toContain("Open Project");
-    expect(html).toContain(`href=${PROJECT_HOME_LINK}`);
-    expect(html).toContain("Why did I get one email instead of several?");
+    expect(html).toContain("View Your Project");
+    expect(html).toContain(`href="${PROJECT_HOME_LINK}"`);
+    expect(html).toContain("Your notification preferences");
     expect(html).toContain(`href="${PREFERENCES_LINK}"`);
     /*
      * Email Preferences, not Notification Settings: this footer's whole job
@@ -836,7 +836,7 @@ describe("NotificationRollup.hbs sections", () => {
     const found: Array<string> = [];
 
     for (const match of html.matchAll(
-      /text-transform: uppercase; color: #6b7280;">([^<]*)<\/td>\s*<td align="right"[^>]*>([^<]*)<\/td>/g,
+      /text-transform:\s*uppercase;[^">]*">([^<]*)<\/td>\s*<td align="right"[^>]*>([^<]*)<\/td>/g,
     )) {
       found.push(`${match[1]!.trim()} ${match[2]!.trim()}`);
     }

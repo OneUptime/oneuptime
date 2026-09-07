@@ -1,7 +1,7 @@
 {{> Start this}}
 
 <!-- Preheader (hidden inbox preview) -->
-<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#f3f4f6;opacity:0;">{{statusPageName}} uptime report — {{report.averageUptimePercent}} average uptime for {{report.reportPeriodName}}.</div>
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#f1f5f9;opacity:0;">{{statusPageName}} uptime report — {{report.averageUptimePercent}} average uptime for {{report.reportPeriodName}}.</div>
 
 {{> CustomLogo this}}
 
@@ -11,24 +11,24 @@
 {{> InfoBlock info=(concat (concat "Here is your status summary for " report.reportPeriodName) ".") }}
 
 <!-- Hero Stat: Average Uptime -->
-<table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+<table role="presentation" class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; max-width: 100%; table-layout: fixed;">
   <tbody>
     <tr>
-      <td class="st-Spacer st-Spacer--gutter" width="64" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
+      <td class="st-Spacer st-Spacer--gutter" width="40" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
       <td style="border:0;margin:0;padding:0;">
-        <table border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#f1f5f9" style="background-color:#f1f5f9;border:1px solid #e2e8f0;border-radius:12px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#f8fafc" style="width:100%;table-layout:fixed;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
           <tbody>
             <tr>
               <td align="center" style="padding:28px 24px 26px 24px;">
                 <p style="Margin:0 0 6px 0;font-size:11px;font-weight:600;letter-spacing:0.6px;text-transform:uppercase;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">Average Uptime</p>
-                <p style="Margin:0;font-size:52px;line-height:56px;font-weight:700;color:#1a1a2e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.averageUptimePercent}}</p>
+                <p style="Margin:0;font-size:44px;line-height:52px;letter-spacing:-1.2px;font-weight:700;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.averageUptimePercent}}</p>
                 <p style="Margin:10px 0 0 0;font-size:13px;line-height:18px;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.reportStartDate}} &ndash; {{report.reportEndDate}} ({{report.reportTimezone}})</p>
               </td>
             </tr>
           </tbody>
         </table>
       </td>
-      <td class="st-Spacer st-Spacer--gutter" width="64" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
+      <td class="st-Spacer st-Spacer--gutter" width="40" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
     </tr>
     <tr>
       <td class="st-Spacer st-Spacer--stacked" colspan="3" height="14" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
@@ -38,31 +38,31 @@
 <!-- /Hero Stat -->
 
 <!-- Supporting Stats Strip (Downtime · Incidents · Resources) -->
-<table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+<table role="presentation" class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; max-width: 100%; table-layout: fixed;">
   <tbody>
     <tr>
-      <td class="st-Spacer st-Spacer--gutter" width="64" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
+      <td class="st-Spacer st-Spacer--gutter" width="40" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
       <td style="border:0;margin:0;padding:0;">
-        <table border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#f1f5f9" style="background-color:#f1f5f9;border:1px solid #e2e8f0;border-radius:12px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#f8fafc" style="width:100%;table-layout:fixed;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
           <tbody>
             <tr>
               <td width="33%" align="center" valign="middle" style="padding:18px 8px;border-right:1px solid #e2e8f0;">
-                <p style="Margin:0;font-size:24px;line-height:28px;font-weight:700;color:#1a1a2e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.totalDowntimeInHoursAndMinutes}}</p>
+                <p style="Margin:0;font-size:22px;line-height:28px;overflow-wrap:anywhere;word-break:break-word;font-weight:700;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.totalDowntimeInHoursAndMinutes}}</p>
                 <p style="Margin:6px 0 0 0;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">Downtime</p>
               </td>
               <td width="33%" align="center" valign="middle" style="padding:18px 8px;border-right:1px solid #e2e8f0;">
-                <p style="Margin:0;font-size:24px;line-height:28px;font-weight:700;color:#1a1a2e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.totalIncidents}}</p>
+                <p style="Margin:0;font-size:22px;line-height:28px;overflow-wrap:anywhere;word-break:break-word;font-weight:700;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.totalIncidents}}</p>
                 <p style="Margin:6px 0 0 0;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">Incidents</p>
               </td>
               <td width="34%" align="center" valign="middle" style="padding:18px 8px;">
-                <p style="Margin:0;font-size:24px;line-height:28px;font-weight:700;color:#1a1a2e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.totalResources}}</p>
+                <p style="Margin:0;font-size:22px;line-height:28px;overflow-wrap:anywhere;word-break:break-word;font-weight:700;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.totalResources}}</p>
                 <p style="Margin:6px 0 0 0;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">Resources</p>
               </td>
             </tr>
           </tbody>
         </table>
       </td>
-      <td class="st-Spacer st-Spacer--gutter" width="64" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
+      <td class="st-Spacer st-Spacer--gutter" width="40" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
     </tr>
     <tr>
       <td class="st-Spacer st-Spacer--stacked" colspan="3" height="22" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
@@ -84,46 +84,46 @@
   depth of nesting without recursion, which email clients handle poorly.
   Group rows carry the uptime rolled up over everything beneath them.
 -->
-<table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
+<table role="presentation" class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; max-width: 100%; table-layout: fixed;">
   <tbody>
     <tr>
-      <td class="st-Spacer st-Spacer--gutter" width="64" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
+      <td class="st-Spacer st-Spacer--gutter" width="40" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
       <td style="border:0;margin:0;padding:0;">
-        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:separate;border-spacing:0;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">
+        <table class="st-ReportTable" aria-label="Uptime by resource" border="0" cellpadding="0" cellspacing="0" width="100%" style="width:100%;table-layout:fixed;overflow-wrap:anywhere;word-break:break-word;border-collapse:separate;border-spacing:0;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">
           <thead>
             <tr>
-              <th align="left" bgcolor="#1a1a2e" style="background-color:#1a1a2e;color:#ffffff;padding:12px 14px;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;text-align:left;">{{#if report.hasGroups}}Group / Resource{{else}}Resource{{/if}}</th>
-              <th align="right" bgcolor="#1a1a2e" style="background-color:#1a1a2e;color:#ffffff;padding:12px 14px;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;text-align:right;">Uptime</th>
-              <th align="right" bgcolor="#1a1a2e" style="background-color:#1a1a2e;color:#ffffff;padding:12px 14px;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;text-align:right;">Downtime</th>
-              <th align="right" bgcolor="#1a1a2e" style="background-color:#1a1a2e;color:#ffffff;padding:12px 14px;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;text-align:right;">Incidents</th>
+              <th scope="col" align="left" width="34%" bgcolor="#f8fafc" style="background-color:#f8fafc;color:#64748b;padding:14px 10px;font-size:12px;line-height:18px;font-weight:600;text-align:left;">{{#if report.hasGroups}}Group / Resource{{else}}Resource{{/if}}</th>
+              <th scope="col" align="right" width="22%" bgcolor="#f8fafc" style="background-color:#f8fafc;color:#64748b;padding:14px 10px;font-size:12px;line-height:18px;font-weight:600;text-align:right;">Uptime</th>
+              <th scope="col" align="right" width="22%" bgcolor="#f8fafc" style="background-color:#f8fafc;color:#64748b;padding:14px 10px;font-size:12px;line-height:18px;font-weight:600;text-align:right;">Downtime</th>
+              <th scope="col" align="right" width="22%" bgcolor="#f8fafc" style="background-color:#f8fafc;color:#64748b;padding:14px 10px;font-size:12px;line-height:18px;font-weight:600;text-align:right;">Incidents</th>
             </tr>
           </thead>
           <tbody>
             {{#each report.rows}}
             {{#if this.isGroup}}
-            <tr bgcolor="#e8ecf5" style="background-color:#e8ecf5;">
-              <td align="left" style="padding:12px 14px;border-top:1px solid #d6dcea;font-size:14px;color:#1a1a2e;font-weight:700;">
-                <div style="margin-left:{{this.indentInPixels}}px;">{{this.name}}<span style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;"> &middot; {{this.totalResources}} resources</span></div>
+            <tr bgcolor="#f1f5f9" style="background-color:#f1f5f9;">
+              <td align="left" style="padding:14px 10px;border-top:1px solid #e2e8f0;font-size:14px;line-height:22px;color:#0f172a;font-weight:700;">
+                <div class="st-ReportName st-ReportIndent" style="margin-left:{{this.indentInPixels}}px;">{{this.name}}<span style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;"> &middot; {{this.totalResources}} resources</span></div>
               </td>
-              <td align="right" style="padding:12px 14px;border-top:1px solid #d6dcea;font-size:14px;color:#1a1a2e;font-weight:700;text-align:right;">{{this.uptimePercentAsString}}</td>
-              <td align="right" style="padding:12px 14px;border-top:1px solid #d6dcea;font-size:14px;color:#1a1a2e;font-weight:600;text-align:right;">{{this.downtimeInHoursAndMinutes}}</td>
-              <td align="right" style="padding:12px 14px;border-top:1px solid #d6dcea;font-size:14px;color:#1a1a2e;font-weight:700;text-align:right;">{{this.totalIncidentCount}}</td>
+              <td align="right" style="padding:14px 10px;border-top:1px solid #e2e8f0;font-size:14px;line-height:22px;color:#0f172a;font-weight:700;text-align:right;">{{this.uptimePercentAsString}}</td>
+              <td align="right" style="padding:14px 10px;border-top:1px solid #e2e8f0;font-size:14px;line-height:22px;color:#0f172a;font-weight:600;text-align:right;">{{this.downtimeInHoursAndMinutes}}</td>
+              <td align="right" style="padding:14px 10px;border-top:1px solid #e2e8f0;font-size:14px;line-height:22px;color:#0f172a;font-weight:700;text-align:right;">{{this.totalIncidentCount}}</td>
             </tr>
             {{else}}
             <tr bgcolor="#ffffff" style="background-color:#ffffff;">
-              <td align="left" style="padding:12px 14px;border-top:1px solid #e5e8f0;font-size:14px;color:#374151;font-weight:500;">
-                <div style="margin-left:{{this.indentInPixels}}px;">{{this.name}}</div>
+              <td align="left" style="padding:14px 10px;border-top:1px solid #e2e8f0;font-size:14px;line-height:22px;color:#475569;font-weight:500;">
+                <div class="st-ReportName st-ReportIndent" style="margin-left:{{this.indentInPixels}}px;">{{this.name}}</div>
               </td>
-              <td align="right" style="padding:12px 14px;border-top:1px solid #e5e8f0;font-size:14px;color:#1e293b;font-weight:600;text-align:right;">{{this.uptimePercentAsString}}</td>
-              <td align="right" style="padding:12px 14px;border-top:1px solid #e5e8f0;font-size:14px;color:#374151;text-align:right;">{{this.downtimeInHoursAndMinutes}}</td>
-              <td align="right" style="padding:12px 14px;border-top:1px solid #e5e8f0;font-size:14px;color:#1e293b;font-weight:600;text-align:right;">{{this.totalIncidentCount}}</td>
+              <td align="right" style="padding:14px 10px;border-top:1px solid #e2e8f0;font-size:14px;line-height:22px;color:#0f172a;font-weight:600;text-align:right;">{{this.uptimePercentAsString}}</td>
+              <td align="right" style="padding:14px 10px;border-top:1px solid #e2e8f0;font-size:14px;line-height:22px;color:#475569;text-align:right;">{{this.downtimeInHoursAndMinutes}}</td>
+              <td align="right" style="padding:14px 10px;border-top:1px solid #e2e8f0;font-size:14px;line-height:22px;color:#0f172a;font-weight:600;text-align:right;">{{this.totalIncidentCount}}</td>
             </tr>
             {{/if}}
             {{/each}}
           </tbody>
         </table>
       </td>
-      <td class="st-Spacer st-Spacer--gutter" width="64" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
+      <td class="st-Spacer st-Spacer--gutter" width="40" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
     </tr>
     <tr>
       <td class="st-Spacer st-Spacer--stacked" colspan="3" height="22" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>

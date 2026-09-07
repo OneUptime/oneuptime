@@ -175,8 +175,8 @@ describe("AlertOwnerResourceCreated.hbs", () => {
      * "Alert ALT-113" and then the closing tag, with the title dropped by
      * the two-argument `concat`.
      */
-    expect(html).not.toContain(`>Alert ${ALERT_NUMBER}</h2>`);
-    expect(html).toMatch(new RegExp(`>Alert ${ALERT_NUMBER}: .+</h2>`, "u"));
+    expect(html).not.toContain(`>Alert ${ALERT_NUMBER}</h1>`);
+    expect(html).toMatch(new RegExp(`>Alert ${ALERT_NUMBER}: .+</h1>`, "u"));
   });
 
   test("the affected resource reaches the body", () => {
@@ -489,10 +489,12 @@ describe("AlertOwnerResourceCreated.hbs information architecture", () => {
       });
 
       expect(html).toContain("CPU 91.53% · Pod: kubernetes-agent-logs-7t88f");
-      expect(html).toMatch(/display:none;max-height:0;overflow:hidden/u);
+      expect(html).toMatch(
+        /display:\s*none;\s*max-height:\s*0;\s*overflow:\s*hidden/u,
+      );
 
       // Hidden, i.e. it is inside the display:none div and not loose in the body.
-      const hidden: number = html.indexOf("display:none;max-height:0");
+      const hidden: number = html.search(/display:\s*none;\s*max-height:\s*0/u);
       const value: number = html.indexOf("CPU 91.53%");
 
       expect(hidden).toBeLessThan(value);
@@ -543,7 +545,7 @@ describe("AlertOwnerResourceCreated.hbs information architecture", () => {
       });
 
       expect(html).toContain("fired 19 times");
-      expect(html).toContain("background-color:#fffbeb");
+      expect(html).toMatch(/background-color:\s*#fffbeb/u);
     });
 
     /*
@@ -553,7 +555,7 @@ describe("AlertOwnerResourceCreated.hbs information architecture", () => {
     test("renders nothing at all when there is no repeat", () => {
       const html: string = render("AlertOwnerResourceCreated.hbs", VARS);
 
-      expect(html).not.toContain("background-color:#fffbeb");
+      expect(html).not.toMatch(/background-color:\s*#fffbeb/u);
     });
 
     test("escapes its text - the partial is general", () => {
@@ -662,7 +664,9 @@ describe("AlertOwnerStateChanged.hbs", () => {
     });
 
     expect(html).toContain("Resolved · Pod: kubernetes-agent-logs-7t88f");
-    expect(html).toMatch(/display:none;max-height:0;overflow:hidden/u);
+    expect(html).toMatch(
+      /display:\s*none;\s*max-height:\s*0;\s*overflow:\s*hidden/u,
+    );
   });
 });
 

@@ -4796,16 +4796,16 @@ export class Service extends DatabaseService<Model> {
 
         alertRows.push(`
             <tr>
-              <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
-                <table cellpadding="0" cellspacing="0" width="100%">
+              <td style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; overflow-wrap: anywhere; word-break: break-word;">
+                <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed;">
                   <tr>
                     <td style="vertical-align: middle;">
-                      <span style="display: inline-block; background-color: #dbeafe; color: #1e40af; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">${alertNumber}</span>
-                      <a href="${alertLink}" style="color: #2563eb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; font-weight: 500; text-decoration: none;">${alertTitle}</a>
-                      ${monitorName ? `<span style="display: block; color: #64748b; font-size: 12px; margin-top: 4px;">Monitor: ${monitorName}</span>` : ""}
+                      <span style="display: inline-block; background-color: #f1f5f9; color: #111111; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">${alertNumber}</span>
+                      <a href="${alertLink}" style="color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 24px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;">${alertTitle}</a>
+                      ${monitorName ? `<span style="display: block; color: #64748b; font-size: 13px; line-height: 20px; margin-top: 6px;">Monitor: ${monitorName}</span>` : ""}
                     </td>
-                    <td style="text-align: right; vertical-align: middle;">
-                      <a href="${alertLink}" style="color: #2563eb; font-size: 12px; text-decoration: none;">View →</a>
+                    <td width="52" style="text-align: right; vertical-align: middle; padding-left: 8px;">
+                      <a href="${alertLink}" style="color: #111111; font-size: 13px; line-height: 20px; text-decoration: underline;">View →</a>
                     </td>
                   </tr>
                 </table>
@@ -4815,7 +4815,7 @@ export class Service extends DatabaseService<Model> {
       }
       if (alertRows.length > 0) {
         alertsListHtml = `
-          <table cellpadding="0" cellspacing="0" width="100%" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 8px; border: 1px solid #e2e8f0; margin: 8px 0 16px 0;">
+          <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; margin: 8px 0 16px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
             <tbody>
               ${alertRows.join("")}
             </tbody>
@@ -4979,16 +4979,16 @@ export class Service extends DatabaseService<Model> {
 
         incidentRows.push(`
             <tr>
-              <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
-                <table cellpadding="0" cellspacing="0" width="100%">
+              <td style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; overflow-wrap: anywhere; word-break: break-word;">
+                <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed;">
                   <tr>
                     <td style="vertical-align: middle;">
                       <span style="display: inline-block; background-color: #fee2e2; color: #991b1b; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">${incidentNumber}</span>
-                      <a href="${incidentLink}" style="color: #2563eb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; font-weight: 500; text-decoration: none;">${incidentTitle}</a>
-                      ${monitorName ? `<span style="display: block; color: #64748b; font-size: 12px; margin-top: 4px;">Monitor: ${monitorName}</span>` : ""}
+                      <a href="${incidentLink}" style="color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 24px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;">${incidentTitle}</a>
+                      ${monitorName ? `<span style="display: block; color: #64748b; font-size: 13px; line-height: 20px; margin-top: 6px;">Monitor: ${monitorName}</span>` : ""}
                     </td>
-                    <td style="text-align: right; vertical-align: middle;">
-                      <a href="${incidentLink}" style="color: #2563eb; font-size: 12px; text-decoration: none;">View →</a>
+                    <td width="52" style="text-align: right; vertical-align: middle; padding-left: 8px;">
+                      <a href="${incidentLink}" style="color: #111111; font-size: 13px; line-height: 20px; text-decoration: underline;">View →</a>
                     </td>
                   </tr>
                 </table>
@@ -4998,7 +4998,7 @@ export class Service extends DatabaseService<Model> {
       }
       if (incidentRows.length > 0) {
         incidentsListHtml = `
-          <table cellpadding="0" cellspacing="0" width="100%" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 8px; border: 1px solid #e2e8f0; margin: 8px 0 16px 0;">
+          <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; margin: 8px 0 16px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
             <tbody>
               ${incidentRows.join("")}
             </tbody>

@@ -8,9 +8,6 @@
   inbox showed the same sentence: "A new alert has been created in the
   project". Same pattern as StatusPageSubscriberReport.hbs.
 --}}
-<!-- Preheader (hidden inbox preview) -->
-<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#f3f4f6;opacity:0;">{{preheader}}</div>
-
 {{> Logo this}}
 {{> EmailTitle title=(concat "Alert " alertNumber ": " alertTitle) }}
 
@@ -57,8 +54,7 @@
 
 {{> ButtonBlock buttonUrl=alertViewLink buttonText="View on Dashboard"}}
 
-{{> InfoBlock info="You can also copy and paste this link:"}}
-{{> InfoBlock info=alertViewLink}}
+{{> LinkBlock linkUrl=alertViewLink linkLabel="You can also copy and paste this link:"}}
 
 {{> OwnerInfo this }}
 {{> UnsubscribeOwnerEmail this }}
