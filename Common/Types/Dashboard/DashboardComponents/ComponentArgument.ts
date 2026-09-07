@@ -18,6 +18,7 @@ export enum ComponentInputType {
   MultiSelectDropdown = "MultiSelectDropdown",
   EntityDropdown = "EntityDropdown",
   EntityMultiSelectDropdown = "EntityMultiSelectDropdown",
+  ProjectLabelVariable = "ProjectLabelVariable",
   // Monaco code editors, one per language.
   Html = "Html",
   Css = "Css",

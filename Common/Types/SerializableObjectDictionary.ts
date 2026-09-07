@@ -8,6 +8,7 @@ import GreaterThanOrEqual from "./BaseDatabase/GreaterThanOrEqual";
 import InBetween from "./BaseDatabase/InBetween";
 import Includes from "./BaseDatabase/Includes";
 import IncludesAll from "./BaseDatabase/IncludesAll";
+import IncludesAnyOfGroups from "./BaseDatabase/IncludesAnyOfGroups";
 import IncludesNone from "./BaseDatabase/IncludesNone";
 import StartsWith from "./BaseDatabase/StartsWith";
 import EndsWith from "./BaseDatabase/EndsWith";
@@ -154,6 +155,9 @@ const SerializableObjectDictionary: Dictionary<any> = {
   },
   get [ObjectType.IncludesAll](): any {
     return IncludesAll;
+  },
+  get [ObjectType.IncludesAnyOfGroups](): any {
+    return IncludesAnyOfGroups;
   },
   get [ObjectType.IncludesNone](): any {
     return IncludesNone;

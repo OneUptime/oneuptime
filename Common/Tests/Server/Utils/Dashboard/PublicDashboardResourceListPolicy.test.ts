@@ -3,6 +3,7 @@ import PublicDashboardResourceListPolicy, {
 } from "../../../../Server/Utils/Dashboard/PublicDashboardResourceListPolicy";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../../Types/BaseDatabase/Includes";
+import IncludesAnyOfGroups from "../../../../Types/BaseDatabase/IncludesAnyOfGroups";
 import Search from "../../../../Types/BaseDatabase/Search";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
@@ -1035,6 +1036,219 @@ describe("PublicDashboardResourceListPolicy", () => {
           ],
         });
       }).toThrow(BadDataException);
+    });
+  });
+
+  describe("monitor project label variables", () => {
+    const firstLabelId: string = ObjectID.generate().toString();
+    const secondLabelId: string = ObjectID.generate().toString();
+    const fixedLabelId: string = ObjectID.generate().toString();
+    const labelVariable: JSONObject = {
+      id: "unit",
+      name: "UNIT",
+      type: DashboardVariableType.ProjectLabel,
+      labelOptions: [
+        { label: "Payments", value: firstLabelId },
+        { label: "Support", value: secondLabelId },
+      ],
+      defaultValue: firstLabelId,
+    };
+
+    it("filters by the saved variable's default when no selection was sent", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.MonitorList,
+        argumentsObject: { labelVariableId: "unit" },
+        storedVariables: [labelVariable],
+      });
+
+      expect(result.query).toEqual({ labels: new Includes([firstLabelId]) });
+    });
+
+    it("uses the selected label ID while retaining the saved widget filters", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.MonitorList,
+        argumentsObject: {
+          labelVariableId: "unit",
+          statusFilter: "operational",
+          monitorTypes: ["Ping"],
+          monitorStatusIds: ["status"],
+          maxRows: 7,
+        },
+        storedVariables: [labelVariable],
+        requestedVariables: [{ id: "unit", selectedValue: secondLabelId }],
+      });
+
+      expect(result.query).toEqual({
+        labels: new Includes([secondLabelId]),
+        currentMonitorStatus: { isOperationalState: true },
+        monitorType: new Includes(["Ping"]),
+        currentMonitorStatusId: new Includes(["status"]),
+      });
+      expect(result.limit).toBe(7);
+      expect(result.sort).toEqual({ name: SortOrder.Ascending });
+      expect(result.select).toEqual({
+        _id: true,
+        name: true,
+        monitorType: true,
+        currentMonitorStatus: { name: true, color: true },
+      });
+    });
+
+    it("requires both a fixed label group and the selected variable group", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.MonitorList,
+        argumentsObject: {
+          labelVariableId: "unit",
+          labelIds: [fixedLabelId],
+        },
+        storedVariables: [labelVariable],
+        requestedVariables: [{ id: "unit", selectedValue: secondLabelId }],
+      });
+
+      expect(result.query["labels"]).toEqual(
+        new IncludesAnyOfGroups([[fixedLabelId], [secondLabelId]]),
+      );
+    });
+
+    it("lets All clear only the variable filter and preserves fixed labels", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.MonitorList,
+        argumentsObject: {
+          labelVariableId: "unit",
+          labelIds: [fixedLabelId],
+        },
+        storedVariables: [labelVariable],
+        requestedVariables: [{ id: "unit", selectedValue: "" }],
+      });
+
+      expect(result.query["labels"]).toEqual(new Includes([fixedLabelId]));
+    });
+
+    it("leaves the label filter absent when All is selected without fixed labels", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.MonitorList,
+        argumentsObject: { labelVariableId: "unit" },
+        storedVariables: [labelVariable],
+        requestedVariables: [{ id: "unit", selectedValue: "" }],
+      });
+
+      expect(result.query["labels"]).toBeUndefined();
+    });
+
+    it("matches either selected label for a multi-select", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.MonitorList,
+        argumentsObject: { labelVariableId: "unit" },
+        storedVariables: [{ ...labelVariable, isMultiSelect: true }],
+        requestedVariables: [
+          { id: "unit", selectedValues: [firstLabelId, secondLabelId] },
+        ],
+      });
+
+      expect(result.query["labels"]).toEqual(
+        new Includes([firstLabelId, secondLabelId]),
+      );
+    });
+
+    it("treats an empty multi-select as All even when a default or stale scalar exists", () => {
+      for (const requestedVariables of [
+        [],
+        [{ id: "unit", selectedValue: firstLabelId, selectedValues: [] }],
+      ]) {
+        const result: PublicDashboardResourceListPolicyResult = build({
+          componentType: DashboardComponentType.MonitorList,
+          argumentsObject: {
+            labelVariableId: "unit",
+            labelIds: [fixedLabelId],
+          },
+          storedVariables: [{ ...labelVariable, isMultiSelect: true }],
+          requestedVariables,
+        });
+
+        expect(result.query["labels"]).toEqual(new Includes([fixedLabelId]));
+      }
+    });
+
+    it("ignores stale multi-select values for a saved single-select", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.MonitorList,
+        argumentsObject: { labelVariableId: "unit" },
+        storedVariables: [labelVariable],
+        requestedVariables: [
+          {
+            id: "unit",
+            selectedValue: firstLabelId,
+            selectedValues: [secondLabelId],
+          },
+        ],
+      });
+
+      expect(result.query["labels"]).toEqual(new Includes([firstLabelId]));
+    });
+
+    it("does not apply a label variable to an unbound widget", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.MonitorList,
+        argumentsObject: { labelIds: [fixedLabelId] },
+        storedVariables: [labelVariable],
+        requestedVariables: [{ id: "unit", selectedValue: secondLabelId }],
+      });
+
+      expect(result.query["labels"]).toEqual(new Includes([fixedLabelId]));
+    });
+
+    it("rejects a selection that is no longer among the published choices", () => {
+      expect(() => {
+        return build({
+          componentType: DashboardComponentType.MonitorList,
+          argumentsObject: { labelVariableId: "unit" },
+          storedVariables: [labelVariable],
+          requestedVariables: [
+            { id: "unit", selectedValue: ObjectID.generate().toString() },
+          ],
+        });
+      }).toThrow(BadDataException);
+    });
+
+    it("rejects a missing or incompatible saved variable binding", () => {
+      for (const storedVariables of [
+        [],
+        [
+          {
+            id: "unit",
+            name: "UNIT",
+            type: DashboardVariableType.TelemetryAttribute,
+            attributeKey: "unit",
+          },
+        ],
+      ]) {
+        expect(() => {
+          return build({
+            componentType: DashboardComponentType.MonitorList,
+            argumentsObject: { labelVariableId: "unit" },
+            storedVariables,
+          });
+        }).toThrow(BadDataException);
+      }
+    });
+
+    it("rejects malformed saved label choices", () => {
+      for (const labelOptions of [
+        null,
+        "Payments",
+        [null],
+        [{ value: firstLabelId }],
+        [{ label: "Payments", value: 42 }],
+        [{ label: "", value: firstLabelId }],
+      ]) {
+        expect(() => {
+          return build({
+            componentType: DashboardComponentType.MonitorList,
+            argumentsObject: { labelVariableId: "unit" },
+            storedVariables: [{ ...labelVariable, labelOptions }],
+          });
+        }).toThrow(BadDataException);
+      }
     });
   });
 
