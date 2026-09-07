@@ -30,10 +30,15 @@ There are a lot of tests in the app, please do not run all of them, run only the
 
 ### Helm chart
 
-The chart lives in `HelmChart/Public/oneuptime`. It has cluster-free unit tests in
-`HelmChart/Public/oneuptime/tests` (helm-unittest); run them with `npm run test-helm-chart`
+Two charts are published: the product itself in `HelmChart/Public/oneuptime`, and the
+Kubernetes agent in `HelmChart/Public/kubernetes-agent`. Both have cluster-free unit tests
+in their own `tests/` directory (helm-unittest); run them with `npm run test-helm-chart`
 (it installs the plugin for you through the runner, or install it yourself with
 `helm plugin install https://github.com/helm-unittest/helm-unittest`).
+
+The agent chart writes the OpenTelemetry collector configuration, which decides what
+resource attributes ingest actually sees — so a mistake there surfaces as wrong data
+rather than as a failed deploy. Prefer a render assertion over a careful reading.
 
 `npm run test-helm-chart-all` runs every chart test — lint, those unit tests, and the
 cluster-backed suites that install the chart on a throwaway KinD cluster. That is the

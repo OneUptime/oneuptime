@@ -355,7 +355,7 @@ data:
       resource:
         attributes:
           - key: k8s.cluster.name
-            value: {{ .Values.clusterName | quote }}
+            value: {{ include "kubernetes-agent.clusterName" . | quote }}
             action: insert
           - key: service.name
             value: "kubernetes-agent-{{ .Values.clusterName }}"
@@ -486,16 +486,27 @@ data:
         {{- if .Values.ebpf.enabled }}
         # Traces pipeline: accept OTLP spans from the eBPF DaemonSet, enrich
         # with k8s attributes, stamp cluster name, and forward to OneUptime.
-        # We deliberately omit the `resource` processor's service.name
-        # override here — OBI sets a per-process service.name from k8s
-        # workload metadata, and we want to preserve it so each app shows up
-        # under its own service in the dashboard.
+        #
+        # `resource` belongs here for the same reason it does on the metrics
+        # and logs pipelines: OneUptime folds `k8s.cluster.name` into the
+        # identity of every Kubernetes entity it derives, so a span that
+        # arrives with a pod, node and namespace but no cluster describes a
+        # DIFFERENT pod, node and namespace than the metrics do — and the same
+        # objects end up listed twice in Inventory. This receiver takes spans
+        # from anything in the cluster that points at the agent's OTLP
+        # service, not just from OBI, and an application SDK has no way to
+        # know the cluster's name.
+        #
+        # It cannot clobber OBI's per-process `service.name`: every attribute
+        # in that processor uses `action: insert`, which fills in only what is
+        # missing, so each app still shows up under its own service.
         traces:
           receivers:
             - otlp
           processors:
             - memory_limiter
             - k8sattributes
+            - resource
             {{- if and .Values.ebpf.enabled (eq (include "kubernetes-agent.traceFiltersEnabled" .) "true") }}
             # k8sattributes resolves the sending pod to a namespace, so this
             # must stay after it — before it, every span looks namespace-less.

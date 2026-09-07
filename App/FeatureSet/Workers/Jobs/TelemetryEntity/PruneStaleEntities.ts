@@ -60,6 +60,17 @@ const ENTITY_TTL_HOURS: ReadonlyMap<EntityType, number> = new Map<
   [EntityType.KubernetesCluster, 30 * 24],
   [EntityType.ProxmoxCluster, 30 * 24],
   [EntityType.CephCluster, 30 * 24],
+  /*
+   * Discovered from `docker.swarm.cluster.name` on agent telemetry, so it is
+   * bumped like any other discovered row and has to age out like one. It was
+   * simply missed when the Docker Swarm types were added after this map, and
+   * a type that is promoted but absent here is unreachable by the sweep —
+   * meaning a decommissioned swarm, or a row left behind by an identity
+   * change, stays in Inventory forever. The other three swarm types are
+   * declared but never resolved from a resource (their inventory arrives as
+   * JSON-line logs), so they mint no discovered rows and need no TTL.
+   */
+  [EntityType.DockerSwarmCluster, 30 * 24],
 ]);
 
 // Edges carry no entity type, so they get the longest entity TTL.

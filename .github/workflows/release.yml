@@ -188,8 +188,12 @@ jobs:
           helm template oneuptime --values oneuptime/values.yaml
           helm package --sign --key 'key@oneuptime.com' --keyring ~/.gnupg/secring.gpg oneuptime --version ${{needs.read-version.outputs.major_minor}} --app-version ${{needs.read-version.outputs.major_minor}}
           echo "OneUptime Helm Chart Package created successfully"
-          helm lint kubernetes-agent
-          helm template kubernetes-agent --values kubernetes-agent/values.yaml
+          # clusterName has no default and cannot have one -- it is what keeps
+          # one cluster's nodes and namespaces distinct from another's in
+          # OneUptime, so the chart refuses to render without it. Supply a
+          # throwaway value here; this only proves the templates render.
+          helm lint kubernetes-agent --set clusterName=ci-render-check
+          helm template kubernetes-agent --values kubernetes-agent/values.yaml --set clusterName=ci-render-check
           helm package --sign --key 'key@oneuptime.com' --keyring ~/.gnupg/secring.gpg kubernetes-agent --version ${{needs.read-version.outputs.major_minor}} --app-version ${{needs.read-version.outputs.major_minor}}
           echo "Kubernetes Agent Helm Chart Package created successfully"
           cd ..

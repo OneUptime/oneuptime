@@ -45,7 +45,13 @@ oneuptime:
   # Labels added in the OneUptime UI are never removed by the agent.
   labels: {}
 
-# Required: Unique name for this cluster (used as k8s.cluster.name attribute)
+# Required: Unique name for this cluster (used as k8s.cluster.name attribute).
+#
+# Enforced at render time — the chart refuses to install without it. This is not
+# just a label: OneUptime folds k8s.cluster.name into the identity of every
+# Kubernetes entity it derives, so it is the only thing separating this
+# cluster's `worker-1` and `default` namespace from another cluster's. Two
+# clusters installed without it are silently merged into one estate.
 clusterName: ""
 
 # Namespace filters — scoped rules for deciding which namespaces are observed.
