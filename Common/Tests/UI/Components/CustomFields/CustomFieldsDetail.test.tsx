@@ -78,7 +78,9 @@ import CustomFieldsDetail from "../../../../UI/Components/CustomFields/CustomFie
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentCustomField from "../../../../Models/DatabaseModels/IncidentCustomField";
+import { CardButtonSchema } from "../../../../UI/Components/Card/Card";
 import CustomFieldType from "../../../../Types/CustomField/CustomFieldType";
+import IconProp from "../../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 
@@ -153,6 +155,8 @@ const resolveListWith: ResolveListFunction = (data: Array<BaseModel>): void => {
 interface RenderOptions {
   hideIfEmpty?: boolean | undefined;
   isEditable?: boolean | undefined;
+  additionalButtons?: Array<CardButtonSchema> | undefined;
+  onValuesLoaded?: ((customFields: JSONObject) => void) | undefined;
 }
 
 type RenderCardFunction = (options?: RenderOptions) => void;
@@ -169,6 +173,8 @@ const renderCard: RenderCardFunction = (options?: RenderOptions): void => {
       modelId={INCIDENT_ID}
       hideIfEmpty={options?.hideIfEmpty}
       isEditable={options?.isEditable}
+      additionalButtons={options?.additionalButtons}
+      onValuesLoaded={options?.onValuesLoaded}
     />,
   );
 };
@@ -715,5 +721,159 @@ describe("CustomFieldsDetail - a rejected save", () => {
     });
 
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+/*
+ * Both props exist for the Monitor Template's Custom Field Defaults card
+ * (issue #3548), which needs a second button — "Sync Custom Fields to Linked
+ * Monitors" — and needs to word and enable that button from the values this
+ * card has actually loaded.
+ */
+describe("CustomFieldsDetail - additionalButtons", () => {
+  const buildSyncButton: (onClick: () => void) => CardButtonSchema = (
+    onClick: () => void,
+  ): CardButtonSchema => {
+    return {
+      title: "Sync Custom Fields",
+      icon: IconProp.Refresh,
+      onClick: onClick,
+    };
+  };
+
+  test("renders beside the edit button and calls back when clicked", async () => {
+    const onSyncClick: MockFunction = getJestMockFunction();
+    resolveListWith(buildSchema([{ name: "Vendor" }]));
+    getItemMock.mockResolvedValue(buildIncident({ Vendor: "Cisco" }) as never);
+
+    renderCard({
+      additionalButtons: [
+        buildSyncButton(() => {
+          onSyncClick();
+        }),
+      ],
+    });
+
+    expect(await screen.findByText("Edit Fields")).toBeInTheDocument();
+    const syncButton: HTMLElement = screen.getByText("Sync Custom Fields");
+
+    fireEvent.click(syncButton);
+
+    expect(onSyncClick).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * A disabled extra button stays on screen: its tooltip is where the reason
+   * lives ("Set at least one default above before syncing"), and a button that
+   * vanishes takes the explanation with it.
+   */
+  test("honours disabled without removing the button", async () => {
+    const onSyncClick: MockFunction = getJestMockFunction();
+    resolveListWith(buildSchema([{ name: "Vendor" }]));
+    getItemMock.mockResolvedValue(buildIncident(undefined) as never);
+
+    renderCard({
+      additionalButtons: [
+        {
+          ...buildSyncButton(() => {
+            onSyncClick();
+          }),
+          disabled: true,
+        },
+      ],
+    });
+
+    fireEvent.click(await screen.findByText("Sync Custom Fields"));
+
+    expect(onSyncClick).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The gating on "Edit Fields" is about whether there is anything to edit
+   * here. Whether a push to OTHER records is worth offering is the caller's
+   * question, and it still has an answer on a record with no values — that is
+   * exactly when the caller wants to say why the push is unavailable.
+   */
+  test("renders even when there is no edit button to sit beside", async () => {
+    resolveListWith([]);
+    getItemMock.mockResolvedValue(buildIncident(undefined) as never);
+
+    renderCard({
+      additionalButtons: [
+        buildSyncButton(() => {
+          // Nothing: this test is about the button existing.
+        }),
+      ],
+    });
+
+    expect(await screen.findByText(NO_FIELDS_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText("Edit Fields")).not.toBeInTheDocument();
+    expect(screen.getByText("Sync Custom Fields")).toBeInTheDocument();
+  });
+});
+
+describe("CustomFieldsDetail - onValuesLoaded", () => {
+  test("reports the record's stored bag once the load settles", async () => {
+    const onValuesLoaded: MockFunction = getJestMockFunction();
+    resolveListWith(buildSchema([{ name: "Vendor" }]));
+    getItemMock.mockResolvedValue(buildIncident({ Vendor: "Cisco" }) as never);
+
+    renderCard({
+      onValuesLoaded: (customFields: JSONObject): void => {
+        onValuesLoaded(customFields);
+      },
+    });
+
+    await waitFor(() => {
+      expect(onValuesLoaded).toHaveBeenCalledWith({ Vendor: "Cisco" });
+    });
+  });
+
+  // A record with nothing stored is a value, not a missing callback.
+  test("reports an empty bag for a record with no custom fields", async () => {
+    const onValuesLoaded: MockFunction = getJestMockFunction();
+    resolveListWith(buildSchema([{ name: "Vendor" }]));
+    getItemMock.mockResolvedValue(buildIncident(undefined) as never);
+
+    renderCard({
+      onValuesLoaded: (customFields: JSONObject): void => {
+        onValuesLoaded(customFields);
+      },
+    });
+
+    await waitFor(() => {
+      expect(onValuesLoaded).toHaveBeenCalledWith({});
+    });
+  });
+
+  /*
+   * The reason this is a callback rather than something the caller fetches
+   * itself: an edit made in this card has to reach the caller, or its extra
+   * button goes on explaining a state that is two saves out of date.
+   */
+  test("reports again with the new values after a save", async () => {
+    const onValuesLoaded: MockFunction = getJestMockFunction();
+    resolveListWith(buildSchema([{ name: "Vendor" }]));
+    getItemMock.mockResolvedValue(buildIncident(undefined) as never);
+    updateByIdMock.mockResolvedValue(undefined as never);
+
+    renderCard({
+      onValuesLoaded: (customFields: JSONObject): void => {
+        onValuesLoaded(customFields);
+      },
+    });
+
+    await waitFor(() => {
+      expect(onValuesLoaded).toHaveBeenCalledWith({});
+    });
+
+    getItemMock.mockResolvedValue(buildIncident({ Vendor: "Cisco" }) as never);
+
+    fireEvent.click(await screen.findByText("Edit Fields"));
+    fireEvent.click(await screen.findByText("Save"));
+
+    await waitFor(() => {
+      expect(onValuesLoaded).toHaveBeenCalledWith({ Vendor: "Cisco" });
+    });
   });
 });
