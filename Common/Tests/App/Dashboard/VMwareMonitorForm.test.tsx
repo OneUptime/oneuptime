@@ -20,24 +20,34 @@ import {
   VmwareAlertTemplateArgs,
 } from "../../../Types/Monitor/VmwareAlertTemplates";
 
-jest.mock("Common/Models/DatabaseModels/VMwareSource", () => ({
-  __esModule: true,
-  default: class VMwareSource {},
-}));
-jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => ({
-  __esModule: true,
-  default: { getList: jest.fn() },
-}));
-jest.mock("Common/UI/Utils/Navigation", () => ({
-  __esModule: true,
-  default: { getQueryStringByName: jest.fn() },
-}));
+jest.mock("Common/Models/DatabaseModels/VMwareSource", () => {
+  return {
+    __esModule: true,
+    default: class VMwareSource {},
+  };
+});
+jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
+  return {
+    __esModule: true,
+    default: { getList: jest.fn() },
+  };
+});
+jest.mock("Common/UI/Utils/Navigation", () => {
+  return {
+    __esModule: true,
+    default: { getQueryStringByName: jest.fn() },
+  };
+});
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/MetricView",
-  () => ({
-    __esModule: true,
-    default: (): React.ReactElement => <div>Advanced metric editor</div>,
-  }),
+  () => {
+    return {
+      __esModule: true,
+      default: (): React.ReactElement => {
+        return <div>Advanced metric editor</div>;
+      },
+    };
+  },
 );
 
 const templateDefaults: Omit<
@@ -70,16 +80,19 @@ describe("VMware monitor setup", () => {
     jest.mocked(Navigation.getQueryStringByName).mockReturnValue(null);
   });
   test("a source/resource link preselects stable identities, rather than display names", async () => {
-    jest.mocked(Navigation.getQueryStringByName).mockImplementation(
-      (key: string) =>
-        (
-          ({
-            vmwareSource: "prod",
-            vmwareResource: "vm-42",
-            vmwareResourceType: "vm",
-          }) as Record<string, string>
-        )[key] || null,
-    );
+    jest
+      .mocked(Navigation.getQueryStringByName)
+      .mockImplementation((key: string) => {
+        return (
+          (
+            {
+              vmwareSource: "prod",
+              vmwareResource: "vm-42",
+              vmwareResourceType: "vm",
+            } as Record<string, string>
+          )[key] || null
+        );
+      });
     const onChange: MockFunction = getJestMockFunction();
     render(
       <VmwareMonitorStepForm
@@ -108,7 +121,9 @@ describe("VMware monitor setup", () => {
     await screen.findByRole("option", { name: "Production (prod)" });
     const buttons: Array<HTMLElement> = screen
       .getAllByRole("button")
-      .filter((button: HTMLElement) => button.hasAttribute("aria-pressed"));
+      .filter((button: HTMLElement) => {
+        return button.hasAttribute("aria-pressed");
+      });
     expect(buttons).toHaveLength(getVmwareAlertTemplates().length);
     for (const button of buttons) {
       expect(button).toBeDisabled();
@@ -118,7 +133,9 @@ describe("VMware monitor setup", () => {
     const onChange: MockFunction = getJestMockFunction();
     const onCriteria: MockFunction = getJestMockFunction();
     const template: VmwareAlertTemplate = getVmwareAlertTemplates().find(
-      (item: VmwareAlertTemplate) => item.category === "VM",
+      (item: VmwareAlertTemplate) => {
+        return item.category === "VM";
+      },
     )!;
     const config: MonitorStepVmwareMonitor = {
       ...MonitorStepVmwareMonitorUtil.getDefault(),
@@ -154,8 +171,9 @@ describe("VMware monitor setup", () => {
     expect(changed.metricViewConfig.queryConfigs).toHaveLength(2);
     expect(
       changed.metricViewConfig.queryConfigs.map(
-        (query: MetricQueryConfigData): string =>
-          query.metricAliasData.metricVariable,
+        (query: MetricQueryConfigData): string => {
+          return query.metricAliasData.metricVariable;
+        },
       ),
     ).toEqual(["A", "B"]);
     expect(
@@ -174,7 +192,9 @@ describe("VMware monitor setup", () => {
   test("collection templates discard resource scope even when entered from a VM", async () => {
     const onChange: MockFunction = getJestMockFunction();
     const template: VmwareAlertTemplate = getVmwareAlertTemplates().find(
-      (item: VmwareAlertTemplate) => item.category === "Collection",
+      (item: VmwareAlertTemplate) => {
+        return item.category === "Collection";
+      },
     )!;
     render(
       <VmwareMonitorStepForm

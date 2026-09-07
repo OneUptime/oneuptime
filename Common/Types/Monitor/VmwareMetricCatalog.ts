@@ -113,50 +113,54 @@ const metrics: Array<VmwareMetricDefinition> = [
     defaultResourceType: VmwareResourceType.VM,
   },
   ...([VmwareResourceType.Host, VmwareResourceType.VM] as const).flatMap(
-    (type: VmwareResourceType): Array<VmwareMetricDefinition> => [
-      {
-        id: `${type}-cpu`,
-        friendlyName: `${type === VmwareResourceType.Host ? "Host" : "VM"} CPU utilization`,
-        description:
-          "CPU use as a percentage of the available host or VM CPU capacity. Sustained utilization is a warning signal, not proof of an outage.",
-        metricName: `oneuptime.vmware.${type}.cpu.utilization`,
-        category: type === VmwareResourceType.Host ? "Host" : "VM",
-        defaultAggregation: MetricsAggregationType.Avg,
-        defaultResourceType: type,
-        unit: "%",
-      },
-      {
-        id: `${type}-memory`,
-        friendlyName: `${type === VmwareResourceType.Host ? "Host" : "VM"} memory utilization`,
-        description:
-          "Memory use reported by vSphere as a percentage of configured capacity; unavailable readings remain unknown.",
-        metricName: `oneuptime.vmware.${type}.memory.utilization`,
-        category: type === VmwareResourceType.Host ? "Host" : "VM",
-        defaultAggregation: MetricsAggregationType.Avg,
-        defaultResourceType: type,
-        unit: "%",
-      },
-    ],
+    (type: VmwareResourceType): Array<VmwareMetricDefinition> => {
+      return [
+        {
+          id: `${type}-cpu`,
+          friendlyName: `${type === VmwareResourceType.Host ? "Host" : "VM"} CPU utilization`,
+          description:
+            "CPU use as a percentage of the available host or VM CPU capacity. Sustained utilization is a warning signal, not proof of an outage.",
+          metricName: `oneuptime.vmware.${type}.cpu.utilization`,
+          category: type === VmwareResourceType.Host ? "Host" : "VM",
+          defaultAggregation: MetricsAggregationType.Avg,
+          defaultResourceType: type,
+          unit: "%",
+        },
+        {
+          id: `${type}-memory`,
+          friendlyName: `${type === VmwareResourceType.Host ? "Host" : "VM"} memory utilization`,
+          description:
+            "Memory use reported by vSphere as a percentage of configured capacity; unavailable readings remain unknown.",
+          metricName: `oneuptime.vmware.${type}.memory.utilization`,
+          category: type === VmwareResourceType.Host ? "Host" : "VM",
+          defaultAggregation: MetricsAggregationType.Avg,
+          defaultResourceType: type,
+          unit: "%",
+        },
+      ];
+    },
   ),
   ...(["utilization", "capacity", "used", "free"] as const).map(
     (
       field: "utilization" | "capacity" | "used" | "free",
-    ): VmwareMetricDefinition => ({
-      id: `datastore-${field}`,
-      friendlyName: `Datastore ${field}`,
-      description:
-        field === "utilization"
-          ? "Used datastore capacity as a percentage of total capacity."
-          : `Datastore ${field} in bytes.`,
-      metricName: `oneuptime.vmware.datastore.disk.${field}`,
-      category: "Datastore",
-      defaultAggregation:
-        field === "free"
-          ? MetricsAggregationType.Min
-          : MetricsAggregationType.Max,
-      defaultResourceType: VmwareResourceType.Datastore,
-      unit: field === "utilization" ? "%" : "By",
-    }),
+    ): VmwareMetricDefinition => {
+      return {
+        id: `datastore-${field}`,
+        friendlyName: `Datastore ${field}`,
+        description:
+          field === "utilization"
+            ? "Used datastore capacity as a percentage of total capacity."
+            : `Datastore ${field} in bytes.`,
+        metricName: `oneuptime.vmware.datastore.disk.${field}`,
+        category: "Datastore",
+        defaultAggregation:
+          field === "free"
+            ? MetricsAggregationType.Min
+            : MetricsAggregationType.Max,
+        defaultResourceType: VmwareResourceType.Datastore,
+        unit: field === "utilization" ? "%" : "By",
+      };
+    },
   ),
 ];
 
@@ -168,21 +172,23 @@ export const getAllVmwareMetrics: () => Array<VmwareMetricDefinition> =
 export function getVmwareMetricsByCategory(
   category: VmwareMetricCategory,
 ): Array<VmwareMetricDefinition> {
-  return metrics.filter(
-    (metric: VmwareMetricDefinition) => metric.category === category,
-  );
+  return metrics.filter((metric: VmwareMetricDefinition) => {
+    return metric.category === category;
+  });
 }
 export function getVmwareMetricByMetricName(
   name: string,
 ): VmwareMetricDefinition | undefined {
-  return metrics.find(
-    (metric: VmwareMetricDefinition) => metric.metricName === name,
-  );
+  return metrics.find((metric: VmwareMetricDefinition) => {
+    return metric.metricName === name;
+  });
 }
 export function getVmwareMetricById(
   id: string,
 ): VmwareMetricDefinition | undefined {
-  return metrics.find((metric: VmwareMetricDefinition) => metric.id === id);
+  return metrics.find((metric: VmwareMetricDefinition) => {
+    return metric.id === id;
+  });
 }
 export function getAllVmwareMetricCategories(): Array<VmwareMetricCategory> {
   return ["Collection", "Host", "VM", "Datastore", "Health"];

@@ -1,7 +1,11 @@
 import VMwareSource from "Common/Models/DatabaseModels/VMwareSource";
 import VMwareResource from "Common/Models/DatabaseModels/VMwareResource";
-import VMwareSourceService, { Service as VMwareSourceServiceType } from "Common/Server/Services/VMwareSourceService";
-import VMwareResourceService, { Service as VMwareResourceServiceType } from "Common/Server/Services/VMwareResourceService";
+import VMwareSourceService, {
+  Service as VMwareSourceServiceType,
+} from "Common/Server/Services/VMwareSourceService";
+import VMwareResourceService, {
+  Service as VMwareResourceServiceType,
+} from "Common/Server/Services/VMwareResourceService";
 import BaseAPI from "Common/Server/API/BaseAPI";
 import BaseAnalyticsAPI from "Common/Server/API/BaseAnalyticsAPI";
 import BillingAPI from "Common/Server/API/BillingAPI";
@@ -3065,9 +3069,20 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       new CephResourceAPI().getRouter(),
     );
-    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new BaseAPI<VMwareSource, VMwareSourceServiceType>(VMwareSource, VMwareSourceService).getRouter());
-    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new BaseAPI<VMwareResource, VMwareResourceServiceType>(VMwareResource, VMwareResourceService).getRouter());
-
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<VMwareSource, VMwareSourceServiceType>(
+        VMwareSource,
+        VMwareSourceService,
+      ).getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<VMwareResource, VMwareResourceServiceType>(
+        VMwareResource,
+        VMwareResourceService,
+      ).getRouter(),
+    );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

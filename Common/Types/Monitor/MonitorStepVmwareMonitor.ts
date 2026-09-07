@@ -68,11 +68,14 @@ export class MonitorStepVmwareMonitorUtil {
     return (
       monitor.metricViewConfig.queryConfigs.length > 0 &&
       monitor.metricViewConfig.queryConfigs.every(
-        (query: MetricQueryConfigData) =>
-          typeof query.metricQueryData.filterData.metricName === "string" &&
-          query.metricQueryData.filterData.metricName.startsWith(
-            "oneuptime.vmware.source.",
-          ),
+        (query: MetricQueryConfigData) => {
+          return (
+            typeof query.metricQueryData.filterData.metricName === "string" &&
+            query.metricQueryData.filterData.metricName.startsWith(
+              "oneuptime.vmware.source.",
+            )
+          );
+        },
       )
     );
   }
@@ -145,24 +148,26 @@ export class MonitorStepVmwareMonitorUtil {
       return "Select at least one VMware metric";
     }
     if (
-      queries.some(
-        (query: MetricQueryConfigData) =>
+      queries.some((query: MetricQueryConfigData) => {
+        return (
           typeof query?.metricQueryData?.filterData?.metricName !== "string" ||
           !query.metricQueryData.filterData.metricName.startsWith(
             "oneuptime.vmware.",
-          ),
-      )
+          )
+        );
+      })
     ) {
       return "VMware monitors require metrics from the OneUptime VMware Agent";
     }
     if (
-      queries.some(
-        (query: MetricQueryConfigData) =>
+      queries.some((query: MetricQueryConfigData) => {
+        return (
           typeof query.metricQueryData.filterData.metricName === "string" &&
           query.metricQueryData.filterData.metricName.startsWith(
             "oneuptime.vmware.source.",
-          ),
-      ) &&
+          )
+        );
+      }) &&
       !this.isSourceMonitor(monitor)
     ) {
       return "Collection health and resource metrics need separate VMware monitors";

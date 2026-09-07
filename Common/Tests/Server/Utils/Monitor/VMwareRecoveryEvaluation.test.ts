@@ -1,7 +1,3 @@
-jest.mock("isolated-vm", () => {
-  return {};
-});
-
 import MonitorStatusService from "../../../../Server/Services/MonitorStatusService";
 import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
@@ -17,9 +13,14 @@ import { getVmwareAlertTemplateById } from "../../../../Types/Monitor/VmwareAler
 import MetricQueryConfigData from "../../../../Types/Metrics/MetricQueryConfigData";
 import MetricsViewConfig from "../../../../Types/Metrics/MetricsViewConfig";
 import MetricSeriesResult from "../../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
-import { PerSeriesCriteriaMatch } from "../../../../Types/Probe/ProbeApiIngestResponse";
 import ObjectID from "../../../../Types/ObjectID";
-import ProbeApiIngestResponse from "../../../../Types/Probe/ProbeApiIngestResponse";
+import ProbeApiIngestResponse, {
+  PerSeriesCriteriaMatch,
+} from "../../../../Types/Probe/ProbeApiIngestResponse";
+
+jest.mock("isolated-vm", () => {
+  return {};
+});
 
 interface SeriesInput {
   id: string;
@@ -97,13 +98,13 @@ async function evaluate(input: {
                 ? series.recoveryValues || series.values
                 : series.values;
             return {
-              data: values.map(
-                (value: number): AggregateModel => {return {
+              data: values.map((value: number): AggregateModel => {
+                return {
                   timestamp: new Date(),
                   value,
                   attributes: labels,
-                }},
-              ),
+                };
+              }),
             };
           },
         );
@@ -111,11 +112,13 @@ async function evaluate(input: {
     }),
   };
   data.metricResult = metricViewConfig.queryConfigs.map(
-    (_query: MetricQueryConfigData, index: number): AggregatedResult => {return {
-      data: data.seriesBreakdown!.flatMap(
-        (series: MetricSeriesResult) => {return series.aggregatedResults[index]!.data},
-      ),
-    }},
+    (_query: MetricQueryConfigData, index: number): AggregatedResult => {
+      return {
+        data: data.seriesBreakdown!.flatMap((series: MetricSeriesResult) => {
+          return series.aggregatedResults[index]!.data;
+        }),
+      };
+    },
   );
   const summary: MonitorEvaluationSummary = {
     criteriaResults: [],
@@ -146,7 +149,9 @@ describe("VMware affirmative recovery through the actual criteria evaluator", ()
     expect(result.response.matchedCriteria).toHaveLength(2);
     expect(
       result.response.matchedCriteria![0]!.perSeriesMatches.map(
-        (match: PerSeriesCriteriaMatch) => {return match.fingerprint},
+        (match: PerSeriesCriteriaMatch) => {
+          return match.fingerprint;
+        },
       ),
     ).toEqual(["breaching"]);
   });

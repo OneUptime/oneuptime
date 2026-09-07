@@ -1,7 +1,9 @@
-jest.mock("Common/Server/Utils/PasswordHash", () => ({
-  __esModule: true,
-  default: class PasswordHashStub {},
-}));
+jest.mock("Common/Server/Utils/PasswordHash", () => {
+  return {
+    __esModule: true,
+    default: class PasswordHashStub {},
+  };
+});
 
 import OtelMetricsIngestService from "../../FeatureSet/Telemetry/Services/OtelMetricsIngestService";
 import VMwareTelemetryIngestService from "../../FeatureSet/Telemetry/Services/VMwareTelemetryIngestService";

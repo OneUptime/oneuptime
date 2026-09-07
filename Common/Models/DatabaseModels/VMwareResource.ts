@@ -58,11 +58,16 @@ export default class VMwareResource extends BaseModel {
     title: "Project",
     description: "project relation",
   })
-  @ManyToOne(() => Project, {
-    eager: false,
-    nullable: true,
-    onDelete: "CASCADE",
-  })
+  @ManyToOne(
+    () => {
+      return Project;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+    },
+  )
   @JoinColumn({ name: "projectId" })
   public project?: Project = undefined;
   @ColumnAccessControl({ create: CREATE, read: READ, update: [] })
@@ -88,11 +93,16 @@ export default class VMwareResource extends BaseModel {
     title: "Source",
     description: "source relation",
   })
-  @ManyToOne(() => VMwareSource, {
-    eager: false,
-    nullable: true,
-    onDelete: "CASCADE",
-  })
+  @ManyToOne(
+    () => {
+      return VMwareSource;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+    },
+  )
   @JoinColumn({ name: "sourceId" })
   public source?: VMwareSource = undefined;
   @ColumnAccessControl({ create: [], read: READ, update: [] })

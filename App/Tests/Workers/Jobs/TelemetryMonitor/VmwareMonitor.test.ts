@@ -19,31 +19,43 @@ import VmwareMonitorSeries from "Common/Server/Utils/Monitor/VmwareMonitorSeries
 import { monitorVmware } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 
-jest.mock("Common/Server/Infrastructure/Queue", () => ({
-  __esModule: true,
-  default: { addJob: jest.fn() },
-  QueueName: { Telemetry: "Telemetry" },
-}));
-jest.mock("Common/Server/Utils/VM/VMRunner", () => ({
-  __esModule: true,
-  default: {},
-}));
-jest.mock("Common/Server/Services/VMwareSourceService", () => ({
-  __esModule: true,
-  default: { findOneBy: jest.fn() },
-}));
-jest.mock("Common/Server/Services/VMwareResourceService", () => ({
-  __esModule: true,
-  default: { findBy: jest.fn() },
-}));
-jest.mock("Common/Server/Services/MetricService", () => ({
-  __esModule: true,
-  default: { aggregateBy: jest.fn() },
-}));
-jest.mock("Common/Server/Services/MetricTypeService", () => ({
-  __esModule: true,
-  default: { findBy: jest.fn() },
-}));
+jest.mock("Common/Server/Infrastructure/Queue", () => {
+  return {
+    __esModule: true,
+    default: { addJob: jest.fn() },
+    QueueName: { Telemetry: "Telemetry" },
+  };
+});
+jest.mock("Common/Server/Utils/VM/VMRunner", () => {
+  return {
+    __esModule: true,
+    default: {},
+  };
+});
+jest.mock("Common/Server/Services/VMwareSourceService", () => {
+  return {
+    __esModule: true,
+    default: { findOneBy: jest.fn() },
+  };
+});
+jest.mock("Common/Server/Services/VMwareResourceService", () => {
+  return {
+    __esModule: true,
+    default: { findBy: jest.fn() },
+  };
+});
+jest.mock("Common/Server/Services/MetricService", () => {
+  return {
+    __esModule: true,
+    default: { aggregateBy: jest.fn() },
+  };
+});
+jest.mock("Common/Server/Services/MetricTypeService", () => {
+  return {
+    __esModule: true,
+    default: { findBy: jest.fn() },
+  };
+});
 
 const sourceFind: jest.Mock = VMwareSourceService.findOneBy as jest.Mock;
 const resourceFind: jest.Mock = VMwareResourceService.findBy as jest.Mock;
@@ -90,17 +102,15 @@ function step(metric: string = "vm.cpu.utilization"): MonitorStep {
 beforeEach(() => {
   sourceFind.mockReset().mockResolvedValue(source);
   resourceFind.mockReset().mockResolvedValue([resource]);
-  aggregate
-    .mockReset()
-    .mockResolvedValue({
-      data: [
-        {
-          timestamp: now,
-          value: 95,
-          attributes: VmwareMonitorSeries.labels("vc-a", resource),
-        },
-      ],
-    });
+  aggregate.mockReset().mockResolvedValue({
+    data: [
+      {
+        timestamp: now,
+        value: 95,
+        attributes: VmwareMonitorSeries.labels("vc-a", resource),
+      },
+    ],
+  });
   units.mockReset().mockResolvedValue([]);
 });
 describe("VMware worker integration", () => {

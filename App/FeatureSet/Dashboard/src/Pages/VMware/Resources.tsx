@@ -72,22 +72,24 @@ const VMwareResources: FunctionComponent<{
           field: { name: true },
           title: "Name",
           type: FieldType.Element,
-          getElement: (item: VMwareResource): ReactElement => (
-            <Link
-              to={resourceRoute(source._id!, item._id!)}
-              className="font-medium text-gray-900 hover:underline dark:text-gray-100"
-            >
-              {item.name || item.resourceIdentifier}
-            </Link>
-          ),
+          getElement: (item: VMwareResource): ReactElement => {
+            return (
+              <Link
+                to={resourceRoute(source._id!, item._id!)}
+                className="font-medium text-gray-900 hover:underline dark:text-gray-100"
+              >
+                {item.name || item.resourceIdentifier}
+              </Link>
+            );
+          },
         },
         {
           field: { metadata: true },
           title: "State",
           type: FieldType.Element,
-          getElement: (item: VMwareResource): ReactElement => (
-            <VMwareStatus status={resourceStatus(item, source)} />
-          ),
+          getElement: (item: VMwareResource): ReactElement => {
+            return <VMwareStatus status={resourceStatus(item, source)} />;
+          },
         },
         {
           field: { metrics: true },
@@ -98,19 +100,23 @@ const VMwareResources: FunctionComponent<{
                 ? "Storage used"
                 : "CPU",
           type: FieldType.Element,
-          getElement: (item: VMwareResource): ReactElement => (
-            <span className="tabular-nums">
-              {resourceType === "cluster"
-                ? String(item.metadata?.["oneuptime.vmware.parent.name"] || "—")
-                : formatPercent(
-                    metricValue(
-                      item,
-                      `oneuptime.vmware.${resourceType === "datastore" ? "datastore.disk" : resourceType + ".cpu"}.utilization`,
-                      source,
-                    ),
-                  )}
-            </span>
-          ),
+          getElement: (item: VMwareResource): ReactElement => {
+            return (
+              <span className="tabular-nums">
+                {resourceType === "cluster"
+                  ? String(
+                      item.metadata?.["oneuptime.vmware.parent.name"] || "—",
+                    )
+                  : formatPercent(
+                      metricValue(
+                        item,
+                        `oneuptime.vmware.${resourceType === "datastore" ? "datastore.disk" : resourceType + ".cpu"}.utilization`,
+                        source,
+                      ),
+                    )}
+              </span>
+            );
+          },
         },
         ...(resourceType === "host" || resourceType === "vm"
           ? [
@@ -118,17 +124,19 @@ const VMwareResources: FunctionComponent<{
                 field: { resourceType: true },
                 title: "Memory",
                 type: FieldType.Element,
-                getElement: (item: VMwareResource): ReactElement => (
-                  <span className="tabular-nums">
-                    {formatPercent(
-                      metricValue(
-                        item,
-                        `oneuptime.vmware.${resourceType}.memory.utilization`,
-                        source,
-                      ),
-                    )}
-                  </span>
-                ),
+                getElement: (item: VMwareResource): ReactElement => {
+                  return (
+                    <span className="tabular-nums">
+                      {formatPercent(
+                        metricValue(
+                          item,
+                          `oneuptime.vmware.${resourceType}.memory.utilization`,
+                          source,
+                        ),
+                      )}
+                    </span>
+                  );
+                },
               },
             ]
           : []),

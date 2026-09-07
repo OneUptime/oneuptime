@@ -11,7 +11,9 @@ describe("VMware inventory access control", () => {
       expect(model.hasReadPermissions([Permission.ReadVMwareResource])).toBe(
         true,
       );
-      expect(model.hasReadPermissions([Permission.ReadMonitor])).toBe(false);
+      expect(model.hasReadPermissions([Permission.ReadProjectMonitor])).toBe(
+        false,
+      );
     }
   });
   it("keeps source-only grants separate from resource inventory", () => {

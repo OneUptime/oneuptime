@@ -17,8 +17,10 @@ export class Service extends DatabaseService<Model> {
     sourceId: ObjectID;
     resources: Array<VMwareResourceSnapshot>;
   }): Promise<void> {
-    // Validate the complete batch before writing any chunk. Never truncate keys:
-    // two long VMware IDs must not collide and overwrite each other's policies.
+    /*
+     * Validate the complete batch before writing any chunk. Never truncate keys:
+     * two long VMware IDs must not collide and overwrite each other's policies.
+     */
     const unique: Map<string, VMwareResourceSnapshot> = new Map();
     for (const resource of data.resources) {
       validateVMwareIdentifier(resource.resourceIdentifier);
@@ -55,8 +57,10 @@ export class Service extends DatabaseService<Model> {
           );
           return `($1::uuid, $2::uuid, $${start}, $${start + 1}, $${start + 2}, $${start + 3}::jsonb, $${start + 4}::jsonb, $${start + 5}::timestamptz, $${start + 6}::timestamptz, 0)`;
         });
-      // The parent join enforces tenant equality even for internal/root callers.
-      // User overrides and archive state are deliberately absent from the update.
+      /*
+       * The parent join enforces tenant equality even for internal/root callers.
+       * User overrides and archive state are deliberately absent from the update.
+       */
       await this.getRepository().manager.query(
         `
         INSERT INTO "VMwareResource" ("projectId", "sourceId", "resourceType", "resourceIdentifier", "name", "metadata", "metrics", "lastSeenAt", "lastReportedAt", "version")

@@ -85,9 +85,11 @@ export function getVMwareSourceIdentifier(attributes: unknown): string | null {
   return value === undefined ? null : validateVMwareIdentifier(value);
 }
 
-/* Fold once per OTLP batch, independently of metric count. No metric allow-list is
+/*
+ * Fold once per OTLP batch, independently of metric count. No metric allow-list is
  * needed to store telemetry, but resource inventory only consumes the companion contract.
- * Collector failure never deletes inventory or replaces absent metrics with zero. */
+ * Collector failure never deletes inventory or replaces absent metrics with zero.
+ */
 export function scanVMwareSnapshots(
   resourceMetrics: JSONArray,
   now: Date = new Date(),
@@ -186,9 +188,11 @@ export function scanVMwareSnapshots(
             };
             sources.set(sourceIdentifier, source);
           }
-          // Stock receiver data may precede the companion in the same export.
-          // Fill known source metadata from the newest companion values, without
-          // letting absent attributes on stock data erase that information.
+          /*
+           * Stock receiver data may precede the companion in the same export.
+           * Fill known source metadata from the newest companion values, without
+           * letting absent attributes on stock data erase that information.
+           */
           if (metricName.startsWith(VMWARE_PREFIX)) {
             const kindKey: string = JSON.stringify([sourceIdentifier, "kind"]);
             if (
@@ -301,8 +305,10 @@ export function scanVMwareSnapshots(
             resources.set(resourceKey, resource);
             source.resources.push(resource);
           }
-          // Last actual observation is independent of snapshot ordering: a
-          // delayed observed point can fill history even after an unknown report.
+          /*
+           * Last actual observation is independent of snapshot ordering: a
+           * delayed observed point can fill history even after an unknown report.
+           */
           if (
             attributes[`${VMWARE_PREFIX}resource.observed`] === true &&
             (!resource.lastSeenAt || time > resource.lastSeenAt.getTime())

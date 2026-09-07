@@ -17,28 +17,35 @@ function resource(
   return {
     resource: {
       attributes: Object.entries(attributes).map(
-        ([key, value]: [string, unknown]) => ({
-          key: `${PREFIX}${key}`,
-          value:
-            typeof value === "boolean"
-              ? { boolValue: value }
-              : typeof value === "number"
-                ? { doubleValue: value }
-                : { stringValue: value },
-        }),
+        ([key, value]: [string, unknown]) => {
+          return {
+            key: `${PREFIX}${key}`,
+            value:
+              typeof value === "boolean"
+                ? { boolValue: value }
+                : typeof value === "number"
+                  ? { doubleValue: value }
+                  : { stringValue: value },
+          };
+        },
       ),
     },
     scopeMetrics: [
       {
         metrics: Object.entries(metrics).map(
-          ([name, value]: [string, unknown]) => ({
-            name: name.startsWith("vcenter.") ? name : `${PREFIX}${name}`,
-            gauge: {
-              dataPoints: [
-                { asDouble: value, timeUnixNano: String(time.getTime() * 1e6) },
-              ],
-            },
-          }),
+          ([name, value]: [string, unknown]) => {
+            return {
+              name: name.startsWith("vcenter.") ? name : `${PREFIX}${name}`,
+              gauge: {
+                dataPoints: [
+                  {
+                    asDouble: value,
+                    timeUnixNano: String(time.getTime() * 1e6),
+                  },
+                ],
+              },
+            };
+          },
         ),
       },
     ],
@@ -177,16 +184,18 @@ describe("VMware telemetry snapshot contract", () => {
   it.each(["", " ", " prod", "x".repeat(501)])(
     "rejects invalid identity without trimming/collision: %s",
     (id: string) => {
-      expect(() => validateVMwareIdentifier(id)).toThrow();
+      expect(() => {
+        return validateVMwareIdentifier(id);
+      }).toThrow();
     },
   );
   it("does not truncate distinct valid IDs", () => {
     const ids: Array<string> = ["a".repeat(499) + "1", "a".repeat(499) + "2"];
     expect(
       scan(
-        ids.map((id: string) =>
-          resource(vm({ "resource.id": id }), { "resource.state": 1 }),
-        ),
+        ids.map((id: string) => {
+          return resource(vm({ "resource.id": id }), { "resource.state": 1 });
+        }),
       )[0]!.resources,
     ).toHaveLength(2);
   });
@@ -237,13 +246,13 @@ it("retains the last successful collection when a later scrape fails in the same
   expect(result.metrics[`${PREFIX}source.up`]).toBe(0);
 });
 it("rejects excessive source cardinality instead of silently dropping inventory", () => {
-  expect(() =>
-    scan(
-      Array.from({ length: 101 }, (_: unknown, i: number) =>
-        resource({ "source.id": `source-${i}` }, { "source.up": 1 }),
-      ),
-    ),
-  ).toThrow("Too many VMware sources");
+  expect(() => {
+    return scan(
+      Array.from({ length: 101 }, (_: unknown, i: number) => {
+        return resource({ "source.id": `source-${i}` }, { "source.up": 1 });
+      }),
+    );
+  }).toThrow("Too many VMware sources");
 });
 
 it("preserves actual last-seen even when an older observed report arrives after an unknown report", () => {

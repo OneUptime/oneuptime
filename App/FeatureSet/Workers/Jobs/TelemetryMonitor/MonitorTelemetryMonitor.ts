@@ -1437,9 +1437,9 @@ export const monitorVmware: MonitorMetricFunction = async (
     monitorStep: step,
   });
   if (
-    response.metricResult.some(
-      (result: AggregatedResult) => result.truncated || result.errorMessage,
-    )
+    response.metricResult.some((result: AggregatedResult) => {
+      return result.truncated || result.errorMessage;
+    })
   ) {
     throw new BadDataException(
       "VMware metric query returned incomplete results; resource states are unchanged",
@@ -1448,8 +1448,10 @@ export const monitorVmware: MonitorMetricFunction = async (
   const resources: Array<VMwareResource> = [];
   if (!isSourceMonitor) {
     const pageSize: number = 1000;
-    // Stable ordering and pagination avoid the raw-row truncation inherited by
-    // older branded monitor implementations. Every expected resource is read.
+    /*
+     * Stable ordering and pagination avoid the raw-row truncation inherited by
+     * older branded monitor implementations. Every expected resource is read.
+     */
     for (let skip: number = 0; ; skip += pageSize) {
       const page: Array<VMwareResource> = await VMwareResourceService.findBy({
         query: {
@@ -1495,33 +1497,39 @@ export const monitorVmware: MonitorMetricFunction = async (
   });
   response.unavailableSeriesFingerprints = policy.unavailableSeriesFingerprints;
   response.seriesBreakdown = policy.series
-    .filter(
-      (series: MetricSeriesResult) =>
+    .filter((series: MetricSeriesResult) => {
+      return (
         isSourceMonitor ||
-        series.aggregatedResults.some(
-          (result: AggregatedResult) => result.data.length > 0,
-        ),
-    )
-    .map((series: MetricSeriesResult) => ({
-      ...series,
-      aggregatedResults: appendFormulaResults({
-        queryConfigs: metricConfig.metricViewConfig.queryConfigs,
-        formulaConfigs: metricConfig.metricViewConfig.formulaConfigs || [],
-        aggregatedResults: series.aggregatedResults,
-        projectId: data.projectId,
-      }),
-    }));
+        series.aggregatedResults.some((result: AggregatedResult) => {
+          return result.data.length > 0;
+        })
+      );
+    })
+    .map((series: MetricSeriesResult) => {
+      return {
+        ...series,
+        aggregatedResults: appendFormulaResults({
+          queryConfigs: metricConfig.metricViewConfig.queryConfigs,
+          formulaConfigs: metricConfig.metricViewConfig.formulaConfigs || [],
+          aggregatedResults: series.aggregatedResults,
+          projectId: data.projectId,
+        }),
+      };
+    });
   const resultCount: number =
     metricConfig.metricViewConfig.queryConfigs.length +
     (metricConfig.metricViewConfig.formulaConfigs?.length || 0);
   response.metricResult = Array.from(
     { length: resultCount },
-    (_: unknown, index: number) => ({
-      data: response.seriesBreakdown!.flatMap(
-        (series: MetricSeriesResult) =>
-          series.aggregatedResults[index]?.data || [],
-      ),
-    }),
+    (_: unknown, index: number) => {
+      return {
+        data: response.seriesBreakdown!.flatMap(
+          (series: MetricSeriesResult) => {
+            return series.aggregatedResults[index]?.data || [];
+          },
+        ),
+      };
+    },
   );
   if (!isSourceMonitor && response.seriesBreakdown.length === 0) {
     response.skipEvaluationReason =

@@ -723,9 +723,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         metricCatalog.metricNameServiceNameMap;
       let totalMetricsProcessed: number = 0;
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
-      // Parse and persist inventory once per source/batch, then reuse routing
-      // metadata for every ResourceMetrics block. Never invent Service/Host rows
-      // from the collector's service.name or vCenter's host display attributes.
+      /*
+       * Parse and persist inventory once per source/batch, then reuse routing
+       * metadata for every ResourceMetrics block. Never invent Service/Host rows
+       * from the collector's service.name or vCenter's host display attributes.
+       */
       const vmwareSources: Map<string, TelemetryServiceMetadata> =
         await VMwareTelemetryIngestService.ingest(projectId, resourceMetrics);
 
@@ -909,8 +911,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             vmwareSourceIdentifier
               ? vmwareSources.get(vmwareSourceIdentifier)
               : undefined;
-          // A deleted source or an invalid/empty VMware batch must not fall
-          // through to generic service/host discovery and resurrect inventory.
+          /*
+           * A deleted source or an invalid/empty VMware batch must not fall
+           * through to generic service/host discovery and resurrect inventory.
+           */
           if (vmwareSourceIdentifier && !vmwareMetadata) {
             continue;
           }

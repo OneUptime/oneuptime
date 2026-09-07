@@ -17,7 +17,9 @@ const VMwareSources: FunctionComponent = (): ReactElement => {
   const [refresh, setRefresh] = useState<number>(0);
   useEffect(() => {
     const timer: ReturnType<typeof setInterval> = setInterval(() => {
-      setRefresh((value: number) => value + 1);
+      setRefresh((value: number) => {
+        return value + 1;
+      });
     }, 10000);
     return () => {
       clearInterval(timer);
@@ -98,14 +100,16 @@ const VMwareSources: FunctionComponent = (): ReactElement => {
             field: { name: true },
             title: "Source",
             type: FieldType.Element,
-            getElement: (item: VMwareSource): ReactElement => (
-              <Link
-                to={sourceRoute(item._id!)}
-                className="font-medium text-gray-900 hover:underline dark:text-gray-100"
-              >
-                {item.name || item.sourceIdentifier}
-              </Link>
-            ),
+            getElement: (item: VMwareSource): ReactElement => {
+              return (
+                <Link
+                  to={sourceRoute(item._id!)}
+                  className="font-medium text-gray-900 hover:underline dark:text-gray-100"
+                >
+                  {item.name || item.sourceIdentifier}
+                </Link>
+              );
+            },
           },
           {
             field: { sourceIdentifier: true },
@@ -116,17 +120,17 @@ const VMwareSources: FunctionComponent = (): ReactElement => {
             field: { kind: true },
             title: "Endpoint type",
             type: FieldType.Element,
-            getElement: (item: VMwareSource): ReactElement => (
-              <span>{sourceKindLabel(item.kind)}</span>
-            ),
+            getElement: (item: VMwareSource): ReactElement => {
+              return <span>{sourceKindLabel(item.kind)}</span>;
+            },
           },
           {
             field: { lastSeenAt: true },
             title: "Collection",
             type: FieldType.Element,
-            getElement: (item: VMwareSource): ReactElement => (
-              <VMwareStatus status={sourceStatus(item)} />
-            ),
+            getElement: (item: VMwareSource): ReactElement => {
+              return <VMwareStatus status={sourceStatus(item)} />;
+            },
           },
           {
             field: { lastSuccessfulCollectionAt: true },

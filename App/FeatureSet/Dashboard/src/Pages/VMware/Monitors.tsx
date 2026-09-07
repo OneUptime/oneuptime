@@ -9,29 +9,32 @@ import Navigation from "Common/UI/Utils/Navigation";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { monitorRoute } from "./Utils";
 
-const VMwareMonitors: FunctionComponent = (): ReactElement => (
-  <MonitorTable
-    query={{ monitorType: MonitorType.VMware }}
-    title="VMware monitors"
-    description="Alert on collection failures, expected VM availability, ESXi host health, and datastore capacity."
-    disableCreate={true}
-    cardButtons={[
-      PermissionGate.gateCardButton(
-        {
-          title: "Create VMware monitor",
-          icon: IconProp.Add,
-          buttonStyle: ButtonStyleType.PRIMARY,
-          onClick: () => {
-            Navigation.navigate(monitorRoute());
+const VMwareMonitors: FunctionComponent = (): ReactElement => {
+  return (
+    <MonitorTable
+      query={{ monitorType: MonitorType.VMware }}
+      title="VMware monitors"
+      description="Alert on collection failures, expected VM availability, ESXi host health, and datastore capacity."
+      disableCreate={true}
+      cardButtons={[
+        PermissionGate.gateCardButton(
+          {
+            title: "Create VMware monitor",
+            icon: IconProp.Add,
+            buttonStyle: ButtonStyleType.PRIMARY,
+            onClick: () => {
+              Navigation.navigate(monitorRoute());
+            },
           },
+          new Monitor(),
+          ModelAction.Create,
+        ),
+      ].filter(
+        (button: CardButtonSchema | null): button is CardButtonSchema => {
+          return button !== null;
         },
-        new Monitor(),
-        ModelAction.Create,
-      ),
-    ].filter(
-      (button: CardButtonSchema | null): button is CardButtonSchema =>
-        button !== null,
-    )}
-  />
-);
+      )}
+    />
+  );
+};
 export default VMwareMonitors;

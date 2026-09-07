@@ -181,9 +181,9 @@ const definitions: Array<TemplateDefinition> = [
     threshold: 90,
   },
   ...([VmwareResourceType.Host, VmwareResourceType.VM] as const).flatMap(
-    (type: VmwareResourceType): Array<TemplateDefinition> =>
-      ["cpu", "memory"].map(
-        (signal: string): TemplateDefinition => ({
+    (type: VmwareResourceType): Array<TemplateDefinition> => {
+      return ["cpu", "memory"].map((signal: string): TemplateDefinition => {
+        return {
           id: `vmware-${type}-${signal}`,
           name: `${type === VmwareResourceType.Host ? "Host" : "VM"} sustained ${signal === "cpu" ? "CPU" : "memory"} pressure`,
           description: `Utilization stays above 90% over five minutes. Review workload impact before escalating.`,
@@ -192,80 +192,88 @@ const definitions: Array<TemplateDefinition> = [
           metric: `${type}.${signal}.utilization`,
           resourceType: type,
           threshold: 90,
-        }),
-      ),
+        };
+      });
+    },
   ),
 ];
 
 export function getVmwareAlertTemplates(): Array<VmwareAlertTemplate> {
-  return definitions.map((definition: TemplateDefinition) => ({
-    ...definition,
-    getMonitorStep: (args: VmwareAlertTemplateArgs): MonitorStep => {
-      const filterType: FilterType = definition.lessThan
-        ? FilterType.LessThan
-        : FilterType.GreaterThan;
-      const metricAlias: string = "A";
-      const unhealthy: MonitorCriteriaInstance = buildUnhealthyCriteriaInstance(
-        {
-          offlineMonitorStatusId: args.offlineMonitorStatusId,
-          incidentSeverityId: args.defaultIncidentSeverityId,
-          alertSeverityId: args.defaultAlertSeverityId,
-          monitorName: args.monitorName,
-          metricAlias,
-          filterType,
+  return definitions.map((definition: TemplateDefinition) => {
+    return {
+      ...definition,
+      getMonitorStep: (args: VmwareAlertTemplateArgs): MonitorStep => {
+        const filterType: FilterType = definition.lessThan
+          ? FilterType.LessThan
+          : FilterType.GreaterThan;
+        const metricAlias: string = "A";
+        const unhealthy: MonitorCriteriaInstance =
+          buildUnhealthyCriteriaInstance({
+            offlineMonitorStatusId: args.offlineMonitorStatusId,
+            incidentSeverityId: args.defaultIncidentSeverityId,
+            alertSeverityId: args.defaultAlertSeverityId,
+            monitorName: args.monitorName,
+            metricAlias,
+            filterType,
+            value: definition.threshold,
+            resourceNoun: "VMware resource",
+            metricAggregationType: EvaluateOverTimeType.AllValues,
+          });
+        const healthy: MonitorCriteriaInstance = buildHealthyCriteriaInstance({
+          onlineMonitorStatusId: args.onlineMonitorStatusId,
+          metricAlias: "B",
+          filterType: getRecoveryFilterType(filterType),
           value: definition.threshold,
-          resourceNoun: "VMware resource",
+          isBinaryMetric: definition.binary,
           metricAggregationType: EvaluateOverTimeType.AllValues,
-        },
-      );
-      const healthy: MonitorCriteriaInstance = buildHealthyCriteriaInstance({
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        metricAlias: "B",
-        filterType: getRecoveryFilterType(filterType),
-        value: definition.threshold,
-        isBinaryMetric: definition.binary,
-        metricAggregationType: EvaluateOverTimeType.AllValues,
-      });
-      // Missing source data means lost collection. Missing entity metrics mean unknown, never zero/healthy.
-      if (definition.category === "Collection") {
-        for (const filter of unhealthy.data!.filters) {
-          filter.metricMonitorOptions!.onNoDataPolicy = NoDataPolicy.Trigger;
+        });
+        // Missing source data means lost collection. Missing entity metrics mean unknown, never zero/healthy.
+        if (definition.category === "Collection") {
+          for (const filter of unhealthy.data!.filters) {
+            filter.metricMonitorOptions!.onNoDataPolicy = NoDataPolicy.Trigger;
+          }
         }
-      }
-      const criteria: MonitorCriteria = new MonitorCriteria();
-      criteria.data = { monitorCriteriaInstanceArray: [unhealthy, healthy] };
-      const step: MonitorStep = new MonitorStep();
-      step.data!.monitorCriteria = criteria;
-      step.data!.vmwareMonitor = buildVmwareMonitorConfig({
-        sourceIdentifier: args.sourceIdentifier,
-        metricName: `oneuptime.vmware.${definition.metric}`,
-        metricAlias,
-        rollingTime: RollingTime.Past5Minutes,
-        aggregationType: definition.lessThan
-          ? MetricsAggregationType.Max
-          : MetricsAggregationType.Min,
-        resourceType: definition.resourceType,
-        legendUnit: definition.metric.endsWith("utilization") ? "%" : undefined,
-      });
-      // Firing and recovery must each account for every sample in a SQL
-      // bucket. A low sample alongside a high sample must not affirm recovery.
-      const recovery: MonitorStepVmwareMonitor = buildVmwareMonitorConfig({
-        sourceIdentifier: args.sourceIdentifier,
-        metricName: `oneuptime.vmware.${definition.metric}`,
-        metricAlias: "B",
-        rollingTime: RollingTime.Past5Minutes,
-        aggregationType: definition.lessThan
-          ? MetricsAggregationType.Min
-          : MetricsAggregationType.Max,
-        resourceType: definition.resourceType,
-        legendUnit: definition.metric.endsWith("utilization") ? "%" : undefined,
-      });
-      step.data!.vmwareMonitor.metricViewConfig.queryConfigs.push(
-        ...recovery.metricViewConfig.queryConfigs,
-      );
-      return step;
-    },
-  }));
+        const criteria: MonitorCriteria = new MonitorCriteria();
+        criteria.data = { monitorCriteriaInstanceArray: [unhealthy, healthy] };
+        const step: MonitorStep = new MonitorStep();
+        step.data!.monitorCriteria = criteria;
+        step.data!.vmwareMonitor = buildVmwareMonitorConfig({
+          sourceIdentifier: args.sourceIdentifier,
+          metricName: `oneuptime.vmware.${definition.metric}`,
+          metricAlias,
+          rollingTime: RollingTime.Past5Minutes,
+          aggregationType: definition.lessThan
+            ? MetricsAggregationType.Max
+            : MetricsAggregationType.Min,
+          resourceType: definition.resourceType,
+          legendUnit: definition.metric.endsWith("utilization")
+            ? "%"
+            : undefined,
+        });
+        /*
+         * Firing and recovery must each account for every sample in a SQL
+         * bucket. A low sample alongside a high sample must not affirm recovery.
+         */
+        const recovery: MonitorStepVmwareMonitor = buildVmwareMonitorConfig({
+          sourceIdentifier: args.sourceIdentifier,
+          metricName: `oneuptime.vmware.${definition.metric}`,
+          metricAlias: "B",
+          rollingTime: RollingTime.Past5Minutes,
+          aggregationType: definition.lessThan
+            ? MetricsAggregationType.Min
+            : MetricsAggregationType.Max,
+          resourceType: definition.resourceType,
+          legendUnit: definition.metric.endsWith("utilization")
+            ? "%"
+            : undefined,
+        });
+        step.data!.vmwareMonitor.metricViewConfig.queryConfigs.push(
+          ...recovery.metricViewConfig.queryConfigs,
+        );
+        return step;
+      },
+    };
+  });
 }
 
 export const getAllVmwareAlertTemplates: () => Array<VmwareAlertTemplate> =
@@ -273,14 +281,14 @@ export const getAllVmwareAlertTemplates: () => Array<VmwareAlertTemplate> =
 export function getVmwareAlertTemplateById(
   id: string,
 ): VmwareAlertTemplate | undefined {
-  return getVmwareAlertTemplates().find(
-    (template: VmwareAlertTemplate) => template.id === id,
-  );
+  return getVmwareAlertTemplates().find((template: VmwareAlertTemplate) => {
+    return template.id === id;
+  });
 }
 export function getVmwareAlertTemplatesByCategory(
   category: VmwareAlertTemplateCategory,
 ): Array<VmwareAlertTemplate> {
-  return getVmwareAlertTemplates().filter(
-    (template: VmwareAlertTemplate) => template.category === category,
-  );
+  return getVmwareAlertTemplates().filter((template: VmwareAlertTemplate) => {
+    return template.category === category;
+  });
 }

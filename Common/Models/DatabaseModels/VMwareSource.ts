@@ -69,11 +69,16 @@ export default class VMwareSource extends BaseModel {
     title: "Project",
     description: "project relation",
   })
-  @ManyToOne(() => Project, {
-    eager: false,
-    nullable: true,
-    onDelete: "CASCADE",
-  })
+  @ManyToOne(
+    () => {
+      return Project;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+    },
+  )
   @JoinColumn({ name: "projectId" })
   public project?: Project = undefined;
   @ColumnAccessControl({ create: CREATE, read: READ, update: [] })

@@ -8,43 +8,63 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, { ModelAction } from "../../../UI/Utils/PermissionGate";
 import VMwareResource from "../../../Models/DatabaseModels/VMwareResource";
 
-jest.mock("Common/Models/DatabaseModels/VMwareSource", () => ({
-  __esModule: true,
-  default: class VMwareSource {},
-}));
-jest.mock("Common/Models/DatabaseModels/VMwareResource", () => ({
-  __esModule: true,
-  default: class VMwareResource {},
-}));
-jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => ({
-  __esModule: true,
-  default: { getItem: jest.fn() },
-}));
-jest.mock("Common/UI/Utils/PermissionGate", () => ({
-  __esModule: true,
-  default: { check: jest.fn() },
-  ModelAction: { Read: "read" },
-}));
+jest.mock("Common/Models/DatabaseModels/VMwareSource", () => {
+  return {
+    __esModule: true,
+    default: class VMwareSource {},
+  };
+});
+jest.mock("Common/Models/DatabaseModels/VMwareResource", () => {
+  return {
+    __esModule: true,
+    default: class VMwareResource {},
+  };
+});
+jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
+  return {
+    __esModule: true,
+    default: { getItem: jest.fn() },
+  };
+});
+jest.mock("Common/UI/Utils/PermissionGate", () => {
+  return {
+    __esModule: true,
+    default: { check: jest.fn() },
+    ModelAction: { Read: "read" },
+  };
+});
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Resources",
-  () => ({
-    __esModule: true,
-    default: (): React.ReactElement => <div>Discovered inventory</div>,
-  }),
+  () => {
+    return {
+      __esModule: true,
+      default: (): React.ReactElement => {
+        return <div>Discovered inventory</div>;
+      },
+    };
+  },
 );
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/EmbeddedMetricCard",
-  () => ({
-    __esModule: true,
-    default: (): React.ReactElement => <div>Resource history</div>,
-  }),
+  () => {
+    return {
+      __esModule: true,
+      default: (): React.ReactElement => {
+        return <div>Resource history</div>;
+      },
+    };
+  },
 );
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/VMware/CreateMonitorButton",
-  () => ({
-    __esModule: true,
-    default: (): React.ReactElement => <button>Create VMware monitor</button>,
-  }),
+  () => {
+    return {
+      __esModule: true,
+      default: (): React.ReactElement => {
+        return <button>Create VMware monitor</button>;
+      },
+    };
+  },
 );
 
 function renderPage(): void {

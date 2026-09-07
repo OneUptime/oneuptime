@@ -386,9 +386,18 @@ export class MonitorTypeHelper {
       {
         monitorType: MonitorType.VMware,
         title: "VMware vSphere",
-        description: "ESXi host health, virtual machines, datastores, and collection health.",
+        description:
+          "ESXi host health, virtual machines, datastores, and collection health.",
         icon: IconProp.ServerStack,
-        keywords: ["vmware", "vsphere", "vcenter", "esxi", "hypervisor", "virtual machine", "datastore"],
+        keywords: [
+          "vmware",
+          "vsphere",
+          "vcenter",
+          "esxi",
+          "hypervisor",
+          "virtual machine",
+          "datastore",
+        ],
       },
       {
         monitorType: MonitorType.Ceph,
@@ -870,7 +879,7 @@ export class MonitorTypeHelper {
       MonitorType.Podman,
       MonitorType.DockerSwarm,
       MonitorType.Proxmox,
-          MonitorType.VMware,
+      MonitorType.VMware,
       MonitorType.Ceph,
       MonitorType.IoTDevice,
     ];

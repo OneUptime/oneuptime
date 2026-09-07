@@ -21,9 +21,9 @@ export default class VMwareRecoveryPolicy {
       limit: LIMIT_PER_PROJECT,
       props: { isRoot: true },
     });
-    return statuses.map((status: MonitorStatus): string =>
-      {return status.id!.toString()},
-    );
+    return statuses.map((status: MonitorStatus): string => {
+      return status.id!.toString();
+    });
   }
 
   public static isRecoveryCriteria(

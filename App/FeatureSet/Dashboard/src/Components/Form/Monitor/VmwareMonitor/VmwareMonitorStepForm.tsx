@@ -195,20 +195,21 @@ const VmwareMonitorStepForm: FunctionComponent<ComponentProps> = (
             {loading ? "Loading sources…" : "Select a source"}
           </option>
           {config.sourceIdentifier &&
-            !sources.some(
-              (source: VMwareSource) =>
-                source.sourceIdentifier === config.sourceIdentifier,
-            ) && (
+            !sources.some((source: VMwareSource) => {
+              return source.sourceIdentifier === config.sourceIdentifier;
+            }) && (
               <option value={config.sourceIdentifier}>
                 {config.sourceIdentifier}
               </option>
             )}
-          {sources.map((source: VMwareSource) => (
-            <option key={source._id} value={source.sourceIdentifier}>
-              {source.name || source.sourceIdentifier} (
-              {source.sourceIdentifier})
-            </option>
-          ))}
+          {sources.map((source: VMwareSource) => {
+            return (
+              <option key={source._id} value={source.sourceIdentifier}>
+                {source.name || source.sourceIdentifier} (
+                {source.sourceIdentifier})
+              </option>
+            );
+          })}
         </select>
       </label>
       {!loading && !sources.length && (
@@ -231,30 +232,32 @@ const VmwareMonitorStepForm: FunctionComponent<ComponentProps> = (
             children: (
               <div className="grid grid-cols-1 gap-3 py-4 md:grid-cols-2">
                 {getVmwareAlertTemplates().map(
-                  (template: VmwareAlertTemplate) => (
-                    <button
-                      key={template.id}
-                      type="button"
-                      aria-pressed={selectedTemplate === template.id}
-                      disabled={
-                        !config.sourceIdentifier || !templateDefaultsReady
-                      }
-                      onClick={() => {
-                        selectTemplate(template);
-                      }}
-                      className={`rounded-lg border p-4 text-left transition-colors disabled:opacity-50 ${selectedTemplate === template.id ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950" : "border-gray-200 bg-white hover:border-indigo-300 dark:border-gray-700 dark:bg-gray-900"}`}
-                    >
-                      <span className="text-xs font-medium text-indigo-600 dark:text-indigo-300">
-                        {template.category} · {template.severity}
-                      </span>
-                      <span className="mt-1 block text-sm font-semibold text-gray-900 dark:text-gray-100">
-                        {template.name}
-                      </span>
-                      <span className="mt-2 block text-sm leading-5 text-gray-600 dark:text-gray-300">
-                        {template.description}
-                      </span>
-                    </button>
-                  ),
+                  (template: VmwareAlertTemplate) => {
+                    return (
+                      <button
+                        key={template.id}
+                        type="button"
+                        aria-pressed={selectedTemplate === template.id}
+                        disabled={
+                          !config.sourceIdentifier || !templateDefaultsReady
+                        }
+                        onClick={() => {
+                          selectTemplate(template);
+                        }}
+                        className={`rounded-lg border p-4 text-left transition-colors disabled:opacity-50 ${selectedTemplate === template.id ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950" : "border-gray-200 bg-white hover:border-indigo-300 dark:border-gray-700 dark:bg-gray-900"}`}
+                      >
+                        <span className="text-xs font-medium text-indigo-600 dark:text-indigo-300">
+                          {template.category} · {template.severity}
+                        </span>
+                        <span className="mt-1 block text-sm font-semibold text-gray-900 dark:text-gray-100">
+                          {template.name}
+                        </span>
+                        <span className="mt-2 block text-sm leading-5 text-gray-600 dark:text-gray-300">
+                          {template.description}
+                        </span>
+                      </button>
+                    );
+                  },
                 )}
               </div>
             ),
@@ -271,8 +274,9 @@ const VmwareMonitorStepForm: FunctionComponent<ComponentProps> = (
                   onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
                     const metric: VmwareMetricDefinition | undefined =
                       getVmwareMetricCatalog().find(
-                        (item: VmwareMetricDefinition) =>
-                          item.id === event.target.value,
+                        (item: VmwareMetricDefinition) => {
+                          return item.id === event.target.value;
+                        },
                       );
                     if (metric) {
                       const isSourceMetric: boolean =
@@ -308,11 +312,13 @@ const VmwareMonitorStepForm: FunctionComponent<ComponentProps> = (
                     Select a VMware metric
                   </option>
                   {getVmwareMetricCatalog().map(
-                    (metric: VmwareMetricDefinition) => (
-                      <option key={metric.id} value={metric.id}>
-                        {metric.category} · {metric.friendlyName}
-                      </option>
-                    ),
+                    (metric: VmwareMetricDefinition) => {
+                      return (
+                        <option key={metric.id} value={metric.id}>
+                          {metric.category} · {metric.friendlyName}
+                        </option>
+                      );
+                    },
                   )}
                 </select>
                 <span className="mt-2 block font-normal text-gray-500">

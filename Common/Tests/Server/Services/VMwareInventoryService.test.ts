@@ -145,9 +145,9 @@ describe("VMware inventory persistence", () => {
     await VMwareResourceService.bulkUpsert({
       projectId: PROJECT,
       sourceId: SOURCE,
-      resources: Array.from({ length: 501 }, (_: unknown, index: number) =>
-        snapshot({ resourceIdentifier: `vm-${index}` }),
-      ),
+      resources: Array.from({ length: 501 }, (_: unknown, index: number) => {
+        return snapshot({ resourceIdentifier: `vm-${index}` });
+      }),
     });
     expect(query).toHaveBeenCalledTimes(3);
     expect(query.mock.calls[2]![1]).toHaveLength(9);

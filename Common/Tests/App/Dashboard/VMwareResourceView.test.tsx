@@ -10,36 +10,52 @@ import VMwareSource from "../../../Models/DatabaseModels/VMwareSource";
 import VMwareResource from "../../../Models/DatabaseModels/VMwareResource";
 import ObjectID from "../../../Types/ObjectID";
 
-jest.mock("Common/Models/DatabaseModels/VMwareSource", () => ({
-  __esModule: true,
-  default: class VMwareSource {},
-}));
-jest.mock("Common/Models/DatabaseModels/VMwareResource", () => ({
-  __esModule: true,
-  default: class VMwareResource {},
-}));
-jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => ({
-  __esModule: true,
-  default: { getItem: jest.fn(), updateById: jest.fn() },
-}));
-jest.mock("Common/UI/Utils/PermissionGate", () => ({
-  __esModule: true,
-  default: { check: jest.fn() },
-  ModelAction: { Update: "update" },
-}));
+jest.mock("Common/Models/DatabaseModels/VMwareSource", () => {
+  return {
+    __esModule: true,
+    default: class VMwareSource {},
+  };
+});
+jest.mock("Common/Models/DatabaseModels/VMwareResource", () => {
+  return {
+    __esModule: true,
+    default: class VMwareResource {},
+  };
+});
+jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
+  return {
+    __esModule: true,
+    default: { getItem: jest.fn(), updateById: jest.fn() },
+  };
+});
+jest.mock("Common/UI/Utils/PermissionGate", () => {
+  return {
+    __esModule: true,
+    default: { check: jest.fn() },
+    ModelAction: { Update: "update" },
+  };
+});
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/EmbeddedMetricCard",
-  () => ({
-    __esModule: true,
-    default: (): React.ReactElement => <div>Resource history</div>,
-  }),
+  () => {
+    return {
+      __esModule: true,
+      default: (): React.ReactElement => {
+        return <div>Resource history</div>;
+      },
+    };
+  },
 );
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/VMware/CreateMonitorButton",
-  () => ({
-    __esModule: true,
-    default: (): React.ReactElement => <button>Create VMware monitor</button>,
-  }),
+  () => {
+    return {
+      __esModule: true,
+      default: (): React.ReactElement => {
+        return <button>Create VMware monitor</button>;
+      },
+    };
+  },
 );
 
 const sourceId: string = "12345678-1234-1234-1234-123456789abc";
@@ -88,8 +104,9 @@ describe("VMware resource page", () => {
     jest
       .mocked(ModelAPI.getItem)
       .mockImplementation(
-        async (args: Parameters<typeof ModelAPI.getItem>[0]) =>
-          (args.modelType === VMwareSource ? source : resource) as never,
+        async (args: Parameters<typeof ModelAPI.getItem>[0]) => {
+          return (args.modelType === VMwareSource ? source : resource) as never;
+        },
       );
     jest.mocked(ModelAPI.updateById).mockResolvedValue({} as never);
   });
@@ -147,15 +164,22 @@ describe("VMware resource page", () => {
     ).not.toBeInTheDocument();
   });
   test("rejects a resource from another source even if the resource ID exists", async () => {
-    jest.mocked(ModelAPI.getItem).mockImplementation(
-      async (args: Parameters<typeof ModelAPI.getItem>[0]) =>
-        (args.modelType === VMwareSource
-          ? source
-          : ({
-              ...resource,
-              sourceId: new ObjectID("32345678-1234-1234-1234-123456789abc"),
-            } as VMwareResource)) as never,
-    );
+    jest
+      .mocked(ModelAPI.getItem)
+      .mockImplementation(
+        async (args: Parameters<typeof ModelAPI.getItem>[0]) => {
+          return (
+            args.modelType === VMwareSource
+              ? source
+              : ({
+                  ...resource,
+                  sourceId: new ObjectID(
+                    "32345678-1234-1234-1234-123456789abc",
+                  ),
+                } as VMwareResource)
+          ) as never;
+        },
+      );
     renderPage();
     await screen.findByText("VMware resource not found in this source.");
     expect(screen.queryByText("payments-db")).not.toBeInTheDocument();
