@@ -1,8 +1,6 @@
 import EntitySource from "Common/Types/Telemetry/EntitySource";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import LessThan from "Common/Types/BaseDatabase/LessThan";
-import { getInventoryTypePluralLabel } from "./InventoryTypeCatalog";
-import { getInventorySourceLabel } from "./InventorySource";
 import { INVENTORY_STALE_AFTER_MINUTES } from "./InventoryLiveness";
 
 /*
@@ -16,8 +14,7 @@ import { INVENTORY_STALE_AFTER_MINUTES } from "./InventoryLiveness";
  * page turns them straight into the base query it lists with.
  *
  * That makes the scope part of the model query rather than a user-removable
- * filter chip, which is the behaviour we want: the page says what it is
- * scoped to and offers one control to clear it. It also means the params are
+ * filter chip. The side menu's All Items link clears the scope. The params are
  * attacker-reachable — anyone can hand-edit the URL — so `parseInventoryScope`
  * validates against the real vocabularies and drops anything it does not
  * recognise, instead of forwarding an arbitrary string into a query.
@@ -156,41 +153,4 @@ export const buildInventoryScopeQuery: BuildInventoryScopeQueryFunction = (
   }
 
   return query;
-};
-
-export type DescribeInventoryScopeFunction = (
-  scope: InventoryScope,
-) => string | null;
-
-/**
- * The sentence the Items page shows above the table when it is scoped, e.g.
- * "Showing Kubernetes Pods discovered from telemetry". `null` for the empty
- * scope, where there is nothing to explain.
- */
-export const describeInventoryScope: DescribeInventoryScopeFunction = (
-  scope: InventoryScope,
-): string | null => {
-  if (isInventoryScopeEmpty(scope)) {
-    return null;
-  }
-
-  const noun: string = scope.entityType
-    ? getInventoryTypePluralLabel(scope.entityType)
-    : "items";
-
-  const qualifiers: Array<string> = [];
-
-  if (scope.source) {
-    qualifiers.push(`from source "${getInventorySourceLabel(scope.source)}"`);
-  }
-
-  if (scope.staleOnly) {
-    qualifiers.push("not seen in over a day");
-  }
-
-  if (qualifiers.length === 0) {
-    return `Showing ${noun} only.`;
-  }
-
-  return `Showing ${noun} ${qualifiers.join(", ")}.`;
 };
