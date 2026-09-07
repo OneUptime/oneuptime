@@ -8,18 +8,20 @@ import VMwareResourceView from "../Pages/VMware/Resource";
 import VMwareMonitors from "../Pages/VMware/Monitors";
 import VMwareSetup from "../Components/VMware/Setup";
 
-const VMwareRoutes: FunctionComponent<ComponentProps> = (): ReactElement => (
-  <Routes>
-    <Route path="/" element={<VMwareLayout />}>
-      <Route index element={<VMwareSources />} />
-      <Route path="documentation" element={<VMwareSetup />} />
-      <Route path="monitors" element={<VMwareMonitors />} />
-      <Route path=":modelId" element={<VMwareSourceView />} />
-      <Route
-        path=":modelId/resources/:subModelId"
-        element={<VMwareResourceView />}
-      />
-    </Route>
-  </Routes>
-);
+const VMwareRoutes: FunctionComponent<ComponentProps> = (): ReactElement => {
+  return (
+    <Routes>
+      <Route path="/" element={<VMwareLayout />}>
+        <Route index element={<VMwareSources />} />
+        <Route path="documentation" element={<VMwareSetup />} />
+        <Route path="monitors" element={<VMwareMonitors />} />
+        <Route path=":modelId" element={<VMwareSourceView />} />
+        <Route
+          path=":modelId/resources/:subModelId"
+          element={<VMwareResourceView />}
+        />
+      </Route>
+    </Routes>
+  );
+};
 export default VMwareRoutes;

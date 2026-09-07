@@ -76,8 +76,10 @@ export default class VmwareMonitorSeries {
             if (rows?.data.length) {
               return rows;
             }
-            // Collection intervals may be longer than the metric query window.
-            // The source freshness budget remains the authority between polls.
+            /*
+             * Collection intervals may be longer than the metric query window.
+             * The source freshness budget remains the authority between polls.
+             */
             return {
               data: [
                 {
@@ -102,10 +104,9 @@ export default class VmwareMonitorSeries {
       input.source.collectionIntervalSeconds || 120,
     );
     const existing: Map<string, MetricSeriesResult> = new Map(
-      input.series.map((series: MetricSeriesResult) => {return [
-        series.fingerprint,
-        series,
-      ]}),
+      input.series.map((series: MetricSeriesResult) => {
+        return [series.fingerprint, series];
+      }),
     );
     const result: VmwareSeriesResult = {
       series: [],
@@ -131,16 +132,20 @@ export default class VmwareMonitorSeries {
       );
       const fingerprint: string =
         MetricSeriesFingerprint.computeFingerprint(labels);
-      // Reconstruct only the selected inventory. A datapoint-only filter that
-      // inventory cannot verify must not synthesize absence for unrelated VMs.
+      /*
+       * Reconstruct only the selected inventory. A datapoint-only filter that
+       * inventory cannot verify must not synthesize absence for unrelated VMs.
+       */
       const selected: boolean =
         input.config.metricViewConfig.queryConfigs.every(
-          (query: MetricQueryConfigData) =>
-            {return Object.entries(
+          (query: MetricQueryConfigData) => {
+            return Object.entries(
               query.metricQueryData.filterData.attributes || {},
             ).every(([key, value]: [string, unknown]) => {
-              // These filters are rebuilt from the authoritative selection before SQL
-              // evaluation; older saved attributes must not override that selection.
+              /*
+               * These filters are rebuilt from the authoritative selection before SQL
+               * evaluation; older saved attributes must not override that selection.
+               */
               if (
                 [
                   VMWARE_SOURCE_ATTRIBUTE,
@@ -155,7 +160,8 @@ export default class VmwareMonitorSeries {
               return actual !== undefined
                 ? String(actual) === String(value)
                 : existing.has(fingerprint);
-            })},
+            });
+          },
         );
       if (!selected) {
         continue;
@@ -186,8 +192,10 @@ export default class VmwareMonitorSeries {
             if (!sourceHealthy || inMaintenance) {
               return { data: [] };
             }
-            // An explicit missing observation from a current collection is evidence
-            // of disappearance. A delayed resource batch is only unknown.
+            /*
+             * An explicit missing observation from a current collection is evidence
+             * of disappearance. A delayed resource batch is only unknown.
+             */
             if (
               name === "oneuptime.vmware.resource.observed" &&
               reportFresh &&
@@ -254,8 +262,10 @@ export default class VmwareMonitorSeries {
                 ],
               };
             }
-            // A retained historical sample cannot substitute for a signal omitted
-            // from the latest authoritative snapshot (for example a powered-off VM).
+            /*
+             * A retained historical sample cannot substitute for a signal omitted
+             * from the latest authoritative snapshot (for example a powered-off VM).
+             */
             if (typeof metrics[name] !== "number") {
               unavailable = true;
               return { data: [] };
@@ -270,21 +280,25 @@ export default class VmwareMonitorSeries {
       if (unavailable) {
         result.unavailableSeriesFingerprints.push(fingerprint);
       }
-      // An entirely unavailable source/resource is omitted from evaluation,
-      // including custom NoDataPolicy.Trigger, to prevent a fleet-wide incident
-      // storm. Its existing incidents remain open through the explicit guard.
+      /*
+       * An entirely unavailable source/resource is omitted from evaluation,
+       * including custom NoDataPolicy.Trigger, to prevent a fleet-wide incident
+       * storm. Its existing incidents remain open through the explicit guard.
+       */
       if (sourceHealthy && !inMaintenance) {
         result.series.push(series);
       }
     }
-    // Series that raced ahead of inventory ingest are held unknown rather than
-    // evaluated without lifecycle/policy information. Never drop their guards.
+    /*
+     * Series that raced ahead of inventory ingest are held unknown rather than
+     * evaluated without lifecycle/policy information. Never drop their guards.
+     */
     const known: Set<string> = new Set(
-      input.resources.map((resource: VMwareResource) =>
-        {return MetricSeriesFingerprint.computeFingerprint(
+      input.resources.map((resource: VMwareResource) => {
+        return MetricSeriesFingerprint.computeFingerprint(
           this.labels(input.config.sourceIdentifier, resource),
-        )},
-      ),
+        );
+      }),
     );
     for (const series of input.series) {
       if (!known.has(series.fingerprint)) {

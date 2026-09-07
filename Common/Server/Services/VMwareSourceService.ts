@@ -18,15 +18,19 @@ export class Service extends DatabaseService<Model> {
     validateVMwareIdentifier(createBy.data.sourceIdentifier);
     return { createBy, carryForward: null };
   }
-  // One atomic operation per source/batch. The unique project/source key defuses
-  // concurrent discovery; deleted sources cannot silently return through ingest.
+  /*
+   * One atomic operation per source/batch. The unique project/source key defuses
+   * concurrent discovery; deleted sources cannot silently return through ingest.
+   */
   public async ingestSnapshot(
     projectId: ObjectID,
     snapshot: VMwareSourceSnapshot,
   ): Promise<{ id: ObjectID; isArchived: boolean } | null> {
     validateVMwareIdentifier(snapshot.sourceIdentifier);
-    // Equal-timestamp fragments belong to one collection. Merge them before
-    // deciding success, because the exporter can split the two health gauges.
+    /*
+     * Equal-timestamp fragments belong to one collection. Merge them before
+     * deciding success, because the exporter can split the two health gauges.
+     */
     const collectionMetrics: string = `CASE WHEN EXCLUDED."lastCollectionAt" = "VMwareSource"."lastCollectionAt"
       THEN COALESCE("VMwareSource"."metrics", '{}'::jsonb) || EXCLUDED."metrics" ELSE EXCLUDED."metrics" END`;
 

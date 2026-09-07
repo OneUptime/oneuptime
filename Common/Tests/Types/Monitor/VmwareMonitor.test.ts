@@ -168,9 +168,9 @@ describe("VMware alert catalog", () => {
   const id: ObjectID = ObjectID.generate();
   test("every template references a documented collected metric and has stable grouping", () => {
     const names: Set<string> = new Set(
-      getVmwareMetricCatalog().map(
-        (metric: VmwareMetricDefinition) => metric.metricName,
-      ),
+      getVmwareMetricCatalog().map((metric: VmwareMetricDefinition) => {
+        return metric.metricName;
+      }),
     );
     const templateIds: Set<string> = new Set();
     for (const template of getVmwareAlertTemplates()) {
@@ -200,8 +200,9 @@ describe("VMware alert catalog", () => {
       ).toHaveLength(2);
       const policies: Array<NoDataPolicy | undefined> =
         step.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[0]!.data!.filters.map(
-          (filter: CriteriaFilter) =>
-            filter.metricMonitorOptions?.onNoDataPolicy,
+          (filter: CriteriaFilter) => {
+            return filter.metricMonitorOptions?.onNoDataPolicy;
+          },
         );
       if (template.category === "Collection") {
         expect(policies).toEqual([NoDataPolicy.Trigger]);
@@ -214,12 +215,16 @@ describe("VMware alert catalog", () => {
   });
   test("keeps utilization in percentage units and expected-off checks opt-in", () => {
     for (const metric of getVmwareMetricCatalog().filter(
-      (item: VmwareMetricDefinition) => item.metricName.endsWith("utilization"),
+      (item: VmwareMetricDefinition) => {
+        return item.metricName.endsWith("utilization");
+      },
     )) {
       expect(metric.unit).toBe("%");
     }
     const template: VmwareAlertTemplate = getVmwareAlertTemplates().find(
-      (item: VmwareAlertTemplate) => item.id === "vmware-vm-unexpected-off",
+      (item: VmwareAlertTemplate) => {
+        return item.id === "vmware-vm-unexpected-off";
+      },
     )!;
     expect(template.description).toMatch(/explicitly expected/);
   });

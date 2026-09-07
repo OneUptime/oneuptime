@@ -49,7 +49,9 @@ const VMwareResourceView: FunctionComponent = (): ReactElement => {
   }, [modelId, subModelId]);
   useEffect(() => {
     const timer: ReturnType<typeof setInterval> = setInterval(() => {
-      setRefresh((value: number) => value + 1);
+      setRefresh((value: number) => {
+        return value + 1;
+      });
     }, 30000);
     return () => {
       clearInterval(timer);
@@ -157,7 +159,9 @@ const VMwareResourceView: FunctionComponent = (): ReactElement => {
       });
       dirtyPolicy.current = false;
       setSaved(true);
-      setRefresh((value: number) => value + 1);
+      setRefresh((value: number) => {
+        return value + 1;
+      });
     } catch (err) {
       setSaveError(API.getFriendlyMessage(err));
     } finally {
@@ -197,7 +201,9 @@ const VMwareResourceView: FunctionComponent = (): ReactElement => {
               title="Refresh"
               buttonStyle={ButtonStyleType.OUTLINE}
               onClick={() => {
-                setRefresh((value: number) => value + 1);
+                setRefresh((value: number) => {
+                  return value + 1;
+                });
               }}
             />
             <VMwareCreateMonitorButton

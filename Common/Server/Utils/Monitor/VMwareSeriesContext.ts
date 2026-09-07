@@ -13,8 +13,10 @@ export interface VMwareDisplayContext {
   linksMarkdown: string;
 }
 
-// Resolve human context only when a notification is being created. Display
-// labels never replace stored grouping labels or participate in deduplication.
+/*
+ * Resolve human context only when a notification is being created. Display
+ * labels never replace stored grouping labels or participate in deduplication.
+ */
 export default class VMwareSeriesContext {
   public static async resolve(input: {
     projectId: ObjectID;

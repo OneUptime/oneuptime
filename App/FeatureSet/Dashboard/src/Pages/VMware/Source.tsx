@@ -60,7 +60,9 @@ const VMwareSourceView: FunctionComponent = (): ReactElement => {
     };
     void fetchSource();
     const timer: ReturnType<typeof setInterval> = setInterval(() => {
-      setRefresh((value: number) => value + 1);
+      setRefresh((value: number) => {
+        return value + 1;
+      });
     }, 30000);
     return () => {
       disposed = true;
@@ -103,7 +105,9 @@ const VMwareSourceView: FunctionComponent = (): ReactElement => {
               title="Refresh"
               buttonStyle={ButtonStyleType.OUTLINE}
               onClick={() => {
-                setRefresh((value: number) => value + 1);
+                setRefresh((value: number) => {
+                  return value + 1;
+                });
               }}
             />
             <VMwareCreateMonitorButton
@@ -129,23 +133,25 @@ const VMwareSourceView: FunctionComponent = (): ReactElement => {
           onTabChange={() => {}}
           tabs={[
             ...["host", "vm", "datastore", "cluster"].map(
-              (resourceType: string) => ({
-                name:
-                  resourceType === "host"
-                    ? "ESXi hosts"
-                    : resourceType === "vm"
-                      ? "Virtual machines"
-                      : resourceType === "datastore"
-                        ? "Datastores"
-                        : "Clusters",
-                children: (
-                  <VMwareResources
-                    source={source}
-                    resourceType={resourceType}
-                    refresh={String(refresh)}
-                  />
-                ),
-              }),
+              (resourceType: string) => {
+                return {
+                  name:
+                    resourceType === "host"
+                      ? "ESXi hosts"
+                      : resourceType === "vm"
+                        ? "Virtual machines"
+                        : resourceType === "datastore"
+                          ? "Datastores"
+                          : "Clusters",
+                  children: (
+                    <VMwareResources
+                      source={source}
+                      resourceType={resourceType}
+                      refresh={String(refresh)}
+                    />
+                  ),
+                };
+              },
             ),
             {
               name: "Performance",

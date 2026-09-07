@@ -7,9 +7,11 @@ import {
 import ObjectID from "../../../Types/ObjectID";
 import { Pool } from "pg";
 
-/* Opt in with RUN_POSTGRES_VMWARE_TESTS=true. Clone the migrated production
+/*
+ * Opt in with RUN_POSTGRES_VMWARE_TESTS=true. Clone the migrated production
  * table shapes into a private schema, so these assertions exercise PostgreSQL
- * conflict handling and defaults without changing any customer rows. */
+ * conflict handling and defaults without changing any customer rows.
+ */
 const describePostgres: typeof describe =
   process.env["RUN_POSTGRES_VMWARE_TESTS"] === "true"
     ? describe
@@ -86,8 +88,9 @@ describePostgres("VMware inventory PostgreSQL integration", () => {
     ) => Promise<Array<Record<string, unknown>>> = async (
       sql: string,
       params: Array<unknown>,
-    ): Promise<Array<Record<string, unknown>>> =>
-      {return (await pool.query(sql, params)).rows};
+    ): Promise<Array<Record<string, unknown>>> => {
+      return (await pool.query(sql, params)).rows;
+    };
     for (const service of [VMwareSourceService, VMwareResourceService]) {
       jest
         .spyOn(service, "getRepository")
@@ -110,12 +113,16 @@ describePostgres("VMware inventory PostgreSQL integration", () => {
 
   it("concurrent source discovery converges but identical IDs in another project stay separate", async () => {
     const results: Array<SourceIdentity> = await Promise.all(
-      Array.from({ length: 4 }, () =>
-        {return VMwareSourceService.ingestSnapshot(PROJECT, source())},
-      ),
+      Array.from({ length: 4 }, () => {
+        return VMwareSourceService.ingestSnapshot(PROJECT, source());
+      }),
     );
     expect(
-      new Set(results.map((item: SourceIdentity) => {return item!.id.toString()})).size,
+      new Set(
+        results.map((item: SourceIdentity) => {
+          return item!.id.toString();
+        }),
+      ).size,
     ).toBe(1);
     const other: SourceIdentity = await VMwareSourceService.ingestSnapshot(
       OTHER_PROJECT,

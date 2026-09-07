@@ -168,8 +168,10 @@ export default class MonitorCriteriaEvaluator {
       isPerSeriesMonitor &&
       input.monitor.monitorType !== MonitorType.IncomingRequest;
 
-    // Native VMware incidents retain their state in the threshold dead band.
-    // Only an affirmative, enabled recovery criterion can close that series.
+    /*
+     * Native VMware incidents retain their state in the threshold dead band.
+     * Only an affirmative, enabled recovery criterion can close that series.
+     */
     const recoveredSeriesFingerprints: Set<string> | undefined =
       input.monitor.monitorType === MonitorType.VMware
         ? new Set<string>()

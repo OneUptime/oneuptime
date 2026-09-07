@@ -1035,8 +1035,10 @@ export default class MonitorAlert {
     const openSeriesFingerprint: string | undefined =
       input.openAlert.seriesFingerprint || undefined;
 
-    // An absent/unknown VMware reading cannot affirm recovery. Other series
-    // still recover independently and existing non-VMware behavior is unchanged.
+    /*
+     * An absent/unknown VMware reading cannot affirm recovery. Other series
+     * still recover independently and existing non-VMware behavior is unchanged.
+     */
     if (
       openSeriesFingerprint &&
       input.unavailableSeriesFingerprints?.includes(openSeriesFingerprint)

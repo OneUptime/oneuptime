@@ -24,19 +24,21 @@ const VMwareSetup: FunctionComponent = (): ReactElement => {
               title: "3. Choose what should alert",
               body: "Sources and resources appear automatically. Select the VMs expected to run, review maintenance settings, and create monitors from templates.",
             },
-          ].map((step: { title: string; body: string }) => (
-            <div
-              key={step.title}
-              className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900"
-            >
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                {step.title}
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-300">
-                {step.body}
-              </p>
-            </div>
-          ))}
+          ].map((step: { title: string; body: string }) => {
+            return (
+              <div
+                key={step.title}
+                className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900"
+              >
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {step.title}
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-300">
+                  {step.body}
+                </p>
+              </div>
+            );
+          })}
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-gray-600 dark:text-gray-300">

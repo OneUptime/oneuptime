@@ -1,4 +1,6 @@
-import MonitorStepVmwareMonitor, { MonitorStepVmwareMonitorUtil } from "./MonitorStepVmwareMonitor";
+import MonitorStepVmwareMonitor, {
+  MonitorStepVmwareMonitorUtil,
+} from "./MonitorStepVmwareMonitor";
 import HTTPMethod from "../API/HTTPMethod";
 import Hostname from "../API/Hostname";
 import URL from "../API/URL";
@@ -750,7 +752,7 @@ export default class MonitorStep extends DatabaseProperty {
         hostMonitor: undefined,
         podmanMonitor: undefined,
         proxmoxMonitor: undefined,
-      vmwareMonitor: undefined,
+        vmwareMonitor: undefined,
         dockerSwarmMonitor: undefined,
         cephMonitor: undefined,
         iotMonitor: undefined,
@@ -997,9 +999,16 @@ export default class MonitorStep extends DatabaseProperty {
     }
 
     if (monitorType === MonitorType.VMware) {
-      if (!value.data.vmwareMonitor) { return "VMware monitor configuration is required"; }
-      const error: string | undefined = MonitorStepVmwareMonitorUtil.getValidationError(value.data.vmwareMonitor);
-      if (error) { return error; }
+      if (!value.data.vmwareMonitor) {
+        return "VMware monitor configuration is required";
+      }
+      const error: string | undefined =
+        MonitorStepVmwareMonitorUtil.getValidationError(
+          value.data.vmwareMonitor,
+        );
+      if (error) {
+        return error;
+      }
     }
 
     if (monitorType === MonitorType.Proxmox) {
@@ -1147,7 +1156,9 @@ export default class MonitorStep extends DatabaseProperty {
           podmanMonitor: this.data.podmanMonitor
             ? MonitorStepPodmanMonitorUtil.toJSON(this.data.podmanMonitor)
             : undefined,
-          vmwareMonitor: this.data.vmwareMonitor ? MonitorStepVmwareMonitorUtil.toJSON(this.data.vmwareMonitor) : undefined,
+          vmwareMonitor: this.data.vmwareMonitor
+            ? MonitorStepVmwareMonitorUtil.toJSON(this.data.vmwareMonitor)
+            : undefined,
           proxmoxMonitor: this.data.proxmoxMonitor
             ? MonitorStepProxmoxMonitorUtil.toJSON(this.data.proxmoxMonitor)
             : undefined,
@@ -1357,7 +1368,11 @@ export default class MonitorStep extends DatabaseProperty {
       podmanMonitor: json["podmanMonitor"]
         ? (json["podmanMonitor"] as JSONObject)
         : undefined,
-      vmwareMonitor: json["vmwareMonitor"] ? (MonitorStepVmwareMonitorUtil.fromJSON(json["vmwareMonitor"] as JSONObject) as unknown as JSONObject) : undefined,
+      vmwareMonitor: json["vmwareMonitor"]
+        ? (MonitorStepVmwareMonitorUtil.fromJSON(
+            json["vmwareMonitor"] as JSONObject,
+          ) as unknown as JSONObject)
+        : undefined,
       proxmoxMonitor: json["proxmoxMonitor"]
         ? (json["proxmoxMonitor"] as JSONObject)
         : undefined,

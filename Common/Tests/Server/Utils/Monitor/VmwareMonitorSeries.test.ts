@@ -1,4 +1,6 @@
-import VmwareMonitorSeries, { VmwareSeriesResult } from "../../../../Server/Utils/Monitor/VmwareMonitorSeries";
+import VmwareMonitorSeries, {
+  VmwareSeriesResult,
+} from "../../../../Server/Utils/Monitor/VmwareMonitorSeries";
 import { JSONObject } from "../../../../Types/JSON";
 import AggregateModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import VMwareResource from "../../../../Models/DatabaseModels/VMwareResource";
@@ -98,8 +100,9 @@ describe("VMware snapshot policy and identity", () => {
       series(a, 0).fingerprint,
     ]);
     expect(
-      result.series.find((s: MetricSeriesResult) => {return s.fingerprint === series(a, 0).fingerprint})!
-        .aggregatedResults[0]!.data,
+      result.series.find((s: MetricSeriesResult) => {
+        return s.fingerprint === series(a, 0).fingerprint;
+      })!.aggregatedResults[0]!.data,
     ).toEqual([]);
   });
   test.each(["failed", "partial", "stale"])(
@@ -264,7 +267,7 @@ describe("VMware snapshot policy and identity", () => {
   });
   test("source no-data yields one expected source series", () => {
     const s: VMwareSource = source();
-    s.lastCollectionAt = undefined;
+    delete s.lastCollectionAt;
     const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
       config: config("source.up"),
       source: s,
@@ -292,13 +295,15 @@ describe("VMware snapshot policy and identity", () => {
       series: [],
       now,
     });
-    expect(result.series.map((item: MetricSeriesResult) => {return item.fingerprint})).toEqual([
-      series(a, 0).fingerprint,
-    ]);
+    expect(
+      result.series.map((item: MetricSeriesResult) => {
+        return item.fingerprint;
+      }),
+    ).toEqual([series(a, 0).fingerprint]);
   });
   test("unverifiable datapoint filters cannot synthesize absence for unrelated inventory", () => {
     const r: VMwareResource = resource();
-    r.lastReportedAt = undefined;
+    delete r.lastReportedAt;
     const c: MonitorStepVmwareMonitor = config("resource.observed");
     c.metricViewConfig.queryConfigs[0]!.metricQueryData.filterData.attributes =
       { "custom.datapoint": "selected" };
@@ -366,7 +371,7 @@ describe("VMware latest snapshot authority", () => {
     "collector retirement in %s suppresses missing-resource signals",
     (location: string) => {
       const r: VMwareResource = resource();
-      r.lastReportedAt = undefined;
+      delete r.lastReportedAt;
       if (location === "metadata") {
         r.metadata![prefix + "resource.retired"] = true;
       } else {
@@ -443,7 +448,11 @@ it("dropping one resource OTLP batch cannot fabricate disappearance while other 
   ]);
   expect(
     result.series
-      .flatMap((item: MetricSeriesResult) => {return item.aggregatedResults[0]!.data})
-      .map((point: AggregateModel) => {return point.value}),
+      .flatMap((item: MetricSeriesResult) => {
+        return item.aggregatedResults[0]!.data;
+      })
+      .map((point: AggregateModel) => {
+        return point.value;
+      }),
   ).toEqual([1]);
 });
