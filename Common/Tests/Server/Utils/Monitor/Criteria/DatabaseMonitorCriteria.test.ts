@@ -178,6 +178,35 @@ describe("DatabaseMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
       expect(result).toContain("95");
     });
 
+    /*
+     * A Database Health metric carries an explicit catalog unit, and
+     * DatabaseMonitorCriteria hands that unit to CompareCriteria for the
+     * alert email. The observation beside it used to render bytes with a
+     * 1024 divisor while labelling the rungs SI, so one byte count read
+     * three ways across the product: "1.07 GB" in the email, "1.00 GB" in
+     * the evaluation log, and "1000000000 bytes" in the expectation
+     * clause. All three now agree.
+     */
+    test("a bytes metric is rescaled decimally, matching the alert email", async () => {
+      const result: string | null = await evaluate(
+        buildDataToProcess({
+          metrics: {
+            [MonitorMetricType.DatabaseSizeBytes]: 1073741824,
+          },
+        }),
+        metricFilter(
+          MonitorMetricType.DatabaseSizeBytes,
+          FilterType.GreaterThan,
+          "1000000000",
+        ),
+      );
+
+      expect(result).toContain("1.07 GB");
+      // The 1024-based rendering this used to produce.
+      expect(result).not.toContain("1.00 GB");
+      expect(result).not.toContain("1073741824");
+    });
+
     test("percent metric 40 > 90 -> not met", async () => {
       const result: string | null = await evaluate(
         buildDataToProcess({

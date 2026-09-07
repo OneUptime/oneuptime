@@ -20,7 +20,18 @@
         class="st-Font st-Font--body"
         style="border: 0; margin: 0; padding: 0; color: #374151 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 15px; line-height: 26px;"
       >
-        {{{info}}}
+        {{!--
+          `info` is RAW HTML — same contract as DetailBoxField's `text`.
+          Most call sites pass a literal string from the template itself,
+          which is safe, but a few interpolate a DB value through the
+          `concat` helper, and `concat` only String()s and joins: it does
+          not escape. A project name containing markup therefore reached
+          the reader as live HTML inside an email they trust.
+
+          `plainInfo` is the escaped slot for exactly those call sites.
+          Use it whenever any part of the string comes from the database.
+        --}}
+        {{#if plainInfo}}{{plainInfo}}{{/if}}{{{info}}}
       </td>
       <td
         class="st-Spacer st-Spacer--gutter"

@@ -119,7 +119,15 @@ export default class Markdown {
     return htmlBody;
   }
 
-  private static escapeHtml(text: string): string {
+  /**
+   * Escape the five characters that can break out of HTML text or an
+   * attribute value.
+   *
+   * Public because it is not only marked's business: code that hand-builds
+   * an email fragment by string interpolation needs the same escaping, and
+   * a second implementation is a second thing to get wrong.
+   */
+  public static escapeHtml(text: string): string {
     return text
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
@@ -128,12 +136,96 @@ export default class Markdown {
       .replace(/'/g, "&#39;");
   }
 
+  /*
+   * The email renderer.
+   *
+   * Everything here is an INLINE style, and that is not a preference.
+   * MailService compiles the Handlebars template and sends it — there is no
+   * CSS inlining step anywhere in the pipeline — and Gmail strips <style>
+   * blocks from the document head, so a class name emitted here reaches the
+   * reader as nothing at all. That is why the Docs/Blog renderers' Tailwind
+   * classes cannot be copied even though the override shape can.
+   *
+   * Until this existed the renderer was a bare `new Renderer()`. Alert and
+   * incident root causes carry a GitHub-flavoured table of breaching
+   * samples, and marked emitted it as a naked <table> with no borders, no
+   * padding and no alignment: every row ran into the next, which is
+   * precisely the part of the email an on-call engineer reads first.
+   *
+   * Outlook renders through Word, which ignores border-radius, box-shadow
+   * and — importantly — overflow, so the scrolling wrapper the Docs and
+   * Blog renderers use does not transfer. The table has to FIT instead:
+   * the DetailBox card is 472px wide with 28px of padding either side,
+   * leaving roughly 416px for a root-cause table that routinely runs to
+   * four or more columns. Hence `width:100%` with `table-layout:auto` and
+   * `word-break:break-word` on the cells — a long metric name wraps inside
+   * its column rather than pushing the table past the body width.
+   */
   private static getEmailRenderer(): Renderer {
     if (this.emailRenderer !== null) {
       return this.emailRenderer;
     }
 
     const renderer: Renderer = new Renderer();
+
+    const cellFont: string =
+      "font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;font-size:13px;line-height:20px;";
+
+    renderer.table = function (header: string, body: string): string {
+      return (
+        `<table cellpadding="0" cellspacing="0" border="0" width="100%" ` +
+        `style="border-collapse:collapse;width:100%;table-layout:auto;` +
+        `margin:12px 0;border:1px solid #e2e8f0;">` +
+        `<thead>${header}</thead><tbody>${body}</tbody></table>`
+      );
+    };
+
+    renderer.tablerow = function (content: string): string {
+      return `<tr>${content}</tr>`;
+    };
+
+    renderer.tablecell = function (
+      content: string,
+      flags: { header?: boolean; align?: string | null },
+    ): string {
+      const tag: string = flags.header ? "th" : "td";
+      const align: string = flags.align ? `text-align:${flags.align};` : "";
+
+      /*
+       * A header cell gets the tinted band and the heavier bottom rule; a
+       * body cell gets a hairline so consecutive rows stay separable. Both
+       * keep the same padding so the columns line up.
+       */
+      const tone: string = flags.header
+        ? "background-color:#f8fafc;color:#475569;font-weight:600;border-bottom:1px solid #cbd5e1;"
+        : "color:#1e293b;font-weight:400;border-bottom:1px solid #f1f5f9;";
+
+      return (
+        `<${tag} style="padding:8px 10px;${cellFont}${tone}` +
+        `word-break:break-word;${align || "text-align:left;"}">` +
+        `${content}</${tag}>`
+      );
+    };
+
+    /*
+     * The root cause backticks metric names, aliases and timestamps. Left
+     * bare they were indistinguishable from the prose around them.
+     *
+     * `code` arrives ALREADY escaped — marked escapes codespan text before
+     * it reaches the renderer — so escaping again here would turn a typed
+     * "<img>" into the literal "&lt;img&gt;" on screen rather than the
+     * "<img>" the author wrote. (The Docs and BlogValidation renderers do
+     * escape a second time; that is a separate defect in those surfaces,
+     * not a pattern to copy.)
+     */
+    renderer.codespan = function (code: string): string {
+      return (
+        `<code style="background-color:#f1f5f9;color:#0f172a;` +
+        `padding:1px 5px;border-radius:4px;` +
+        `font-family:'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;` +
+        `font-size:12px;">${code}</code>`
+      );
+    };
 
     this.emailRenderer = renderer;
 

@@ -136,9 +136,24 @@ export default class MonitorCriteriaMessageFormatter {
     return null;
   }
 
+  /**
+   * "latest 1.07 GB (min 900 KB, max 1.07 GB) across 3 data points".
+   *
+   * `format`, when supplied, renders ONE value — unit included — and is
+   * applied to latest, min and max independently. That independence is the
+   * point: auto-scaling can land min and max on different rungs of the
+   * ladder, which a single trailing unit suffix cannot express. It is the
+   * same reason CompareCriteria puts the unit on each number rather than on
+   * the sentence, and using the same callback in both places is what stops
+   * the evaluation log and the alert email describing one sample two ways.
+   *
+   * Without it the `unit` string is appended as before, so the caller that
+   * passes no unit at all (execution time) stays byte-identical.
+   */
   public static summarizeNumericSeries(
     values: Array<number>,
     unit?: string | undefined,
+    format?: ((value: number) => string) | undefined,
   ): string | null {
     if (!values.length) {
       return null;
@@ -156,29 +171,26 @@ export default class MonitorCriteriaMessageFormatter {
      */
     const unitSuffix: string = unit ? ` ${unit}` : "";
 
-    const latestFormatted: string | null =
-      MonitorCriteriaMessageFormatter.formatNumber(latest, {
-        maximumFractionDigits: 2,
-      });
+    const renderValue: (value: number) => string = (value: number): string => {
+      if (format) {
+        return format(value);
+      }
 
-    let summary: string = `latest ${latestFormatted ?? latest}${unitSuffix}`;
+      const formatted: string | null =
+        MonitorCriteriaMessageFormatter.formatNumber(value, {
+          maximumFractionDigits: 2,
+        });
+
+      return `${formatted ?? value}${unitSuffix}`;
+    };
+
+    let summary: string = `latest ${renderValue(latest)}`;
 
     if (values.length > 1) {
       const min: number = Math.min(...values);
       const max: number = Math.max(...values);
 
-      const minFormatted: string | null =
-        MonitorCriteriaMessageFormatter.formatNumber(min, {
-          maximumFractionDigits: 2,
-        });
-      const maxFormatted: string | null =
-        MonitorCriteriaMessageFormatter.formatNumber(max, {
-          maximumFractionDigits: 2,
-        });
-
-      summary += ` (min ${minFormatted ?? min}${unitSuffix}, max ${
-        maxFormatted ?? max
-      }${unitSuffix})`;
+      summary += ` (min ${renderValue(min)}, max ${renderValue(max)})`;
     }
 
     summary += ` across ${values.length} data point${
