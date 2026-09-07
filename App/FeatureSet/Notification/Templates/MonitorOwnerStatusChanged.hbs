@@ -22,7 +22,7 @@
 {{/ifCond}}
 {{/ifNotCond}}
 {{#ifNotCond rootCause ""}}
-{{> DetailBoxField title="Root Cause:" text=rootCause }}
+{{> DetailBoxField title="Root Cause:" blockText=rootCause }}
 {{/ifNotCond}}
 {{> DetailBoxField title="Status changed at:" text=statusChangedAt }}
 {{> DetailBoxField title="Description:" text=monitorDescription }}

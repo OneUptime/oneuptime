@@ -295,6 +295,23 @@ describe("DetailBoxField escaping", () => {
   });
 
   /*
+   * `blockText` is the third slot and carries the SAME raw-HTML contract as
+   * `text` — it exists for the <p>-nesting problem, not for escaping, and
+   * must never be mistaken for the escaped branch.
+   */
+  test("the partial's blockText branch is raw HTML in a block container", () => {
+    const source: string = fs.readFileSync(
+      Path.resolve(TEMPLATES_DIR, "Partials", "DetailBoxField.hbs"),
+      { encoding: "utf8" },
+    );
+
+    expect(source).toContain("{{{blockText}}}");
+    expect(source).not.toContain("{{blockText}}}}");
+    // A block container, so a <table> or <ul> can nest legally inside it.
+    expect(source).toMatch(/<div[^>]*>\{\{\{blockText\}\}\}<\/div>/u);
+  });
+
+  /*
    * Every value the alert templates pass that is NOT Markdown output or a
    * pre-rendered date must be on plainText=. Reading the two templates
    * catches a new row added on the wrong parameter, which no rendering
@@ -322,12 +339,93 @@ describe("DetailBoxField escaping", () => {
       expect(changed).toContain(`plainText=${variable}`);
     }
 
-    // ...and their HTML-bearing ones stay on text=.
-    expect(created).toContain("text=rootCause");
+    /*
+     * ...and their HTML-bearing ones stay on a raw slot. Markdown output
+     * moved to `blockText` (it emits <table>/<ul>, which cannot nest in the
+     * <p> that `text` renders); a pre-rendered date stays on `text`,
+     * because it is inline <br/> markup and a <p> is the right box for it.
+     */
+    expect(created).toContain("blockText=rootCause");
+    expect(created).toContain("blockText=alertDescription");
     expect(created).toContain("text=declaredAt");
-    expect(created).toContain("text=alertDescription");
-    expect(changed).toContain("text=stateChangeRootCause");
+    expect(changed).toContain("blockText=stateChangeRootCause");
     expect(changed).toContain("text=stateChangedAt");
+  });
+
+  /*
+   * The four on-call page-out emails were the last family still passing
+   * every row — titles, state names, severity, resources — through the raw
+   * `text` slot, which is the hole the `plainText` branch was added to
+   * close. They are also the emails a responder reads at 3am, so they are
+   * the worst place to leave attacker-authored markup live.
+   */
+  test("the acknowledge templates pass their plain strings on plainText=", () => {
+    const acknowledgeTemplates: Record<string, Array<string>> = {
+      "AcknowledgeAlert.hbs": [
+        "alertTitle",
+        "currentState",
+        "resourcesAffected",
+        "alertSeverity",
+      ],
+      "AcknowledgeIncident.hbs": [
+        "incidentTitle",
+        "currentState",
+        "resourcesAffected",
+        "incidentSeverity",
+      ],
+      "AcknowledgeAlertEpisode.hbs": [
+        "alertEpisodeTitle",
+        "currentState",
+        "resourcesAffected",
+        "alertEpisodeSeverity",
+      ],
+      "AcknowledgeIncidentEpisode.hbs": [
+        "incidentEpisodeTitle",
+        "currentState",
+        "resourcesAffected",
+        "incidentEpisodeSeverity",
+      ],
+    };
+
+    for (const [templateName, variables] of Object.entries(
+      acknowledgeTemplates,
+    )) {
+      const source: string = templateSource(templateName);
+
+      for (const variable of variables) {
+        expect(source).toContain(`plainText=${variable}`);
+        expect(source).not.toContain(`text=${variable} `);
+      }
+
+      // The one genuinely-HTML row per template rides the block slot.
+      expect(source).toContain("blockText=rootCause");
+    }
+  });
+
+  /*
+   * `concat` only String()s and joins — it does not escape — so a project
+   * name reaching InfoBlock's raw {{{info}}} through it was live HTML.
+   */
+  test("the acknowledge templates put their concatenated project name on plainInfo=", () => {
+    for (const templateName of [
+      "AcknowledgeAlert.hbs",
+      "AcknowledgeIncident.hbs",
+      "AcknowledgeAlertEpisode.hbs",
+      "AcknowledgeIncidentEpisode.hbs",
+    ]) {
+      const source: string = templateSource(templateName);
+
+      expect(source).toContain("InfoBlock plainInfo=(concat");
+      expect(source).not.toContain("InfoBlock info=(concat");
+    }
+
+    const infoBlock: string = fs.readFileSync(
+      Path.resolve(TEMPLATES_DIR, "Partials", "InfoBlock.hbs"),
+      { encoding: "utf8" },
+    );
+
+    expect(infoBlock).toContain("{{plainInfo}}");
+    expect(infoBlock).not.toContain("{{{plainInfo}}}");
   });
 });
 

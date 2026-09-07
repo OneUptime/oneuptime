@@ -4,17 +4,17 @@
 {{> Logo this}}
 {{> EmailTitle title=(concat "Incident " incidentNumber ": " incidentTitle) }}
 
-{{> InfoBlock info=(concat "A new incident has been created in the project - " projectName)}}
+{{> InfoBlock plainInfo=(concat "A new incident has been created in the project - " projectName)}}
 
 {{> InfoBlock info="Here are the details: "}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Incident Title:" text=incidentTitle }}
-{{> DetailBoxField title="Current State: " text=currentState  }}
-{{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
-{{> DetailBoxField title="Severity: " text=incidentSeverity  }}
-{{> DetailBoxField title="Root Cause: " text=rootCause  }}
-{{> DetailBoxField title="Description: " text=incidentDescription  }}
+{{> DetailBoxField title="Incident Title:" plainText=incidentTitle }}
+{{> DetailBoxField title="Current State: " plainText=currentState  }}
+{{> DetailBoxField title="Resources Affected: " plainText=resourcesAffected  }}
+{{> DetailBoxField title="Severity: " plainText=incidentSeverity  }}
+{{> DetailBoxField title="Root Cause: " blockText=rootCause  }}
+{{> DetailBoxField title="Description: " blockText=incidentDescription  }}
 {{> DetailBoxEnd this }}
 
 

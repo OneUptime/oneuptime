@@ -4,17 +4,17 @@
 {{> Logo this}}
 {{> EmailTitle title=(concat "Alert Episode " episodeNumber ": " alertEpisodeTitle) }}
 
-{{> InfoBlock info=(concat "A new alert episode has been created in the project - " projectName)}}
+{{> InfoBlock plainInfo=(concat "A new alert episode has been created in the project - " projectName)}}
 
 {{> InfoBlock info="Here are the details: "}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Alert Episode Title:" text=alertEpisodeTitle }}
-{{> DetailBoxField title="Current State: " text=currentState  }}
-{{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
-{{> DetailBoxField title="Severity: " text=alertEpisodeSeverity  }}
-{{> DetailBoxField title="Root Cause: " text=rootCause  }}
-{{> DetailBoxField title="Description: " text=alertEpisodeDescription  }}
+{{> DetailBoxField title="Alert Episode Title:" plainText=alertEpisodeTitle }}
+{{> DetailBoxField title="Current State: " plainText=currentState  }}
+{{> DetailBoxField title="Resources Affected: " plainText=resourcesAffected  }}
+{{> DetailBoxField title="Severity: " plainText=alertEpisodeSeverity  }}
+{{> DetailBoxField title="Root Cause: " blockText=rootCause  }}
+{{> DetailBoxField title="Description: " blockText=alertEpisodeDescription  }}
 {{> DetailBoxEnd this }}
 
 {{#if alertsList}}

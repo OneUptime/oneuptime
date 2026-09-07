@@ -35,7 +35,28 @@
     byte-identical, and the HTML/plain split is not expressible per variable
     name (incidentDescription is Markdown-HTML in one sender and raw in
     another).
+
+    `blockText` is the third slot, and carries the SAME escaping contract as
+    `text` — raw HTML, Markdown.convertToHTML output only. It exists because
+    `text` renders inside a <p>, and Markdown.convertToHTML emits BLOCK
+    elements: the breaching-samples <table> in an alert root cause, and the
+    <ul> in any description written as a list. A <table> inside a <p> is
+    invalid nesting, and every mail client resolves it by auto-closing the
+    paragraph early — so the table escaped the styled .st-DetailCard-value
+    box and landed unstyled against the card edge. This branch is a <div>
+    carrying identical typography, so block content nests legally and still
+    looks like every other field.
+
+    Use `blockText` for anything that came out of Markdown.convertToHTML;
+    `text` remains correct for inline HTML such as
+    OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones.
   --}}
+  {{#if blockText}}
+    <div
+      class="st-DetailCard-value"
+      style="Margin:0;font-size:15px;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;line-height:24px;color:#1e293b;font-weight:500;"
+    >{{{blockText}}}</div>
+  {{/if}}
   {{#if text}}
     <p
       class="st-DetailCard-value"

@@ -39,7 +39,7 @@
 --}}
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Affected Resource: " plainText=resourcesAffected }}
-{{> DetailBoxField title="Root Cause: " text=rootCause }}
+{{> DetailBoxField title="Root Cause: " blockText=rootCause }}
 {{> DetailBoxField title="Severity: " plainText=alertSeverity }}
 {{> DetailBoxField title="Current State: " plainText=currentState }}
 {{> DetailBoxField title="Declared At: " text=declaredAt }}
@@ -49,9 +49,9 @@
 {{> DetailBoxField title="Project: " plainText=projectName }}
 {{> DetailBoxField title="Declared By: " plainText=declaredBy }}
 {{#ifNotCond remediationNotes ""}}
-{{> DetailBoxField title="Remediation Notes: " text=remediationNotes }}
+{{> DetailBoxField title="Remediation Notes: " blockText=remediationNotes }}
 {{/ifNotCond}}
-{{> DetailBoxField title="Description: " text=alertDescription }}
+{{> DetailBoxField title="Description: " blockText=alertDescription }}
 {{> DetailBoxEnd this }}
 
 

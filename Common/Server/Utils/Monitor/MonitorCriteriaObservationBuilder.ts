@@ -41,6 +41,7 @@ import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData"
 import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
 import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import MetricUnitUtil from "../../../Utils/MetricUnitUtil";
+import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
 
 export default class MonitorCriteriaObservationBuilder {
   public static describeFilterObservation(input: {
@@ -1220,18 +1221,33 @@ export default class MonitorCriteriaObservationBuilder {
      * that unit alongside the numbers so the message reads "latest 0.06 sec"
      * instead of the unitless "latest 0.06".
      */
-    const displayUnit: string | undefined =
-      MonitorCriteriaObservationBuilder.resolveMetricUnits({
-        criteriaFilter: input.criteriaFilter,
-        dataToProcess: input.dataToProcess,
-        monitorStep: input.monitorStep,
-        alias: metricValues.alias,
-      }).displayUnit;
+    const resolvedUnits: {
+      displayUnit: string | undefined;
+      metricName: string | undefined;
+    } = MonitorCriteriaObservationBuilder.resolveMetricUnits({
+      criteriaFilter: input.criteriaFilter,
+      dataToProcess: input.dataToProcess,
+      monitorStep: input.monitorStep,
+      alias: metricValues.alias,
+    });
 
+    /*
+     * The same renderer the fired-alert email uses. Before this, a breach
+     * that CompareCriteria wrote into the email as "1.07 GB" appeared in
+     * the monitor's own evaluation log as "1073741824.00 By" — one sample,
+     * two descriptions, on two screens a reader compares.
+     */
     const summary: string | null =
       MonitorCriteriaMessageFormatter.summarizeNumericSeries(
         displayValues,
-        displayUnit,
+        resolvedUnits.displayUnit,
+        (value: number): string => {
+          return MetricValueFormatter.format({
+            value: value,
+            unit: resolvedUnits.displayUnit,
+            metricName: resolvedUnits.metricName,
+          });
+        },
       );
 
     if (!summary) {
@@ -1304,6 +1320,18 @@ export default class MonitorCriteriaObservationBuilder {
     sampleUnit: string | undefined;
     thresholdUnit: string | undefined;
     displayUnit: string | undefined;
+    /**
+     * The metric NAME, for the two decisions MetricValueFormatter cannot
+     * make from a unit alone: whether a "1"-unit value is a fraction to
+     * render as a percent, and whether a "seconds"-unit value is really an
+     * epoch that must skip the duration ladder.
+     *
+     * Undefined for a formula. A formula's "name" is its expression, and an
+     * expression ending in `_ratio` would trip the fraction heuristic into
+     * reporting every value at 100x — the same guard
+     * MonitorCriteriaEvaluator.metricNameForUnitHeuristics applies.
+     */
+    metricName: string | undefined;
   } {
     const thresholdUnit: string | undefined =
       input.criteriaFilter.metricMonitorOptions?.thresholdUnit || undefined;
@@ -1317,6 +1345,7 @@ export default class MonitorCriteriaObservationBuilder {
         sampleUnit: undefined,
         thresholdUnit,
         displayUnit: thresholdUnit,
+        metricName: undefined,
       };
     }
 
@@ -1355,35 +1384,42 @@ export default class MonitorCriteriaObservationBuilder {
       nativeUnitFromMap ||
       undefined;
 
+    const displayUnit: string | undefined = thresholdUnit || sampleUnit;
+
     return {
       sampleUnit,
       thresholdUnit,
       displayUnit: MonitorCriteriaObservationBuilder.normalizeDisplayUnit(
-        thresholdUnit || sampleUnit,
+        displayUnit,
+        rawMetricName,
       ),
+      metricName: rawMetricName,
     };
   }
 
   /*
-   * Suppress units that would read as noise next to a raw number. OTel's
-   * dimensionless "1" marks ratio metrics whose samples are fractions in
-   * [0, 1]; rendering "0.06 1" is both ugly and misleading (it is not 1% —
-   * it is 6%). Returning undefined leaves the number unlabelled, matching
-   * the pre-unit behavior for that specific case. Any real unit passes
-   * through unchanged.
+   * Suppress units that name no dimension, so they never reach a reader
+   * next to a number.
+   *
+   * This used to be a hand-rolled rule that dropped only the literal "1",
+   * and it drifted from the one CompareCriteria applies to the very same
+   * sample: a ratio metric's evaluation log read a bare "latest 0.06"
+   * while the alert email for the identical value said "6.00%". It also
+   * let UCUM's "{restarts}" and the platform catalogs' "count" / "ratio"
+   * through, none of which mean anything to a reader.
+   *
+   * MetricValueFormatter owns that rule now. Note it is name-AWARE where
+   * the old one was not: "1" on a `.utilization` metric is a real
+   * dimension (a fraction to be shown as a percent), so it survives here
+   * and the formatter turns it into "%".
    */
   private static normalizeDisplayUnit(
     unit: string | undefined,
+    metricName?: string | undefined,
   ): string | undefined {
-    if (!unit || !unit.trim()) {
-      return undefined;
-    }
-
-    if (unit.trim() === "1") {
-      return undefined;
-    }
-
-    return unit;
+    return MetricValueFormatter.hasDisplayableUnit(unit, metricName)
+      ? unit
+      : undefined;
   }
 
   /*
@@ -1399,6 +1435,24 @@ export default class MonitorCriteriaObservationBuilder {
     dataToProcess: DataToProcess;
     monitorStep: MonitorStep;
   }): string | undefined {
+    return MonitorCriteriaObservationBuilder.getMetricValueDisplayContext(input)
+      .unit;
+  }
+
+  /**
+   * The unit AND the metric name a criteria's values are displayed in.
+   *
+   * The expectation clause needs both, not just the unit: it renders the
+   * threshold through the same MetricValueFormatter as the observation, and
+   * the formatter's fraction and epoch-timestamp rules are keyed on the
+   * name. Without it, "recorded latest 6.00%" would be followed by
+   * "(expected to be greater than 0.9)".
+   */
+  public static getMetricValueDisplayContext(input: {
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+  }): { unit: string | undefined; metricName: string | undefined } {
     /*
      * Database Health thresholds are typed in the metric's own unit, which
      * only the catalog knows - without this the expectation clause reads
@@ -1412,13 +1466,17 @@ export default class MonitorCriteriaObservationBuilder {
         ? getDatabaseMetricByMetricType(metricType)
         : null;
 
-      return MonitorCriteriaObservationBuilder.normalizeDisplayUnit(
-        definition?.unit,
-      );
+      return {
+        unit: MonitorCriteriaObservationBuilder.normalizeDisplayUnit(
+          definition?.unit,
+        ),
+        // Catalog units are explicit; no name-based heuristic is wanted.
+        metricName: undefined,
+      };
     }
 
     if (input.criteriaFilter.checkOn !== CheckOn.MetricValue) {
-      return undefined;
+      return { unit: undefined, metricName: undefined };
     }
 
     const metricValues: {
@@ -1430,12 +1488,17 @@ export default class MonitorCriteriaObservationBuilder {
       monitorStep: input.monitorStep,
     });
 
-    return MonitorCriteriaObservationBuilder.resolveMetricUnits({
+    const resolved: {
+      displayUnit: string | undefined;
+      metricName: string | undefined;
+    } = MonitorCriteriaObservationBuilder.resolveMetricUnits({
       criteriaFilter: input.criteriaFilter,
       dataToProcess: input.dataToProcess,
       monitorStep: input.monitorStep,
       alias: metricValues?.alias ?? null,
-    }).displayUnit;
+    });
+
+    return { unit: resolved.displayUnit, metricName: resolved.metricName };
   }
 
   private static getSnmpResponse(input: {
@@ -1743,28 +1806,24 @@ export default class MonitorCriteriaObservationBuilder {
     }
   }
 
+  /*
+   * A Database Health metric carries an explicit catalog unit, and
+   * DatabaseMonitorCriteria already hands that same unit to CompareCriteria
+   * for the fired-alert email. Rendering it here through anything else made
+   * one byte count read three ways in one product: the email said
+   * "1.07 GB" (decimal, via MetricValueFormatter), this observation said
+   * "1.00 GB" (formatBytes divides by 1024 but labels the rungs SI), and
+   * the expectation clause beside it said "1000000000 bytes".
+   *
+   * formatBytes stays for the server-monitor memory and disk observations,
+   * where the values come from BasicMetrics with no unit metadata at all
+   * and 1024 is the right convention for RAM and volumes.
+   */
   private static formatDatabaseMetricValue(
     value: number,
     unit: string,
   ): string {
-    if (unit === "%") {
-      return (
-        MonitorCriteriaMessageFormatter.formatPercentage(value) ?? String(value)
-      );
-    }
-
-    if (unit === "bytes") {
-      return (
-        MonitorCriteriaMessageFormatter.formatBytes(value) ?? String(value)
-      );
-    }
-
-    const formatted: string =
-      MonitorCriteriaMessageFormatter.formatNumber(value, {
-        maximumFractionDigits: 2,
-      }) ?? String(value);
-
-    return unit ? `${formatted} ${unit}` : formatted;
+    return MetricValueFormatter.format({ value: value, unit: unit });
   }
 
   private static describeDatabaseCollectionErrorObservation(input: {
