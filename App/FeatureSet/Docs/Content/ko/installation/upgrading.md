@@ -8,6 +8,23 @@
 - 릴리스 노트를 따르는 한 부 버전/패치 버전은 건너뛸 수 있습니다 (예: 8.1 → 8.4).
 - 업그레이드 전에 항상 백업을 수행하고 복원할 수 있는지 확인합니다.
 
+### Redis는 이제 Valkey입니다
+
+캐시 및 큐 계층은 Redis 대신 Redis 7.2의 BSD 라이선스 포크인 [Valkey](https://valkey.io)를 실행합니다 — Redis 7.4가 더 엄격한 라이선스로 옮겨 갔고, 원래 기여자 대부분이 Valkey로 이동했기 때문입니다. Valkey는 Redis 와이어 프로토콜을 사용하므로 소켓 위쪽에서는 달라진 것이 없으며, 원한다면 여전히 OneUptime이 실제 Redis(또는 관리형 Redis 호환 서비스)를 가리키도록 할 수 있습니다.
+
+이제 모든 이름이 여기에 맞춰졌습니다. 설정은 `VALKEY_*`, Helm 값은 `valkey:` / `externalValkey:`, Kubernetes 오브젝트는 `<release>-valkey*`입니다. **기존 이름은 모두 그대로 동작하므로** 손대지 않은 `config.env`나 `values.yaml`로도 계속 실행됩니다 — 다만 바쁜 프로덕션 클러스터를 업그레이드하기 전에 아래 Helm 관련 내용을 읽어 보세요.
+
+**Docker Compose — 조치할 것이 없습니다.** 서비스 이름은 이제 `valkey`이지만 `redis`를 네트워크 별칭으로 유지하므로, `REDIS_HOST=redis`가 들어 있는 기존 `config.env`도 수정 없이 그대로 해석됩니다. 애플리케이션은 `VALKEY_*`를 읽고 없으면 `REDIS_*`로 폴백하며, `npm run update`는 기존 캐시 설정을 **교체하지 않습니다**. 이 명령은 보통 `config.example.env`에서 발견한 새 설정을 추가하지만, 이번 설정들은 이름 변경으로 인식하여 `REDIS_PASSWORD`를 포함한 여러분의 값을 있는 그대로 둡니다. `npm run update`로, 또는 `docker compose up --remove-orphans`를 포함한 아무 명령으로든 업그레이드하여 기존 `redis` 컨테이너가 제거되도록 하세요. 그대로 두면 같은 `redis` 호스트 이름 뒤에 컨테이너가 두 개 놓이게 되고, 연결의 절반이 오래된 쪽으로 가게 됩니다.
+
+`docker-compose.override.yml`에서 캐시 관련 변수를 직접 설정했다면 `VALKEY_*`로 이름을 변경하세요. 기본 파일이 여러분의 `REDIS_HOST`로부터 `VALKEY_HOST`를 설정하므로, `REDIS_HOST`만 설정하는 재정의는 더 이상 우선하지 않습니다.
+
+**Helm — 값을 변경할 필요는 없지만 캐시가 한 번 재시작됩니다.**
+
+- `redis:`와 `externalRedis:`는 여전히 동작합니다. 이들은 새로운 `valkey:` / `externalValkey:` 기본값 위에 겹쳐 적용되며, `helm upgrade`는 발견한 더 이상 사용되지 않는 키를 나열하는 알림을 출력합니다.
+- 생성된 비밀번호는 기존 `<release>-redis` Secret에서 `<release>-valkey`로 그대로 옮겨지므로 교체되는 것은 없습니다. 기존 Secret은 이제 쓰이지 않는 사본을 담은 채 유지됩니다 — 업그레이드가 자리를 잡으면 삭제하세요.
+- StatefulSet의 이름이 바뀌면 그 파드는 다시 생성됩니다. 번들된 캐시는 디스크에 아무것도 쓰지 않으므로 비어 있는 상태로 돌아옵니다. 캐시된 값은 사라지고, 대기 중이거나 지연되었거나 백오프 중이던 BullMQ 작업은 유실됩니다. 반복 작업과 cron 작업은 재연결 시 스스로 다시 등록됩니다. 처리 중인 텔레메트리나 워크플로 재시도가 중요하다면 한산한 시간대에 업그레이드하세요.
+- `externalValkey:` 대신 `extraEnv`를 통해 관리형 캐시를 가리키고 있다면 해당 항목들의 이름을 `VALKEY_*`로 변경하세요. 차트가 `VALKEY_HOST`도 함께 설정하고 애플리케이션이 그쪽을 우선하므로, 거기에 있는 `REDIS_HOST` 항목은 이제 무시됩니다.
+
 ## OneUptime 11 → 12 업그레이드
 
 <!-- TODO(i18n): Translate this section. English source: en/installation/upgrading.md (added for the v12 Runner merge). -->

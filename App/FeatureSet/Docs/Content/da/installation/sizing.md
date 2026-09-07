@@ -59,7 +59,7 @@ Hvis du kører mange applikations-, worker- og probe-replikaer, kan antallet af 
 
 ## Redis — cache, køer og sessioner
 
-Redis bruges som cache, arbejdskø og session-lager. Det er **hukommelsesbundet**, og persistens er **deaktiveret som standard** (Redis er her ikke en kilde til sandhed — det kan genopbygges). Dimensionér det efter forventet kødybde og samtidige sessioner; 2–8 GB hukommelse dækker de fleste installationer. Bemærk, at standard-eviction-politikken er `noeviction`, så hvis køer hober sig op under vedvarende overbelastning, bør du overvåge Redis-hukommelsen.
+Cache-laget kører [Valkey](https://valkey.io), den BSD-licenserede fork af Redis 7.2, og bruges som cache, arbejdskø og session-lager. Enhver server, der taler Redis-protokollen, kan træde i stedet; dimensioneringen nedenfor gælder i begge tilfælde. Det er **hukommelsesbundet**, og persistens er **deaktiveret som standard** (Redis er her ikke en kilde til sandhed — det kan genopbygges). Dimensionér det efter forventet kødybde og samtidige sessioner; 2–8 GB hukommelse dækker de fleste installationer. Bemærk, at standard-eviction-politikken er `noeviction`, så hvis køer hober sig op under vedvarende overbelastning, bør du overvåge Redis-hukommelsen.
 
 ## Applikationscomputerkraft
 

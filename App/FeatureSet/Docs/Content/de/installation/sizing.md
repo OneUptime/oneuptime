@@ -59,7 +59,7 @@ Wenn Sie viele Anwendungs-, Worker- und Probe-Repliken betreiben, kann die Anzah
 
 ## Redis — Cache, Warteschlangen und Sitzungen
 
-Redis wird als Cache, Arbeitswarteschlange und Sitzungsspeicher verwendet. Es ist **speichergebunden** und die Persistenz ist **standardmäßig deaktiviert** (Redis ist hier keine maßgebliche Datenquelle — es kann neu aufgebaut werden). Dimensionieren Sie es nach der erwarteten Warteschlangentiefe und den gleichzeitigen Sitzungen; 2–8 GB Speicher decken die meisten Deployments ab. Beachten Sie, dass die standardmäßige Eviction-Richtlinie `noeviction` ist, daher überwachen Sie den Redis-Speicher, falls sich Warteschlangen bei anhaltender Überlast stauen.
+Auf der Cache-Ebene läuft [Valkey](https://valkey.io), der BSD-lizenzierte Fork von Redis 7.2, und sie wird als Cache, Arbeitswarteschlange und Sitzungsspeicher verwendet. Jeder Server, der das Redis-Protokoll spricht, kann an ihre Stelle treten; das nachfolgende Sizing gilt in beiden Fällen. Sie ist **speichergebunden** und die Persistenz ist **standardmäßig deaktiviert** (Redis ist hier keine maßgebliche Datenquelle — es kann neu aufgebaut werden). Dimensionieren Sie sie nach der erwarteten Warteschlangentiefe und den gleichzeitigen Sitzungen; 2–8 GB Speicher decken die meisten Deployments ab. Beachten Sie, dass die standardmäßige Eviction-Richtlinie `noeviction` ist, daher überwachen Sie den Redis-Speicher, falls sich Warteschlangen bei anhaltender Überlast stauen.
 
 ## Anwendungs-Rechenleistung
 

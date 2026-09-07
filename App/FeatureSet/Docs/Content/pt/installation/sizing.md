@@ -59,7 +59,7 @@ Se você executar muitas réplicas de aplicação, worker e probe, o número de 
 
 ## Redis — cache, filas e sessões
 
-O Redis é usado como cache, fila de trabalho e armazenamento de sessões. Ele é **limitado por memória** e a persistência está **desabilitada por padrão** (o Redis aqui não é uma fonte de verdade — ele pode ser reconstruído). Dimensione-o pela profundidade esperada das filas e pelas sessões simultâneas; 2–8 GB de memória cobrem a maioria das implantações. Observe que a política de despejo padrão é `noeviction`, então se as filas se acumularem sob sobrecarga sustentada, monitore a memória do Redis.
+A camada de cache roda o [Valkey](https://valkey.io), o fork do Redis 7.2 com licença BSD, e é usada como cache, fila de trabalho e armazenamento de sessões. Qualquer servidor que fale o protocolo do Redis pode substituí-la; o dimensionamento abaixo vale para os dois casos. Ela é **limitada por memória** e a persistência está **desabilitada por padrão** (o Redis aqui não é uma fonte de verdade — ele pode ser reconstruído). Dimensione-a pela profundidade esperada das filas e pelas sessões simultâneas; 2–8 GB de memória cobrem a maioria das implantações. Observe que a política de despejo padrão é `noeviction`, então se as filas se acumularem sob sobrecarga sustentada, monitore a memória do Redis.
 
 ## Computação da aplicação
 

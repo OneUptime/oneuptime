@@ -78,7 +78,8 @@ OneUptime **不支持**自行设置 SSL/TLS 证书。您需要自行设置 SSL/T
 
 - **SSL/TLS**：设置 SSL/TLS 证书。OneUptime 不支持自行设置 SSL/TLS 证书。您需要自行设置。请参阅上方说明。
 - **密钥**：确保您的 `config.env` 文件中包含随机密钥。该文件中有一些默认密钥，请将它们替换为随机长字符串。
-- **备份**：定期备份您的数据库（Clickhouse、Postgres）。Redis 用作缓存，是无状态的，可以安全地忽略。
+- **备份**：定期备份您的数据库（Clickhouse、Postgres）。缓存是无状态的，可以安全地忽略。
+- **缓存与队列**：`valkey` 服务运行 [Valkey](https://valkey.io)，即采用 BSD 许可证的 Redis 7.2 分支，通过 `config.env` 中的 `VALKEY_*` 设置进行配置。任何支持 Redis 协议的服务器都可以使用——如果您愿意，也可以将 `VALKEY_HOST` 指向托管的 Redis。在 12.0.36 之前，这些设置名为 `REDIS_*`；旧名称仍会被读取，容器也仍然响应主机名 `redis`，并且 `npm run update` 不会重写它们，因此较旧的 `config.env` 无需任何修改。
 - **更新**：请定期更新 OneUptime。我们每天发布更新。如果在生产环境中运行，建议每周至少更新一次软件。
 
 ### 更新 OneUptime

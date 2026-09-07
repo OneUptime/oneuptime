@@ -78,7 +78,8 @@ Hvis du stadig vil deploye OneUptime i produktion med docker-compose, bør du ov
 
 - **SSL/TLS**: Opsæt SSL/TLS-certifikater. OneUptime understøtter ikke opsætning af SSL/TLS-certifikater. Du skal opsætte SSL/TLS-certifikater på egen hånd. Se venligst ovenfor.
 - **Hemmeligheder**: Sørg for, at du har tilfældige hemmeligheder i din `config.env`-fil. Der er nogle standardhemmeligheder i den fil. Erstat dem venligst med tilfældige lange strenge.
-- **Sikkerhedskopier**: Sikkerhedskopier regelmæssigt dine databaser (Clickhouse, Postgres). Redis bruges som cache og er stateless og kan ignoreres sikkert.
+- **Sikkerhedskopier**: Sikkerhedskopier regelmæssigt dine databaser (Clickhouse, Postgres). Cachen er stateless og kan ignoreres sikkert.
+- **Cache og køer**: `valkey`-servicen kører [Valkey](https://valkey.io), den BSD-licenserede fork af Redis 7.2, konfigureret via `VALKEY_*`-indstillingerne i `config.env`. Enhver server, der taler Redis-protokollen, virker — peg `VALKEY_HOST` mod en administreret Redis, hvis du foretrækker det. Disse indstillinger hed `REDIS_*` indtil 12.0.36; de gamle navne læses stadig, containeren svarer fortsat på hostnavnet `redis`, og `npm run update` omskriver dem ikke, så en ældre `config.env` behøver ingen redigering.
 - **Opdateringer**: Opdater venligst OneUptime regelmæssigt. Vi udgiver opdateringer hver dag. Vi anbefaler, at du opdaterer softwaren mindst én gang om ugen, hvis du kører i produktion.
 
 ### Opdatering af OneUptime

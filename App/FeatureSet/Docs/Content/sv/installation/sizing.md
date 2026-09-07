@@ -59,7 +59,7 @@ Om du kör många applikations-, arbetar- och probe-replikor kan antalet databas
 
 ## Redis — cache, köer och sessioner
 
-Redis används som cache, arbetskö och sessionslager. Den är **minnesbunden** och persistens är **inaktiverad som standard** (Redis här är inte en sanningskälla — den kan byggas om). Dimensionera den efter förväntat ködjup och antal samtidiga sessioner; 2–8 GB minne täcker de flesta distributioner. Observera att standardpolicyn för borttagning är `noeviction`, så om köer hopar sig vid ihållande överbelastning, övervaka Redis-minnet.
+Cachelagret kör [Valkey](https://valkey.io), den BSD-licensierade forken av Redis 7.2, och används som cache, arbetskö och sessionslager. Vilken server som helst som talar Redis-protokollet kan ersätta det; dimensioneringen nedan gäller i båda fallen. Det är **minnesbundet** och persistens är **inaktiverad som standard** (Redis här är inte en sanningskälla — den kan byggas om). Dimensionera det efter förväntat ködjup och antal samtidiga sessioner; 2–8 GB minne täcker de flesta distributioner. Observera att standardpolicyn för borttagning är `noeviction`, så om köer hopar sig vid ihållande överbelastning, övervaka Redis-minnet.
 
 ## Applikationens beräkningskraft
 

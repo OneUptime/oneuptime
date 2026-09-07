@@ -59,7 +59,7 @@ Als je veel applicatie-, worker- en probe-replicas draait, kan het aantal databa
 
 ## Redis — cache, wachtrijen en sessies
 
-Redis wordt gebruikt als cache, werkwachtrij en sessieopslag. Het is **geheugengebonden** en persistentie is **standaard uitgeschakeld** (Redis is hier geen bron van waarheid — het kan opnieuw worden opgebouwd). Dimensioneer het op de verwachte wachtrijdiepte en gelijktijdige sessies; 2–8 GB geheugen dekt de meeste deployments. Let op dat het standaard eviction-beleid `noeviction` is, dus als wachtrijen oplopen bij aanhoudende overbelasting, monitor dan het Redis-geheugen.
+De cachelaag draait [Valkey](https://valkey.io), de BSD-gelicentieerde fork van Redis 7.2, en wordt gebruikt als cache, werkwachtrij en sessieopslag. Elke server die het Redis-protocol spreekt, kan zijn plaats innemen; de onderstaande sizing geldt in beide gevallen. Het is **geheugengebonden** en persistentie is **standaard uitgeschakeld** (Redis is hier geen bron van waarheid — het kan opnieuw worden opgebouwd). Dimensioneer het op de verwachte wachtrijdiepte en gelijktijdige sessies; 2–8 GB geheugen dekt de meeste deployments. Let op dat het standaard eviction-beleid `noeviction` is, dus als wachtrijen oplopen bij aanhoudende overbelasting, monitor dan het Redis-geheugen.
 
 ## Applicatiecompute
 

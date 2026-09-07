@@ -59,7 +59,7 @@ Si ejecuta muchas réplicas de aplicación, de worker y de sondas, la cantidad d
 
 ## Redis — caché, colas y sesiones
 
-Redis se utiliza como caché, cola de trabajo y almacén de sesiones. Está **limitado por memoria** y la persistencia está **deshabilitada de forma predeterminada** (Redis aquí no es una fuente de verdad — puede reconstruirse). Dimensiónelo según la profundidad de cola esperada y las sesiones concurrentes; 2–8 GB de memoria cubren la mayoría de las implementaciones. Tenga en cuenta que la política de desalojo predeterminada es `noeviction`, así que si las colas se acumulan bajo una sobrecarga sostenida, supervise la memoria de Redis.
+La capa de caché ejecuta [Valkey](https://valkey.io), el fork con licencia BSD de Redis 7.2, y se utiliza como caché, cola de trabajo y almacén de sesiones. Cualquier servidor que hable el protocolo de Redis puede sustituirla; el dimensionamiento que sigue se aplica en ambos casos. Está **limitada por memoria** y la persistencia está **deshabilitada de forma predeterminada** (Redis aquí no es una fuente de verdad — puede reconstruirse). Dimensiónela según la profundidad de cola esperada y las sesiones concurrentes; 2–8 GB de memoria cubren la mayoría de las implementaciones. Tenga en cuenta que la política de desalojo predeterminada es `noeviction`, así que si las colas se acumulan bajo una sobrecarga sostenida, supervise la memoria de Redis.
 
 ## Cómputo de la aplicación
 

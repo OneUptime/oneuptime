@@ -59,7 +59,7 @@ Hvis du kjører mange applikasjons-, arbeider- og probe-replikaer, kan antallet 
 
 ## Redis — cache, køer og økter
 
-Redis brukes som en cache, en arbeidskø og et øktlager. Den er **minnebundet** og persistens er **deaktivert som standard** (Redis her er ikke en kilde til sannhet — den kan bygges på nytt). Dimensjoner den etter forventet kødybde og samtidige økter; 2–8 GB minne dekker de fleste distribusjoner. Merk at standard utkastelsespolicy er `noeviction`, så hvis køer hoper seg opp under vedvarende overbelastning, overvåk Redis-minne.
+Cache-laget kjører [Valkey](https://valkey.io), den BSD-lisensierte forgreningen av Redis 7.2, og brukes som en cache, en arbeidskø og et øktlager. Enhver server som snakker Redis-protokollen kan tre inn i stedet; dimensjoneringen nedenfor gjelder uansett. Den er **minnebundet** og persistens er **deaktivert som standard** (Redis her er ikke en kilde til sannhet — den kan bygges på nytt). Dimensjoner den etter forventet kødybde og samtidige økter; 2–8 GB minne dekker de fleste distribusjoner. Merk at standard utkastelsespolicy er `noeviction`, så hvis køer hoper seg opp under vedvarende overbelastning, overvåk Redis-minne.
 
 ## Applikasjonsberegning
 

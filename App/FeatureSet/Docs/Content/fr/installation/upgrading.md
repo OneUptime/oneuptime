@@ -8,6 +8,23 @@ Ce guide explique comment mettre à niveau en toute sécurité votre installatio
 - Vous pouvez passer directement d'une version mineure/corrective à une autre (par exemple, 8.1 → 8.4) tant que vous suivez les notes de version.
 - Effectuez toujours des sauvegardes avant la mise à niveau et vérifiez que vous pouvez les restaurer.
 
+### Redis est désormais Valkey
+
+La couche de cache et de files d'attente exécute [Valkey](https://valkey.io), le fork sous licence BSD de Redis 7.2, à la place de Redis — Redis 7.4 est passé à une licence plus restrictive et la majorité des contributeurs d'origine sont partis vers Valkey. Valkey parle le protocole réseau de Redis : rien ne change au-dessus du socket, et vous pouvez toujours pointer OneUptime vers un véritable Redis (ou vers un service managé compatible Redis) si vous le préférez.
+
+Tout porte désormais son nom : les paramètres sont `VALKEY_*`, les valeurs Helm sont `valkey:` / `externalValkey:`, et les objets Kubernetes sont `<release>-valkey*`. **Tous les anciens noms fonctionnent encore**, donc un fichier `config.env` ou `values.yaml` laissé tel quel continue de fonctionner — mais lisez la note Helm ci-dessous avant de mettre à niveau un cluster de production chargé.
+
+**Docker Compose — aucune action requise.** Le service s'appelle maintenant `valkey` et il conserve `redis` comme alias réseau : un fichier `config.env` existant contenant `REDIS_HOST=redis` se résout donc sans modification. L'application lit les paramètres `VALKEY_*` et se rabat sur `REDIS_*`, et `npm run update` ne remplacera **pas** vos paramètres de cache existants : il ajoute normalement tout nouveau paramètre trouvé dans `config.example.env`, mais il reconnaît ceux-ci comme des renommages et laisse vos valeurs — y compris votre `REDIS_PASSWORD` — exactement là où elles sont. Effectuez la mise à niveau avec `npm run update`, ou avec n'importe quel `docker compose up --remove-orphans`, afin que l'ancien conteneur `redis` soit supprimé ; le laisser tourner placerait deux conteneurs derrière le même nom d'hôte `redis`, et la moitié des connexions atterrirait sur le conteneur obsolète.
+
+Si vous définissez les variables de cache à la main dans un `docker-compose.override.yml`, renommez-les en `VALKEY_*`. Le fichier de base définit `VALKEY_HOST` à partir de votre `REDIS_HOST`, et une surcharge qui ne définit que `REDIS_HOST` ne l'emporte plus.
+
+**Helm — aucune modification des valeurs n'est nécessaire, mais le cache redémarre une fois.**
+
+- `redis:` et `externalRedis:` fonctionnent toujours ; ils sont superposés aux nouvelles valeurs par défaut `valkey:` / `externalValkey:`, et `helm upgrade` affiche un avis listant les clés obsolètes qu'il a trouvées.
+- Le mot de passe généré est repris de l'ancien Secret `<release>-redis` vers `<release>-valkey` : aucune rotation n'a donc lieu. L'ancien Secret est conservé et contient une copie désormais inutilisée — supprimez-le une fois la mise à niveau consolidée.
+- Renommer le StatefulSet recrée son pod. Le cache intégré n'écrit rien sur disque : il redémarre donc à froid — les valeurs mises en cache sont perdues, tout comme les jobs BullMQ en attente, différés ou en cours de temporisation. Les jobs répétables et les jobs cron se réenregistrent d'eux-mêmes à la reconnexion. Effectuez la mise à niveau à un moment creux si la télémétrie en vol ou les nouvelles tentatives de workflows comptent pour vous.
+- Si vous pointez vers un cache managé via `extraEnv` plutôt que via `externalValkey:`, renommez ces entrées en `VALKEY_*`. Une entrée `REDIS_HOST` y est désormais ignorée, car le chart définit aussi `VALKEY_HOST` et l'application lui donne la priorité.
+
 ## Mise à niveau de OneUptime 11 → 12
 
 <!-- TODO(i18n): Translate this section. English source: en/installation/upgrading.md (added for the v12 Runner merge). -->

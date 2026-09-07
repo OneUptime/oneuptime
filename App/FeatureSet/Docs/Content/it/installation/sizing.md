@@ -59,7 +59,7 @@ Se esegui molte repliche di applicazione, worker e probe, il numero di connessio
 
 ## Redis — cache, code e sessioni
 
-Redis è usato come cache, come coda di lavoro e come store di sessioni. È **vincolato alla memoria** e la persistenza è **disabilitata per impostazione predefinita** (qui Redis non è una fonte di verità — può essere ricostruito). Dimensionalo in base alla profondità delle code attesa e alle sessioni concorrenti; 2–8 GB di memoria coprono la maggior parte delle installazioni. Nota che la policy di eviction predefinita è `noeviction`, quindi se le code si accumulano sotto sovraccarico prolungato, monitora la memoria di Redis.
+Il livello di cache esegue [Valkey](https://valkey.io), il fork con licenza BSD di Redis 7.2, ed è usato come cache, come coda di lavoro e come store di sessioni. Al suo posto può essere usato qualsiasi server che parli il protocollo Redis; il dimensionamento qui sotto vale in entrambi i casi. È **vincolato alla memoria** e la persistenza è **disabilitata per impostazione predefinita** (qui Redis non è una fonte di verità — può essere ricostruito). Dimensionalo in base alla profondità delle code attesa e alle sessioni concorrenti; 2–8 GB di memoria coprono la maggior parte delle installazioni. Nota che la policy di eviction predefinita è `noeviction`, quindi se le code si accumulano sotto sovraccarico prolungato, monitora la memoria di Redis.
 
 ## Calcolo applicativo
 

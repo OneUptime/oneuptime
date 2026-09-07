@@ -59,7 +59,7 @@ Si vous exécutez de nombreux réplicas d'application, de worker et de sonde, le
 
 ## Redis — cache, files et sessions
 
-Redis est utilisé comme cache, file de travail et magasin de sessions. Il est **limité par la mémoire** et la persistance est **désactivée par défaut** (Redis ici n'est pas une source de vérité — il peut être reconstruit). Dimensionnez-le selon la profondeur de file attendue et les sessions concurrentes ; 2–8 GB de mémoire couvrent la plupart des déploiements. Notez que la politique d'éviction par défaut est `noeviction`, donc si les files s'accumulent sous une surcharge soutenue, surveillez la mémoire de Redis.
+La couche de cache exécute [Valkey](https://valkey.io), le fork sous licence BSD de Redis 7.2, et sert de cache, de file de travail et de magasin de sessions. N'importe quel serveur parlant le protocole Redis peut la remplacer ; le dimensionnement ci-dessous s'applique dans les deux cas. Elle est **limitée par la mémoire** et la persistance est **désactivée par défaut** (Redis ici n'est pas une source de vérité — il peut être reconstruit). Dimensionnez-la selon la profondeur de file attendue et les sessions concurrentes ; 2–8 GB de mémoire couvrent la plupart des déploiements. Notez que la politique d'éviction par défaut est `noeviction`, donc si les files s'accumulent sous une surcharge soutenue, surveillez la mémoire de Redis.
 
 ## Puissance de calcul de l'application
 
