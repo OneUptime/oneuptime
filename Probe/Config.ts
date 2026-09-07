@@ -248,20 +248,9 @@ export const PROBE_MONITOR_CHECK_TIMEOUT_IN_MS: number =
   });
 
 /*
- * Hard ceiling on ONE network discovery sweep, for exactly the reason
- * PROBE_MONITOR_CHECK_TIMEOUT_IN_MS exists — and the discovery job needs it
- * more, not less.
- *
- * The discovery cron holds a single-flight guard across the WHOLE cycle
- * (Jobs/Discovery/FetchScans.ts): list fetch, sweep, and result upload. Every
- * HTTP call in that cycle carries PROBE_API_REQUEST_TIMEOUT_IN_MS, but the
- * sweep between them had no deadline of any kind. A sweep opens one ICMP
- * child process and one UDP SNMP session per address — up to
- * ScanTargetUtil.MAX_SCAN_HOSTS of them — so it is exactly the kind of code
- * where one non-settling promise is plausible, and a single one of those
- * strands the guard set. Not for a cycle: FOREVER. Every later scan then sits
- * in "Pending" until someone restarts the probe container, with nothing in
- * the product to say why (OneUptime issue #3287).
+ * Hard ceiling on ONE network discovery sweep. Every HTTP call already has
+ * PROBE_API_REQUEST_TIMEOUT_IN_MS, but the sweep also needs a deadline so a
+ * wedged ICMP or SNMP operation cannot occupy a scheduler slot forever.
  *
  * The number is a wall-clock budget with two sides to fit between.
  *
@@ -279,8 +268,7 @@ export const PROBE_MONITOR_CHECK_TIMEOUT_IN_MS: number =
  * The ceiling is the server: it declares an In Progress scan abandoned after
  * 2 hours (Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts). The
  * probe has to give up FIRST, or a wedged sweep is reaped server-side while
- * the probe is still holding its guard — the scan reads Failed while
- * discovery on that probe stays stopped.
+ * the probe is still occupying its slot.
  *
  * 90 minutes sits between the two: comfortably above any sweep that is
  * genuinely making progress, and comfortably below the server's window, so
@@ -293,6 +281,21 @@ export const PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS: number =
     defaultValue: 90 * 60 * 1000,
     min: 1000,
     max: MAX_NODE_TIMER_DELAY_IN_MS,
+  });
+
+/*
+ * Independent discovery scans allowed to run on this probe at once (#3597).
+ * The probe still claims one scan per minute, whenever capacity is available.
+ * This is separate from PROBE_DISCOVERY_SCAN_CONCURRENCY, which limits host
+ * probes WITHIN each sweep. Their resource costs multiply; small containers
+ * can lower either limit, and 1 restores sequential scan execution.
+ */
+export const PROBE_DISCOVERY_MAX_CONCURRENT_SCANS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_DISCOVERY_MAX_CONCURRENT_SCANS"],
+    defaultValue: 4,
+    min: 1,
+    max: 16,
   });
 
 /*

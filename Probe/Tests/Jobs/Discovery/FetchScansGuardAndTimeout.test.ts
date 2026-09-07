@@ -56,9 +56,9 @@ import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverse
  *   - every control-plane request carries an explicit deadline (axios's
  *     default timeout is 0 = infinite, and a hung list fetch is exactly what
  *     wedged the customer's probe), and
- *   - one discovery cycle at a time: a subnet sweep legitimately runs many
- *     minutes (up to 4096 hosts), and before the guard every minutely tick
- *     stacked another fetch/sweep on top of the one still in flight.
+ *   - one claim request at a time: an unresponsive list endpoint must not
+ *     accumulate overlapping requests on every minutely tick. Independent
+ *     sweeps can overlap, as covered by FetchScansConcurrency.test.ts.
  */
 
 const scanId: ObjectID = ObjectID.generate();
@@ -209,7 +209,7 @@ describe("request deadlines — no discovery request may hang forever", () => {
   });
 });
 
-describe("overlap guard — one discovery cycle at a time", () => {
+describe("overlap guard — one discovery claim request at a time", () => {
   function capturedRunFunction(): PromiseVoidFunction {
     InitJob();
     const captured: CapturedCronJob | undefined =
@@ -230,9 +230,8 @@ describe("overlap guard — one discovery cycle at a time", () => {
     );
 
     /*
-     * A subnet sweep legitimately runs for many minutes; before the guard
-     * every minutely tick stacked another fetch/sweep on top of the stuck
-     * one. The second tick must return without fetching.
+     * The list request is still pending. The second tick must return without
+     * starting another claim request against the same unresponsive endpoint.
      */
     const firstTick: Promise<void> = runFunction();
     await flushMicrotasks();

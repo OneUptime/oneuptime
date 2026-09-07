@@ -14,6 +14,7 @@ import ScanModeUtil from "Common/Utils/NetworkDiscovery/ScanModeUtil";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Express, {
   ExpressResponse,
   ExpressRouter,
@@ -34,6 +35,7 @@ const router: ExpressRouter = Express.getRouter();
  * it here instead: a clipped explanation beats a lost result.
  */
 const MAX_STATUS_MESSAGE_LENGTH: number = 500;
+const MAX_EXCLUDED_SCAN_IDS: number = 128;
 
 /*
  * Hands the requesting probe its pending subnet-discovery scans and marks
@@ -60,11 +62,50 @@ router.post(
         );
       }
 
+      const excludeScanIds: unknown = req.body["excludeScanIds"];
+
+      if (
+        excludeScanIds !== undefined &&
+        (!Array.isArray(excludeScanIds) ||
+          excludeScanIds.length > MAX_EXCLUDED_SCAN_IDS)
+      ) {
+        throw new BadDataException(
+          `excludeScanIds must be an array of at most ${MAX_EXCLUDED_SCAN_IDS} scan IDs.`,
+        );
+      }
+
+      const excludedIds: Array<ObjectID> = [];
+
+      if (Array.isArray(excludeScanIds)) {
+        for (const excludedId of excludeScanIds) {
+          if (
+            typeof excludedId !== "string" ||
+            !ObjectID.isValidUUID(excludedId)
+          ) {
+            throw new BadDataException(
+              "excludeScanIds must contain only valid scan ID strings.",
+            );
+          }
+
+          excludedIds.push(new ObjectID(excludedId));
+        }
+      }
+
       const scans: Array<NetworkDeviceDiscoveryScan> =
         await NetworkDeviceDiscoveryScanService.findBy({
           query: {
             probeId: probeId,
             status: "Pending",
+            /*
+             * A settings edit puts an active scan back in Pending. Keep its
+             * ID out of this claim while the probe finishes the old run:
+             * claiming it again would turn it In Progress and allow the old
+             * result past the Pending guard below. Deduplicating on the probe
+             * after this response would already be too late.
+             */
+            ...(excludedIds.length > 0
+              ? { _id: QueryHelper.notIn(excludedIds) }
+              : {}),
           },
           select: {
             _id: true,
@@ -102,7 +143,10 @@ router.post(
           sort: {
             createdAt: SortOrder.Ascending,
           },
-          // One subnet scan at a time per probe — sweeps are heavy.
+          /*
+           * Claim one scan per poll. The probe limits concurrent execution
+           * and keeps polling while it has capacity for another scan.
+           */
           limit: 1,
           skip: 0,
           props: {
