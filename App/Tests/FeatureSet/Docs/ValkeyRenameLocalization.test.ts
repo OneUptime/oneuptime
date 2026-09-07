@@ -49,7 +49,7 @@ const COMPOSE_PAGE: string = "installation/docker-compose";
 const SIZING_PAGE: string = "installation/sizing";
 
 const VALKEY_LINK: string = "https://valkey.io";
-const RENAMED_IN_VERSION: string = "12.0.36";
+const RENAMED_IN_VERSION: string = "13.0.0";
 const TODO_MARKER: RegExp = /TODO\(i18n\)/;
 
 const FENCE_LINE: RegExp = /^\s*```/;

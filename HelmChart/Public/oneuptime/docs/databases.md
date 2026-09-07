@@ -186,7 +186,7 @@ moved to after Redis 7.4 left the BSD licence. It speaks the Redis wire
 protocol, so any Redis-protocol server can stand in for it — see **External**
 below.
 
-These values were called `redis:` and `externalRedis:` until 12.0.36, and both
+These values were called `redis:` and `externalRedis:` until 13.0.0, and both
 still work: whatever you set under them is layered on top of the defaults here,
 and `helm upgrade` prints a notice listing the deprecated keys it found. Where
 the same setting is written under both names, the legacy one wins.
@@ -221,7 +221,7 @@ valkey:
   commonConfiguration: |-
    appendonly no
    save ""
-  # Also publish the Service under its pre-12.0.36 name,
+  # Also publish the Service under its pre-13.0.0 name,
   # <release>-redis-master. Keeps pods that have not yet rolled onto the new
   # spec resolving during the upgrade. Set to false once everything has rolled.
   legacyServiceAlias: true

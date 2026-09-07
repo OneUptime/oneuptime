@@ -11,7 +11,7 @@ See [Installation & Upgrades](installation.md#upgrading) for the upgrade command
 
 ## Upgrade notes
 
-- **12.0.36 (2026-09-07)** — The cache and queue tier is Valkey, the
+- **13.0.0 (2026-09-07)** — The cache and queue tier is Valkey, the
   BSD-licensed fork of Redis 7.2, and everything is named for it. **No values
   file needs editing**, but read the last two bullets before upgrading
   production.

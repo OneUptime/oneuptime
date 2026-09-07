@@ -566,7 +566,7 @@ check_valkey() {
   # Everything here is name-probed rather than assumed, because this script is
   # routinely run against a release older than itself. The workload was called
   # <release>-redis, holding a <release>-redis secret keyed redis-password and
-  # running the redis image, until 12.0.36.
+  # running the redis image, until 13.0.0.
   pod=$(first_ready_pod "app=${RELEASE}-valkey")
   if [ -z "$pod" ]; then
     pod=$(first_ready_pod "app=${RELEASE}-redis")

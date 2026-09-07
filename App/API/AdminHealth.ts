@@ -1357,7 +1357,7 @@ export const SUPPORT_CONFIG_ALLOW_LIST: Array<string> = [
   "VALKEY_DB",
   "VALKEY_IP_FAMILY",
   /*
-   * The names these carried until 12.0.36. getRedactedConfig() reports only keys
+   * The names these carried until 13.0.0. getRedactedConfig() reports only keys
    * actually present in process.env, so dropping them would leave an instance
    * still on the deprecated spelling with no cache host, port or database in its
    * support bundle at all -- silently, and precisely when the cache is the
