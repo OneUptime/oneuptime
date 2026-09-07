@@ -9,7 +9,7 @@ import NetworkDeviceDiscoveryScan, {
   DiscoveredNetworkDevice,
 } from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import Probe from "Common/Models/DatabaseModels/Probe";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, {
   ButtonSize,
@@ -751,9 +751,11 @@ const NetworkDeviceDiscovery: FunctionComponent<
         throw new BadDataException("This discovery scan could not be found.");
       }
 
-      // The service reconciles registration against the current inventory on
-      // read. Fetch on every open: the table row and our prior import record
-      // may both predate a device's deletion or an import in another session.
+      /*
+       * The service reconciles registration against the current inventory on
+       * read. Fetch on every open: the table row and our prior import record
+       * may both predate a device's deletion or an import in another session.
+       */
       const freshScan: NetworkDeviceDiscoveryScan | null =
         await ModelAPI.getItem<NetworkDeviceDiscoveryScan>({
           modelType: NetworkDeviceDiscoveryScan,
@@ -789,8 +791,10 @@ const NetworkDeviceDiscovery: FunctionComponent<
         throw new BadDataException("This discovery scan could not be found.");
       }
 
-      // An earlier import can finish while this read is in flight. Preserve
-      // those newly created addresses even if the response predates them.
+      /*
+       * An earlier import can finish while this read is in flight. Preserve
+       * those newly created addresses even if the response predates them.
+       */
       const refreshedImports: ImportedIpAddressesByScanId = {
         [request.scanId]: Array.from(request.importedIpAddresses),
       };

@@ -183,8 +183,10 @@ export class Service extends DatabaseService<Model> {
     onFind: OnFind<Model>,
     items: Array<Model>,
   ): Promise<OnFind<Model>> {
-    // Registration is current inventory state, not a fact about the scan.
-    // Refresh both directions so old results can be used after a deletion.
+    /*
+     * Registration is current inventory state, not a fact about the scan.
+     * Refresh both directions so old results can be used after a deletion.
+     */
     const hostnamesByProject: Map<string, Set<string>> = new Map();
 
     for (const scan of items) {
@@ -216,8 +218,10 @@ export class Service extends DatabaseService<Model> {
         await NetworkDeviceService.getRegisteredHostnames({
           projectId: new ObjectID(projectId),
           hostnames: Array.from(hostnames),
-          // The scan read has already passed its access checks. Return only
-          // the same existence flag as probe ingest, scoped to this project.
+          /*
+           * The scan read has already passed its access checks. Return only
+           * the same existence flag as probe ingest, scoped to this project.
+           */
           props: { isRoot: true },
         }),
       );

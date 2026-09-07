@@ -20,13 +20,16 @@ import Project from "../../../Models/DatabaseModels/Project";
 import ObjectID from "../../../Types/ObjectID";
 import Route from "../../../Types/API/Route";
 import Permission from "../../../Types/Permission";
+import { VoidFunction } from "../../../Types/FunctionTypes";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import { ComponentProps as ModalProps } from "../../../UI/Components/Modal/Modal";
 
-// Keep the page's review, selection and import handlers real. The table mock
-// exposes its actual row action; the modal mock removes animation and portals.
+/*
+ * Keep the page's review, selection and import handlers real. The table mock
+ * exposes its actual row action; the modal mock removes animation and portals.
+ */
 interface TableProps {
   actionButtons: Array<{
     title: string;
@@ -275,8 +278,10 @@ describe("Discovery review refreshes registration from current inventory", () =>
     await openReview(oldScan);
     await importSelected();
 
-    // The inventory no longer contains the device; the page still remembers
-    // importing it, but a successful new read supersedes that old record.
+    /*
+     * The inventory no longer contains the device; the page still remembers
+     * importing it, but a successful new read supersedes that old record.
+     */
     await openReview(oldScan);
     expect(checkbox("10.0.0.1")).toBeEnabled();
     expect(checkbox("10.0.0.1")).toBeChecked();

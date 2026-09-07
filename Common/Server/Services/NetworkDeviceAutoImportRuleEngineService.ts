@@ -244,8 +244,10 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         },
         props: {
           isRoot: true,
-          // Keep the stored payload for stampScan; the engine checks live
-          // inventory itself before evaluating these hosts.
+          /*
+           * Keep the stored payload for stampScan; the engine checks live
+           * inventory itself before evaluating these hosts.
+           */
           ignoreHooks: true,
         },
       });

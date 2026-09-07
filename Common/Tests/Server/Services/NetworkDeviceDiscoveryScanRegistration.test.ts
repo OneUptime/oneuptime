@@ -273,7 +273,7 @@ describe("NetworkDeviceDiscoveryScanService current registration on read", () =>
     const saved: NetworkDeviceDiscoveryScan = scanWith([
       host("10.0.0.5", true),
     ]);
-    saved.projectId = undefined;
+    delete saved.projectId;
     const result: Array<NetworkDeviceDiscoveryScan> = await readScans(
       [saved],
       context({ tenantId: PROJECT_ID }),
@@ -306,7 +306,7 @@ describe("NetworkDeviceDiscoveryScanService current registration on read", () =>
     const saved: NetworkDeviceDiscoveryScan = scanWith([
       host("10.0.0.5", true),
     ]);
-    saved.projectId = undefined;
+    delete saved.projectId;
 
     const result: Array<NetworkDeviceDiscoveryScan> = await readScans([saved]);
 
@@ -433,7 +433,7 @@ describe("discovery registration with the inventory lookup service", () => {
   it("keeps a live device registered after its monitor has been deleted", async () => {
     const device: NetworkDevice = new NetworkDevice();
     device.hostname = "10.0.0.5";
-    device.monitorId = undefined;
+    delete device.monitorId;
     const findSpy: jest.SpyInstance = jest
       .spyOn(NetworkDeviceService, "findBy")
       .mockResolvedValue([device]);
@@ -498,20 +498,23 @@ describe("discovery registration with the inventory lookup service", () => {
 
     expect(findSpy).toHaveBeenCalledTimes(3);
     expect(
-      requestedChunks.map((chunk: Array<string>): number => chunk.length),
+      requestedChunks.map((chunk: Array<string>): number => {
+        return chunk.length;
+      }),
     ).toEqual([500, 500, 1]);
     expect(requestedChunks.flat()).toEqual(
-      hosts.map((item: DiscoveredNetworkDevice): string => item.ipAddress),
+      hosts.map((item: DiscoveredNetworkDevice): string => {
+        return item.ipAddress;
+      }),
     );
     expect(discoveredAt(result)).toHaveLength(1001);
     for (const item of discoveredAt(result)) {
       expect(item.isAlreadyRegistered).toBe(liveHostnames.has(item.ipAddress));
     }
     expect(
-      hosts.every(
-        (item: DiscoveredNetworkDevice): boolean =>
-          item.isAlreadyRegistered === true,
-      ),
+      hosts.every((item: DiscoveredNetworkDevice): boolean => {
+        return item.isAlreadyRegistered === true;
+      }),
     ).toBe(true);
   });
 });
