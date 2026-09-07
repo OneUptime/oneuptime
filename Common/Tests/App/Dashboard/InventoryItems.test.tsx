@@ -35,8 +35,10 @@ interface InventoryTableProps {
 let capturedTable: InventoryTableProps | null = null;
 let capturedFacetStates: Array<FacetSelectionState> = [];
 
-// Exercise the real page and browser navigation without fetching table rows.
-// Capture the same URL state the table's facet hook reads on its first render.
+/*
+ * Exercise the real page and browser navigation without fetching table rows.
+ * Capture the same URL state the table's facet hook reads on its first render.
+ */
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Inventory/InventoryTable",
   () => {
