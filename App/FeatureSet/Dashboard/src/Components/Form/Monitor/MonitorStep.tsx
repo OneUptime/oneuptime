@@ -89,6 +89,10 @@ import PodmanMonitorStepForm from "./PodmanMonitor/PodmanMonitorStepForm";
 import MonitorStepPodmanMonitor, {
   MonitorStepPodmanMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepPodmanMonitor";
+import VmwareMonitorStepForm from "./VmwareMonitor/VmwareMonitorStepForm";
+import MonitorStepVmwareMonitor, {
+  MonitorStepVmwareMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepVmwareMonitor";
 import ProxmoxMonitorStepForm from "./ProxmoxMonitor/ProxmoxMonitorStepForm";
 import MonitorStepProxmoxMonitor, {
   MonitorStepProxmoxMonitorUtil,
@@ -1573,6 +1577,33 @@ return {
             }
             onChange={(value: MonitorStepPodmanMonitor) => {
               monitorStep.setPodmanMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onMonitorCriteriaChange={(criteria: MonitorCriteria) => {
+              monitorStep.setMonitorCriteria(criteria);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onlineMonitorStatusId={props.onlineMonitorStatusId}
+            offlineMonitorStatusId={props.offlineMonitorStatusId}
+            defaultIncidentSeverityId={props.defaultIncidentSeverityId}
+            defaultAlertSeverityId={props.defaultAlertSeverityId}
+            monitorName={props.monitorName}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.VMware && (
+        <Card
+          title="VMware Monitor Configuration"
+          description="Configure your VMware source monitoring using templates, curated metrics, or the advanced query builder."
+        >
+          <VmwareMonitorStepForm
+            monitorStepVmwareMonitor={
+              monitorStep.data?.vmwareMonitor ||
+              MonitorStepVmwareMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepVmwareMonitor) => {
+              monitorStep.setVmwareMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
             onMonitorCriteriaChange={(criteria: MonitorCriteria) => {

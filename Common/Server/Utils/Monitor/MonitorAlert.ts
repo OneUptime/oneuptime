@@ -1,3 +1,7 @@
+import VMwareSeriesContext, {
+  VMwareDisplayContext,
+} from "./VMwareSeriesContext";
+import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
@@ -113,6 +117,12 @@ export default class MonitorAlert {
         breachingSeriesFingerprintsByCriteriaId:
           input.breachingSeriesFingerprintsByCriteriaId,
         disableSeriesAbsenceResolution: input.disableSeriesAbsenceResolution,
+        unavailableSeriesFingerprints: (
+          input.dataToProcess as MetricMonitorResponse
+        ).unavailableSeriesFingerprints,
+        recoveredSeriesFingerprints: (
+          input.dataToProcess as MetricMonitorResponse
+        ).recoveredSeriesFingerprints,
       });
 
       if (shouldClose) {
@@ -550,21 +560,32 @@ export default class MonitorAlert {
            * put `{{seriesResourceSuffix}}` or the raw label variables
            * in their own template).
            */
+          const vmwareDisplayContext: VMwareDisplayContext | null =
+            await VMwareSeriesContext.resolve({
+              projectId: input.monitor.projectId!,
+              seriesLabels,
+            });
+          const displaySeriesLabels: JSONObject | undefined =
+            vmwareDisplayContext?.displayLabels || seriesLabels;
           alert.title = SeriesContextEnricher.enrichTitle({
             title: MonitorTemplateUtil.processTemplateString({
               value: criteriaAlert.title,
               storageMap,
             }),
-            seriesLabels,
+            seriesLabels: displaySeriesLabels,
           });
           alert.description = SeriesContextEnricher.enrichDescription({
             description: MonitorTemplateUtil.processTemplateString({
               value: criteriaAlert.description,
               storageMap,
             }),
-            seriesLabels,
+            seriesLabels: displaySeriesLabels,
             monitorType: input.monitor.monitorType,
           });
+
+          if (vmwareDisplayContext?.linksMarkdown) {
+            alert.description += `\n\n${vmwareDisplayContext.linksMarkdown}`;
+          }
 
           /*
            * A criteria severity belonging to *another* project is rejected by
@@ -1008,9 +1029,28 @@ export default class MonitorAlert {
       | Dictionary<Set<string>>
       | undefined;
     disableSeriesAbsenceResolution?: boolean | undefined;
+    unavailableSeriesFingerprints?: Array<string> | undefined;
+    recoveredSeriesFingerprints?: Array<string> | undefined;
   }): boolean {
     const openSeriesFingerprint: string | undefined =
       input.openAlert.seriesFingerprint || undefined;
+
+    // An absent/unknown VMware reading cannot affirm recovery. Other series
+    // still recover independently and existing non-VMware behavior is unchanged.
+    if (
+      openSeriesFingerprint &&
+      input.unavailableSeriesFingerprints?.includes(openSeriesFingerprint)
+    ) {
+      return false;
+    }
+
+    if (
+      openSeriesFingerprint &&
+      input.recoveredSeriesFingerprints !== undefined &&
+      !input.recoveredSeriesFingerprints.includes(openSeriesFingerprint)
+    ) {
+      return false;
+    }
 
     /*
      * Event-driven (incoming-request / webhook) per-key alerts must NEVER

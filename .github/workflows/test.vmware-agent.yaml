@@ -1,0 +1,55 @@
+name: VMware Agent Test
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Build the packaged inventory companion
+        run: docker build -f VMwareAgent/Dockerfile.tpl -t oneuptime-vmware-agent:test VMwareAgent
+      # Execute the source and pinned SDK copied into the production image.
+      # Only tests are mounted; fake vSphere and loopback OTLP fixtures require
+      # no real endpoint, credentials, external network, or Docker socket.
+      - name: Run inventory, API, export, and fake-server integration tests
+        run: >-
+          docker run --rm --network none --read-only --tmpfs /tmp
+          -v "${{ github.workspace }}/VMwareAgent/Tests:/app/VMwareAgent/Tests:ro"
+          oneuptime-vmware-agent:test
+          python -m unittest discover -s VMwareAgent/Tests -v
+      - name: Validate Compose configuration
+        run: docker compose --env-file VMwareAgent/.env.example -f VMwareAgent/docker-compose.yml config --quiet
+      - name: Pull the pinned OpenTelemetry collector
+        run: docker pull otel/opentelemetry-collector-contrib:0.160.0
+      - name: Validate the shipped collector configuration
+        run: >-
+          docker run --rm --network none --read-only
+          --env-file VMwareAgent/.env.example
+          -v "${{ github.workspace }}/VMwareAgent/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro"
+          otel/opentelemetry-collector-contrib:0.160.0
+          validate --config=/etc/otelcol/config.yaml
+      # Runs the otherwise opt-in wire test using an ephemeral collector with
+      # a debug exporter. It never opens a VMware connection or sends telemetry
+      # outside the runner; its temporary container is removed even on failure.
+      - name: Verify OTLP JSON against the real collector
+        env:
+          VMWARE_TEST_COLLECTOR: '1'
+        run: python -m unittest VMwareAgent.Tests.test_collector -v

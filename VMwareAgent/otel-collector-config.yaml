@@ -1,0 +1,75 @@
+receivers:
+  # Keep the upstream receiver for the broader performance metric catalog.
+  # Companion metrics below provide stable-ID state and core utilization.
+  vcenter:
+    endpoint: "${env:VMWARE_ENDPOINT}"
+    username: "${env:VMWARE_USERNAME}"
+    password: "${env:VMWARE_PASSWORD}"
+    collection_interval: 2m
+    max_query_metrics: 256
+    tls:
+      insecure: false
+      insecure_skip_verify: false
+      ca_file: "${env:VMWARE_CA_FILE}"
+    metrics:
+      vcenter.cluster.vsan.congestions: { enabled: false }
+      vcenter.cluster.vsan.latency.avg: { enabled: false }
+      vcenter.cluster.vsan.operations: { enabled: false }
+      vcenter.cluster.vsan.throughput: { enabled: false }
+      vcenter.host.vsan.cache.hit_rate: { enabled: false }
+      vcenter.host.vsan.congestions: { enabled: false }
+      vcenter.host.vsan.latency.avg: { enabled: false }
+      vcenter.host.vsan.operations: { enabled: false }
+      vcenter.host.vsan.throughput: { enabled: false }
+      vcenter.vm.vsan.latency.avg: { enabled: false }
+      vcenter.vm.vsan.operations: { enabled: false }
+      vcenter.vm.vsan.throughput: { enabled: false }
+  otlp/inventory:
+    protocols:
+      http:
+        endpoint: 127.0.0.1:4318
+
+processors:
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 384
+    spike_limit_mib: 64
+  resource/vmware:
+    attributes:
+      - key: oneuptime.vmware.source.id
+        value: "${env:VMWARE_SOURCE_ID}"
+        action: upsert
+      - key: oneuptime.vmware.source.name
+        value: "${env:VMWARE_SOURCE_NAME}"
+        action: upsert
+      # Route VMware batches by source rather than creating a phantom service.
+      - key: service.name
+        action: delete
+      - key: service.instance.id
+        action: delete
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+exporters:
+  otlphttp:
+    endpoint: "${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-token: "${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+    timeout: 15s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 1s
+      max_interval: 15s
+      max_elapsed_time: 120s
+    sending_queue:
+      enabled: true
+      queue_size: 1000
+
+service:
+  pipelines:
+    metrics:
+      receivers: [vcenter, otlp/inventory]
+      processors: [memory_limiter, resource/vmware, batch]
+      exporters: [otlphttp]

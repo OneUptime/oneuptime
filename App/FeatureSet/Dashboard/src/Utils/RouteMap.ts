@@ -3199,6 +3199,26 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  // VMware
+  [PageMap.VMWARE_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/*`,
+  ),
+  [PageMap.VMWARE_SOURCES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware`,
+  ),
+  [PageMap.VMWARE_SOURCE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${RouteParams.ModelID}`,
+  ),
+  [PageMap.VMWARE_RESOURCE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${RouteParams.ModelID}/resources/${RouteParams.SubModelID}`,
+  ),
+  [PageMap.VMWARE_MONITORS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/monitors`,
+  ),
+  [PageMap.VMWARE_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/documentation`,
+  ),
+
   // Proxmox
 
   [PageMap.PROXMOX_ROOT]: new Route(

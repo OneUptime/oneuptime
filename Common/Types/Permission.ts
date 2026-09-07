@@ -1502,6 +1502,13 @@ enum Permission {
   EditIoTDeviceCredential = "EditIoTDeviceCredential",
   ReadIoTDeviceCredential = "ReadIoTDeviceCredential",
 
+  CreateVMwareSource = "CreateVMwareSource",
+  ReadVMwareSource = "ReadVMwareSource",
+  EditVMwareSource = "EditVMwareSource",
+  DeleteVMwareSource = "DeleteVMwareSource",
+  ReadVMwareResource = "ReadVMwareResource",
+  EditVMwareResource = "EditVMwareResource",
+
   CreateCephCluster = "CreateCephCluster",
   DeleteCephCluster = "DeleteCephCluster",
   EditCephCluster = "EditCephCluster",
@@ -9223,6 +9230,18 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
 
+      { permission: Permission.CreateVMwareSource, title: "Create VMware Source", description: "Create VMware Source in this project.",
+        isAssignableToTenant: true, isAccessControlPermission: false, isRolePermission: false, group: PermissionGroup.Telemetry },
+      { permission: Permission.ReadVMwareSource, title: "Read VMware Source", description: "Read VMware Source in this project.",
+        isAssignableToTenant: true, isAccessControlPermission: false, isRolePermission: false, group: PermissionGroup.Telemetry },
+      { permission: Permission.EditVMwareSource, title: "Edit VMware Source", description: "Edit VMware Source in this project.",
+        isAssignableToTenant: true, isAccessControlPermission: false, isRolePermission: false, group: PermissionGroup.Telemetry },
+      { permission: Permission.DeleteVMwareSource, title: "Delete VMware Source", description: "Delete VMware Source in this project.",
+        isAssignableToTenant: true, isAccessControlPermission: false, isRolePermission: false, group: PermissionGroup.Telemetry },
+      { permission: Permission.ReadVMwareResource, title: "Read VMware Resource", description: "Read VMware Resource in this project.",
+        isAssignableToTenant: true, isAccessControlPermission: false, isRolePermission: false, group: PermissionGroup.Telemetry },
+      { permission: Permission.EditVMwareResource, title: "Edit VMware Resource", description: "Edit VMware Resource in this project.",
+        isAssignableToTenant: true, isAccessControlPermission: false, isRolePermission: false, group: PermissionGroup.Telemetry },
       {
         permission: Permission.CreateCephCluster,
         title: "Create Ceph Cluster",

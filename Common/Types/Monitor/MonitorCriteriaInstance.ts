@@ -113,6 +113,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       monitorType === MonitorType.Host ||
       monitorType === MonitorType.Podman ||
       monitorType === MonitorType.DockerSwarm ||
+      monitorType === MonitorType.VMware ||
       monitorType === MonitorType.Proxmox ||
       monitorType === MonitorType.Ceph ||
       monitorType === MonitorType.IoTDevice

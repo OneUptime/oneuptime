@@ -322,6 +322,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/podman-monitor",
       },
       {
+        title: "VMware Monitor",
+        url: "/docs/monitor/vmware-monitor",
+      },
+      {
         title: "Proxmox Monitor",
         url: "/docs/monitor/proxmox-monitor",
       },
@@ -730,6 +734,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Podman Agent",
         url: "/docs/telemetry/podman-host",
+      },
+      {
+        title: "VMware Agent",
+        url: "/docs/telemetry/vmware",
       },
       {
         title: "Proxmox Agent",

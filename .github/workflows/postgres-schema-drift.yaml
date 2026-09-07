@@ -68,3 +68,11 @@ jobs:
 
       - name: Check for Postgres schema drift
         run: npm run check-postgres-schema-drift
+
+      - name: Verify VMware inventory persistence against the migrated schema
+        working-directory: Common
+        env:
+          RUN_POSTGRES_VMWARE_TESTS: 'true'
+          VMWARE_TEST_DATABASE_HOST: localhost
+          VMWARE_TEST_DATABASE_PORT: '5400'
+        run: node node_modules/.bin/jest --runInBand --forceExit Tests/Server/Services/VMwareInventoryPostgres.test.ts

@@ -1,3 +1,13 @@
+import VMwareSource from "Common/Models/DatabaseModels/VMwareSource";
+import VMwareResource from "Common/Models/DatabaseModels/VMwareResource";
+import VMwareSourceService from "Common/Server/Services/VMwareSourceService";
+import VMwareResourceService from "Common/Server/Services/VMwareResourceService";
+import VmwareMonitorSeries, {
+  VmwareSeriesResult,
+} from "Common/Server/Utils/Monitor/VmwareMonitorSeries";
+import MonitorStepVmwareMonitor, {
+  MonitorStepVmwareMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepVmwareMonitor";
 import OneUptimeDate from "Common/Types/Date";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -167,6 +177,7 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: () => Promise<void> =
           MonitorType.Podman,
           MonitorType.DockerSwarm,
           MonitorType.Proxmox,
+          MonitorType.VMware,
           MonitorType.Ceph,
           MonitorType.IoTDevice,
         ]),
@@ -354,6 +365,14 @@ export const processTelemetryMonitorEvaluationFromQueue: (
     monitorId: monitor.id,
     projectId: monitor.projectId!,
   });
+
+  if ("skipEvaluationReason" in response && response.skipEvaluationReason) {
+    logger.debug(response.skipEvaluationReason, {
+      service: "workers",
+      projectId: monitor.projectId?.toString(),
+    });
+    return;
+  }
 
   await MonitorResourceUtil.monitorResource(response);
 };
@@ -1070,6 +1089,10 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
     });
   }
 
+  if (monitorType === MonitorType.VMware) {
+    return monitorVmware({ monitorStep, monitorId, projectId });
+  }
+
   if (monitorType === MonitorType.Proxmox) {
     return monitorProxmox({
       monitorStep,
@@ -1342,6 +1365,169 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
     seriesBreakdown: seriesBreakdown,
     nativeUnitsByMetricName: nativeUnitsByMetricNameDict,
   };
+};
+
+/** VMware reuses SQL metric aggregation; inventory supplies lifecycle and missing-resource semantics. */
+export const monitorVmware: MonitorMetricFunction = async (
+  data: Parameters<MonitorMetricFunction>[0],
+): Promise<MetricMonitorResponse> => {
+  const config: MonitorStepVmwareMonitor | undefined =
+    data.monitorStep.data?.vmwareMonitor;
+  if (!config) {
+    throw new BadDataException("VMware monitor configuration is missing");
+  }
+  const validation: string | undefined =
+    MonitorStepVmwareMonitorUtil.getValidationError(config);
+  if (validation) {
+    throw new BadDataException(validation);
+  }
+  const source: VMwareSource | null = await VMwareSourceService.findOneBy({
+    query: {
+      projectId: data.projectId,
+      sourceIdentifier: config.sourceIdentifier,
+    },
+    select: {
+      _id: true,
+      isArchived: true,
+      lastCollectionAt: true,
+      collectionIntervalSeconds: true,
+      metrics: true,
+    },
+    props: { isRoot: true },
+  });
+  if (!source) {
+    throw new BadDataException(
+      "The VMware source has not been registered in this project",
+    );
+  }
+  const isSourceMonitor: boolean =
+    MonitorStepVmwareMonitorUtil.isSourceMonitor(config);
+  const now: Date = OneUptimeDate.getCurrentDate();
+  const metricConfig: MonitorStepMetricMonitor =
+    MonitorStepVmwareMonitorUtil.toMetricMonitor(config);
+  const skippedResponse: MetricMonitorResponse = {
+    projectId: data.projectId,
+    monitorId: data.monitorId,
+    metricViewConfig: metricConfig.metricViewConfig,
+    metricResult: [],
+    seriesBreakdown: [],
+  };
+  if (source.isArchived) {
+    return {
+      ...skippedResponse,
+      skipEvaluationReason: "VMware source is archived",
+    };
+  }
+  if (
+    !isSourceMonitor &&
+    (!VmwareMonitorSeries.isSourceFresh(source, now) ||
+      source.metrics?.["oneuptime.vmware.source.up"] !== 1 ||
+      source.metrics?.["oneuptime.vmware.source.inventory.complete"] !== 1)
+  ) {
+    return {
+      ...skippedResponse,
+      skipEvaluationReason:
+        "VMware resource evaluation is waiting for complete, current inventory. Collection health is evaluated separately.",
+    };
+  }
+  const step: MonitorStep = new MonitorStep();
+  step.data = { ...data.monitorStep.data!, metricMonitor: metricConfig };
+  const response: MetricMonitorResponse = await monitorMetric({
+    ...data,
+    monitorStep: step,
+  });
+  if (
+    response.metricResult.some(
+      (result: AggregatedResult) => result.truncated || result.errorMessage,
+    )
+  ) {
+    throw new BadDataException(
+      "VMware metric query returned incomplete results; resource states are unchanged",
+    );
+  }
+  const resources: Array<VMwareResource> = [];
+  if (!isSourceMonitor) {
+    const pageSize: number = 1000;
+    // Stable ordering and pagination avoid the raw-row truncation inherited by
+    // older branded monitor implementations. Every expected resource is read.
+    for (let skip: number = 0; ; skip += pageSize) {
+      const page: Array<VMwareResource> = await VMwareResourceService.findBy({
+        query: {
+          projectId: data.projectId,
+          sourceId: source.id!,
+          isArchived: false,
+          ...(config.resourceFilters.resourceType
+            ? { resourceType: config.resourceFilters.resourceType }
+            : {}),
+          ...(config.resourceFilters.resourceIdentifier
+            ? { resourceIdentifier: config.resourceFilters.resourceIdentifier }
+            : {}),
+        },
+        select: {
+          resourceIdentifier: true,
+          resourceType: true,
+          name: true,
+          metadata: true,
+          metrics: true,
+          lastSeenAt: true,
+          lastReportedAt: true,
+          expectedRunning: true,
+          maintenanceMode: true,
+          isArchived: true,
+        },
+        sort: { _id: SortOrder.Ascending },
+        skip,
+        limit: pageSize,
+        props: { isRoot: true },
+      });
+      resources.push(...page);
+      if (page.length < pageSize) {
+        break;
+      }
+    }
+  }
+  const policy: VmwareSeriesResult = VmwareMonitorSeries.apply({
+    config: { ...config, metricViewConfig: metricConfig.metricViewConfig },
+    source,
+    resources,
+    series: response.seriesBreakdown || [],
+    now,
+  });
+  response.unavailableSeriesFingerprints = policy.unavailableSeriesFingerprints;
+  response.seriesBreakdown = policy.series
+    .filter(
+      (series: MetricSeriesResult) =>
+        isSourceMonitor ||
+        series.aggregatedResults.some(
+          (result: AggregatedResult) => result.data.length > 0,
+        ),
+    )
+    .map((series: MetricSeriesResult) => ({
+      ...series,
+      aggregatedResults: appendFormulaResults({
+        queryConfigs: metricConfig.metricViewConfig.queryConfigs,
+        formulaConfigs: metricConfig.metricViewConfig.formulaConfigs || [],
+        aggregatedResults: series.aggregatedResults,
+        projectId: data.projectId,
+      }),
+    }));
+  const resultCount: number =
+    metricConfig.metricViewConfig.queryConfigs.length +
+    (metricConfig.metricViewConfig.formulaConfigs?.length || 0);
+  response.metricResult = Array.from(
+    { length: resultCount },
+    (_: unknown, index: number) => ({
+      data: response.seriesBreakdown!.flatMap(
+        (series: MetricSeriesResult) =>
+          series.aggregatedResults[index]?.data || [],
+      ),
+    }),
+  );
+  if (!isSourceMonitor && response.seriesBreakdown.length === 0) {
+    response.skipEvaluationReason =
+      "VMware resources have no current evaluable data or are in maintenance";
+  }
+  return response;
 };
 
 type MonitorExceptionFunction = (data: {

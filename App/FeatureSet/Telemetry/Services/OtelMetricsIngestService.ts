@@ -1,3 +1,5 @@
+import VMwareTelemetryIngestService from "./VMwareTelemetryIngestService";
+import { getVMwareSourceIdentifier } from "Common/Server/Utils/Telemetry/VMwareSnapshot";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import {
   OtelAggregationTemporality,
@@ -497,6 +499,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       const rm: JSONObject = resourceMetric as JSONObject;
       const ras: JSONArray =
         ((rm["resource"] as JSONObject)?.["attributes"] as JSONArray) || [];
+      if (getVMwareSourceIdentifier(ras)) {
+        continue;
+      }
 
       /*
        * Mirror the phantom-host gate from `autoDiscoverHost`: require
@@ -718,6 +723,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         metricCatalog.metricNameServiceNameMap;
       let totalMetricsProcessed: number = 0;
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
+      // Parse and persist inventory once per source/batch, then reuse routing
+      // metadata for every ResourceMetrics block. Never invent Service/Host rows
+      // from the collector's service.name or vCenter's host display attributes.
+      const vmwareSources: Map<string, TelemetryServiceMetadata> =
+        await VMwareTelemetryIngestService.ingest(projectId, resourceMetrics);
 
       /*
        * Hosts already heartbeated in this batch. The hostmetrics receiver
@@ -893,6 +903,17 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
            * every row — see OtelIngestBaseService.normalizeCloudPlatformAttribute.
            */
           this.normalizeCloudPlatformAttribute(resourceAttributes_raw);
+          const vmwareSourceIdentifier: string | null =
+            getVMwareSourceIdentifier(resourceAttributes_raw);
+          const vmwareMetadata: TelemetryServiceMetadata | undefined =
+            vmwareSourceIdentifier
+              ? vmwareSources.get(vmwareSourceIdentifier)
+              : undefined;
+          // A deleted source or an invalid/empty VMware batch must not fall
+          // through to generic service/host discovery and resurrect inventory.
+          if (vmwareSourceIdentifier && !vmwareMetadata) {
+            continue;
+          }
 
           // Producer-declared entities (authoritative when present).
           const resourceEntityRefs: Array<ResourceEntityRef> =
@@ -924,36 +945,38 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
-          ] = await Promise.all([
-            this.autoDiscoverKubernetesCluster({
-              projectId,
-              attributes: resourceAttributes_raw,
-            }),
-            this.autoDiscoverDockerHost({
-              projectId,
-              attributes: resourceAttributes_raw,
-            }),
-            this.autoDiscoverPodmanHost({
-              projectId,
-              attributes: resourceAttributes_raw,
-            }),
-            this.autoDiscoverProxmoxCluster({
-              projectId,
-              attributes: resourceAttributes_raw,
-            }),
-            this.autoDiscoverCephCluster({
-              projectId,
-              attributes: resourceAttributes_raw,
-            }),
-            this.autoDiscoverDockerSwarmCluster({
-              projectId,
-              attributes: resourceAttributes_raw,
-            }),
-            this.autoDiscoverIoTFleet({
-              projectId,
-              attributes: resourceAttributes_raw,
-            }),
-          ]);
+          ] = vmwareMetadata
+            ? [null, null, null, null, null, null, null]
+            : await Promise.all([
+                this.autoDiscoverKubernetesCluster({
+                  projectId,
+                  attributes: resourceAttributes_raw,
+                }),
+                this.autoDiscoverDockerHost({
+                  projectId,
+                  attributes: resourceAttributes_raw,
+                }),
+                this.autoDiscoverPodmanHost({
+                  projectId,
+                  attributes: resourceAttributes_raw,
+                }),
+                this.autoDiscoverProxmoxCluster({
+                  projectId,
+                  attributes: resourceAttributes_raw,
+                }),
+                this.autoDiscoverCephCluster({
+                  projectId,
+                  attributes: resourceAttributes_raw,
+                }),
+                this.autoDiscoverDockerSwarmCluster({
+                  projectId,
+                  attributes: resourceAttributes_raw,
+                }),
+                this.autoDiscoverIoTFleet({
+                  projectId,
+                  attributes: resourceAttributes_raw,
+                }),
+              ]);
 
           /*
            * Generic Host auto-discovery. Pre-scan the resource's
@@ -972,37 +995,44 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             processCount?: number;
           } = this.scanHostInfraStatsFromMetrics(scopeMetricsForScan);
 
-          const hostId: ObjectID | null = await this.autoDiscoverHost({
-            projectId,
-            attributes: resourceAttributes_raw,
-            hasInfraSignal: hostInfraStats.hasInfraSignal,
-            dockerHostId,
-            podmanHostId,
-            kubernetesClusterId,
-            cpuCores: hostInfraStats.cpuCores,
-            totalMemoryBytes: hostInfraStats.totalMemoryBytes,
-            processCount: hostInfraStats.processCount,
-          });
+          const hostId: ObjectID | null = vmwareMetadata
+            ? null
+            : await this.autoDiscoverHost({
+                projectId,
+                attributes: resourceAttributes_raw,
+                hasInfraSignal: hostInfraStats.hasInfraSignal,
+                dockerHostId,
+                podmanHostId,
+                kubernetesClusterId,
+                cpuCores: hostInfraStats.cpuCores,
+                totalMemoryBytes: hostInfraStats.totalMemoryBytes,
+                processCount: hostInfraStats.processCount,
+              });
 
-          const serverlessFunctionId: ObjectID | null =
-            await this.autoDiscoverServerless({
-              projectId,
-              attributes: resourceAttributes_raw,
-            });
+          const serverlessFunctionId: ObjectID | null = vmwareMetadata
+            ? null
+            : await this.autoDiscoverServerless({
+                projectId,
+                attributes: resourceAttributes_raw,
+              });
 
-          const cloudResourceId: ObjectID | null =
-            await this.autoDiscoverCloudResource({
-              projectId,
-              attributes: resourceAttributes_raw,
-            });
+          const cloudResourceId: ObjectID | null = vmwareMetadata
+            ? null
+            : await this.autoDiscoverCloudResource({
+                projectId,
+                attributes: resourceAttributes_raw,
+              });
 
-          const rumApplicationId: ObjectID | null = await this.autoDiscoverRum({
-            projectId,
-            attributes: resourceAttributes_raw,
-          });
+          const rumApplicationId: ObjectID | null = vmwareMetadata
+            ? null
+            : await this.autoDiscoverRum({
+                projectId,
+                attributes: resourceAttributes_raw,
+              });
 
           const serviceMetadata: TelemetryServiceMetadata =
-            await this.resolveTelemetryResource({
+            vmwareMetadata ||
+            (await this.resolveTelemetryResource({
               req,
               attributes: resourceAttributes_raw,
               projectId,
@@ -1017,7 +1047,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               cloudResourceId,
               rumApplicationId,
               entityRefs: resourceEntityRefs,
-            });
+            }));
           const serviceName: string = serviceMetadata.serviceName;
 
           serviceDictionary[serviceName] = serviceMetadata;
@@ -1085,6 +1115,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               resourceAttributes_raw,
             );
           if (
+            !vmwareMetadata &&
             heartbeatHostName &&
             !hostHeartbeatHostNames.has(heartbeatHostName)
           ) {

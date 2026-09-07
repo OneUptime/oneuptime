@@ -101,6 +101,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
             props.monitorType === MonitorType.Host ||
             props.monitorType === MonitorType.Podman ||
             props.monitorType === MonitorType.DockerSwarm ||
+            props.monitorType === MonitorType.VMware ||
             props.monitorType === MonitorType.Proxmox ||
             props.monitorType === MonitorType.Ceph ||
             props.monitorType === MonitorType.Metrics
@@ -138,6 +139,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
             props.monitorType === MonitorType.Host ||
             props.monitorType === MonitorType.Podman ||
             props.monitorType === MonitorType.DockerSwarm ||
+            props.monitorType === MonitorType.VMware ||
             props.monitorType === MonitorType.Proxmox ||
             props.monitorType === MonitorType.Ceph ||
             props.monitorType === MonitorType.Metrics
@@ -150,6 +152,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
             props.monitorType === MonitorType.Host ||
             props.monitorType === MonitorType.Podman ||
             props.monitorType === MonitorType.DockerSwarm ||
+            props.monitorType === MonitorType.VMware ||
             props.monitorType === MonitorType.Proxmox ||
             props.monitorType === MonitorType.Ceph ||
             props.monitorType === MonitorType.Metrics

@@ -12,6 +12,7 @@ enum MonitorType {
   Podman = "Podman",
   DockerSwarm = "Docker Swarm",
   Proxmox = "Proxmox",
+  VMware = "VMware",
   Ceph = "Ceph",
   IoTDevice = "IoT Device",
   IP = "IP",
@@ -141,6 +142,7 @@ export class MonitorTypeHelper {
           MonitorType.Podman,
           MonitorType.DockerSwarm,
           MonitorType.Proxmox,
+          MonitorType.VMware,
           MonitorType.Ceph,
           MonitorType.IoTDevice,
         ],
@@ -184,6 +186,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.Podman ||
       monitorType === MonitorType.DockerSwarm ||
       monitorType === MonitorType.Proxmox ||
+      monitorType === MonitorType.VMware ||
       monitorType === MonitorType.Ceph ||
       monitorType === MonitorType.IoTDevice
     );
@@ -379,6 +382,13 @@ export class MonitorTypeHelper {
           "ha",
           "cluster",
         ],
+      },
+      {
+        monitorType: MonitorType.VMware,
+        title: "VMware vSphere",
+        description: "ESXi host health, virtual machines, datastores, and collection health.",
+        icon: IconProp.ServerStack,
+        keywords: ["vmware", "vsphere", "vcenter", "esxi", "hypervisor", "virtual machine", "datastore"],
       },
       {
         monitorType: MonitorType.Ceph,
@@ -860,6 +870,7 @@ export class MonitorTypeHelper {
       MonitorType.Podman,
       MonitorType.DockerSwarm,
       MonitorType.Proxmox,
+          MonitorType.VMware,
       MonitorType.Ceph,
       MonitorType.IoTDevice,
     ];

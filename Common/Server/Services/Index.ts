@@ -84,6 +84,8 @@ import PodmanHostLabelRuleService from "./PodmanHostLabelRuleService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import DockerSwarmClusterService from "./DockerSwarmClusterService";
 import CephClusterService from "./CephClusterService";
+import VMwareSourceService from "./VMwareSourceService";
+import VMwareResourceService from "./VMwareResourceService";
 import ProxmoxResourceService from "./ProxmoxResourceService";
 import DockerSwarmResourceService from "./DockerSwarmResourceService";
 import CephResourceService from "./CephResourceService";
@@ -536,6 +538,8 @@ const services: Array<BaseService> = [
   ProxmoxClusterService,
   DockerSwarmClusterService,
   CephClusterService,
+  VMwareSourceService,
+  VMwareResourceService,
   ProxmoxResourceService,
   DockerSwarmResourceService,
   CephResourceService,
