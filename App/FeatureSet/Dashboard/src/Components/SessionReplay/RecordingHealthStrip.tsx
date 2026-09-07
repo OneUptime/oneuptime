@@ -115,11 +115,11 @@ export const RecordingHealthStripView: FunctionComponent<
 
   return (
     <div
-      className={`mb-4 rounded-lg border ${style.border} ${style.background}`}
+      className={`mb-4 overflow-hidden rounded-xl border ${style.border} ${style.background}`}
       data-testid="health-strip"
       data-state={level}
     >
-      <div className="flex items-start gap-3 px-4 py-2">
+      <div className="flex items-start gap-3 px-4 py-2.5">
         <span
           className={`mt-1.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full ${style.dot}`}
           aria-hidden="true"
@@ -158,7 +158,7 @@ export const RecordingHealthStripView: FunctionComponent<
         {canExpand && (
           <button
             type="button"
-            className="shrink-0 rounded p-1 text-gray-500 hover:bg-white/60 hover:text-gray-800"
+            className="shrink-0 rounded-lg p-1 text-gray-500 transition-colors hover:bg-white/70 hover:text-gray-800"
             aria-expanded={props.isExpanded}
             aria-label={
               props.isExpanded
@@ -180,7 +180,7 @@ export const RecordingHealthStripView: FunctionComponent<
         {isHealthy && props.onDismiss && (
           <button
             type="button"
-            className="shrink-0 rounded p-1 text-gray-500 hover:bg-white/60 hover:text-gray-800"
+            className="shrink-0 rounded-lg p-1 text-gray-500 transition-colors hover:bg-white/70 hover:text-gray-800"
             aria-label="Dismiss recording health"
             data-testid="health-strip-dismiss"
             onClick={props.onDismiss}

@@ -30,6 +30,7 @@ import {
 import { formatReplayDuration, formatReplayOffset } from "./ReplayTimeFormat";
 import { IDLE_SKIP_MIN_REMAINING_MS } from "./ReplayPlaybackIntent";
 import { SealedReasonCopy } from "./FidelityNoticeCopy";
+import { ReplayButtonGroup, ReplayToolButton } from "./ReplayUi";
 
 /*
  * Everything drawn OVER or AROUND the picture that is not the picture:
@@ -196,7 +197,7 @@ interface TransientToast<T> {
 }
 
 const PILL_CLASS: string =
-  "pointer-events-auto inline-flex items-center gap-2 rounded-full bg-gray-900/85 px-3 py-1.5 text-xs font-medium text-white shadow-lg ring-1 ring-white/10";
+  "pointer-events-auto inline-flex items-center gap-2 rounded-full bg-gray-900/80 px-3 py-1.5 text-xs font-medium text-white shadow-lg ring-1 ring-white/10 backdrop-blur-sm";
 
 /* ---- Absence copy. ---- */
 
@@ -448,7 +449,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
       <div
         data-testid="replay-overlay"
         data-replay-overlay="absent"
-        className="relative w-full rounded-lg border border-gray-200 bg-gray-50"
+        className="relative w-full bg-gray-50"
       >
         <span
           data-testid="replay-phase"
@@ -498,7 +499,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
       <div
         data-testid="replay-overlay-error"
         role="alert"
-        className="pointer-events-auto max-w-md rounded-lg bg-white p-4 text-left shadow-xl ring-1 ring-rose-200"
+        className="pointer-events-auto max-w-md rounded-xl bg-white p-4 text-left shadow-2xl ring-1 ring-rose-200"
       >
         <div className="flex items-start gap-2">
           <Icon
@@ -519,7 +520,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
             <button
               type="button"
               data-testid="replay-overlay-retry"
-              className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
+              className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-indigo-700"
               onClick={props.onRetry}
             >
               Retry
@@ -528,7 +529,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
           <button
             type="button"
             data-testid="replay-overlay-copy-diagnostic"
-            className="rounded-md bg-white px-3 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+            className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50"
             onClick={handleCopyDiagnostic}
           >
             {isDiagnosticCopied ? "Diagnostic copied" : "Copy diagnostic"}
@@ -539,7 +540,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
             readOnly={true}
             aria-label="Diagnostic details"
             data-testid="replay-overlay-diagnostic-text"
-            className="mt-2 h-24 w-full rounded border border-gray-300 p-1 font-mono text-[10px] text-gray-700"
+            className="mt-2 h-24 w-full rounded-lg border border-gray-300 bg-gray-50 p-2 font-mono text-[10px] text-gray-700"
             value={diagnosticText}
             onFocus={(event: React.FocusEvent<HTMLTextAreaElement>): void => {
               event.currentTarget.select();
@@ -654,7 +655,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
       <div
         data-testid="replay-overlay-ended"
         role="status"
-        className="pointer-events-auto rounded-lg bg-white p-4 text-center shadow-xl ring-1 ring-gray-200"
+        className="pointer-events-auto rounded-xl bg-white p-5 text-center shadow-2xl ring-1 ring-gray-200"
       >
         <div className="text-sm font-semibold text-gray-900">Replay ended</div>
         <p className="mt-1 text-xs text-gray-600">
@@ -664,7 +665,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
           <button
             type="button"
             data-testid="replay-watch-again"
-            className="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-medium text-white transition-colors hover:bg-indigo-700"
             onClick={props.onWatchAgain}
           >
             <Icon icon={IconProp.Refresh} className="h-3.5 w-3.5" />
@@ -674,7 +675,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
             <button
               type="button"
               data-testid="replay-ended-continue-in-tab"
-              className="inline-flex items-center gap-1 rounded-md bg-white px-3 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3.5 py-2 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50"
               onClick={(): void => {
                 props.onSwitchTab?.(props.continueInTab?.tabId ?? "");
               }}
@@ -691,12 +692,12 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
       <button
         type="button"
         data-testid="replay-overlay-paused"
-        className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full bg-gray-900/70 text-white shadow-lg ring-1 ring-white/20 hover:bg-gray-900/85"
+        className="pointer-events-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-gray-900/60 text-white shadow-2xl ring-1 ring-white/25 backdrop-blur-sm transition-all hover:scale-105 hover:bg-gray-900/80"
         title="Play (Space)"
         aria-label="Play"
         onClick={props.onPlayPause}
       >
-        <Icon icon={IconProp.Play} className="h-5 w-5" />
+        <Icon icon={IconProp.Play} className="h-6 w-6" />
       </button>
     );
   }
@@ -712,10 +713,15 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
       data-replay-overlay={phase}
       className="relative flex w-full flex-col"
     >
-      {/* URL bar: lock icon, the page at the playhead, copy, open. */}
+      {/*
+       * URL bar: lock icon, the page at the playhead, copy, open. Drawn
+       * as the player's own address bar - the top edge of the shell's
+       * card, with no border or radius of its own - rather than as a
+       * floating box stacked above another floating box.
+       */}
       <div
         data-testid="replay-url-bar"
-        className="mb-1.5 flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs"
+        className="flex items-center gap-1.5 border-b border-gray-200 bg-gray-50/80 px-3 py-2 text-xs"
       >
         <Icon
           icon={
@@ -724,22 +730,22 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
           className="h-3.5 w-3.5 shrink-0 text-gray-400"
         />
         <span
-          className="min-w-0 flex-1 truncate font-mono text-[11px] text-gray-700"
+          className="min-w-0 flex-1 truncate font-mono text-[11px] text-gray-600"
           title={currentUrl || "No page URL is known yet"}
           data-testid="replay-url-text"
         >
           {currentUrl || "URL not recorded yet"}
         </span>
         {currentUrl && (
-          <button
-            type="button"
-            data-testid="replay-url-copy"
-            className="shrink-0 rounded px-1.5 py-0.5 text-[11px] text-gray-500 hover:bg-gray-200 hover:text-gray-800"
-            title="Copy the URL"
+          <ReplayToolButton
+            dataTestId="replay-url-copy"
+            icon={isUrlCopied ? IconProp.Check : IconProp.Copy}
+            tone={isUrlCopied ? "success" : "neutral"}
+            title={isUrlCopied ? "Copied" : "Copy the URL"}
+            ariaLabel={isUrlCopied ? "URL copied" : "Copy the URL"}
+            className="h-7 w-7"
             onClick={handleCopyUrl}
-          >
-            {isUrlCopied ? "Copied" : "Copy"}
-          </button>
+          />
         )}
         {currentUrl && OPENABLE_URL_PATTERN.test(currentUrl) && (
           <a
@@ -747,17 +753,17 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
             target="_blank"
             rel="noopener noreferrer"
             data-testid="replay-url-open"
-            className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-gray-500 hover:bg-gray-200 hover:text-gray-800"
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-900"
             title="Open the page in a new tab"
+            aria-label="Open the page in a new tab"
           >
-            <Icon icon={IconProp.ExternalLink} className="h-3 w-3" />
-            open
+            <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
           </a>
         )}
         {viewportLabel && (
           <span
             data-testid="replay-viewport-chip"
-            className="inline-flex shrink-0 items-center gap-1 rounded bg-white px-1.5 py-0.5 text-[11px] tabular-nums text-gray-600 ring-1 ring-inset ring-gray-200"
+            className="ml-1 hidden shrink-0 items-center gap-1 rounded-md bg-white px-1.5 py-0.5 text-[11px] tabular-nums text-gray-500 ring-1 ring-inset ring-gray-200 sm:inline-flex"
             title="Recorded viewport and the scale it is drawn at"
           >
             {viewportLabel}
@@ -766,43 +772,32 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
             )}
           </span>
         )}
-        <span
-          role="group"
-          aria-label="Stage fit"
-          className="inline-flex shrink-0 overflow-hidden rounded ring-1 ring-inset ring-gray-200"
-          data-testid="replay-fit-toggle"
+        <ReplayButtonGroup
+          ariaLabel="Stage fit"
+          dataTestId="replay-fit-toggle"
+          className="ml-0.5"
         >
-          <button
-            type="button"
-            aria-pressed={props.fit === "contain"}
-            className={`px-1.5 py-0.5 text-[11px] ${
-              props.fit === "contain"
-                ? "bg-indigo-50 text-indigo-800"
-                : "bg-white text-gray-500 hover:bg-gray-100"
-            }`}
+          <ReplayToolButton
+            label="Fit"
+            variant="segment"
+            isPressed={props.fit === "contain"}
             title="Scale the picture to fit the stage"
+            className="h-7"
             onClick={(): void => {
               props.onFitChange("contain");
             }}
-          >
-            Fit
-          </button>
-          <button
-            type="button"
-            aria-pressed={props.fit === "actual"}
-            className={`px-1.5 py-0.5 text-[11px] ${
-              props.fit === "actual"
-                ? "bg-indigo-50 text-indigo-800"
-                : "bg-white text-gray-500 hover:bg-gray-100"
-            }`}
+          />
+          <ReplayToolButton
+            label="1:1"
+            variant="segment"
+            isPressed={props.fit === "actual"}
             title="Draw the picture at its recorded size"
+            className="h-7"
             onClick={(): void => {
               props.onFitChange("actual");
             }}
-          >
-            1:1
-          </button>
-        </span>
+          />
+        </ReplayButtonGroup>
       </div>
 
       <div className="relative">

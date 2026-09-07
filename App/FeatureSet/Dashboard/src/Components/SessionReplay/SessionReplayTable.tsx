@@ -721,8 +721,10 @@ const SessionReplayRow: FunctionComponent<SessionReplayRowProps> = (
     <tr
       data-testid="session-row"
       data-session-id={row.sessionId}
-      className={`group ${
-        route ? "cursor-pointer hover:bg-gray-50 focus-within:bg-gray-50" : ""
+      className={`group transition-colors ${
+        route
+          ? "cursor-pointer hover:bg-indigo-50/40 focus-within:bg-indigo-50/40"
+          : ""
       }`}
       tabIndex={route ? 0 : undefined}
       aria-label={
@@ -738,7 +740,7 @@ const SessionReplayRow: FunctionComponent<SessionReplayRowProps> = (
       }}
     >
       {/* Session */}
-      <td className="max-w-xs px-3 py-3 align-top">
+      <td className="max-w-sm px-3 py-3 align-top">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             {!row.isFinalized && playability.kind === "recording" && (
@@ -752,13 +754,13 @@ const SessionReplayRow: FunctionComponent<SessionReplayRowProps> = (
             {route ? (
               <Link
                 to={route}
-                className="truncate text-sm font-medium text-gray-900 hover:underline"
+                className="truncate text-sm font-semibold text-gray-900 group-hover:text-indigo-700"
                 title={row.entryUrl || undefined}
               >
                 {entryPath || "Unknown page"}
               </Link>
             ) : (
-              <span className="truncate text-sm font-medium text-gray-900">
+              <span className="truncate text-sm font-semibold text-gray-900">
                 {entryPath || "Unknown page"}
               </span>
             )}
@@ -775,7 +777,7 @@ const SessionReplayRow: FunctionComponent<SessionReplayRowProps> = (
                     <Fragment key={`${path}-${index}`}>
                       {index > 0 && <span aria-hidden="true">&gt;</span>}
                       <span
-                        className="max-w-[10rem] truncate rounded bg-gray-100 px-1.5 py-0.5"
+                        className="max-w-[10rem] truncate rounded-md bg-gray-100 px-1.5 py-0.5 font-medium text-gray-600"
                         title={row.routes?.[index]}
                       >
                         {path}
@@ -788,8 +790,16 @@ const SessionReplayRow: FunctionComponent<SessionReplayRowProps> = (
               )}
             </div>
           )}
-          <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-500">
-            <span className="font-mono" title={row.sessionId}>
+          {/*
+           * One line, never two. The absolute timestamp is what pushes it
+           * over, so it appears only where the column has room; it is on
+           * the element's title at every width.
+           */}
+          <div className="mt-1 flex items-center gap-2 whitespace-nowrap text-xs text-gray-500">
+            <span
+              className="rounded bg-gray-100 px-1 font-mono text-[11px] text-gray-500"
+              title={row.sessionId}
+            >
               {row.sessionId.slice(0, 8) || "—"}
             </span>
             {hasStart && (
@@ -799,7 +809,10 @@ const SessionReplayRow: FunctionComponent<SessionReplayRowProps> = (
                 data-testid="session-row-start"
               >
                 {OneUptimeDate.fromNow(startedAt as Date)}
-                <span className="text-gray-400"> · {absoluteStart}</span>
+                <span className="hidden text-gray-400 2xl:inline">
+                  {" "}
+                  · {absoluteStart}
+                </span>
               </time>
             )}
           </div>
@@ -825,8 +838,8 @@ const SessionReplayRow: FunctionComponent<SessionReplayRowProps> = (
       </td>
 
       {/* Activity */}
-      <td className="px-3 py-3 align-top">
-        <div className="font-mono text-sm tabular-nums text-gray-900">
+      <td className="whitespace-nowrap px-3 py-3 align-top">
+        <div className="font-mono text-sm font-medium tabular-nums text-gray-900">
           {formatSessionDuration(row.durationMs)}
         </div>
         <div
@@ -859,7 +872,7 @@ const SessionReplayRow: FunctionComponent<SessionReplayRowProps> = (
       </td>
 
       {/* Recording */}
-      <td className="px-3 py-3 align-top">
+      <td className="whitespace-nowrap px-3 py-3 align-top">
         <div className="flex items-center gap-1.5">
           <Tooltip text={playability.tooltip}>
             <span
@@ -891,13 +904,13 @@ const SessionReplayRow: FunctionComponent<SessionReplayRowProps> = (
       </td>
 
       {/* Actions */}
-      <td className="px-3 py-3 text-right align-top">
+      <td className="whitespace-nowrap px-3 py-3 text-right align-top">
         {route && (
           <div className="flex flex-col items-end gap-1">
             {playability.isWatchable ? (
               <Link
                 to={route}
-                className="inline-flex items-center gap-1 rounded-md bg-white px-2.5 py-1.5 text-xs font-medium text-gray-800 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-indigo-600 hover:text-white hover:ring-indigo-600"
                 title={`Watch session ${row.sessionId.slice(0, 8)}`}
               >
                 <Icon icon={IconProp.Play} className="h-3.5 w-3.5" />
@@ -906,7 +919,7 @@ const SessionReplayRow: FunctionComponent<SessionReplayRowProps> = (
             ) : (
               <Link
                 to={route}
-                className="inline-flex items-center gap-1 rounded-md bg-white px-2.5 py-1.5 text-xs font-medium text-gray-600 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-500 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 hover:text-gray-800"
                 title={`${playability.text}: open the session's signals without footage`}
               >
                 <span data-testid="session-row-signals-only">Signals only</span>
@@ -915,7 +928,7 @@ const SessionReplayRow: FunctionComponent<SessionReplayRowProps> = (
             {playability.isWatchable && firstErrorRoute && (
               <Link
                 to={firstErrorRoute}
-                className="text-xs text-indigo-600 hover:underline"
+                className="text-[11px] font-medium text-indigo-600 hover:underline"
                 title="Open the player one second before the first error"
               >
                 <span data-testid="session-row-first-error">
@@ -1226,8 +1239,13 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
     },
   ];
 
+  /*
+   * A header BAND, not six loose labels. The old table drew its header on
+   * white with only a hairline under it, so at a glance the first row of
+   * data and the column names read as the same thing.
+   */
   const headerCellClassName: string =
-    "px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500";
+    "whitespace-nowrap bg-gray-50 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500";
 
   return (
     <Fragment>
@@ -1302,7 +1320,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
               role="alert"
               data-testid="list-error"
               data-kind={error.kind}
-              className="rounded-md border border-red-200 bg-red-50 p-4"
+              className="rounded-xl border border-red-200 bg-red-50 p-4"
             >
               <p className="text-sm font-semibold text-red-800">
                 {error.title}
@@ -1328,75 +1346,74 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table
-                className="min-w-full divide-y divide-gray-200"
-                data-testid="session-table"
-              >
-                <thead>
-                  <tr>
-                    <th scope="col" className={headerCellClassName}>
-                      Session
-                    </th>
-                    <th scope="col" className={headerCellClassName}>
-                      User &amp; device
-                    </th>
-                    <th scope="col" className={headerCellClassName}>
-                      Activity
-                    </th>
-                    <th scope="col" className={headerCellClassName}>
-                      Signals
-                    </th>
-                    <th scope="col" className={headerCellClassName}>
-                      Recording
-                    </th>
-                    <th scope="col" className={headerCellClassName}>
-                      <span className="sr-only">Actions</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 bg-white">
-                  {isLoading && rows.length === 0
-                    ? Array.from({ length: SKELETON_ROW_COUNT }).map(
-                        (_: unknown, index: number): ReactElement => {
+            <div className="overflow-hidden rounded-xl border border-gray-200">
+              <div className="overflow-x-auto">
+                <table className="min-w-full" data-testid="session-table">
+                  <thead className="border-b border-gray-200">
+                    <tr>
+                      <th scope="col" className={headerCellClassName}>
+                        Session
+                      </th>
+                      <th scope="col" className={headerCellClassName}>
+                        User &amp; device
+                      </th>
+                      <th scope="col" className={headerCellClassName}>
+                        Activity
+                      </th>
+                      <th scope="col" className={headerCellClassName}>
+                        Signals
+                      </th>
+                      <th scope="col" className={headerCellClassName}>
+                        Recording
+                      </th>
+                      <th scope="col" className={headerCellClassName}>
+                        <span className="sr-only">Actions</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 bg-white">
+                    {isLoading && rows.length === 0
+                      ? Array.from({ length: SKELETON_ROW_COUNT }).map(
+                          (_: unknown, index: number): ReactElement => {
+                            return (
+                              <tr
+                                key={`skeleton-${index}`}
+                                data-testid="session-row-skeleton"
+                              >
+                                {Array.from({ length: 6 }).map(
+                                  (__: unknown, cell: number): ReactElement => {
+                                    return (
+                                      <td key={cell} className="px-3 py-3">
+                                        <Skeleton
+                                          className="h-4"
+                                          widthVariantIndex={index + cell}
+                                        />
+                                        <Skeleton
+                                          className="mt-2 h-3"
+                                          widthVariantIndex={index + cell + 1}
+                                        />
+                                      </td>
+                                    );
+                                  },
+                                )}
+                              </tr>
+                            );
+                          },
+                        )
+                      : rows.map((row: SessionReplaySummary): ReactElement => {
                           return (
-                            <tr
-                              key={`skeleton-${index}`}
-                              data-testid="session-row-skeleton"
-                            >
-                              {Array.from({ length: 6 }).map(
-                                (__: unknown, cell: number): ReactElement => {
-                                  return (
-                                    <td key={cell} className="px-3 py-3">
-                                      <Skeleton
-                                        className="h-4"
-                                        widthVariantIndex={index + cell}
-                                      />
-                                      <Skeleton
-                                        className="mt-2 h-3"
-                                        widthVariantIndex={index + cell + 1}
-                                      />
-                                    </td>
-                                  );
-                                },
-                              )}
-                            </tr>
+                            <SessionReplayRow
+                              key={row.sessionId}
+                              row={row}
+                              rumApplicationId={rumApplicationIdString}
+                              nowUnixMs={nowUnixMs}
+                              onOpen={openSession}
+                            />
                           );
-                        },
-                      )
-                    : rows.map((row: SessionReplaySummary): ReactElement => {
-                        return (
-                          <SessionReplayRow
-                            key={row.sessionId}
-                            row={row}
-                            rumApplicationId={rumApplicationIdString}
-                            nowUnixMs={nowUnixMs}
-                            onOpen={openSession}
-                          />
-                        );
-                      })}
-                </tbody>
-              </table>
+                        })}
+                  </tbody>
+                </table>
+              </div>
               {isLoading && (
                 <p role="status" className="sr-only">
                   Loading sessions

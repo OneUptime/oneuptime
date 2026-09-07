@@ -8,7 +8,6 @@ import React, {
 } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
-import Toggle from "Common/UI/Components/Toggle/Toggle";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import useComponentOutsideClick from "Common/UI/Types/UseComponentOutsideClick";
@@ -18,7 +17,19 @@ import {
   ReplayPhase,
 } from "./Engine/ReplayEngineTypes";
 import { REPLAY_KEY_SEEK_JL_MS } from "./ReplayKeyboardMap";
-import { formatReplayClock, formatReplayOffset } from "./ReplayTimeFormat";
+import {
+  ReplayClockParts,
+  formatReplayOffset,
+  splitReplayClock,
+} from "./ReplayTimeFormat";
+import {
+  ReplayButtonGroup,
+  ReplayClock,
+  ReplayPill,
+  ReplaySwitch,
+  ReplayToolButton,
+  ReplayToolbarDivider,
+} from "./ReplayUi";
 
 /*
  * The controls row: play/pause, the clock, -10s/+10s, speed, skip idle,
@@ -30,6 +41,21 @@ import { formatReplayClock, formatReplayOffset } from "./ReplayTimeFormat";
  * chunk. That is what keeps the button honest when the engine is between
  * states - a viewer who pressed Play and sees "Pause" plus a buffering
  * pill knows the press landed.
+ *
+ * LAYOUT. Ten controls of equal visual weight in one `flex-wrap` line is
+ * what a transport row must not be: nothing led, the eye had to read
+ * every chip to find Play, and on a narrow column the row wrapped into a
+ * ragged block whose buttons moved between renders. The row now reads
+ * left to right in three clusters separated by hairlines -
+ *
+ *   transport (play, +-10s, clock) | view (speed, skip idle) |
+ *   navigation (errors, frustration)
+ *
+ * - with status and the two "everything else" affordances pushed to the
+ * far end. Play is the only filled control, and the only round one, so
+ * it is findable without reading. Everything else is a ghost that gains
+ * a wash on hover, and buttons that belong together share one recessed
+ * track instead of each carrying its own outline.
  */
 
 /*
@@ -101,13 +127,6 @@ export interface ReplayControlsProps {
 }
 
 type BufferingStage = "hidden" | "pill" | "retry";
-
-const SMALL_BUTTON_CLASS: string =
-  "inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium ring-1 ring-inset transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
-const SMALL_BUTTON_ENABLED_CLASS: string =
-  "bg-white text-gray-700 ring-gray-300 hover:bg-gray-50";
-const SMALL_BUTTON_DISABLED_CLASS: string =
-  "cursor-not-allowed bg-gray-50 text-gray-300 ring-gray-200";
 
 interface PlayButtonCopy {
   label: string;
@@ -312,19 +331,31 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
     waitingCopy = "Loading the first footage";
   }
 
+  const clock: ReplayClockParts = splitReplayClock(
+    currentTimeMs,
+    durationMs,
+    isPaused,
+  );
+
   return (
     <div
       data-testid="replay-controls"
-      className="flex flex-wrap items-center gap-2"
+      className="flex flex-wrap items-center gap-x-2 gap-y-2"
     >
+      {/*
+       * The one filled, round control on the row. Hand-rolled rather than
+       * a ReplayToolButton because it is deliberately the exception: 36px
+       * against the chrome's 32px, and the only place a solid colour
+       * means "press this".
+       */}
       <button
         type="button"
         data-testid="replay-play-pause"
         data-phase={phase}
         disabled={playCopy.isDisabled}
-        className={`inline-flex h-8 w-8 items-center justify-center rounded-md text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${
+        className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
           playCopy.isDisabled
-            ? "cursor-not-allowed bg-indigo-300"
+            ? "cursor-not-allowed bg-gray-300"
             : phase === "error"
               ? "bg-rose-600 hover:bg-rose-700"
               : "bg-indigo-600 hover:bg-indigo-700"
@@ -336,68 +367,58 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
         <Icon icon={playCopy.icon} className="h-4 w-4" />
       </button>
 
-      <div
-        data-testid="replay-time"
-        className="font-mono text-xs tabular-nums text-gray-700"
-        aria-live="off"
-      >
-        {formatReplayClock(currentTimeMs, durationMs, isPaused)}
-      </div>
-
-      <div className="inline-flex items-center gap-1">
-        <button
-          type="button"
-          data-testid="replay-seek-back"
-          disabled={!canSeek}
-          className={`${SMALL_BUTTON_CLASS} ${
-            canSeek ? SMALL_BUTTON_ENABLED_CLASS : SMALL_BUTTON_DISABLED_CLASS
-          }`}
-          onClick={seekBack}
-          aria-label="Back 10 seconds (J)"
+      <ReplayButtonGroup ariaLabel="Seek by ten seconds">
+        <ReplayToolButton
+          dataTestId="replay-seek-back"
+          icon={IconProp.Backward}
+          label="10s"
+          isDisabled={!canSeek}
+          variant="segment"
           title="Back 10 seconds (J)"
-        >
-          <Icon icon={IconProp.Backward} className="h-3.5 w-3.5" />
-          10s
-        </button>
-        <button
-          type="button"
-          data-testid="replay-seek-forward"
-          disabled={!canSeek}
-          className={`${SMALL_BUTTON_CLASS} ${
-            canSeek ? SMALL_BUTTON_ENABLED_CLASS : SMALL_BUTTON_DISABLED_CLASS
-          }`}
-          onClick={seekForward}
-          aria-label="Forward 10 seconds (L)"
+          ariaLabel="Back 10 seconds (J)"
+          onClick={seekBack}
+        />
+        <ReplayToolButton
+          dataTestId="replay-seek-forward"
+          trailingIcon={IconProp.Forward}
+          label="10s"
+          isDisabled={!canSeek}
+          variant="segment"
           title="Forward 10 seconds (L)"
-        >
-          10s
-          <Icon icon={IconProp.Forward} className="h-3.5 w-3.5" />
-        </button>
-      </div>
+          ariaLabel="Forward 10 seconds (L)"
+          onClick={seekForward}
+        />
+      </ReplayButtonGroup>
 
-      <div ref={speedRef} className="relative">
-        <button
+      <ReplayClock
+        dataTestId="replay-time"
+        currentText={clock.current}
+        totalText={clock.total}
+      />
+
+      <ReplayToolbarDivider />
+
+      <div ref={speedRef} className="relative shrink-0">
+        <ReplayToolButton
           ref={speedTriggerRef}
-          type="button"
-          data-testid="replay-speed"
-          aria-haspopup="true"
-          aria-expanded={isSpeedOpen}
-          aria-label={`Playback speed ${formatReplaySpeed(speed)}`}
+          dataTestId="replay-speed"
+          label={formatReplaySpeed(speed)}
+          hasPopup={true}
+          isExpanded={isSpeedOpen}
+          ariaLabel={`Playback speed ${formatReplaySpeed(speed)}`}
           title="Playback speed (< slower, > faster)"
-          className={`${SMALL_BUTTON_CLASS} ${SMALL_BUTTON_ENABLED_CLASS} min-w-[3.25rem] justify-center tabular-nums`}
+          className="min-w-[3.25rem] tabular-nums"
           onClick={(): void => {
             setIsSpeedOpen(!isSpeedOpen);
           }}
-        >
-          {formatReplaySpeed(speed)}
-        </button>
+        />
 
         {isSpeedOpen && (
           <div
             role="radiogroup"
             aria-label="Playback speed"
             data-testid="replay-speed-menu"
-            className="absolute left-0 z-20 mt-1 flex min-w-[5rem] flex-col rounded-md border border-gray-200 bg-white py-1 shadow-lg"
+            className="absolute bottom-full left-0 z-20 mb-1.5 flex min-w-[5.5rem] flex-col gap-0.5 rounded-xl border border-gray-200 bg-white p-1 shadow-lg"
             onKeyDown={handleSpeedKeyDown}
           >
             {REPLAY_SPEEDS.map((value: number, index: number): ReactElement => {
@@ -414,10 +435,10 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
                   aria-checked={isChecked}
                   tabIndex={isChecked ? 0 : -1}
                   data-testid={`replay-speed-option-${value}`}
-                  className={`px-3 py-1 text-left text-xs tabular-nums focus:outline-none focus-visible:bg-indigo-50 ${
+                  className={`rounded-lg px-2.5 py-1.5 text-left text-xs tabular-nums transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                     isChecked
-                      ? "bg-indigo-50 font-semibold text-indigo-700"
-                      : "text-gray-700 hover:bg-gray-50"
+                      ? "bg-indigo-600 font-semibold text-white"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`}
                   onClick={(): void => {
                     selectSpeed(value);
@@ -438,86 +459,65 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
        * stretches are drawn on the track and every skip shows a toast, so
        * a jump is never mistaken for a bug.
        */}
-      <div
-        className="inline-flex items-center"
+      <ReplaySwitch
+        dataTestId="replay-skip-idle"
+        label="Skip idle"
+        isChecked={props.isSkipInactiveEnabled}
         title="Jump past stretches with no user input. Each skip is announced and the idle stretch is drawn on the track."
-      >
-        <Toggle
-          value={props.isSkipInactiveEnabled}
-          onChange={props.onSkipInactiveChange}
-          title="Skip idle"
-          dataTestId="replay-skip-idle"
-        />
-      </div>
+        onChange={props.onSkipInactiveChange}
+      />
 
-      <div
-        className="inline-flex items-center gap-1"
-        role="group"
-        aria-label="Jump between signals"
-      >
-        <button
-          type="button"
-          data-testid="replay-prev-error"
-          disabled={!props.hasPrevError}
-          className={`${SMALL_BUTTON_CLASS} ${
-            props.hasPrevError
-              ? "bg-white text-rose-700 ring-rose-200 hover:bg-rose-50"
-              : SMALL_BUTTON_DISABLED_CLASS
-          }`}
-          onClick={props.onPrevError}
-          aria-label="Previous error (Shift+E)"
+      <ReplayToolbarDivider />
+
+      <ReplayButtonGroup ariaLabel="Jump between signals">
+        <ReplayToolButton
+          dataTestId="replay-prev-error"
+          icon={IconProp.ChevronLeft}
+          trailingIcon={IconProp.Alert}
+          variant="segment"
+          tone="danger"
+          isDisabled={!props.hasPrevError}
+          ariaLabel="Previous error (Shift+E)"
           title={
             props.hasPrevError
               ? "Previous error (Shift+E)"
               : "No error before the playhead"
           }
-        >
-          <Icon icon={IconProp.ChevronLeft} className="h-3 w-3" />
-          <Icon icon={IconProp.Alert} className="h-3 w-3" />
-        </button>
-        <button
-          type="button"
-          data-testid="replay-next-error"
-          disabled={!props.hasNextError}
-          className={`${SMALL_BUTTON_CLASS} ${
-            props.hasNextError
-              ? "bg-white text-rose-700 ring-rose-200 hover:bg-rose-50"
-              : SMALL_BUTTON_DISABLED_CLASS
-          }`}
-          onClick={props.onNextError}
-          aria-label="Next error (E)"
+          onClick={props.onPrevError}
+        />
+        <ReplayToolButton
+          dataTestId="replay-next-error"
+          icon={IconProp.Alert}
+          label="Next error"
+          variant="segment"
+          tone="danger"
+          isDisabled={!props.hasNextError}
+          ariaLabel="Next error (E)"
           title={
             props.hasNextError
               ? "Next error (E)"
               : "No error after the playhead"
           }
-        >
-          <Icon icon={IconProp.Alert} className="h-3 w-3" />
-          Next error
-        </button>
-        <button
-          type="button"
-          data-testid="replay-next-frustration"
-          disabled={!props.hasNextFrustration}
-          className={`${SMALL_BUTTON_CLASS} ${
-            props.hasNextFrustration
-              ? "bg-white text-amber-700 ring-amber-200 hover:bg-amber-50"
-              : SMALL_BUTTON_DISABLED_CLASS
-          }`}
-          onClick={props.onNextFrustration}
-          aria-label="Next frustration (N)"
+          onClick={props.onNextError}
+        />
+        <ReplayToolButton
+          dataTestId="replay-next-frustration"
+          icon={IconProp.CursorArrowRays}
+          label="Frustration"
+          variant="segment"
+          tone="warning"
+          isDisabled={!props.hasNextFrustration}
+          ariaLabel="Next frustration (N)"
           title={
             props.hasNextFrustration
               ? "Next frustration (N)"
               : "No rage, dead or error click after the playhead"
           }
-        >
-          <Icon icon={IconProp.CursorArrowRays} className="h-3 w-3" />
-          Frustration
-        </button>
-      </div>
+          onClick={props.onNextFrustration}
+        />
+      </ReplayButtonGroup>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-1.5">
         {/*
          * Visual only, deliberately NOT a live region and with no Retry of
          * its own: the stage says the same thing at the same moment
@@ -529,38 +529,35 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
          * visible next to the transport controls.
          */}
         {bufferingStage !== "hidden" && isWaiting && (
-          <div
-            data-testid="replay-buffering-pill"
-            data-stage={bufferingStage}
-            aria-hidden="true"
-            className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200"
+          <ReplayPill
+            dataTestId="replay-buffering-pill"
+            tone="accent"
+            hasPulse={true}
+            isHiddenFromScreenReaders={true}
           >
-            <span className="h-2 w-2 animate-pulse rounded-full bg-indigo-500" />
             {bufferingStage === "retry" ? "Still loading" : waitingCopy}
-          </div>
+          </ReplayPill>
         )}
 
         {phase === "error" && props.errorMessage && (
-          <div
-            data-testid="replay-error-pill"
+          <ReplayPill
+            dataTestId="replay-error-pill"
+            tone="danger"
             role="alert"
-            className="inline-flex max-w-[24rem] items-center gap-2 truncate rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-medium text-rose-700 ring-1 ring-inset ring-rose-200"
+            icon={IconProp.Alert}
+            className="max-w-[24rem]"
           >
-            <Icon icon={IconProp.Alert} className="h-3 w-3 shrink-0" />
-            <span className="truncate">{props.errorMessage}</span>
-          </div>
+            {props.errorMessage}
+          </ReplayPill>
         )}
 
-        <button
-          type="button"
-          data-testid="replay-shortcuts-button"
-          className={`${SMALL_BUTTON_CLASS} ${SMALL_BUTTON_ENABLED_CLASS} w-8 justify-center`}
-          onClick={props.onShowShortcuts}
-          aria-label="Keyboard shortcuts (?)"
+        <ReplayToolButton
+          dataTestId="replay-shortcuts-button"
+          icon={IconProp.Keyboard}
           title="Keyboard shortcuts (?)"
-        >
-          <Icon icon={IconProp.Keyboard} className="h-4 w-4" />
-        </button>
+          ariaLabel="Keyboard shortcuts (?)"
+          onClick={props.onShowShortcuts}
+        />
 
         {hasOverflow && (
           <MoreMenu

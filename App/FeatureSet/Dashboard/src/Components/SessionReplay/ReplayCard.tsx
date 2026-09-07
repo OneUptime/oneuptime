@@ -408,16 +408,18 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
 
   return (
     <div className={`mb-5 ${props.className || ""}`} data-testid="replay-card">
-      <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <Icon icon={IconProp.Film} className="h-4 w-4 text-indigo-600" />
+            <div className="flex items-center gap-2.5">
+              <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                <Icon icon={IconProp.Film} className="h-4 w-4" />
+              </span>
               <h3 className="text-sm font-semibold text-gray-900">
                 Watch what the user saw
               </h3>
             </div>
-            <div className="mt-1 truncate text-xs text-gray-500">
+            <div className="mt-2 truncate text-xs text-gray-500">
               {primary.entryUrl || "Unknown page"} ·{" "}
               {formatSessionDuration(primary.durationMs)} ·{" "}
               {describeDevice(primary)}
@@ -448,8 +450,9 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
           <div className="shrink-0">
             <AppLink
               to={watchRoute}
-              className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-700"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
             >
+              <Icon icon={IconProp.Play} className="h-3.5 w-3.5" />
               <span data-testid="replay-card-watch">
                 {moment
                   ? `Watch ${Math.round(
@@ -462,7 +465,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
         </div>
 
         {(otherSessions.length > 0 || isScopeTruncated) && (
-          <div className="border-t border-gray-100 px-5 py-3">
+          <div className="border-t border-gray-100 bg-gray-50/60 px-5 py-3">
             {otherSessions.length > 0 && (
               <div data-testid="replay-card-more-sessions">
                 <div className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
@@ -494,7 +497,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
                           {route && (
                             <AppLink
                               to={route}
-                              className="shrink-0 font-medium text-indigo-600 hover:underline"
+                              className="shrink-0 font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
                             >
                               Watch
                             </AppLink>
