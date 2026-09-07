@@ -86,6 +86,72 @@ const CHIP_GROUP: string = readSource(
   "StatusChipGroup.tsx",
 );
 
+const HEALTH_FILTER_TEST_ID: string = "network-topology-health-filter";
+
+/*
+ * Every .tsx under the topology tree, so the assertion below can FIND the
+ * component that mounts the health chip group instead of being told which one
+ * it is. #3639 moved that mount out of the live view and into
+ * NetworkTopologyToolbar; the old version of this test pinned the live view's
+ * import line and went red for a refactor that kept the feature working
+ * exactly as before. What is load bearing is that the shared chip group is
+ * mounted once, bound to the live view's state - not which file holds the JSX.
+ */
+function listTopologySources(directory: string): Array<string> {
+  const found: Array<string> = [];
+
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const full: string = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      found.push(...listTopologySources(full));
+    } else if (entry.name.endsWith(".tsx")) {
+      found.push(full);
+    }
+  }
+
+  return found;
+}
+
+interface ChipGroupMount {
+  file: string;
+  source: string;
+  mount: string;
+}
+
+/*
+ * The `<StatusChipGroup ... />` element carrying the health filter's test id,
+ * sliced out of whichever file renders it. Read as an element rather than as
+ * a whole file so the bindings asserted below belong to THIS mount and not to
+ * some other chip group the same file might grow later.
+ */
+function findHealthChipGroupMounts(): Array<ChipGroupMount> {
+  const mounts: Array<ChipGroupMount> = [];
+
+  for (const file of listTopologySources(
+    path.join(DASHBOARD_SRC, "Components", "Topology"),
+  )) {
+    const source: string = stripComments(fs.readFileSync(file, "utf8"));
+    const element: RegExp = /<StatusChipGroup\b[\s\S]*?\/>/g;
+
+    let match: RegExpExecArray | null = element.exec(source);
+
+    while (match !== null) {
+      if (match[0].includes(`dataTestId="${HEALTH_FILTER_TEST_ID}"`)) {
+        mounts.push({
+          file: path.relative(DASHBOARD_SRC, file),
+          source: source,
+          mount: flatten(match[0]),
+        });
+      }
+
+      match = element.exec(source);
+    }
+  }
+
+  return mounts;
+}
+
 describe("the device topology's health filter is wired end to end", () => {
   test("the live view owns the filter state", () => {
     expect(LIVE_VIEW).toContain("useState<TopologyHealthFilterMode>");
@@ -101,11 +167,59 @@ describe("the device topology's health filter is wired end to end", () => {
     );
   });
 
-  test("the live view renders the shared chip group for it", () => {
-    expect(flatten(LIVE_VIEW)).toContain(
-      'import StatusChipGroup, { StatusChipOption } from "../Filters/StatusChipGroup";',
+  test("the shared chip group is mounted for it, exactly once", () => {
+    const mounts: Array<ChipGroupMount> = findHealthChipGroupMounts();
+
+    /*
+     * Named in the failure rather than counted, because "0 !== 1" over a
+     * scanned tree is indistinguishable from a broken scanner.
+     */
+    expect(
+      mounts.map((mount: ChipGroupMount) => {
+        return mount.file;
+      }),
+    ).toHaveLength(1);
+
+    const mount: ChipGroupMount = mounts[0]!;
+
+    /*
+     * The SHARED group, not a local lookalike: the chips carry counts and a
+     * selected state that the Filters component owns, and a second copy would
+     * drift from the one the site pages use.
+     */
+    expect(flatten(mount.source)).toContain(
+      'from "../Filters/StatusChipGroup"',
     );
-    expect(LIVE_VIEW).toContain('dataTestId="network-topology-health-filter"');
+
+    /*
+     * The options come from the builder, and the selection is the live
+     * view's mode travelling back out as a change.
+     */
+    expect(mount.mount).toContain("healthChipOptions");
+    expect(mount.mount).toContain("healthFilterMode");
+    expect(mount.mount).toContain("onHealthChange");
+  });
+
+  test("the live view's state and handler reach that mount", () => {
+    /*
+     * The other half of the same claim. The mount above binds names from
+     * ITS OWN props, so if the mount lives in a child component, this is
+     * what stops the live view from simply never rendering that child or
+     * never handing it the filter - a chip group wired to nothing.
+     */
+    const mount: ChipGroupMount = findHealthChipGroupMounts()[0]!;
+    const owner: string = path.basename(mount.file, ".tsx");
+
+    if (owner === "NetworkTopologyLiveView") {
+      return;
+    }
+
+    const flatLiveView: string = flatten(LIVE_VIEW);
+
+    expect(flatLiveView).toContain(`<${owner}`);
+    expect(flatLiveView).toContain("healthChipOptions={healthChipOptions}");
+    expect(flatLiveView).toContain("healthFilterMode={healthFilterMode}");
+    expect(flatLiveView).toContain("onHealthChange={setHealthFilterMode}");
   });
 
   test("the chips are built from the pure options builder, not hand-rolled", () => {
