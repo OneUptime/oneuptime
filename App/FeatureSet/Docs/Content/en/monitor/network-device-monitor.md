@@ -591,6 +591,12 @@ The switch the device hangs off needs **Collect Connected Endpoints** on as well
 
 Where to see it: the device's Overview page has a **Connected to** card naming the switch, port and VLAN; on the map, the device's drawer shows the same under **Connected to**, and the link's drawer explains that it was learned from the switch's forwarding table. In the Parent-Child view the device is drawn beneath its switch. A link you drew by hand under **Device Links** for the same pair merges with the learned one rather than doubling it — the learned port replaces a mistyped one, and a parent you declared on the hand-drawn link is kept.
 
+![Parent-Child topology view drawing a ping-only register beneath its switch over a learned link](/docs/static/images/NetworkTopologyLearnedLink.png)
+
+![The link drawer explaining that the switch learned the device's MAC address on port Gi0/4](/docs/static/images/NetworkTopologyLearnedLinkDrawer.png)
+
+![The Connected to card on a device's Overview page naming the switch, port and VLAN](/docs/static/images/NetworkDeviceConnectedToCard.png)
+
 ## Troubleshooting
 
 ### Device stays Pending
