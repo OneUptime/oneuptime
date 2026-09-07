@@ -90,8 +90,10 @@ const Button: FunctionComponent<ComponentProps> = ({
   const { translateString } = useTranslateValue();
   const translatedTitle: string | undefined = translateString(title);
   const translatedTooltip: string | undefined = translateString(tooltip);
+  const isDisabled: boolean = Boolean(disabled || isLoading);
+
   useEffect(() => {
-    if (!shortcutKey) {
+    if (!shortcutKey || isDisabled) {
       return undefined;
     }
 
@@ -112,7 +114,7 @@ const Button: FunctionComponent<ComponentProps> = ({
     return () => {
       window.removeEventListener(`keydown`, onKeyDown);
     };
-  }, [shortcutKey, onClick]);
+  }, [shortcutKey, onClick, isDisabled]);
 
   type HandleKeyboardFunction = (event: KeyboardEventProp) => void;
 
@@ -253,8 +255,6 @@ const Button: FunctionComponent<ComponentProps> = ({
   buttonStyleCssClass += ` transition-colors duration-150 ease-out`;
 
   buttonStyleCssClass += ` ` + buttonSize;
-
-  const isDisabled: boolean = Boolean(disabled || isLoading);
 
   /*
    * A disabled <button> swallows the pointer without dispatching anything, so

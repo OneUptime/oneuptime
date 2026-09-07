@@ -179,6 +179,9 @@ describe("CommandPalette search providers", () => {
     expect(
       screen.getByTestId("command-palette-section-pending-monitors"),
     ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("command-palette-result-count"),
+    ).toHaveTextContent("Searching…");
 
     await act(async () => {
       deferred.resolve([makeResult("mon-1", "API Monitor")]);
@@ -190,6 +193,12 @@ describe("CommandPalette search providers", () => {
     expect(
       screen.getByTestId("command-palette-option-monitors-mon-1"),
     ).toHaveTextContent("API Monitor");
+    expect(
+      screen.getByTestId("command-palette-result-count"),
+    ).toHaveTextContent("1 result");
+    expect(
+      screen.getByTestId("command-palette-result-count"),
+    ).not.toHaveTextContent("Searching…");
   });
 
   test("runs all providers in parallel and renders one section per provider", async () => {
@@ -289,6 +298,366 @@ describe("CommandPalette search providers", () => {
     expect(
       screen.getByTestId("command-palette-option-monitors-fresh"),
     ).toHaveTextContent("Fresh Monitor");
+  });
+
+  test("shows pending feedback during debounce instead of briefly reporting no matches", () => {
+    const search: jest.Mock = jest.fn(() => {
+      return Promise.resolve([]);
+    });
+    render(
+      <CommandPalette
+        commands={BASE_COMMANDS}
+        searchProviders={[{ id: "monitors", title: "Monitors", search }]}
+        isOpen={true}
+        onClose={(): void => {}}
+      />,
+    );
+
+    typeQuery("api");
+
+    expect(search).not.toHaveBeenCalled();
+    expect(
+      screen.getByTestId("command-palette-section-pending-monitors"),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("command-palette-empty")).toBeNull();
+    expect(
+      screen.getByTestId("command-palette-result-count"),
+    ).toHaveTextContent("Searching…");
+  });
+
+  test("removes settled results immediately when the query changes so Enter cannot select an old match", async () => {
+    const onOldResultSelect: jest.Mock = jest.fn();
+    const onClose: jest.Mock = jest.fn();
+    const currentDeferred: Deferred<Array<PaletteSearchResult>> =
+      createDeferred<Array<PaletteSearchResult>>();
+    const search: jest.Mock = jest
+      .fn(() => {
+        return currentDeferred.promise;
+      })
+      .mockImplementationOnce(() => {
+        return Promise.resolve([
+          makeResult("old", "API Monitor", onOldResultSelect),
+        ]);
+      });
+    render(
+      <CommandPalette
+        commands={BASE_COMMANDS}
+        searchProviders={[{ id: "monitors", title: "Monitors", search }]}
+        isOpen={true}
+        onClose={onClose}
+      />,
+    );
+
+    typeQuery("api");
+    await advance(PROVIDER_SEARCH_DEBOUNCE_MS);
+    expect(
+      screen.getByTestId("command-palette-option-monitors-old"),
+    ).toBeInTheDocument();
+
+    typeQuery("database");
+    expect(
+      screen.queryByTestId("command-palette-option-monitors-old"),
+    ).toBeNull();
+    fireEvent.keyDown(screen.getByTestId("command-palette-input"), {
+      key: "Enter",
+    });
+    expect(onOldResultSelect).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+
+    await advance(PROVIDER_SEARCH_DEBOUNCE_MS);
+    expect(
+      screen.queryByTestId("command-palette-option-monitors-old"),
+    ).toBeNull();
+    await act(async () => {
+      currentDeferred.resolve([makeResult("new", "Database Monitor")]);
+    });
+    expect(
+      screen.getByTestId("command-palette-option-monitors-new"),
+    ).toHaveTextContent("Database Monitor");
+  });
+
+  test("discards an old response arriving while the new query is still debouncing", async () => {
+    const firstDeferred: Deferred<Array<PaletteSearchResult>> =
+      createDeferred<Array<PaletteSearchResult>>();
+    const secondDeferred: Deferred<Array<PaletteSearchResult>> =
+      createDeferred<Array<PaletteSearchResult>>();
+    const search: jest.Mock = jest
+      .fn(() => {
+        return secondDeferred.promise;
+      })
+      .mockImplementationOnce(() => {
+        return firstDeferred.promise;
+      });
+    render(
+      <CommandPalette
+        commands={BASE_COMMANDS}
+        searchProviders={[{ id: "monitors", title: "Monitors", search }]}
+        isOpen={true}
+        onClose={(): void => {}}
+      />,
+    );
+
+    typeQuery("api");
+    await advance(PROVIDER_SEARCH_DEBOUNCE_MS);
+    typeQuery("database");
+    await advance(PROVIDER_SEARCH_DEBOUNCE_MS - 1);
+    await act(async () => {
+      firstDeferred.resolve([makeResult("old", "API Monitor")]);
+    });
+
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByTestId("command-palette-option-monitors-old"),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("command-palette-section-pending-monitors"),
+    ).toBeInTheDocument();
+
+    await advance(1);
+    await act(async () => {
+      secondDeferred.resolve([makeResult("new", "Database Monitor")]);
+    });
+    expect(
+      screen.getByTestId("command-palette-option-monitors-new"),
+    ).toBeInTheDocument();
+  });
+
+  test("an old rejection cannot clear the new query's pending feedback during debounce", async () => {
+    const firstDeferred: Deferred<Array<PaletteSearchResult>> =
+      createDeferred<Array<PaletteSearchResult>>();
+    const secondDeferred: Deferred<Array<PaletteSearchResult>> =
+      createDeferred<Array<PaletteSearchResult>>();
+    const search: jest.Mock = jest
+      .fn(() => {
+        return secondDeferred.promise;
+      })
+      .mockImplementationOnce(() => {
+        return firstDeferred.promise;
+      });
+    render(
+      <CommandPalette
+        commands={BASE_COMMANDS}
+        searchProviders={[{ id: "monitors", title: "Monitors", search }]}
+        isOpen={true}
+        onClose={(): void => {}}
+      />,
+    );
+
+    typeQuery("api");
+    await advance(PROVIDER_SEARCH_DEBOUNCE_MS);
+    typeQuery("database");
+    await act(async () => {
+      firstDeferred.reject(new Error("Old request failed"));
+    });
+
+    expect(
+      screen.getByTestId("command-palette-section-pending-monitors"),
+    ).toBeInTheDocument();
+    expect(search).toHaveBeenCalledTimes(1);
+    await advance(PROVIDER_SEARCH_DEBOUNCE_MS);
+    await act(async () => {
+      secondDeferred.resolve([makeResult("new", "Database Monitor")]);
+    });
+    expect(
+      screen.getByTestId("command-palette-option-monitors-new"),
+    ).toBeInTheDocument();
+  });
+
+  test("replacing a provider with the same id hides the previous provider's results", async () => {
+    const replacementDeferred: Deferred<Array<PaletteSearchResult>> =
+      createDeferred<Array<PaletteSearchResult>>();
+    const oldSearch: jest.Mock = jest.fn(() => {
+      return Promise.resolve([makeResult("old", "First project's API")]);
+    });
+    const replacementSearch: jest.Mock = jest.fn(() => {
+      return replacementDeferred.promise;
+    });
+    const view: ReturnType<typeof render> = render(
+      <CommandPalette
+        commands={BASE_COMMANDS}
+        searchProviders={[
+          { id: "monitors", title: "Monitors", search: oldSearch },
+        ]}
+        isOpen={true}
+        onClose={(): void => {}}
+      />,
+    );
+
+    typeQuery("api");
+    await advance(PROVIDER_SEARCH_DEBOUNCE_MS);
+    expect(
+      screen.getByTestId("command-palette-option-monitors-old"),
+    ).toBeInTheDocument();
+
+    view.rerender(
+      <CommandPalette
+        commands={BASE_COMMANDS}
+        searchProviders={[
+          { id: "monitors", title: "Monitors", search: replacementSearch },
+        ]}
+        isOpen={true}
+        onClose={(): void => {}}
+      />,
+    );
+    expect(
+      screen.queryByTestId("command-palette-option-monitors-old"),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("command-palette-section-pending-monitors"),
+    ).toBeInTheDocument();
+
+    await advance(PROVIDER_SEARCH_DEBOUNCE_MS);
+    await act(async () => {
+      replacementDeferred.resolve([makeResult("new", "Second project's API")]);
+    });
+    expect(
+      screen.getByTestId("command-palette-option-monitors-new"),
+    ).toHaveTextContent("Second project's API");
+  });
+
+  test("removing and restoring providers cannot revive a result that arrived while they were absent", async () => {
+    const firstDeferred: Deferred<Array<PaletteSearchResult>> =
+      createDeferred<Array<PaletteSearchResult>>();
+    const secondDeferred: Deferred<Array<PaletteSearchResult>> =
+      createDeferred<Array<PaletteSearchResult>>();
+    const search: jest.Mock = jest
+      .fn(() => {
+        return secondDeferred.promise;
+      })
+      .mockImplementationOnce(() => {
+        return firstDeferred.promise;
+      });
+    const providers: Array<PaletteSearchProvider> = [
+      { id: "monitors", title: "Monitors", search },
+    ];
+    const view: ReturnType<typeof render> = render(
+      <CommandPalette
+        commands={BASE_COMMANDS}
+        searchProviders={providers}
+        isOpen={true}
+        onClose={(): void => {}}
+      />,
+    );
+
+    typeQuery("api");
+    await advance(PROVIDER_SEARCH_DEBOUNCE_MS);
+    view.rerender(
+      <CommandPalette
+        commands={BASE_COMMANDS}
+        searchProviders={[]}
+        isOpen={true}
+        onClose={(): void => {}}
+      />,
+    );
+    await act(async () => {
+      firstDeferred.resolve([makeResult("old", "Old API")]);
+    });
+    view.rerender(
+      <CommandPalette
+        commands={BASE_COMMANDS}
+        searchProviders={providers}
+        isOpen={true}
+        onClose={(): void => {}}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId("command-palette-option-monitors-old"),
+    ).toBeNull();
+    await advance(PROVIDER_SEARCH_DEBOUNCE_MS);
+    await act(async () => {
+      secondDeferred.resolve([makeResult("new", "Current API")]);
+    });
+    expect(
+      screen.getByTestId("command-palette-option-monitors-new"),
+    ).toHaveTextContent("Current API");
+  });
+
+  test("clearing a query discards an in-flight response and cancels pending feedback", async () => {
+    const deferred: Deferred<Array<PaletteSearchResult>> =
+      createDeferred<Array<PaletteSearchResult>>();
+    const search: jest.Mock = jest.fn(() => {
+      return deferred.promise;
+    });
+    render(
+      <CommandPalette
+        commands={BASE_COMMANDS}
+        searchProviders={[{ id: "monitors", title: "Monitors", search }]}
+        isOpen={true}
+        onClose={(): void => {}}
+      />,
+    );
+
+    typeQuery("api");
+    await advance(PROVIDER_SEARCH_DEBOUNCE_MS);
+    typeQuery("a");
+    await act(async () => {
+      deferred.resolve([makeResult("old", "API Monitor")]);
+    });
+
+    expect(
+      screen.queryByTestId("command-palette-option-monitors-old"),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId("command-palette-section-pending-monitors"),
+    ).toBeNull();
+    await advance(PROVIDER_SEARCH_DEBOUNCE_MS);
+    expect(search).toHaveBeenCalledTimes(1);
+  });
+
+  test("closing the palette cancels a debounced search", async () => {
+    const search: jest.Mock = jest.fn(() => {
+      return Promise.resolve([]);
+    });
+    const providers: Array<PaletteSearchProvider> = [
+      { id: "monitors", title: "Monitors", search },
+    ];
+    const view: ReturnType<typeof render> = render(
+      <CommandPalette
+        commands={BASE_COMMANDS}
+        searchProviders={providers}
+        isOpen={true}
+        onClose={(): void => {}}
+      />,
+    );
+
+    typeQuery("api");
+    view.rerender(
+      <CommandPalette
+        commands={BASE_COMMANDS}
+        searchProviders={providers}
+        isOpen={false}
+        onClose={(): void => {}}
+      />,
+    );
+    await advance(PROVIDER_SEARCH_DEBOUNCE_MS);
+    expect(search).not.toHaveBeenCalled();
+  });
+
+  test("whitespace-only query changes retain results without repeating the search", async () => {
+    const search: jest.Mock = jest.fn(() => {
+      return Promise.resolve([makeResult("m1", "API Monitor")]);
+    });
+    render(
+      <CommandPalette
+        commands={BASE_COMMANDS}
+        searchProviders={[{ id: "monitors", title: "Monitors", search }]}
+        isOpen={true}
+        onClose={(): void => {}}
+      />,
+    );
+
+    typeQuery("api");
+    await advance(PROVIDER_SEARCH_DEBOUNCE_MS);
+    typeQuery("  api  ");
+    expect(
+      screen.getByTestId("command-palette-option-monitors-m1"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("command-palette-section-pending-monitors"),
+    ).toBeNull();
+    await advance(PROVIDER_SEARCH_DEBOUNCE_MS);
+    expect(search).toHaveBeenCalledTimes(1);
   });
 
   test("a rejecting provider shows nothing while the others still render", async () => {

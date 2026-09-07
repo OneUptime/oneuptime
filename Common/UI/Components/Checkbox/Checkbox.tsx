@@ -38,6 +38,17 @@ export interface CategoryProps {
 const CheckboxElement: FunctionComponent<CategoryProps> = (
   props: CategoryProps,
 ): ReactElement => {
+  const uniqueId: string = React.useId();
+  const inputId: string = `checkbox-${uniqueId}`;
+  const descriptionId: string = `checkbox-description-${uniqueId}`;
+  const errorId: string = `checkbox-error-${uniqueId}`;
+  const describedBy: string | undefined =
+    [
+      props.description ? descriptionId : undefined,
+      props.error ? errorId : undefined,
+    ]
+      .filter(Boolean)
+      .join(" ") || undefined;
   const [value, setValue] = React.useState<boolean>(
     props.initialValue || false,
   );
@@ -65,6 +76,7 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
       >
         <div className="flex h-6 items-center">
           <input
+            id={inputId}
             checked={value}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
               setValue(event.target.checked);
@@ -83,9 +95,7 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
             data-testid={props.dataTestId}
             aria-label={props.ariaLabel}
             title={props.hoverText}
-            aria-describedby={
-              props.description ? "checkbox-description" : undefined
-            }
+            aria-describedby={describedBy}
             aria-invalid={props.error ? "true" : undefined}
             type="checkbox"
             className={`accent-indigo-600 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 ${
@@ -94,16 +104,23 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
           />
         </div>
         <div className="ml-3 text-sm leading-6">
-          <label className="font-medium text-gray-900">{props.title}</label>
+          <label htmlFor={inputId} className="font-medium text-gray-900">
+            {props.title}
+          </label>
           {props.description && (
-            <div id="checkbox-description" className="text-gray-500">
+            <div id={descriptionId} className="text-gray-500">
               {props.description}
             </div>
           )}
         </div>
       </div>
       {props.error && (
-        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
+        <p
+          id={errorId}
+          data-testid="error-message"
+          className="mt-1 text-sm text-red-400"
+          role="alert"
+        >
           {props.error}
         </p>
       )}

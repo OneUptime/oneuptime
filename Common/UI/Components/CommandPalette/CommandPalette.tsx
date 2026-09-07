@@ -620,13 +620,15 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
               />
             </div>
 
-            {/* Screen readers hear how many rows the query produced. */}
+            {/* Announce progress before reporting the completed result count. */}
             <p
               aria-live="polite"
               data-testid="command-palette-result-count"
               className="sr-only"
             >
-              {resultCount} {resultCount === 1 ? tx("result") : tx("results")}
+              {hasPendingSection(sections)
+                ? tx("Searching…")
+                : `${resultCount} ${resultCount === 1 ? tx("result") : tx("results")}`}
             </p>
 
             {/* Results */}
