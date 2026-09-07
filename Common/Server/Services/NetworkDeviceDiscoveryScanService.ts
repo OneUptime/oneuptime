@@ -1,6 +1,8 @@
 import DatabaseService from "./DatabaseService";
-import Model from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import Model, {
+  DiscoveredNetworkDevice,
+} from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import { OnCreate, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -20,6 +22,7 @@ import SnmpScanConfigUtil, {
 } from "../../Utils/NetworkDiscovery/SnmpScanConfigUtil";
 import { getNextScanAt } from "../../Utils/NetworkDiscovery/RescanIntervalUtil";
 import ScanModeUtil from "../../Utils/NetworkDiscovery/ScanModeUtil";
+import NetworkDeviceService from "./NetworkDeviceService";
 
 /*
  * The two spellings a many-to-one reference reaches a hook under: the
@@ -173,6 +176,84 @@ interface ScanUpdatePlan {
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  @CaptureSpan()
+  protected override async onFindSuccess(
+    onFind: OnFind<Model>,
+    items: Array<Model>,
+  ): Promise<OnFind<Model>> {
+    // Registration is current inventory state, not a fact about the scan.
+    // Refresh both directions so old results can be used after a deletion.
+    const hostnamesByProject: Map<string, Set<string>> = new Map();
+
+    for (const scan of items) {
+      const projectId: ObjectID | undefined =
+        scan.projectId || onFind.findBy.props.tenantId;
+
+      if (!projectId || !Array.isArray(scan.discoveredDevices)) {
+        continue;
+      }
+
+      for (const host of scan.discoveredDevices) {
+        const hostname: string = this.getDiscoveredHostname(host);
+        if (!hostname) {
+          continue;
+        }
+
+        const projectKey: string = projectId.toString();
+        if (!hostnamesByProject.has(projectKey)) {
+          hostnamesByProject.set(projectKey, new Set());
+        }
+        hostnamesByProject.get(projectKey)!.add(hostname);
+      }
+    }
+
+    const registeredByProject: Map<string, Set<string>> = new Map();
+    for (const [projectId, hostnames] of hostnamesByProject) {
+      registeredByProject.set(
+        projectId,
+        await NetworkDeviceService.getRegisteredHostnames({
+          projectId: new ObjectID(projectId),
+          hostnames: Array.from(hostnames),
+          // The scan read has already passed its access checks. Return only
+          // the same existence flag as probe ingest, scoped to this project.
+          props: { isRoot: true },
+        }),
+      );
+    }
+
+    return {
+      ...onFind,
+      carryForward: items.map((scan: Model): Model => {
+        const projectId: ObjectID | undefined =
+          scan.projectId || onFind.findBy.props.tenantId;
+        const registered: Set<string> | undefined = projectId
+          ? registeredByProject.get(projectId.toString())
+          : undefined;
+
+        if (!registered || !Array.isArray(scan.discoveredDevices)) {
+          return scan;
+        }
+
+        return Object.assign(new Model(), scan, {
+          discoveredDevices: scan.discoveredDevices.map(
+            (host: DiscoveredNetworkDevice): DiscoveredNetworkDevice => {
+              const hostname: string = this.getDiscoveredHostname(host);
+              return hostname
+                ? { ...host, isAlreadyRegistered: registered.has(hostname) }
+                : host;
+            },
+          ),
+        });
+      }),
+    };
+  }
+
+  private getDiscoveredHostname(host: DiscoveredNetworkDevice): string {
+    return host && typeof host.ipAddress === "string"
+      ? host.ipAddress.trim()
+      : "";
   }
 
   /*

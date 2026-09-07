@@ -587,6 +587,7 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
     const unmatchedRow: DiscoveredNetworkDevice = makeHost({
       ipAddress: "192.168.1.5",
       sysName: "printer-01",
+      isAlreadyRegistered: true,
     });
 
     scanFindOneByMock.mockResolvedValue(
@@ -611,6 +612,10 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
     expect(createMock).toHaveBeenCalledTimes(1);
     expect(monitorFindByMock).not.toHaveBeenCalled();
     expect(monitorTemplateFindByMock).not.toHaveBeenCalled();
+    expect(scanFindOneByMock.mock.calls[0]![0].props).toEqual({
+      isRoot: true,
+      ignoreHooks: true,
+    });
     const device: NetworkDevice = createdDevice(0);
     // The address is the hostname AND the dedup key downstream.
     expect(device.hostname).toBe("10.0.0.5");
@@ -1818,6 +1823,8 @@ describe("NetworkDeviceAutoImportRuleEngineService.applyRuleToCompletedScans", (
     ]);
     expect(rereadCall.query.projectId.toString()).toBe(PROJECT_ID.toString());
     expect(rereadCall.select.discoveredDevices).toBe(true);
+    expect(rereadCall.props).toEqual({ isRoot: true, ignoreHooks: true });
+    expect(listCall.props).toEqual({ isRoot: true });
   });
 
   it("skips a scan that vanished between the stub listing and the re-read", async () => {
@@ -2059,6 +2066,244 @@ describe("NetworkDeviceAutoImportRuleEngineService.applyRuleToCompletedScans", (
       expect(scanFindByMock).not.toHaveBeenCalled();
       expect(monitorCreateMock).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("re-import after deleting discovered devices or monitors (issue #3560)", () => {
+  it.each([false, true])(
+    "uses current inventory when a processed scan still marks a deleted device registered (dry run: %s)",
+    async (isDryRun: boolean) => {
+      ruleFindOneByMock.mockResolvedValue(
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      );
+      ruleFindByMock.mockResolvedValue([]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+      mockRunNowScans([
+        makeScan({
+          completedAt: new Date("2020-01-01T00:00:00.000Z"),
+          autoImportProcessedAt: OneUptimeDate.getCurrentDate(),
+          discoveredDevices: [makeHost({ isAlreadyRegistered: true })],
+        }),
+      ]);
+
+      const result: AutoImportRuleRunResult = await runRule(isDryRun);
+
+      expect(result).toMatchObject({
+        hostsMatched: 1,
+        hostsSkippedAlreadyRegistered: 0,
+        devicesCreated: isDryRun ? 0 : 1,
+        monitorsCreated: isDryRun ? 0 : 1,
+        monitorsWouldCreate: isDryRun ? 1 : 0,
+        devicesFailed: 0,
+        monitorsFailed: 0,
+        matchedIpAddressSample: ["10.0.0.5"],
+        isTruncated: false,
+        isDryRun,
+      });
+      expect(createMock).toHaveBeenCalledTimes(isDryRun ? 0 : 1);
+      expect(monitorCreateMock).toHaveBeenCalledTimes(isDryRun ? 0 : 1);
+      expect(scanUpdateMock).toHaveBeenCalledTimes(isDryRun ? 0 : 1);
+
+      if (!isDryRun) {
+        const device: NetworkDevice = createdDevice(0);
+        expect(device.hostname).toBe("10.0.0.5");
+        expect(device.snmpCommunityString).toBe("public");
+        expect(device.projectId?.toString()).toBe(PROJECT_ID.toString());
+        expect(
+          provisionedMonitor(0).autoProvisionedNetworkDeviceId?.toString(),
+        ).toBe(device.id?.toString());
+        expect(scanUpdateMock.mock.calls[0]![0].data).toEqual({
+          discoveredDevices: [makeHost({ isAlreadyRegistered: true })],
+        });
+      }
+    },
+  );
+
+  it("imports a deleted device from fresh automatic results with a stale registration flag", async () => {
+    scanFindOneByMock.mockResolvedValue(
+      makeScan({
+        discoveredDevices: [makeHost({ isAlreadyRegistered: true })],
+      }),
+    );
+
+    const result: AutoImportRuleRunResult | null = await processScan();
+
+    expect(result).toMatchObject({
+      devicesCreated: 1,
+      hostsSkippedAlreadyRegistered: 0,
+    });
+    expect(
+      scanUpdateMock.mock.calls[0]![0].data.autoImportProcessedAt,
+    ).toBeInstanceOf(Date);
+  });
+
+  it.each([false, true])(
+    "restores a deleted template monitor while retaining its registered device (dry run: %s)",
+    async (isDryRun: boolean) => {
+      const existingDevice: NetworkDevice = makeExistingDevice();
+      deviceFindByMock.mockResolvedValue([existingDevice]);
+      ruleFindOneByMock.mockResolvedValue(
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      );
+      ruleFindByMock.mockResolvedValue([]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+      mockRunNowScans([
+        makeScan({
+          autoImportProcessedAt: OneUptimeDate.getCurrentDate(),
+          discoveredDevices: [makeHost({ isAlreadyRegistered: true })],
+        }),
+      ]);
+
+      const result: AutoImportRuleRunResult = await runRule(isDryRun);
+
+      expect(result).toMatchObject({
+        hostsSkippedAlreadyRegistered: 1,
+        devicesCreated: 0,
+        monitorsCreated: isDryRun ? 0 : 1,
+        monitorsWouldCreate: isDryRun ? 1 : 0,
+        monitorsSkippedAlreadyExisting: 0,
+      });
+      expect(createMock).not.toHaveBeenCalled();
+      expect(scanUpdateMock).not.toHaveBeenCalled();
+      if (!isDryRun) {
+        expect(
+          provisionedMonitor(0).autoProvisionedNetworkDeviceId?.toString(),
+        ).toBe(existingDevice.id?.toString());
+      }
+    },
+  );
+
+  it.each([false, true])(
+    "deduplicates stale registered rows within and across scans (dry run: %s)",
+    async (isDryRun: boolean) => {
+      ruleFindOneByMock.mockResolvedValue(
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      );
+      ruleFindByMock.mockResolvedValue([]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+      mockRunNowScans([
+        makeScan({
+          discoveredDevices: [
+            makeHost({ isAlreadyRegistered: true }),
+            makeHost({ ipAddress: " 10.0.0.5 ", isAlreadyRegistered: false }),
+          ],
+        }),
+        makeScan({
+          id: ObjectID.generate(),
+          discoveredDevices: [makeHost({ isAlreadyRegistered: true })],
+        }),
+      ]);
+
+      const result: AutoImportRuleRunResult = await runRule(isDryRun);
+
+      expect(result).toMatchObject({
+        hostsMatched: 3,
+        hostsSkippedAlreadyRegistered: 2,
+        devicesCreated: isDryRun ? 0 : 1,
+        monitorsCreated: isDryRun ? 0 : 1,
+        monitorsWouldCreate: isDryRun ? 1 : 0,
+        monitorsSkippedAlreadyExisting: 2,
+        matchedIpAddressSample: ["10.0.0.5"],
+      });
+      expect(createMock).toHaveBeenCalledTimes(isDryRun ? 0 : 1);
+      expect(monitorCreateMock).toHaveBeenCalledTimes(isDryRun ? 0 : 1);
+    },
+  );
+
+  it("still honors exclusions when the registered device has been deleted", async () => {
+    ruleFindOneByMock.mockResolvedValue(makeRule());
+    ruleFindByMock.mockResolvedValue([
+      makeRule({
+        id: ObjectID.generate(),
+        isExclusion: true,
+        ipMatchTarget: "10.0.0.5",
+      }),
+    ]);
+    mockRunNowScans([
+      makeScan({
+        discoveredDevices: [makeHost({ isAlreadyRegistered: true })],
+      }),
+    ]);
+
+    const result: AutoImportRuleRunResult = await runRule(false);
+
+    expect(result).toMatchObject({
+      hostsExcluded: 1,
+      hostsMatched: 0,
+      devicesCreated: 0,
+    });
+    expect(createMock).not.toHaveBeenCalled();
+    expect(scanUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it("resumes re-importing a deleted 903-device fleet across the run cap without duplicates", async () => {
+    const hosts: Array<DiscoveredNetworkDevice> = Array.from(
+      { length: 903 },
+      (_value: unknown, index: number): DiscoveredNetworkDevice => {
+        return makeHost({
+          ipAddress: `10.0.${Math.floor(index / 256)}.${index % 256}`,
+          sysName: `switch-${index}`,
+          isAlreadyRegistered: true,
+        });
+      },
+    );
+    const scan: NetworkDeviceDiscoveryScan = makeScan({
+      autoImportProcessedAt: OneUptimeDate.getCurrentDate(),
+      discoveredDevices: hosts,
+    });
+    const inventory: Map<string, NetworkDevice> = new Map();
+    devicesByHostnamesMock.mockImplementation(
+      async (data: {
+        hostnames: Array<string>;
+      }): Promise<Map<string, NetworkDevice>> => {
+        const found: Map<string, NetworkDevice> = new Map();
+        for (const hostname of data.hostnames) {
+          const device: NetworkDevice | undefined = inventory.get(hostname);
+          if (device) {
+            found.set(hostname, device);
+          }
+        }
+        return found;
+      },
+    );
+    createMock.mockImplementation(
+      async ({ data }: { data: NetworkDevice }): Promise<NetworkDevice> => {
+        data.id = ObjectID.generate();
+        inventory.set(data.hostname!, data);
+        return data;
+      },
+    );
+    ruleFindOneByMock.mockResolvedValue(
+      makeRule({ ipMatchTarget: "10.0.0.0/8" }),
+    );
+    ruleFindByMock.mockResolvedValue([]);
+
+    mockRunNowScans([scan]);
+    const firstRun: AutoImportRuleRunResult = await runRule(false);
+    expect(firstRun).toMatchObject({
+      devicesCreated: MAX_DEVICES_PER_AUTO_IMPORT_RUN,
+      hostsSkippedAlreadyRegistered: 0,
+      isTruncated: true,
+    });
+
+    mockRunNowScans([scan]);
+    const secondRun: AutoImportRuleRunResult = await runRule(false);
+    expect(secondRun).toMatchObject({
+      devicesCreated: hosts.length - MAX_DEVICES_PER_AUTO_IMPORT_RUN,
+      hostsSkippedAlreadyRegistered: MAX_DEVICES_PER_AUTO_IMPORT_RUN,
+      isTruncated: false,
+    });
+
+    mockRunNowScans([scan]);
+    const thirdRun: AutoImportRuleRunResult = await runRule(false);
+    expect(thirdRun).toMatchObject({
+      devicesCreated: 0,
+      hostsSkippedAlreadyRegistered: hosts.length,
+      isTruncated: false,
+    });
+    expect(inventory.size).toBe(hosts.length);
+    expect(createMock).toHaveBeenCalledTimes(hosts.length);
+    expect(scanUpdateMock).toHaveBeenCalledTimes(2);
   });
 });
 

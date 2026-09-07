@@ -108,6 +108,11 @@ import React, {
 
 type DiscoveredDeviceEntry = DiscoveredNetworkDevice;
 
+interface ReviewRequest {
+  scanId: string;
+  importedIpAddresses: Set<string>;
+}
+
 /*
  * The scan's optional name — the first field of the create wizard, and the
  * first field of the Edit dialog.
@@ -615,6 +620,8 @@ const NetworkDeviceDiscovery: FunctionComponent<
 
   // Review Results modal state.
   const [showReviewModal, setShowReviewModal] = useState<boolean>(false);
+  const [isLoadingReview, setIsLoadingReview] = useState<boolean>(false);
+  const [isReviewReady, setIsReviewReady] = useState<boolean>(false);
   /*
    * The scan the Edit dialog is open for, or null.
    *
@@ -648,16 +655,9 @@ const NetworkDeviceDiscovery: FunctionComponent<
    */
   const [createPingMonitors, setCreatePingMonitors] = useState<boolean>(false);
   /*
-   * Addresses imported from each scan, per scan id. The scan's own
-   * `isAlreadyRegistered` flags were frozen when the probe uploaded its
-   * results, so without this the dialog would re-offer what it just imported
-   * — which now matters, because importing one group and then the other is
-   * the intended flow rather than an unusual one.
-   *
-   * Kept for the life of the page rather than the life of the dialog, so
-   * closing and reopening the same scan does not resurrect imported hosts;
-   * and keyed by scan so a long import that lands after the operator has
-   * moved to a different scan cannot mark that scan's hosts.
+   * Imports made since this review's inventory lookup. Each successful fresh
+   * read replaces that scan's record, so a deleted device becomes selectable
+   * again. Between reads the record still prevents repeated batch imports.
    */
   const [importedIpAddressesByScanId, setImportedIpAddressesByScanId] =
     useState<ImportedIpAddressesByScanId>({});
@@ -668,6 +668,9 @@ const NetworkDeviceDiscovery: FunctionComponent<
    * dialog I was importing for".
    */
   const reviewedScanIdRef: React.MutableRefObject<string> = useRef<string>("");
+  // Object identity distinguishes even two consecutive reviews of one scan.
+  const reviewRequestRef: React.MutableRefObject<ReviewRequest | null> =
+    useRef<ReviewRequest | null>(null);
 
   const fetchProbes: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -686,7 +689,9 @@ const NetworkDeviceDiscovery: FunctionComponent<
     });
   }, []);
 
-  type OpenReviewModalFunction = (scan: NetworkDeviceDiscoveryScan) => void;
+  type OpenReviewModalFunction = (
+    scan: NetworkDeviceDiscoveryScan,
+  ) => Promise<void>;
 
   type GetReviewHostsFunction = (
     scan: NetworkDeviceDiscoveryScan | null,
@@ -717,20 +722,20 @@ const NetworkDeviceDiscovery: FunctionComponent<
     });
   };
 
-  const openReviewModal: OpenReviewModalFunction = (
+  const openReviewModal: OpenReviewModalFunction = async (
     scan: NetworkDeviceDiscoveryScan,
-  ): void => {
+  ): Promise<void> => {
     setScanToReview(scan);
     // Answers "is this still the dialog I am importing for" from a stale run.
     reviewedScanIdRef.current = scan._id || "";
-    /*
-     * Preselect every host that is not already registered. Ping-only hosts
-     * are included: they import with no credentials and are pinged by the
-     * scan's probe, rather than carrying credentials they never answered to.
-     * Read through the overlay so reopening a scan does not re-tick what was
-     * already imported from it.
-     */
-    setSelectedIps(getInitialSelection(getReviewHosts(scan)));
+    const request: ReviewRequest = {
+      scanId: reviewedScanIdRef.current,
+      importedIpAddresses: new Set<string>(),
+    };
+    reviewRequestRef.current = request;
+    setSelectedIps({});
+    setIsReviewReady(false);
+    setIsLoadingReview(true);
     // Every scan opens on the whole list; narrowing is the operator's move.
     setHostFilter(DiscoveredHostFilter.All);
     setImportError("");
@@ -740,26 +745,94 @@ const NetworkDeviceDiscovery: FunctionComponent<
      */
     setCreatePingMonitors(false);
     setShowReviewModal(true);
+
+    try {
+      if (!scan.id) {
+        throw new BadDataException("This discovery scan could not be found.");
+      }
+
+      // The service reconciles registration against the current inventory on
+      // read. Fetch on every open: the table row and our prior import record
+      // may both predate a device's deletion or an import in another session.
+      const freshScan: NetworkDeviceDiscoveryScan | null =
+        await ModelAPI.getItem<NetworkDeviceDiscoveryScan>({
+          modelType: NetworkDeviceDiscoveryScan,
+          id: scan.id,
+          select: {
+            _id: true,
+            projectId: true,
+            name: true,
+            cidr: true,
+            status: true,
+            statusMessage: true,
+            discoveredDevices: true,
+            probeId: true,
+            isSnmpEnabled: true,
+            snmpConfigs: true,
+            snmpVersion: true,
+            snmpCommunityString: true,
+            snmpPort: true,
+            snmpV3SecurityLevel: true,
+            snmpV3Username: true,
+            snmpV3AuthProtocol: true,
+            snmpV3AuthKey: true,
+            snmpV3PrivProtocol: true,
+            snmpV3PrivKey: true,
+          },
+        });
+
+      if (reviewRequestRef.current !== request) {
+        return;
+      }
+
+      if (!freshScan) {
+        throw new BadDataException("This discovery scan could not be found.");
+      }
+
+      // An earlier import can finish while this read is in flight. Preserve
+      // those newly created addresses even if the response predates them.
+      const refreshedImports: ImportedIpAddressesByScanId = {
+        [request.scanId]: Array.from(request.importedIpAddresses),
+      };
+      setImportedIpAddressesByScanId((current: ImportedIpAddressesByScanId) => {
+        return { ...current, ...refreshedImports };
+      });
+      setScanToReview(freshScan);
+      setSelectedIps(
+        getInitialSelection(getReviewHosts(freshScan, refreshedImports)),
+      );
+      setIsReviewReady(true);
+    } catch (err) {
+      if (reviewRequestRef.current === request) {
+        setImportError(API.getFriendlyMessage(err));
+      }
+    } finally {
+      if (reviewRequestRef.current === request) {
+        setIsLoadingReview(false);
+      }
+    }
   };
 
   const closeReviewModal: VoidFunction = (): void => {
     setShowReviewModal(false);
     setScanToReview(null);
     reviewedScanIdRef.current = "";
+    reviewRequestRef.current = null;
+    setIsReviewReady(false);
+    setIsLoadingReview(false);
     setSelectedIps({});
     setHostFilter(DiscoveredHostFilter.All);
     setImportError("");
     setCreatePingMonitors(false);
     /*
-     * importedIpAddressesByScanId is deliberately NOT cleared. It is what
-     * stops a reopened scan offering hosts that are already in the inventory,
-     * and the scan row it describes does not change when the dialog closes.
+     * Keep the import record until a successful fresh inventory read replaces
+     * it. A failed request must never make remembered imports selectable.
      */
   };
 
   const importSelectedDevices: PromiseVoidFunction =
     async (): Promise<void> => {
-      if (!scanToReview) {
+      if (!scanToReview || !isReviewReady || isLoadingReview || isImporting) {
         return;
       }
 
@@ -771,6 +844,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
        * whatever is on screen by then.
        */
       const runScanId: string = scanToReview._id || "";
+      const runReviewRequest: ReviewRequest | null = reviewRequestRef.current;
 
       /*
        * Selected AND currently shown. Scoping to the active filter is what
@@ -977,6 +1051,12 @@ const NetworkDeviceDiscovery: FunctionComponent<
 
       setIsImporting(false);
 
+      if (reviewRequestRef.current?.scanId === runScanId) {
+        for (const ipAddress of importedNow) {
+          reviewRequestRef.current.importedIpAddresses.add(ipAddress);
+        }
+      }
+
       /*
        * Retire what was imported so it cannot be imported a second time, and
        * so the row shows "Already added" like any other registered host.
@@ -1006,7 +1086,8 @@ const NetworkDeviceDiscovery: FunctionComponent<
        * not close it.
        */
       const isStillTheSameReview: boolean =
-        reviewedScanIdRef.current === runScanId;
+        reviewedScanIdRef.current === runScanId &&
+        reviewRequestRef.current === runReviewRequest;
 
       /*
        * A monitor that could not be created is reported alongside the import
@@ -1066,8 +1147,9 @@ const NetworkDeviceDiscovery: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-  const reviewEntries: Array<DiscoveredDeviceEntry> =
-    getReviewHosts(scanToReview);
+  const reviewEntries: Array<DiscoveredDeviceEntry> = isReviewReady
+    ? getReviewHosts(scanToReview)
+    : [];
 
   // Group sizes come off the whole scan, so every button keeps its own count.
   const hostFilterOptions: Array<FilterButtonOption> =
@@ -1627,8 +1709,11 @@ const NetworkDeviceDiscovery: FunctionComponent<
               item: NetworkDeviceDiscoveryScan,
               onCompleteAction: VoidFunction,
             ) => {
-              openReviewModal(item);
-              onCompleteAction();
+              try {
+                await openReviewModal(item);
+              } finally {
+                onCompleteAction();
+              }
             },
           },
         ]}
@@ -1724,10 +1809,11 @@ const NetworkDeviceDiscovery: FunctionComponent<
           }`}
           modalWidth={ModalWidth.Medium}
           isLoading={isImporting}
+          isBodyLoading={isLoadingReview}
           error={importError || undefined}
           onClose={closeReviewModal}
           submitButtonText={`Import Selected (${selectedCount})`}
-          disableSubmitButton={selectedCount === 0}
+          disableSubmitButton={!isReviewReady || selectedCount === 0}
           onSubmit={() => {
             importSelectedDevices().catch((err: Error) => {
               setIsImporting(false);
@@ -1831,7 +1917,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
                 />
               </div>
             )}
-            {reviewEntries.length === 0 && (
+            {isReviewReady && reviewEntries.length === 0 && (
               <p className="text-sm text-gray-500">
                 {getDiscoveredHostFilterEmptyMessage(DiscoveredHostFilter.All)}
               </p>
