@@ -45,6 +45,8 @@ export default class VMwareRecoveryPolicy {
     criteriaInstance?: MonitorCriteriaInstance | undefined;
     unavailableSeriesFingerprints?: Array<string> | undefined;
     operationalMonitorStatusIds?: Array<string> | undefined;
+    evaluatedSeriesFingerprints?: Array<string> | undefined;
+    recoveredSeriesFingerprints?: Array<string> | undefined;
   }): boolean {
     if (input.monitorType !== MonitorType.VMware) {
       return true;
@@ -58,11 +60,27 @@ export default class VMwareRecoveryPolicy {
       return false;
     }
     // A known failure can still worsen status while another resource is unknown.
-    return (
+    if (
       !this.isRecoveryCriteria(
         input.criteriaInstance,
         input.operationalMonitorStatusIds,
-      ) || !input.unavailableSeriesFingerprints?.length
+      )
+    ) {
+      return true;
+    }
+    /*
+     * One healthy resource cannot restore a monitor while another remains in
+     * its recovery dead band. Every active evaluated series must affirm health.
+     */
+    const recovered: Set<string> = new Set(input.recoveredSeriesFingerprints);
+    return Boolean(
+      !input.unavailableSeriesFingerprints?.length &&
+        input.evaluatedSeriesFingerprints?.length &&
+        input.evaluatedSeriesFingerprints.every(
+          (fingerprint: string): boolean => {
+            return recovered.has(fingerprint);
+          },
+        ),
     );
   }
 }

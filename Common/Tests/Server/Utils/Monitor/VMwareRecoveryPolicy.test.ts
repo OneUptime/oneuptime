@@ -32,6 +32,8 @@ describe("VMware monitor-status recovery", () => {
         operationalMonitorStatusIds: OPERATIONAL_IDS,
         criteriaInstance: criteria(false),
         unavailableSeriesFingerprints: ["unknown-resource"],
+        evaluatedSeriesFingerprints: ["healthy-resource"],
+        recoveredSeriesFingerprints: ["healthy-resource"],
       }),
     ).toBe(false);
   });
@@ -52,6 +54,42 @@ describe("VMware monitor-status recovery", () => {
         operationalMonitorStatusIds: OPERATIONAL_IDS,
         criteriaInstance: criteria(false),
         unavailableSeriesFingerprints: [],
+        evaluatedSeriesFingerprints: ["resource-a", "resource-b"],
+        recoveredSeriesFingerprints: ["resource-a", "resource-b"],
+      }),
+    ).toBe(true);
+  });
+  test("a healthy resource cannot restore status while another is in the recovery dead band", () => {
+    expect(
+      VMwareRecoveryPolicy.shouldChangeStatus({
+        monitorType: MonitorType.VMware,
+        operationalMonitorStatusIds: OPERATIONAL_IDS,
+        criteriaInstance: criteria(false),
+        unavailableSeriesFingerprints: [],
+        evaluatedSeriesFingerprints: ["healthy-resource", "dead-band-resource"],
+        recoveredSeriesFingerprints: ["healthy-resource"],
+      }),
+    ).toBe(false);
+  });
+  test("an empty evaluation cannot affirm monitor recovery", () => {
+    expect(
+      VMwareRecoveryPolicy.shouldChangeStatus({
+        monitorType: MonitorType.VMware,
+        operationalMonitorStatusIds: OPERATIONAL_IDS,
+        criteriaInstance: criteria(false),
+        evaluatedSeriesFingerprints: [],
+        recoveredSeriesFingerprints: [],
+      }),
+    ).toBe(false);
+  });
+  test("a fresh healthy source supplies its own affirmative recovery", () => {
+    expect(
+      VMwareRecoveryPolicy.shouldChangeStatus({
+        monitorType: MonitorType.VMware,
+        operationalMonitorStatusIds: OPERATIONAL_IDS,
+        criteriaInstance: criteria(false),
+        evaluatedSeriesFingerprints: ["source"],
+        recoveredSeriesFingerprints: ["source"],
       }),
     ).toBe(true);
   });

@@ -2,6 +2,8 @@ import MonitorStatusService from "../../../../Server/Services/MonitorStatusServi
 import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
+import VMwareRecoveryPolicy from "../../../../Server/Utils/Monitor/VMwareRecoveryPolicy";
+import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import AggregateModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
 import { JSONObject } from "../../../../Types/JSON";
@@ -36,6 +38,27 @@ interface Evaluation {
   data: MetricMonitorResponse;
   response: ProbeApiIngestResponse;
   step: MonitorStep;
+}
+
+function shouldChangeStatus(result: Evaluation): boolean {
+  const criterion: MonitorCriteriaInstance | undefined =
+    result.step.data!.monitorCriteria.data!.monitorCriteriaInstanceArray.find(
+      (candidate: MonitorCriteriaInstance): boolean => {
+        return candidate.data!.id === result.response.criteriaMetId;
+      },
+    );
+  return VMwareRecoveryPolicy.shouldChangeStatus({
+    monitorType: MonitorType.VMware,
+    criteriaInstance: criterion,
+    operationalMonitorStatusIds: result.data.operationalMonitorStatusIds,
+    unavailableSeriesFingerprints: result.data.unavailableSeriesFingerprints,
+    recoveredSeriesFingerprints: result.data.recoveredSeriesFingerprints,
+    evaluatedSeriesFingerprints: result.data.seriesBreakdown!.map(
+      (series: MetricSeriesResult): string => {
+        return series.fingerprint;
+      },
+    ),
+  });
 }
 
 async function evaluate(input: {
@@ -154,6 +177,35 @@ describe("VMware affirmative recovery through the actual criteria evaluator", ()
         },
       ),
     ).toEqual(["breaching"]);
+    expect(shouldChangeStatus(result)).toBe(true);
+  });
+  test("mixed healthy and dead-band resources cannot restore monitor status", async () => {
+    const result: Evaluation = await evaluate({
+      template: "vmware-datastore-capacity",
+      series: [
+        { id: "dead-band", values: [85] },
+        { id: "healthy", values: [50] },
+      ],
+    });
+    expect(result.data.recoveredSeriesFingerprints).toEqual(["healthy"]);
+    expect(result.response.matchedCriteria).toHaveLength(1);
+    expect(shouldChangeStatus(result)).toBe(false);
+  });
+  test("all active resources must affirm recovery before monitor status is restored", async () => {
+    const result: Evaluation = await evaluate({
+      template: "vmware-datastore-capacity",
+      series: [
+        { id: "recovered", values: [80, 81] },
+        { id: "healthy", values: [50] },
+      ],
+    });
+    expect(result.data.recoveredSeriesFingerprints).toEqual([
+      "recovered",
+      "healthy",
+    ]);
+    expect(shouldChangeStatus(result)).toBe(true);
+    result.data.unavailableSeriesFingerprints = ["missing-resource"];
+    expect(shouldChangeStatus(result)).toBe(false);
   });
   test("no criteria matching in the dead band still publishes an empty recovery gate", async () => {
     const result: Evaluation = await evaluate({
@@ -162,6 +214,7 @@ describe("VMware affirmative recovery through the actual criteria evaluator", ()
     });
     expect(result.data.recoveredSeriesFingerprints).toEqual([]);
     expect(result.response.matchedCriteria).toEqual([]);
+    expect(shouldChangeStatus(result)).toBe(false);
   });
   test("recovery requires every sample at or below the recovery threshold", async () => {
     const result: Evaluation = await evaluate({
@@ -192,11 +245,13 @@ describe("VMware affirmative recovery through the actual criteria evaluator", ()
         .data!.id,
     );
     expect(absent.data.recoveredSeriesFingerprints).toEqual([]);
+    expect(shouldChangeStatus(absent)).toBe(true);
     const fresh: Evaluation = await evaluate({
       template: "vmware-collection-unavailable",
       series: [{ id: "source", values: [1, 1] }],
     });
     expect(fresh.data.recoveredSeriesFingerprints).toEqual(["source"]);
+    expect(shouldChangeStatus(fresh)).toBe(true);
   });
   test("generic metrics preserve their current resolution semantics", async () => {
     const result: Evaluation = await evaluate({

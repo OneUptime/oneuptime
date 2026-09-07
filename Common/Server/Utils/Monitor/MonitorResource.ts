@@ -43,6 +43,7 @@ import OneUptimeDate from "../../../Types/Date";
 import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
 import SecurityEventsMonitorResponse from "../../../Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import MetricSeriesResult from "../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
 import TelemetryType from "../../../Types/Telemetry/TelemetryType";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
@@ -953,6 +954,14 @@ export default class MonitorResourceUtil {
             operationalMonitorStatusIds: (
               dataToProcess as MetricMonitorResponse
             ).operationalMonitorStatusIds,
+            recoveredSeriesFingerprints: (
+              dataToProcess as MetricMonitorResponse
+            ).recoveredSeriesFingerprints,
+            evaluatedSeriesFingerprints: (
+              dataToProcess as MetricMonitorResponse
+            ).seriesBreakdown?.map((series: MetricSeriesResult): string => {
+              return series.fingerprint;
+            }),
           })
             ? await MonitorStatusTimelineUtil.updateMonitorStatusTimeline({
                 monitor: monitor,
