@@ -181,6 +181,11 @@ describe("Status Page OIDC login origin", () => {
       localStorage.setItem(`isPrivateStatusPage-${statusPageId}`, "true");
 
       jest.isolateModules(() => {
+        /*
+         * The page's default export is bound as `Sso` rather than `SSO` so the
+         * JSX tag stays PascalCase; the status page app renders this same
+         * component under the same name in App/FeatureSet/StatusPage/src/App.tsx.
+         */
         const Sso: FunctionComponent<ComponentProps> = (
           jest.requireActual(
             "../../../../App/FeatureSet/StatusPage/src/Pages/Accounts/SSO",

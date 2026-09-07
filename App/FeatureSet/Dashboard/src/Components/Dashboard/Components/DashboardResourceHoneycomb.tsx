@@ -84,8 +84,17 @@ interface HexProps {
 
 const Hex: FunctionComponent<HexProps> = (props: HexProps): ReactElement => {
   const { tile, width, height, onHoverStart, onHoverEnd } = props;
-  const ref: React.RefObject<HTMLDivElement | null> =
-    useRef<HTMLDivElement | null>(null);
+  /*
+   * A DOM ref is RefObject<HTMLDivElement>, not RefObject<HTMLDivElement |
+   * null>. RefObject<T> already declares `current` as `T | null`, so spelling
+   * the null out again in T gives a type that is structurally identical but
+   * NOT assignable: T is covariant in RefObject, and TypeScript compares two
+   * references to the same generic type by variance rather than structurally,
+   * so it checks `HTMLDivElement | null` against `HTMLDivElement` and rejects
+   * it on the `ref` prop below. Keep the element type here; RefObject adds the
+   * null on its own.
+   */
+  const ref: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
 
   const textColor: string =
     tile.textColor || getReadableTextColor(tile.color || "#9ca3af");
@@ -175,8 +184,7 @@ const HoneycombTooltip: FunctionComponent<{ state: TooltipState }> = ({
     top: number;
     placement: "above" | "below";
   }>({ left: 0, top: 0, placement: "above" });
-  const ref: React.RefObject<HTMLDivElement | null> =
-    useRef<HTMLDivElement | null>(null);
+  const ref: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     const tooltipHeight: number = ref.current?.offsetHeight || 100;
@@ -256,8 +264,8 @@ const HoneycombTooltip: FunctionComponent<{ state: TooltipState }> = ({
 const DashboardResourceHoneycomb: FunctionComponent<
   DashboardResourceHoneycombProps
 > = (props: DashboardResourceHoneycombProps): ReactElement => {
-  const containerRef: React.RefObject<HTMLDivElement | null> =
-    useRef<HTMLDivElement | null>(null);
+  const containerRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [tooltipState, setTooltipState] = useState<TooltipState | null>(null);
 

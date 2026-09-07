@@ -1,9 +1,20 @@
 import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
 import AggregateBy from "../../../Server/Types/Database/AggregateBy";
+import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
+import { CheckReadPermissionType } from "../../../Server/Types/Database/Permissions/ReadPermission";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
+import TableColumnType from "../../../Types/Database/TableColumnType";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import DatabaseNotConnectedException from "../../../Types/Exception/DatabaseNotConnectedException";
+import ObjectID from "../../../Types/ObjectID";
+import Permission, {
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
 import { describe, expect, it } from "@jest/globals";
+import { FindOperator } from "typeorm";
 import fs from "fs";
 import path from "path";
 
@@ -318,20 +329,38 @@ describe("aggregateBy rejects an expression carrying a statement separator", () 
     }
   });
 
-  /*
-   * NOT tested here, deliberately: the same semicolon inside an `orderBy`
-   * expression. aggregateBy validates orderBy expressions in a loop that runs
-   * AFTER `this.buildAggregateScope(...)`, which calls getQueryBuilder, which
-   * throws DatabaseNotConnectedException when Postgres is not up — so with no
-   * database the call never reaches the orderBy check, and an assertion here
-   * would be green for the wrong reason.
-   *
-   * Faking a connection would mean standing up half of TypeORM's DataSource,
-   * which buys a test of the mock rather than of the method. Instead, the
-   * source-text block at the bottom pins that the orderBy loop still calls
-   * assertSafeAggregateExpression — deleting that call is the regression, and
-   * that IS detectable from here.
-   */
+  it("rejects a semicolon in an orderBy expression", async () => {
+    /*
+     * This case used to carry a comment here explaining that it could not be
+     * tested: the orderBy check ran inside the loop that APPLIES the order
+     * clauses, below `this.buildAggregateScope(...)`, so with no Postgres the
+     * call died on DatabaseNotConnectedException before ever reaching it.
+     *
+     * Production moved. aggregateBy now validates every orderBy expression in
+     * a loop of its own, above the permission call and above the query
+     * builder, with a comment saying it is placed there precisely so the
+     * guard is reachable without a live connection. So the gap closes by
+     * actually calling the method, which is worth more than the source-text
+     * substitute further down: this fails if the check is deleted, if it
+     * stops covering orderBy, or if it starts accepting a separator.
+     *
+     * The ordering that makes it reachable is itself asserted at the bottom
+     * of the file, so this cannot quietly start passing for the wrong reason.
+     */
+    const error: Error = await aggregateError({
+      orderBy: [
+        {
+          expression: `COUNT(*); DROP TABLE "NetworkDevice"`,
+          sortOrder: SortOrder.Ascending,
+        },
+      ],
+    });
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error.message).toBe(
+      "Aggregate expressions cannot contain statement separators.",
+    );
+  });
 });
 
 describe("aggregateBy rejects an empty expression", () => {
@@ -432,21 +461,6 @@ const DATABASE_SERVICE_SOURCE: string = fs.readFileSync(
   "utf8",
 );
 
-const READ_PERMISSION_SOURCE: string = fs.readFileSync(
-  path.join(
-    __dirname,
-    "..",
-    "..",
-    "..",
-    "Server",
-    "Types",
-    "Database",
-    "Permissions",
-    "ReadPermission.ts",
-  ),
-  "utf8",
-);
-
 /*
  * Just the body of aggregateBy, and just the body of the helper that builds
  * its scoped query builder. DatabaseService.ts is ~2,600 lines and uses
@@ -473,16 +487,101 @@ const BUILD_AGGREGATE_SCOPE_BODY: string = squash(
   ),
 );
 
+/*
+ * A reader whose grant on this model is LABEL-SCOPED: one tenant permission
+ * row carrying labelIds, and nothing else. That is the only kind of caller for
+ * whom the permission pipeline produces a condition on the access-control
+ * relation, which is the shape the assertions below are about.
+ *
+ * Built the way ReadBlockPermission.test.ts builds its props, and deliberately
+ * ProjectMember rather than a granular ReadNetworkDevice: ProjectMember is in
+ * the read list of the table AND of every column the query below names, so a
+ * failure here is a failure about the SHAPE of the returned query rather than
+ * about a column-permission detail that has nothing to do with aggregates.
+ *
+ * That is a coupling to NetworkDevice's permission lists, so the caller
+ * asserts it as an explicit precondition before calling the pipeline. A
+ * tightening of those lists then reports itself as "ProjectMember is no longer
+ * in the read list" rather than as a NotAuthorizedException from four files
+ * away.
+ */
+function labelScopedReaderProps(
+  projectId: ObjectID,
+  permittedLabelId: ObjectID,
+): DatabaseCommonInteractionProps {
+  const tenantPermission: UserTenantAccessPermission = {
+    projectId: projectId,
+    _type: "UserTenantAccessPermission",
+    permissions: [
+      {
+        _type: "UserPermission",
+        permission: Permission.ProjectMember,
+        labelIds: [permittedLabelId],
+        isBlockPermission: false,
+      },
+    ],
+  };
+
+  return {
+    userId: ObjectID.generate(),
+    tenantId: projectId,
+    userTenantAccessPermission: {
+      [projectId.toString()]: tenantPermission,
+    },
+  };
+}
+
+/**
+ * Every id a find operator carries, whatever slot the operator keeps them in.
+ *
+ * The point is to assert WHICH labels the permission pipeline let through
+ * without asserting how the operator spells itself in SQL. QueryHelper builds
+ * set membership as a TypeORM `Raw` today, whose ids live in
+ * `objectLiteralParameters` and whose `value` is an empty array; TypeORM's own
+ * `In([...])` would put the same ids in `value` and leave
+ * `objectLiteralParameters` undefined. Both are the same invariant. Reading
+ * both slots means a change of spelling inside QueryHelper — a file this suite
+ * does not own, and whose rendered SQL an earlier version of the test below
+ * pinned, to its cost — cannot redden this test while the invariant holds,
+ * while anything that changes which ids are bound still does.
+ *
+ * Only strings are collected: an id is the one thing these operators bind as a
+ * string, and a helper that also bound, say, a match count would bind that as
+ * a number.
+ */
+function boundIdsOf(operator: FindOperator<unknown>): Array<string> {
+  const parameters: Record<string, unknown> =
+    (operator.objectLiteralParameters as Record<string, unknown> | undefined) ||
+    {};
+
+  const carried: Array<unknown> = [
+    ...Object.values(parameters),
+    operator.value,
+  ];
+
+  const ids: Array<string> = [];
+
+  for (const entry of carried) {
+    for (const value of Array.isArray(entry) ? entry : [entry]) {
+      if (typeof value === "string") {
+        ids.push(value);
+      }
+    }
+  }
+
+  return ids.sort();
+}
+
 describe("the contract aggregateBy's own comments claim", () => {
   it("applies the permission query through setFindOptions, never by handing the object to .where()", () => {
     /*
      * This is the security-relevant one, and it is invisible from a black-box
      * call because both spellings produce a query that runs.
      *
-     * ReadPermission.checkReadBlockPermission (asserted below) can hand back a
-     * NESTED condition on the access-control relation — for a user holding a
-     * label-blocked read permission it writes
-     * `query[accessControlColumn] = { _id: notInOrNull(labelIds) }`.
+     * The permission pipeline (run for real below) can hand back a NESTED
+     * condition on the access-control relation — for a user whose read grant
+     * is label-scoped, the query comes back carrying
+     * `query[accessControlColumn] = { _id: <the permitted labels> }`.
      * TypeORM's `.where(object)` renders FLAT conditions only: it has no
      * relation to join the nested object against, so it drops the clause
      * rather than erroring. The aggregate would then count rows the equivalent
@@ -515,20 +614,150 @@ describe("the contract aggregateBy's own comments claim", () => {
     );
   });
 
-  it("still has a nested access-control condition to protect", () => {
+  it("still has a nested access-control condition to protect", async () => {
     /*
-     * The assertion above is only worth having while checkReadBlockPermission
-     * really does write a nested condition. If that ever became a flat clause,
-     * the setFindOptions requirement would stop being load-bearing and the
-     * comment explaining it would become folklore.
+     * The assertion above is only worth having while the permission pipeline
+     * really does hand back a condition keyed on the access-control RELATION.
+     * If every access-control predicate became a flat clause on a column of
+     * the table itself, `.where(object)` would apply it perfectly well, the
+     * de-duplicating subquery in buildAggregateScope would have nothing left
+     * to de-duplicate, and the comment above would become folklore.
+     *
+     * This used to be a source-text match on ReadPermission.ts, pinned to the
+     * exact expression checkReadBlockPermission wrote. That expression is
+     * gone: a label BLOCK is now a flat `_id NOT IN (SELECT ... FROM the join
+     * table)` predicate. That was a fix, not a regression — a relation join
+     * cannot express "has none of these labels" at all (a device labelled
+     * {blocked, other} still matches the join through its "other" row) — and
+     * a flat predicate needs no join, so the block half cannot inflate an
+     * aggregate either way.
+     *
+     * So nothing in this file asserts the block half any more, and that is a
+     * decision rather than an oversight. There is no aggregate-specific
+     * behaviour left to assert about it: with no relation key in the query,
+     * queryTouchesARelation says no, buildAggregateScope takes the flat
+     * `setFindOptions` branch, the same FindOptions machinery findBy uses
+     * applies the predicate, and there is no join to de-duplicate. A reader
+     * who holds a block AND a label-scoped allow puts the relation key back
+     * in, which is the case this test already covers. The block predicate
+     * itself belongs to ReadBlockPermission.test.ts, which owns it, and which
+     * has to mock QueryUtil.getManyToManyRelationMetadata to reach it —
+     * that helper returns null whenever Postgres is not connected, so a block
+     * assertion here would have to bring the mock with it, into a suite whose
+     * whole point is that it needs no database.
+     *
+     * The nested shape did not leave with it. It belongs to the ALLOW half,
+     * which is the half that has always produced the join aggregateBy has to
+     * survive: AccessControlPermission.addAccessControlIdsToQuery puts the
+     * permitted label ids on the access-control column, and
+     * QueryUtil.serializeQuery turns an id array on an EntityArray column
+     * into `{ _id: <operator> }`.
+     *
+     * So this asks the pipeline rather than grepping whichever file happens
+     * to spell it today: run the same call aggregateBy makes and look at what
+     * comes back. It goes red if the label-scoped read stops producing a
+     * relation-keyed condition — whether because the allow path moves to a
+     * flat `_id` predicate the way the block path did, because serializeQuery
+     * stops nesting the id filter under the relation, or because NetworkDevice
+     * loses its access-control relation.
+     *
+     * If that day comes, a red here is NOT permission to delete the
+     * setFindOptions requirement above, and it is not permission to quietly
+     * rewrite this expectation either. This test watches ONE producer of
+     * relation-keyed conditions, and there is at least one more:
+     * `@CanAccessIfCanReadOn` makes BasePermission write
+     * `query[relation] = { <the related model's access-control column>: ids }`
+     * for StatusPageResource, IncidentInternalNote, AlertEpisodeMember,
+     * OnCallDutyPolicyExecutionLogTimeline and others. queryTouchesARelation
+     * cannot tell that key apart from this one, and `.where(object)` would
+     * drop it just as silently — no exception, no log line, an aggregate over
+     * rows the caller may not read.
+     *
+     * What has to be RE-ESTABLISHED before anything here is deleted is
+     * therefore the whole claim rather than this one case: that NO read path —
+     * label allow, label block, `@CanAccessIfCanReadOn`, owner scoping,
+     * whatever has been added since — can still put a relation key in the
+     * permitted query. Nobody has shown that. Until somebody does, a red here
+     * means this particular case moved, and the test should follow it to
+     * wherever the nested condition is produced now.
+     *
+     * No database is needed: the permission pipeline is pure right up to the
+     * point DatabaseService hands the query to TypeORM.
      */
-    const READ_PERMISSION_CODE: string = squash(
-      stripComments(READ_PERMISSION_SOURCE),
+    const projectId: ObjectID = ObjectID.generate();
+    const permittedLabelId: ObjectID = ObjectID.generate();
+    const model: NetworkDevice = new NetworkDevice();
+
+    /*
+     * The two preconditions this test rests on, asserted rather than assumed.
+     * ProjectMember is the permission the reader below is given; the moment it
+     * stops being enough to read this table or the projectId column the query
+     * filters on, checkReadQueryPermission throws NotAuthorizedException with
+     * a message about permission names and nothing about aggregates. Whoever
+     * tightens those lists should learn it from one line here rather than from
+     * a confusing exception inside a test named after access-control
+     * conditions — and the fix then is to give this reader a permission that
+     * IS in both lists, not to change the lists back.
+     */
+    expect(model.getReadPermissions()).toContain(Permission.ProjectMember);
+    expect(model.getColumnAccessControlFor("projectId")?.read || []).toContain(
+      Permission.ProjectMember,
     );
 
-    expect(READ_PERMISSION_CODE).toContain(
-      "[model.getAccessControlColumn() as string] = { _id: QueryHelper.notInOrNull(labelIds)",
+    const permitted: CheckReadPermissionType<NetworkDevice> =
+      await ModelPermission.checkReadQueryPermission(
+        NetworkDevice,
+        { projectId: projectId },
+        null,
+        labelScopedReaderProps(projectId, permittedLabelId),
+      );
+
+    const accessControlColumn: string | null = model.getAccessControlColumn();
+
+    expect(accessControlColumn).toBeTruthy();
+
+    /*
+     * The key names a RELATION, not a column of this table. That is the whole
+     * reason `.where(object)` cannot apply the condition and FindOptions has
+     * to join for it.
+     */
+    const columnMetadata: TableColumnMetadata = model.getTableColumnMetadata(
+      accessControlColumn as string,
     );
+
+    expect(columnMetadata.type).toBe(TableColumnType.EntityArray);
+
+    // And the condition under that key is NESTED: a filter on the RELATED row.
+    const accessControlCondition: Record<string, unknown> = (
+      permitted.query as any
+    )[accessControlColumn as string];
+
+    /*
+     * `toBeTruthy`, not `toBeDefined`: the latter passes on null, and a null
+     * under that key is one of the ways this could break. The `typeof` check
+     * is the load-bearing half — a plain id string here instead of an object
+     * would BE the "it went flat" regression this test exists to catch, and
+     * a truthiness check alone would sail past it.
+     */
+    expect(accessControlCondition).toBeTruthy();
+    expect(typeof accessControlCondition).toBe("object");
+
+    const nestedIdFilter: unknown = accessControlCondition["_id"];
+
+    expect(nestedIdFilter).toBeInstanceOf(FindOperator);
+
+    /*
+     * The identity above and the payload below, and deliberately nothing in
+     * between. An earlier version of this assertion also read
+     * `getSql("probe")` and pinned the substring `probe IN (`, which is
+     * QueryHelper.in's chosen spelling — in a file this suite does not own.
+     * Rendering the same set membership as `= ANY(:x)` would have reddened
+     * this test with the invariant perfectly intact, which is precisely the
+     * kind of coupling that made this test red once already.
+     */
+    expect(boundIdsOf(nestedIdFilter as FindOperator<unknown>)).toEqual([
+      permittedLabelId.toString(),
+    ]);
   });
 
   it("runs the query through ModelPermission.checkReadQueryPermission, like findBy and countBy", () => {
@@ -543,24 +772,30 @@ describe("the contract aggregateBy's own comments claim", () => {
     expect(AGGREGATE_BY_BODY).toContain("checkReadPermissionType.query");
   });
 
-  it("validates orderBy expressions too", () => {
+  it("validates orderBy expressions above the permission call, which is what makes them testable", () => {
     /*
-     * The one guard this suite cannot exercise, because it sits after
-     * buildAggregateScope() — which calls getQueryBuilder() and so needs a
-     * live connection to reach (see the note in the statement-separator
-     * block). Deleting the call is the regression; that much is visible from
-     * here.
+     * The black-box test in the statement-separator block calls aggregateBy
+     * with a semicolon in an orderBy expression and expects BadDataException.
+     * It only reaches that check because the orderBy validation loop sits
+     * ABOVE checkReadQueryPermission and above buildAggregateScope, which is
+     * what keeps this suite database-free. Move the loop back down beside
+     * addOrderBy and that test starts failing on a missing connection instead
+     * — a confusing failure about jest rather than about the guard — so the
+     * position is pinned here, where the message is about the position.
      */
-    const orderByLoopStart: number = AGGREGATE_BY_BODY.indexOf(
-      "aggregateBy.orderBy",
-    );
-    const orderByLoopEnd: number = AGGREGATE_BY_BODY.indexOf("addOrderBy");
-
-    expect(orderByLoopStart).toBeGreaterThan(-1);
-    expect(orderByLoopEnd).toBeGreaterThan(orderByLoopStart);
-    expect(AGGREGATE_BY_BODY.slice(orderByLoopStart, orderByLoopEnd)).toContain(
+    const orderByValidationAt: number = AGGREGATE_BY_BODY.indexOf(
       "assertSafeAggregateExpression(order.expression)",
     );
+    const permissionAt: number = AGGREGATE_BY_BODY.indexOf(
+      "checkReadQueryPermission",
+    );
+    const applyLoopAt: number = AGGREGATE_BY_BODY.indexOf("addOrderBy");
+
+    expect(orderByValidationAt).toBeGreaterThan(-1);
+    expect(permissionAt).toBeGreaterThan(-1);
+    expect(applyLoopAt).toBeGreaterThan(-1);
+    expect(orderByValidationAt).toBeLessThan(permissionAt);
+    expect(applyLoopAt).toBeGreaterThan(permissionAt);
   });
 
   it("validates aliases and expressions before it touches permissions or the database", () => {
