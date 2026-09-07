@@ -237,6 +237,19 @@ export interface NetworkTopologyEdge {
    * absent is "not stated", never "these are peers".
    */
   parentNodeId?: string | undefined;
+  /*
+   * On an "fdb" edge, the end whose forwarding table LEARNED the other
+   * end's MAC — the switch. Always one of `fromNodeId`/`toNodeId`.
+   *
+   * Needed because the pair may already have been joined the other way
+   * round: a hand-drawn link stored device→switch, or an LLDP edge read
+   * from the device's side, keeps its ends when the attachment merges in,
+   * so "the switch is the from end" is true of a fresh attachment and
+   * false of a merged one. Readers that need to know which end learned
+   * (the drawer's "Connected to", the link panel's sentence) read this,
+   * and fall back to `fromNodeId` on a payload that predates it.
+   */
+  learnedByNodeId?: string | undefined;
 }
 
 export default interface NetworkTopology {

@@ -39,6 +39,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { getSnmpConfigFormFields } from "../SnmpConfigFormFields";
 import { getDevicePollingFormFields } from "../DevicePollingFormFields";
+import { getMacAddressFormField } from "../MacAddressFormField";
 import ProbeUtil from "../../../Utils/Probe";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
@@ -347,6 +348,13 @@ const NetworkDeviceSettings: FunctionComponent<
             placeholder: "10.0.0.1 or switch-01.example.com",
             description: HOSTNAME_FIELD_DESCRIPTION,
           },
+          /*
+           * Editable here as well as on create: a MAC learned from a
+           * router's ARP table lands in this column, and this is where an
+           * operator corrects one the router got wrong or types one no
+           * router will ever learn.
+           */
+          getMacAddressFormField({ stepId: "device-details" }),
           {
             field: {
               snmpCredentialProfile: true,
@@ -441,6 +449,22 @@ const NetworkDeviceSettings: FunctionComponent<
               },
               title: "Hostname",
               fieldType: FieldType.Text,
+            },
+            {
+              field: {
+                macAddress: true,
+              },
+              title: "MAC Address",
+              fieldType: FieldType.Text,
+              /*
+               * Hidden while empty, like the Overview's Description row:
+               * most devices are walked over SNMP and never need one, and
+               * a blank "MAC Address" row on every switch would read as
+               * something missing rather than something optional.
+               */
+              showIf: (item: NetworkDevice): boolean => {
+                return Boolean(item.macAddress);
+              },
             },
             {
               field: {

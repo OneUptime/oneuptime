@@ -30,6 +30,7 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import CidrMatchUtil from "../../Utils/NetworkSite/CidrMatchUtil";
+import { normalizeMac } from "../../Utils/Monitor/EndpointAttachmentUtil";
 import { SiteAssignmentRuleRunResult } from "../../Types/NetworkAutomation/RuleRunResult";
 import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
@@ -96,6 +97,61 @@ const SITE_KEYS: Array<string> = ["siteId", "site"];
  * otherwise a no-op rewrite of sysName on every SNMP walk would look like a
  * change and re-run the rules for the whole fleet every polling cycle.
  */
+/*
+ * The MAC address column, normalised on the way in.
+ *
+ * Every spelling an operator is likely to paste - AA-BB-CC-DD-EE-FF,
+ * aabb.ccdd.eeff, aa:bb:cc:dd:ee:ff, twelve bare hex digits, with or
+ * without 0x - is stored as lowercase colon form, because that is the form
+ * every endpoint row already holds and the topology builder compares the
+ * two as plain strings. Anything that is not twelve hex digits once the
+ * separators are gone is refused outright rather than stored to match
+ * nothing forever. Blank clears the column, so "delete what I typed"
+ * works from a form that cannot post null.
+ *
+ * Shared by create and update, so it takes the raw payload: a create's
+ * data is a model instance and an update's is a QueryDeepPartialEntity, and
+ * on the latter a column may hold a SQL-expression function, which is left
+ * alone - nothing in the tree writes this column that way, and refusing it
+ * would only make a future caller's life harder for no safety gained.
+ *
+ * Every value that lands this way is the operator's, so the provenance flag
+ * is cleared beside it: the ARP pass writes hook-free and never comes
+ * through here, and it may only correct a value it wrote itself.
+ */
+function normalizeMacAddressOnWrite(data: Record<string, unknown>): void {
+  if (!("macAddress" in data)) {
+    return;
+  }
+
+  const raw: unknown = data["macAddress"];
+
+  // TypeORM drops undefined before it builds the SET list; null clears.
+  if (raw === undefined || raw === null || typeof raw === "function") {
+    return;
+  }
+
+  if (typeof raw !== "string") {
+    throw new BadDataException("MAC Address must be text.");
+  }
+
+  if (raw.trim().length === 0) {
+    data["macAddress"] = null;
+    data["isMacAddressLearned"] = false;
+    return;
+  }
+
+  const normalized: string | undefined = normalizeMac(raw);
+  if (!normalized) {
+    throw new BadDataException(
+      "MAC Address must be six pairs of hex digits, for example aa:bb:cc:dd:ee:ff. Dashes, dots and bare hex are accepted too.",
+    );
+  }
+
+  data["macAddress"] = normalized;
+  data["isMacAddressLearned"] = false;
+}
+
 function normalizeIdentityValue(value: unknown): string {
   if (value === null || value === undefined) {
     return "";
@@ -1239,6 +1295,10 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    normalizeMacAddressOnWrite(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+
     /*
      * Read both spellings: the dashboard posts the `site` relation, not the
      * `siteId` column, so guarding only `siteId` let a UI-created device
@@ -1522,6 +1582,15 @@ export class Service extends DatabaseService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     const dataKeys: Array<string> = Object.keys(updateBy.data || {});
+
+    /*
+     * Above the early return, like the id guards below it: a malformed
+     * MAC is refused on every write shape, not only on the ones that
+     * happen to need the snapshot.
+     */
+    normalizeMacAddressOnWrite(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
 
     /*
      * Switching a device to monitor-backed turns polling off with it. The

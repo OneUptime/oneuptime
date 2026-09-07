@@ -11,11 +11,14 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  * Cables that discovery cannot see.
  *
  * LLDP and CDP only report what both ends agree to advertise, so a switch
- * with discovery disabled, a firewall that speaks neither, or a device
- * monitored by ping alone leaves a real cable invisible — and the device on
- * the far end of it floating unconnected on the map. A link drawn here is
- * merged with a discovered one between the same pair rather than doubling
- * the line, so declaring a link that discovery later finds costs nothing.
+ * with discovery disabled or a firewall that speaks neither leaves a real
+ * cable invisible — and the device on the far end of it floating
+ * unconnected on the map. A device monitored by ping alone used to be the
+ * commonest case; it is now placed on its switch port from the switch's
+ * forwarding table (issue #3489), so a link is drawn here for it only when
+ * no walked switch has learned its MAC. A link drawn here is merged with a
+ * discovered or learned one between the same pair rather than doubling the
+ * line, so declaring a link that discovery later finds costs nothing.
  */
 const NetworkDeviceLinks: FunctionComponent<
   PageComponentProps
@@ -35,7 +38,7 @@ const NetworkDeviceLinks: FunctionComponent<
         cardProps={{
           title: "Device Links",
           description:
-            "Links you declare between two devices, for cables LLDP and CDP cannot see. They are drawn on the topology map alongside discovered links; bind a monitor to one and the edge takes that monitor's status color.",
+            "Links you declare between two devices, for cables LLDP and CDP cannot see. A ping-only device is normally placed on its switch port automatically from the switch's forwarding table, so draw one here only for a cable no walked switch has learned. Links are drawn on the topology map alongside discovered links; bind a monitor to one and the edge takes that monitor's status color.",
         }}
         noItemsMessage="No device links yet. Add one to connect two devices the discovery protocols cannot see between."
         filters={[

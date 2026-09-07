@@ -40,6 +40,7 @@ import {
   SnmpConfigModelFields,
   getSnmpConfigFormFields,
 } from "../../Pages/NetworkDevice/SnmpConfigFormFields";
+import { getMacAddressFormField } from "../../Pages/NetworkDevice/MacAddressFormField";
 import {
   NeighborAdoptionDraft,
   buildNeighborAdoptionDraft,
@@ -133,6 +134,11 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
       edges: props.edges,
       nodeById: props.nodeById,
     });
+  });
+
+  // Snapshotted with the draft, for the reason the draft is.
+  const [nodeMacAddress] = useState<string | undefined>(() => {
+    return props.node.macAddress;
   });
 
   /*
@@ -269,8 +275,18 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
       values["site"] = inherited.siteId;
     }
 
+    /*
+     * A node that already knows its MAC - an endpoint the switch learned
+     * from its forwarding table - hands it over, so the adopted device
+     * stays on that port without the operator retyping it. An unmanaged
+     * LLDP/CDP peer generally carries none, and the field opens empty.
+     */
+    if (nodeMacAddress) {
+      values["macAddress"] = nodeMacAddress;
+    }
+
     return values as FormValues<NetworkDevice>;
-  }, [draft, inherited.probeId, inherited.siteId]);
+  }, [draft, inherited.probeId, inherited.siteId, nodeMacAddress]);
 
   const formFields: Fields<NetworkDevice> = useMemo(() => {
     /*
@@ -325,6 +341,14 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
         placeholder: "10.0.0.1 or switch-01.example.com",
         description: HOSTNAME_FIELD_DESCRIPTION,
       },
+      /*
+       * The same shared field as the create form, for the same reason the
+       * SNMP fields are: a peer adopted from the map is the device most
+       * likely to be ping-only, and its MAC is what keeps it on the switch
+       * port it was discovered on once the neighbour report that drew it
+       * here is gone.
+       */
+      getMacAddressFormField({ stepId: "device-details" }),
       {
         field: {
           networkDeviceRole: true,

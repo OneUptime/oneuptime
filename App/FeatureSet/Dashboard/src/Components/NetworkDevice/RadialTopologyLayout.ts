@@ -113,18 +113,110 @@ export const computeRadialTopologyModel: (
   }
 
   const rawRankById: Map<string, number> = new Map<string, number>();
-  let minRank: number = Number.POSITIVE_INFINITY;
   for (const id of orderedNodeIds) {
     const node: NetworkTopologyNode | undefined = nodeById.get(id);
-    const rank: number = node ? tierForNode(node, nodeIdsWithFdbEdges) : 1;
-    rawRankById.set(id, rank);
+    rawRankById.set(id, node ? tierForNode(node, nodeIdsWithFdbEdges) : 1);
+  }
+
+  /*
+   * A parent DECLARED on an FDB edge outranks the role rank.
+   *
+   * tierForNode ranks every managed device that is not core at 1, and a
+   * switch is rank 1 too. That is right for a census — an access point
+   * and the switch it uplinks to are both access-layer — but this layout
+   * draws parentage, and its parent rule below is "the neighbour exactly
+   * one rank inward". A ping-only register (issue #3489) whose only link
+   * is the FDB edge to the switch that learned its MAC has no neighbour
+   * one rank inward, so it became a root of its own wedge and was drawn
+   * ON the switch ring, as though it were a second switch nobody had
+   * cabled — the one picture this mode exists to never draw.
+   *
+   * The builder stamps parentNodeId on that edge exactly when the far end
+   * hangs off the switch (a register, a phone, a camera; never a router
+   * or another switch, whose MAC a switch learns on the uplink). Where it
+   * has, the child is pushed to the ring outside its declared parent, and
+   * the ordinary rule then finds the switch one rank in and hangs the
+   * device off it. Either end may be the declared one: a link the
+   * operator drew from the register to the switch merges with the FDB
+   * row and keeps its own from/to, and the statement means the same thing
+   * read from either end.
+   *
+   * Parent ranks are read from the RAW map and the result written to a
+   * separate one: a single pass, a function of the graph rather than of
+   * the order the edges arrived in, and — with no adjusted rank ever
+   * feeding a later edge — nothing that can chase its own tail on a
+   * malformed declaration. The price is that a declared CHAIN (a switch
+   * adopted by a switch, itself adopting a register) moves each child
+   * one ring past where its parent was, not where it ends up. The
+   * parent-child layout builds a real tree and is the mode that draws
+   * such a chain in full.
+   *
+   * Only FDB edges are read. A manual link's declared parent already
+   * shapes the parent-child layout, and honouring it here would move
+   * every radial map that has one; this pass exists for the edge that
+   * had no layout behaviour before it, and changes nothing else.
+   */
+  /*
+   * Two more refusals, both about a child that is itself a learner.
+   *
+   * The parent honoured here is the one the TABLE implied - the learner
+   * end, which the builder declares exactly when the far end hangs off it.
+   * A parent somebody declared on a hand-drawn link or a rule is kept by
+   * the builder over the table's, and may point the other way (the
+   * firewall above the switch that learned its MAC); pushing the switch
+   * out on that account would put it on its own endpoints' ring. And a
+   * child that has learned things of its own - a switch with endpoints,
+   * whatever declared it - keeps its ring for the same reason: its
+   * endpoints sit one ring out at a fixed rank, and moving the switch out
+   * to join them orphans every one of them.
+   */
+  const learnerIds: Set<string> = new Set<string>();
+  for (const edge of edges || []) {
+    if (edge && isFdbEdge(edge)) {
+      learnerIds.add(edge.learnedByNodeId || edge.fromNodeId);
+    }
+  }
+
+  const rankById: Map<string, number> = new Map<string, number>(rawRankById);
+  for (const edge of edges || []) {
+    if (!edge || !isFdbEdge(edge) || !edge.parentNodeId) {
+      continue;
+    }
+    const parentId: string = edge.parentNodeId;
+    if (parentId !== edge.fromNodeId && parentId !== edge.toNodeId) {
+      continue;
+    }
+    if (parentId !== (edge.learnedByNodeId || edge.fromNodeId)) {
+      continue;
+    }
+    const childId: string =
+      parentId === edge.fromNodeId ? edge.toNodeId : edge.fromNodeId;
+    if (learnerIds.has(childId)) {
+      continue;
+    }
+    const parentRank: number | undefined = rawRankById.get(parentId);
+    const childRank: number | undefined = rankById.get(childId);
+    if (
+      childId === parentId ||
+      parentRank === undefined ||
+      childRank === undefined
+    ) {
+      continue;
+    }
+    if (childRank <= parentRank) {
+      rankById.set(childId, parentRank + 1);
+    }
+  }
+
+  let minRank: number = Number.POSITIVE_INFINITY;
+  for (const rank of rankById.values()) {
     minRank = Math.min(minRank, rank);
   }
 
   const radialById: Map<string, RadialNode> = new Map<string, RadialNode>();
   let maxRank: number = 0;
   for (const id of orderedNodeIds) {
-    const rank: number = (rawRankById.get(id) || 0) - minRank;
+    const rank: number = (rankById.get(id) || 0) - minRank;
     maxRank = Math.max(maxRank, rank);
     radialById.set(id, { id: id, rank: rank, weight: 1, children: [] });
   }

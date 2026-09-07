@@ -434,6 +434,132 @@ export default class NetworkDevice extends BaseModel {
   })
   public hostname?: string = undefined;
 
+  /*
+   * --- Which switch port is this device on? ---
+   *
+   * LLDP and CDP answer that for a device that speaks them. A device that
+   * does not - a POS register, a handset, a kiosk, anything monitored by
+   * ping alone - is invisible to both, and until now the only way to draw
+   * its cable on the map was a NetworkDeviceLink somebody typed in and then
+   * had to keep true by hand (issue #3489).
+   *
+   * The switches already know. Every walked switch reports its forwarding
+   * table, and the server keeps one NetworkEndpoint row per MAC it learned
+   * with the switch and port that learned it. This column is what lets a
+   * device be recognised in that inventory: a device whose MAC matches an
+   * endpoint's is drawn on the port that endpoint was learned on, and the
+   * link moves with the device when it is re-cabled, because the next walk
+   * learns the MAC somewhere else.
+   *
+   * Optional twice over. A device whose hostname is an IP address that a
+   * walked device's ARP table resolves is matched by address without it,
+   * and the MAC learned that way is written here so the match survives the
+   * ARP entry ageing out. The server fills an EMPTY value, and corrects a
+   * value it learned itself when the table later binds the address to a
+   * different MAC (isMacAddressLearned says which); anything an operator
+   * typed is left alone. Normalised to lowercase colon form on write; any
+   * of the usual spellings is accepted.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "MAC Address",
+    description:
+      "MAC address of this device. Lets the topology map find the switch port it is plugged into from the forwarding tables of walked switches, for a device that speaks neither LLDP nor CDP (one monitored by ping alone). Optional: a device whose hostname is an IP address that a walked router's ARP table resolves is matched by address, and the MAC learned that way is stored here.",
+    example: "aa:bb:cc:dd:ee:ff",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public macAddress?: string = undefined;
+
+  /*
+   * Where the MAC above came from, when the server wrote it.
+   *
+   * A MAC an operator typed is theirs and is never touched. A MAC the ARP
+   * pass learned is only as good as the router's table was on the walk
+   * that learned it - an address re-leased to a laptop the day before the
+   * register was plugged in stamps the laptop's MAC on the register - so
+   * the pass may correct its OWN answer when a later walk binds the
+   * address to a different MAC, and this flag is what tells the two apart.
+   * Set by the learner's write, cleared by any write of macAddress that
+   * comes through the API (see NetworkDeviceService).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    canReadOnRelationQuery: true,
+    title: "MAC Address Learned",
+    description:
+      "True when the MAC Address was filled in from a walked device's ARP table rather than typed. A learned MAC is corrected when a later walk binds the device's address to a different MAC; a typed one is never touched.",
+    defaultValue: false,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public isMacAddressLearned?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

@@ -191,7 +191,13 @@ export function isolationReasonForNode(
   }
 
   if (diagnostics.reportedNeighborCount === 0) {
-    return "This device reported no LLDP or CDP neighbours on its last poll. Either it does not run a discovery protocol, or it runs one only on ports that are down. Draw the link by hand under Device Links if you know what it connects to.";
+    /*
+     * Two routes, and the learned one first: a register, a handset or a
+     * kiosk that only answers ping will never report a neighbour, but the
+     * switch it plugs into already knows which port its MAC sits on. The
+     * hand-drawn link stays as the fallback for a cable no table can see.
+     */
+    return "This device reported no LLDP or CDP neighbours on its last poll. Either it does not run a discovery protocol, or it runs one only on ports that are down. If it only answers ping, set its MAC address on the device — or let a router at its site that collects endpoints learn it — and make sure the switch it plugs into collects endpoints: the map then finds its port in the switch's forwarding table. Draw the link by hand under Device Links if you know what it connects to.";
   }
 
   if (diagnostics.unmatchedNeighborIdentifiers.length > 0) {

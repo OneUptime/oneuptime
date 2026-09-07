@@ -577,6 +577,7 @@ import { AddTelemetryIngestionKeyType1791300000000 } from "./1791300000000-AddTe
 import { SessionReplayRecordEverySessionByDefault1791400000000 } from "./1791400000000-SessionReplayRecordEverySessionByDefault";
 import { WidenCustomFieldDropdownOptions1791500000000 } from "./1791500000000-WidenCustomFieldDropdownOptions";
 import { AddCustomFieldValueMapping1791600000000 } from "./1791600000000-AddCustomFieldValueMapping";
+import { AddMacAddressToNetworkDevice1791700000000 } from "./1791700000000-AddMacAddressToNetworkDevice";
 
 export default [
   InitialMigration,
@@ -1158,4 +1159,5 @@ export default [
   SessionReplayRecordEverySessionByDefault1791400000000,
   WidenCustomFieldDropdownOptions1791500000000,
   AddCustomFieldValueMapping1791600000000,
+  AddMacAddressToNetworkDevice1791700000000,
 ];

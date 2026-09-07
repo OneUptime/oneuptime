@@ -55,6 +55,8 @@ Links are worked out each time the map loads. Relabel a device and the map follo
 ### Precedence
 
 A link you drew by hand under **Device Links** wins over a rule covering the same pair — it keeps its own name and port labels. A rule link that discovery later confirms merges into the discovered link rather than doubling it.
+
+A link the map learned from a switch's forwarding table — the way a ping-only device is placed on its switch port — merges the same way. Its port is measured, so it replaces a hand-typed one; a parent you declared, on a hand-drawn link or through a rule, beats the one the table implies.
 `;
 
 const LINK_RULE_SCOPE_OPTIONS: Array<DropdownOption> = [

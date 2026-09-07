@@ -8,6 +8,7 @@ import Button, {
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   NetworkTopologyEdge,
+  NetworkTopologyEdgeEndpoint,
   NetworkTopologyNode,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import ObjectID from "Common/Types/ObjectID";
@@ -27,6 +28,14 @@ import {
   isUnclassifiedNode,
   roleLabelForNode,
 } from "../NetworkDevice/TopologyNodeShape";
+import {
+  FdbEdgeEnds,
+  LearnedAttachment,
+  fdbEdgeEnds,
+  isFdbEdge,
+  learnedAttachmentForNode,
+  portLabelForEdgeEnd,
+} from "../NetworkDevice/EndpointNodeUtil";
 
 /*
  * Right-hand detail drawer for a topology device node. Keeps the user on
@@ -79,6 +88,15 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
   const isolationReason: string | undefined = useMemo(() => {
     return isolationReasonForNode(node, attachedEdges.length > 0);
   }, [node, attachedEdges.length]);
+
+  /*
+   * Read from the edges already narrowed to this node: the attachment is
+   * one of them, and a device with a hundred links should not scan the
+   * whole graph again to find it.
+   */
+  const learnedAttachment: LearnedAttachment | undefined = useMemo(() => {
+    return learnedAttachmentForNode(node, attachedEdges, props.nodeById);
+  }, [node, attachedEdges, props.nodeById]);
 
   const isEndpoint: boolean = node.kind === "endpoint";
 
@@ -227,6 +245,53 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
+        {/*
+         * Where the network says this device is plugged in, when nobody
+         * drew it. A register or a handset that only answers ping has no
+         * LLDP to report, so its cable used to be a line somebody typed
+         * under Device Links; now it is the port the switch learned the
+         * device's MAC on. This is where the operator finds that out —
+         * and finds out that the line moves with the device when it is
+         * re-cabled, which a typed one never did.
+         */}
+        {learnedAttachment ? (
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">
+              {translateString("Connected to") || "Connected to"}
+            </h3>
+            <p
+              className="mt-2 text-sm font-medium text-gray-900"
+              data-testid="network-topology-learned-attachment"
+            >
+              {[
+                learnedAttachment.switchName,
+                learnedAttachment.port,
+                typeof learnedAttachment.vlanId === "number"
+                  ? `VLAN ${learnedAttachment.vlanId}`
+                  : undefined,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+            <p className="mt-1 text-xs text-gray-500">
+              {translateString(
+                "Learned from the switch's forwarding or ARP table, not drawn by hand — it follows this device to whichever port it is re-cabled to.",
+              ) ||
+                "Learned from the switch's forwarding or ARP table, not drawn by hand — it follows this device to whichever port it is re-cabled to."}
+            </p>
+            {learnedAttachment.isSwitchPortDown ? (
+              <p className="mt-1 text-xs font-medium text-red-600">
+                {translateString("The switch reports that port down.") ||
+                  "The switch reports that port down."}
+              </p>
+            ) : (
+              <></>
+            )}
+          </div>
+        ) : (
+          <></>
+        )}
+
         <div>
           <h3 className="text-sm font-semibold text-gray-900">
             {translateString("Links") || "Links"} ({attachedEdges.length})
@@ -264,10 +329,34 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
                 const other: NetworkTopologyNode | undefined =
                   props.nodeById.get(otherId);
                 const state: NetworkLinkState = linkStateForEdge(edge);
-                const localSummary: string = describeEndpoint(
-                  isFromEnd ? edge.fromInterface : edge.toInterface,
-                  isFromEnd ? edge.fromPort : edge.toPort,
-                );
+                const localEnd: NetworkTopologyEdgeEndpoint | undefined =
+                  isFromEnd ? edge.fromInterface : edge.toInterface;
+                const localPort: string | undefined = isFromEnd
+                  ? edge.fromPort
+                  : edge.toPort;
+                /*
+                 * A forwarding-table edge names the SWITCH end only: the
+                 * device it learned answers ping and nothing else, so its
+                 * own end has nothing to say and this line used to print
+                 * "?". Show the port the switch learned it on instead —
+                 * the one fact the table established — unless this end is
+                 * known after all, which happens when LLDP also reported
+                 * the pair and the merged edge carries both.
+                 */
+                const learnedEnds: FdbEdgeEnds | undefined = isFdbEdge(edge)
+                  ? fdbEdgeEnds(edge)
+                  : undefined;
+                const describesSwitchEnd: boolean =
+                  learnedEnds !== undefined &&
+                  learnedEnds.learnedId === node.id &&
+                  portLabelForEdgeEnd(localEnd, localPort) === undefined;
+                const localSummary: string =
+                  describesSwitchEnd && learnedEnds
+                    ? describeEndpoint(
+                        learnedEnds.learnerInterface,
+                        learnedEnds.learnerPort,
+                      )
+                    : describeEndpoint(localEnd, localPort);
                 return (
                   <li key={edgeKeyForEdge(edge)} className="py-2">
                     <button
