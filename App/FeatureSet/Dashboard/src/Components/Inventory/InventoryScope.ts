@@ -1,8 +1,6 @@
 import EntitySource from "Common/Types/Telemetry/EntitySource";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import LessThan from "Common/Types/BaseDatabase/LessThan";
-import { getInventoryTypePluralLabel } from "./InventoryTypeCatalog";
-import { getInventorySourceLabel } from "./InventorySource";
 import { INVENTORY_STALE_AFTER_MINUTES } from "./InventoryLiveness";
 
 /*
@@ -155,41 +153,4 @@ export const buildInventoryScopeQuery: BuildInventoryScopeQueryFunction = (
   }
 
   return query;
-};
-
-export type DescribeInventoryScopeFunction = (
-  scope: InventoryScope,
-) => string | null;
-
-/**
- * A human-readable description of a scope, e.g.
- * "Showing Kubernetes Pods discovered from telemetry". `null` for the empty
- * scope, where there is nothing to explain.
- */
-export const describeInventoryScope: DescribeInventoryScopeFunction = (
-  scope: InventoryScope,
-): string | null => {
-  if (isInventoryScopeEmpty(scope)) {
-    return null;
-  }
-
-  const noun: string = scope.entityType
-    ? getInventoryTypePluralLabel(scope.entityType)
-    : "items";
-
-  const qualifiers: Array<string> = [];
-
-  if (scope.source) {
-    qualifiers.push(`from source "${getInventorySourceLabel(scope.source)}"`);
-  }
-
-  if (scope.staleOnly) {
-    qualifiers.push("not seen in over a day");
-  }
-
-  if (qualifiers.length === 0) {
-    return `Showing ${noun} only.`;
-  }
-
-  return `Showing ${noun} ${qualifiers.join(", ")}.`;
 };

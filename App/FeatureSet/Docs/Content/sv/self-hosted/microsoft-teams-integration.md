@@ -7,6 +7,18 @@ För att integrera Microsoft Teams med din egeninstallerade OneUptime-instans be
 - Azure-konto – Du kan skapa ett på [https://azure.com](https://azure.com)
 - Åtkomst till din OneUptime-serverkonfiguration
 
+### Installationer på privata nätverk
+
+OneUptime använder en Azure Bot för Teams-integrationen. En Incoming Webhook- eller Teams Workflow-URL ersätter inte botens meddelandeslutpunkt. Microsoft kräver en [offentligt tillgänglig HTTPS-slutpunkt för en egenhostad bot](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0). En privat IP-adress, ett internt DNS-namn eller en anställds VPN-anslutning ger inte Azure Bot Service åtkomst till OneUptime.
+
+Följ [Integrationsåtkomst från privata nätverk](/docs/self-hosted/integration-network-access) innan du fortsätter med konfigurationen. Guiden beskriver offentlig DNS, betrodd TLS, en omvänd proxy som vidarebefordrar till din privata installation, brandväggsregler och verifiering. För Teams publicerar du `/api/microsoft-bot/messages` och anger Azure Bots **Messaging endpoint** i steg 4 till denna fullständiga offentliga HTTPS-URL. Bevara prefixet `/api`, begärans innehåll och `Authorization`-headern. Låt botens autentisering validera begäranden; interaktiv proxyinloggning eller en webbläsarkontroll hindrar Microsoft från att leverera dem.
+
+Appregistreringens omdirigeringar `/api/microsoft-teams/auth` och `/api/microsoft-teams/admin-consent/callback` återvänder via användarens webbläsare. Webbläsaren måste kunna nå OneUptime, exempelvis via företagsnätverket eller VPN. Botmeddelanden och kortåtgärder kommer från Microsofts servrar och behöver en egen nåbar ingress. Utgående aviseringsleverans verifierar inte i sig inkommande anslutning.
+
+För utveckling beskriver Microsofts [Teams-testguide](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/debug) hur en lokal tjänst exponeras med en tunnel. Vidarebefordra till OneUptimes ingress och använd `/api/microsoft-bot/messages` i stället för Microsofts exempelsökväg `/api/messages`. Uppdatera Azure Bot-slutpunkten när den offentliga tunnel-URL:en ändras och använd en stabil ingress i produktion.
+
+Azure Bot Private Endpoint ersätter inte denna Teams-ingress. Microsofts [instruktioner om nätverksisolering](https://learn.microsoft.com/en-us/azure/bot-service/dl-network-isolation-how-to?view=azure-bot-service-4.0) beskriver Direct Line-isolering och anger att Teams-kanaler avkonfigureras när offentlig nätverksåtkomst inaktiveras.
+
 ## Konfigurationsinstruktioner
 
 ### Steg 1: Skapa Azure App Registration
@@ -37,7 +49,8 @@ För att integrera Microsoft Teams med din egeninstallerade OneUptime-instans be
 
 - **Team.ReadBasic.All** – Krävs för att lista alla team i organisationen efter administratörsmedgivande
 - **Channel.ReadBasic.All** – Krävs för att verifiera kanalexistens och hämta kanaldetaljer
-- **ChannelMessage.Send** – Krävs för att skicka meddelanden till kanaler programmatiskt
+
+`ChannelMessage.Send` är endast en delegerad behörighet; den har ingen variant som programbehörighet i [Microsoft Graphs behörighetsreferens](https://learn.microsoft.com/en-us/graph/permissions-reference#channelmessagesend). Behåll den i listan över delegerade behörigheter ovan.
 
 3. Klicka på "Grant admin consent" för din organisation
 

@@ -7,6 +7,18 @@
 - Azure 帳戶 - 您可以前往 [https://azure.com](https://azure.com) 建立一個
 - 具有您 OneUptime 伺服器設定的存取權限
 
+### 私有網路部署
+
+OneUptime 的 Teams 整合使用 Azure Bot。Incoming Webhook 或 Teams Workflow URL 不能取代此機器人的訊息端點。Microsoft 要求[自架機器人提供可公開存取的 HTTPS 端點](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0)。私有 IP 位址、內部 DNS 名稱或員工的 VPN 連線都不會讓 Azure Bot Service 能夠存取 OneUptime。
+
+繼續設定之前，請遵循[整合的私有網路存取指南](/docs/self-hosted/integration-network-access)。該指南涵蓋公開 DNS、受信任的 TLS、轉送至私有部署的反向 Proxy、防火牆規則和驗證。對於 Teams，請公開 `/api/microsoft-bot/messages`，並將步驟 4 中的 Azure Bot **訊息端點**設為此完整的公開 HTTPS URL。保留 `/api` 前置詞、要求本文和 `Authorization` 標頭。由機器人驗證機制驗證要求；互動式 Proxy 登入或瀏覽器驗證會阻止 Microsoft 傳送要求。
+
+應用程式註冊重新導向 `/api/microsoft-teams/auth` 和 `/api/microsoft-teams/admin-consent/callback` 透過使用者瀏覽器返回。該瀏覽器必須能夠存取 OneUptime，例如透過公司網路或 VPN。機器人訊息和卡片操作來自 Microsoft 伺服器，需要另外提供可存取的入口。僅輸出警示傳送成功不能驗證輸入連線。
+
+對於開發環境，Microsoft 的 [Teams 測試指南](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/debug)介紹了透過通道公開本機服務的方法。請轉送至 OneUptime 入口，並使用 `/api/microsoft-bot/messages` 取代 Microsoft 範例中的 `/api/messages` 路徑。公開通道 URL 變更時應更新 Azure Bot 端點，正式環境請使用穩定的入口。
+
+Azure Bot Private Endpoint 不能取代這個 Teams 入口。Microsoft 的[網路隔離說明](https://learn.microsoft.com/en-us/azure/bot-service/dl-network-isolation-how-to?view=azure-bot-service-4.0)描述的是 Direct Line 隔離，並指出停用公開網路存取會取消 Teams 頻道設定。
+
 ## 設定說明
 
 ### 步驟 1：建立 Azure App Registration
@@ -37,7 +49,8 @@
 
 - **Team.ReadBasic.All** - 在授予管理員同意後，列出組織中所有團隊所必需
 - **Channel.ReadBasic.All** - 驗證頻道是否存在並擷取頻道詳細資訊所必需
-- **ChannelMessage.Send** - 以程式化方式將訊息傳送到頻道所必需
+
+`ChannelMessage.Send` 僅提供委派權限；[Microsoft Graph 權限參考](https://learn.microsoft.com/en-us/graph/permissions-reference#channelmessagesend)中沒有對應的應用程式權限。請將其保留在上方的委派權限清單中。
 
 **注意：** Bot Framework 使用 Teams 應用程式資訊清單中定義的資源特定同意 (Resource-Specific Consent, RSC) 權限來處理訊息傳遞。這些權限為：
 

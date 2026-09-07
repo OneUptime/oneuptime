@@ -7,6 +7,18 @@
 - Azure 账号 - 您可以在 [https://azure.com](https://azure.com) 创建
 - 访问您的 OneUptime 服务器配置
 
+### 私有网络部署
+
+OneUptime 的 Teams 集成使用 Azure Bot。Incoming Webhook 或 Teams Workflow URL 不能替代此机器人的消息端点。Microsoft 要求[自托管机器人提供可公开访问的 HTTPS 端点](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0)。私有 IP 地址、内部 DNS 名称或员工的 VPN 连接均不会让 Azure Bot Service 能够访问 OneUptime。
+
+继续设置之前，请遵循[集成的私有网络访问指南](/docs/self-hosted/integration-network-access)。该指南涵盖公共 DNS、受信任的 TLS、转发至私有部署的反向代理、防火墙规则和验证。对于 Teams，请公开 `/api/microsoft-bot/messages`，并将步骤 4 中的 Azure Bot **消息端点**设置为此完整的公共 HTTPS URL。保留 `/api` 前缀、请求正文和 `Authorization` 标头。由机器人身份验证机制验证请求；交互式代理登录或浏览器验证会阻止 Microsoft 发送请求。
+
+应用注册重定向 `/api/microsoft-teams/auth` 和 `/api/microsoft-teams/admin-consent/callback` 通过用户浏览器返回。该浏览器必须能够访问 OneUptime，例如通过公司网络或 VPN。机器人消息和卡片操作来自 Microsoft 服务器，需要另外提供可访问的入口。仅出站告警发送成功不能验证入站连接。
+
+对于开发环境，Microsoft 的 [Teams 测试指南](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/debug)介绍了通过隧道公开本地服务的方法。请转发至 OneUptime 入口，并使用 `/api/microsoft-bot/messages` 替代 Microsoft 示例中的 `/api/messages` 路径。公共隧道 URL 变化时应更新 Azure Bot 端点，生产环境请使用稳定的入口。
+
+Azure Bot Private Endpoint 不能替代这个 Teams 入口。Microsoft 的[网络隔离说明](https://learn.microsoft.com/en-us/azure/bot-service/dl-network-isolation-how-to?view=azure-bot-service-4.0)描述的是 Direct Line 隔离，并指出禁用公共网络访问会取消 Teams 频道配置。
+
 ## 设置说明
 
 ### 第一步：创建 Azure 应用注册
@@ -37,7 +49,8 @@
 
 - **Team.ReadBasic.All** - 授予管理员同意后列出组织中所有团队所必需
 - **Channel.ReadBasic.All** - 验证频道存在并检索频道详情所必需
-- **ChannelMessage.Send** - 以程序化方式向频道发送消息所必需
+
+`ChannelMessage.Send` 仅提供委托权限；[Microsoft Graph 权限参考](https://learn.microsoft.com/en-us/graph/permissions-reference#channelmessagesend)中没有对应的应用程序权限。请将其保留在上方的委托权限列表中。
 
 **注意：** Bot Framework 使用 Teams 应用清单中定义的资源特定同意（RSC）权限处理消息传送。这些权限包括：
 
