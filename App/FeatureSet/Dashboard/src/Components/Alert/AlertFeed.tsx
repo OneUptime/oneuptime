@@ -310,7 +310,7 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
           <div hidden={isLoading || Boolean(error)}>
             <Feed
               visibleItemLimit={6}
-              items={feedItems}
+              items={isLoading || error ? [] : feedItems}
               noItemsMessage="Looks like there are no items in this feed for this alert."
             />
           </div>

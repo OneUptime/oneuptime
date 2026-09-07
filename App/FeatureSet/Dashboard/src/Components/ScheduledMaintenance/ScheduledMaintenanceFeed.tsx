@@ -306,7 +306,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
           <Feed
             key={props.scheduledMaintenanceId.toString()}
             visibleItemLimit={6}
-            items={feedItems}
+            items={isLoading || error ? [] : feedItems}
             noItemsMessage="Looks like there are no items in this feed for this scheduled maintenance."
           />
         </div>

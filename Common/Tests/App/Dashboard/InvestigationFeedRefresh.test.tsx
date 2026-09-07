@@ -35,6 +35,7 @@ import ScheduledMaintenanceFeed, {
 
 const getListMock: MockFunction = getJestMockFunction();
 const feedRenderMock: MockFunction = getJestMockFunction();
+const itemDialogCleanupMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -69,11 +70,7 @@ jest.mock("../../../UI/Components/Feed/Feed", () => {
           isExpanded ? "Collapse test history" : "Expand test history",
         ),
         props.items.map((item: RenderedFeedItem): React.ReactElement => {
-          return React.createElement(
-            "div",
-            { key: item.key },
-            item.textInMarkdown,
-          );
+          return React.createElement(MockFeedItem, { key: item.key, item });
         }),
       );
     },
@@ -85,6 +82,39 @@ interface RenderedFeedItem {
   textInMarkdown: string;
   icon: IconProp;
   safeMode?: boolean | undefined;
+}
+
+// A stateful item dialog models the lifetime of FeedItem's More Information
+// modal, including the cleanup that releases its focus trap and scroll lock.
+function MockItemDialog(): React.ReactElement {
+  React.useEffect(() => {
+    return () => {
+      itemDialogCleanupMock();
+    };
+  }, []);
+  return (
+    <div role="dialog" aria-label="Feed item details">
+      Expanded details
+    </div>
+  );
+}
+
+function MockFeedItem(props: { item: RenderedFeedItem }): React.ReactElement {
+  const [showDetails, setShowDetails] = React.useState<boolean>(false);
+  return (
+    <div>
+      <span>{props.item.textInMarkdown}</span>
+      <button
+        type="button"
+        onClick={() => {
+          setShowDetails(true);
+        }}
+      >
+        Open test details
+      </button>
+      {showDetails && <MockItemDialog />}
+    </div>
+  );
 }
 
 interface RenderedFeedProps {
@@ -254,6 +284,7 @@ afterEach(() => {
   cleanup();
   getListMock.mockReset();
   feedRenderMock.mockReset();
+  itemDialogCleanupMock.mockReset();
 });
 
 describe("investigation reports in incident and alert feeds", () => {
@@ -560,7 +591,7 @@ const refreshSpecs: Array<FeedSpec> = [
 ];
 
 describe.each(refreshSpecs)("$name expanded feed history", (spec: FeedSpec) => {
-  test("retains the feed instance and expansion while hiding old content during refresh", async () => {
+  test("preserves expansion while unmounting item dialogs and their effects during refresh", async () => {
     const refreshedRequest: Deferred<ListResult<EventFeed>> =
       createDeferred<ListResult<EventFeed>>();
     getListMock
@@ -575,6 +606,10 @@ describe.each(refreshSpecs)("$name expanded feed history", (spec: FeedSpec) => {
     fireEvent.click(
       screen.getByRole("button", { name: "Expand test history" }),
     );
+    fireEvent.click(screen.getByRole("button", { name: "Open test details" }));
+    expect(
+      screen.getByRole("dialog", { name: "Feed item details" }),
+    ).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
     await waitFor(() => {
       expect(getListMock).toHaveBeenCalledTimes(2);
@@ -583,15 +618,44 @@ describe.each(refreshSpecs)("$name expanded feed history", (spec: FeedSpec) => {
     expect(originalFeed).not.toBeVisible();
     expect(screen.getByText("Collapse test history")).not.toBeVisible();
     expect(screen.getByTestId("component-loader")).toBeVisible();
+    expect(screen.queryByRole("dialog", { hidden: true })).toBeNull();
+    expect(screen.queryByText("Open test details")).toBeNull();
+    expect(itemDialogCleanupMock).toHaveBeenCalledTimes(1);
+    expect(lastRenderedFeedProps().items).toEqual([]);
     await resolveDeferred(
       refreshedRequest,
       listResult<EventFeed>([spec.item()]),
     );
     expect(screen.getByTestId("rendered-feed")).toBe(originalFeed);
     expect(originalFeed).toBeVisible();
+    expect(screen.queryByRole("dialog", { hidden: true })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Open test details" }),
+    ).toBeVisible();
     expect(
       screen.getByRole("button", { name: "Collapse test history" }),
     ).toHaveAttribute("aria-expanded", "true");
+  });
+
+  test("keeps item dialogs unmounted after a failed refresh", async () => {
+    getListMock
+      .mockResolvedValueOnce(listResult<EventFeed>([spec.item()]) as never)
+      .mockRejectedValueOnce(new Error("Could not refresh feed"));
+    render(spec.element(spec.id));
+    await waitFor(() => {
+      expect(screen.getByTestId("rendered-feed")).toBeVisible();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Open test details" }));
+    expect(
+      screen.getByRole("dialog", { name: "Feed item details" }),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    await screen.findByText("Could not refresh feed");
+    expect(screen.getByTestId("rendered-feed")).not.toBeVisible();
+    expect(screen.queryByRole("dialog", { hidden: true })).toBeNull();
+    expect(screen.queryByText("Open test details")).toBeNull();
+    expect(itemDialogCleanupMock).toHaveBeenCalledTimes(1);
+    expect(lastRenderedFeedProps().items).toEqual([]);
   });
 
   test("resets expansion when navigating to a different event", async () => {
