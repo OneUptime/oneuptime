@@ -45,7 +45,7 @@
     },
     "clusterName": {
       "type": "string",
-      "description": "Unique name for this cluster (used as k8s.cluster.name attribute)"
+      "description": "Unique name for this cluster (used as k8s.cluster.name attribute). Set it: OneUptime folds k8s.cluster.name into the identity of every Kubernetes entity, so an empty value keys this cluster's pods, nodes and namespaces cluster-lessly and lets them collide with another cluster's."
     },
     "namespaceFilters": {
       "type": "object",

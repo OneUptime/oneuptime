@@ -217,7 +217,17 @@ export async function reconcileEntityRegistryThrottled(data: {
   try {
     const promoted: Array<ExtractedEntity> = data.entities.filter(
       (entity: ExtractedEntity) => {
-        return REGISTRY_PROMOTED_TYPES.has(entity.entityType);
+        /*
+         * Two gates, and they answer different questions. The type gate asks
+         * "does this KIND of thing belong in the registry"; the per-entity
+         * flag asks "is this particular observation the resource's entity of
+         * that type, or a duplicate the producer sent alongside it". See
+         * `ExtractedEntity.membershipOnly`.
+         */
+        return (
+          !entity.membershipOnly &&
+          REGISTRY_PROMOTED_TYPES.has(entity.entityType)
+        );
       },
     );
     const retiredHosts: Array<RetiredEntityIdentity> = (

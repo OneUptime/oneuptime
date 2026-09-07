@@ -46,6 +46,7 @@ import Protocol from "../../Types/API/Protocol";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import Sort from "../../Types/BaseDatabase/Sort";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { getMaxLengthFromTableColumnType } from "../../Types/Database/ColumnLength";
 import Columns from "../../Types/Database/Columns";
@@ -2168,6 +2169,36 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         Object.keys(onBeforeFind.groupBy).length > 0
       ) {
         throw new BadDataException("GroupBy is currently not supported");
+      }
+
+      /*
+       * Complete the caller's sort into a TOTAL order.
+       *
+       * Everything here pages with LIMIT/OFFSET, and OFFSET only means
+       * anything against an ordering that has no ties: rows that compare
+       * equal may come back in any order, and Postgres is free to return them
+       * differently for the two queries that fetch page 1 and page 2. A tied
+       * row can therefore be served on both pages while another is served on
+       * neither — the same row apparently listed twice.
+       *
+       * Ties are not exotic. The Inventory list sorts on `lastSeenAt`, which
+       * the entity reconciler rewrites for every live entity every few
+       * minutes, and the inventory mirror stamps one identical timestamp
+       * across a whole page of rows; "created at" sorts tie for anything
+       * bulk-inserted in one statement. Appending the primary key breaks
+       * every tie deterministically and costs nothing — `_id` is the PK, and
+       * it is already in the select (see above), so this adds no column to
+       * the projection and nothing to strip afterwards.
+       */
+      const sortSoFar: Dictionary<SortOrder> =
+        (onBeforeFind.sort as Dictionary<SortOrder> | undefined) || {};
+
+      if (!sortSoFar["_id"]) {
+        // Copied, never mutated: callers reuse their sort objects across queries.
+        onBeforeFind.sort = {
+          ...sortSoFar,
+          _id: SortOrder.Ascending,
+        } as Sort<TBaseModel>;
       }
 
       const items: Array<TBaseModel> = await this.getRepository().find({

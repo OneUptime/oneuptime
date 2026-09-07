@@ -209,6 +209,49 @@ describe("entity pruning is scoped to discovered rows", () => {
     expect(swept).toContain(EntityType.Service);
     expect(swept).toContain(EntityType.Host);
   });
+
+  test("every telemetry-discovered type the resolvers can emit is swept", async () => {
+    /*
+     * A type that ingest promotes but this map omits is unreachable by the
+     * sweep, so a row of that type lives forever — including one left behind
+     * by an identity change, which is exactly the shape of a duplicate that
+     * never goes away. `docker.swarm.cluster` was missed this way when the
+     * Docker Swarm types were added after the map.
+     *
+     * The list is the promoted types a heuristic resolver can actually derive
+     * from resource attributes. The other three Docker Swarm types are
+     * declared but never resolved from a resource (their inventory arrives as
+     * JSON-line logs), so they mint no discovered rows and need no TTL.
+     */
+    await runTick();
+
+    const swept: Array<EntityType | undefined> = entityDeleteCalls().map(
+      (call: DeleteCall) => {
+        return call.query.entityType;
+      },
+    );
+
+    for (const entityType of [
+      EntityType.Service,
+      EntityType.ServiceInstance,
+      EntityType.Host,
+      EntityType.Container,
+      EntityType.Process,
+      EntityType.KubernetesCluster,
+      EntityType.KubernetesNamespace,
+      EntityType.KubernetesNode,
+      EntityType.KubernetesPod,
+      EntityType.KubernetesDeployment,
+      EntityType.ProxmoxCluster,
+      EntityType.ProxmoxNode,
+      EntityType.ProxmoxGuest,
+      EntityType.CephCluster,
+      EntityType.DockerSwarmCluster,
+      EntityType.TelemetrySdk,
+    ]) {
+      expect(swept).toContain(entityType);
+    }
+  });
 });
 
 describe("relationship pruning is scoped to discovered edges", () => {

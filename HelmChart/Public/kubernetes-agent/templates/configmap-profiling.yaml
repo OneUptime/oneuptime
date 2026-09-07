@@ -47,7 +47,7 @@ data:
       resource:
         attributes:
           - key: k8s.cluster.name
-            value: {{ .Values.clusterName | quote }}
+            value: {{ include "kubernetes-agent.clusterName" . | quote }}
             action: insert
           - key: k8s.node.name
             value: "${env:NODE_NAME}"

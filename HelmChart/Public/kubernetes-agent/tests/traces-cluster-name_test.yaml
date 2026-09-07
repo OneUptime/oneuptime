@@ -1,0 +1,102 @@
+# OneUptime folds `k8s.cluster.name` into the identity of every Kubernetes
+# entity it derives — a pod, node, namespace or deployment reported WITHOUT it
+# is a different entity from the same object reported WITH it. So a pipeline
+# that enriches spans with pod and namespace metadata but never stamps the
+# cluster name puts a second copy of every one of those objects in the customer's
+# Inventory, both marked Discovered, both showing the same name.
+#
+# That is what the traces pipeline did: it ran `k8sattributes` (which resolves
+# the pod, namespace, node and workload) but not `resource` (which stamps the
+# cluster name), while the metrics and logs pipelines ran both. The OTLP
+# receiver it feeds from accepts spans from anything in the cluster pointing at
+# the agent's OTLP service, not just from the eBPF DaemonSet, and an
+# application SDK has no way to know what the cluster is called.
+#
+# These assertions keep the three pipelines' enrichment in step.
+suite: collector pipelines stamp the cluster name
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+tests:
+  - it: enriches traces with the cluster name, not just with pod metadata
+    templates:
+      - templates/configmap-deployment.yaml
+    set:
+      clusterName: prod-us
+      ebpf.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "traces:\\s*\\n\\s*receivers:\\s*\\n\\s*- otlp\\s*\\n\\s*processors:\\s*\\n\\s*- memory_limiter\\s*\\n\\s*- k8sattributes\\s*\\n\\s*- resource"
+
+  - it: stamps the cluster name without overwriting a producer's own service name
+    templates:
+      - templates/configmap-deployment.yaml
+    set:
+      clusterName: prod-us
+      ebpf.enabled: true
+    asserts:
+      # `insert` is what makes it safe to add `resource` to the traces
+      # pipeline: OBI sets a real per-process service.name from workload
+      # metadata, and insert fills in only what is missing.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- key: k8s.cluster.name\\s*\\n\\s*value: \"?prod-us\"?\\s*\\n\\s*action: insert"
+
+  # The two below are written as strict line-by-line chains rather than with
+  # `[\s\S]*?` between `processors:` and `- resource`. A lazy gap is unbounded:
+  # it happily runs out of the pipeline it names and matches the `- resource`
+  # belonging to the NEXT one, so the assertion passes however the pipeline it
+  # claims to check is configured, and cannot fail.
+  - it: keeps the cluster name on the metrics pipeline
+    templates:
+      - templates/configmap-deployment.yaml
+    set:
+      clusterName: prod-us
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          # `filter/telemetry` is optional (metricFilters), so it is allowed
+          # for explicitly rather than by a `[\s\S]*?` gap that would also
+          # swallow the end of this pipeline and match the next one's.
+          pattern: "\\n\\s*metrics:\\n\\s*receivers:\\n(?:\\s*(?:#[^\\n]*|- \\w[^\\n]*)\\n)+\\s*processors:\\n\\s*- memory_limiter\\n\\s*- k8sattributes\\n(?:\\s*- filter/telemetry\\n)?\\s*- resource\\n"
+
+  - it: keeps the cluster name on the logs pipeline
+    templates:
+      - templates/configmap-deployment.yaml
+    set:
+      clusterName: prod-us
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n\\s*logs:\\n\\s*receivers:\\n\\s*- k8sobjects\\n\\s*processors:\\n\\s*- memory_limiter\\n\\s*- k8sattributes\\n\\s*- resource\\n"
+
+  - it: refuses to render at all without a cluster name
+    set:
+      clusterName: ""
+    asserts:
+      # values.schema.json lists clusterName as required, but JSON Schema
+      # `required` only checks the key is present and the chart's default is
+      # the empty string — so it passes. Rendering is the only place this can
+      # be caught before the estate is silently merged.
+      - failedTemplate:
+          errorMessage: "clusterName is required: it identifies this cluster's nodes, namespaces, pods and deployments in OneUptime, and two clusters installed without it will be merged into one. Set it with --set clusterName=<name>."
+
+  - it: refuses to render when the cluster name is only whitespace
+    set:
+      clusterName: "   "
+    asserts:
+      - failedTemplate: {}
+
+  - it: stamps the node name on the DaemonSet so node identity is never blank
+    templates:
+      - templates/configmap-daemonset.yaml
+    set:
+      clusterName: prod-us
+    asserts:
+      # The DaemonSet's receivers cannot produce a node uid, so the node name
+      # is the only identity its telemetry carries. OneUptime keys the
+      # k8s.node entity on cluster + node name for exactly that reason.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- key: k8s.node.name\\s*\\n\\s*value: \"?\\$\\{env:NODE_NAME\\}\"?\\s*\\n\\s*action: insert"

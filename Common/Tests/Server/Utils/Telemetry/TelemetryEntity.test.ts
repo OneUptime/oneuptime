@@ -750,7 +750,7 @@ describe("descriptive attributes & labels (never identity-bearing)", () => {
       name: "worker-1",
     },
   ])(
-    "k8s.$label: keeps the stable UID identity and carries the name descriptively",
+    "k8s.$label: keys on the name and carries the UID descriptively",
     ({
       type,
       uidKey,
@@ -765,19 +765,122 @@ describe("descriptive attributes & labels (never identity-bearing)", () => {
       nameKey: string;
       name: string;
     }) => {
-      const uidOnly: ExtractedEntity | undefined = entityOfType(
-        { [uidKey]: uid },
-        type,
-      );
       const named: ExtractedEntity | undefined = entityOfType(
         { [uidKey]: uid, [nameKey]: name },
         type,
       );
 
       expect(named).toBeDefined();
-      expect(named!.entityKey).toBe(uidOnly!.entityKey);
-      expect(named!.identifyingAttributes).toEqual({ [uidKey]: uid });
-      expect(named!.descriptiveAttributes).toEqual({ [nameKey]: name });
+      expect(named!.identifyingAttributes).toEqual({ [nameKey]: name });
+      /*
+       * The name is carried descriptively as well as identifying it. That is
+       * deliberate: `buildDescriptiveUpdate` reads the display name out of
+       * the descriptive bag first, so a row whose identity later changes
+       * shape still has a name to show.
+       */
+      expect(named!.descriptiveAttributes).toEqual({
+        [nameKey]: name,
+        [uidKey]: uid,
+      });
+    },
+  );
+
+  /*
+   * The regression test for duplicate Inventory rows.
+   *
+   * The shipped Kubernetes agent runs two collectors over the same nodes and
+   * pods. The Deployment's `k8s_cluster` receiver resolves uids; the
+   * DaemonSet's kubeletstats / hostmetrics / cAdvisor / filelog receivers
+   * never do. Identity must not depend on which of them is talking.
+   */
+  test.each([
+    {
+      label: "node",
+      type: EntityType.KubernetesNode,
+      withUid: {
+        "k8s.cluster.name": "prod-us",
+        "k8s.node.name": "worker-1",
+        "k8s.node.uid": "node-uid-1",
+      },
+      withoutUid: {
+        "k8s.cluster.name": "prod-us",
+        "k8s.node.name": "worker-1",
+      },
+    },
+    {
+      label: "pod",
+      type: EntityType.KubernetesPod,
+      withUid: {
+        "k8s.cluster.name": "prod-us",
+        "k8s.namespace.name": "shop",
+        "k8s.pod.name": "checkout-7d9f",
+        "k8s.pod.uid": "pod-uid-1",
+      },
+      withoutUid: {
+        "k8s.cluster.name": "prod-us",
+        "k8s.namespace.name": "shop",
+        "k8s.pod.name": "checkout-7d9f",
+      },
+    },
+  ])(
+    "k8s.$label: a producer that resolves the UID and one that does not agree on identity",
+    ({
+      type,
+      withUid,
+      withoutUid,
+    }: {
+      label: string;
+      type: EntityType;
+      withUid: EntityAttributes;
+      withoutUid: EntityAttributes;
+    }) => {
+      const resolved: ExtractedEntity | undefined = entityOfType(withUid, type);
+      const unresolved: ExtractedEntity | undefined = entityOfType(
+        withoutUid,
+        type,
+      );
+
+      expect(resolved).toBeDefined();
+      expect(unresolved).toBeDefined();
+      expect(resolved!.entityKey).toBe(unresolved!.entityKey);
+      expect(resolved!.identifyingAttributes).toEqual(
+        unresolved!.identifyingAttributes,
+      );
+    },
+  );
+
+  test.each([
+    {
+      label: "node",
+      type: EntityType.KubernetesNode,
+      uidKey: "k8s.node.uid",
+      uid: "node-uid-1",
+    },
+    {
+      label: "pod",
+      type: EntityType.KubernetesPod,
+      uidKey: "k8s.pod.uid",
+      uid: "pod-uid-1",
+    },
+  ])(
+    "k8s.$label: falls back to the UID when the resource carries no name",
+    ({
+      type,
+      uidKey,
+      uid,
+    }: {
+      label: string;
+      type: EntityType;
+      uidKey: string;
+      uid: string;
+    }) => {
+      const entity: ExtractedEntity | undefined = entityOfType(
+        { [uidKey]: uid },
+        type,
+      );
+
+      expect(entity).toBeDefined();
+      expect(entity!.identifyingAttributes).toEqual({ [uidKey]: uid });
     },
   );
 
