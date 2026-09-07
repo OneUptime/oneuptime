@@ -1,6 +1,7 @@
 import {
   AutoImportRuleRunResult,
   LabelRuleRunResult,
+  MAX_RUN_FAILURE_REASON_LENGTH,
   RuleRunResultUtil,
   SiteAssignmentRuleRunResult,
 } from "../../../Types/NetworkAutomation/RuleRunResult";
@@ -199,6 +200,9 @@ describe("RuleRunResultUtil.parseAutoImportRuleRunResult", () => {
         monitorsSkippedAlreadyExisting: 2,
         monitorsSkippedUnsupportedHost: 1,
         monitorsFailed: 1,
+        deviceFailureReasons: ["Name too long"],
+        monitorFailureReasons: ["Plan limit reached"],
+        monitorProvisioningHalted: true,
         isTruncated: true,
         hasMoreScans: true,
         isDryRun: false,
@@ -217,11 +221,64 @@ describe("RuleRunResultUtil.parseAutoImportRuleRunResult", () => {
       monitorsSkippedAlreadyExisting: 2,
       monitorsSkippedUnsupportedHost: 1,
       monitorsFailed: 1,
+      deviceFailureReasons: ["Name too long"],
+      monitorFailureReasons: ["Plan limit reached"],
+      monitorProvisioningHalted: true,
       isTruncated: true,
       hasMoreScans: true,
       isDryRun: false,
       matchedIpAddressSample: ["10.0.0.1", "10.0.0.2"],
     });
+  });
+
+  /*
+   * The reasons come from a server that may be older than this dashboard, or
+   * from a hand-rolled client. Anything that is not a usable string is dropped
+   * rather than rendered into the modal, and the list is bounded on both axes
+   * so a pathological payload cannot become the whole dialog.
+   */
+  it("reads absent failure reasons as empty rather than undefined", () => {
+    const parsed: AutoImportRuleRunResult =
+      RuleRunResultUtil.parseAutoImportRuleRunResult({ hostsEvaluated: 1 });
+
+    expect(parsed.deviceFailureReasons).toEqual([]);
+    expect(parsed.monitorFailureReasons).toEqual([]);
+    expect(parsed.monitorProvisioningHalted).toBe(false);
+  });
+
+  it("drops non-string, blank and surplus failure reasons", () => {
+    const parsed: AutoImportRuleRunResult =
+      RuleRunResultUtil.parseAutoImportRuleRunResult({
+        monitorFailureReasons: [
+          "  plan limit  ",
+          "",
+          "   ",
+          42,
+          null,
+          "duplicate key",
+          "third",
+          "fourth",
+        ],
+        deviceFailureReasons: "not an array",
+      } as unknown as JSONObject);
+
+    expect(parsed.monitorFailureReasons).toEqual([
+      "plan limit",
+      "duplicate key",
+      "third",
+    ]);
+    expect(parsed.deviceFailureReasons).toEqual([]);
+  });
+
+  it("truncates an over-long failure reason", () => {
+    const parsed: AutoImportRuleRunResult =
+      RuleRunResultUtil.parseAutoImportRuleRunResult({
+        monitorFailureReasons: ["x".repeat(MAX_RUN_FAILURE_REASON_LENGTH + 50)],
+      } as unknown as JSONObject);
+
+    expect(parsed.monitorFailureReasons[0]!.length).toBe(
+      MAX_RUN_FAILURE_REASON_LENGTH,
+    );
   });
 
   it("reads every missing monitor counter as zero for older servers", () => {

@@ -114,6 +114,25 @@ export interface AutoImportRuleRunResult {
   // Monitor creates that failed after the device was available.
   monitorsFailed: number;
   /*
+   * Why devices could not be created — the actual server-side messages,
+   * deduplicated and capped. "0 imported, check the server logs" is not an
+   * answer an operator of a self-hosted install can act on, and it is not one
+   * support can act on either: every distinct failure mode used to render the
+   * identical sentence. See OneUptime/oneuptime#3643.
+   */
+  deviceFailureReasons: Array<string>;
+  // Why active Network Device monitors could not be created. Same contract.
+  monitorFailureReasons: Array<string>;
+  /*
+   * True when the run stopped ATTEMPTING monitor creates because the failure
+   * it hit is systemic rather than per host — the rule's Monitor Template
+   * cannot be resolved at all, or the identical error came back for every
+   * device it tried. The remaining devices are still counted into
+   * monitorsFailed (that many monitors really are missing); they are simply
+   * not retried, because they would fail identically.
+   */
+  monitorProvisioningHalted: boolean;
+  /*
    * True when the run stopped at the device-create or monitor-create cap
    * with work left over. Running again continues from idempotent inventory
    * and provisioning keys.
@@ -140,6 +159,20 @@ export interface AutoImportRuleRunResult {
 export const MAX_MATCHED_IP_SAMPLE: number = 50;
 
 /*
+ * How many DISTINCT failure reasons a run reports. A run that fails the same
+ * way 500 times has one reason; a run that fails three different ways has
+ * three worth reading. Beyond that the dialog stops being a summary.
+ */
+export const MAX_RUN_FAILURE_REASONS: number = 3;
+
+/*
+ * How much of one reason survives. Server exception messages are written for
+ * humans and are short, but a driver error can carry an entire statement, and
+ * that belongs in the logs rather than in a modal.
+ */
+export const MAX_RUN_FAILURE_REASON_LENGTH: number = 300;
+
+/*
  * A count off the wire. An absent or non-numeric field reads as zero rather
  * than as NaN: a summary line that says "NaN devices" is worse than one that
  * under-reports a counter the server never sent.
@@ -158,10 +191,70 @@ function hosts(count: number): string {
   return `${count} ${count === 1 ? "host" : "hosts"}`;
 }
 
+/*
+ * The denominator of "matched N out of M". It carries its own noun because
+ * hosts() already supplies one: composing them produced "matched 501 hosts out
+ * of the 501 hosts discovered hosts it looked at", which is the sentence in the
+ * screenshot on issue #3643.
+ */
+function discoveredHosts(count: number): string {
+  return `${count} discovered ${count === 1 ? "host" : "hosts"}`;
+}
+
 function activeMonitors(count: number): string {
   return `${count} active Network Device ${
     count === 1 ? "monitor" : "monitors"
   }`;
+}
+
+/*
+ * Reasons off the wire. Anything that is not a non-empty string is dropped
+ * rather than rendered as "undefined", and the list is capped the same way the
+ * server caps it so a hand-rolled API client cannot make the dialog unbounded.
+ */
+function readReasons(json: JSONObject, key: string): Array<string> {
+  const value: unknown = json[key];
+
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return (value as Array<unknown>)
+    .filter((entry: unknown): boolean => {
+      return typeof entry === "string" && entry.trim().length > 0;
+    })
+    .map((entry: unknown): string => {
+      return (entry as string)
+        .trim()
+        .substring(0, MAX_RUN_FAILURE_REASON_LENGTH);
+    })
+    .slice(0, MAX_RUN_FAILURE_REASONS);
+}
+
+// What already ends a sentence, so becauseOf does not add a second full stop.
+const TERMINAL_PUNCTUATION: Array<string> = [".", "!", "?"];
+
+/*
+ * The half-sentence that turns "N could not be created" into something the
+ * operator can act on. With no reason recorded the old pointer at the server
+ * logs is still the honest answer; with reasons, they ARE the answer.
+ */
+function becauseOf(reasons: Array<string>): string {
+  if (reasons.length === 0) {
+    return " Check the server logs for the reason.";
+  }
+
+  const rendered: Array<string> = reasons.map((reason: string): string => {
+    return TERMINAL_PUNCTUATION.includes(reason.slice(-1))
+      ? reason
+      : `${reason}.`;
+  });
+
+  if (rendered.length === 1) {
+    return ` Reason: ${rendered[0]}`;
+  }
+
+  return ` Reasons: ${rendered.join(" ")}`;
 }
 
 export class RuleRunResultUtil {
@@ -199,9 +292,9 @@ export class RuleRunResultUtil {
         lines.push(
           `This rule would import nothing. It matched ${hosts(
             result.hostsMatched,
-          )} out of the ${hosts(
+          )} out of the ${discoveredHosts(
             result.hostsEvaluated,
-          )} discovered hosts it looked at.`,
+          )} it looked at.`,
         );
       }
     } else if (result.devicesCreated > 0) {
@@ -212,9 +305,7 @@ export class RuleRunResultUtil {
       lines.push(
         `No devices were imported. This rule matched ${hosts(
           result.hostsMatched,
-        )} out of the ${hosts(
-          result.hostsEvaluated,
-        )} discovered hosts it looked at.`,
+        )} out of the ${discoveredHosts(result.hostsEvaluated)} it looked at.`,
       );
     }
 
@@ -262,7 +353,20 @@ export class RuleRunResultUtil {
       lines.push(
         `${activeMonitors(
           result.monitorsFailed,
-        )} could not be created. Their network devices remain imported; check the server logs for the reason.`,
+        )} could not be created. Their network devices remain imported.${becauseOf(
+          result.monitorFailureReasons,
+        )}`,
+      );
+    }
+
+    /*
+     * Said once, after the reason, because it changes what the operator should
+     * do next: nothing here is waiting for another run. The remaining devices
+     * were counted, not attempted — see monitorProvisioningHalted.
+     */
+    if (result.monitorProvisioningHalted) {
+      lines.push(
+        "Monitor provisioning stopped for the rest of this run: that failure applies to every remaining device, not just one, so the rest were not attempted. Fix it and run this rule again.",
       );
     }
 
@@ -280,9 +384,9 @@ export class RuleRunResultUtil {
 
     if (result.devicesFailed > 0) {
       lines.push(
-        `${hosts(
-          result.devicesFailed,
-        )} could not be imported. Check the server logs for the reason.`,
+        `${hosts(result.devicesFailed)} could not be imported.${becauseOf(
+          result.deviceFailureReasons,
+        )}`,
       );
     }
 
@@ -291,10 +395,22 @@ export class RuleRunResultUtil {
      * re-running skips what is already imported and continues. The scan cap
      * does NOT: a re-run re-reads the same newest scans, so promising "run
      * again to continue" there would send the operator in a circle.
+     *
+     * And a run that reached the cap having created NOTHING resumes nowhere
+     * either: every attempt failed, so the identical run would fail again.
+     * Telling that operator to "run again to continue" is the advice issue
+     * #3643 was given, and following it changes nothing. The automatic sweep
+     * has always understood this — it refuses to re-queue a zero-progress
+     * truncated pass — so say the same thing here.
      */
     if (result.isTruncated && !result.isDryRun) {
+      const madeProgress: boolean =
+        result.devicesCreated > 0 || result.monitorsCreated > 0;
+
       lines.push(
-        "Stopped at the run cap — run again to continue; already-imported hosts are skipped.",
+        madeProgress
+          ? "Stopped at the run cap — run again to continue; already-imported hosts are skipped."
+          : "Stopped at the run cap without creating anything, so running again as-is would repeat the same failures — fix the failures reported above first.",
       );
     } else if (result.isTruncated) {
       lines.push(
@@ -385,6 +501,9 @@ export class RuleRunResultUtil {
         "monitorsSkippedUnsupportedHost",
       ),
       monitorsFailed: readCount(source, "monitorsFailed"),
+      deviceFailureReasons: readReasons(source, "deviceFailureReasons"),
+      monitorFailureReasons: readReasons(source, "monitorFailureReasons"),
+      monitorProvisioningHalted: source["monitorProvisioningHalted"] === true,
       isTruncated: source["isTruncated"] === true,
       hasMoreScans: source["hasMoreScans"] === true,
       isDryRun: source["isDryRun"] === true,

@@ -21,6 +21,8 @@ import MonitorType from "../../Types/Monitor/MonitorType";
 import {
   AutoImportRuleRunResult,
   MAX_MATCHED_IP_SAMPLE,
+  MAX_RUN_FAILURE_REASON_LENGTH,
+  MAX_RUN_FAILURE_REASONS,
 } from "../../Types/NetworkAutomation/RuleRunResult";
 import AutoImportRuleMatcher, {
   AutoImportHostEvaluation,
@@ -119,6 +121,26 @@ export const MAX_MONITORS_PER_AUTO_IMPORT_RUN: number = 500;
 export const MAX_SCANS_PER_AUTO_IMPORT_RULE_RUN: number = 100;
 
 /*
+ * How many monitor creates may fail IDENTICALLY, back to back with no success
+ * between them, before the run stops attempting any more.
+ *
+ * A monitor create fails for one of two kinds of reason. Per host — this
+ * device's name collides, this one raced another writer — where the next host
+ * is unaffected and trying it is right. Or systemic: the template's criteria
+ * name a monitor status that no longer exists, the plan's monitor limit is
+ * reached, the database is refusing writes. Those fail for the FIRST device
+ * and for all 500 after it, and the old engine could not tell the difference:
+ * it spent the whole per-run monitor budget re-proving one broken thing, then
+ * reported "Stopped at the run cap — run again to continue", which is an
+ * instruction to do it all again. That is OneUptime/oneuptime#3643.
+ *
+ * Ten consecutive failures carrying the SAME message, with no create
+ * succeeding in between, is not a run of bad luck. Any success resets it, so a
+ * genuinely per-host fault never trips this.
+ */
+export const MAX_CONSECUTIVE_MONITOR_CREATE_FAILURES: number = 10;
+
+/*
  * Results older than this are stamped processed WITHOUT importing. A late
  * result can land on a reaper-Failed scan hours after its sweep ran (the
  * ingest endpoint accepts it as the truth about that run), and a worker
@@ -161,6 +183,28 @@ export interface ExistingMonitorProvisioningState {
   autoProvisionedKeys: Set<string>;
   manuallyMonitoredDeviceIds: Set<string>;
   attemptedProvisioningKeys: Set<string>;
+  /*
+   * Monitor template ids this run has already proved it cannot resolve —
+   * deleted, moved to another project, or no longer of type Network Device.
+   * That is a property of the RULE, settled the first time a host needs the
+   * template, and re-deciding it per host costs one wasted monitor budget slot
+   * and one log line per device in the estate.
+   */
+  unresolvableTemplateIds: Set<string>;
+  /*
+   * Consecutive monitor creates that failed with the same message and no
+   * success since — see MAX_CONSECUTIVE_MONITOR_CREATE_FAILURES.
+   */
+  consecutiveCreateFailures: number;
+  lastCreateFailureReason: string;
+  /*
+   * Whether this run has EVER provisioned a monitor (or lost a race to
+   * somebody who did). One success is proof the create pipeline works, which
+   * is what disarms the systemic-failure guard for good.
+   */
+  hasProvisionedAnyMonitor: boolean;
+  // Set once this run gives up on provisioning monitors at all.
+  isProvisioningHalted: boolean;
 }
 
 export type ExistingMonitorsByProjectId = Map<
@@ -684,6 +728,9 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       monitorsSkippedAlreadyExisting: 0,
       monitorsSkippedUnsupportedHost: 0,
       monitorsFailed: 0,
+      deviceFailureReasons: [],
+      monitorFailureReasons: [],
+      monitorProvisioningHalted: false,
       isTruncated: false,
       hasMoreScans: false,
       isDryRun: isDryRun,
@@ -691,11 +738,56 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     };
   }
 
+  /*
+   * Keep the reason a create failed, so the run can say WHY it created
+   * nothing instead of pointing at server logs the operator of a self-hosted
+   * install may not be able to read. Deduplicated (500 identical failures are
+   * one reason) and capped, in both count and length, because this string
+   * ends up in a modal.
+   */
+  private recordFailureReason(reasons: Array<string>, error: unknown): void {
+    const message: string = this.describeError(error);
+
+    if (!message) {
+      return;
+    }
+
+    const trimmed: string = message.substring(0, MAX_RUN_FAILURE_REASON_LENGTH);
+
+    if (reasons.includes(trimmed)) {
+      return;
+    }
+
+    if (reasons.length >= MAX_RUN_FAILURE_REASONS) {
+      return;
+    }
+
+    reasons.push(trimmed);
+  }
+
+  /*
+   * The message an operator should see. Exception extends Error, so one arm
+   * covers both; anything else is stringified rather than dropped, because a
+   * thrown non-Error is exactly the case where the reason matters most.
+   */
+  private describeError(error: unknown): string {
+    if (error instanceof Error) {
+      return (error.message || "").replace(/\s+/g, " ").trim();
+    }
+
+    return String(error).replace(/\s+/g, " ").trim();
+  }
+
   private emptyExistingMonitorProvisioningState(): ExistingMonitorProvisioningState {
     return {
       autoProvisionedKeys: new Set(),
       manuallyMonitoredDeviceIds: new Set(),
       attemptedProvisioningKeys: new Set(),
+      unresolvableTemplateIds: new Set(),
+      consecutiveCreateFailures: 0,
+      lastCreateFailureReason: "",
+      hasProvisionedAnyMonitor: false,
+      isProvisioningHalted: false,
     };
   }
 
@@ -1354,12 +1446,61 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       return false;
     }
 
+    /*
+     * The project-wide snapshot already knows this device is monitored by
+     * hand, and that answer outranks any failure below: a device nobody was
+     * going to provision cannot be a monitor this run failed to create. Read
+     * from memory, so it stays ahead of the systemic verdicts.
+     */
     if (
       data.existingMonitors.manuallyMonitoredDeviceIds.has(
         networkDeviceIdString,
       )
     ) {
       data.result.monitorsSkippedAlreadyExisting += pendingTemplateIds.length;
+      return false;
+    }
+
+    /*
+     * Everything below here costs the run something — a monitor budget slot, a
+     * per-device search of the unindexed monitor step payload, a create round
+     * trip. None of it is worth spending on work this run has already proved
+     * cannot succeed, so the two systemic verdicts are settled next: a
+     * template this run could not load, and a create pipeline that has failed
+     * identically for every device it tried.
+     *
+     * Both still COUNT the monitors that are missing. "0 created, and here is
+     * why" is the answer; quietly reporting fewer missing monitors than there
+     * are would trade one confusing dialog for another.
+     */
+    const resolvableTemplateIds: Array<string> = [];
+
+    for (const templateId of pendingTemplateIds) {
+      if (
+        !data.existingMonitors.isProvisioningHalted &&
+        !data.existingMonitors.unresolvableTemplateIds.has(templateId)
+      ) {
+        resolvableTemplateIds.push(templateId);
+        continue;
+      }
+
+      /*
+       * Counted once and then settled. Marking the (device, template) key
+       * attempted is what keeps a host carried by two overlapping scans in the
+       * same run from being counted as two missing monitors — the same
+       * bookkeeping a real attempt does, for the same reason.
+       */
+      data.existingMonitors.attemptedProvisioningKeys.add(
+        NetworkDeviceAutoImportRuleEngineServiceClass.monitorProvisioningKey(
+          networkDeviceId,
+          templateId,
+        ),
+      );
+      data.result.monitorsFailed++;
+      data.result.monitorProvisioningHalted = true;
+    }
+
+    if (resolvableTemplateIds.length === 0) {
       return false;
     }
 
@@ -1385,16 +1526,29 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         networkDeviceIdString,
       )
     ) {
-      data.result.monitorsSkippedAlreadyExisting += pendingTemplateIds.length;
+      data.result.monitorsSkippedAlreadyExisting +=
+        resolvableTemplateIds.length;
       return false;
     }
 
-    for (const templateId of pendingTemplateIds) {
+    for (const templateId of resolvableTemplateIds) {
       const key: string =
         NetworkDeviceAutoImportRuleEngineServiceClass.monitorProvisioningKey(
           networkDeviceId,
           templateId,
         );
+
+      /*
+       * A create earlier in THIS device's loop can be the one that trips the
+       * systemic verdict. The rest of its templates are then in exactly the
+       * position of every device after it.
+       */
+      if (data.existingMonitors.isProvisioningHalted) {
+        data.existingMonitors.attemptedProvisioningKeys.add(key);
+        data.result.monitorsFailed++;
+        data.result.monitorProvisioningHalted = true;
+        continue;
+      }
 
       /* The race-check may have found this key after the initial snapshot. */
       if (data.existingMonitors.autoProvisionedKeys.has(key)) {
@@ -1410,18 +1564,31 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       data.existingMonitors.attemptedProvisioningKeys.add(key);
 
       /*
-       * Invalid or concurrently deleted templates are failed attempts too.
-       * Count them inside the same cap before looking up the cached template;
-       * otherwise one stale rule could walk and log an unbounded estate in a
-       * single API request or worker tick.
+       * A template the run could not load is a fault in the RULE, not in this
+       * host: the rule points at a template that has been deleted, moved to
+       * another project, or changed to a different monitor type since the rule
+       * was saved (the rule form validates all three, but only at save time).
+       * It will be just as unloadable for every other device, so the verdict is
+       * recorded once and every later host short-circuits above — instead of
+       * spending the run's whole monitor budget re-proving it, which is what
+       * turned this into "500 monitors failed, stopped at the run cap, run
+       * again to continue" in issue #3643.
        */
       const template: MonitorTemplate | undefined =
         data.monitorTemplates.get(templateId);
 
       if (!template) {
+        data.existingMonitors.unresolvableTemplateIds.add(templateId);
         data.result.monitorsFailed++;
+        data.result.monitorProvisioningHalted = true;
+        this.recordFailureReason(
+          data.result.monitorFailureReasons,
+          new Error(
+            "This rule's Monitor Template could not be loaded. It may have been deleted, moved to another project, or changed to a monitor type other than Network Device. Edit the rule and select a Network Device Monitor Template.",
+          ),
+        );
         logger.error(
-          `Auto-import: Network Device monitor template ${templateId} is missing, deleted, or not valid for project ${data.projectId.toString()}.`,
+          `Auto-import: Network Device monitor template ${templateId} is missing, deleted, or not valid for project ${data.projectId.toString()}. No monitors will be provisioned from it for the rest of this run.`,
           { projectId: data.projectId.toString() } as LogAttributes,
         );
         continue;
@@ -1449,6 +1616,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
 
         data.existingMonitors.autoProvisionedKeys.add(key);
         data.result.monitorsCreated++;
+        this.recordMonitorCreateSuccess(data.existingMonitors);
       } catch (error) {
         /*
          * The partial unique index is the final race backstop. If another
@@ -1480,19 +1648,87 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
 
           if (data.existingMonitors.autoProvisionedKeys.has(key)) {
             data.result.monitorsSkippedAlreadyExisting++;
+            /*
+             * Losing this race proves the create pipeline works — somebody
+             * else just used it — so it is not evidence of a systemic fault.
+             */
+            this.recordMonitorCreateSuccess(data.existingMonitors);
             continue;
           }
         }
 
         data.result.monitorsFailed++;
+        this.recordFailureReason(data.result.monitorFailureReasons, error);
         logger.error(
           `Auto-import: could not create monitor from template ${templateId} for Network Device ${networkDeviceId.toString()} (${data.host.ipAddress}): ${error}`,
           { projectId: data.projectId.toString() } as LogAttributes,
         );
+        this.recordMonitorCreateFailure({
+          state: data.existingMonitors,
+          result: data.result,
+          projectId: data.projectId,
+          error: error,
+        });
       }
     }
 
     return false;
+  }
+
+  /*
+   * A create succeeded (or lost a race to another writer, which proves the
+   * same thing): whatever the last failures were, they were not systemic, and
+   * this run has now seen the create pipeline work at least once.
+   */
+  private recordMonitorCreateSuccess(
+    state: ExistingMonitorProvisioningState,
+  ): void {
+    state.consecutiveCreateFailures = 0;
+    state.lastCreateFailureReason = "";
+    state.hasProvisionedAnyMonitor = true;
+  }
+
+  /*
+   * Decide whether one monitor create failure is this host's problem or the
+   * whole run's. The bar is deliberately high, because giving up early on a
+   * per-host fault would silently cost an estate its monitors — the failure
+   * this fix exists to make visible. All three must hold: the run has never
+   * created a monitor, the last MAX_CONSECUTIVE_MONITOR_CREATE_FAILURES
+   * attempts all failed, and they all failed with the SAME message.
+   */
+  private recordMonitorCreateFailure(data: {
+    state: ExistingMonitorProvisioningState;
+    result: AutoImportRuleRunResult;
+    projectId: ObjectID;
+    error: unknown;
+  }): void {
+    const reason: string = this.describeError(data.error);
+
+    if (reason && reason === data.state.lastCreateFailureReason) {
+      data.state.consecutiveCreateFailures++;
+    } else {
+      data.state.lastCreateFailureReason = reason;
+      data.state.consecutiveCreateFailures = 1;
+    }
+
+    if (data.state.hasProvisionedAnyMonitor) {
+      return;
+    }
+
+    if (
+      data.state.consecutiveCreateFailures <
+      MAX_CONSECUTIVE_MONITOR_CREATE_FAILURES
+    ) {
+      return;
+    }
+
+    data.state.isProvisioningHalted = true;
+    data.result.monitorProvisioningHalted = true;
+
+    logger.error(
+      `Auto-import: ${MAX_CONSECUTIVE_MONITOR_CREATE_FAILURES} Network Device monitor creates failed identically for project ${data.projectId.toString()} with none succeeding ("${reason}"). Treating this as a systemic failure and provisioning no further monitors this run.`,
+      { projectId: data.projectId.toString() } as LogAttributes,
+    );
   }
 
   /*
@@ -1577,6 +1813,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         createdDevice = await attemptCreate(buildFallbackDeviceName(data.host));
       } catch (secondError) {
         data.result.devicesFailed++;
+        this.recordFailureReason(data.result.deviceFailureReasons, secondError);
         logger.error(
           `Auto-import: could not create a device for ${data.host.ipAddress} (scan ${data.scan.id?.toString()}): ${firstError} / retry: ${secondError}`,
           { projectId: data.projectId.toString() } as LogAttributes,
