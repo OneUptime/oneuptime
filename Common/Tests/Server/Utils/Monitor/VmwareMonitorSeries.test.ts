@@ -1,4 +1,6 @@
-import VmwareMonitorSeries from "../../../../Server/Utils/Monitor/VmwareMonitorSeries";
+import VmwareMonitorSeries, { VmwareSeriesResult } from "../../../../Server/Utils/Monitor/VmwareMonitorSeries";
+import { JSONObject } from "../../../../Types/JSON";
+import AggregateModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import VMwareResource from "../../../../Models/DatabaseModels/VMwareResource";
 import VMwareSource from "../../../../Models/DatabaseModels/VMwareSource";
 import MonitorStepVmwareMonitor, {
@@ -51,7 +53,7 @@ function config(
   });
 }
 function series(r: VMwareResource, value: number): MetricSeriesResult {
-  const labels = VmwareMonitorSeries.labels("vc-a", r);
+  const labels: JSONObject = VmwareMonitorSeries.labels("vc-a", r);
   return {
     labels,
     fingerprint: MetricSeriesFingerprint.computeFingerprint(labels),
@@ -64,7 +66,7 @@ function series(r: VMwareResource, value: number): MetricSeriesResult {
 describe("VMware snapshot policy and identity", () => {
   test("source identifiers isolate equal VM ids and display names do not affect identity", () => {
     const r: VMwareResource = resource();
-    const before = VmwareMonitorSeries.labels("vc-a", r);
+    const before: JSONObject = VmwareMonitorSeries.labels("vc-a", r);
     r.name = "Renamed";
     r.metadata = { [prefix + "parent.id"]: "host-new" };
     expect(VmwareMonitorSeries.labels("vc-a", r)).toEqual(before);
@@ -72,7 +74,7 @@ describe("VMware snapshot policy and identity", () => {
   });
   test.each([0, 1, 95])("preserves real CPU sample %s", (value: number) => {
     const r: VMwareResource = resource();
-    const result = VmwareMonitorSeries.apply({
+    const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
       config: config(),
       source: source(),
       resources: [r],
@@ -85,7 +87,7 @@ describe("VMware snapshot policy and identity", () => {
   test("keeps a missing CPU series unknown while another VM recovers", () => {
     const a: VMwareResource = resource("a");
     const b: VMwareResource = resource("b");
-    const result = VmwareMonitorSeries.apply({
+    const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
       config: config(),
       source: source(),
       resources: [a, b],
@@ -96,7 +98,7 @@ describe("VMware snapshot policy and identity", () => {
       series(a, 0).fingerprint,
     ]);
     expect(
-      result.series.find((s) => s.fingerprint === series(a, 0).fingerprint)!
+      result.series.find((s: MetricSeriesResult) => {return s.fingerprint === series(a, 0).fingerprint})!
         .aggregatedResults[0]!.data,
     ).toEqual([]);
   });
@@ -114,7 +116,7 @@ describe("VMware snapshot policy and identity", () => {
       if (state === "stale") {
         s.lastCollectionAt = new Date(now.getTime() - 361000);
       }
-      const result = VmwareMonitorSeries.apply({
+      const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
         config: config("resource.observed"),
         source: s,
         resources: [r],
@@ -127,17 +129,20 @@ describe("VMware snapshot policy and identity", () => {
       ]);
     },
   );
-  test("detects a resource absent from a healthy source, without claiming VM power failure", () => {
+  test("holds a stale resource unknown when source health arrived without its resource batch", () => {
     const r: VMwareResource = resource();
     r.lastReportedAt = new Date(now.getTime() - 361000);
-    const result = VmwareMonitorSeries.apply({
+    const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
       config: config("resource.observed"),
       source: source(),
       resources: [r],
       series: [],
       now,
     });
-    expect(result.series[0]!.aggregatedResults[0]!.data[0]!.value).toBe(0);
+    expect(result.series[0]!.aggregatedResults[0]!.data).toEqual([]);
+    expect(result.unavailableSeriesFingerprints).toEqual([
+      series(r, 0).fingerprint,
+    ]);
     expect(
       VmwareMonitorSeries.apply({
         config: config("vm.unexpected_power_off"),
@@ -151,7 +156,7 @@ describe("VMware snapshot policy and identity", () => {
   test("explicit missing observation remains absent even though the companion is still reporting it", () => {
     const r: VMwareResource = resource();
     r.metrics![prefix + "resource.observed"] = 0;
-    const result = VmwareMonitorSeries.apply({
+    const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
       config: config("resource.observed"),
       source: source(),
       resources: [r],
@@ -167,7 +172,7 @@ describe("VMware snapshot policy and identity", () => {
   ])("unknown %s never affirms recovery", (metric: string) => {
     const r: VMwareResource = resource();
     r.metrics![prefix + metric] = 0;
-    const result = VmwareMonitorSeries.apply({
+    const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
       config: config(metric),
       source: source(),
       resources: [r],
@@ -183,7 +188,7 @@ describe("VMware snapshot policy and identity", () => {
       const r: VMwareResource = resource();
       r.expectedRunning = expectedRunning;
       r.metrics![prefix + "resource.power_state"] = 2;
-      const result = VmwareMonitorSeries.apply({
+      const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
         config: config("vm.unexpected_power_off"),
         source: source(),
         resources: [r],
@@ -199,7 +204,7 @@ describe("VMware snapshot policy and identity", () => {
     const r: VMwareResource = resource();
     r.expectedRunning = true;
     r.metrics![prefix + "resource.power_state"] = 0;
-    const result = VmwareMonitorSeries.apply({
+    const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
       config: config("vm.unexpected_power_off"),
       source: source(),
       resources: [r],
@@ -214,7 +219,7 @@ describe("VMware snapshot policy and identity", () => {
       const r: VMwareResource = resource();
       Object.assign(r, { maintenanceMode: override });
       r.metrics![prefix + "host.maintenance"] = 1;
-      const result = VmwareMonitorSeries.apply({
+      const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
         config: config(),
         source: source(),
         resources: [r],
@@ -231,7 +236,7 @@ describe("VMware snapshot policy and identity", () => {
     r.maintenanceMode = false;
     r.metrics![prefix + "host.maintenance"] = 1;
     r.metrics![prefix + "resource.connection_state"] = 3;
-    const result = VmwareMonitorSeries.apply({
+    const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
       config: config("host.unavailable"),
       source: source(),
       resources: [r],
@@ -260,7 +265,7 @@ describe("VMware snapshot policy and identity", () => {
   test("source no-data yields one expected source series", () => {
     const s: VMwareSource = source();
     s.lastCollectionAt = undefined;
-    const result = VmwareMonitorSeries.apply({
+    const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
       config: config("source.up"),
       source: s,
       resources: [],
@@ -273,21 +278,21 @@ describe("VMware snapshot policy and identity", () => {
   test("metadata filters limit synthetic missing-resource signals to selected inventory", () => {
     const a: VMwareResource = resource("a");
     a.metadata = { [prefix + "cluster.name"]: "production" };
-    a.lastReportedAt = undefined;
+    a.metrics![prefix + "resource.observed"] = 0;
     const b: VMwareResource = resource("b");
     b.metadata = { [prefix + "cluster.name"]: "development" };
-    b.lastReportedAt = undefined;
+    b.metrics![prefix + "resource.observed"] = 0;
     const c: MonitorStepVmwareMonitor = config("resource.observed");
     c.metricViewConfig.queryConfigs[0]!.metricQueryData.filterData.attributes =
       { ["resource." + prefix + "cluster.name"]: "production" };
-    const result = VmwareMonitorSeries.apply({
+    const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
       config: c,
       source: source(),
       resources: [a, b],
       series: [],
       now,
     });
-    expect(result.series.map((item) => item.fingerprint)).toEqual([
+    expect(result.series.map((item: MetricSeriesResult) => {return item.fingerprint})).toEqual([
       series(a, 0).fingerprint,
     ]);
   });
@@ -312,7 +317,7 @@ describe("VMware snapshot policy and identity", () => {
     const c: MonitorStepVmwareMonitor = config();
     c.metricViewConfig.queryConfigs[0]!.metricQueryData.filterData.attributes =
       { ["resource." + prefix + "source.id"]: "old-source" };
-    const result = VmwareMonitorSeries.apply({
+    const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
       config: c,
       source: source(),
       resources: [r],
@@ -324,7 +329,7 @@ describe("VMware snapshot policy and identity", () => {
   });
   test("a series preceding inventory is held unknown until policy can be applied", () => {
     const r: VMwareResource = resource();
-    const result = VmwareMonitorSeries.apply({
+    const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
       config: config(),
       source: source(),
       resources: [],
@@ -344,7 +349,7 @@ describe("VMware latest snapshot authority", () => {
     (metric: string) => {
       const r: VMwareResource = resource();
       delete r.metrics![prefix + metric];
-      const result = VmwareMonitorSeries.apply({
+      const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
         config: config(metric),
         source: source(),
         resources: [r],
@@ -381,7 +386,7 @@ describe("VMware latest snapshot authority", () => {
   test("a missing latest source health metric cannot recover from an older healthy row", () => {
     const s: VMwareSource = source();
     delete s.metrics![prefix + "source.inventory.complete"];
-    const result = VmwareMonitorSeries.apply({
+    const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
       config: config("source.inventory.complete"),
       source: s,
       resources: [],
@@ -396,7 +401,7 @@ it("keeps a healthy hourly source current between polls beyond a five-minute que
   const s: VMwareSource = source();
   s.collectionIntervalSeconds = 3600;
   s.lastCollectionAt = new Date(now.getTime() - 10 * 60 * 1000);
-  const result = VmwareMonitorSeries.apply({
+  const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
     config: config("source.up"),
     source: s,
     resources: [],
@@ -420,4 +425,25 @@ it("keeps a healthy hourly source current between polls beyond a five-minute que
       now,
     }).series[0]!.aggregatedResults[0]!.data,
   ).toEqual([]);
+});
+
+it("dropping one resource OTLP batch cannot fabricate disappearance while other batches arrive", () => {
+  const delayed: VMwareResource = resource("delayed");
+  delayed.lastReportedAt = new Date(now.getTime() - 361000);
+  const delivered: VMwareResource = resource("delivered");
+  const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
+    config: config("resource.observed"),
+    source: source(),
+    resources: [delayed, delivered],
+    series: [series(delivered, 1)],
+    now,
+  });
+  expect(result.unavailableSeriesFingerprints).toEqual([
+    series(delayed, 1).fingerprint,
+  ]);
+  expect(
+    result.series
+      .flatMap((item: MetricSeriesResult) => {return item.aggregatedResults[0]!.data})
+      .map((point: AggregateModel) => {return point.value}),
+  ).toEqual([1]);
 });

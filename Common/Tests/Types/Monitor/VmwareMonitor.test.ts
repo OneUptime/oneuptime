@@ -191,7 +191,7 @@ describe("VMware alert catalog", () => {
       expect(
         names.has(
           input.metricViewConfig.queryConfigs[0]!.metricQueryData.filterData
-            .metricName,
+            .metricName as string,
         ),
       ).toBe(true);
       expect(input.rollingTime).toBe(RollingTime.Past5Minutes);

@@ -2,6 +2,8 @@ jest.mock("isolated-vm", () => {
   return {};
 });
 
+import MonitorStatusService from "../../../../Server/Services/MonitorStatusService";
+import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
 import AggregateModel from "../../../../Types/BaseDatabase/AggregatedModel";
@@ -25,6 +27,10 @@ interface SeriesInput {
   recoveryValues?: Array<number>;
 }
 
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 interface Evaluation {
   data: MetricMonitorResponse;
   response: ProbeApiIngestResponse;
@@ -36,8 +42,14 @@ async function evaluate(input: {
   series: Array<SeriesInput>;
   disableHealthy?: boolean;
   monitorType?: MonitorType;
+  quietNonOperational?: boolean;
 }): Promise<Evaluation> {
   const id: ObjectID = ObjectID.generate();
+  const operationalStatus: MonitorStatus = new MonitorStatus();
+  operationalStatus.id = id;
+  jest
+    .spyOn(MonitorStatusService, "findBy")
+    .mockResolvedValue([operationalStatus]);
   const step: MonitorStep = getVmwareAlertTemplateById(
     input.template,
   )!.getMonitorStep({
@@ -51,6 +63,10 @@ async function evaluate(input: {
   if (input.disableHealthy) {
     step.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[1]!.data!.isEnabled =
       false;
+  }
+  if (input.quietNonOperational) {
+    step.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[1]!.data!.monitorStatusId =
+      ObjectID.generate();
   }
   const monitor: Monitor = new Monitor();
   monitor._id = id.toString();
@@ -82,11 +98,11 @@ async function evaluate(input: {
                 : series.values;
             return {
               data: values.map(
-                (value: number): AggregateModel => ({
+                (value: number): AggregateModel => {return {
                   timestamp: new Date(),
                   value,
                   attributes: labels,
-                }),
+                }},
               ),
             };
           },
@@ -95,11 +111,11 @@ async function evaluate(input: {
     }),
   };
   data.metricResult = metricViewConfig.queryConfigs.map(
-    (_query: MetricQueryConfigData, index: number): AggregatedResult => ({
+    (_query: MetricQueryConfigData, index: number): AggregatedResult => {return {
       data: data.seriesBreakdown!.flatMap(
-        (series: MetricSeriesResult) => series.aggregatedResults[index]!.data,
+        (series: MetricSeriesResult) => {return series.aggregatedResults[index]!.data},
       ),
-    }),
+    }},
   );
   const summary: MonitorEvaluationSummary = {
     criteriaResults: [],
@@ -130,7 +146,7 @@ describe("VMware affirmative recovery through the actual criteria evaluator", ()
     expect(result.response.matchedCriteria).toHaveLength(2);
     expect(
       result.response.matchedCriteria![0]!.perSeriesMatches.map(
-        (match: PerSeriesCriteriaMatch) => match.fingerprint,
+        (match: PerSeriesCriteriaMatch) => {return match.fingerprint},
       ),
     ).toEqual(["breaching"]);
   });
@@ -195,4 +211,20 @@ it("does not mistake a low sample within a high-utilization bucket for recovery"
   });
   expect(result.data.recoveredSeriesFingerprints).toEqual([]);
   expect(result.response.matchedCriteria).toEqual([]);
+});
+
+it("quiet non-operational criteria do not count as recovery and status lookup stays project-scoped", async () => {
+  const result: Evaluation = await evaluate({
+    template: "vmware-datastore-capacity",
+    quietNonOperational: true,
+    series: [{ id: "resource", values: [80] }],
+  });
+  expect(result.data.recoveredSeriesFingerprints).toEqual([]);
+  expect(MonitorStatusService.findBy).toHaveBeenCalledTimes(1);
+  expect(MonitorStatusService.findBy).toHaveBeenCalledWith(
+    expect.objectContaining({
+      query: { projectId: result.data.projectId, isOperationalState: true },
+    }),
+  );
+  jest.restoreAllMocks();
 });

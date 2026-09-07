@@ -102,10 +102,10 @@ export default class VmwareMonitorSeries {
       input.source.collectionIntervalSeconds || 120,
     );
     const existing: Map<string, MetricSeriesResult> = new Map(
-      input.series.map((series: MetricSeriesResult) => [
+      input.series.map((series: MetricSeriesResult) => {return [
         series.fingerprint,
         series,
-      ]),
+      ]}),
     );
     const result: VmwareSeriesResult = {
       series: [],
@@ -136,7 +136,7 @@ export default class VmwareMonitorSeries {
       const selected: boolean =
         input.config.metricViewConfig.queryConfigs.every(
           (query: MetricQueryConfigData) =>
-            Object.entries(
+            {return Object.entries(
               query.metricQueryData.filterData.attributes || {},
             ).every(([key, value]: [string, unknown]) => {
               // These filters are rebuilt from the authoritative selection before SQL
@@ -155,7 +155,7 @@ export default class VmwareMonitorSeries {
               return actual !== undefined
                 ? String(actual) === String(value)
                 : existing.has(fingerprint);
-            }),
+            })},
         );
       if (!selected) {
         continue;
@@ -186,11 +186,12 @@ export default class VmwareMonitorSeries {
             if (!sourceHealthy || inMaintenance) {
               return { data: [] };
             }
-            // One explicitly expected entity disappearing is visible even while the
-            // rest of the source keeps reporting. Never use absent CPU as its signal.
+            // An explicit missing observation from a current collection is evidence
+            // of disappearance. A delayed resource batch is only unknown.
             if (
               name === "oneuptime.vmware.resource.observed" &&
-              (!reportFresh || metrics[name] === 0)
+              reportFresh &&
+              metrics[name] === 0
             ) {
               return {
                 data: [{ timestamp: input.now, value: 0, attributes: labels }],
@@ -280,9 +281,9 @@ export default class VmwareMonitorSeries {
     // evaluated without lifecycle/policy information. Never drop their guards.
     const known: Set<string> = new Set(
       input.resources.map((resource: VMwareResource) =>
-        MetricSeriesFingerprint.computeFingerprint(
+        {return MetricSeriesFingerprint.computeFingerprint(
           this.labels(input.config.sourceIdentifier, resource),
-        ),
+        )},
       ),
     );
     for (const series of input.series) {
