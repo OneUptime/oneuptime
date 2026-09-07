@@ -1,10 +1,12 @@
 import {
   PROBE_DISCOVERY_PROGRESS_INTERVAL_IN_MS,
+  PROBE_DISCOVERY_MAX_CONCURRENT_SCANS,
   PROBE_DISCOVERY_SCAN_CONCURRENCY,
   PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS,
   PROBE_INGEST_URL,
 } from "../../Config";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
+import DiscoveryScanScheduler from "../../Utils/Discovery/DiscoveryScanScheduler";
 import SubnetScanner, {
   DiscoveredHost,
   type SubnetScanConfig,
@@ -18,6 +20,7 @@ import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONArray } from "Common/Types/JSON";
+import { VoidFunction } from "Common/Types/FunctionTypes";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
@@ -592,18 +595,21 @@ export class ScanProgressReporter {
   }
 }
 
-/*
- * node-cron fires every tick regardless of whether the previous run
- * finished. A subnet sweep legitimately runs for many minutes (up to 4096
- * hosts), and a slow/unresponsive server can hang the list fetch itself —
- * either way, without this guard every subsequent tick stacks another
- * request/sweep on top of the stuck one. One discovery cycle at a time.
- */
-let isDiscoveryRunInProgress: boolean = false;
+let discoveryScanScheduler: DiscoveryScanScheduler = new DiscoveryScanScheduler(
+  {
+    maxConcurrentScans: PROBE_DISCOVERY_MAX_CONCURRENT_SCANS,
+    fetchScans: fetchScans,
+    runScan: runScan,
+  },
+);
 
 // Exported for tests: lets a wedged-state test reset between cases.
 export function resetDiscoveryRunInProgress(): void {
-  isDiscoveryRunInProgress = false;
+  discoveryScanScheduler = new DiscoveryScanScheduler({
+    maxConcurrentScans: PROBE_DISCOVERY_MAX_CONCURRENT_SCANS,
+    fetchScans: fetchScans,
+    runScan: runScan,
+  });
 }
 
 const InitJob: VoidFunction = (): void => {
@@ -614,22 +620,11 @@ const InitJob: VoidFunction = (): void => {
       runOnStartup: true,
     },
     runFunction: async () => {
-      if (isDiscoveryRunInProgress) {
-        logger.debug(
-          "Previous discovery scan run is still in progress. Skipping this tick.",
-        );
-        return;
-      }
-
-      isDiscoveryRunInProgress = true;
-
       try {
         await fetchAndRunScans();
       } catch (err) {
         logger.error("Discovery scan fetch failed");
         logger.error(err);
-      } finally {
-        isDiscoveryRunInProgress = false;
       }
     },
   });
@@ -670,16 +665,11 @@ export function getRejectionReason(
  * Mirrors probeMonitorWithDeadline in Jobs/Monitor/FetchList.ts, and exists
  * for the same reason: Promise.race subscribes to both promises, so a sweep
  * that settles late is still observed and can never surface as an unhandled
- * rejection, and nothing here can cancel the sweep — the point is that the
- * discovery CYCLE stops waiting on it.
- *
- * That matters more here than it does for a monitor. The discovery cron holds
- * a process-lifetime single-flight guard across the whole cycle, so a sweep
- * that never settles does not cost one cycle: it stops discovery on this
- * probe permanently, and every scan queued behind it stays "Pending" until
- * the container is restarted. Rejecting on the deadline drops into runScan's
- * existing catch, which reports the scan Failed with this reason, so the
- * operator gets a sentence instead of a row that never changes.
+ * rejection, and nothing here can cancel the sweep — the scheduler stops
+ * waiting on it and can reclaim the slot after the failure report. Rejecting
+ * on the deadline drops into runScan's existing catch, which reports the scan
+ * Failed with this reason. Without a deadline, enough wedged sweeps could
+ * occupy every slot permanently and leave later scans Pending.
  */
 export async function scanWithDeadline(
   config: SubnetScanConfig,
@@ -766,6 +756,12 @@ export async function scanWithDeadline(
 
 // Exported for tests: this is the probe's half of the discovery lifecycle.
 export async function fetchAndRunScans(): Promise<void> {
+  await discoveryScanScheduler.run();
+}
+
+async function fetchScans(
+  excludeScanIds: Array<string>,
+): Promise<Array<NetworkDeviceDiscoveryScan>> {
   const listUrl: URL = URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
     "/probe/discovery-scan/list",
   );
@@ -776,6 +772,7 @@ export async function fetchAndRunScans(): Promise<void> {
       url: listUrl,
       data: {
         ...ProbeAPIRequest.getDefaultRequestBody(),
+        excludeScanIds: excludeScanIds,
       },
       headers: {},
       options: ProbeAPIRequest.getDefaultRequestOptions(listUrl),
@@ -799,7 +796,7 @@ export async function fetchAndRunScans(): Promise<void> {
         `No scan on this probe can leave "Pending" until that is resolved.`,
     );
 
-    return;
+    return [];
   }
 
   /*
@@ -814,17 +811,13 @@ export async function fetchAndRunScans(): Promise<void> {
         `Something between this probe and the server is answering for it — check PROBE_INGEST_URL and any proxy in front of it.`,
     );
 
-    return;
+    return [];
   }
 
-  const scans: Array<NetworkDeviceDiscoveryScan> = BaseModel.fromJSONArray(
+  return BaseModel.fromJSONArray(
     result.data as JSONArray,
     NetworkDeviceDiscoveryScan,
   );
-
-  for (const scan of scans) {
-    await runScan(scan);
-  }
 }
 
 // Exported for tests: sweeps one scan and reports the outcome back.

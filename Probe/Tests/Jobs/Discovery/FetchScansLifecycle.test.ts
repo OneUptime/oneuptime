@@ -695,10 +695,12 @@ describe("runScan — failures are reported, never swallowed", () => {
   });
 
   test("one scan failing does not stop the next scan in the batch", async () => {
+    const failedScanId: string = ObjectID.generate().toString();
+    const successfulScanId: string = ObjectID.generate().toString();
     fetchSpy.mockResolvedValueOnce({
       data: [
-        { _id: ObjectID.generate().toString(), cidr: "10.0.0.0/24" },
-        { _id: ObjectID.generate().toString(), cidr: "10.1.0.0/24" },
+        { _id: failedScanId, cidr: "10.0.0.0/24" },
+        { _id: successfulScanId, cidr: "10.1.0.0/24" },
       ],
     } as never);
     scanSpy
@@ -714,7 +716,11 @@ describe("runScan — failures are reported, never swallowed", () => {
         return call.body;
       });
     expect(resultBodies).toHaveLength(2);
-    expect(resultBodies[0]!["success"]).toBe(false);
-    expect(resultBodies[1]!["success"]).toBe(true);
+    expect(resultBodies).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ scanId: failedScanId, success: false }),
+        expect.objectContaining({ scanId: successfulScanId, success: true }),
+      ]),
+    );
   });
 });

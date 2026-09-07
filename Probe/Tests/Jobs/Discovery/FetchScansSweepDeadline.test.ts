@@ -56,17 +56,10 @@ import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverse
 /*
  * A sweep that never settles must not stop discovery forever.
  *
- * The discovery cron holds a single-flight guard for the WHOLE cycle — list
- * fetch, sweep, result upload — and clears it only in a `finally`. Both HTTP
- * calls carry a 45s deadline, but the sweep between them had none, and a
- * sweep is the part most likely to hang: it opens one ICMP child process and
- * one UDP SNMP session per address, up to 32,768 of them.
- *
- * One non-settling promise in there did not cost a cycle. It stranded the
- * guard set for the lifetime of the process, so the probe never asked for
- * another scan, and every scan afterwards sat in "Pending" until someone
- * restarted the container — with nothing anywhere in the product to say why.
- * That is the failure mode OneUptime issue #3287 describes.
+ * Each scan occupies a scheduler slot through its result upload. Both HTTP
+ * calls carry a 45s deadline, and the sweep between them needs one too so
+ * wedged sweeps cannot eventually occupy every slot forever. Before bounded
+ * scan concurrency (#3597), one such sweep blocked the entire probe (#3287).
  *
  * FetchScansGuardAndTimeout.test.ts already pins that the guard releases when
  * the FETCH fails. These pin the case it could not reach: the sweep itself.
@@ -296,7 +289,7 @@ describe("runScan — a wedged sweep is reported, not swallowed", () => {
   });
 });
 
-describe("the overlap guard survives a wedged sweep", () => {
+describe("the scheduler releases capacity after a wedged sweep", () => {
   function capturedRunFunction(): PromiseVoidFunction {
     InitJob();
     const captured: CapturedCronJob | undefined =
@@ -308,11 +301,10 @@ describe("the overlap guard survives a wedged sweep", () => {
   }
 
   /*
-   * THE regression test for issue #3287's failure mode. Before the deadline,
-   * this second tick returned immediately without fetching — and so did every
-   * tick after it, forever.
+   * Regression for issue #3287: the invocation must eventually finish even
+   * when its sweep never settles, and later ticks must still fetch work.
    */
-  test("a tick whose sweep never settles still releases the guard, so the next tick fetches again", async () => {
+  test("a tick whose sweep never settles still completes, so the next tick fetches again", async () => {
     const runFunction: PromiseVoidFunction = capturedRunFunction();
 
     fetchSpy.mockResolvedValue({

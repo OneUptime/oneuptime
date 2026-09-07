@@ -214,6 +214,9 @@ The probe supports the following environment variables:
 - `PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS` - Deadline for one network discovery sweep, after which it is abandoned and the scan is reported failed (default: 5400000, i.e. 90 minutes)
 - `PROBE_DISCOVERY_PROGRESS_INTERVAL_IN_MS` - How often a running discovery sweep uploads the hosts it has found so far, so a long scan shows progress and its devices can be imported before it finishes (default: 30000, minimum: 5000)
 - `PROBE_DISCOVERY_SCAN_CONCURRENCY` - Fixed number of addresses a discovery sweep probes at once. Leave unset (or 0) to size it from the scan's target, which is what you want unless the probe container is unusually small or unusually large (default: 0)
+- `PROBE_DISCOVERY_MAX_CONCURRENT_SCANS` - Maximum independent discovery scans running on this probe at once (default: 4, range: 1–16). The probe checks for another pending scan every minute while capacity is available, so a long scan does not block all other scans. When all slots are occupied, additional scans remain pending until a slot is free. Each scan has its own host concurrency, so resource usage grows with both settings; lower either limit for small containers. Set this to 1 to run scans sequentially.
+
+Upgrade the OneUptime server before upgrading custom probes to use concurrent discovery. The server must support excluding scans that the probe is still running, so editing a running scan safely queues its new configuration. When connecting an updated probe to an older server, set `PROBE_DISCOVERY_MAX_CONCURRENT_SCANS=1` until the server is upgraded.
 
 #### Proxy Configuration
 

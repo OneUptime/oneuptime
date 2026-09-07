@@ -228,12 +228,10 @@ export async function explainUnclaimedScans(): Promise<void> {
   }
 
   /*
-   * A probe runs one sweep at a time (the claim endpoint's `limit: 1`), so
-   * every other scan assigned to a probe that is mid-sweep is legitimately
-   * queued — for as long as that sweep takes, which at the scan-size ceiling
-   * is the better part of an hour. Reporting those as unclaimed would turn
-   * normal queueing into an alarm, so a probe with work in flight is skipped
-   * entirely.
+   * A probe has a configurable limit on simultaneous scans; older probes
+   * run one at a time. Pending work may legitimately be waiting for capacity,
+   * which this worker cannot observe. Skip probes with work in flight so
+   * normal queueing is not reported as a failure to claim scans.
    */
   const busyScans: Array<NetworkDeviceDiscoveryScan> =
     await NetworkDeviceDiscoveryScanService.findAllBy({
