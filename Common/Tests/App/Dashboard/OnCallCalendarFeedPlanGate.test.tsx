@@ -341,6 +341,69 @@ describe("PersonalCalendarFeedCard below the plan", () => {
     ).toHaveAttribute("href", billingRoute.toString());
   });
 
+  /*
+   * The gate takes the button's PLACE - it is not an extra notice tacked on
+   * somewhere else. Rendering it in the empty panel's action slot is what
+   * makes the reader's eye land on the reason exactly where they went looking
+   * for the button, and it keeps the panel's shape identical on both plans.
+   */
+  test("the upgrade notice sits in the empty panel's action slot", async () => {
+    getMock.mockResolvedValue(ok(EMPTY_STATUS_JSON));
+
+    render(
+      <PersonalCalendarFeedCard
+        variant={PersonalCalendarFeedVariant.Full}
+        now={NOW}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("personal-calendar-feed-empty-state"),
+      ).toBeInTheDocument();
+    });
+
+    const control: HTMLElement = screen.getByTestId(
+      "personal-calendar-feed-empty-control",
+    );
+
+    expect(control).toContainElement(
+      screen.getByTestId("personal-calendar-feed-plan-gate"),
+    );
+    // And the panel still explains the feature that the plan is withholding.
+    expect(
+      screen.getByTestId("personal-calendar-feed-empty-points"),
+    ).toBeInTheDocument();
+  });
+
+  test("the same holds for the shared link's Publish button", async () => {
+    getMock.mockResolvedValue(ok(EMPTY_STATUS_JSON));
+
+    render(
+      <SharedCalendarFeedCard
+        kind={SharedCalendarFeedKind.Schedule}
+        scheduleId={SCHEDULE_ID}
+        scheduleTimezone="Europe/Stockholm"
+        now={NOW}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("schedule-shared-calendar-feed-empty-state"),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByTestId("schedule-shared-calendar-feed-empty-control"),
+    ).toContainElement(
+      screen.getByTestId("schedule-shared-calendar-feed-plan-gate"),
+    );
+    expect(
+      screen.queryByTestId("schedule-shared-calendar-feed-publish"),
+    ).not.toBeInTheDocument();
+  });
+
   test("an existing (downgraded) feed explains itself and hides the settings card", async () => {
     getMock.mockResolvedValue(ok(ACTIVE_STATUS_JSON));
 

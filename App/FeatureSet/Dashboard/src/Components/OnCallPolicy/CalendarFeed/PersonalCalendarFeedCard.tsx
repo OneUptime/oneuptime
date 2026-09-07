@@ -6,6 +6,11 @@ import { FeedStatus } from "./CalendarFeedTypes";
 import {
   DISABLED_FEED_COPY,
   PERSONAL_FEED_CURRENT_PATH,
+  PERSONAL_FEED_EMPTY_DESCRIPTION,
+  PERSONAL_FEED_EMPTY_POINT_COVERING,
+  PERSONAL_FEED_EMPTY_POINT_PRIVATE,
+  PERSONAL_FEED_EMPTY_POINT_SHIFTS,
+  PERSONAL_FEED_EMPTY_TITLE,
   PERSONAL_FEED_ROTATE_PATH,
   PERSONAL_PREVIOUS_LINK_COPY,
   PLANNING_NOT_AUDIT_COPY,
@@ -13,6 +18,7 @@ import {
   translateInterpolated,
 } from "./CalendarFeedUtil";
 import FeedDeploymentWarnings from "./FeedDeploymentWarnings";
+import FeedEmptyState, { FeedEmptyStatePoint } from "./FeedEmptyState";
 import FeedStatusLine from "./FeedStatusLine";
 import CalendarFeedLinks from "../CalendarFeedLinks";
 import PageMap from "../../../Utils/PageMap";
@@ -235,6 +241,28 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
     planGate
   );
 
+  /*
+   * What the reader is actually deciding about: two lines of "what lands in
+   * my calendar" and one that says the URL is the credential. The last is a
+   * lock rather than a tick because it is a caution, not a feature.
+   */
+  const emptyStatePoints: Array<FeedEmptyStatePoint> = [
+    {
+      icon: IconProp.Check,
+      iconClassName: "text-indigo-600",
+      text: PERSONAL_FEED_EMPTY_POINT_SHIFTS,
+    },
+    {
+      icon: IconProp.Check,
+      iconClassName: "text-indigo-600",
+      text: PERSONAL_FEED_EMPTY_POINT_COVERING,
+    },
+    {
+      icon: IconProp.Lock,
+      text: PERSONAL_FEED_EMPTY_POINT_PRIVATE,
+    },
+  ];
+
   /* ---------- schedule variant ---------- */
 
   if (!isFull) {
@@ -284,15 +312,18 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
         />
       );
     } else {
+      /*
+       * The same panel as the settings page, without the bullets: this is one
+       * half of a card on somebody else's page, and the three lines of
+       * "what's in it" belong where the reader went looking for the feature.
+       */
       body = (
-        <div className="space-y-2">
-          <div className="text-sm text-gray-500">
-            {translateString(
-              "You do not have a calendar link yet. Generate one to subscribe to your shifts.",
-            )}
-          </div>
-          {generateControl}
-        </div>
+        <FeedEmptyState
+          idPrefix={idPrefix}
+          title={PERSONAL_FEED_EMPTY_TITLE}
+          description={PERSONAL_FEED_EMPTY_DESCRIPTION}
+          control={generateControl}
+        />
       );
     }
 
@@ -378,23 +409,25 @@ const PersonalCalendarFeedCard: FunctionComponent<ComponentProps> = (
     );
   } else if (!status.exists) {
     body = (
-      <div className="space-y-3" data-testid={`${idPrefix}-empty`}>
+      <div className="space-y-4" data-testid={`${idPrefix}-empty`}>
         {error && <ErrorMessage message={error} />}
-        <div className="text-sm text-gray-600">
-          {translateString(
-            "Generate a private link, then subscribe to it from your calendar app. The link shows every shift you hold on this project's schedules, including shifts you cover for someone else.",
-          )}
-        </div>
         {/*
-         * The server sends these even with no feed, and they say the link will
-         * be unreachable or unencrypted - worth knowing before minting one.
+         * Above the panel, not inside it. The server sends these even with no
+         * feed, and they say the link will be unreachable or unencrypted -
+         * worth reading before the click, not after it.
          */}
         <FeedDeploymentWarnings
           hostWarning={status.hostWarning}
           protocolWarning={status.protocolWarning}
           idPrefix={idPrefix}
         />
-        {generateControl}
+        <FeedEmptyState
+          idPrefix={idPrefix}
+          title={PERSONAL_FEED_EMPTY_TITLE}
+          description={PERSONAL_FEED_EMPTY_DESCRIPTION}
+          points={emptyStatePoints}
+          control={generateControl}
+        />
       </div>
     );
   } else {

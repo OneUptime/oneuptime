@@ -108,6 +108,34 @@ export const SHARED_PREVIOUS_LINK_COPY: string =
 export const DISABLED_FEED_COPY: string =
   "This link is disabled. Anyone subscribed sees an empty calendar until it is enabled again.";
 
+/*
+ * The empty states, before any link exists.
+ *
+ * Split into a title, a one-line lead and three bullets rather than the one
+ * long sentence they replaced: this is the moment the reader decides whether
+ * to subscribe, and "what is in it" and "who can read it" are two different
+ * questions that a single paragraph made them separate for themselves. The
+ * privacy line is deliberately blunt - the URL is the credential, and a
+ * reader who learns that only after pasting it into a shared calendar has
+ * learned it too late.
+ */
+export const PERSONAL_FEED_EMPTY_TITLE: string = "No calendar link yet";
+
+export const PERSONAL_FEED_EMPTY_DESCRIPTION: string =
+  "Generate a private link, then subscribe to it from your calendar app.";
+
+export const PERSONAL_FEED_EMPTY_POINT_SHIFTS: string =
+  "Every shift you hold on this project's schedules.";
+
+export const PERSONAL_FEED_EMPTY_POINT_COVERING: string =
+  "Shifts you cover for someone else, when an override names you.";
+
+export const PERSONAL_FEED_EMPTY_POINT_PRIVATE: string =
+  "Private to you. Anyone who has the link can read your shifts, so treat it like a password.";
+
+/** The shared feed's equivalent; its lead says who the link is for. */
+export const SHARED_FEED_EMPTY_TITLE: string = "No shared link yet";
+
 export const COVERAGE_GAPS_DESCRIPTION: string =
   "Adds an event for every stretch where the schedule intends coverage but nobody is on call. Off-hours outside every layer's active time are never counted as a gap.";
 

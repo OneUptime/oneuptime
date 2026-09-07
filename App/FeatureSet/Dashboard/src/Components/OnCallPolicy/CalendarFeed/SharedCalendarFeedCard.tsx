@@ -10,6 +10,7 @@ import {
   PROJECT_FEED_PUBLISH_PATH,
   PROJECT_FEED_ROTATE_PATH,
   REGENERATE_WARNING_COPY,
+  SHARED_FEED_EMPTY_TITLE,
   SHARED_LINK_OWNERSHIP_COPY,
   SHARED_PREVIOUS_LINK_COPY,
   getScheduleFeedCurrentPath,
@@ -18,6 +19,7 @@ import {
   translateInterpolated,
 } from "./CalendarFeedUtil";
 import FeedDeploymentWarnings from "./FeedDeploymentWarnings";
+import FeedEmptyState from "./FeedEmptyState";
 import FeedStatusLine from "./FeedStatusLine";
 import CalendarFeedLinks from "../CalendarFeedLinks";
 import OnCallDutyPolicyScheduleCalendarFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
@@ -395,25 +397,35 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
     }
 
     body = (
-      <div className="space-y-3" data-testid={`${idPrefix}-empty`}>
+      <div className="space-y-4" data-testid={`${idPrefix}-empty`}>
         {error && <ErrorMessage message={error} />}
-        <div className="text-sm text-gray-600">
-          {translateString(
-            isSchedule
-              ? "No shared link has been published for this schedule yet. Once published, anyone with the link sees everyone's shifts on it - handy for a team calendar."
-              : "No project-wide link has been published yet. Once published, anyone with the link sees every shift on every schedule in this project.",
-          )}
-        </div>
         {/*
-         * The server sends these even with no feed, and they say the link will
-         * be unreachable or unencrypted - worth knowing before publishing one.
+         * Above the panel, not inside it. The server sends these even with no
+         * feed, and they say the link will be unreachable or unencrypted -
+         * worth reading before publishing, not after it.
          */}
         <FeedDeploymentWarnings
           hostWarning={status.hostWarning}
           protocolWarning={status.protocolWarning}
           idPrefix={idPrefix}
         />
-        {publishControl}
+        {/*
+         * The same panel as the personal card, so the two halves of the
+         * schedule page's subscribe card read as one thing. No bullet list:
+         * who the shared link is for is the whole of what there is to say,
+         * and the sentence already says it.
+         */}
+        <FeedEmptyState
+          idPrefix={idPrefix}
+          icon={IconProp.Team}
+          title={SHARED_FEED_EMPTY_TITLE}
+          description={
+            isSchedule
+              ? "No shared link has been published for this schedule yet. Once published, anyone with the link sees everyone's shifts on it - handy for a team calendar."
+              : "No project-wide link has been published yet. Once published, anyone with the link sees every shift on every schedule in this project."
+          }
+          control={publishControl}
+        />
       </div>
     );
   } else {
