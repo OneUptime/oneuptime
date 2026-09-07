@@ -249,9 +249,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title={"Scheduled Maintenance Feed"}
-      description={
-        "This is the timeline and feed for this scheduled maintenance. You can see all the updates and information about this scheduled maintenance here."
-      }
+      description={"State changes, notes, and updates in one timeline."}
       buttons={[
         <MoreMenu
           key="scheduled-maintenance-feed-actions-menu"
@@ -304,12 +302,14 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
       <div>
         {isLoading && <ComponentLoader />}
         {error && <ErrorMessage message={error} />}
-        {!isLoading && !error && (
+        <div hidden={isLoading || Boolean(error)}>
           <Feed
+            key={props.scheduledMaintenanceId.toString()}
+            visibleItemLimit={6}
             items={feedItems}
             noItemsMessage="Looks like there are no items in this feed for this scheduled maintenance."
           />
-        )}
+        </div>
         {showPublicNoteModal && (
           <ModelFormModal
             modalWidth={ModalWidth.Large}

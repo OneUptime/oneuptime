@@ -9,6 +9,8 @@ import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
+  // Detail overviews provide their own visible title; retain the page h1 for navigation.
+  hideTitle?: boolean | undefined;
   title?: string | undefined;
   /*
    * Optional one-line subtitle rendered under the title. Use it to say what the
@@ -95,9 +97,13 @@ const Page: FunctionComponent<ComponentProps> = (
             </div>
           )}
           {props.title && (
-            <div className="mt-2">
+            <div className={props.hideTitle ? "" : "mt-2"}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:flex-wrap sm:gap-4">
-                <div className="flex flex-col gap-1 min-w-0">
+                <div
+                  className={
+                    props.hideTitle ? "sr-only" : "flex flex-col gap-1 min-w-0"
+                  }
+                >
                   <h1 className="text-xl font-semibold leading-7 text-gray-900 sm:text-xl sm:tracking-tight sm:truncate">
                     {translatedTitle}
                   </h1>

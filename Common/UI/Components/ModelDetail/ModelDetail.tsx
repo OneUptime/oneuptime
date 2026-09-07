@@ -2,7 +2,7 @@ import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../Utils/Permission";
 import User from "../../Utils/User";
-import Detail from "../Detail/Detail";
+import Detail, { DetailStyle } from "../Detail/Detail";
 import DetailField from "../Detail/Field";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Loader, { LoaderType } from "../Loader/Loader";
@@ -23,6 +23,7 @@ import { useAsyncEffect } from "use-async-effect";
 import Select from "../../../Types/BaseDatabase/Select";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
+  detailStyle?: DetailStyle | undefined;
   modelType: { new (): TBaseModel };
   id: string;
   fields: Array<Field<TBaseModel>>;
@@ -311,6 +312,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
       id={props.id}
       item={item}
       fields={fields}
+      style={props.detailStyle}
       showDetailsInNumberOfColumns={props.showDetailsInNumberOfColumns}
     />
   );

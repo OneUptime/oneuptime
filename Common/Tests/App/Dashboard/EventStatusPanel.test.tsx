@@ -3,6 +3,8 @@ import EventStatusPanel, {
   EventStateAction,
   EventStateItem,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventStatusPanel";
+import EventOverviewLayout from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventOverviewLayout";
+import EventStatTile from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventStatTile";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import "@testing-library/jest-dom";
 import {
@@ -593,6 +595,21 @@ describe("EventStatusPanel action-group layout", () => {
 });
 
 describe("EventStatusPanel header layouts", () => {
+  test("keeps long event titles readable without truncating the heading", () => {
+    const title: string =
+      "Recurring scheduled maintenance for the production authentication database and every dependent customer-facing service";
+    renderPanel({ title: title });
+
+    const heading: HTMLElement = screen.getByRole("heading", {
+      level: 2,
+      name: title,
+    });
+
+    expect(heading).toHaveTextContent(title);
+    expect(heading).not.toHaveClass("truncate", "whitespace-nowrap");
+    expect(heading.className).toMatch(/break-words|\[overflow-wrap:anywhere\]/);
+  });
+
   test("puts the title, identifier badge, and action group in the header layout", () => {
     renderPanel({ title: "Database connection failures" });
 
@@ -607,7 +624,7 @@ describe("EventStatusPanel header layouts", () => {
 
     expect(identifier).toHaveTextContent("INC-42");
     expect(identifier).toHaveClass("bg-gray-100", "uppercase");
-    expect(headerRow).toHaveClass("md:items-start", "md:justify-between");
+    expect(headerRow).toHaveClass("xl:items-start", "xl:justify-between");
     expect(headerRow).toContainElement(group);
     expect(headerRow).not.toContainElement(screen.getByTestId("pill"));
   });
@@ -644,6 +661,291 @@ describe("EventStatusPanel header layouts", () => {
     expect(screen.getByTestId("pill")).toHaveStyle({
       backgroundColor: "#000000",
     });
+  });
+});
+
+describe("EventStatusPanel state progression", () => {
+  test("announces state order and identifies only the current step", () => {
+    renderPanel({ currentStateId: "acknowledged" });
+
+    const progression: HTMLElement = screen.getByRole("list", {
+      name: "State progression",
+    });
+    const steps: Array<HTMLElement> =
+      within(progression).getAllByRole("listitem");
+
+    expect(progression.tagName).toBe("OL");
+    expect(steps).toHaveLength(4);
+    defaultStates().forEach((state: EventStateItem, index: number) => {
+      expect(within(steps[index]!).getByText(state.name)).toBeInTheDocument();
+    });
+    expect(steps[1]).toHaveAttribute("aria-current", "step");
+    expect(progression.querySelectorAll('[aria-current="step"]')).toHaveLength(
+      1,
+    );
+    expect(steps[0]).not.toHaveAttribute("aria-current");
+    expect(steps[2]).not.toHaveAttribute("aria-current");
+    expect(steps[3]).not.toHaveAttribute("aria-current");
+  });
+
+  test.each([undefined, "removed-state"])(
+    "does not invent current or completed steps for unknown state %s",
+    (currentStateId: string | undefined) => {
+      renderPanel({ currentStateId: currentStateId });
+
+      const progression: HTMLElement = screen.getByRole("list", {
+        name: "State progression",
+      });
+
+      expect(within(progression).getAllByRole("listitem")).toHaveLength(4);
+      expect(progression.querySelector('[aria-current="step"]')).toBeNull();
+      expect(progression.querySelector("svg")).toBeNull();
+    },
+  );
+
+  test("omits an unhelpful progress rail for a single state", () => {
+    renderPanel({ states: [makeState("created", "Created")], actions: [] });
+
+    expect(
+      screen.queryByRole("list", { name: "State progression" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Created")).toBeInTheDocument();
+  });
+
+  test("keeps private visibility explicit while actions are disabled", () => {
+    renderPanel({
+      title: "Private production incident",
+      isPrivate: true,
+      isDisabled: true,
+      currentStateId: "acknowledged",
+    });
+
+    expect(screen.getByText("Private")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Private production incident" }),
+    ).toBeInTheDocument();
+    within(getActionGroup())
+      .getAllByRole("button")
+      .forEach((button: HTMLElement) => {
+        expect(button).toBeDisabled();
+      });
+    expect(
+      screen.getByRole("list", { name: "State progression" }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("EventOverviewLayout", () => {
+  test("separates the summary, response activity, and details into named regions", () => {
+    render(
+      <EventOverviewLayout
+        header={<h2>Database latency</h2>}
+        summary={<EventStatTile label="Response time" value="2 minutes" />}
+        sidebar={<p>Platform on-call</p>}
+      >
+        <p>Investigating the connection pool</p>
+      </EventOverviewLayout>,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Database latency" }),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("region", { name: "Event summary" })).getByText(
+        "2 minutes",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(
+        screen.getByRole("region", { name: "Response activity" }),
+      ).getByText("Investigating the connection pool"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("complementary", { name: "Details" })).getByText(
+        "Platform on-call",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("supports maintenance-specific headings and activity context", () => {
+    render(
+      <EventOverviewLayout
+        header={<h2>Database upgrade</h2>}
+        summary={<p>Starts tomorrow</p>}
+        sidebar={<p>Scheduled for 30 minutes</p>}
+        activityTitle="Maintenance activity"
+        activityDescription="Updates and conversations for this maintenance window."
+        sidebarTitle="Maintenance details"
+      >
+        <p>Upgrade checklist reviewed</p>
+      </EventOverviewLayout>,
+    );
+
+    const activity: HTMLElement = screen.getByRole("region", {
+      name: "Maintenance activity",
+    });
+
+    expect(
+      within(activity).getByRole("heading", { name: "Maintenance activity" }),
+    ).toBeInTheDocument();
+    expect(
+      within(activity).getByText(
+        "Updates and conversations for this maintenance window.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(
+        screen.getByRole("complementary", { name: "Maintenance details" }),
+      ).getByText("Scheduled for 30 minutes"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Response activity" }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("provides keyboard skip links to focusable activity and details destinations", () => {
+    render(
+      <EventOverviewLayout
+        header={<h2>Production incident</h2>}
+        summary={<p>Investigating</p>}
+        sidebar={<p>Platform team</p>}
+      >
+        <p>Latest response</p>
+      </EventOverviewLayout>,
+    );
+
+    ["Skip to activity", "Skip to details"].forEach((name: string) => {
+      const link: HTMLElement = screen.getByRole("link", { name: name });
+      const href: string | null = link.getAttribute("href");
+
+      expect(href).toMatch(/^#.+/);
+      const destination: HTMLElement | null = document.getElementById(
+        href!.slice(1),
+      );
+      expect(destination).toBeInTheDocument();
+      expect(destination).toHaveAttribute("tabindex", "-1");
+    });
+  });
+
+  test("keeps region labels and skip destinations unique when multiple layouts render", () => {
+    const { container } = render(
+      <React.Fragment>
+        <EventOverviewLayout
+          header={<h2>Incident</h2>}
+          summary={<p>Incident summary</p>}
+          sidebar={<p>Incident details</p>}
+        >
+          <p>Incident response</p>
+        </EventOverviewLayout>
+        <EventOverviewLayout
+          header={<h2>Alert</h2>}
+          summary={<p>Alert summary</p>}
+          sidebar={<p>Alert details</p>}
+        >
+          <p>Alert response</p>
+        </EventOverviewLayout>
+      </React.Fragment>,
+    );
+
+    const ids: Array<string> = Array.from(
+      container.querySelectorAll<HTMLElement>("[id]"),
+    ).map((element: HTMLElement) => {
+      return element.id;
+    });
+    const destinations: Array<string | null> = screen
+      .getAllByRole("link")
+      .map((link: HTMLElement) => {
+        return link.getAttribute("href");
+      });
+
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(new Set(destinations).size).toBe(4);
+    expect(
+      screen.getAllByRole("region", { name: "Response activity" }),
+    ).toHaveLength(2);
+    expect(
+      screen.getAllByRole("complementary", { name: "Details" }),
+    ).toHaveLength(2);
+  });
+});
+
+describe("EventStatTile", () => {
+  test("associates each summary value with a semantic term and optional description", () => {
+    const { container } = render(
+      <EventStatTile
+        id="incident-response-time"
+        label="Response time"
+        value="2 minutes"
+        description="From creation to acknowledgement"
+      />,
+    );
+
+    const label: HTMLElement | null = screen
+      .getByText("Response time")
+      .closest("dt");
+    const value: HTMLElement | null = screen
+      .getByText("2 minutes")
+      .closest("dd");
+
+    expect(container.querySelector("dl")).toContainElement(label);
+    expect(container.querySelector("dl")).toContainElement(value);
+    expect(
+      screen.getByText("From creation to acknowledgement"),
+    ).toBeInTheDocument();
+    expect(document.getElementById("incident-response-time")).toContainElement(
+      value,
+    );
+  });
+
+  test("wraps long labels and values so complete timing information remains readable", () => {
+    const label: string =
+      "Total scheduled maintenance duration including verification";
+    const value: string = "2 days, 15 hours, 47 minutes, and 32 seconds";
+    render(<EventStatTile label={label} value={value} />);
+
+    const term: HTMLElement = screen
+      .getByText(label)
+      .closest("dt") as HTMLElement;
+    const definition: HTMLElement = screen
+      .getByText(value)
+      .closest("dd") as HTMLElement;
+
+    expect(term).toHaveTextContent(label);
+    expect(definition).toHaveTextContent(value);
+    expect(term).not.toHaveClass("truncate", "whitespace-nowrap");
+    expect(definition).not.toHaveClass("truncate", "whitespace-nowrap");
+    expect(definition).toHaveClass("break-words");
+  });
+
+  test("preserves interactive React values and hides decorative icons from assistive technology", () => {
+    const { container } = render(
+      <EventStatTile
+        label="Affected monitor"
+        value={<a href="/monitors/production-api">Production API</a>}
+        icon={IconProp.Clock}
+      />,
+    );
+
+    const link: HTMLElement = screen.getByRole("link", {
+      name: "Production API",
+    });
+    const icon: SVGSVGElement | null = container.querySelector("svg");
+
+    expect(link).toHaveAttribute("href", "/monitors/production-api");
+    expect(link.closest("dd")).toBeInTheDocument();
+    expect(icon).toBeInTheDocument();
+    expect(icon?.closest('[aria-hidden="true"]')).toBeInTheDocument();
+  });
+
+  test("renders a value without requiring a description or an icon", () => {
+    const { container } = render(
+      <EventStatTile label="Time to acknowledge" value="Pending" />,
+    );
+
+    expect(screen.getByText("Pending").closest("dd")).toBeInTheDocument();
+    expect(container.querySelector("svg")).toBeNull();
+    expect(container.querySelectorAll("dt")).toHaveLength(1);
+    expect(container.querySelectorAll("dd")).toHaveLength(1);
   });
 });
 

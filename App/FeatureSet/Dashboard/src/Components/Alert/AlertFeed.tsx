@@ -253,9 +253,7 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title={"Alert Feed"}
-      description={
-        "This is the timeline and feed for this alert. You can see all the updates and information about this alert here."
-      }
+      description={"State changes, notes, and updates in one timeline."}
       buttons={[
         <MoreMenu
           key="alert-feed-actions-menu"
@@ -308,11 +306,14 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
       <div>
         {(isLoading || !isCurrentFeedLoaded) && <ComponentLoader />}
         {isCurrentFeedLoaded && error && <ErrorMessage message={error} />}
-        {isCurrentFeedLoaded && !isLoading && !error && (
-          <Feed
-            items={feedItems}
-            noItemsMessage="Looks like there are no items in this feed for this alert."
-          />
+        {isCurrentFeedLoaded && (
+          <div hidden={isLoading || Boolean(error)}>
+            <Feed
+              visibleItemLimit={6}
+              items={feedItems}
+              noItemsMessage="Looks like there are no items in this feed for this alert."
+            />
+          </div>
         )}
 
         {showOnCallPolicyModal && (

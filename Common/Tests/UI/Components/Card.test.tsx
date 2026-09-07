@@ -1,4 +1,7 @@
-import { ButtonStyleType } from "../../../UI/Components/Button/Button";
+import {
+  ButtonSize,
+  ButtonStyleType,
+} from "../../../UI/Components/Button/Button";
 import Card, {
   CardButtonSchema,
   ComponentProps,
@@ -8,6 +11,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement } from "react";
 import { describe, expect, jest } from "@jest/globals";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 
 describe("Card", () => {
   const props: ComponentProps = {
@@ -105,5 +109,83 @@ describe("Card", () => {
 
     expect(childComponent).toBeInTheDocument();
     expect(childComponent.parentElement).toHaveClass("mt-4");
+  });
+
+  test("keeps the title, description, content, and actions available in compact cards", () => {
+    const onEdit: MockFunction = getJestMockFunction();
+    renderComponent({
+      title: "Affected resources",
+      description: "Services impacted by this incident",
+      compact: true,
+      children: <p>Production API</p>,
+      rightElement: <span>2 monitors</span>,
+      buttons: [
+        { title: "Edit resources", icon: IconProp.Edit, onClick: onEdit },
+      ],
+    });
+
+    const title: HTMLElement = screen.getByRole("heading", {
+      name: "Affected resources",
+    });
+    const button: HTMLElement = screen.getByRole("button", {
+      name: "Edit resources",
+    });
+
+    expect(title).toHaveClass("text-sm");
+    expect(title).not.toHaveClass("truncate", "whitespace-nowrap");
+    expect(
+      screen.getByText("Services impacted by this incident"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Production API")).toBeInTheDocument();
+    expect(screen.getByText("2 monitors")).toBeInTheDocument();
+    expect(button).toHaveClass(ButtonSize.Small);
+    fireEvent.click(button);
+    expect(onEdit).toHaveBeenCalledTimes(1);
+  });
+
+  test("honors explicitly requested action sizes in compact cards", () => {
+    renderComponent({
+      ...props,
+      compact: true,
+      buttons: [
+        {
+          title: "Edit",
+          icon: IconProp.Edit,
+          onClick: jest.fn(),
+          buttonSize: ButtonSize.Large,
+        },
+      ],
+    });
+
+    expect(screen.getByRole("button", { name: "Edit" })).toHaveClass(
+      ButtonSize.Large,
+    );
+  });
+
+  test("preserves disabled controls and their explanation in compact cards", () => {
+    const onEdit: MockFunction = getJestMockFunction();
+    renderComponent({
+      ...props,
+      compact: true,
+      buttons: [
+        {
+          title: "Edit",
+          icon: IconProp.Edit,
+          onClick: onEdit,
+          disabled: true,
+          tooltip: "Only incident owners can edit these details.",
+        },
+      ],
+    });
+
+    const button: HTMLElement = screen.getByRole("button", { name: "Edit" });
+
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(onEdit).not.toHaveBeenCalled();
+    fireEvent.mouseEnter(button.parentElement as HTMLElement);
+    expect(screen.getByRole("tooltip")).toHaveTextContent(
+      "Only incident owners can edit these details.",
+    );
   });
 });

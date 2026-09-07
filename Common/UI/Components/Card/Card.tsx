@@ -22,6 +22,7 @@ export interface CardButtonSchema {
 }
 
 export interface ComponentProps {
+  compact?: boolean | undefined;
   title?: string | ReactElement | undefined;
   description?: string | ReactElement | undefined;
   buttons?: undefined | Array<CardButtonSchema | ReactElement>;
@@ -47,8 +48,14 @@ const Card: FunctionComponent<ComponentProps> = (
     <React.Fragment>
       <div data-testid="card" className={`mb-5 ${props.className || ""}`}>
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible">
-          <div className="py-6 px-5 md:px-6">
-            <div className="flex flex-col md:flex-row md:justify-between md:items-start">
+          <div className={props.compact ? "p-4" : "py-6 px-5 md:px-6"}>
+            <div
+              className={
+                props.compact
+                  ? "flex flex-wrap items-start justify-between gap-3"
+                  : "flex flex-col md:flex-row md:justify-between md:items-start"
+              }
+            >
               <div
                 className={`${noRightElementsOrButtons ? "w-full" : "flex-1 min-w-0"}`}
               >
@@ -56,7 +63,7 @@ const Card: FunctionComponent<ComponentProps> = (
                   <h2
                     data-testid="card-details-heading"
                     id="card-details-heading"
-                    className="text-lg font-semibold leading-6 text-gray-900"
+                    className={`${props.compact ? "text-sm" : "text-lg"} break-words font-semibold leading-6 text-gray-900`}
                   >
                     {translatedTitle}
                   </h2>
@@ -64,7 +71,11 @@ const Card: FunctionComponent<ComponentProps> = (
                 {translatedDescription && (
                   <p
                     data-testid="card-description"
-                    className="mt-1.5 text-sm text-gray-500 w-full hidden md:block leading-relaxed"
+                    className={
+                      props.compact
+                        ? "mt-1 text-xs leading-5 text-gray-500"
+                        : "mt-1.5 text-sm text-gray-500 w-full hidden md:block leading-relaxed"
+                    }
                   >
                     {translatedDescription}
                   </p>
@@ -72,7 +83,13 @@ const Card: FunctionComponent<ComponentProps> = (
               </div>
               {(props.rightElement ||
                 (props.buttons && props.buttons.length > 0)) && (
-                <div className="flex flex-col md:flex-row md:items-center md:w-fit mt-4 md:mt-0 md:ml-4 gap-2 md:gap-0 flex-shrink-0 items-center">
+                <div
+                  className={
+                    props.compact
+                      ? "flex max-w-full flex-wrap items-center gap-2"
+                      : "flex flex-col md:flex-row md:items-center md:w-fit mt-4 md:mt-0 md:ml-4 gap-2 md:gap-0 flex-shrink-0 items-center"
+                  }
+                >
                   {props.rightElement && (
                     <div className="mb-2 md:mb-0 md:mr-3">
                       {props.rightElement}
@@ -96,7 +113,10 @@ const Card: FunctionComponent<ComponentProps> = (
                                     (button as CardButtonSchema).buttonStyle
                                   }
                                   buttonSize={
-                                    (button as CardButtonSchema).buttonSize
+                                    (button as CardButtonSchema).buttonSize ||
+                                    (props.compact
+                                      ? ButtonSize.Small
+                                      : undefined)
                                   }
                                   className={
                                     (button as CardButtonSchema).className

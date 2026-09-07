@@ -1,5 +1,6 @@
 import { getAlertsBreadcrumbs } from "../../../Utils/Breadcrumbs/AlertBreadcrumbs";
-import { RouteUtil } from "../../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import PageMap from "../../../Utils/PageMap";
 import PageComponentProps from "../../PageComponentProps";
 import SideMenu from "./SideMenu";
 import ObjectID from "Common/Types/ObjectID";
@@ -15,12 +16,14 @@ const AlertViewLayout: FunctionComponent<
   const { id } = useParams();
   const modelId: ObjectID = new ObjectID(id || "");
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
+  const isOverview: boolean = path === RouteMap[PageMap.ALERT_VIEW]?.toString();
   return (
     <ModelPage
       title="Alert"
       modelType={Alert}
       modelId={modelId}
       modelNameField="title"
+      hideTitle={isOverview}
       breadcrumbLinks={getAlertsBreadcrumbs(path)}
       sideMenu={<SideMenu modelId={modelId} />}
     >

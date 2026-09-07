@@ -67,6 +67,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import AlertFeedElement from "../../../Components/Alert/AlertFeed";
 import InvestigationPanel from "../../../Components/AI/InvestigationPanel";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
+import EventOverviewLayout from "../../../Components/EventView/EventOverviewLayout";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import RemediationSuggestionCard from "../../../Components/AutoRemediation/RemediationSuggestionCard";
 import AlertAffectedResources from "./AffectedResources";
@@ -412,8 +413,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     ) : undefined;
 
   return (
-    <Fragment>
-      <div className="mb-5">
+    <EventOverviewLayout
+      header={
         <ChangeAlertState
           alertId={modelId}
           eventNumber={eventNumber}
@@ -425,173 +426,50 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             await fetchData();
           }}
         />
-      </div>
-
-      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
-        <div className="min-w-0 xl:col-span-2">
-          <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <EventStatTile
-              label={`${getAcknowledgeState()?.name || "Acknowledged"} in`}
-              icon={IconProp.Check}
-              value={getTimeToAcknowledge()}
-            />
-            <EventStatTile
-              label={`${getResolvedState()?.name || "Resolved"} in`}
-              icon={IconProp.CheckCircle}
-              value={getTimeToResolve()}
-            />
-            <EventStatTile
-              label="Duration"
-              icon={IconProp.Clock}
-              value={
-                durationStartDate ? (
-                  <LiveDuration
-                    startDate={durationStartDate}
-                    endDate={durationEndDate}
-                  />
-                ) : (
-                  "-"
-                )
-              }
-            />
-          </div>
-
-          {telemetryQuery && (
-            <TelemetryCompanionSignalTabs
-              telemetryQuery={telemetryQuery}
-              snapshotWindow={telemetrySnapshotWindow}
-              snapshotWindowAlert={snapshotWindowAlert}
-              eventNoun="alert"
-              primarySignalElement={
-                <Fragment>
-                  {telemetryQuery.telemetryType === TelemetryType.Log &&
-                    telemetryQuery.telemetryQuery && (
-                      <div>
-                        <Card
-                          title={"Logs"}
-                          description={"Logs for this alert."}
-                          rightElement={snapshotWindowAlert}
-                        >
-                          <DashboardLogsViewer
-                            id="logs-preview"
-                            logQuery={
-                              telemetryQuery.telemetryQuery as Query<Log>
-                            }
-                            limit={10}
-                            noLogsMessage="No logs found"
-                          />
-                        </Card>
-                      </div>
-                    )}
-
-                  {telemetryQuery.telemetryType === TelemetryType.Trace &&
-                    telemetryQuery.telemetryQuery && (
-                      <div>
-                        <Card
-                          title={"Spans"}
-                          description={"Spans for this alert."}
-                          rightElement={snapshotWindowAlert}
-                        >
-                          <TracesViewer
-                            spanQuery={
-                              telemetryQuery.telemetryQuery as Query<Span>
-                            }
-                            limit={10}
-                            /*
-                             * Pinned to the snapshot: this page owns the URL,
-                             * so the viewer neither reads a filter out of it
-                             * nor writes its own state back into it.
-                             */
-                            disableUrlSync={true}
-                            emptyMessage="No spans found"
-                          />
-                        </Card>
-                      </div>
-                    )}
-
-                  {telemetryQuery.telemetryType === TelemetryType.Metric &&
-                    telemetryQuery.metricViewData && (
-                      <Card
-                        title={"Metrics"}
-                        description={
-                          seriesSummary
-                            ? `Metrics for this alert, scoped to the affected series (${seriesSummary}).`
-                            : "Metrics for this alert."
-                        }
-                        rightElement={snapshotWindowAlert}
-                      >
-                        <MetricView
-                          data={telemetryQuery.metricViewData}
-                          hideQueryElements={true}
-                          chartCssClass="rounded-lg border border-gray-200 shadow-sm"
-                          hideStartAndEndDate={true}
-                          // Read-only host: onChange is a no-op, so zoom can't apply.
-                          disableChartZoom={true}
-                          onChange={(_data: MetricViewData) => {
-                            // do nothing!
-                          }}
-                        />
-                      </Card>
-                    )}
-
-                  {telemetryQuery.telemetryType === TelemetryType.Exception &&
-                    telemetryQuery.telemetryQuery && (
-                      <Card
-                        title={"Exceptions"}
-                        description={"Exceptions for this alert."}
-                        rightElement={snapshotWindowAlert}
-                      >
-                        <ExceptionsViewer
-                          exceptionInstanceQuery={
-                            telemetryQuery.telemetryQuery as Query<ExceptionInstance>
-                          }
-                          /*
-                           * An event shows the exceptions it fired on,
-                           * whoever has since resolved them and whatever the
-                           * classifier made of them — the explorer's
-                           * "unresolved issues" defaults would hide exactly
-                           * those.
-                           */
-                          defaultStatus="all"
-                          defaultClassScope="all"
-                          limit={10}
-                          // Pinned to the snapshot; this page owns the URL.
-                          disableUrlSync={true}
-                          emptyMessage="No exceptions found"
-                        />
-                      </Card>
-                    )}
-                </Fragment>
-              }
-            />
-          )}
-
-          <MonitorSummarySnapshotCard alertId={modelId} />
-
-          <AlertAffectedResources alertId={modelId} />
-
-          <EntityRunbooks alertId={modelId} hideIfEmpty={true} />
-
-          <RemediationSuggestionCard alertId={modelId} hideIfEmpty={true} />
-
-          <InvestigationPanel
-            subjectType="alert"
-            subjectId={modelId}
-            onAnalysisAvailable={refreshFeedAfterAnalysisAvailable}
+      }
+      summary={
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <EventStatTile
+            label={`${getAcknowledgeState()?.name || "Acknowledged"} in`}
+            icon={IconProp.Check}
+            value={getTimeToAcknowledge()}
           />
-
-          <AlertFeedElement alertId={modelId} refreshToken={feedRefreshToken} />
+          <EventStatTile
+            label={`${getResolvedState()?.name || "Resolved"} in`}
+            icon={IconProp.CheckCircle}
+            value={getTimeToResolve()}
+          />
+          <EventStatTile
+            label="Duration"
+            icon={IconProp.Clock}
+            value={
+              durationStartDate ? (
+                <LiveDuration
+                  startDate={durationStartDate}
+                  endDate={durationEndDate}
+                />
+              ) : (
+                "-"
+              )
+            }
+          />
         </div>
-
-        <div className="min-w-0 xl:col-span-1">
+      }
+      activityTitle="Response activity"
+      activityDescription="Follow updates, investigate signals, and coordinate the response."
+      sidebarTitle="Event context"
+      sidebar={
+        <Fragment>
           {/* Alert View  */}
           <CardModelDetail<Alert>
             name="Alert Details"
             cardProps={{
               title: "Alert Details",
-              description: "Here are more details for this alert.",
+              description: "Ownership and alert context.",
             }}
+            editButtonText="Edit details"
             isEditable={true}
+            compact={true}
             onSaveSuccess={() => {
               // refresh page-level state (severity/visibility pills) shown in the status panel above.
               fetchData().catch((err: Error) => {
@@ -715,32 +593,6 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               id: "model-detail-alerts",
               fields: [
                 {
-                  field: {
-                    alertNumber: true,
-                    alertNumberWithPrefix: true,
-                  },
-                  title: "Alert Number",
-                  fieldType: FieldType.Element,
-                  getElement: (item: Alert): ReactElement => {
-                    if (!item.alertNumber) {
-                      return <>-</>;
-                    }
-
-                    return (
-                      <span className="font-medium text-gray-900">
-                        {item.alertNumberWithPrefix || `#${item.alertNumber}`}
-                      </span>
-                    );
-                  },
-                },
-                {
-                  field: {
-                    _id: true,
-                  },
-                  title: "Alert ID",
-                  fieldType: FieldType.ObjectID,
-                },
-                {
                   /*
                    * Alert.monitor is a singular relation set at creation, so it
                    * gets its own row separate from the multi-resource picker.
@@ -837,6 +689,13 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     return <LabelsElement labels={item["labels"] || []} />;
                   },
                 },
+                {
+                  field: {
+                    _id: true,
+                  },
+                  title: "Alert ID",
+                  fieldType: FieldType.ObjectID,
+                },
               ],
               modelId: modelId,
             }}
@@ -853,10 +712,11 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             name="Affected Resources"
             cardProps={{
               title: "Affected Resources",
-              description:
-                "Hosts, clusters, container hosts, and services affected by this alert.",
+              description: "Resources impacted by this alert.",
             }}
+            editButtonText="Edit resources"
             isEditable={true}
+            compact={true}
             formFields={[
               {
                 /*
@@ -1058,6 +918,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   getElement: (item: Alert): ReactElement => {
                     return (
                       <AffectedResourcesDisplay
+                        compact={true}
                         hosts={item.hosts || []}
                         kubernetesClusters={item.kubernetesClusters || []}
                         dockerHosts={item.dockerHosts || []}
@@ -1076,9 +937,135 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               modelId: modelId,
             }}
           />
-        </div>
-      </div>
-    </Fragment>
+        </Fragment>
+      }
+    >
+      <Fragment>
+        <AlertFeedElement alertId={modelId} refreshToken={feedRefreshToken} />
+
+        {telemetryQuery && (
+          <TelemetryCompanionSignalTabs
+            telemetryQuery={telemetryQuery}
+            snapshotWindow={telemetrySnapshotWindow}
+            snapshotWindowAlert={snapshotWindowAlert}
+            eventNoun="alert"
+            primarySignalElement={
+              <Fragment>
+                {telemetryQuery.telemetryType === TelemetryType.Log &&
+                  telemetryQuery.telemetryQuery && (
+                    <div>
+                      <Card
+                        title={"Logs"}
+                        description={"Logs for this alert."}
+                        rightElement={snapshotWindowAlert}
+                      >
+                        <DashboardLogsViewer
+                          id="logs-preview"
+                          logQuery={telemetryQuery.telemetryQuery as Query<Log>}
+                          limit={10}
+                          noLogsMessage="No logs found"
+                        />
+                      </Card>
+                    </div>
+                  )}
+
+                {telemetryQuery.telemetryType === TelemetryType.Trace &&
+                  telemetryQuery.telemetryQuery && (
+                    <div>
+                      <Card
+                        title={"Spans"}
+                        description={"Spans for this alert."}
+                        rightElement={snapshotWindowAlert}
+                      >
+                        <TracesViewer
+                          spanQuery={
+                            telemetryQuery.telemetryQuery as Query<Span>
+                          }
+                          limit={10}
+                          /*
+                           * Pinned to the snapshot: this page owns the URL,
+                           * so the viewer neither reads a filter out of it
+                           * nor writes its own state back into it.
+                           */
+                          disableUrlSync={true}
+                          emptyMessage="No spans found"
+                        />
+                      </Card>
+                    </div>
+                  )}
+
+                {telemetryQuery.telemetryType === TelemetryType.Metric &&
+                  telemetryQuery.metricViewData && (
+                    <Card
+                      title={"Metrics"}
+                      description={
+                        seriesSummary
+                          ? `Metrics for this alert, scoped to the affected series (${seriesSummary}).`
+                          : "Metrics for this alert."
+                      }
+                      rightElement={snapshotWindowAlert}
+                    >
+                      <MetricView
+                        data={telemetryQuery.metricViewData}
+                        hideQueryElements={true}
+                        chartCssClass="rounded-lg border border-gray-200 shadow-sm"
+                        hideStartAndEndDate={true}
+                        // Read-only host: onChange is a no-op, so zoom can't apply.
+                        disableChartZoom={true}
+                        onChange={(_data: MetricViewData) => {
+                          // do nothing!
+                        }}
+                      />
+                    </Card>
+                  )}
+
+                {telemetryQuery.telemetryType === TelemetryType.Exception &&
+                  telemetryQuery.telemetryQuery && (
+                    <Card
+                      title={"Exceptions"}
+                      description={"Exceptions for this alert."}
+                      rightElement={snapshotWindowAlert}
+                    >
+                      <ExceptionsViewer
+                        exceptionInstanceQuery={
+                          telemetryQuery.telemetryQuery as Query<ExceptionInstance>
+                        }
+                        /*
+                         * An event shows the exceptions it fired on,
+                         * whoever has since resolved them and whatever the
+                         * classifier made of them — the explorer's
+                         * "unresolved issues" defaults would hide exactly
+                         * those.
+                         */
+                        defaultStatus="all"
+                        defaultClassScope="all"
+                        limit={10}
+                        // Pinned to the snapshot; this page owns the URL.
+                        disableUrlSync={true}
+                        emptyMessage="No exceptions found"
+                      />
+                    </Card>
+                  )}
+              </Fragment>
+            }
+          />
+        )}
+
+        <MonitorSummarySnapshotCard alertId={modelId} />
+
+        <AlertAffectedResources alertId={modelId} />
+
+        <EntityRunbooks alertId={modelId} hideIfEmpty={true} />
+
+        <RemediationSuggestionCard alertId={modelId} hideIfEmpty={true} />
+
+        <InvestigationPanel
+          subjectType="alert"
+          subjectId={modelId}
+          onAnalysisAvailable={refreshFeedAfterAnalysisAvailable}
+        />
+      </Fragment>
+    </EventOverviewLayout>
   );
 };
 

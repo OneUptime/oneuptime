@@ -310,9 +310,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title={"Incident Feed"}
-      description={
-        "This is the timeline and feed for this incident. You can see all the updates and information about this incident here."
-      }
+      description={"State changes, notes, and updates in one timeline."}
       buttons={[
         <MoreMenu
           key="incident-feed-actions-menu"
@@ -373,11 +371,14 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
       <div>
         {(isLoading || !isCurrentFeedLoaded) && <ComponentLoader />}
         {isCurrentFeedLoaded && error && <ErrorMessage message={error} />}
-        {isCurrentFeedLoaded && !isLoading && !error && (
-          <Feed
-            items={feedItems}
-            noItemsMessage="Looks like there are no items in this feed for this incident."
-          />
+        {isCurrentFeedLoaded && (
+          <div hidden={isLoading || Boolean(error)}>
+            <Feed
+              visibleItemLimit={6}
+              items={feedItems}
+              noItemsMessage="Looks like there are no items in this feed for this incident."
+            />
+          </div>
         )}
 
         {showOnCallPolicyModal && (

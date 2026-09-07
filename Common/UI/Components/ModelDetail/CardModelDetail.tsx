@@ -15,6 +15,7 @@ import { FormStep } from "../Forms/Types/FormStep";
 import { ModalWidth } from "../Modal/Modal";
 import ModelFormModal from "../ModelFormModal/ModelFormModal";
 import ModelDetail, { ComponentProps as ModeDetailProps } from "./ModelDetail";
+import { DetailStyle } from "../Detail/Detail";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IconProp from "../../../Types/Icon/IconProp";
 import Route from "../../../Types/API/Route";
@@ -22,6 +23,7 @@ import URL from "../../../Types/API/URL";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
+  compact?: boolean | undefined;
   cardProps: CardProps;
   modelDetailProps: ModeDetailProps<TBaseModel>;
   isEditable?: undefined | boolean;
@@ -150,10 +152,17 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
 
   return (
     <>
-      <Card {...props.cardProps} buttons={cardButtons}>
-        <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
+      <Card {...props.cardProps} compact={props.compact} buttons={cardButtons}>
+        <div
+          className={
+            props.compact
+              ? "border-t border-gray-100 pt-4"
+              : "border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2"
+          }
+        >
           <ModelDetail
             refresher={refresher}
+            detailStyle={props.compact ? DetailStyle.Minimal : undefined}
             {...props.modelDetailProps}
             modelAPI={props.modelAPI}
             onItemLoaded={(item: TBaseModel) => {

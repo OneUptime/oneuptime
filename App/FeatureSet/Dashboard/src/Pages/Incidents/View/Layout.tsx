@@ -1,5 +1,6 @@
 import { getIncidentsBreadcrumbs } from "../../../Utils/Breadcrumbs/IncidentBreadcrumbs";
-import { RouteUtil } from "../../../Utils/RouteMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import PageMap from "../../../Utils/PageMap";
 import PageComponentProps from "../../PageComponentProps";
 import SideMenu from "./SideMenu";
 import ObjectID from "Common/Types/ObjectID";
@@ -15,12 +16,15 @@ const IncidentViewLayout: FunctionComponent<
   const { id } = useParams();
   const modelId: ObjectID = new ObjectID(id || "");
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
+  const isOverview: boolean =
+    path === RouteMap[PageMap.INCIDENT_VIEW]?.toString();
   return (
     <ModelPage
       title="Incident"
       modelType={Incident}
       modelId={modelId}
       modelNameField="title"
+      hideTitle={isOverview}
       breadcrumbLinks={getIncidentsBreadcrumbs(path)}
       sideMenu={<SideMenu modelId={modelId} />}
     >

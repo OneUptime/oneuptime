@@ -1,8 +1,29 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import AlertFeedElement from "../../../../App/FeatureSet/Dashboard/src/Components/Alert/AlertFeed";
+import IncidentFeedElement from "../../../../App/FeatureSet/Dashboard/src/Components/Incident/IncidentFeed";
+import AlertFeed, {
+  AlertFeedEventType,
+} from "../../../Models/DatabaseModels/AlertFeed";
+import IncidentFeed, {
+  IncidentFeedEventType,
+} from "../../../Models/DatabaseModels/IncidentFeed";
+import IconProp from "../../../Types/Icon/IconProp";
+import ObjectID from "../../../Types/ObjectID";
+import ScheduledMaintenanceFeedElement from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceFeed";
+import ScheduledMaintenanceFeed, {
+  ScheduledMaintenanceFeedEventType,
+} from "../../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 
 /*
  * IncidentFeed and AlertFeed normally load once at page mount. An AI report is
@@ -32,9 +53,21 @@ jest.mock("../../../UI/Components/Feed/Feed", () => {
     __esModule: true,
     default: (props: RenderedFeedProps): React.ReactElement => {
       feedRenderMock(props);
+      const [isExpanded, setIsExpanded] = React.useState<boolean>(false);
       return React.createElement(
         "div",
         { "data-testid": "rendered-feed" },
+        React.createElement(
+          "button",
+          {
+            type: "button",
+            "aria-expanded": isExpanded,
+            onClick: () => {
+              setIsExpanded(!isExpanded);
+            },
+          },
+          isExpanded ? "Collapse test history" : "Expand test history",
+        ),
         props.items.map((item: RenderedFeedItem): React.ReactElement => {
           return React.createElement(
             "div",
@@ -46,17 +79,6 @@ jest.mock("../../../UI/Components/Feed/Feed", () => {
     },
   };
 });
-
-import AlertFeedElement from "../../../../App/FeatureSet/Dashboard/src/Components/Alert/AlertFeed";
-import IncidentFeedElement from "../../../../App/FeatureSet/Dashboard/src/Components/Incident/IncidentFeed";
-import AlertFeed, {
-  AlertFeedEventType,
-} from "../../../Models/DatabaseModels/AlertFeed";
-import IncidentFeed, {
-  IncidentFeedEventType,
-} from "../../../Models/DatabaseModels/IncidentFeed";
-import IconProp from "../../../Types/Icon/IconProp";
-import ObjectID from "../../../Types/ObjectID";
 
 interface RenderedFeedItem {
   key: string;
@@ -476,5 +498,120 @@ describe("investigation reports in incident and alert feeds", () => {
         safeMode: false,
       }),
     );
+  });
+});
+
+const MAINTENANCE_ID: ObjectID = new ObjectID(
+  "23232323-2323-4232-8232-232323232323",
+);
+const NEXT_MAINTENANCE_ID: ObjectID = new ObjectID(
+  "34343434-3434-4343-8343-343434343434",
+);
+type EventFeed = IncidentFeed | AlertFeed | ScheduledMaintenanceFeed;
+
+interface FeedSpec {
+  name: string;
+  element: (id: ObjectID) => React.ReactElement;
+  id: ObjectID;
+  nextId: ObjectID;
+  item: () => EventFeed;
+}
+
+function maintenanceItem(): ScheduledMaintenanceFeed {
+  const item: ScheduledMaintenanceFeed = new ScheduledMaintenanceFeed();
+  item.id = new ObjectID("45454545-4545-4454-8454-454545454545");
+  item.scheduledMaintenanceId = MAINTENANCE_ID;
+  item.scheduledMaintenanceFeedEventType =
+    ScheduledMaintenanceFeedEventType.ScheduledMaintenanceCreated;
+  item.feedInfoInMarkdown = "Maintenance window scheduled";
+  item.postedAt = POSTED_AT;
+  item.createdAt = POSTED_AT;
+  return item;
+}
+
+const refreshSpecs: Array<FeedSpec> = [
+  {
+    name: "incident",
+    id: INCIDENT_ID,
+    nextId: NEXT_INCIDENT_ID,
+    item: incidentAnalysisItem,
+    element: (id: ObjectID): React.ReactElement => {
+      return <IncidentFeedElement incidentId={id} />;
+    },
+  },
+  {
+    name: "alert",
+    id: ALERT_ID,
+    nextId: NEXT_ALERT_ID,
+    item: alertAnalysisItem,
+    element: (id: ObjectID): React.ReactElement => {
+      return <AlertFeedElement alertId={id} />;
+    },
+  },
+  {
+    name: "maintenance",
+    id: MAINTENANCE_ID,
+    nextId: NEXT_MAINTENANCE_ID,
+    item: maintenanceItem,
+    element: (id: ObjectID): React.ReactElement => {
+      return <ScheduledMaintenanceFeedElement scheduledMaintenanceId={id} />;
+    },
+  },
+];
+
+describe.each(refreshSpecs)("$name expanded feed history", (spec: FeedSpec) => {
+  test("retains the feed instance and expansion while hiding old content during refresh", async () => {
+    const refreshedRequest: Deferred<ListResult<EventFeed>> =
+      createDeferred<ListResult<EventFeed>>();
+    getListMock
+      .mockResolvedValueOnce(listResult<EventFeed>([spec.item()]) as never)
+      .mockReturnValueOnce(refreshedRequest.promise as never);
+    render(spec.element(spec.id));
+    const originalFeed: HTMLElement =
+      await screen.findByTestId("rendered-feed");
+    await waitFor(() => {
+      expect(originalFeed).toBeVisible();
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Expand test history" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    await waitFor(() => {
+      expect(getListMock).toHaveBeenCalledTimes(2);
+    });
+    expect(screen.getByTestId("rendered-feed")).toBe(originalFeed);
+    expect(originalFeed).not.toBeVisible();
+    expect(screen.getByText("Collapse test history")).not.toBeVisible();
+    expect(screen.getByTestId("component-loader")).toBeVisible();
+    await resolveDeferred(
+      refreshedRequest,
+      listResult<EventFeed>([spec.item()]),
+    );
+    expect(screen.getByTestId("rendered-feed")).toBe(originalFeed);
+    expect(originalFeed).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Collapse test history" }),
+    ).toHaveAttribute("aria-expanded", "true");
+  });
+
+  test("resets expansion when navigating to a different event", async () => {
+    const nextRequest: Deferred<ListResult<EventFeed>> =
+      createDeferred<ListResult<EventFeed>>();
+    getListMock
+      .mockResolvedValueOnce(listResult<EventFeed>([spec.item()]) as never)
+      .mockReturnValueOnce(nextRequest.promise as never);
+    const view: ReturnType<typeof render> = render(spec.element(spec.id));
+    await waitFor(() => {
+      expect(screen.getByTestId("rendered-feed")).toBeVisible();
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Expand test history" }),
+    );
+    view.rerender(spec.element(spec.nextId));
+    await resolveDeferred(nextRequest, listResult<EventFeed>([spec.item()]));
+    expect(
+      screen.getByRole("button", { name: "Expand test history" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Collapse test history")).toBeNull();
   });
 });

@@ -25,6 +25,7 @@ import NetworkSiteElement from "../NetworkSite/NetworkSiteElement";
 import ServiceElement from "../Service/ServiceElement";
 
 export interface ComponentProps {
+  compact?: boolean | undefined;
   monitors?: Array<Monitor> | undefined;
   hosts?: Array<Host> | undefined;
   kubernetesClusters?: Array<KubernetesCluster> | undefined;
@@ -91,8 +92,8 @@ function CategoryCard<T>(props: CategoryCardProps<T>): ReactElement {
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md">
       <div className={`h-1 w-full ${props.accentBarClass}`} />
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center justify-between gap-2 px-4 py-3">
+        <div className="flex min-w-0 items-center gap-3">
           <div
             className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${props.iconBgClass}`}
           >
@@ -101,12 +102,12 @@ function CategoryCard<T>(props: CategoryCardProps<T>): ReactElement {
               className={`h-[18px] w-[18px] ${props.iconColorClass}`}
             />
           </div>
-          <span className="text-sm font-semibold text-gray-900">
+          <span className="min-w-0 break-words text-sm font-semibold text-gray-900">
             {props.label}
           </span>
         </div>
         <span
-          className={`inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-full px-2.5 text-xs font-semibold ${props.countBgClass} ${props.countTextClass}`}
+          className={`inline-flex h-7 min-w-[1.75rem] shrink-0 items-center justify-center rounded-full px-2.5 text-xs font-semibold ${props.countBgClass} ${props.countTextClass}`}
         >
           {total.toLocaleString()}
         </span>
@@ -287,7 +288,9 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
           across {categoryCount.toLocaleString()} {categoryWord}
         </span>
       </div>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div
+        className={`grid grid-cols-1 gap-3 ${props.compact ? "" : "md:grid-cols-2"}`}
+      >
         {showMonitors && (
           <CategoryCard<Monitor>
             icon={IconProp.AltGlobe}

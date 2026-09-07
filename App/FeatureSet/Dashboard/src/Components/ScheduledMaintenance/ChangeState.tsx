@@ -363,7 +363,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className="mb-5">
+    <div>
       <EventStatusPanel
         states={scheduledMaintenanceStates.map(
           (state: ScheduledMaintenanceState): EventStateItem => {

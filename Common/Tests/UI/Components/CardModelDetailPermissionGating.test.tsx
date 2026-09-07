@@ -15,6 +15,12 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import CardModelDetail from "../../../UI/Components/ModelDetail/CardModelDetail";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
+import FieldType from "../../../UI/Components/Types/FieldType";
 
 /*
  * CardModelDetail's Edit button was the only model-level permission check in
@@ -91,8 +97,10 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
     default: {
-      getItem: async (): Promise<null> => {
-        return null;
+      getItem: async (): Promise<Monitor> => {
+        const monitor: Monitor = new Monitor();
+        monitor.name = "Production API";
+        return monitor;
       },
       getList: async (): Promise<{
         data: Array<unknown>;
@@ -105,13 +113,6 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     },
   };
 });
-
-import CardModelDetail from "../../../UI/Components/ModelDetail/CardModelDetail";
-import PermissionGate from "../../../UI/Utils/PermissionGate";
-import Monitor from "../../../Models/DatabaseModels/Monitor";
-import ObjectID from "../../../Types/ObjectID";
-import Permission from "../../../Types/Permission";
-import FieldType from "../../../UI/Components/Types/FieldType";
 
 const MONITOR_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -129,16 +130,23 @@ const findEditButton: FindEditButtonFunction = (): HTMLButtonElement | null => {
   );
 };
 
-type RenderCardFunction = (refresher?: boolean) => ReturnType<typeof render>;
+type RenderCardFunction = (
+  refresher?: boolean,
+  compact?: boolean,
+  isEditable?: boolean,
+) => ReturnType<typeof render>;
 
 const renderCard: RenderCardFunction = (
   refresher: boolean = false,
+  compact: boolean = false,
+  isEditable: boolean = true,
 ): ReturnType<typeof render> => {
   return render(
     <CardModelDetail<Monitor>
       name="Monitor Details"
+      compact={compact}
       cardProps={{ title: "Monitor Details", description: "About it" }}
-      isEditable={true}
+      isEditable={isEditable}
       refresher={refresher}
       formFields={[
         {
@@ -164,142 +172,176 @@ const renderCard: RenderCardFunction = (
   );
 };
 
-describe("CardModelDetail permission gating", () => {
-  beforeEach(() => {
-    isMasterAdminForTest = false;
-    permissionsForTest = [];
-    PermissionGate.clearPermissionPropsCache();
-    window.localStorage.clear();
-  });
-
-  afterEach(() => {
-    cleanup();
-    jest.restoreAllMocks();
-  });
-
-  test("offers a working Edit button when the viewer may update", async () => {
-    permissionsForTest = [Permission.ProjectAdmin];
-
-    renderCard();
-
-    await waitFor(() => {
-      expect(findEditButton()).not.toBeNull();
+describe.each([false, true])(
+  "CardModelDetail permission gating (compact: %s)",
+  (compact: boolean) => {
+    beforeEach(() => {
+      isMasterAdminForTest = false;
+      permissionsForTest = [];
+      PermissionGate.clearPermissionPropsCache();
+      window.localStorage.clear();
     });
 
-    expect(findEditButton()).not.toBeDisabled();
-  });
-
-  test("locks the Edit button rather than removing it", async () => {
-    permissionsForTest = [Permission.Viewer];
-
-    renderCard();
-
-    await waitFor(() => {
-      expect(findEditButton()).not.toBeNull();
+    afterEach(() => {
+      cleanup();
+      jest.restoreAllMocks();
     });
 
-    expect(findEditButton()).toBeDisabled();
-  });
+    test("offers a working Edit button when the viewer may update", async () => {
+      permissionsForTest = [Permission.ProjectAdmin];
 
-  test("explains the locked Edit on hover", async () => {
-    permissionsForTest = [Permission.Viewer];
+      renderCard(false, compact);
 
-    renderCard();
+      await waitFor(() => {
+        expect(findEditButton()).not.toBeNull();
+      });
 
-    await waitFor(() => {
-      expect(findEditButton()).not.toBeNull();
+      expect(findEditButton()).not.toBeDisabled();
     });
 
-    fireEvent.mouseEnter(findEditButton()!.parentElement as HTMLElement);
+    test("locks the Edit button rather than removing it", async () => {
+      permissionsForTest = [Permission.Viewer];
 
-    expect(screen.getByRole("tooltip")).toHaveTextContent(
-      "You do not have permission to update this Monitor.",
-    );
-    expect(screen.getByRole("tooltip")).toHaveTextContent("Edit Monitor");
-  });
+      renderCard(false, compact);
 
-  /*
-   * The check used to run against getProjectPermissions() alone. This grant
-   * arrives through getAllPermissions(), which merges global and project - so
-   * it only passes if the component is reading the merged view.
-   */
-  test("honours a permission that is not in the project snapshot", async () => {
-    permissionsForTest = [Permission.ProjectOwner];
+      await waitFor(() => {
+        expect(findEditButton()).not.toBeNull();
+      });
 
-    renderCard();
-
-    await waitFor(() => {
-      expect(findEditButton()).not.toBeNull();
+      expect(findEditButton()).toBeDisabled();
     });
 
-    expect(findEditButton()).not.toBeDisabled();
-  });
+    test("explains the locked Edit on hover", async () => {
+      permissionsForTest = [Permission.Viewer];
 
-  /*
-   * The snapshot lands on an API response header, which can easily be after
-   * the card's first paint. A mount-only effect froze the button in whatever
-   * state that first paint implied.
-   */
-  test("re-evaluates when the permission snapshot arrives after first paint", async () => {
-    permissionsForTest = [];
+      renderCard(false, compact);
 
-    const { rerender } = renderCard(false);
+      await waitFor(() => {
+        expect(findEditButton()).not.toBeNull();
+      });
 
-    await waitFor(() => {
-      expect(screen.getByText("Monitor Details")).toBeInTheDocument();
+      fireEvent.mouseEnter(findEditButton()!.parentElement as HTMLElement);
+
+      expect(screen.getByRole("tooltip")).toHaveTextContent(
+        "You do not have permission to update this Monitor.",
+      );
+      expect(screen.getByRole("tooltip")).toHaveTextContent("Edit Monitor");
     });
 
-    // Nothing honest to say yet, so no button at all.
-    expect(findEditButton()).toBeNull();
+    /*
+     * The check used to run against getProjectPermissions() alone. This grant
+     * arrives through getAllPermissions(), which merges global and project - so
+     * it only passes if the component is reading the merged view.
+     */
+    test("honours a permission that is not in the project snapshot", async () => {
+      permissionsForTest = [Permission.ProjectOwner];
 
-    permissionsForTest = [Permission.ProjectAdmin];
+      renderCard(false, compact);
 
-    rerender(
-      <CardModelDetail<Monitor>
-        name="Monitor Details"
-        cardProps={{ title: "Monitor Details", description: "About it" }}
-        isEditable={true}
-        refresher={true}
-        formFields={[
-          {
-            field: { name: true },
-            title: "Name",
-            fieldType: "Text" as never,
-            required: true,
-          },
-        ]}
-        modelDetailProps={{
-          modelType: Monitor,
-          id: "monitor-detail",
-          modelId: MONITOR_ID,
-          fields: [
+      await waitFor(() => {
+        expect(findEditButton()).not.toBeNull();
+      });
+
+      expect(findEditButton()).not.toBeDisabled();
+    });
+
+    /*
+     * The snapshot lands on an API response header, which can easily be after
+     * the card's first paint. A mount-only effect froze the button in whatever
+     * state that first paint implied.
+     */
+    test("re-evaluates when the permission snapshot arrives after first paint", async () => {
+      permissionsForTest = [];
+
+      const { rerender } = renderCard(false, compact);
+
+      await waitFor(() => {
+        expect(screen.getByText("Monitor Details")).toBeInTheDocument();
+      });
+
+      // Nothing honest to say yet, so no button at all.
+      expect(findEditButton()).toBeNull();
+
+      permissionsForTest = [Permission.ProjectAdmin];
+
+      rerender(
+        <CardModelDetail<Monitor>
+          name="Monitor Details"
+          compact={compact}
+          cardProps={{ title: "Monitor Details", description: "About it" }}
+          isEditable={true}
+          refresher={true}
+          formFields={[
             {
               field: { name: true },
               title: "Name",
-              fieldType: FieldType.Text,
+              fieldType: "Text" as never,
+              required: true,
             },
-          ],
-        }}
-      />,
-    );
+          ]}
+          modelDetailProps={{
+            modelType: Monitor,
+            id: "monitor-detail",
+            modelId: MONITOR_ID,
+            fields: [
+              {
+                field: { name: true },
+                title: "Name",
+                fieldType: FieldType.Text,
+              },
+            ],
+          }}
+        />,
+      );
 
-    await waitFor(() => {
-      expect(findEditButton()).not.toBeNull();
+      await waitFor(() => {
+        expect(findEditButton()).not.toBeNull();
+      });
+
+      expect(findEditButton()).not.toBeDisabled();
     });
 
-    expect(findEditButton()).not.toBeDisabled();
-  });
+    test("works for a master admin", async () => {
+      isMasterAdminForTest = true;
+      permissionsForTest = [];
 
-  test("works for a master admin", async () => {
-    isMasterAdminForTest = true;
-    permissionsForTest = [];
+      renderCard(false, compact);
 
-    renderCard();
+      await waitFor(() => {
+        expect(findEditButton()).not.toBeNull();
+      });
 
-    await waitFor(() => {
-      expect(findEditButton()).not.toBeNull();
+      expect(findEditButton()).not.toBeDisabled();
     });
 
-    expect(findEditButton()).not.toBeDisabled();
-  });
-});
+    test("respects read-only cards even when the viewer has update permission", async () => {
+      permissionsForTest = [Permission.ProjectAdmin];
+
+      renderCard(false, compact, false);
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole("heading", { name: "Monitor Details" }),
+        ).toBeInTheDocument();
+      });
+
+      expect(findEditButton()).toBeNull();
+      expect(screen.getByText("About it")).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Monitor Details" }),
+      ).toHaveClass(compact ? "text-sm" : "text-lg");
+    });
+
+    test("renders loaded details with the appropriate density without dropping field content", async () => {
+      permissionsForTest = [Permission.ProjectAdmin];
+
+      renderCard(false, compact);
+
+      expect(await screen.findByText("Production API")).toBeInTheDocument();
+      expect(screen.getByText("Name")).toBeInTheDocument();
+      expect(document.getElementById("monitor-detail")).toHaveClass(
+        compact ? "py-3" : "py-5",
+      );
+    });
+  },
+);

@@ -71,48 +71,58 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
 
   const getStepRail: () => ReactElement = (): ReactElement => {
     return (
-      <div className="flex flex-wrap items-center gap-y-1.5">
+      <ol
+        aria-label={translateString("State progression")}
+        className="flex flex-wrap items-center gap-x-3 gap-y-2"
+      >
         {props.states.map((state: EventStateItem, index: number) => {
           const isReached: boolean =
             currentStateIndex >= 0 && index <= currentStateIndex;
           const isCurrent: boolean = index === currentStateIndex;
 
           return (
-            <div key={`${state.id}-${index}`} className="flex items-center">
+            <li
+              key={`${state.id}-${index}`}
+              aria-current={isCurrent ? "step" : undefined}
+              className="flex min-w-0 max-w-full items-center"
+            >
               {index > 0 && (
                 <div
-                  className={`mx-2.5 h-px w-5 ${
+                  aria-hidden="true"
+                  className={`mr-3 h-px w-5 shrink-0 ${
                     isReached ? "bg-gray-300" : "bg-gray-200"
                   }`}
                 />
               )}
-              <div className="flex items-center gap-1.5">
+              <div className="flex min-w-0 items-center gap-2">
                 <span
-                  className={`h-2 w-2 rounded-full ${
-                    isReached && !isCurrent ? "opacity-40" : ""
+                  aria-hidden="true"
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${
+                    isCurrent ? "ring-2 ring-gray-200 ring-offset-2" : ""
                   }`}
                   style={{
-                    backgroundColor: isReached
-                      ? (state.color || Black).toString()
-                      : "#e5e7eb",
+                    backgroundColor: isCurrent ? "#111827" : "#f3f4f6",
+                    color: isCurrent ? "#ffffff" : "#6b7280",
                   }}
-                />
+                >
+                  {index + 1}
+                </span>
                 <span
-                  className={`text-xs ${
+                  className={`min-w-0 break-words text-xs ${
                     isCurrent
                       ? "font-semibold text-gray-900"
                       : isReached
                         ? "font-medium text-gray-500"
-                        : "font-medium text-gray-400"
+                        : "font-medium text-gray-500"
                   }`}
                 >
                   {state.name}
                 </span>
               </div>
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ol>
     );
   };
 
@@ -159,7 +169,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
     const translatedActionLabel: string =
       translateString(action.label) || action.label;
     const baseClassName: string =
-      "inline-flex h-9 min-w-[7rem] max-w-full flex-1 select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-sm font-semibold shadow-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-64 sm:flex-none";
+      "inline-flex h-9 min-w-[7rem] max-w-full flex-auto select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-sm font-semibold shadow-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-64 sm:flex-none";
     const variantClassName: string = isPrimary
       ? "border-indigo-600 bg-indigo-600 text-white hover:border-indigo-700 hover:bg-indigo-700"
       : "border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900";
@@ -187,7 +197,11 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
   // The action buttons + "change state" overflow menu, shared by both layouts.
   const actionsCluster: ReactElement = (
     <div
-      className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto"
+      className={`flex w-full min-w-0 max-w-full flex-wrap items-center justify-end gap-2 ${
+        props.title
+          ? "xl:w-auto xl:max-w-[50%] xl:shrink-0"
+          : "md:w-auto md:max-w-[60%] md:shrink-0"
+      }`}
       role="group"
       aria-label="Event actions"
     >
@@ -255,7 +269,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
         />
       )}
       {props.durationStartsAt && (
-        <span className="inline-flex items-center gap-1.5 text-sm text-gray-500">
+        <span className="inline-flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-gray-500">
           <Icon icon={IconProp.Clock} className="h-4 w-4 text-gray-400" />
           <span>{props.durationPrefix || "Ongoing for"}</span>
           <span className="font-medium text-gray-700">
@@ -274,22 +288,28 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
   );
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div
+      className="min-w-0 rounded-xl border border-gray-200 bg-white shadow-sm"
+      style={{
+        borderTopWidth: "3px",
+        borderTopColor: currentState?.color?.toString() || "#e5e7eb",
+      }}
+    >
       {props.title ? (
         /* Header layout: eyebrow number + prominent title, pills on the row below. */
-        <div className="px-4 py-4 sm:px-5">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="min-w-0">
+        <div className="px-4 py-5 sm:px-6 sm:py-6">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div className="min-w-0 flex-1">
               {props.identifier && (
                 <span
-                  className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-gray-600"
+                  className="inline-flex max-w-full break-all rounded-md bg-gray-100 px-2 py-0.5 font-mono text-xs font-medium uppercase tracking-wide text-gray-600"
                   title="Number"
                 >
                   {props.identifier}
                 </span>
               )}
               <Tooltip text={props.title}>
-                <h2 className="mt-1.5 truncate text-lg font-semibold leading-tight text-gray-900 sm:text-xl">
+                <h2 className="mt-2 text-xl font-semibold leading-8 tracking-tight text-gray-900 [overflow-wrap:anywhere] sm:text-2xl">
                   {props.title}
                 </h2>
               </Tooltip>
@@ -297,7 +317,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
             {actionsCluster}
           </div>
           {hasMeta && (
-            <div className="mt-3 flex flex-wrap items-center gap-2.5">
+            <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
               {metaItems}
             </div>
           )}
@@ -323,7 +343,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
         </div>
       )}
       {props.states.length > 1 && (
-        <div className="border-t border-gray-100 px-4 py-2.5 sm:px-5">
+        <div className="rounded-b-xl border-t border-gray-100 bg-gray-50 px-4 py-3.5 sm:px-6">
           {getStepRail()}
         </div>
       )}

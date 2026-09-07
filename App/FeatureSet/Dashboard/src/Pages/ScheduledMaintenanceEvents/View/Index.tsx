@@ -45,6 +45,7 @@ import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArra
 import ScheduledMaintenanceFeedElement from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceFeed";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
+import EventOverviewLayout from "../../../Components/EventView/EventOverviewLayout";
 import LiveDuration from "../../../Components/EventView/LiveDuration";
 import OneUptimeDate from "Common/Types/Date";
 
@@ -117,66 +118,70 @@ const ScheduledMaintenanceView: FunctionComponent<
     };
 
   return (
-    <Fragment>
-      <ChangeScheduledMaintenanceState
-        scheduledMaintenanceId={modelId}
-        eventNumber={eventNumber}
-        title={eventTitle}
-        eventStartsAt={eventStartsAt}
-        eventEndsAt={eventEndsAt}
-        onActionComplete={() => {
-          setRefreshToggle((prev: boolean) => {
-            return !prev;
-          });
-        }}
-      />
-
-      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
-        <div className="min-w-0 xl:col-span-2">
-          {eventStartsAt && eventEndsAt && (
-            <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <EventStatTile
-                label="Starts"
-                value={OneUptimeDate.getDateAsLocalFormattedString(
-                  eventStartsAt,
-                )}
-                description={
-                  "Your local timezone (" +
-                  OneUptimeDate.getCurrentTimezoneString() +
-                  ")"
-                }
-                icon={IconProp.Clock}
-              />
-              <EventStatTile
-                label="Ends"
-                value={OneUptimeDate.getDateAsLocalFormattedString(eventEndsAt)}
-                icon={IconProp.Clock}
-              />
-              <EventStatTile
-                label="Duration"
-                value={
-                  <LiveDuration
-                    startDate={eventStartsAt}
-                    endDate={eventEndsAt}
-                  />
-                }
-                icon={IconProp.Clock}
-              />
-            </div>
-          )}
-
-          <EntityRunbooks scheduledMaintenanceId={modelId} hideIfEmpty={true} />
-
-          <ScheduledMaintenanceFeedElement scheduledMaintenanceId={modelId} />
+    <EventOverviewLayout
+      header={
+        <ChangeScheduledMaintenanceState
+          scheduledMaintenanceId={modelId}
+          eventNumber={eventNumber}
+          title={eventTitle}
+          eventStartsAt={eventStartsAt}
+          eventEndsAt={eventEndsAt}
+          onActionComplete={() => {
+            setRefreshToggle((prev: boolean) => {
+              return !prev;
+            });
+          }}
+        />
+      }
+      summary={
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <EventStatTile
+            label="Starts"
+            value={
+              eventStartsAt
+                ? OneUptimeDate.getDateAsLocalFormattedString(eventStartsAt)
+                : "Not set"
+            }
+            description={
+              "Your local timezone (" +
+              OneUptimeDate.getCurrentTimezoneString() +
+              ")"
+            }
+            icon={IconProp.Clock}
+          />
+          <EventStatTile
+            label="Ends"
+            value={
+              eventEndsAt
+                ? OneUptimeDate.getDateAsLocalFormattedString(eventEndsAt)
+                : "Not set"
+            }
+            icon={IconProp.Clock}
+          />
+          <EventStatTile
+            label="Scheduled duration"
+            value={
+              eventStartsAt && eventEndsAt ? (
+                <LiveDuration startDate={eventStartsAt} endDate={eventEndsAt} />
+              ) : (
+                "-"
+              )
+            }
+            icon={IconProp.Clock}
+          />
         </div>
-
-        <div className="min-w-0 xl:col-span-1">
+      }
+      activityTitle="Maintenance activity"
+      activityDescription="Updates and runbooks for this maintenance window."
+      sidebarTitle="Event context"
+      sidebar={
+        <Fragment>
           {/* ScheduledMaintenance View  */}
           <CardModelDetail<ScheduledMaintenance>
             name="Scheduled Maintenance Details"
             cardProps={{
-              title: "Scheduled Maintenance Details",
-              description: "Here are more details for this event.",
+              title: "Maintenance Details",
+              description: "Status pages, reminders, and notifications.",
             }}
             refresher={refreshToggle}
             formSteps={[
@@ -197,7 +202,9 @@ const ScheduledMaintenanceView: FunctionComponent<
                 id: "labels",
               },
             ]}
+            editButtonText="Edit details"
             isEditable={true}
+            compact={true}
             onSaveSuccess={() => {
               // refresh page-level state (event window stat tiles + status-panel countdown) after an in-card edit.
               setRefreshToggle((prev: boolean) => {
@@ -387,33 +394,6 @@ const ScheduledMaintenanceView: FunctionComponent<
               fields: [
                 {
                   field: {
-                    scheduledMaintenanceNumber: true,
-                    scheduledMaintenanceNumberWithPrefix: true,
-                  },
-                  title: "Scheduled Maintenance Number",
-                  fieldType: FieldType.Element,
-                  getElement: (item: ScheduledMaintenance): ReactElement => {
-                    if (!item.scheduledMaintenanceNumber) {
-                      return <>-</>;
-                    }
-
-                    return (
-                      <span className="text-sm font-semibold text-gray-900">
-                        {item.scheduledMaintenanceNumberWithPrefix ||
-                          `#${item.scheduledMaintenanceNumber}`}
-                      </span>
-                    );
-                  },
-                },
-                {
-                  field: {
-                    _id: true,
-                  },
-                  title: "Scheduled Maintenance ID",
-                  fieldType: FieldType.ObjectID,
-                },
-                {
-                  field: {
                     statusPages: {
                       name: true,
                       _id: true,
@@ -431,20 +411,6 @@ const ScheduledMaintenanceView: FunctionComponent<
                 },
                 {
                   field: {
-                    startsAt: true,
-                  },
-                  title: "Starts At",
-                  fieldType: FieldType.DateTime,
-                },
-                {
-                  field: {
-                    endsAt: true,
-                  },
-                  title: "Ends At",
-                  fieldType: FieldType.DateTime,
-                },
-                {
-                  field: {
                     createdAt: true,
                   },
                   title: "Created At",
@@ -454,7 +420,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                   field: {
                     sendSubscriberNotificationsOnBeforeTheEvent: true,
                   },
-                  title: "Send reminders to subscribers before the event",
+                  title: "Subscriber Reminders",
                   fieldType: FieldType.Boolean,
                   getElement: (item: ScheduledMaintenance): ReactElement => {
                     return (
@@ -463,7 +429,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                           value={
                             item.sendSubscriberNotificationsOnBeforeTheEvent
                           }
-                          postfix=" before the event is begins"
+                          postfix=" before the event begins"
                         />
                         {item.nextSubscriberNotificationBeforeTheEventAt ? (
                           <div className="mt-2">
@@ -514,6 +480,13 @@ const ScheduledMaintenanceView: FunctionComponent<
                     return <LabelsElement labels={item["labels"] || []} />;
                   },
                 },
+                {
+                  field: {
+                    _id: true,
+                  },
+                  title: "Event ID",
+                  fieldType: FieldType.ObjectID,
+                },
               ],
               modelId: modelId,
             }}
@@ -530,10 +503,11 @@ const ScheduledMaintenanceView: FunctionComponent<
             name="Affected Resources"
             cardProps={{
               title: "Affected Resources",
-              description:
-                "Monitors, hosts, Kubernetes clusters, Docker hosts, network sites, and services affected by this scheduled maintenance.",
+              description: "Resources included in this maintenance window.",
             }}
+            editButtonText="Edit resources"
             isEditable={true}
+            compact={true}
             formFields={[
               {
                 field: {
@@ -700,6 +674,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                   getElement: (item: ScheduledMaintenance): ReactElement => {
                     return (
                       <AffectedResourcesDisplay
+                        compact={true}
                         monitors={item.monitors || []}
                         hosts={item.hosts || []}
                         kubernetesClusters={item.kubernetesClusters || []}
@@ -715,9 +690,14 @@ const ScheduledMaintenanceView: FunctionComponent<
               modelId: modelId,
             }}
           />
-        </div>
-      </div>
-    </Fragment>
+        </Fragment>
+      }
+    >
+      <Fragment>
+        <ScheduledMaintenanceFeedElement scheduledMaintenanceId={modelId} />
+        <EntityRunbooks scheduledMaintenanceId={modelId} hideIfEmpty={true} />
+      </Fragment>
+    </EventOverviewLayout>
   );
 };
 

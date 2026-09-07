@@ -12,6 +12,7 @@ import useAsyncEffect from "use-async-effect";
 import Select from "../../../Server/Types/Database/Select";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
+  hideTitle?: boolean | undefined;
   title?: string | undefined;
   breadcrumbLinks?: Array<Link> | undefined;
   children: Array<ReactElement> | ReactElement;
