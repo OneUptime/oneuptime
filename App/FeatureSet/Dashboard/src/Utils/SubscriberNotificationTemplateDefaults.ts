@@ -67,7 +67,7 @@ const buildEmailHtml: (params: {
 ${fieldsHtml}
   </div>
   <p style="margin: 0 0 24px 0;">
-    <a href="${params.buttonUrl}" style="display: inline-block; max-width: 100%; box-sizing: border-box; text-align: center; line-height: 22px; background-color: #4f46e5; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">${params.buttonText}</a>
+    <a href="${params.buttonUrl}" style="display: inline-block; max-width: 100%; box-sizing: border-box; text-align: center; line-height: 22px; background-color: #111111; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">${params.buttonText}</a>
   </p>
   <p style="color: #64748b; font-size: 12px; line-height: 18px; margin: 32px 0 0 0;">
     If you no longer wish to receive these notifications, you can <a href="{{unsubscribeUrl}}" style="color: #64748b;">unsubscribe</a>.
@@ -82,10 +82,10 @@ const subscriptionConfirmationDefaults: EventDefaults = {
   <h1 style="color: #0f172a; font-size: 28px; line-height: 36px; letter-spacing: -0.6px; font-weight: 700; margin: 0 0 16px 0;">{{statusPageName}} - Please confirm your subscription</h1>
   <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 16px 0;">You will be the first to hear from us when there are any incidents, announcements or scheduled maintenance events.</p>
   <p style="margin: 0 0 24px 0;">
-    <a href="{{confirmationUrl}}" style="display: inline-block; max-width: 100%; box-sizing: border-box; text-align: center; line-height: 22px; background-color: #4f46e5; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">Confirm Subscription</a>
+    <a href="{{confirmationUrl}}" style="display: inline-block; max-width: 100%; box-sizing: border-box; text-align: center; line-height: 22px; background-color: #111111; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">Confirm Subscription</a>
   </p>
   <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 4px 0;">You can also view the status page by visiting this link:</p>
-  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 24px 0;"><a href="{{statusPageUrl}}" style="color: #4f46e5; overflow-wrap: anywhere; word-break: break-all;">{{statusPageUrl}}</a></p>
+  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 24px 0;"><a href="{{statusPageUrl}}" style="color: #111111; overflow-wrap: anywhere; word-break: break-all;">{{statusPageUrl}}</a></p>
   <p style="color: #64748b; font-size: 12px; line-height: 18px; margin: 32px 0 0 0;">
     If you no longer wish to receive these notifications, you can <a href="{{unsubscribeUrl}}" style="color: #64748b;">unsubscribe</a>.
   </p>
@@ -100,10 +100,10 @@ const subscribedDefaults: EventDefaults = {
   <h1 style="color: #0f172a; font-size: 28px; line-height: 36px; letter-spacing: -0.6px; font-weight: 700; margin: 0 0 16px 0;">You have been subscribed to status page - {{statusPageName}}</h1>
   <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 16px 0;">You will be the first to hear from us when there are any incidents, announcements or scheduled maintenance events.</p>
   <p style="margin: 0 0 24px 0;">
-    <a href="{{statusPageUrl}}" style="display: inline-block; max-width: 100%; box-sizing: border-box; text-align: center; line-height: 22px; background-color: #4f46e5; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">Go to Status Page</a>
+    <a href="{{statusPageUrl}}" style="display: inline-block; max-width: 100%; box-sizing: border-box; text-align: center; line-height: 22px; background-color: #111111; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">Go to Status Page</a>
   </p>
   <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 4px 0;">You can also view the status page by visiting this link:</p>
-  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 24px 0;"><a href="{{statusPageUrl}}" style="color: #4f46e5; overflow-wrap: anywhere; word-break: break-all;">{{statusPageUrl}}</a></p>
+  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 24px 0;"><a href="{{statusPageUrl}}" style="color: #111111; overflow-wrap: anywhere; word-break: break-all;">{{statusPageUrl}}</a></p>
   <p style="color: #64748b; font-size: 12px; line-height: 18px; margin: 32px 0 0 0;">
     If you no longer wish to receive these notifications, you can <a href="{{unsubscribeUrl}}" style="color: #64748b;">unsubscribe</a>.
   </p>
@@ -118,10 +118,10 @@ const manageSubscriptionDefaults: EventDefaults = {
   <h1 style="color: #0f172a; font-size: 28px; line-height: 36px; letter-spacing: -0.6px; font-weight: 700; margin: 0 0 16px 0;">{{statusPageName}} - Manage Subscription</h1>
   <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 16px 0;">Please click on the link below to manage or unsubscribe from status page notifications.</p>
   <p style="margin: 0 0 24px 0;">
-    <a href="{{manageSubscriptionUrl}}" style="display: inline-block; max-width: 100%; box-sizing: border-box; text-align: center; line-height: 22px; background-color: #4f46e5; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">Manage Subscription</a>
+    <a href="{{manageSubscriptionUrl}}" style="display: inline-block; max-width: 100%; box-sizing: border-box; text-align: center; line-height: 22px; background-color: #111111; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">Manage Subscription</a>
   </p>
   <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 4px 0;">You can also view the status page by visiting this link:</p>
-  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 24px 0;"><a href="{{statusPageUrl}}" style="color: #4f46e5; overflow-wrap: anywhere; word-break: break-all;">{{statusPageUrl}}</a></p>
+  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 24px 0;"><a href="{{statusPageUrl}}" style="color: #111111; overflow-wrap: anywhere; word-break: break-all;">{{statusPageUrl}}</a></p>
 </div>`,
   },
   [StatusPageSubscriberNotificationMethod.SMS]: {
@@ -847,7 +847,7 @@ const reportDefaults: EventDefaults = {
   <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 24px 0;">No resources have been added to this status page yet, so there is nothing to report this period. Once you add resources, their uptime and incident history will appear in future reports.</p>
   {{/if}}
   <p style="margin: 0 0 24px 0;">
-    <a href="{{detailsUrl}}" style="display: inline-block; max-width: 100%; box-sizing: border-box; text-align: center; line-height: 22px; background-color: #4f46e5; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">View Full Status Page</a>
+    <a href="{{detailsUrl}}" style="display: inline-block; max-width: 100%; box-sizing: border-box; text-align: center; line-height: 22px; background-color: #111111; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">View Full Status Page</a>
   </p>
   {{#if subscriberEmailNotificationFooterText}}
   <p style="color: #64748b; font-size: 13px; line-height: 20px; margin: 0 0 16px 0;">{{subscriberEmailNotificationFooterText}}</p>

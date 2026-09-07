@@ -24,6 +24,74 @@ function render(name: string, variables: Record<string, unknown> = {}): string {
   )(variables);
 }
 
+describe("black email brand accents", () => {
+  test("primary buttons pair white text with a black Outlook cell and border", () => {
+    const html: string = render("ButtonBlock", {
+      buttonUrl: ACTION_URL,
+      buttonText: "Review update",
+    });
+    const cell: string =
+      html.match(/<td\b[^>]*\bbgcolor="[^"]*"[^>]*>/i)?.[0] || "";
+    const anchor: string = html.match(/<a\b[^>]*>/i)?.[0] || "";
+
+    expect(cell).toContain('bgcolor="#111111"');
+    expect(cell).toMatch(/background-color:\s*#111111\s*;/i);
+    expect(cell).toMatch(/mso-padding-alt:\s*12px 24px\s*;/i);
+    expect(anchor).toMatch(/border:\s*1px solid #111111\s*;/i);
+    expect(anchor).toMatch(/;\s*color:\s*#ffffff\s*;/i);
+  });
+
+  test("secondary buttons retain their light surface and dark text", () => {
+    const html: string = render("ButtonBlock", {
+      buttonUrl: ACTION_URL,
+      buttonText: "View details",
+      secondary: true,
+    });
+
+    expect(html).toContain('bgcolor="#f1f5f9"');
+    expect(html).toMatch(/background-color:\s*#f1f5f9\s*;/i);
+    expect(html).toMatch(/border:\s*1px solid #e2e8f0\s*;/i);
+    expect(html).toMatch(/;\s*color:\s*#0f172a\s*;/i);
+  });
+
+  test("generic links and keyboard focus use the black accent", () => {
+    const css: string = render("Style");
+
+    expect(css).toMatch(/(?:^|\s)a\s*\{[^{}]*color:\s*#111111\s*;/i);
+    expect(css).toMatch(
+      /a:focus-visible\s*\{[^{}]*outline:\s*2px solid #111111\s*;/i,
+    );
+  });
+
+  test.each([
+    ["LinkBlock", "linkUrl"],
+    ["SupportBlock", ""],
+    ["UnsubscribeBlock", "unsubscribeUrl"],
+    ["UnsubscribeOwnerEmail", "notificationPreferencesUrl"],
+  ])(
+    "%s supplies a black inline navigation link",
+    (partial: string, variable: string) => {
+      const html: string = render(partial, { [variable]: ACTION_URL });
+      const anchor: string = html.match(/<a\b[^>]*>/i)?.[0] || "";
+
+      expect(anchor).toMatch(/(?:"|;)\s*color:\s*#111111\s*;/i);
+      expect(anchor).toMatch(/text-decoration:\s*underline\s*;/i);
+    },
+  );
+
+  test("project-defined severity colors survive even when they match a former brand color", () => {
+    const html: string = render("SeverityBadge", {
+      badgeText: "Customer priority",
+      badgeColor: "#4f46e5",
+    });
+
+    expect(html).toContain("Customer priority");
+    expect(html).toMatch(/;\s*color:\s*#4f46e5\s*;/i);
+    expect(html).toMatch(/border:\s*1px solid #4f46e5\s*;/i);
+    expect(html).toMatch(/background-color:\s*#ffffff\s*;/i);
+  });
+});
+
 describe("optional email navigation", () => {
   describe.each([
     ["ButtonBlock", "buttonUrl"],
@@ -253,6 +321,20 @@ describe.each([
 ])(
   "%s communicates a transition in words",
   (partial: string, previousKey: string, currentKey: string, label: string) => {
+    test("preserves supplied state colors independently of the brand accent", () => {
+      const html: string = render(partial, {
+        [previousKey]: "Investigating",
+        [currentKey]: "Customer state",
+        [`${previousKey}Color`]: "#dc2626",
+        [`${currentKey}Color`]: "#4f46e5",
+      });
+
+      for (const color of ["#dc2626", "#4f46e5"]) {
+        expect(html).toContain(`color: ${color};`);
+        expect(html).toContain(`background-color: ${color};`);
+      }
+    });
+
     test("keeps both labels in reading order even without status colors", () => {
       const html: string = render(partial, {
         [previousKey]: "Investigating & triaging",

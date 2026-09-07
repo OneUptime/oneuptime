@@ -4800,12 +4800,12 @@ export class Service extends DatabaseService<Model> {
                 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed;">
                   <tr>
                     <td style="vertical-align: middle;">
-                      <span style="display: inline-block; background-color: #eef2ff; color: #4338ca; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">${alertNumber}</span>
-                      <a href="${alertLink}" style="color: #4f46e5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 24px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;">${alertTitle}</a>
+                      <span style="display: inline-block; background-color: #f1f5f9; color: #111111; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">${alertNumber}</span>
+                      <a href="${alertLink}" style="color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 24px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;">${alertTitle}</a>
                       ${monitorName ? `<span style="display: block; color: #64748b; font-size: 13px; line-height: 20px; margin-top: 6px;">Monitor: ${monitorName}</span>` : ""}
                     </td>
                     <td width="52" style="text-align: right; vertical-align: middle; padding-left: 8px;">
-                      <a href="${alertLink}" style="color: #4f46e5; font-size: 13px; line-height: 20px; text-decoration: underline;">View →</a>
+                      <a href="${alertLink}" style="color: #111111; font-size: 13px; line-height: 20px; text-decoration: underline;">View →</a>
                     </td>
                   </tr>
                 </table>
@@ -4984,11 +4984,11 @@ export class Service extends DatabaseService<Model> {
                   <tr>
                     <td style="vertical-align: middle;">
                       <span style="display: inline-block; background-color: #fee2e2; color: #991b1b; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">${incidentNumber}</span>
-                      <a href="${incidentLink}" style="color: #4f46e5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 24px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;">${incidentTitle}</a>
+                      <a href="${incidentLink}" style="color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 24px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;">${incidentTitle}</a>
                       ${monitorName ? `<span style="display: block; color: #64748b; font-size: 13px; line-height: 20px; margin-top: 6px;">Monitor: ${monitorName}</span>` : ""}
                     </td>
                     <td width="52" style="text-align: right; vertical-align: middle; padding-left: 8px;">
-                      <a href="${incidentLink}" style="color: #4f46e5; font-size: 13px; line-height: 20px; text-decoration: underline;">View →</a>
+                      <a href="${incidentLink}" style="color: #111111; font-size: 13px; line-height: 20px; text-decoration: underline;">View →</a>
                     </td>
                   </tr>
                 </table>

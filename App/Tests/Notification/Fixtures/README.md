@@ -23,6 +23,8 @@ The new shared layout uses inline styles, presentation tables, a fixed-width
 Outlook fallback, fluid content widths and mobile spacing. The new subscriber
 custom-template starter designs use the same palette and typography. Previously
 saved custom HTML and the `BlankTemplate` passthrough keep their authored design.
+Primary actions and navigation use black accents on light surfaces; status and
+severity indicators retain their semantic or customer-defined colors.
 
 ## Regression checks
 

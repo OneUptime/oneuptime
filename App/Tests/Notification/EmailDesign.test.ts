@@ -179,6 +179,66 @@ describe("the complete built-in email design", () => {
     }
   });
 
+  test("built-in, starter and generated email styles no longer contain the former indigo palette", () => {
+    const sourceFiles: Array<string> = [
+      ...[...catalog, EmailTemplateType.BlankTemplate].map(
+        (name: string): string => {
+          return Path.join(TEMPLATES_DIR, name);
+        },
+      ),
+      ...fs
+        .readdirSync(Path.join(TEMPLATES_DIR, "Partials"))
+        .filter((name: string): boolean => {
+          return name.endsWith(".hbs");
+        })
+        .map((name: string): string => {
+          return Path.join(TEMPLATES_DIR, "Partials", name);
+        }),
+      Path.resolve(
+        __dirname,
+        "../../FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults.ts",
+      ),
+      Path.resolve(
+        __dirname,
+        "../../../Common/Server/Services/UserNotificationRuleService.ts",
+      ),
+    ];
+
+    /*
+     * Check authored source colors, including unrendered branches. Customer
+     * input may still use these colors and is covered by separate render tests.
+     * Semantic blue, red, amber and green are deliberately outside this palette.
+     */
+    const oldAccentPattern: RegExp = /#(?:4f46e5|4338ca|6366f1|eef2ff)\b/i;
+    const filesWithOldAccents: Array<string> = sourceFiles.filter(
+      (file: string): boolean => {
+        return oldAccentPattern.test(fs.readFileSync(file, "utf8"));
+      },
+    );
+
+    expect(filesWithOldAccents).toEqual([]);
+  });
+
+  test("status badges retain their semantic colors", () => {
+    const states: Array<[string, string, string]> = [
+      ["critical", "#dc2626", "#fef2f2"],
+      ["warning", "#92400e", "#fffbeb"],
+      ["success", "#166534", "#f0fdf4"],
+      ["info", "#2563eb", "#eff6ff"],
+    ];
+
+    for (const [badgeType, color, background] of states) {
+      const html: string = render("Partials/StatusBadge.hbs", {
+        badgeType,
+        badgeText: badgeType,
+      });
+
+      expect(html).toContain(`st-Badge--${badgeType}`);
+      expect(html).toContain(`color: ${color};`);
+      expect(html).toContain(`background-color: ${background};`);
+    }
+  });
+
   test.each(catalog)(
     "%s renders a complete, fluid document with one main heading",
     (name: string) => {
@@ -235,7 +295,7 @@ describe("the complete built-in email design", () => {
 
   test("leaves a full custom email document byte-for-byte unchanged", () => {
     const body: string =
-      '<!doctype html><html><head><style>.custom { margin: 18px; }</style></head><body><h1>Customer email</h1><p class="custom">A &amp; B</p><a href="https://status.example.com">Open status</a></body></html>';
+      '<!doctype html><html><head><style>.custom { margin: 18px; color: #4f46e5; background-color: #eef2ff; }</style></head><body><h1>Customer email</h1><p class="custom">A &amp; B</p><a href="https://status.example.com">Open status</a></body></html>';
 
     expect(render(EmailTemplateType.BlankTemplate, { body })).toBe(body);
   });
@@ -565,6 +625,13 @@ describe("the email starter templates offered to status-page customers", () => {
       expect(html).not.toMatch(/min-width:\s*\d+px/i);
       expect(html).not.toContain("{{");
       expect(html).not.toContain('href=""');
+
+      const buttons: Array<string> =
+        html.match(/<a\b[^>]*background-color:[^>]*>/gi) || [];
+
+      expect(buttons).toHaveLength(1);
+      expect(buttons[0]).toMatch(/background-color:\s*#111111\s*;/i);
+      expect(buttons[0]).toMatch(/;\s*color:\s*#ffffff\s*;/i);
 
       const destination: string =
         event === StatusPageSubscriberNotificationEventType.SubscriberSubscribed
