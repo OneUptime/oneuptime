@@ -3,10 +3,10 @@ import MonitorTemplate from "../../Models/DatabaseModels/MonitorTemplate";
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
-import JSONFunctions from "../../Types/JSONFunctions";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import ObjectID from "../../Types/ObjectID";
+import MonitorTemplateCustomFieldUtil from "./MonitorTemplateCustomFieldUtil";
 
 /*
  * Materialises a project MonitorTemplate for one discovered NetworkDevice.
@@ -379,7 +379,12 @@ export default class NetworkDeviceMonitorTemplateUtil {
     return truncated;
   }
 
+  /*
+   * Delegated so "what a template's custom fields mean" is written down once
+   * — provisioning takes the bag whole, sync overlays it. See
+   * MonitorTemplateCustomFieldUtil.
+   */
   private static cloneCustomFields(customFields: JSONObject): JSONObject {
-    return JSONFunctions.deserialize(JSONFunctions.serialize(customFields));
+    return MonitorTemplateCustomFieldUtil.clone(customFields);
   }
 }

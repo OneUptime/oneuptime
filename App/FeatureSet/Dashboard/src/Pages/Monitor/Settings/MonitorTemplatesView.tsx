@@ -15,6 +15,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
+import CustomFieldsDetail from "Common/UI/Components/CustomFields/CustomFieldsDetail";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import {
@@ -35,7 +36,9 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
+import MonitorTemplateCustomFieldUtil from "Common/Utils/Monitor/MonitorTemplateCustomFieldUtil";
 import MonitorStepsType from "Common/Types/Monitor/MonitorSteps";
 import MonitorType, {
   MonitorTypeHelper,
@@ -127,6 +130,20 @@ const MonitorTemplatesView: FunctionComponent<
     useState<boolean>(false);
   const [isSyncingLabels, setIsSyncingLabels] = useState<boolean>(false);
   const [labelsSyncError, setLabelsSyncError] = useState<string>("");
+
+  const [showCustomFieldsSyncModal, setShowCustomFieldsSyncModal] =
+    useState<boolean>(false);
+  const [isSyncingCustomFields, setIsSyncingCustomFields] =
+    useState<boolean>(false);
+  const [customFieldsSyncError, setCustomFieldsSyncError] =
+    useState<string>("");
+  /*
+   * Reported by the Custom Field Defaults card itself rather than fetched
+   * here, so it reflects an edit made on this page without a second read.
+   */
+  const [templateCustomFields, setTemplateCustomFields] = useState<JSONObject>(
+    {},
+  );
 
   const [singleSyncMonitor, setSingleSyncMonitor] = useState<Monitor | null>(
     null,
@@ -325,6 +342,60 @@ const MonitorTemplatesView: FunctionComponent<
     }
   };
 
+  /*
+   * The backfill half of custom field defaults (issue #3548). Setting defaults
+   * on the template only reaches monitors provisioned AFTER the edit, and the
+   * fleet that made this a problem — a thousand devices an auto-import rule
+   * already imported — is entirely on the other side of that line. This is
+   * what reaches them.
+   *
+   * Scoped to `customFields` by name because an unscoped sync deliberately
+   * leaves them alone: see DEFAULT_SYNCABLE_FIELDS in MonitorTemplateService.
+   */
+  const onSyncCustomFieldsSubmit: () => Promise<void> =
+    async (): Promise<void> => {
+      setIsSyncingCustomFields(true);
+      setCustomFieldsSyncError("");
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              `/monitor-template/${modelId.toString()}/sync-to-linked-monitors`,
+            ),
+            data: {
+              fields: ["customFields"],
+            },
+            headers: ModelAPI.getCommonHeaders(),
+          });
+
+        if (response.isFailure()) {
+          setCustomFieldsSyncError(API.getFriendlyMessage(response));
+          setIsSyncingCustomFields(false);
+          return;
+        }
+
+        const synced: number = (response.data["syncedMonitors"] as number) || 0;
+        const total: number =
+          (response.data["totalLinkedMonitors"] as number) || 0;
+
+        const summary: SyncResultSummary = buildSyncResultSummary({
+          subject: "custom field defaults",
+          syncedMonitors: synced,
+          totalLinkedMonitors: total,
+        });
+
+        setSyncResultTitle(summary.title);
+        setSyncResultMessage(summary.message);
+        setShowCustomFieldsSyncModal(false);
+        setIsSyncingCustomFields(false);
+        fetchLinkedMonitorCount();
+        setTableRefreshToggle(Math.random().toString());
+      } catch (e) {
+        setCustomFieldsSyncError(API.getFriendlyMessage(e));
+        setIsSyncingCustomFields(false);
+      }
+    };
+
   const onSingleSyncSubmit: () => Promise<void> = async (): Promise<void> => {
     if (!singleSyncMonitor || !singleSyncMonitor.id) {
       return;
@@ -515,6 +586,24 @@ const MonitorTemplatesView: FunctionComponent<
     linkedMonitorCount === null
       ? "Sync Labels to Linked Monitors"
       : `Sync Labels to ${linkedMonitorCount} Linked Monitor${linkedMonitorCount === 1 ? "" : "s"}`;
+
+  const syncCustomFieldsButtonTitle: string =
+    linkedMonitorCount === null
+      ? "Sync Custom Fields to Linked Monitors"
+      : `Sync Custom Fields to ${linkedMonitorCount} Linked Monitor${linkedMonitorCount === 1 ? "" : "s"}`;
+
+  /*
+   * A template with no defaults set has nothing to push, and a sync that
+   * writes nothing comes back as "0 of N synced" — which the summary reads as
+   * a permissions problem and tells the operator to run it again as somebody
+   * else. Say what is actually wrong instead, on a button that stays visible
+   * so the sentence has somewhere to hang.
+   */
+  const customFieldDefaultNames: Array<string> = Object.keys(
+    MonitorTemplateCustomFieldUtil.getDefaults(templateCustomFields),
+  );
+
+  const hasCustomFieldDefaults: boolean = customFieldDefaultNames.length > 0;
 
   /*
    * The count goes in the title rather than only inside the sync buttons: "how
@@ -977,9 +1066,47 @@ const MonitorTemplatesView: FunctionComponent<
         }}
       />
 
+      {/*
+       * Custom field defaults (issue #3548). Written onto every monitor this
+       * template provisions — including the ones an auto-import rule creates
+       * from a discovery scan, which is the case where filling them in by hand
+       * afterwards means opening a thousand monitors one at a time.
+       *
+       * `hideIfEmpty` for the same reason the resource overview pages use it:
+       * a project that has defined no Monitor Custom Fields has nothing to
+       * default, and reading the schema is gated on a billing plan besides.
+       */}
+      <CustomFieldsDetail
+        title="Custom Field Defaults"
+        description="Custom field values written onto every monitor created from this template — including monitors provisioned automatically by auto-import rules and alert policies. Fields left blank here are not defaulted."
+        modelType={MonitorTemplate}
+        customFieldType={MonitorCustomField}
+        name="Monitor Template Custom Field Defaults"
+        projectId={ProjectUtil.getCurrentProject()!.id!}
+        modelId={modelId}
+        hideIfEmpty={true}
+        onValuesLoaded={setTemplateCustomFields}
+        additionalButtons={[
+          {
+            title: syncCustomFieldsButtonTitle,
+            icon: IconProp.Refresh,
+            buttonStyle: ButtonStyleType.NORMAL,
+            disabled: linkedMonitorCount === 0 || !hasCustomFieldDefaults,
+            tooltip: hasCustomFieldDefaults
+              ? undefined
+              : "Set at least one default above before syncing.",
+            onClick: () => {
+              setSyncResultMessage("");
+              setCustomFieldsSyncError("");
+              setShowCustomFieldsSyncModal(true);
+            },
+          },
+        ]}
+      />
+
       <MonitorsTable
         title={linkedMonitorsTitle}
-        description="Monitors created from or linked to this template. Use the sync buttons on the cards above to push the template's criteria, monitoring interval, or labels onto every linked monitor."
+        description="Monitors created from or linked to this template. Use the sync buttons on the cards above to push the template's criteria, monitoring interval, labels, or custom field defaults onto every linked monitor."
         noItemsMessage="No monitors are linked to this template yet."
         disableCreate={true}
         query={linkedMonitorsQuery}
@@ -1068,7 +1195,7 @@ const MonitorTemplatesView: FunctionComponent<
           title="Sync Criteria to Linked Monitors"
           description={
             <span>
-              {`This will overwrite ONLY the monitor criteria on ${linkedMonitorCount} monitor${linkedMonitorCount === 1 ? "" : "s"} created from this template. Monitoring interval, minimum probe agreement, name, description, and labels will be left alone. This cannot be undone.`}
+              {`This will overwrite ONLY the monitor criteria on ${linkedMonitorCount} monitor${linkedMonitorCount === 1 ? "" : "s"} created from this template. Monitoring interval, minimum probe agreement, name, description, labels, and custom field values will be left alone. This cannot be undone.`}
             </span>
           }
           submitButtonText="Sync Criteria"
@@ -1088,7 +1215,7 @@ const MonitorTemplatesView: FunctionComponent<
           title="Sync Interval to Linked Monitors"
           description={
             <span>
-              {`This will overwrite the monitoring interval and minimum probe agreement on ${linkedMonitorCount} monitor${linkedMonitorCount === 1 ? "" : "s"} created from this template. Criteria, name, description, and labels will be left alone. This cannot be undone.`}
+              {`This will overwrite the monitoring interval and minimum probe agreement on ${linkedMonitorCount} monitor${linkedMonitorCount === 1 ? "" : "s"} created from this template. Criteria, name, description, labels, and custom field values will be left alone. This cannot be undone.`}
             </span>
           }
           submitButtonText="Sync Interval"
@@ -1108,7 +1235,7 @@ const MonitorTemplatesView: FunctionComponent<
           title="Sync Labels to Linked Monitors"
           description={
             <span>
-              {`This will overwrite ONLY the labels on ${linkedMonitorCount} monitor${linkedMonitorCount === 1 ? "" : "s"} created from this template. Criteria, monitoring interval, minimum probe agreement, name, and description will be left alone. This cannot be undone.`}
+              {`This will overwrite ONLY the labels on ${linkedMonitorCount} monitor${linkedMonitorCount === 1 ? "" : "s"} created from this template. Criteria, monitoring interval, minimum probe agreement, name, description, and custom field values will be left alone. This cannot be undone.`}
             </span>
           }
           submitButtonText="Sync Labels"
@@ -1123,12 +1250,32 @@ const MonitorTemplatesView: FunctionComponent<
         />
       )}
 
+      {showCustomFieldsSyncModal && (
+        <ConfirmModal
+          title="Sync Custom Fields to Linked Monitors"
+          description={
+            <span>
+              {`This will overwrite the ${customFieldDefaultNames.length} custom field${customFieldDefaultNames.length === 1 ? "" : "s"} this template defaults (${customFieldDefaultNames.join(", ")}) on ${linkedMonitorCount} monitor${linkedMonitorCount === 1 ? "" : "s"} created from this template, replacing any value entered on those monitors. Custom fields this template leaves blank are not touched, and neither are criteria, monitoring interval, labels, name, or description. This cannot be undone.`}
+            </span>
+          }
+          submitButtonText="Sync Custom Fields"
+          submitButtonType={ButtonStyleType.PRIMARY}
+          isLoading={isSyncingCustomFields}
+          error={customFieldsSyncError}
+          onSubmit={onSyncCustomFieldsSubmit}
+          onClose={() => {
+            setShowCustomFieldsSyncModal(false);
+            setCustomFieldsSyncError("");
+          }}
+        />
+      )}
+
       {singleSyncMonitor && (
         <ConfirmModal
           title="Sync Monitor from Template"
           description={
             <span>
-              {`This will overwrite the criteria, monitoring interval, minimum probe agreement, and labels on "${singleSyncMonitor.name || "this monitor"}" with the template's current values. Name and description will be left alone. This cannot be undone.`}
+              {`This will overwrite the criteria, monitoring interval, minimum probe agreement, and labels on "${singleSyncMonitor.name || "this monitor"}" with the template's current values. Name, description, and custom field values will be left alone. This cannot be undone.`}
             </span>
           }
           submitButtonText="Sync Now"

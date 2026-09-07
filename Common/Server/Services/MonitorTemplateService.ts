@@ -22,6 +22,7 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import Model from "../../Models/DatabaseModels/MonitorTemplate";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import MonitorTemplateCustomFieldUtil from "../../Utils/Monitor/MonitorTemplateCustomFieldUtil";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import ModelPermission from "../Types/Database/Permissions/Index";
@@ -41,9 +42,31 @@ export type SyncableTemplateField =
   | "monitorSteps"
   | "monitoringInterval"
   | "minimumProbeAgreement"
-  | "labels";
+  | "labels"
+  | "customFields";
 
-const ALL_SYNCABLE_FIELDS: ReadonlyArray<SyncableTemplateField> = [
+const SYNCABLE_FIELDS: ReadonlyArray<SyncableTemplateField> = [
+  "monitorSteps",
+  "monitoringInterval",
+  "minimumProbeAgreement",
+  "labels",
+  "customFields",
+];
+
+/*
+ * What an UNSCOPED sync pushes — every syncable field except custom field
+ * defaults.
+ *
+ * Custom fields are the one syncable thing whose per-monitor value is
+ * ordinarily typed in by hand: a monitor's Configuration Item or Vendor is
+ * about that device, not about the template. A caller that names no fields is
+ * saying "push the template", not "and also rewrite every operator-entered
+ * value in the fleet", so custom fields ship only when asked for by name —
+ * which is what the dedicated button on the template's Custom Field Defaults
+ * card does. The dashboard always scopes its syncs, so this only decides what
+ * an API caller gets by default.
+ */
+const DEFAULT_SYNCABLE_FIELDS: ReadonlyArray<SyncableTemplateField> = [
   "monitorSteps",
   "monitoringInterval",
   "minimumProbeAgreement",
@@ -309,10 +332,10 @@ export class Service extends DatabaseService<Model> {
     fields: Array<string> | undefined,
   ): Array<SyncableTemplateField> {
     if (!fields || fields.length === 0) {
-      return [...ALL_SYNCABLE_FIELDS];
+      return [...DEFAULT_SYNCABLE_FIELDS];
     }
 
-    const allowed: Set<string> = new Set(ALL_SYNCABLE_FIELDS);
+    const allowed: Set<string> = new Set(SYNCABLE_FIELDS);
     for (const field of fields) {
       if (!allowed.has(field)) {
         throw new BadDataException(
@@ -323,6 +346,16 @@ export class Service extends DatabaseService<Model> {
     return fields as Array<SyncableTemplateField>;
   }
 
+  /*
+   * The part of the push that is identical for every linked monitor, so it can
+   * ride a single bulk update.
+   *
+   * `customFields` is deliberately absent: a template's custom fields are
+   * DEFAULTS overlaid on whatever the monitor already holds, which is a
+   * different value per monitor and therefore cannot be one shared payload.
+   * The two sync entry points below compute it per monitor instead — see
+   * buildCustomFieldsUpdate.
+   */
   private buildUpdateData(
     template: Model,
     fields: Array<SyncableTemplateField>,
@@ -330,6 +363,10 @@ export class Service extends DatabaseService<Model> {
     const updateData: Partial<Monitor> = {};
 
     for (const field of fields) {
+      if (field === "customFields") {
+        continue;
+      }
+
       const value: unknown = (template as unknown as Record<string, unknown>)[
         field
       ];
@@ -342,13 +379,46 @@ export class Service extends DatabaseService<Model> {
     return updateData;
   }
 
+  /*
+   * Does this push carry custom field defaults that are worth a write?
+   *
+   * A template whose bag is absent, empty, or holds nothing but blanks has no
+   * defaults to give, and saying so here is what stops a custom-fields-only
+   * sync from taking the per-monitor path (and reporting a fleet-wide write)
+   * to push nothing at all.
+   */
+  private hasCustomFieldDefaultsToSync(
+    template: Model,
+    fields: Array<SyncableTemplateField>,
+  ): boolean {
+    return (
+      fields.includes("customFields") &&
+      MonitorTemplateCustomFieldUtil.hasDefaults(template.customFields)
+    );
+  }
+
+  /*
+   * One monitor's custom field bag after the template's defaults are laid over
+   * it: the template wins every field it actually defaults, and every other
+   * value the operator entered on that monitor survives untouched.
+   */
+  private buildCustomFieldsUpdate(data: {
+    template: Model;
+    monitor: Monitor;
+  }): JSONObject {
+    return MonitorTemplateCustomFieldUtil.applyDefaults({
+      templateCustomFields: data.template.customFields,
+      monitorCustomFields: data.monitor.customFields,
+    });
+  }
+
   /**
    * Push the template's current configuration onto every monitor that was
    * created from it. Sync is intentionally explicit (button-triggered) so a
    * config tweak doesn't silently re-deploy across the whole fleet.
    *
    * Pass `fields` to scope the sync — e.g. `["monitorSteps"]` to push only the
-   * criteria. If omitted, every syncable field is pushed.
+   * criteria. If omitted, DEFAULT_SYNCABLE_FIELDS is pushed.
    */
   @CaptureSpan()
   public async syncLinkedMonitors(data: {
@@ -369,6 +439,7 @@ export class Service extends DatabaseService<Model> {
         monitorSteps: true,
         monitoringInterval: true,
         minimumProbeAgreement: true,
+        customFields: true,
         labels: {
           _id: true,
         },
@@ -398,7 +469,17 @@ export class Service extends DatabaseService<Model> {
 
     const updateData: Partial<Monitor> = this.buildUpdateData(template, fields);
 
-    if (Object.keys(updateData).length === 0) {
+    /*
+     * Custom field defaults never ride in updateData — the value written
+     * depends on what each monitor already holds — so they are their own
+     * reason for this push to have work to do.
+     */
+    const syncCustomFields: boolean = this.hasCustomFieldDefaultsToSync(
+      template,
+      fields,
+    );
+
+    if (Object.keys(updateData).length === 0 && !syncCustomFields) {
       return {
         totalLinkedMonitors,
         syncedMonitors: 0,
@@ -412,10 +493,16 @@ export class Service extends DatabaseService<Model> {
      * those rows individually and rebind cloned template steps to each
      * monitor's current (or provenance-backed) device instead.
      */
-    if (
+    const rebindMonitorSteps: boolean =
       template.monitorType === MonitorType.NetworkDevice &&
-      fields.includes("monitorSteps")
-    ) {
+      fields.includes("monitorSteps");
+
+    /*
+     * Custom field defaults take the same row-at-a-time path for their own
+     * reason: they are overlaid on the monitor's existing bag, so the payload
+     * is read from the row being written and cannot be shared.
+     */
+    if (rebindMonitorSteps || syncCustomFields) {
       let syncedMonitors: number = 0;
       const linkedMonitorQuery: Query<Monitor> = {
         monitorTemplateId: template.id!,
@@ -428,12 +515,20 @@ export class Service extends DatabaseService<Model> {
        * label scope order-dependent: accessible rows could update before a
        * later hidden row threw. This is the same permission-narrowed subset
        * the ordinary bulk update path applies atomically.
+       *
+       * The probe names `customFields` when this push writes them — the
+       * per-monitor values are not known yet, and only the KEYS decide the
+       * column check — so a caller who may not update that column is refused
+       * up front rather than on an arbitrary row partway through the fleet.
        */
       const authorizedMonitorQuery: Query<Monitor> =
         await ModelPermission.checkUpdateQueryPermissions(
           Monitor,
           linkedMonitorQuery,
-          updateData as any,
+          {
+            ...updateData,
+            ...(syncCustomFields ? { customFields: {} } : {}),
+          } as any,
           data.props,
         );
       const monitorsToSync: Array<Monitor> = [];
@@ -444,6 +539,7 @@ export class Service extends DatabaseService<Model> {
           select: {
             _id: true,
             monitorSteps: true,
+            customFields: true,
             autoProvisionedNetworkDeviceId: true,
           },
           sort: { createdAt: SortOrder.Ascending, _id: SortOrder.Ascending },
@@ -468,15 +564,27 @@ export class Service extends DatabaseService<Model> {
           monitor,
           data: {
             ...updateData,
-            monitorSteps: monitor.autoProvisionedNetworkDeviceId
-              ? NetworkDeviceMonitorTemplateUtil.rebindMonitorSteps({
-                  monitorSteps: template.monitorSteps,
-                  networkDeviceId: monitor.autoProvisionedNetworkDeviceId,
-                })
-              : NetworkDeviceMonitorTemplateUtil.buildSyncedMonitorSteps({
-                  templateMonitorSteps: template.monitorSteps,
-                  currentMonitorSteps: monitor.monitorSteps,
-                }),
+            ...(rebindMonitorSteps
+              ? {
+                  monitorSteps: monitor.autoProvisionedNetworkDeviceId
+                    ? NetworkDeviceMonitorTemplateUtil.rebindMonitorSteps({
+                        monitorSteps: template.monitorSteps,
+                        networkDeviceId: monitor.autoProvisionedNetworkDeviceId,
+                      })
+                    : NetworkDeviceMonitorTemplateUtil.buildSyncedMonitorSteps({
+                        templateMonitorSteps: template.monitorSteps,
+                        currentMonitorSteps: monitor.monitorSteps,
+                      }),
+                }
+              : {}),
+            ...(syncCustomFields
+              ? {
+                  customFields: this.buildCustomFieldsUpdate({
+                    template,
+                    monitor,
+                  }),
+                }
+              : {}),
           },
         };
       });
@@ -642,6 +750,7 @@ export class Service extends DatabaseService<Model> {
         monitorSteps: true,
         monitoringInterval: true,
         minimumProbeAgreement: true,
+        customFields: true,
         labels: {
           _id: true,
         },
@@ -664,6 +773,7 @@ export class Service extends DatabaseService<Model> {
         projectId: true,
         monitorTemplateId: true,
         monitorSteps: true,
+        customFields: true,
         autoProvisionedNetworkDeviceId: true,
       },
       props: { isRoot: true },
@@ -704,6 +814,17 @@ export class Service extends DatabaseService<Model> {
             templateMonitorSteps: template.monitorSteps,
             currentMonitorSteps: monitor.monitorSteps,
           });
+    }
+
+    /*
+     * Overlaid on this monitor's own bag, so a value the operator entered on
+     * a field the template does not default survives the push.
+     */
+    if (this.hasCustomFieldDefaultsToSync(template, fields)) {
+      updateData.customFields = this.buildCustomFieldsUpdate({
+        template,
+        monitor,
+      });
     }
 
     if (Object.keys(updateData).length === 0) {

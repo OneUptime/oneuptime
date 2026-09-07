@@ -139,6 +139,7 @@ import NetworkDeviceDiscoveryScan, {
 } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import { DiscoveryScanSnmpConfig } from "../../../Utils/NetworkDiscovery/SnmpScanConfigUtil";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
@@ -811,6 +812,66 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
         template.monitorSteps?.data?.monitorStepsInstanceArray[0]?.data
           ?.networkDeviceMonitor?.networkDeviceId,
       ).toBe(TEMPLATE_DEVICE_ID);
+    });
+
+    /*
+     * ISSUE #3548. A template's custom fields are the DEFAULTS its monitors
+     * are born with, and this is the path that made that worth having: a
+     * discovery scan importing a thousand devices used to leave a thousand
+     * monitors with every custom field empty, fillable only one monitor at a
+     * time.
+     *
+     * Driven through the engine rather than the builder alone for the same
+     * reason as the name test above — the values only reach the create call if
+     * `customFields` is still in this service's template select, and a dropped
+     * select column is indistinguishable from a template nobody set defaults
+     * on. Two hosts, because the cached template serves the whole estate: a
+     * shallow copy would hand every monitor in the run the same jsonb object,
+     * so one later edit would reach the rest of the fleet and the template.
+     */
+    it("gives every monitor in one run its own copy of the template's custom field defaults", async () => {
+      const template: MonitorTemplate = makeTemplate({
+        customFields: { Vendor: "Cisco", Thresholds: { cpu: 80 } },
+      });
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({
+          discoveredDevices: [
+            makeHost(),
+            makeHost({ ipAddress: "10.0.0.6", sysName: "core-switch-02" }),
+          ],
+        }),
+      );
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([template]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({ devicesCreated: 2, monitorsCreated: 2 });
+
+      const firstMonitor: Monitor = provisionedMonitor(0);
+      const secondMonitor: Monitor = provisionedMonitor(1);
+
+      for (const monitor of [firstMonitor, secondMonitor]) {
+        expect(monitor.customFields).toEqual({
+          Vendor: "Cisco",
+          Thresholds: { cpu: 80 },
+        });
+      }
+
+      expect(firstMonitor.customFields).not.toBe(secondMonitor.customFields);
+      expect(firstMonitor.customFields?.["Thresholds"]).not.toBe(
+        secondMonitor.customFields?.["Thresholds"],
+      );
+
+      (firstMonitor.customFields!["Thresholds"] as JSONObject)["cpu"] = 10;
+      expect(
+        (secondMonitor.customFields!["Thresholds"] as JSONObject)["cpu"],
+      ).toBe(80);
+      expect((template.customFields!["Thresholds"] as JSONObject)["cpu"]).toBe(
+        80,
+      );
     });
 
     /*

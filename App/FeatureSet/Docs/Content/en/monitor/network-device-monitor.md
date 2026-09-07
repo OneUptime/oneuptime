@@ -449,6 +449,19 @@ Or by hand:
 
 Network Device monitors have no polling interval of their own: they are evaluated server-side every time the device's poll results arrive, and every time a matching trap arrives.
 
+### Custom Field Defaults
+
+If your project defines Monitor Custom Fields (**Monitors** -> **Settings** -> **Custom Fields**) — Vendor, Configuration Item, owning service, whatever your CMDB needs — a monitor template can fill them in for you. **Monitors** -> **Settings** -> **Templates** -> open a template -> **Custom Field Defaults**.
+
+Every monitor made from that template afterwards is created carrying those values — the ones a person creates with **Create Monitor from Template**, and, the case this exists for, the ones an auto-import rule creates when a [discovery scan](#discovering-devices-with-a-network-scan) brings in a thousand devices at once. Without defaults, those thousand monitors arrive with every custom field empty and the only way to fill them is one monitor at a time.
+
+Two things to know:
+
+- **A field left blank on the template is not a default.** A blank leaves each monitor to answer that field for itself, so a template can default Vendor across a whole switch fleet while Configuration Item stays a per-device answer.
+- **Defaults apply at creation time.** They do not reach monitors that already exist — which is exactly the fleet you have if you set them up after a scan has already run. **Sync Custom Fields to Linked Monitors**, on that same card, is what pushes them onto the existing fleet. It overwrites the fields the template defaults, including values somebody typed in by hand, and the confirmation names those fields before it runs. Fields the template leaves blank are still left alone, so a sync can never blank a value.
+
+Custom field defaults are the one thing a plain **Sync from Template** leaves alone: pushing criteria or an interval never rewrites the values on your monitors.
+
 ## Monitoring Criteria
 
 You can set up criteria to check poll results and trigger alerts or incidents.
