@@ -7,6 +7,18 @@
 - Учётная запись Azure — создайте на [https://azure.com](https://azure.com)
 - Доступ к конфигурации вашего сервера OneUptime
 
+### Развёртывания в закрытых сетях
+
+OneUptime использует Azure Bot для интеграции с Teams. URL Incoming Webhook или Teams Workflow не заменяет конечную точку сообщений этого бота. Microsoft требует [общедоступную конечную точку HTTPS для самостоятельно размещённого бота](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0). Частный IP-адрес, внутреннее DNS-имя или VPN-подключение сотрудника не предоставляют Azure Bot Service доступ к OneUptime.
+
+Перед продолжением настройки следуйте руководству [Доступ интеграций из закрытых сетей](/docs/self-hosted/integration-network-access). Оно описывает публичный DNS, доверенный TLS, обратный прокси к вашей закрытой установке, правила межсетевого экрана и проверку. Для Teams опубликуйте `/api/microsoft-bot/messages` и укажите этот полный публичный HTTPS-URL в поле **Messaging endpoint** Azure Bot на шаге 4. Сохраняйте префикс `/api`, тело запроса и заголовок `Authorization`. Пусть аутентификация бота проверяет запросы; интерактивный вход на прокси или браузерная проверка помешают Microsoft доставить их.
+
+Перенаправления регистрации приложения `/api/microsoft-teams/auth` и `/api/microsoft-teams/admin-consent/callback` возвращаются через браузер пользователя. Этот браузер должен иметь доступ к OneUptime, например через корпоративную сеть или VPN. Сообщения бота и действия с карточками поступают с серверов Microsoft и требуют собственного доступного ingress. Исходящая доставка оповещений сама по себе не проверяет входящее подключение.
+
+Для разработки [руководство Microsoft по тестированию Teams](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/debug) описывает публикацию локальной службы с помощью туннеля. Направляйте трафик на ingress OneUptime и используйте `/api/microsoft-bot/messages` вместо примера пути Microsoft `/api/messages`. Обновляйте конечную точку Azure Bot при каждом изменении публичного URL туннеля, а для промышленной эксплуатации используйте постоянный ingress.
+
+Azure Bot Private Endpoint не заменяет этот ingress для Teams. [Инструкции Microsoft по сетевой изоляции](https://learn.microsoft.com/en-us/azure/bot-service/dl-network-isolation-how-to?view=azure-bot-service-4.0) описывают изоляцию Direct Line и указывают, что отключение публичного сетевого доступа удаляет конфигурацию каналов Teams.
+
 ## Инструкции по настройке
 
 ### Шаг 1: Создание регистрации приложения Azure
@@ -37,7 +49,8 @@
 
 - **Team.ReadBasic.All** — необходимо для просмотра всех команд в организации после предоставления согласия администратора
 - **Channel.ReadBasic.All** — необходимо для проверки существования канала и получения его сведений
-- **ChannelMessage.Send** — необходимо для программной отправки сообщений в каналы
+
+`ChannelMessage.Send` — только делегированное разрешение; в [справочнике разрешений Microsoft Graph](https://learn.microsoft.com/en-us/graph/permissions-reference#channelmessagesend) у него нет варианта разрешения приложения. Оставьте его в списке делегированных разрешений выше.
 
 **Примечание:** Bot Framework обрабатывает доставку сообщений с использованием разрешений Resource-Specific Consent (RSC), определённых в манифесте приложения Teams:
 

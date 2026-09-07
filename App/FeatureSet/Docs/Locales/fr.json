@@ -211,6 +211,8 @@
     "Status Pages Overview": "Vue d'ensemble des pages de statut",
     "Status Page Resources & Groups": "Ressources et groupes de la page de statut",
     "Status Page Branding & Domains": "Personnalisation et domaines de la page de statut",
-    "Subscribers & Announcements": "Abonnés et annonces"
+    "Subscribers & Announcements": "Abonnés et annonces",
+    "Twilio Integration": "Intégration Twilio",
+    "Integration Access from Private Networks": "Accès aux intégrations depuis les réseaux privés"
   }
 }

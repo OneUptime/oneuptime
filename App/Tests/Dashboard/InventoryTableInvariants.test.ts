@@ -364,7 +364,7 @@ describe("the pages that mount the table", () => {
     /*
      * A query-string-only change does not remount the page, so a scope
      * captured at first render leaves the table showing the previous scope
-     * under the new banner.
+     * after navigation.
      */
     const items: string = readPage("Items.tsx");
 
@@ -372,18 +372,21 @@ describe("the pages that mount the table", () => {
     expect(items).toContain("parseInventoryScope");
   });
 
-  test("the Items page always explains a scope it is under", () => {
+  test("the Items page renders without the filtered-view banner", () => {
     const items: string = readPage("Items.tsx");
 
-    expect(items).toContain("describeInventoryScope");
-    expect(items).toContain('dataTestId="inventory-scope-banner"');
+    expect(items).toContain("<InventoryTable");
+    expect(items).not.toContain('dataTestId="inventory-scope-banner"');
+    expect(items).not.toContain('strongTitle="Filtered view"');
+    expect(items).not.toContain("Dismiss this to see everything.");
   });
 
-  test("the banner clears the scope", () => {
+  test("the Items page keeps its scope query and remounts on navigation", () => {
     const items: string = readPage("Items.tsx");
 
-    expect(items).toContain("onClose=");
-    expect(items).toContain("RouteMap[PageMap.INVENTORY_ITEMS] as Route");
+    expect(items).toContain("buildInventoryScopeQuery");
+    expect(items).toContain("query={scopeQuery}");
+    expect(items).toContain("key={`inventory-items-${search}`}");
   });
 
   test("the Overview folds one snapshot into both the tiles and the breakdown", () => {
