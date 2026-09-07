@@ -7,6 +7,7 @@ import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
+import IncludesAnyOfGroups from "../../../Types/BaseDatabase/IncludesAnyOfGroups";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
 import StartsWith from "../../../Types/BaseDatabase/StartsWith";
 import EndsWith from "../../../Types/BaseDatabase/EndsWith";
@@ -24,6 +25,7 @@ import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import Typeof from "../../../Types/Typeof";
 import { And, DataSource } from "typeorm";
 import { FindOperator } from "typeorm/find-options/FindOperator";
@@ -45,6 +47,7 @@ export default class QueryUtil {
     const model: BaseModel = new modelType();
 
     query = query as Query<TBaseModel>;
+    const groupedRelationFilters: Array<FindOperator<unknown>> = [];
 
     /*
      * Multi-field text search:
@@ -125,6 +128,37 @@ export default class QueryUtil {
     for (const key in query) {
       const tableColumnMetadata: TableColumnMetadata =
         model.getTableColumnMetadata(key);
+
+      if (query[key] instanceof IncludesAnyOfGroups) {
+        if (tableColumnMetadata?.type !== TableColumnType.EntityArray) {
+          throw new BadDataException(
+            "IncludesAnyOfGroups requires a many-to-many entity relation.",
+          );
+        }
+
+        const relation: {
+          joinTableName: string;
+          ownerColumnName: string;
+          relationColumnName: string;
+        } | null = QueryUtil.getManyToManyRelationMetadata(modelType, key);
+
+        if (!relation) {
+          throw new BadDataException(
+            "IncludesAnyOfGroups requires available many-to-many relation metadata.",
+          );
+        }
+
+        for (const group of (query[key] as IncludesAnyOfGroups).groups) {
+          groupedRelationFilters.push(
+            QueryHelper.anyOfEntitiesInManyToMany({
+              ...relation,
+              values: group,
+            }) as FindOperator<unknown>,
+          );
+        }
+        delete query[key];
+        continue;
+      }
 
       if (tableColumnMetadata && query[key] === null) {
         query[key] = QueryHelper.isNull();
@@ -632,6 +666,28 @@ export default class QueryUtil {
           }
         }
       }
+    }
+
+    if (groupedRelationFilters.length > 0) {
+      /*
+       * Apply these only after scalar operators have been serialized, so an
+       * existing id condition survives regardless of the query's key order.
+       */
+      const existingIdFilter: unknown = query._id;
+      if (existingIdFilter !== undefined) {
+        if (existingIdFilter instanceof FindOperator) {
+          groupedRelationFilters.unshift(existingIdFilter);
+        } else if (typeof existingIdFilter === "string") {
+          groupedRelationFilters.unshift(
+            QueryHelper.equalTo(existingIdFilter) as FindOperator<unknown>,
+          );
+        } else {
+          throw new BadDataException(
+            "IncludesAnyOfGroups cannot combine an unsupported id filter.",
+          );
+        }
+      }
+      query._id = And(...groupedRelationFilters) as any;
     }
 
     return query;

@@ -21,6 +21,7 @@ import DashboardModelQueryInterpolation, {
   AttributeToColumnMap,
 } from "../../../Utils/Dashboard/ModelQueryVariableInterpolation";
 import DashboardVariableInterpolation from "../../../Utils/Dashboard/VariableInterpolation";
+import DashboardLabelVariable from "../../../Utils/Dashboard/LabelVariable";
 
 export interface PublicDashboardResourceListPolicyResult {
   resourceType: string;
@@ -180,6 +181,7 @@ export default class PublicDashboardResourceListPolicy {
       componentType: componentType as DashboardComponentType,
       argumentsObject,
       requestedQuery: data.requestedQuery,
+      variables,
     });
 
     let query: Record<string, unknown> = draft.query;
@@ -505,8 +507,9 @@ export default class PublicDashboardResourceListPolicy {
     componentType: DashboardComponentType;
     argumentsObject: Record<string, unknown>;
     requestedQuery: unknown;
+    variables: Array<DashboardVariable>;
   }): PolicyDraft {
-    const { componentType, argumentsObject, requestedQuery } = data;
+    const { componentType, argumentsObject, requestedQuery, variables } = data;
 
     switch (componentType) {
       case DashboardComponentType.IncidentList:
@@ -520,6 +523,7 @@ export default class PublicDashboardResourceListPolicy {
       case DashboardComponentType.MonitorList:
         return PublicDashboardResourceListPolicy.buildMonitorPolicy(
           argumentsObject,
+          variables,
         );
       case DashboardComponentType.NetworkMap:
         return PublicDashboardResourceListPolicy.buildNetworkMapPolicy(
@@ -814,6 +818,7 @@ export default class PublicDashboardResourceListPolicy {
 
   private static buildMonitorPolicy(
     argumentsObject: Record<string, unknown>,
+    variables: Array<DashboardVariable>,
   ): PolicyDraft {
     const query: Record<string, unknown> = {};
     const statusFilter: string | undefined =
@@ -841,12 +846,22 @@ export default class PublicDashboardResourceListPolicy {
       argumentsObject,
       argumentKey: "monitorTypes",
     });
-    PublicDashboardResourceListPolicy.addIncludesFromArgument({
-      query,
-      queryKey: "labels",
-      argumentsObject,
-      argumentKey: "labelIds",
-    });
+    const labels: ReturnType<typeof DashboardLabelVariable.getFilter> =
+      DashboardLabelVariable.getFilter({
+        labelIds: PublicDashboardResourceListPolicy.optionalStringArray(
+          argumentsObject,
+          "labelIds",
+        ),
+        labelVariableId: PublicDashboardResourceListPolicy.optionalString(
+          argumentsObject,
+          "labelVariableId",
+          false,
+        ),
+        variables,
+      });
+    if (labels) {
+      query["labels"] = labels;
+    }
 
     return PublicDashboardResourceListPolicy.listDraft({
       resourceType: "monitor",
@@ -1653,19 +1668,19 @@ export default class PublicDashboardResourceListPolicy {
           storedValue,
           "Stored dashboard variable",
         );
-      if (stored["type"] !== DashboardVariableType.TelemetryAttribute) {
+      const type: unknown = stored["type"];
+      if (
+        type !== DashboardVariableType.TelemetryAttribute &&
+        type !== DashboardVariableType.ProjectLabel
+      ) {
         continue;
       }
 
       const id: unknown = stored["id"];
-      const attributeKey: unknown = stored["attributeKey"];
       if (
         typeof id !== "string" ||
         id.length === 0 ||
-        id.length > MAX_VARIABLE_ID_LENGTH ||
-        typeof attributeKey !== "string" ||
-        attributeKey.trim().length === 0 ||
-        attributeKey.length > MAX_VARIABLE_VALUE_LENGTH
+        id.length > MAX_VARIABLE_ID_LENGTH
       ) {
         throw new BadDataException("Stored dashboard variable is malformed.");
       }
@@ -1700,11 +1715,10 @@ export default class PublicDashboardResourceListPolicy {
       const name: unknown = stored["name"];
       const storedIsMultiSelect: boolean = isMultiSelect === true;
 
-      variables.push({
+      const variable: DashboardVariable = {
         id,
         name: typeof name === "string" ? name : "",
-        type: DashboardVariableType.TelemetryAttribute,
-        attributeKey: attributeKey.trim(),
+        type,
         isMultiSelect: storedIsMultiSelect,
         defaultValue:
           typeof defaultValue === "string" ? defaultValue : undefined,
@@ -1716,10 +1730,61 @@ export default class PublicDashboardResourceListPolicy {
           storedIsMultiSelect && Array.isArray(selectedValues)
             ? (selectedValues as Array<string>)
             : undefined,
-      });
+      };
+
+      if (type === DashboardVariableType.ProjectLabel) {
+        variable.labelOptions =
+          PublicDashboardResourceListPolicy.readLabelOptions(stored);
+      } else {
+        const attributeKey: unknown = stored["attributeKey"];
+        if (
+          typeof attributeKey !== "string" ||
+          attributeKey.trim().length === 0 ||
+          attributeKey.length > MAX_VARIABLE_VALUE_LENGTH
+        ) {
+          throw new BadDataException("Stored dashboard variable is malformed.");
+        }
+        variable.attributeKey = attributeKey.trim();
+      }
+
+      variables.push(variable);
     }
 
     return variables;
+  }
+
+  private static readLabelOptions(
+    stored: Record<string, unknown>,
+  ): NonNullable<DashboardVariable["labelOptions"]> {
+    const value: unknown = stored["labelOptions"];
+    if (!Array.isArray(value)) {
+      throw new BadDataException(
+        "Stored dashboard label options are malformed.",
+      );
+    }
+
+    return value.map((entry: unknown): { label: string; value: string } => {
+      const option: Record<string, unknown> =
+        PublicDashboardResourceListPolicy.requireObject(
+          entry,
+          "Stored dashboard label option",
+        );
+      const label: unknown = option["label"];
+      const labelId: unknown = option["value"];
+      if (
+        typeof label !== "string" ||
+        label.length === 0 ||
+        label.length > MAX_VARIABLE_VALUE_LENGTH ||
+        typeof labelId !== "string" ||
+        labelId.length === 0 ||
+        labelId.length > MAX_VARIABLE_VALUE_LENGTH
+      ) {
+        throw new BadDataException(
+          "Stored dashboard label options are malformed.",
+        );
+      }
+      return { label, value: labelId };
+    });
   }
 
   private static validateRequestedVariableSelections(

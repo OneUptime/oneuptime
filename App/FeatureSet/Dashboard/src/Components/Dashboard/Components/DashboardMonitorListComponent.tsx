@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import DashboardMonitorListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardMonitorListComponent";
@@ -28,6 +29,7 @@ import AppLink from "../../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Color from "Common/Types/Color";
+import DashboardLabelVariable from "Common/Utils/Dashboard/LabelVariable";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardMonitorListComponent;
@@ -45,6 +47,7 @@ const DashboardMonitorListComponentElement: FunctionComponent<
   const [monitors, setMonitors] = useState<Array<Monitor>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const requestVersion: React.MutableRefObject<number> = useRef<number>(0);
 
   const maxRows: number = props.component.arguments.maxRows || 25;
   const viewMode: ResourceListViewMode =
@@ -57,12 +60,15 @@ const DashboardMonitorListComponentElement: FunctionComponent<
     props.component.arguments.monitorTypes;
   const labelIds: Array<string> | undefined =
     props.component.arguments.labelIds;
+  const labelVariableId: string | undefined =
+    props.component.arguments.labelVariableId;
 
   const monitorStatusIdsKey: string = (monitorStatusIds || []).join(",");
   const monitorTypesKey: string = (monitorTypes || []).join(",");
   const labelIdsKey: string = (labelIds || []).join(",");
 
   const fetchMonitors: () => Promise<void> = useCallback(async () => {
+    const version: number = ++requestVersion.current;
     setIsLoading(true);
 
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -98,8 +104,14 @@ const DashboardMonitorListComponentElement: FunctionComponent<
         );
       }
 
-      if (labelIds && labelIds.length > 0) {
-        (query as Record<string, unknown>)["labels"] = new Includes(labelIds);
+      const labelFilter: ReturnType<typeof DashboardLabelVariable.getFilter> =
+        DashboardLabelVariable.getFilter({
+          labelIds,
+          labelVariableId,
+          variables: props.variables,
+        });
+      if (labelFilter) {
+        (query as Record<string, unknown>)["labels"] = labelFilter;
       }
 
       const listResult: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
@@ -125,9 +137,15 @@ const DashboardMonitorListComponentElement: FunctionComponent<
         },
       });
 
+      if (version !== requestVersion.current) {
+        return;
+      }
       setMonitors(listResult.data);
       setError(null);
     } catch (err: unknown) {
+      if (version !== requestVersion.current) {
+        return;
+      }
       setError(API.getFriendlyErrorMessage(err as Error));
     }
 
@@ -138,12 +156,17 @@ const DashboardMonitorListComponentElement: FunctionComponent<
     monitorStatusIdsKey,
     monitorTypesKey,
     labelIdsKey,
+    labelVariableId,
     props.componentId,
     props.variables,
   ]);
 
   useEffect(() => {
     fetchMonitors();
+    return () => {
+      // A slower request for the previous unit must not replace this selection.
+      requestVersion.current++;
+    };
   }, [fetchMonitors, props.refreshTick]);
 
   const honeycombTiles: Array<HoneycombTile> = monitors.map(
@@ -233,7 +256,10 @@ const DashboardMonitorListComponentElement: FunctionComponent<
 
   return (
     <DashboardResourceListBase
-      title={props.component.arguments.title}
+      title={DashboardLabelVariable.interpolateTitle(
+        props.component.arguments.title,
+        props.variables,
+      )}
       pluralLabel="monitors"
       columns={COLUMNS}
       count={monitors.length}
@@ -256,6 +282,7 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     prev.refreshTick !== next.refreshTick ||
     prev.isEditMode !== next.isEditMode ||
     prev.isSelected !== next.isSelected ||
+    !JSONFunctions.deepEqual(prev.variables, next.variables) ||
     prev.dashboardComponentWidthInPx !== next.dashboardComponentWidthInPx ||
     prev.dashboardComponentHeightInPx !== next.dashboardComponentHeightInPx
   ) {

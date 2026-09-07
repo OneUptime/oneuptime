@@ -55,6 +55,7 @@ import DashboardVariable, {
 import DashboardVariableInterpolation, {
   ResolvedVariableValue,
 } from "../../../Utils/Dashboard/VariableInterpolation";
+import { VariableValueChange } from "../../../UI/Components/Dashboard/DashboardVariableControl";
 import ObjectID from "../../../Types/ObjectID";
 
 const DASHBOARD_ID: ObjectID = new ObjectID(
@@ -127,11 +128,19 @@ const ViewerHarness: React.FunctionComponent<HarnessProps> = (
     <DashboardVariableSelector
       variables={variables}
       dashboardId={DASHBOARD_ID}
-      onVariableValueChange={(variableId: string, value: string) => {
+      onVariableValueChange={(
+        variableId: string,
+        change: VariableValueChange,
+      ) => {
+        const value: string = change.selectedValue || "";
         const updated: Array<DashboardVariable> = variables.map(
           (v: DashboardVariable): DashboardVariable => {
             if (v.id === variableId) {
-              return { ...v, selectedValue: value };
+              return {
+                ...v,
+                selectedValue: change.selectedValue,
+                selectedValues: change.selectedValues,
+              };
             }
             return v;
           },
@@ -436,8 +445,8 @@ describe("Public dashboard variable selector", () => {
     test("each is labelled with its variable name", () => {
       renderViewer([customListVariable({}), textVariable({})]);
 
-      expect(screen.getByText("region:")).toBeInTheDocument();
-      expect(screen.getByText("service:")).toBeInTheDocument();
+      expect(screen.getByText("region")).toBeInTheDocument();
+      expect(screen.getByText("service")).toBeInTheDocument();
     });
 
     test('picking "All" on one leaves the others on their defaults', async () => {

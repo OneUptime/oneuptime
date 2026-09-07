@@ -83,7 +83,10 @@ import useDashboardTimeRangeZoom, {
 } from "Common/UI/Utils/UseDashboardTimeRangeZoom";
 import TimeRange from "Common/Types/Time/TimeRange";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
-import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import DashboardVariable, {
+  DashboardVariableOption,
+  DashboardVariableType,
+} from "Common/Types/Dashboard/DashboardVariable";
 import DashboardVariableUrlState from "Common/Utils/Dashboard/VariableUrlState";
 import PermissionGate, {
   ModelAction,
@@ -644,6 +647,37 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           const next: Array<DashboardVariable> = updated.map(
             (v: DashboardVariable) => {
               const prior: DashboardVariable | undefined = priorById.get(v.id);
+              if (
+                prior?.type !== v.type ||
+                Boolean(prior?.isMultiSelect) !== Boolean(v.isMultiSelect)
+              ) {
+                return {
+                  ...v,
+                  selectedValue: undefined,
+                  selectedValues: undefined,
+                };
+              }
+              if (v.type === DashboardVariableType.ProjectLabel) {
+                const allowed: Set<string> = new Set(
+                  (v.labelOptions || []).map(
+                    (option: DashboardVariableOption) => {
+                      return option.value;
+                    },
+                  ),
+                );
+                return {
+                  ...v,
+                  selectedValue:
+                    prior.selectedValue && !allowed.has(prior.selectedValue)
+                      ? ""
+                      : prior.selectedValue,
+                  selectedValues: prior.selectedValues?.filter(
+                    (value: string) => {
+                      return allowed.has(value);
+                    },
+                  ),
+                };
+              }
               return {
                 ...v,
                 selectedValue: prior?.selectedValue,
