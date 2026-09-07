@@ -12,8 +12,57 @@ Usage:
 {{- end -}}
 
 {{/*
+The effective settings for the cache/queue tier, which runs Valkey.
+
+These lived under `redis:` and `externalRedis:` until 12.0.36. Both old keys are
+still honoured -- a values.yaml written against any earlier chart has to keep
+working with no edits -- so every template reads through these helpers instead of
+touching `.Values.valkey` directly.
+
+Precedence is "whatever you actually wrote wins": the chart ships its defaults
+under `valkey:` and ships `redis:` EMPTY, so anything present in `.Values.redis`
+can only have come from the user and is layered on top. The consequence, for the
+one person who sets both names for the same setting, is that the legacy name
+wins; NOTES.txt tells them to drop it.
+
+Usage:
+{{- $valkey := include "oneuptime.valkey" . | fromYaml }}
+*/}}
+{{- define "oneuptime.valkey" -}}
+{{- mergeOverwrite (deepCopy (.Values.valkey | default dict)) (.Values.redis | default dict) | toYaml -}}
+{{- end -}}
+
+{{/*
+Same, for the external (bring-your-own) cache. Any Redis-protocol server is
+valid there, real Redis included -- only the values key changed name.
+
+Usage:
+{{- $externalValkey := include "oneuptime.externalValkey" . | fromYaml }}
+*/}}
+{{- define "oneuptime.externalValkey" -}}
+{{- mergeOverwrite (deepCopy (.Values.externalValkey | default dict)) (.Values.externalRedis | default dict) | toYaml -}}
+{{- end -}}
+
+{{/*
+The Service port for the in-cluster cache. `master.service.ports.valkey` is the
+current key and `ports.redis` is the legacy one, and this is the ONE setting
+where the two names differ, so the map merge cannot resolve it: it keeps both
+sub-keys, and the chart's own `valkey: "6379"` default would beat a legacy
+`redis: "6380"` override. Reading the legacy key first is what stops that, and
+it matches the precedence rule above -- if you wrote it, it wins.
+
+Usage:
+{{- include "oneuptime.valkey.port" . }}
+*/}}
+{{- define "oneuptime.valkey.port" -}}
+{{- $valkey := include "oneuptime.valkey" . | fromYaml -}}
+{{- $ports := (($valkey.master).service).ports | default dict -}}
+{{- $ports.redis | default $ports.valkey | default "6379" -}}
+{{- end -}}
+
+{{/*
 Convert a Kubernetes memory quantity (e.g. "3Gi", "512Mi", "2G", "1500M") to a
-plain byte count. Used to derive Redis' `maxmemory` from its container memory
+plain byte count. Used to derive the cache's `maxmemory` from its container memory
 limit so the two never drift apart. Unsuffixed input is treated as bytes.
 */}}
 {{- define "oneuptime.memoryToBytes" -}}
@@ -558,91 +607,90 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
 
 
 
-- name: REDIS_HOST
-  {{- if $.Values.redis.enabled }}
-  value: {{ $.Release.Name }}-redis-master.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
-  {{- else }}
-  value: {{ $.Values.externalRedis.host }}
-  {{- end }}
-- name: REDIS_PORT
-  {{- if $.Values.redis.enabled }}
-  value: {{ printf "%s" $.Values.redis.master.service.ports.redis | quote }}
-  {{- else }}
-  value: {{ $.Values.externalRedis.port | quote }}
-  {{- end }}
-- name: REDIS_PASSWORD
-  {{- if $.Values.redis.enabled }}
+{{/*
+  Cache / queue wiring.
+
+  Every setting is emitted TWICE: once as VALKEY_*, and once as the REDIS_* name
+  it used until 12.0.36, carrying the identical value. The app reads VALKEY_*
+  and only falls back to REDIS_*, so for a matching image the second copy is
+  dead weight -- it is here because `image.tag` is a documented pin (the
+  production checklist tells you to set it), so a chart from after the rename
+  routinely runs an app image from before it. Dropping the REDIS_* copy silently
+  points those pods at the "redis" default hostname instead.
+*/}}
+{{- $valkey := include "oneuptime.valkey" . | fromYaml }}
+{{- $externalValkey := include "oneuptime.externalValkey" . | fromYaml }}
+
+{{- $valkeyHost := ternary (printf "%s-valkey-master.%s.svc.%s" $.Release.Name $.Release.Namespace $.Values.global.clusterDomain) (toString ($externalValkey.host | default "")) $valkey.enabled }}
+{{- $valkeyPort := ternary (include "oneuptime.valkey.port" .) (toString ($externalValkey.port | default "")) $valkey.enabled }}
+{{- $valkeyDb := ternary "0" (toString ($externalValkey.database | default "")) $valkey.enabled }}
+{{- $valkeyUsername := ternary "default" (toString ($externalValkey.username | default "")) $valkey.enabled }}
+{{- $valkeyIpFamily := ternary (toString ($valkey.ipFamily | default "")) (toString ($externalValkey.ipFamily | default "")) $valkey.enabled }}
+
+{{- range $name := (list "VALKEY" "REDIS") }}
+- name: {{ $name }}_HOST
+  value: {{ $valkeyHost | quote }}
+- name: {{ $name }}_PORT
+  value: {{ $valkeyPort | quote }}
+- name: {{ $name }}_PASSWORD
+  {{- if $valkey.enabled }}
   valueFrom:
     secretKeyRef:
-      {{- if .Values.redis.auth.existingSecret.name }}
-      name: {{ .Values.redis.auth.existingSecret.name }}
-      key: {{ .Values.redis.auth.existingSecret.passwordKey }}
+      {{- if $valkey.auth.existingSecret.name }}
+      name: {{ $valkey.auth.existingSecret.name }}
+      key: {{ $valkey.auth.existingSecret.passwordKey }}
       {{- else }}
-      name: {{ .Release.Name }}-redis
-      key: redis-password
+      name: {{ $.Release.Name }}-valkey
+      key: valkey-password
       {{- end }}
   {{- else }}
-  {{- if $.Values.externalRedis.password }}
+  {{- if $externalValkey.password }}
   valueFrom:
     secretKeyRef:
-        name: {{ printf "%s-%s" $.Release.Name "external-redis"  }}
+        name: {{ printf "%s-%s" $.Release.Name "external-valkey"  }}
         key: password
   {{- end }}
-  {{- if $.Values.externalRedis.existingSecret.name }}
+  {{- if $externalValkey.existingSecret.name }}
   valueFrom:
     secretKeyRef:
-        name: {{ printf "%s" $.Values.externalRedis.existingSecret.name }}
-        key: {{ $.Values.externalRedis.existingSecret.passwordKey }}
+        name: {{ printf "%s" $externalValkey.existingSecret.name }}
+        key: {{ $externalValkey.existingSecret.passwordKey }}
   {{- end }}
   {{- end }}
-- name: REDIS_IP_FAMILY
-  {{- if $.Values.redis.enabled }}
-  value: {{ $.Values.redis.ipFamily | quote }}
-  {{- else }}
-  value: {{ $.Values.externalRedis.ipFamily | quote }}
-  {{- end }}
-- name: REDIS_DB
-  {{- if $.Values.redis.enabled }}
-  value: {{ printf "0" | squote}}
-  {{- else }}
-  value: {{ $.Values.externalRedis.database | quote }}
-  {{- end }}
-- name: REDIS_USERNAME
-  {{- if $.Values.redis.enabled }}
-  value: default
-  {{- else }}
-  value: {{ $.Values.externalRedis.username }}
-  {{- end }}
+- name: {{ $name }}_IP_FAMILY
+  value: {{ $valkeyIpFamily | quote }}
+- name: {{ $name }}_DB
+  value: {{ $valkeyDb | quote }}
+- name: {{ $name }}_USERNAME
+  value: {{ $valkeyUsername | quote }}
 
+## CACHE TLS BLOCK -- only an external cache can carry certificates.
+{{- if not $valkey.enabled }}
+{{- if $externalValkey.tls.enabled }}
 
-## REDIS SSL BLOCK
-{{- if $.Values.redis.enabled }}
-# do nothing here.
-{{- else }}
-{{- if $.Values.externalRedis.tls.enabled }}
-
-{{- if $.Values.externalRedis.tls.ca }}
-- name: REDIS_TLS_CA
+{{- if $externalValkey.tls.ca }}
+- name: {{ $name }}_TLS_CA
   valueFrom:
     secretKeyRef:
-        name: {{ printf "%s-%s" $.Release.Name "external-redis"  }}
+        name: {{ printf "%s-%s" $.Release.Name "external-valkey"  }}
         key: tls-ca
 {{- end }}
 
-{{- if $.Values.externalRedis.tls.cert }}
-- name: REDIS_TLS_CERT
+{{- if $externalValkey.tls.cert }}
+- name: {{ $name }}_TLS_CERT
   valueFrom:
     secretKeyRef:
-        name: {{ printf "%s-%s" $.Release.Name "external-redis"  }}
+        name: {{ printf "%s-%s" $.Release.Name "external-valkey"  }}
         key: tls-cert
 {{- end }}
 
-{{- if $.Values.externalRedis.tls.key }}
-- name: REDIS_TLS_KEY
+{{- if $externalValkey.tls.key }}
+- name: {{ $name }}_TLS_KEY
   valueFrom:
     secretKeyRef:
-        name: {{ printf "%s-%s" $.Release.Name "external-redis"  }}
+        name: {{ printf "%s-%s" $.Release.Name "external-valkey"  }}
         key: tls-key
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -946,7 +994,7 @@ spec:
 Pod nodeSelector with the Linux-only pin merged in.
 
 Every image this chart deploys — the OneUptime services as well as the
-bundled postgres, redis, clickhouse, pgbouncer, kubectl and vLLM images —
+bundled postgres, valkey, clickhouse, pgbouncer, kubectl and vLLM images —
 is built for linux only. On mixed-OS clusters (e.g. AKS with Windows node
 pools) an unpinned pod spec can be scheduled onto a Windows node, where the
 image pull can never succeed and the pod sits in ImagePullBackOff forever.

@@ -1,33 +1,34 @@
-{{- if .Values.redis.enabled }}
+{{- $valkey := include "oneuptime.valkey" . | fromYaml }}
+{{- if $valkey.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-redis-config
+  name: {{ .Release.Name }}-valkey-config
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ .Release.Name }}-redis
+    app: {{ .Release.Name }}-valkey
     app.kubernetes.io/part-of: oneuptime
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/component: redis
+    app.kubernetes.io/component: valkey
     appname: oneuptime
 data:
-  redis.conf.template: |
+  valkey.conf.template: |
     # Network
     bind 0.0.0.0
     port 6379
     tcp-backlog 511
     timeout 0
     tcp-keepalive 300
-    
+
     # General
     daemonize no
-    pidfile /var/run/redis.pid
+    pidfile /var/run/valkey.pid
     loglevel notice
     databases 16
-    
+
     # Security
-    requirepass ${REDIS_PASSWORD}
-    
+    requirepass ${VALKEY_PASSWORD}
+
     # Custom configuration from values
-{{ .Values.redis.commonConfiguration | indent 4 }}
+{{ $valkey.commonConfiguration | indent 4 }}
 {{- end }}

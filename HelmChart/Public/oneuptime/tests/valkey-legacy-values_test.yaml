@@ -1,0 +1,253 @@
+# The cache settings lived under `redis:` / `externalRedis:` until 12.0.36.
+# Those keys still work, and this suite is the gate on that: it renders the
+# chart with ONLY the legacy spellings and asserts the result is what the
+# `valkey:` spellings would have produced.
+#
+# Without it, `oneuptime.valkey` in _helpers.tpl -- the merge that bridges the
+# two -- is unverified for every key it is supposed to carry, and a values.yaml
+# written against any earlier chart would silently fall back to chart defaults:
+# an operator on a managed cache would get `redis.enabled: false` ignored and a
+# second, empty cache quietly installed beside the real one.
+suite: legacy redis values keys
+release:
+  name: ou
+  namespace: oneuptime
+tests:
+  - it: honours a legacy redis.enabled=false and installs no cache of its own
+    set:
+      redis.enabled: false
+    templates:
+      - templates/valkey-statefulset.yaml
+      - templates/valkey-configmap.yaml
+      - templates/valkey-service.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: routes legacy externalRedis settings to the app
+    set:
+      redis.enabled: false
+      externalRedis.host: my-redis.example.com
+      externalRedis.port: 6380
+      externalRedis.username: alice
+      externalRedis.database: 3
+      externalRedis.password: sekret
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: VALKEY_HOST
+            value: my-redis.example.com
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: VALKEY_PORT
+            value: "6380"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: VALKEY_USERNAME
+            value: alice
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: VALKEY_DB
+            value: "3"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: VALKEY_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: ou-external-valkey
+                key: password
+
+  - it: writes a legacy externalRedis password into the external secret
+    set:
+      redis.enabled: false
+      externalRedis.password: sekret
+    templates:
+      - templates/secrets.yaml
+    documentSelector:
+      path: metadata.name
+      value: ou-external-valkey
+    asserts:
+      - equal:
+          path: stringData.password
+          value: sekret
+
+  - it: honours a legacy redis.auth.password
+    set:
+      redis.auth.password: my-pinned-password
+    templates:
+      - templates/secrets.yaml
+    documentSelector:
+      path: metadata.name
+      value: ou-valkey
+    asserts:
+      - equal:
+          path: stringData.valkey-password
+          value: my-pinned-password
+
+  # An operator managing the credential themselves must not have the chart start
+  # minting its own and repointing every pod at it.
+  - it: honours a legacy redis.auth.existingSecret
+    set:
+      redis.auth.existingSecret.name: my-own-secret
+      redis.auth.existingSecret.passwordKey: my-own-key
+    templates:
+      - templates/valkey-statefulset.yaml
+      - templates/app.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[0].valueFrom.secretKeyRef.name
+          value: my-own-secret
+        template: templates/valkey-statefulset.yaml
+      - equal:
+          path: spec.template.spec.containers[0].env[0].valueFrom.secretKeyRef.key
+          value: my-own-key
+        template: templates/valkey-statefulset.yaml
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: VALKEY_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: my-own-secret
+                key: my-own-key
+        template: templates/app.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+
+  - it: honours legacy redis image, persistence and resource overrides
+    set:
+      redis.image.tag: 8.1-alpine
+      redis.master.persistence.enabled: true
+      redis.master.persistence.size: 20Gi
+      redis.master.resources.limits.memory: 2Gi
+      redis.commonConfiguration: |-
+        maxmemory-policy allkeys-lru
+    templates:
+      - templates/valkey-statefulset.yaml
+      - templates/valkey-configmap.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: valkey/valkey:8.1-alpine
+        template: templates/valkey-statefulset.yaml
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.resources.requests.storage
+          value: 20Gi
+        template: templates/valkey-statefulset.yaml
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.memory
+          value: 2Gi
+        template: templates/valkey-statefulset.yaml
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: 'maxmemory-policy allkeys-lru'
+        template: templates/valkey-configmap.yaml
+
+  # The ONE setting whose sub-key name differs between the two spellings, so the
+  # map merge keeps both and cannot pick. The legacy name has to win, or the
+  # chart's own `valkey: "6379"` default silently overrides a real override.
+  - it: honours a legacy redis.master.service.ports.redis
+    set:
+      redis.master.service.ports.redis: "6380"
+    templates:
+      - templates/valkey-service.yaml
+      - templates/app.yaml
+    asserts:
+      - equal:
+          path: spec.ports[0].port
+          value: 6380
+        template: templates/valkey-service.yaml
+        documentIndex: 0
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: VALKEY_PORT
+            value: "6380"
+        template: templates/app.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+
+  # Documented precedence: if you wrote it, it wins -- and the legacy name wins
+  # when both are written, because the chart cannot tell a default `valkey:`
+  # value from one the operator typed.
+  - it: lets the legacy key win when both spellings are set
+    set:
+      valkey.auth.password: from-the-new-key
+      redis.auth.password: from-the-legacy-key
+    templates:
+      - templates/secrets.yaml
+    documentSelector:
+      path: metadata.name
+      value: ou-valkey
+    asserts:
+      - equal:
+          path: stringData.valkey-password
+          value: from-the-legacy-key
+
+  # Nothing set under either name must still produce the shipped defaults --
+  # i.e. the empty `redis: {}` alias block never overrides anything.
+  - it: leaves the defaults alone when no legacy key is set
+    templates:
+      - templates/valkey-statefulset.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: valkey/valkey:9.1-alpine
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].mountPath
+          value: /etc/valkey
+
+  # NOTES.txt is what `helm install`/`helm upgrade` prints, and it is the only
+  # surface that can tell an operator their legacy keys are winning the merge.
+  # values.yaml promises this warning exists, so it has to.
+  - it: warns that the legacy values keys are still in use
+    set:
+      redis.auth.password: legacy-pw
+      externalRedis.host: unused.example.com
+    templates:
+      - templates/NOTES.txt
+    asserts:
+      - matchRegexRaw:
+          pattern: 'DEPRECATED VALUES: redis, externalRedis'
+
+  - it: says nothing about deprecated values when none are set
+    templates:
+      - templates/NOTES.txt
+    asserts:
+      - notMatchRegexRaw:
+          pattern: 'DEPRECATED VALUES'
+      - notMatchRegexRaw:
+          pattern: 'ACTION REQUIRED'
+
+  # The one override path the deprecated REDIS_* mirrors cannot protect: the
+  # mirrors carry the CHART's value, so an operator pointing at a managed cache
+  # through extraEnv keeps winning the REDIS_* slot while the app reads the
+  # chart's VALKEY_*. Silent, and it lands them on an empty in-cluster cache.
+  - it: warns when extraEnv still overrides the cache under the old names
+    set:
+      extraEnv:
+        - name: REDIS_HOST
+          value: my-elasticache.internal
+        - name: REDIS_PASSWORD
+          value: managed-secret
+        - name: SOME_OTHER
+          value: fine
+    templates:
+      - templates/NOTES.txt
+    asserts:
+      - matchRegexRaw:
+          pattern: 'ACTION REQUIRED -- extraEnv overrides no longer reach the cache: REDIS_HOST, REDIS_PASSWORD'
+      - notMatchRegexRaw:
+          pattern: 'SOME_OTHER'

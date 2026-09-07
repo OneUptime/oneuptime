@@ -4,16 +4,22 @@ import path from "path";
 import yaml from "js-yaml";
 
 /*
- * The cache and BullMQ queue backend runs the Valkey image rather than Redis:
- * Redis 7.4 left the BSD licence and the bulk of the original contributors moved
- * to the Valkey fork. Valkey speaks the same wire protocol, so nothing above the
- * socket changed -- every REDIS_* setting, the Helm values key and the
- * Kubernetes object names are deliberately untouched.
+ * The cache and BullMQ queue backend runs Valkey, the BSD-licensed fork of
+ * Redis 7.2 that most of the original Redis contributors moved to after Redis
+ * 7.4 left the BSD licence. The engine, the compose service, the settings and
+ * the Kubernetes objects are all named for it.
  *
- * What these tests protect is the part of that swap which is easy to half-undo:
- * the compose service name, the hostname old config.env files still point at,
- * and the two places (compose and Helm) that have to keep running the same
- * engine version.
+ * What these tests guard is the half of that rename nobody sees until an
+ * upgrade goes wrong: every OLD name still has to resolve. A self-hoster who
+ * never edits config.env, and an operator whose values.yaml still says `redis:`,
+ * must both keep running. So the compose file reads `${VALKEY_X:-${REDIS_X}}`,
+ * keeps `redis` as a network alias, and emits the deprecated REDIS_* mirrors for
+ * an app image pinned to a pre-rename release.
+ *
+ * The app-side half of the fallback is covered by
+ * Common/Tests/Server/EnvironmentConfigValkey.test.ts, the Helm-side half by
+ * HelmChart/Public/oneuptime/tests/valkey-legacy-values_test.yaml, and the
+ * config.env upgrade path by Tests/Ops/MergeEnvTemplateRenames.test.js.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -37,6 +43,18 @@ const OVERLAY_COMPOSE_FILES: Array<string> = [
   "docker-compose.billing.yml",
 ];
 
+// Every cache setting, by the suffix the two spellings share.
+const SETTING_SUFFIXES: Array<string> = [
+  "USERNAME",
+  "PASSWORD",
+  "HOST",
+  "PORT",
+  "DB",
+  "IP_FAMILY",
+  "TLS_CA",
+  "TLS_SENTINEL_MODE",
+];
+
 interface ComposeService {
   image?: string;
   command?: string;
@@ -47,6 +65,7 @@ interface ComposeService {
 
 interface ComposeFile {
   services: Record<string, ComposeService>;
+  "x-common-runtime-variables"?: Record<string, string>;
   "x-common-depends-on"?: Record<string, { condition?: string }>;
 }
 
@@ -62,6 +81,14 @@ function readExampleEnvValue(name: string): string | undefined {
 
   return match?.[1];
 }
+
+/* `${VALKEY_X:-${REDIS_X}}` -- the current name, falling back to the old one. */
+function fallbackExpression(suffix: string): string {
+  return `\${VALKEY_${suffix}:-\${REDIS_${suffix}}}`;
+}
+
+/* A bare `REDIS_SOMETHING=` line in config.example.env. */
+const LEGACY_ENV_ASSIGNMENT: RegExp = /^REDIS_[A-Z_]+=/;
 
 describe("valkey cache and queue backend", () => {
   const base: ComposeFile = readCompose(BASE_COMPOSE_PATH);
@@ -85,20 +112,68 @@ describe("valkey cache and queue backend", () => {
 
     expect(service.command).toMatch(/^valkey-server /);
     expect(service.command).not.toMatch(/redis-server/);
+    expect(service.healthcheck?.test?.[1]).toBe("valkey-cli");
+  });
+
+  /*
+   * The server, the healthcheck and the app must all resolve to ONE password.
+   * If any of the three read a different expression, the stack still starts --
+   * it just cannot authenticate, or worse, starts on a different secret than
+   * the one the operator set.
+   */
+  test("the server, its healthcheck and the app share one password expression", () => {
+    const service: ComposeService = base.services["valkey"]!;
+    const expression: string = fallbackExpression("PASSWORD");
+
+    expect(service.command).toContain(`--requirepass "${expression}"`);
     expect(service.healthcheck?.test).toEqual([
       "CMD",
       "valkey-cli",
       "-a",
-      "${REDIS_PASSWORD}",
+      expression,
       "ping",
     ]);
+    expect(base["x-common-runtime-variables"]!["VALKEY_PASSWORD"]).toBe(
+      expression,
+    );
   });
 
   /*
+   * The upgrade case: an existing config.env holds only REDIS_*, and
+   * `npm run update` deliberately does not rewrite it (see
+   * Tests/Ops/MergeEnvTemplateRenames.test.js). The `:-` fallback in the compose
+   * file is the only thing that carries those values onto the new names.
+   */
+  test.each(SETTING_SUFFIXES)(
+    "VALKEY_%s falls back to the deprecated REDIS_ name",
+    (suffix: string) => {
+      expect(base["x-common-runtime-variables"]![`VALKEY_${suffix}`]).toBe(
+        fallbackExpression(suffix),
+      );
+    },
+  );
+
+  /*
+   * And the mirrors going the other way: APP_TAG lets you pin an image from
+   * before the rename against this compose file, and such an image reads
+   * REDIS_* only. Both names must carry the identical expression -- a second
+   * source of truth here is how the app and the server end up on different
+   * credentials.
+   */
+  test.each(SETTING_SUFFIXES)(
+    "the deprecated REDIS_%s mirror carries the identical value",
+    (suffix: string) => {
+      const common: Record<string, string> =
+        base["x-common-runtime-variables"]!;
+
+      expect(common[`REDIS_${suffix}`]).toBe(common[`VALKEY_${suffix}`]);
+    },
+  );
+
+  /*
    * Renaming the service moved the hostname. Every config.env written before
-   * this change still says REDIS_HOST=redis, and those files are not
-   * regenerated on upgrade -- the network alias is the only thing keeping them
-   * resolving.
+   * this change still says REDIS_HOST=redis, and those files are not rewritten
+   * on upgrade -- the network alias is the only thing keeping them resolving.
    */
   test("the old redis hostname still resolves to the valkey service", () => {
     const networks: Record<string, { aliases?: Array<string> } | null> =
@@ -107,14 +182,26 @@ describe("valkey cache and queue backend", () => {
     expect(networks["oneuptime"]?.aliases).toContain("redis");
   });
 
-  test("config.example.env points at the compose service by name", () => {
-    expect(readExampleEnvValue("REDIS_HOST")).toBe("valkey");
+  test("config.example.env ships the current names only", () => {
+    expect(readExampleEnvValue("VALKEY_HOST")).toBe("valkey");
+    expect(readExampleEnvValue("VALKEY_PORT")).toBe("6379");
+    expect(readExampleEnvValue("VALKEY_USERNAME")).toBe("default");
+    expect(readExampleEnvValue("VALKEY_DB")).toBe("0");
+
     /*
-     * The variable names themselves are the app's public config surface and are
-     * deliberately unchanged.
+     * A leftover REDIS_* line would be actively harmful, not just untidy:
+     * Home/Scripts/Install.sh replaces each `please-change-this-to-random-value`
+     * occurrence with a SEPARATE freshly generated value, so a duplicated
+     * password line hands the server one secret and the app another.
      */
-    expect(readExampleEnvValue("REDIS_PORT")).toBe("6379");
-    expect(readExampleEnvValue("REDIS_USERNAME")).toBe("default");
+    const example: string = fs.readFileSync(EXAMPLE_ENV_PATH, "utf8");
+    const legacyLines: Array<string> = example
+      .split("\n")
+      .filter((line: string) => {
+        return LEGACY_ENV_ASSIGNMENT.test(line);
+      });
+
+    expect(legacyLines).toEqual([]);
   });
 
   test.each(OVERLAY_COMPOSE_FILES)(
@@ -145,15 +232,24 @@ describe("valkey cache and queue backend", () => {
    */
   test("helm runs the same pinned valkey image as compose", () => {
     const values: {
-      redis: { image: { repository: string; tag: string } };
+      valkey: { image: { repository: string; tag: string } };
+      redis: Record<string, unknown>;
     } = yaml.load(fs.readFileSync(HELM_VALUES_PATH, "utf8")) as {
-      redis: { image: { repository: string; tag: string } };
+      valkey: { image: { repository: string; tag: string } };
+      redis: Record<string, unknown>;
     };
 
-    expect(values.redis.image.repository).toBe("valkey/valkey");
-    expect(`${values.redis.image.repository}:${values.redis.image.tag}`).toBe(
+    expect(values.valkey.image.repository).toBe("valkey/valkey");
+    expect(`${values.valkey.image.repository}:${values.valkey.image.tag}`).toBe(
       base.services["valkey"]!.image,
     );
+
+    /*
+     * The deprecated `redis:` alias must stay EMPTY. The merge in
+     * `oneuptime.valkey` layers it on top of the real defaults, so anything
+     * shipped here would be impossible for an operator to override.
+     */
+    expect(values.redis).toEqual({});
   });
 
   /*

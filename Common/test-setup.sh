@@ -12,10 +12,10 @@ NODE_ENV=test
 BILLING_ENABLED=true
 DATABASE_HOST=localhost
 DATABASE_PORT=5400
-REDIS_HOST=localhost
-REDIS_PORT=6310
-REDIS_DB=0
-REDIS_USERNAME=default
+VALKEY_HOST=localhost
+VALKEY_PORT=6310
+VALKEY_DB=0
+VALKEY_USERNAME=default
 SUBSCRIPTION_PLAN_BASIC=Free,price_1M4niQANuQdJ93r7AVjhnik5,price_1M4niQANuQdJ93r7l1Wz1dkm,0,0,1,0
 SUBSCRIPTION_PLAN_GROWTH=Growth,price_1M4nhZANuQdJ93r7yfQ1MePQ,price_1M4r3OANuQdJ93r7g8NyoCBq,22,20,2,14
 SUBSCRIPTION_PLAN_SCALE=Scale,price_1MKidGANuQdJ93r7FoaZ1dOb,price_1MKidRANuQdJ93r7LVOc0BUy,99,84,3,14
@@ -36,10 +36,10 @@ npm run prerun
 # process.env['DATABASE_HOST'] = 'localhost';
 # process.env['DATABASE_PORT'] = '5400';
 
-# process.env['REDIS_HOST'] = 'localhost';
-# process.env['REDIS_PORT'] = '6379';
-# process.env['REDIS_DB'] = '0';
-# process.env['REDIS_USERNAME'] = 'default';
+# process.env['VALKEY_HOST'] = 'localhost';
+# process.env['VALKEY_PORT'] = '6379';
+# process.env['VALKEY_DB'] = '0';
+# process.env['VALKEY_USERNAME'] = 'default';
 
 # Using sed
 

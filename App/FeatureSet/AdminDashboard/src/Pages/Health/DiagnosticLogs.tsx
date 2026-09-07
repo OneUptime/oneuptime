@@ -20,7 +20,7 @@ const TABS: Array<{ key: LogTab; label: string }> = [
   { key: "application", label: "Application" },
   { key: "clickhouse", label: "ClickHouse" },
   { key: "postgres", label: "Postgres" },
-  { key: "redis", label: "Redis" },
+  { key: "redis", label: "Valkey" },
 ];
 
 // Tailwind text colour for a log level.
@@ -326,7 +326,7 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
     const section: JSONObject = (data?.["redis"] || {}) as JSONObject;
 
     if (!section["connected"]) {
-      return <EmptyNote text="Redis is not reachable from this instance." />;
+      return <EmptyNote text="Valkey is not reachable from this instance." />;
     }
 
     const slowlog: JSONArray = (section["slowlog"] || []) as JSONArray;
@@ -434,7 +434,7 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
   return (
     <Card
       title="Diagnostic logs"
-      description="Recent application, ClickHouse, Postgres and Redis logs for this instance — for debugging without shelling into the cluster. May contain customer data; credentials are scrubbed."
+      description="Recent application, ClickHouse, Postgres and Valkey logs for this instance — for debugging without shelling into the cluster. May contain customer data; credentials are scrubbed."
       buttons={[
         {
           title: hasLoaded ? "Refresh" : "Load logs",

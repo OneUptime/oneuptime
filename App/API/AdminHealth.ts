@@ -1352,6 +1352,17 @@ export const SUPPORT_CONFIG_ALLOW_LIST: Array<string> = [
   "CLICKHOUSE_IS_HOST_HTTPS",
   "CLICKHOUSE_MAX_OPEN_CONNECTIONS",
   "CLICKHOUSE_INGEST_MAX_OPEN_CONNECTIONS",
+  "VALKEY_HOST",
+  "VALKEY_PORT",
+  "VALKEY_DB",
+  "VALKEY_IP_FAMILY",
+  /*
+   * The names these carried until 12.0.36. getRedactedConfig() reports only keys
+   * actually present in process.env, so dropping them would leave an instance
+   * still on the deprecated spelling with no cache host, port or database in its
+   * support bundle at all -- silently, and precisely when the cache is the
+   * suspect.
+   */
   "REDIS_HOST",
   "REDIS_PORT",
   "REDIS_DB",
@@ -3071,7 +3082,7 @@ function parseRedisInfo(info: string): JSONObject {
 async function getRedisLogs(): Promise<JSONObject> {
   const result: JSONObject = {
     connected: false,
-    note: "Redis server log files are not reachable over the Redis protocol. Showing SLOWLOG and INFO counters instead — use `kubectl logs` / `docker logs` on the Redis container for the full server log.",
+    note: "Valkey server log files are not reachable over the Redis protocol. Showing SLOWLOG and INFO counters instead — use `kubectl logs` / `docker logs` on the Valkey container for the full server log.",
     slowlog: [],
     errorStats: [],
     stats: null,
@@ -3216,7 +3227,7 @@ async function getDiagnosticLogs(): Promise<JSONObject> {
     clickhouse,
     redis,
     containerLogsNote:
-      "Container stdout/stderr logs — for this app and for the Postgres / ClickHouse / Redis containers — cannot be read from inside the app process (it has no Docker socket or Kubernetes API access). Use `kubectl logs <pod>` (Kubernetes) or `docker logs <container>` (Docker Compose). The sections above are the closest in-app equivalents.",
+      "Container stdout/stderr logs — for this app and for the Postgres / ClickHouse / Valkey containers — cannot be read from inside the app process (it has no Docker socket or Kubernetes API access). Use `kubectl logs <pod>` (Kubernetes) or `docker logs <container>` (Docker Compose). The sections above are the closest in-app equivalents.",
   };
 }
 
@@ -3344,7 +3355,7 @@ router.get(
     try {
       if (!IsEnterpriseEdition) {
         throw new PaymentRequiredException(
-          "Redis health is only available on the OneUptime Enterprise Edition. " +
+          "Valkey health is only available on the OneUptime Enterprise Edition. " +
             "Please switch to the Enterprise Edition build to enable this feature. " +
             "See https://oneuptime.com/enterprise/overview for details.",
         );
@@ -3773,6 +3784,12 @@ router.get(
         components: {
           postgres: postgresStats,
           clickhouse: clickhouseStats,
+          /*
+           * Stays `redis` deliberately. This is a wire key, not display text:
+           * the admin dashboard reads summary["redis"] / data["redis"], and the
+           * shape is published in the API reference. The engine underneath it is
+           * Valkey.
+           */
           redis: redisStats,
           queues: queueStats,
         },
@@ -4473,7 +4490,7 @@ async function runRedisCommands(
   const baseClient: ReturnType<typeof Redis.getClient> = Redis.getClient();
 
   if (!baseClient || !Redis.isConnected()) {
-    throw new BadDataException("Redis is not connected on this instance.");
+    throw new BadDataException("Valkey is not connected on this instance.");
   }
 
   const lines: Array<string> = input
@@ -4486,7 +4503,7 @@ async function runRedisCommands(
     });
 
   if (lines.length === 0) {
-    throw new BadDataException("No Redis command provided.");
+    throw new BadDataException("No Valkey command provided.");
   }
 
   if (lines.length > QUERY_REDIS_MAX_COMMANDS) {
@@ -4497,7 +4514,7 @@ async function runRedisCommands(
 
   const startedAt: number = Date.now();
   const results: JSONArray = [];
-  const timeoutMessage: string = `Redis command timed out after ${QUERY_REDIS_TIMEOUT_MS}ms`;
+  const timeoutMessage: string = `Valkey command timed out after ${QUERY_REDIS_TIMEOUT_MS}ms`;
 
   let consoleClient: NonNullable<ReturnType<typeof Redis.getClient>> =
     baseClient.duplicate();

@@ -18,7 +18,7 @@
 # the global autoscaling block never applies to this tier) and
 # telemetryWriter.keda (KEDA on the fleet-wide shed rate: sustained 429s
 # while ClickHouse is healthy is the honest "tier too small" signal, served
-# at /metrics/telemetry-writer-shed-rate from a Redis-backed counter).
+# at /metrics/telemetry-writer-shed-rate from a Valkey-backed counter).
 # NEVER scale this tier on queue depth: queue growth is the WORKER fleet's
 # signal, and reacting to it here would hand ClickHouse the very burst this
 # tier exists to absorb (overload is shed with 429 and parked in BullMQ).

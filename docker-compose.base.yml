@@ -85,14 +85,29 @@ x-common-runtime-variables: &common-runtime-variables
   LETS_ENCRYPT_NOTIFICATION_EMAIL: ${LETS_ENCRYPT_NOTIFICATION_EMAIL}
   LETS_ENCRYPT_ACCOUNT_KEY: ${LETS_ENCRYPT_ACCOUNT_KEY}
 
-  REDIS_USERNAME: ${REDIS_USERNAME}
-  REDIS_PASSWORD: ${REDIS_PASSWORD}
-  REDIS_HOST: ${REDIS_HOST}
-  REDIS_PORT: ${REDIS_PORT}
-  REDIS_DB: ${REDIS_DB}
-  REDIS_IP_FAMILY: ${REDIS_IP_FAMILY}
-  REDIS_TLS_CA: ${REDIS_TLS_CA}
-  REDIS_TLS_SENTINEL_MODE: ${REDIS_TLS_SENTINEL_MODE}
+  # Cache and queues. VALKEY_* is the current name; the `:-${REDIS_*}` fallback is
+  # what lets a config.env written before the rename keep working with no edits.
+  VALKEY_USERNAME: ${VALKEY_USERNAME:-${REDIS_USERNAME}}
+  VALKEY_PASSWORD: ${VALKEY_PASSWORD:-${REDIS_PASSWORD}}
+  VALKEY_HOST: ${VALKEY_HOST:-${REDIS_HOST}}
+  VALKEY_PORT: ${VALKEY_PORT:-${REDIS_PORT}}
+  VALKEY_DB: ${VALKEY_DB:-${REDIS_DB}}
+  VALKEY_IP_FAMILY: ${VALKEY_IP_FAMILY:-${REDIS_IP_FAMILY}}
+  VALKEY_TLS_CA: ${VALKEY_TLS_CA:-${REDIS_TLS_CA}}
+  VALKEY_TLS_SENTINEL_MODE: ${VALKEY_TLS_SENTINEL_MODE:-${REDIS_TLS_SENTINEL_MODE}}
+
+  # Deprecated mirrors, carrying the identical value. The app reads VALKEY_* and
+  # only falls back to these, so they are dead weight for a matching image --
+  # they exist because APP_TAG lets you pin an OLDER image against this file, and
+  # an image from before the rename reads nothing else.
+  REDIS_USERNAME: ${VALKEY_USERNAME:-${REDIS_USERNAME}}
+  REDIS_PASSWORD: ${VALKEY_PASSWORD:-${REDIS_PASSWORD}}
+  REDIS_HOST: ${VALKEY_HOST:-${REDIS_HOST}}
+  REDIS_PORT: ${VALKEY_PORT:-${REDIS_PORT}}
+  REDIS_DB: ${VALKEY_DB:-${REDIS_DB}}
+  REDIS_IP_FAMILY: ${VALKEY_IP_FAMILY:-${REDIS_IP_FAMILY}}
+  REDIS_TLS_CA: ${VALKEY_TLS_CA:-${REDIS_TLS_CA}}
+  REDIS_TLS_SENTINEL_MODE: ${VALKEY_TLS_SENTINEL_MODE:-${REDIS_TLS_SENTINEL_MODE}}
 
   ENCRYPTION_SECRET: ${ENCRYPTION_SECRET}
 
@@ -199,10 +214,13 @@ x-common-runtime-variables: &common-runtime-variables
 
 services:
   # Valkey is the BSD-licensed fork of Redis 7.2 that most of the original Redis
-  # contributors moved to after Redis 7.4 left the BSD licence. It speaks the
-  # same wire protocol, so every REDIS_* setting below and in config.env is
-  # unchanged. The service is reachable as both "valkey" and "redis" (see the
-  # network alias) so an existing config.env with REDIS_HOST=redis keeps working.
+  # contributors moved to after Redis 7.4 left the BSD licence, and it speaks the
+  # same wire protocol -- point VALKEY_HOST at a managed Redis instead and
+  # nothing else changes.
+  #
+  # The service is reachable as both "valkey" and "redis" (see the network
+  # alias), so a config.env written before the rename, still saying
+  # REDIS_HOST=redis, resolves with no edits.
   valkey:
     image: valkey/valkey:9.1-alpine
     restart: always
@@ -210,11 +228,11 @@ services:
       oneuptime:
         aliases:
           - redis
-    command: valkey-server --requirepass "${REDIS_PASSWORD}" --save "" --appendonly no
+    command: valkey-server --requirepass "${VALKEY_PASSWORD:-${REDIS_PASSWORD}}" --save "" --appendonly no
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      VALKEY_PASSWORD: ${VALKEY_PASSWORD:-${REDIS_PASSWORD}}
     healthcheck:
-      test: ["CMD", "valkey-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "valkey-cli", "-a", "${VALKEY_PASSWORD:-${REDIS_PASSWORD}}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5

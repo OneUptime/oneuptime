@@ -31,7 +31,7 @@ const EnterpriseHealthUpgrade: FunctionComponent<ComponentProps> = (
             icon: IconProp.Activity,
             title: "Live component health",
             subtitle:
-              "Postgres, ClickHouse, Redis and queue health at a glance.",
+              "Postgres, ClickHouse, Valkey and queue health at a glance.",
           },
           {
             icon: IconProp.Database,
@@ -43,7 +43,7 @@ const EnterpriseHealthUpgrade: FunctionComponent<ComponentProps> = (
             icon: IconProp.Terminal,
             title: "Query console",
             subtitle:
-              "Run ad-hoc Postgres, ClickHouse and Redis queries from the dashboard.",
+              "Run ad-hoc Postgres, ClickHouse and Valkey queries from the dashboard.",
           },
           {
             icon: IconProp.List,

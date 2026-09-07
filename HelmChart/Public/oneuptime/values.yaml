@@ -63,7 +63,7 @@ externalSecrets:
       passwordKey:
 
 deployment:
-  # When set to true, no OneUptime deployments are provisioned. Only databases (Redis, ClickHouse, Postgres) will be running.
+  # When set to true, no OneUptime deployments are provisioned. Only databases (Valkey, ClickHouse, Postgres) will be running.
   disableDeployments: false
   # Default replica count for all deployments
   replicaCount: 1
@@ -865,19 +865,20 @@ pgbouncer:
 # The in-cluster cache and BullMQ queue backend. The image is Valkey -- the
 # BSD-licensed fork of Redis 7.2 that most of the original Redis contributors
 # moved to after Redis 7.4 left the BSD licence -- and it speaks the Redis wire
-# protocol, so nothing above the socket changed.
+# protocol, so any Redis-protocol server can stand in for it (see
+# `externalValkey` below).
 #
-# The value key, the Kubernetes object names (`<release>-redis`,
-# `<release>-redis-master`) and the `REDIS_*` environment variables are
-# deliberately left as they are: renaming them would silently invalidate every
-# existing values.yaml override, `redis.auth.existingSecret` reference and
-# externally-managed secret out there, for no functional gain.
-redis:
+# This block was called `redis:` until 12.0.36. That key still works: whatever
+# you set under it is layered on top of these defaults, so an unedited
+# values.yaml from an earlier chart keeps behaving exactly as it did. Prefer
+# `valkey:` in new files -- if you set the same setting under both names, the
+# legacy one wins and `helm install` prints a warning.
+valkey:
   enabled: true
   auth:
     # Will be auto-generated if not provided
     password:
-    # Use an existing secret for the Redis password
+    # Use an existing secret for the cache password
     existingSecret:
       name:
       passwordKey:
@@ -892,7 +893,7 @@ redis:
     service:
       type: ClusterIP
       ports:
-        redis: "6379"
+        valkey: "6379"
     persistence:
       enabled: false
       size: 8Gi
@@ -900,7 +901,7 @@ redis:
     nodeSelector: {}
     tolerations: []
     affinity: {}
-    # Optional: override global security contexts just for the Redis pod/container
+    # Optional: override global security contexts just for the Valkey pod/container
     podSecurityContext: {}
     containerSecurityContext: {}
     resources: {}
@@ -927,7 +928,22 @@ redis:
     appendonly no
     save ""
     maxmemory-policy noeviction
+  # Also publish the Service under its pre-12.0.36 name,
+  # `<release>-redis-master`, pointing at the same pods.
+  #
+  # app/worker/probe/runner pods carry the old hostname in their env until they
+  # roll, and without this they resolve nothing in the meantime. It does not make
+  # the upgrade zero-downtime -- the cache pod is recreated either way, and both
+  # Services have no endpoints for the seconds that takes -- but it stops the
+  # gap lasting for the whole rollout. Safe to set to false once every workload
+  # has rolled.
+  legacyServiceAlias: true
 
+# Deprecated alias for `valkey:` above, kept so a values.yaml written against an
+# earlier chart still applies. MUST stay empty: the merge in
+# `oneuptime.valkey` layers whatever is here ON TOP of the real defaults, so a
+# value shipped here would be impossible for anyone to override.
+redis: {}
 
 
 # Global HorizontalPodAutoscaler defaults applied to every stateless service
@@ -962,7 +978,7 @@ autoscaling:
 # Set EITHER minAvailable OR maxUnavailable (the Kubernetes PDB spec allows only
 # one). If both resolve to a value, minAvailable wins. Both accept an integer or
 # a percentage string like "50%". The single-replica databases (postgresql,
-# redis, clickhouse) are intentionally excluded — a PDB there would imply HA
+# valkey, clickhouse) are intentionally excluded — a PDB there would imply HA
 # they don't provide; the multi-replica clickhouse-keeper ships its own PDB.
 podDisruptionBudget:
   enabled: false
@@ -1154,7 +1170,7 @@ trustedProxyHops: 1
 # the ceiling that survives a caller rotating tokens. Calendar clients poll
 # about hourly (Apple every five minutes at most), so the defaults leave plenty
 # of room for a whole team's clients behind one office address. The limiter
-# fails open when Redis is unreachable.
+# fails open when the cache is unreachable.
 onCallCalendarFeed:
   disabled: false
   rateLimit:
@@ -1606,10 +1622,15 @@ externalPostgres:
     cert:
     key:
 
-## External Redis Configuration
-# You need to set redis.enabled to false if you're using an external redis database.
+## External cache configuration.
+# Set valkey.enabled to false to use this instead of the in-cluster Valkey.
+# Any Redis-protocol server works here -- Valkey, real Redis, or a managed
+# service such as ElastiCache or Memorystore.
+#
+# This block was called `externalRedis:` until 12.0.36; that key still works and
+# is layered on top of whatever is set here.
 
-externalRedis:
+externalValkey:
   host:
   port:
   username:
@@ -1628,6 +1649,10 @@ externalRedis:
     # (optional)
     cert:
     key:
+
+# Deprecated alias for `externalValkey:`. Must stay empty, for the same reason
+# `redis: {}` above must.
+externalRedis: {}
 
 ## External Clickhouse Configuration
 # You need to set clickhouse.enabled to false if you're using an external clickhouse database.

@@ -286,8 +286,18 @@ names are worth not repeating: `DISABLE_QUEUE_WORKERS` is what makes a pod a
 `worker` rather than an API pod (and the reverse on `telemetryWriter`), so
 setting it chart-wide silently changes what those tiers do.
 
+The cache variables are a trap of their own: since 12.0.36 the app reads
+`VALKEY_*` and only falls back to `REDIS_*`, so an `extraEnv` entry named
+`REDIS_HOST` still wins the `REDIS_HOST` slot and is then **ignored**, because
+the chart also sets `VALKEY_HOST` to its own cache. Override `VALKEY_HOST`,
+`VALKEY_PORT`, `VALKEY_PASSWORD`, `VALKEY_DB`, `VALKEY_USERNAME`,
+`VALKEY_IP_FAMILY` and `VALKEY_TLS_*` instead — or, better, use the
+`externalValkey:` block, which is the supported way to point at a cache this
+chart does not run. `helm install` warns about chart-wide `REDIS_*` entries it
+finds; it cannot see per-service ones.
 
-The bundled databases (`postgresql`, `redis`, `clickhouse` and the ClickHouse
+
+The bundled databases (`postgresql`, `valkey`, `clickhouse` and the ClickHouse
 Keeper) and the `cronJobs.cleanup` jobs deliberately do not take these. The
 databases are servers rather than clients, already expose their TLS and tuning
 settings as first-class values, and have operator-managed twins whose pods come
@@ -374,7 +384,7 @@ sizing guidance in [production-checklist.md](production-checklist.md).
 | `telemetryWriter.enabled`                            | Deploy the tier and route app/worker telemetry inserts through it.                                   | `false` |
 | `telemetryWriter.replicaCount`                       | Fixed pod count — a ClickHouse capacity decision, not a demand one. Never autoscaled on queue depth. | `2` |
 | `telemetryWriter.autoscaling.enabled`                | Opt-in CPU/memory HPA (explicit enable only — the global `autoscaling` block never applies here). Requires `resources.requests`. | `false` |
-| `telemetryWriter.keda.enabled`                       | Opt-in KEDA scaling on the tier-wide shed rate (429s over ~2 min, Redis-backed); optional CPU/memory triggers compose. | `false` |
+| `telemetryWriter.keda.enabled`                       | Opt-in KEDA scaling on the tier-wide shed rate (429s over ~2 min, Valkey-backed); optional CPU/memory triggers compose. | `false` |
 | `telemetryWriter.keda.shedCountThreshold`            | Sheds in the last ~2 minutes per replica before scaling up.                                          | `100` |
 | `telemetryWriter.telemetryFanInMaxConcurrentInserts` | Concurrent ClickHouse INSERTs per pod. Cluster-wide = replicas × this.                               | `4` |
 | `telemetryWriter.maxInflightRequests`                | Insert requests served concurrently per pod before shedding with 429 (bounds pod memory).            | `100` |
@@ -446,7 +456,7 @@ hourly -- Apple Calendar every five minutes at most -- so the defaults leave
 plenty of room for a whole team's clients behind one office address. The client
 address is the one `trustedProxyHops` selects, so a deployment behind an extra
 load balancer needs that set correctly for the per-address limit to mean
-anything. The limiter fails open when Redis is unreachable: it is load control,
+anything. The limiter fails open when the cache is unreachable: it is load control,
 not the only thing guarding the token.
 
 | Parameter                                    | Description                                                                             | Default |
@@ -468,6 +478,6 @@ not the only thing guarding the token.
 
 ## Related pages
 
-- [Databases](databases.md) — PostgreSQL, Redis, and ClickHouse (built-in, external, and HA operators).
+- [Databases](databases.md) — PostgreSQL, Valkey, and ClickHouse (built-in, external, and HA operators).
 - [Custom domains](custom-domains.md) — status page domains and Let's Encrypt.
 - [Production checklist](production-checklist.md) — hardening for real deployments.

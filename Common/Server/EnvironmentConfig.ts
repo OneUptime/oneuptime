@@ -472,32 +472,63 @@ export const HomeHostname: Hostname = Hostname.fromString(
 
 export const Env: string = process.env["NODE_ENV"] || "production";
 
-// Redis does not require password.
-export const RedisHostname: string = process.env["REDIS_HOST"] || "redis";
-export const RedisPort: Port = new Port(process.env["REDIS_PORT"] || "6379");
-export const RedisDb: number = Number(process.env["REDIS_DB"]) || 0;
-export const RedisUsername: string = process.env["REDIS_USERNAME"] || "default";
-export const RedisPassword: string =
-  process.env["REDIS_PASSWORD"] || "password";
+/*
+ * The cache and queue tier runs Valkey -- the BSD-licensed fork of Redis 7.2 --
+ * so its settings are named VALKEY_*. Any Redis-protocol server works here,
+ * including real Redis, which is why the in-code names below stay `Redis*`:
+ * they describe the protocol, not the vendor.
+ *
+ * The REDIS_* names these shipped under are still read, so an existing
+ * config.env or values.yaml keeps working untouched. They are DEPRECATED, not
+ * removed; VALKEY_* wins when both are set. Nothing here may start requiring
+ * the new name -- a self-hoster who never edits config.env must keep running.
+ *
+ * `||` here is load-bearing and must not be "modernised" to `??`. Compose
+ * materialises an unset variable as an EMPTY STRING, and docker-compose.base.yml
+ * lists every VALKEY_* name, so the new name is always *defined* inside our
+ * containers. Under `??` an empty VALKEY_PASSWORD would beat the operator's real
+ * REDIS_PASSWORD and the app would silently fall through to the literal default
+ * below.
+ */
+export function getCacheEnvVar(suffix: string): string | undefined {
+  return (
+    process.env[`VALKEY_${suffix}`] ||
+    process.env[`REDIS_${suffix}`] ||
+    undefined
+  );
+}
 
-export const RedisTlsCa: string | undefined =
-  process.env["REDIS_TLS_CA"] || undefined;
+/*
+ * The cache does not require a password.
+ *
+ * The default hostname stays "redis" even though the compose service is now
+ * `valkey`. This default is only reached when NEITHER variable is set, which
+ * never happens in our own compose or Helm -- both always set them. What it does
+ * cover is hand-written Kubernetes manifests, a bare `docker run`, and third
+ * party compose files, where the Service has been called `redis` for years.
+ * Compose is unaffected either way: its valkey service answers to `redis` too.
+ */
+export const RedisHostname: string = getCacheEnvVar("HOST") || "redis";
+export const RedisPort: Port = new Port(getCacheEnvVar("PORT") || "6379");
+export const RedisDb: number = Number(getCacheEnvVar("DB")) || 0;
+export const RedisUsername: string = getCacheEnvVar("USERNAME") || "default";
+export const RedisPassword: string = getCacheEnvVar("PASSWORD") || "password";
 
-export const RedisTlsCert: string | undefined =
-  process.env["REDIS_TLS_CERT"] || undefined;
+export const RedisTlsCa: string | undefined = getCacheEnvVar("TLS_CA");
 
-export const RedisTlsKey: string | undefined =
-  process.env["REDIS_TLS_KEY"] || undefined;
+export const RedisTlsCert: string | undefined = getCacheEnvVar("TLS_CERT");
+
+export const RedisTlsKey: string | undefined = getCacheEnvVar("TLS_KEY");
 
 export const RedisTlsSentinelMode: boolean =
-  process.env["REDIS_TLS_SENTINEL_MODE"] === "true";
+  getCacheEnvVar("TLS_SENTINEL_MODE") === "true";
 
 export const ShouldRedisTlsEnable: boolean = Boolean(
   RedisTlsCa || (RedisTlsCert && RedisTlsKey),
 );
 
-export const RedisIPFamily: number = process.env["REDIS_IP_FAMILY"]
-  ? Number(process.env["REDIS_IP_FAMILY"])
+export const RedisIPFamily: number = getCacheEnvVar("IP_FAMILY")
+  ? Number(getCacheEnvVar("IP_FAMILY"))
   : 4;
 
 export const IsProduction: boolean =

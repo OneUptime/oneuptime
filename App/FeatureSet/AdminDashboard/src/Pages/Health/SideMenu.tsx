@@ -61,7 +61,7 @@ const HealthSideMenu: () => JSX.Element = (): ReactElement => {
         />
         <SideMenuItem
           link={{
-            title: "Redis",
+            title: "Valkey",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.HEALTH_REDIS] as Route,
             ),

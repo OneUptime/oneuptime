@@ -8,7 +8,7 @@ tests:
   # BSD-licensed fork the original contributors moved to.
   - it: runs the valkey image, not redis
     templates:
-      - templates/redis-statefulset.yaml
+      - templates/valkey-statefulset.yaml
     asserts:
       - isKind:
           of: StatefulSet
@@ -27,45 +27,56 @@ tests:
 
   # The startup command, the ConfigMap key it reads and the mount path are one
   # unit -- moving any one of them alone leaves the pod crash-looping on a
-  # missing config file, which nothing else in this chart would catch. All three
-  # keep their `redis` names on purpose: valkey-server reads the same directives
-  # from the same file, and renaming the key would open a window during
-  # `helm upgrade` where the not-yet-rolled pod finds no template at the path its
-  # own spec still points at.
+  # missing config file, which nothing else in this chart would catch.
   - it: renders the config template and mount path the startup command reads
     templates:
-      - templates/redis-statefulset.yaml
-      - templates/redis-configmap.yaml
+      - templates/valkey-statefulset.yaml
+      - templates/valkey-configmap.yaml
     asserts:
       - matchRegex:
-          path: data["redis.conf.template"]
-          pattern: '(?m)^\s*requirepass \$\{REDIS_PASSWORD\}\s*$'
-        template: templates/redis-configmap.yaml
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^\s*requirepass \$\{VALKEY_PASSWORD\}\s*$'
+        template: templates/valkey-configmap.yaml
       - equal:
           path: spec.template.spec.containers[0].volumeMounts[0].mountPath
-          value: /etc/redis
-        template: templates/redis-statefulset.yaml
+          value: /etc/valkey
+        template: templates/valkey-statefulset.yaml
       - matchRegex:
           path: spec.template.spec.containers[0].command[2]
-          pattern: '/etc/redis/redis\.conf\.template'
-        template: templates/redis-statefulset.yaml
+          pattern: '/etc/valkey/valkey\.conf\.template'
+        template: templates/valkey-statefulset.yaml
       # The engine is what changed: valkey-server, not redis-server.
       - matchRegex:
           path: spec.template.spec.containers[0].command[2]
-          pattern: 'exec valkey-server /tmp/redis\.conf'
-        template: templates/redis-statefulset.yaml
+          pattern: 'exec valkey-server /tmp/valkey\.conf'
+        template: templates/valkey-statefulset.yaml
       - notMatchRegex:
           path: spec.template.spec.containers[0].command[2]
           pattern: 'exec redis-server'
-        template: templates/redis-statefulset.yaml
+        template: templates/valkey-statefulset.yaml
+      # The sed placeholder and the env var that fills it must be the same name.
+      # If they drift, sed matches nothing, exits 0 (so `set -e` does not fire)
+      # and the server boots with the literal placeholder as its password.
+      - equal:
+          path: spec.template.spec.containers[0].env[0].name
+          value: VALKEY_PASSWORD
+        template: templates/valkey-statefulset.yaml
+      - matchRegex:
+          path: spec.template.spec.containers[0].command[2]
+          pattern: 'VALKEY_PASSWORD'
+        template: templates/valkey-statefulset.yaml
+      - notMatchRegex:
+          path: spec.template.spec.containers[0].command[2]
+          pattern: 'REDIS_PASSWORD'
+        template: templates/valkey-statefulset.yaml
 
   # Without `set -e`, a sed that cannot read the template still leaves an empty
-  # /tmp/redis.conf behind and the server boots on stock defaults -- no
+  # /tmp/valkey.conf behind and the server boots on stock defaults -- no
   # requirepass, reachable by anything in the pod network. Verified against the
   # real image: the guard turns that into exit 1 (CrashLoopBackOff) instead.
   - it: refuses to start rather than fall back to an unauthenticated server
     templates:
-      - templates/redis-statefulset.yaml
+      - templates/valkey-statefulset.yaml
     asserts:
       - matchRegex:
           path: spec.template.spec.containers[0].command[2]
@@ -76,7 +87,7 @@ tests:
   # symlink goes away. Pin the probes to the real binary name.
   - it: probes with valkey-cli
     templates:
-      - templates/redis-statefulset.yaml
+      - templates/valkey-statefulset.yaml
     asserts:
       - equal:
           path: spec.template.spec.containers[0].livenessProbe.exec.command[0]
@@ -84,41 +95,104 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].readinessProbe.exec.command[0]
           value: valkey-cli
-      # The password still arrives as REDIS_PASSWORD -- the env var names are
-      # part of the app's public config surface and did not change.
       - equal:
           path: spec.template.spec.containers[0].livenessProbe.exec.command[2]
-          value: $(REDIS_PASSWORD)
+          value: $(VALKEY_PASSWORD)
 
-  # Renaming the Kubernetes objects would invalidate every existing
-  # `redis.auth.existingSecret` reference and externally-managed secret, so the
-  # names deliberately stay as they are. This test is the record of that choice.
-  - it: keeps the redis object and secret names so existing releases upgrade in place
+  # Both Services resolve targetPort by NAME against the container port. A
+  # half-rename here is not an error -- Kubernetes accepts it and the Services
+  # simply have zero ready endpoints, so every connection times out.
+  - it: matches the container port name in every service
     templates:
-      - templates/redis-statefulset.yaml
-      - templates/redis-service.yaml
+      - templates/valkey-statefulset.yaml
+      - templates/valkey-service.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].name
+          value: valkey
+        template: templates/valkey-statefulset.yaml
+      - equal:
+          path: spec.ports[0].targetPort
+          value: valkey
+        template: templates/valkey-service.yaml
+        documentIndex: 0
+      - equal:
+          path: spec.ports[0].targetPort
+          value: valkey
+        template: templates/valkey-service.yaml
+        documentIndex: 1
+      - equal:
+          path: spec.ports[0].targetPort
+          value: valkey
+        template: templates/valkey-service.yaml
+        documentIndex: 2
+
+  - it: names the kubernetes objects after valkey
+    templates:
+      - templates/valkey-statefulset.yaml
+      - templates/valkey-service.yaml
+      - templates/valkey-configmap.yaml
     asserts:
       - equal:
           path: metadata.name
-          value: ou-redis
-        template: templates/redis-statefulset.yaml
+          value: ou-valkey
+        template: templates/valkey-statefulset.yaml
       - equal:
           path: spec.template.spec.containers[0].env[0].valueFrom.secretKeyRef.name
-          value: ou-redis
-        template: templates/redis-statefulset.yaml
+          value: ou-valkey
+        template: templates/valkey-statefulset.yaml
       - equal:
           path: spec.template.spec.containers[0].env[0].valueFrom.secretKeyRef.key
-          value: redis-password
-        template: templates/redis-statefulset.yaml
+          value: valkey-password
+        template: templates/valkey-statefulset.yaml
+      - equal:
+          path: metadata.name
+          value: ou-valkey-master
+        template: templates/valkey-service.yaml
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: ou-valkey-headless
+        template: templates/valkey-service.yaml
+        documentIndex: 1
+      - equal:
+          path: metadata.name
+          value: ou-valkey-config
+        template: templates/valkey-configmap.yaml
+
+  # Renaming the Service is the one part of this change that could cause real
+  # downtime: app/worker/probe/runner pods carry the OLD hostname in their env
+  # until they roll, and the old Service is deleted the instant the new manifest
+  # is applied. The alias is what makes the upgrade seamless instead.
+  - it: keeps serving the pre-rename service name so pods survive the rollout
+    templates:
+      - templates/valkey-service.yaml
+    asserts:
       - equal:
           path: metadata.name
           value: ou-redis-master
-        template: templates/redis-service.yaml
-        documentIndex: 0
+        documentIndex: 2
+      # Pointing at the same pods is the whole point -- a stale selector here
+      # would be a Service with no endpoints, which fails silently.
+      - equal:
+          path: spec.selector["app"]
+          value: ou-valkey
+        documentIndex: 2
 
-  # REDIS_HOST has to keep pointing at the same in-cluster Service the app has
-  # always used; the engine changed underneath it, the address did not.
-  - it: still points the app at the in-cluster service over the redis protocol
+  - it: drops the deprecated service alias on request
+    set:
+      valkey.legacyServiceAlias: false
+    templates:
+      - templates/valkey-service.yaml
+    asserts:
+      - hasDocuments:
+          count: 2
+
+  # REDIS_* has to keep being emitted alongside VALKEY_*: `image.tag` is a
+  # documented pin (the production checklist tells you to set it), so a chart
+  # from after the rename routinely runs an app image from before it, and that
+  # image reads nothing else.
+  - it: points the app at the in-cluster service under both names
     templates:
       - templates/app.yaml
     # app.yaml renders both a Service and a Deployment under the same name, so
@@ -130,23 +204,51 @@ tests:
       - contains:
           path: spec.template.spec.containers[0].env
           content:
+            name: VALKEY_HOST
+            value: ou-valkey-master.oneuptime.svc.cluster.local
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: VALKEY_PORT
+            value: "6379"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
             name: REDIS_HOST
-            value: ou-redis-master.oneuptime.svc.cluster.local
+            value: ou-valkey-master.oneuptime.svc.cluster.local
       - contains:
           path: spec.template.spec.containers[0].env
           content:
             name: REDIS_PORT
             value: "6379"
+      # Two names, ONE credential. A second source of truth here would leave the
+      # app and the server on different passwords.
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: VALKEY_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: ou-valkey
+                key: valkey-password
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: REDIS_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: ou-valkey
+                key: valkey-password
 
-  # An operator pointing the chart at a managed Redis must not get a Valkey
+  # An operator pointing the chart at a managed cache must not get a Valkey
   # StatefulSet as well.
-  - it: ships nothing when an external redis is configured
+  - it: ships nothing when an external cache is configured
     set:
-      redis.enabled: false
+      valkey.enabled: false
     templates:
-      - templates/redis-statefulset.yaml
-      - templates/redis-configmap.yaml
-      - templates/redis-service.yaml
+      - templates/valkey-statefulset.yaml
+      - templates/valkey-configmap.yaml
+      - templates/valkey-service.yaml
     asserts:
       - hasDocuments:
           count: 0
