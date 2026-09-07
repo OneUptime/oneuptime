@@ -102,16 +102,8 @@ describe("Inventory Items without the scope banner", () => {
 
   const SCOPES: Array<[string, string, Record<string, Array<string>>]> = [
     ["all items", "", {}],
-    [
-      "a type",
-      "?type=k8s.pod",
-      { inventoryType: [EntityType.KubernetesPod] },
-    ],
-    [
-      "a source",
-      "?source=manual",
-      { inventorySource: [EntitySource.Manual] },
-    ],
+    ["a type", "?type=k8s.pod", { inventoryType: [EntityType.KubernetesPod] }],
+    ["a source", "?source=manual", { inventorySource: [EntitySource.Manual] }],
     [
       "Gone Quiet",
       "?source=discovered&stale=true",
@@ -155,7 +147,9 @@ describe("Inventory Items without the scope banner", () => {
         }
       }
       expect(readFacetSelections()).toEqual(expectedSelections);
-      const params: URLSearchParams = new URLSearchParams(window.location.search);
+      const params: URLSearchParams = new URLSearchParams(
+        window.location.search,
+      );
       for (const name of ["type", "source", "stale"]) {
         expect(params.has(name)).toBe(false);
       }
@@ -165,7 +159,8 @@ describe("Inventory Items without the scope banner", () => {
 
   test("updates and clears the scope when only the query string changes", async () => {
     renderPage("?source=discovered&stale=true");
-    const goneQuietTable: HTMLElement = await screen.findByTestId("inventory-table");
+    const goneQuietTable: HTMLElement =
+      await screen.findByTestId("inventory-table");
 
     fireEvent.click(screen.getByRole("link", { name: "Pods" }));
 
