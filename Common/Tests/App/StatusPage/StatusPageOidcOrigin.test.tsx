@@ -181,7 +181,7 @@ describe("Status Page OIDC login origin", () => {
       localStorage.setItem(`isPrivateStatusPage-${statusPageId}`, "true");
 
       jest.isolateModules(() => {
-        const SSO: FunctionComponent<ComponentProps> = (
+        const Sso: FunctionComponent<ComponentProps> = (
           jest.requireActual(
             "../../../../App/FeatureSet/StatusPage/src/Pages/Accounts/SSO",
           ) as { default: FunctionComponent<ComponentProps> }
@@ -196,7 +196,7 @@ describe("Status Page OIDC login origin", () => {
           .mockImplementation(() => {});
 
         render(
-          <SSO
+          <Sso
             statusPageName="Example Status"
             logoFileId={new ObjectID(statusPageId)}
           />,

@@ -84,8 +84,10 @@ interface RenderedFeedItem {
   safeMode?: boolean | undefined;
 }
 
-// A stateful item dialog models the lifetime of FeedItem's More Information
-// modal, including the cleanup that releases its focus trap and scroll lock.
+/*
+ * A stateful item dialog models the lifetime of FeedItem's More Information
+ * modal, including the cleanup that releases its focus trap and scroll lock.
+ */
 function MockItemDialog(): React.ReactElement {
   React.useEffect(() => {
     return () => {
