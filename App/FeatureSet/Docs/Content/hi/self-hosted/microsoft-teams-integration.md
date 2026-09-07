@@ -7,6 +7,18 @@
 - Azure Account - [https://azure.com](https://azure.com) पर जाकर बना सकते हैं
 - आपके OneUptime server configuration तक पहुंच
 
+### निजी नेटवर्क पर डिप्लॉयमेंट
+
+OneUptime अपने Teams इंटीग्रेशन के लिए Azure Bot उपयोग करता है। Incoming Webhook या Teams Workflow URL इस बॉट के मैसेजिंग एंडपॉइंट की जगह नहीं लेता। Microsoft स्वयं होस्ट किए गए बॉट के लिए [सार्वजनिक रूप से पहुंच योग्य HTTPS एंडपॉइंट](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) आवश्यक बताता है। निजी IP पता, आंतरिक DNS नाम या किसी कर्मचारी का VPN कनेक्शन Azure Bot Service को OneUptime तक पहुंच नहीं देता।
+
+सेटअप जारी रखने से पहले [इंटीग्रेशन के लिए निजी नेटवर्क एक्सेस](/docs/self-hosted/integration-network-access) के निर्देश अपनाएं। उस गाइड में सार्वजनिक DNS, विश्वसनीय TLS, निजी डिप्लॉयमेंट तक फ़ॉरवर्ड करने वाली रिवर्स प्रॉक्सी, फ़ायरवॉल नियम और सत्यापन शामिल हैं। Teams के लिए `/api/microsoft-bot/messages` प्रकाशित करें और चरण 4 में Azure Bot का **Messaging endpoint** उस पूरे सार्वजनिक HTTPS URL पर सेट करें। `/api` प्रीफ़िक्स, अनुरोध की बॉडी और `Authorization` हेडर बनाए रखें। अनुरोधों को बॉट के प्रमाणीकरण से सत्यापित होने दें; इंटरैक्टिव प्रॉक्सी लॉगिन या ब्राउज़र चैलेंज Microsoft की डिलीवरी रोकता है।
+
+App registration के रीडायरेक्ट `/api/microsoft-teams/auth` और `/api/microsoft-teams/admin-consent/callback` उपयोगकर्ता के ब्राउज़र के माध्यम से वापस आते हैं। उस ब्राउज़र को OneUptime तक पहुंच चाहिए, जैसे कॉर्पोरेट नेटवर्क या VPN से। बॉट संदेश और कार्ड क्रियाएं Microsoft के सर्वर से आती हैं और उनके लिए अलग से पहुंच योग्य ingress आवश्यक है। केवल आउटबाउंड अलर्ट डिलीवरी से इनबाउंड कनेक्टिविटी सत्यापित नहीं होती।
+
+डेवलपमेंट के लिए Microsoft की [Teams परीक्षण गाइड](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/debug) स्थानीय सेवा को टनल से उपलब्ध कराने का तरीका बताती है। OneUptime ingress पर फ़ॉरवर्ड करें और Microsoft के उदाहरण पथ `/api/messages` के बजाय `/api/microsoft-bot/messages` उपयोग करें। सार्वजनिक टनल URL बदलने पर Azure Bot एंडपॉइंट अपडेट करें, और प्रोडक्शन में स्थिर ingress उपयोग करें।
+
+Azure Bot Private Endpoint इस Teams ingress का विकल्प नहीं है। Microsoft के [नेटवर्क आइसोलेशन निर्देश](https://learn.microsoft.com/en-us/azure/bot-service/dl-network-isolation-how-to?view=azure-bot-service-4.0) Direct Line आइसोलेशन का वर्णन करते हैं और बताते हैं कि सार्वजनिक नेटवर्क एक्सेस बंद करने से Teams चैनल की कॉन्फ़िगरेशन हट जाती है।
+
 ## Setup Instructions
 
 ### चरण 1: Azure App Registration बनाएं
@@ -37,7 +49,8 @@
 
 - **Team.ReadBasic.All** - admin consent grant होने के बाद organization में सभी teams list करने के लिए आवश्यक
 - **Channel.ReadBasic.All** - channel existence verify करने और channel details retrieve करने के लिए आवश्यक
-- **ChannelMessage.Send** - channels पर programmatically messages भेजने के लिए आवश्यक
+
+`ChannelMessage.Send` केवल delegated permission है; [Microsoft Graph permissions reference](https://learn.microsoft.com/en-us/graph/permissions-reference#channelmessagesend) में इसका application permission विकल्प नहीं है। इसे ऊपर दी गई delegated सूची में रखें।
 
 3. अपने organization के लिए "Grant admin consent" पर क्लिक करें
 

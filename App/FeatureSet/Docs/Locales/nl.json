@@ -196,6 +196,8 @@
     "OneUptime API Reference": "OneUptime API-referentie",
     "Slack Integration": "Slack-integratie",
     "Microsoft Teams Integration": "Microsoft Teams-integratie",
+    "Twilio Integration": "Twilio-integratie",
+    "Integration Access from Private Networks": "Toegang tot integraties vanuit privénetwerken",
     "GitHub Integration": "GitHub-integratie",
     "Push Notifications": "Pushmeldingen",
     "SendGrid Inbound Email": "SendGrid inkomende e-mail",
