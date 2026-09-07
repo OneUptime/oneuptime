@@ -139,6 +139,27 @@ export interface AutoImportRuleRunResult {
    */
   isTruncated: boolean;
   /*
+   * Matched hosts a cap left un-imported: they have no device yet and this
+   * run did not create one. A capped run keeps EVALUATING after it stops
+   * writing precisely so it can answer "how much is left" — reporting
+   * "imported 500" with no remainder is what makes a truncated run read as
+   * silently losing the rest of the estate (OneUptime issue #3642).
+   */
+  hostsPendingImport: number;
+  /*
+   * (device, template) pairs a cap left unprovisioned: the device is there,
+   * nothing monitors it yet, and this run's monitor budget was spent. The
+   * counterpart of hostsPendingImport for the monitor half of the work,
+   * which has its OWN cap and so can be the only thing left over.
+   */
+  monitorsPendingCreation: number;
+  /*
+   * True when a capped manual run stopped OPENING further scans. The two
+   * pending counters above then cover only the scans it actually read, so
+   * the remainder they report is a floor rather than a total.
+   */
+  hasUnevaluatedScans: boolean;
+  /*
    * True when the project has more completed scans than one manual run
    * reads (the newest MAX_SCANS_PER_AUTO_IMPORT_RULE_RUN). Distinct from
    * isTruncated because the advice differs: re-running re-reads the same
@@ -171,6 +192,24 @@ export const MAX_RUN_FAILURE_REASONS: number = 3;
  * that belongs in the logs rather than in a modal.
  */
 export const MAX_RUN_FAILURE_REASON_LENGTH: number = 300;
+
+/*
+ * How many capped server passes ONE press of "Run Rule" chains together.
+ *
+ * A real run is bounded server-side (see the engine's per-run device and
+ * monitor caps) so a rule that meets a /16 cannot become one unbounded API
+ * request. That bound used to be the operator's problem: a 909-device estate
+ * imported 500 and stopped, and finishing it meant noticing the cap line and
+ * pressing the button again — which is exactly what OneUptime issue #3642
+ * reported as "the rest are simply missing". The button now drives the passes
+ * itself, so one press finishes an estate of any ordinary size, while each
+ * individual request stays as small as it always was.
+ *
+ * Still bounded, because "one press" must not mean "an hour of chained
+ * requests": past this many passes the run reports what is left and the
+ * operator presses again, deliberately.
+ */
+export const MAX_AUTO_IMPORT_RUN_PASSES: number = 20;
 
 /*
  * A count off the wire. An absent or non-numeric field reads as zero rather
@@ -257,6 +296,63 @@ function becauseOf(reasons: Array<string>): string {
   return ` Reasons: ${rendered.join(" ")}`;
 }
 
+/*
+ * Every pass's reasons as one deduplicated, capped list — see
+ * mergeAutoImportRunPasses.
+ */
+function mergeReasons(lists: Array<Array<string>>): Array<string> {
+  const seen: Set<string> = new Set<string>();
+
+  for (const list of lists) {
+    for (const reason of list) {
+      if (seen.size >= MAX_RUN_FAILURE_REASONS) {
+        return Array.from(seen);
+      }
+
+      seen.add(reason);
+    }
+  }
+
+  return Array.from(seen);
+}
+
+/*
+ * What a capped run left behind, as a phrase — "409 hosts still to import",
+ * "409 active Network Device monitors still to create", or both.
+ *
+ * The two halves of the work have separate caps, so either can be the only
+ * thing left over: an estate that is fully imported but unmonitored hits the
+ * monitor cap with nothing at all pending on the device side.
+ *
+ * Empty when the run stopped without anything measurable left — the caller
+ * falls back to the unquantified sentence rather than printing "with  —".
+ */
+function describeRemainingWork(result: AutoImportRuleRunResult): string {
+  const parts: Array<string> = [];
+
+  if (result.hostsPendingImport > 0) {
+    parts.push(`${hosts(result.hostsPendingImport)} still to import`);
+  }
+
+  if (result.monitorsPendingCreation > 0) {
+    parts.push(
+      `${activeMonitors(result.monitorsPendingCreation)} still to create`,
+    );
+  }
+
+  if (parts.length === 0) {
+    return "";
+  }
+
+  /*
+   * A capped run stops OPENING scans once it stops writing, so when scans
+   * were left unread the remainder it counted is a floor, not a total.
+   */
+  return `${result.hasUnevaluatedScans ? "at least " : ""}${parts.join(
+    " and ",
+  )}`;
+}
+
 export class RuleRunResultUtil {
   /*
    * The sentences the auto-import report shows. A run that imported nothing is
@@ -300,6 +396,18 @@ export class RuleRunResultUtil {
     } else if (result.devicesCreated > 0) {
       lines.push(
         `Imported ${hosts(result.devicesCreated)} as network devices.`,
+      );
+    } else if (result.monitorsCreated > 0) {
+      /*
+       * A backfill run over an estate that is ALREADY imported creates no
+       * devices at all, and the flat "No devices were imported" read as a
+       * failure right above "Created 500 active Network Device monitors".
+       * Name what did not happen precisely instead.
+       */
+      lines.push(
+        `No new network devices were imported. This rule matched ${hosts(
+          result.hostsMatched,
+        )} out of the ${discoveredHosts(result.hostsEvaluated)} it looked at.`,
       );
     } else {
       lines.push(
@@ -406,15 +514,32 @@ export class RuleRunResultUtil {
     if (result.isTruncated && !result.isDryRun) {
       const madeProgress: boolean =
         result.devicesCreated > 0 || result.monitorsCreated > 0;
+      const remaining: string = describeRemainingWork(result);
+
+      if (!madeProgress) {
+        /*
+         * The remainder is still worth naming here — it is the size of the
+         * problem to fix — but the advice is the opposite of "run again".
+         */
+        lines.push(
+          remaining
+            ? `Stopped at the run cap without creating anything, with ${remaining}. Running again as-is would repeat the same failures — fix the failures reported above first.`
+            : "Stopped at the run cap without creating anything, so running again as-is would repeat the same failures — fix the failures reported above first.",
+        );
+      } else {
+        lines.push(
+          remaining
+            ? `Stopped at the run cap with ${remaining}. Run again to continue; already-imported hosts are skipped.`
+            : "Stopped at the run cap — run again to continue; already-imported hosts are skipped.",
+        );
+      }
+    } else if (result.isTruncated) {
+      const remaining: string = describeRemainingWork(result);
 
       lines.push(
-        madeProgress
-          ? "Stopped at the run cap — run again to continue; already-imported hosts are skipped."
-          : "Stopped at the run cap without creating anything, so running again as-is would repeat the same failures — fix the failures reported above first.",
-      );
-    } else if (result.isTruncated) {
-      lines.push(
-        "Stopped counting at the run cap — a real run is bounded by the same device-import and active-monitor creation limits.",
+        remaining
+          ? `Stopped counting at the run cap with ${remaining} — a real run is bounded by the same device-import and active-monitor creation limits.`
+          : "Stopped counting at the run cap — a real run is bounded by the same device-import and active-monitor creation limits.",
       );
     }
 
@@ -425,6 +550,148 @@ export class RuleRunResultUtil {
     }
 
     return lines.join(" ");
+  }
+
+  /*
+   * The line shown WHILE a "Run Rule" press is still chaining passes.
+   *
+   * A capped run over a large estate is now several requests long, and an
+   * unlabelled spinner sitting there for two minutes reads as a hang — which
+   * is the same "is it doing anything?" the silent cap created in the first
+   * place. This says what has landed so far; the full report replaces it when
+   * the chain ends.
+   */
+  public static describeAutoImportProgress(
+    result: AutoImportRuleRunResult,
+  ): string {
+    const done: Array<string> = [];
+
+    if (result.devicesCreated > 0) {
+      done.push(`${hosts(result.devicesCreated)} imported`);
+    }
+
+    if (result.monitorsCreated > 0) {
+      done.push(`${activeMonitors(result.monitorsCreated)} created`);
+    }
+
+    if (done.length === 0) {
+      return "Still importing…";
+    }
+
+    return `${done.join(
+      ", ",
+    )} so far. This rule matched more than one run's cap, so the import is continuing — leave this open.`;
+  }
+
+  /*
+   * The one report for a "Run Rule" press that took several server passes.
+   *
+   * Each pass is capped server-side and re-reads the SAME scans, so the
+   * counters split into three kinds and only one of them may be summed:
+   *
+   *   - State of the estate as the run found it (evaluated / matched /
+   *     excluded / already-registered / already-monitored) comes from the
+   *     FIRST pass. Summing would multiply the estate by the pass count, and
+   *     taking the last pass would report the run's own creates back as
+   *     "already registered" — "imported 909 hosts" followed by "909 hosts
+   *     already had network devices" is a self-contradiction.
+   *   - Work actually done (creates and failures) is SUMMED: every pass does
+   *     a different 500.
+   *   - What is still left (the pending counters and isTruncated) comes from
+   *     the LAST pass, which is the only one that still speaks for now.
+   *
+   * hasMoreScans is a property of the project, identical in every pass; it is
+   * taken from the last for the same reason as the pending counters.
+   */
+  public static mergeAutoImportRunPasses(
+    passes: Array<AutoImportRuleRunResult>,
+  ): AutoImportRuleRunResult {
+    const first: AutoImportRuleRunResult | undefined = passes[0];
+    const last: AutoImportRuleRunResult | undefined = passes[passes.length - 1];
+
+    if (!first || !last) {
+      throw new Error(
+        "mergeAutoImportRunPasses needs at least one run result to merge.",
+      );
+    }
+
+    if (passes.length === 1) {
+      return first;
+    }
+
+    const sum: (pick: (pass: AutoImportRuleRunResult) => number) => number = (
+      pick: (pass: AutoImportRuleRunResult) => number,
+    ): number => {
+      return passes.reduce(
+        (total: number, pass: AutoImportRuleRunResult): number => {
+          return total + pick(pass);
+        },
+        0,
+      );
+    };
+
+    return {
+      hostsEvaluated: first.hostsEvaluated,
+      hostsMatched: first.hostsMatched,
+      hostsExcluded: first.hostsExcluded,
+      hostsSkippedAlreadyRegistered: first.hostsSkippedAlreadyRegistered,
+      monitorsSkippedAlreadyExisting: first.monitorsSkippedAlreadyExisting,
+      monitorsSkippedUnsupportedHost: first.monitorsSkippedUnsupportedHost,
+      devicesCreated: sum((pass: AutoImportRuleRunResult): number => {
+        return pass.devicesCreated;
+      }),
+      devicesFailed: sum((pass: AutoImportRuleRunResult): number => {
+        return pass.devicesFailed;
+      }),
+      monitorsWouldCreate: sum((pass: AutoImportRuleRunResult): number => {
+        return pass.monitorsWouldCreate;
+      }),
+      monitorsCreated: sum((pass: AutoImportRuleRunResult): number => {
+        return pass.monitorsCreated;
+      }),
+      monitorsFailed: sum((pass: AutoImportRuleRunResult): number => {
+        return pass.monitorsFailed;
+      }),
+      /*
+       * Failure reasons are a SET across the chain, not a per-pass list: the
+       * same fault usually reappears in every pass, and a distinct fault in
+       * pass three is exactly what the operator has to see. Deduplicated in
+       * order and capped the same way one pass is, so the dialog stays a
+       * summary however many passes ran.
+       */
+      deviceFailureReasons: mergeReasons(
+        passes.map((pass: AutoImportRuleRunResult): Array<string> => {
+          return pass.deviceFailureReasons;
+        }),
+      ),
+      monitorFailureReasons: mergeReasons(
+        passes.map((pass: AutoImportRuleRunResult): Array<string> => {
+          return pass.monitorFailureReasons;
+        }),
+      ),
+      /*
+       * Halting is a property of the pass that halted, and the chain stops
+       * chaining after one — so any pass having halted is the answer, not
+       * just the last.
+       */
+      monitorProvisioningHalted: passes.some(
+        (pass: AutoImportRuleRunResult): boolean => {
+          return pass.monitorProvisioningHalted;
+        },
+      ),
+      isTruncated: last.isTruncated,
+      hostsPendingImport: last.hostsPendingImport,
+      monitorsPendingCreation: last.monitorsPendingCreation,
+      hasUnevaluatedScans: last.hasUnevaluatedScans,
+      hasMoreScans: last.hasMoreScans,
+      isDryRun: first.isDryRun,
+      /*
+       * The first pass's sample is the one worth keeping: it was drawn
+       * before this run changed anything, so it answers "which hosts is this
+       * rule claiming" rather than "which hosts were left over by pass 19".
+       */
+      matchedIpAddressSample: first.matchedIpAddressSample,
+    };
   }
 
   public static parseSiteAssignmentRuleRunResult(
@@ -505,6 +772,9 @@ export class RuleRunResultUtil {
       monitorFailureReasons: readReasons(source, "monitorFailureReasons"),
       monitorProvisioningHalted: source["monitorProvisioningHalted"] === true,
       isTruncated: source["isTruncated"] === true,
+      hostsPendingImport: readCount(source, "hostsPendingImport"),
+      monitorsPendingCreation: readCount(source, "monitorsPendingCreation"),
+      hasUnevaluatedScans: source["hasUnevaluatedScans"] === true,
       hasMoreScans: source["hasMoreScans"] === true,
       isDryRun: source["isDryRun"] === true,
       matchedIpAddressSample: sample as Array<string>,

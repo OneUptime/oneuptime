@@ -635,7 +635,8 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       scanStubs.pop();
     }
 
-    for (const scanStub of scanStubs) {
+    for (let index: number = 0; index < scanStubs.length; index++) {
+      const scanStub: NetworkDeviceDiscoveryScan = scanStubs[index]!;
       const scan: NetworkDeviceDiscoveryScan | null =
         await NetworkDeviceDiscoveryScanService.findOneBy({
           query: {
@@ -689,8 +690,15 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         });
       }
 
-      // The device cap is shared across the whole run, dry or real.
+      /*
+       * The caps are shared across the whole run, dry or real. Stop OPENING
+       * further scans once they are spent — each one is a multi-megabyte
+       * jsonb read whose hosts this pass could not act on anyway — but say
+       * that scans were left unread, so the pending counters below are
+       * reported as a floor rather than as the estate's total.
+       */
       if (result.isTruncated) {
+        result.hasUnevaluatedScans = index < scanStubs.length - 1;
         break;
       }
 
@@ -732,6 +740,9 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       monitorFailureReasons: [],
       monitorProvisioningHalted: false,
       isTruncated: false,
+      hostsPendingImport: 0,
+      monitorsPendingCreation: 0,
+      hasUnevaluatedScans: false,
       hasMoreScans: false,
       isDryRun: isDryRun,
       matchedIpAddressSample: [],
@@ -1206,6 +1217,18 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
 
     const createdIpAddresses: Array<string> = [];
 
+    /*
+     * What this pass counted as still-to-do, deduplicated.
+     *
+     * A stored result can list the same address twice (duplicate rows are
+     * normal enough that normalisation preserves them and the import path
+     * treats the second as already-registered), so counting rows rather than
+     * distinct work would report a remainder larger than the work that
+     * actually remains — in a number whose whole purpose is to be trusted.
+     */
+    const pendingImportAddresses: Set<string> = new Set<string>();
+    const pendingProvisioningKeys: Set<string> = new Set<string>();
+
     for (const host of hosts) {
       /*
        * The address becomes the device's varchar(100) hostname, on which
@@ -1295,8 +1318,25 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
 
       if (!networkDevice) {
         if (data.attempts.deviceCount >= MAX_DEVICES_PER_AUTO_IMPORT_RUN) {
+          /*
+           * Budget spent — stop WRITING, keep COUNTING. The rest of this
+           * loop is pure matching over a jsonb array that is already in
+           * memory against addresses primeExistingDevices already resolved,
+           * so finishing the scan costs nothing the cap exists to prevent,
+           * and it is the difference between "imported 500" and "imported
+           * 500 of 909, 409 still to go". A run that stopped mid-count
+           * reported the truncated numbers as if they were the estate,
+           * which is what OneUptime issue #3642 experienced as the
+           * remainder being silently dropped.
+           */
           result.isTruncated = true;
-          break;
+
+          if (!pendingImportAddresses.has(host.ipAddress)) {
+            pendingImportAddresses.add(host.ipAddress);
+            result.hostsPendingImport++;
+          }
+
+          continue;
         }
 
         if (data.isDryRun) {
@@ -1351,8 +1391,8 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         continue;
       }
 
-      const monitorsWereTruncated: boolean = await this.ensureMonitorsForDevice(
-        {
+      const monitorsLeftPending: Array<string> =
+        await this.ensureMonitorsForDevice({
           projectId: scan.projectId,
           host: host,
           networkDevice: networkDevice,
@@ -1362,18 +1402,45 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           result: result,
           attempts: data.attempts,
           isDryRun: data.isDryRun,
-        },
-      );
+        });
 
-      if (monitorsWereTruncated) {
+      /*
+       * Same protocol as the device cap above: the monitor budget stops the
+       * creates, not the accounting. It also has its OWN cap, so an estate
+       * that is fully imported but unmonitored — the shape of issue #3642 —
+       * runs out of monitor budget with nothing pending on the device side,
+       * and the operator needs to be told how many devices are still
+       * waiting for a monitor.
+       */
+      for (const templateId of monitorsLeftPending) {
         result.isTruncated = true;
-        break;
+
+        const pendingKey: string =
+          NetworkDeviceAutoImportRuleEngineServiceClass.monitorProvisioningKey(
+            networkDevice.id!,
+            templateId,
+          );
+
+        if (!pendingProvisioningKeys.has(pendingKey)) {
+          pendingProvisioningKeys.add(pendingKey);
+          result.monitorsPendingCreation++;
+        }
       }
     }
 
     return createdIpAddresses;
   }
 
+  /*
+   * Reconcile one device against the templates the matched rules selected.
+   *
+   * Returns the template ids the run's budget left UNATTEMPTED — empty when
+   * every requested monitor was settled, whether created, failed, or skipped
+   * because monitoring already existed. A non-empty answer is what makes the
+   * run report itself truncated; the ids (rather than a bare count) are what
+   * let the caller count one device's leftover work once, however many
+   * duplicate rows the scan lists that host under.
+   */
   private async ensureMonitorsForDevice(data: {
     projectId: ObjectID;
     host: DiscoveredNetworkDevice;
@@ -1384,7 +1451,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     result: AutoImportRuleRunResult;
     attempts: ImportAttemptBudget;
     isDryRun: boolean;
-  }): Promise<boolean> {
+  }): Promise<Array<string>> {
     /*
      * A Network Device monitor is fed by the device's polls, and nothing
      * polls a monitor-backed device — its bound monitor's status IS its
@@ -1401,7 +1468,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       )
     ) {
       data.result.monitorsSkippedUnsupportedHost += data.templateIds.length;
-      return false;
+      return [];
     }
 
     if (!data.networkDevice.id) {
@@ -1410,7 +1477,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         `Auto-import: cannot provision monitor(s) for ${data.host.ipAddress} because the Network Device has no id.`,
         { projectId: data.projectId.toString() } as LogAttributes,
       );
-      return false;
+      return [];
     }
 
     const networkDeviceId: ObjectID = data.networkDevice.id;
@@ -1443,7 +1510,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     }
 
     if (pendingTemplateIds.length === 0) {
-      return false;
+      return [];
     }
 
     /*
@@ -1458,7 +1525,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       )
     ) {
       data.result.monitorsSkippedAlreadyExisting += pendingTemplateIds.length;
-      return false;
+      return [];
     }
 
     /*
@@ -1501,16 +1568,18 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     }
 
     if (resolvableTemplateIds.length === 0) {
-      return false;
+      return [];
     }
 
     /*
      * Do not run the unindexed JSON race-check after this run's monitor-work
      * budget is already exhausted. The device remains unreconciled and the
-     * truncated marker protocol brings it back on the next bounded pass.
+     * truncated marker protocol brings it back on the next bounded pass —
+     * counted, so the operator is told how many devices are still waiting
+     * rather than left to infer it from a total that stopped early.
      */
     if (data.attempts.monitorCount >= MAX_MONITORS_PER_AUTO_IMPORT_RUN) {
-      return true;
+      return resolvableTemplateIds;
     }
 
     if (!data.isDryRun) {
@@ -1528,10 +1597,11 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     ) {
       data.result.monitorsSkippedAlreadyExisting +=
         resolvableTemplateIds.length;
-      return false;
+      return [];
     }
 
-    for (const templateId of resolvableTemplateIds) {
+    for (let index: number = 0; index < resolvableTemplateIds.length; index++) {
+      const templateId: string = resolvableTemplateIds[index]!;
       const key: string =
         NetworkDeviceAutoImportRuleEngineServiceClass.monitorProvisioningKey(
           networkDeviceId,
@@ -1556,8 +1626,12 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         continue;
       }
 
+      /*
+       * Budget spent mid-device. Everything from here on is untouched, so
+       * that is exactly what is left pending for this device.
+       */
       if (data.attempts.monitorCount >= MAX_MONITORS_PER_AUTO_IMPORT_RUN) {
-        return true;
+        return resolvableTemplateIds.slice(index);
       }
 
       data.attempts.monitorCount++;
@@ -1672,7 +1746,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       }
     }
 
-    return false;
+    return [];
   }
 
   /*

@@ -31,6 +31,9 @@ function result(
     monitorFailureReasons: [],
     monitorProvisioningHalted: false,
     isTruncated: false,
+    hostsPendingImport: 0,
+    monitorsPendingCreation: 0,
+    hasUnevaluatedScans: false,
     hasMoreScans: false,
     isDryRun: false,
     matchedIpAddressSample: [],
@@ -260,5 +263,191 @@ describe("RuleRunResultUtil.describeAutoImportRun", () => {
     expect(describe_({ hasMoreScans: true, devicesCreated: 1 })).toContain(
       "Only the newest 100 completed scans were read",
     );
+  });
+
+  /*
+   * OneUptime issue #3642: "909 discovered, 500+ imported, the rest silently
+   * skipped". The cap itself was working as designed; what made it read as
+   * silence was a report that named neither how much was left nor the fact
+   * that the monitor half of the work had its own separate ceiling.
+   */
+  describe("what a capped run says it left behind (issue #3642)", () => {
+    it("names the hosts a device cap left un-imported", () => {
+      const summary: string = describe_({
+        isTruncated: true,
+        devicesCreated: 500,
+        hostsEvaluated: 909,
+        hostsMatched: 909,
+        hostsPendingImport: 409,
+      });
+
+      expect(summary).toContain("Imported 500 hosts as network devices.");
+      expect(summary).toContain(
+        "Stopped at the run cap with 409 hosts still to import.",
+      );
+      expect(summary).toContain("Run again to continue");
+    });
+
+    it("names the devices a monitor cap left unmonitored", () => {
+      const summary: string = describe_({
+        isTruncated: true,
+        devicesCreated: 0,
+        monitorsCreated: 500,
+        hostsEvaluated: 909,
+        hostsMatched: 909,
+        hostsSkippedAlreadyRegistered: 909,
+        monitorsPendingCreation: 409,
+      });
+
+      expect(summary).toContain(
+        "Stopped at the run cap with 409 active Network Device monitors still to create.",
+      );
+      // The device half is not claimed as pending — it was already imported.
+      expect(summary).not.toContain("still to import");
+    });
+
+    it("reports both halves when both caps left work behind", () => {
+      expect(
+        describe_({
+          isTruncated: true,
+          devicesCreated: 500,
+          monitorsCreated: 500,
+          hostsPendingImport: 12,
+          monitorsPendingCreation: 3,
+        }),
+      ).toContain(
+        "12 hosts still to import and 3 active Network Device monitors still to create",
+      );
+    });
+
+    it("uses singular grammar for a remainder of one", () => {
+      const summary: string = describe_({
+        isTruncated: true,
+        devicesCreated: 500,
+        hostsPendingImport: 1,
+        monitorsPendingCreation: 1,
+      });
+
+      expect(summary).toContain("1 host still to import");
+      expect(summary).toContain("1 active Network Device monitor still to");
+    });
+
+    /*
+     * A capped run stops opening scans, so what it counted is a floor. It
+     * must not be reported as the total, or the operator reads "409 left",
+     * runs it again, and finds more than 409 appear.
+     */
+    it("reports the remainder as a floor when scans went unread", () => {
+      expect(
+        describe_({
+          isTruncated: true,
+          devicesCreated: 500,
+          hostsPendingImport: 409,
+          hasUnevaluatedScans: true,
+        }),
+      ).toContain("at least 409 hosts still to import");
+    });
+
+    it("quantifies a dry run's remainder without promising a resume", () => {
+      const summary: string = describe_({
+        isDryRun: true,
+        isTruncated: true,
+        hostsMatched: 909,
+        hostsEvaluated: 909,
+        hostsPendingImport: 409,
+      });
+
+      expect(summary).toContain(
+        "Stopped counting at the run cap with 409 hosts still to import",
+      );
+      expect(summary).toContain("device-import and active-monitor creation");
+      expect(summary).not.toContain("run again to continue");
+    });
+
+    /*
+     * A pre-#3642 server sends no pending counters, so they parse as zero.
+     * The sentence must fall back rather than print "with  —".
+     */
+    /*
+     * The two truncation truths compose. A run that created nothing resumes
+     * nowhere (issue #3643), but the remainder is still the size of the
+     * problem to fix, so it is named without the "run again" advice.
+     */
+    it("names the remainder without promising a resume when nothing was created", () => {
+      const summary: string = describe_({
+        isTruncated: true,
+        devicesCreated: 0,
+        monitorsCreated: 0,
+        monitorsFailed: 500,
+        monitorsPendingCreation: 409,
+      });
+
+      expect(summary).toContain(
+        "Stopped at the run cap without creating anything, with 409 active Network Device monitors still to create.",
+      );
+      expect(summary).toContain("would repeat the same failures");
+      expect(summary).not.toContain("Run again to continue");
+    });
+
+    it("falls back to the unquantified sentence with nothing counted", () => {
+      const summary: string = describe_({
+        isTruncated: true,
+        devicesCreated: 5,
+      });
+
+      expect(summary).toContain(
+        "Stopped at the run cap — run again to continue",
+      );
+      expect(summary).not.toContain("still to import");
+    });
+
+    /*
+     * A monitor backfill over an already-imported estate creates no devices
+     * at all. "No devices were imported" read as total failure directly
+     * above "Created 500 active Network Device monitors".
+     */
+    it("does not read a monitor backfill as an import that did nothing", () => {
+      const summary: string = describe_({
+        devicesCreated: 0,
+        monitorsCreated: 500,
+        hostsEvaluated: 909,
+        hostsMatched: 909,
+        hostsSkippedAlreadyRegistered: 909,
+      });
+
+      expect(summary).toContain("No new network devices were imported.");
+      expect(summary).toContain(
+        "Created 500 active Network Device monitors from the selected Monitor Template.",
+      );
+    });
+
+    it("still says nothing happened when nothing happened", () => {
+      expect(describe_({ hostsEvaluated: 9, hostsMatched: 0 })).toContain(
+        "No devices were imported. This rule matched 0 hosts out of the 9 discovered hosts it looked at.",
+      );
+    });
+  });
+
+  /*
+   * The "still working" line a chained press shows between passes. It exists
+   * because a run that now spans several requests must not look like a hang.
+   */
+  describe("progress while the passes are still chaining", () => {
+    it("names what has landed so far", () => {
+      const progress: string = RuleRunResultUtil.describeAutoImportProgress(
+        result({ devicesCreated: 500, monitorsCreated: 500 }),
+      );
+
+      expect(progress).toContain(
+        "500 hosts imported, 500 active Network Device monitors created so far",
+      );
+      expect(progress).toContain("leave this open");
+    });
+
+    it("says something even before the first pass has created anything", () => {
+      expect(RuleRunResultUtil.describeAutoImportProgress(result({}))).toBe(
+        "Still importing…",
+      );
+    });
   });
 });
