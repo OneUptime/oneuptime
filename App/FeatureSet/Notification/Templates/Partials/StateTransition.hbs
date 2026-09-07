@@ -5,21 +5,21 @@
 >
   <p
     class="st-DetailCard-label"
-    style="Margin:0 0 12px 0;font-size:11px;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;line-height:16px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;"
+    style="Margin:0 0 12px 0;font-size:11px;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;line-height:16px;color:#64748b;font-weight:600;"
   >STATE CHANGE</p>
-  <table
+  <table role="presentation"
     cellpadding="0"
     cellspacing="0"
     border="0"
-    style="border-collapse: collapse;"
+    width="100%" style="width: 100%; table-layout: fixed; border-collapse: collapse;"
   >
     <tbody>
       <tr>
         {{#if previousState}}
           <!-- Previous State Badge -->
-          <td align="center" valign="middle" style="padding: 0;">
+          <td class="st-Transition-cell" align="center" valign="middle" style="padding: 0;">
             <span
-              style="display: inline-block; white-space: nowrap; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; background-color: transparent; color: {{previousStateColor}}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; line-height: 16px; vertical-align: middle;"
+              style="display: inline-block;  padding: 6px 0; border-radius: 6px; font-size: 13px; font-weight: 600; background-color: transparent; color: {{previousStateColor}}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; line-height: 16px; vertical-align: middle;"
             >
               <span
                 style="width: 10px; height: 10px; border-radius: 4px; background-color: {{previousStateColor}}; display: inline-block; margin-right: 8px; vertical-align: middle;"
@@ -30,16 +30,16 @@
             </span>
           </td>
           <!-- Arrow -->
-          <td align="center" valign="middle" style="padding: 0 12px;">
+          <td class="st-Transition-cell st-Transition-arrow" align="center" valign="middle" style="padding: 0 12px;">
             <span
               style="font-size: 20px; color: #94a3b8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif;"
             >→</span>
           </td>
         {{/if}}
         <!-- Current State Badge -->
-        <td align="center" valign="middle" style="padding: 0;">
+        <td class="st-Transition-cell" align="center" valign="middle" style="padding: 0;">
           <span
-            style="display: inline-block; white-space: nowrap; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; background-color: transparent; color: {{currentStateColor}}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; line-height: 16px; vertical-align: middle;"
+            style="display: inline-block;  padding: 6px 0; border-radius: 6px; font-size: 13px; font-weight: 600; background-color: transparent; color: {{currentStateColor}}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; line-height: 16px; vertical-align: middle;"
           >
             <span
               style="width: 10px; height: 10px; border-radius: 4px; background-color: {{currentStateColor}}; display: inline-block; margin-right: 8px; vertical-align: middle;"

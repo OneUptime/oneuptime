@@ -115,7 +115,7 @@ describe("CompleteRegistration.hbs", () => {
   test("renders the registration link as the call to action", () => {
     const html: string = render();
 
-    expect(html).toContain(REGISTRATION_LINK);
+    expect(html).toContain(Handlebars.escapeExpression(REGISTRATION_LINK));
     expect(html).toContain("Complete Registration");
   });
 
@@ -123,14 +123,9 @@ describe("CompleteRegistration.hbs", () => {
     const html: string = render();
 
     /*
-     * Once in the button href and once as copyable text. A recipient who cannot
-     * click the button has no other route back into their account.
-     *
-     * Counted on the token rather than the whole URL because the two renderings
-     * differ: ButtonBlock interpolates the href with a double stache and so
-     * escapes the query separator to &amp;, while InfoBlock uses a triple and
-     * emits it raw. Both are correct -- browsers parse &amp; in an href back to
-     * & -- and the token itself has nothing escapable in it.
+     * The button and copyable fallback both keep the token. The fallback now
+     * also links to the same destination, and both hrefs and its visible text
+     * are escaped once. HTML clients decode those entities back to the URL.
      */
     const occurrences: number = html.split(TOKEN).length - 1;
 
@@ -146,7 +141,10 @@ describe("CompleteRegistration.hbs", () => {
      * attribute gives back the link intact: a truncated query string here would
      * drop the token and send the recipient to an unauthorized signup.
      */
-    const href: RegExpMatchArray | null = render().match(/href=([^\s>]+)/);
+    const button: string =
+      render().match(/<a\b[^>]*\bclass="[^"]*\bst-Button-link\b[^>]*>/)?.[0] ||
+      "";
+    const href: RegExpMatchArray | null = button.match(/href="([^"]+)"/);
 
     expect(href).not.toBeNull();
 

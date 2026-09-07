@@ -8,30 +8,31 @@
 
 <!-- Summary Card -->
 <table
+  role="presentation"
   class="st-Copy st-Width st-Width--mobile"
   border="0"
   cellpadding="0"
   cellspacing="0"
-  width="600"
-  style="min-width: 600px;"
+  width="100%"
+  style="width: 100%; max-width: 100%; table-layout: fixed;"
 >
   <tbody>
     <tr>
       <td
         class="st-Spacer st-Spacer--gutter"
         style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
-        width="64"
+        width="40"
       >
         <div class="st-Spacer st-Spacer--filler"></div>
       </td>
       <td style="border: 0; margin: 0; padding: 0;">
-        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: separate; background-color: #f7f9fc; border: 1px solid #e5e8f0; border-radius: 12px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed; border-collapse: separate; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;">
           <tbody>
             <tr>
-              <td style="padding: 18px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif;">
-                <div style="font-size: 20px; line-height: 26px; font-weight: 700; color: #1a1a2e;">{{summaryCount}}</div>
-                {{#ifNotCond summaryWindow ""}}<div style="font-size: 13px; line-height: 20px; color: #6b7280; padding-top: 4px;">{{summaryWindow}}</div>{{/ifNotCond}}
-                <div style="font-size: 13px; line-height: 22px; color: #374151; padding-top: 10px; border-top: 1px solid #e5e8f0; margin-top: 12px;">{{categoryCounts}}</div>
+              <td style="padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif;">
+                <div style="font-size: 28px; line-height: 36px; letter-spacing: -0.6px; font-weight: 700; color: #0f172a;">{{summaryCount}}</div>
+                {{#ifNotCond summaryWindow ""}}<div style="font-size: 13px; line-height: 20px; color: #64748b; padding-top: 4px;">{{summaryWindow}}</div>{{/ifNotCond}}
+                <div style="font-size: 14px; line-height: 22px; color: #475569; padding-top: 10px; border-top: 1px solid #e2e8f0; margin-top: 12px;">{{categoryCounts}}</div>
               </td>
             </tr>
           </tbody>
@@ -40,7 +41,7 @@
       <td
         class="st-Spacer st-Spacer--gutter"
         style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
-        width="64"
+        width="40"
       >
         <div class="st-Spacer st-Spacer--filler"></div>
       </td>
@@ -61,36 +62,37 @@
 
 <!-- What Happened -->
 <table
+  role="presentation"
   class="st-Copy st-Width st-Width--mobile"
   border="0"
   cellpadding="0"
   cellspacing="0"
-  width="600"
-  style="min-width: 600px;"
+  width="100%"
+  style="width: 100%; max-width: 100%; table-layout: fixed;"
 >
   <tbody>
     <tr>
       <td
         class="st-Spacer st-Spacer--gutter"
         style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
-        width="64"
+        width="40"
       >
         <div class="st-Spacer st-Spacer--filler"></div>
       </td>
       <td style="border: 0; margin: 0; padding: 0;">
-        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed; border-collapse: separate; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif;">
           <tbody>
             {{#each rows}}
             {{#ifCond this.isSectionStart "true"}}
             <tr>
-              <td style="padding: 22px 0 8px 0; font-size: 11px; line-height: 16px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #6b7280;">{{this.sectionLabel}}</td>
-              <td align="right" style="padding: 22px 0 8px 0; font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: 0.4px; color: #9ca3af;">{{this.sectionCount}}</td>
+              <td style="padding: 24px 0 10px; font-size: 12px; line-height: 18px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: #64748b;">{{this.sectionLabel}}</td>
+              <td align="right" style="padding: 24px 0 10px; font-size: 12px; line-height: 18px; font-weight: 600; letter-spacing: 0.4px; color: #64748b;">{{this.sectionCount}}</td>
             </tr>
             {{/ifCond}}
             <tr style="background-color: {{this.rowBackground}};">
-              <td colspan="2" style="padding: 12px 14px; border: 1px solid #e5e8f0;">
-                <div style="font-size: 15px; line-height: 22px; font-weight: 600; color: #1f2733;">{{#ifCond this.hasLink "true"}}<a href="{{this.link}}" style="color: #4f46e5; text-decoration: none;">{{this.title}}</a>{{/ifCond}}{{#ifCond this.hasLink "false"}}{{this.title}}{{/ifCond}}</div>
-                <div style="font-size: 12px; line-height: 18px; color: #6b7280; padding-top: 4px;">{{this.metaLabel}}</div>
+              <td colspan="2" style="padding: 16px 18px; border: 1px solid #e2e8f0; border-radius: 8px; overflow-wrap: anywhere; word-break: break-word;">
+                <div style="font-size: 15px; line-height: 24px; font-weight: 600; color: #0f172a;">{{#ifCond this.hasLink "true"}}<a href="{{this.link}}" style="display: block; color: #4f46e5; text-decoration: underline; text-underline-offset: 3px;">{{this.title}}</a>{{/ifCond}}{{#ifCond this.hasLink "false"}}{{this.title}}{{/ifCond}}</div>
+                <div style="font-size: 13px; line-height: 20px; color: #64748b; padding-top: 6px;">{{this.metaLabel}}</div>
               </td>
             </tr>
             {{/each}}
@@ -100,7 +102,7 @@
       <td
         class="st-Spacer st-Spacer--gutter"
         style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
-        width="64"
+        width="40"
       >
         <div class="st-Spacer st-Spacer--filler"></div>
       </td>
@@ -123,39 +125,40 @@
 {{> InfoBlock info=moreTextHtml }}
 {{/ifCond}}
 
-{{> ButtonBlock buttonUrl=projectHomeLink buttonText="Open Project" }}
+{{> ButtonBlock buttonUrl=projectHomeLink buttonText="View Your Project" }}
 
-{{> TitleBlock title="Why did I get one email instead of several?" }}
+{{> TitleBlock title="Your notification preferences" }}
 {{> InfoBlock info=preferencesHtml }}
 
 <!-- Notification Settings Link -->
 <table
+  role="presentation"
   class="st-Copy st-Width st-Width--mobile"
   border="0"
   cellpadding="0"
   cellspacing="0"
-  width="600"
-  style="min-width: 600px;"
+  width="100%"
+  style="width: 100%; max-width: 100%; table-layout: fixed;"
 >
   <tbody>
     <tr>
       <td
         class="st-Spacer st-Spacer--gutter"
         style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
-        width="64"
+        width="40"
       >
         <div class="st-Spacer st-Spacer--filler"></div>
       </td>
       <td
         class="st-Font st-Font--body"
-        style="border: 0; margin: 0; padding: 0; color: #374151 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 15px; line-height: 26px;"
+        style="border: 0; margin: 0; padding: 0; color: #475569 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 14px; line-height: 22px;"
       >
-        <a href="{{preferencesLink}}" style="color: #4f46e5; text-decoration: none; word-break: break-all;">{{preferencesLink}}</a>
+        <a href="{{preferencesLink}}" style="color: #4f46e5; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;">Manage notification preferences</a>
       </td>
       <td
         class="st-Spacer st-Spacer--gutter"
         style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
-        width="64"
+        width="40"
       >
         <div class="st-Spacer st-Spacer--filler"></div>
       </td>

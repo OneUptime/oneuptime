@@ -55,22 +55,22 @@ const buildEmailHtml: (params: {
         : " border-bottom: 1px solid #e2e8f0;";
       return `    <div style="padding: 10px 0;${borderStyle}">
       <p style="margin: 0 0 4px 0; font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">${field.label}</p>
-      <p style="margin: 0; font-size: 15px; color: #1e293b; font-weight: 500;">${field.value}</p>
+      <p style="margin: 0; font-size: 15px; line-height: 24px; color: #0f172a; font-weight: 500;">${field.value}</p>
     </div>`;
     })
     .join("\n");
 
-  return `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b;">
-  <h2 style="color: #1a1a2e; font-size: 24px; line-height: 32px; font-weight: 700; margin: 0 0 16px 0;">${params.title}</h2>
-  <p style="color: #374151; font-size: 15px; line-height: 26px; margin: 0 0 16px 0;">${params.intro}</p>
-  <div style="background-color: #f8fafc; border-radius: 8px; padding: 4px 20px; margin: 0 0 24px 0;">
+  return `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; width: 100%; max-width: 600px; box-sizing: border-box; margin: 0 auto; padding: 32px 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff; color: #475569; overflow-wrap: anywhere; word-break: break-word;">
+  <h1 style="color: #0f172a; font-size: 28px; line-height: 36px; letter-spacing: -0.6px; font-weight: 700; margin: 0 0 16px 0;">${params.title}</h1>
+  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 16px 0;">${params.intro}</p>
+  <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 4px 20px; margin: 0 0 24px 0;">
 ${fieldsHtml}
   </div>
   <p style="margin: 0 0 24px 0;">
-    <a href="${params.buttonUrl}" style="display: inline-block; background-color: #111827; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">${params.buttonText}</a>
+    <a href="${params.buttonUrl}" style="display: inline-block; max-width: 100%; box-sizing: border-box; text-align: center; line-height: 22px; background-color: #4f46e5; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">${params.buttonText}</a>
   </p>
-  <p style="color: #6b7280; font-size: 12px; line-height: 18px; margin: 32px 0 0 0;">
-    If you no longer wish to receive these notifications, you can <a href="{{unsubscribeUrl}}" style="color: #6b7280;">unsubscribe</a>.
+  <p style="color: #64748b; font-size: 12px; line-height: 18px; margin: 32px 0 0 0;">
+    If you no longer wish to receive these notifications, you can <a href="{{unsubscribeUrl}}" style="color: #64748b;">unsubscribe</a>.
   </p>
 </div>`;
 };
@@ -78,16 +78,16 @@ ${fieldsHtml}
 const subscriptionConfirmationDefaults: EventDefaults = {
   [StatusPageSubscriberNotificationMethod.Email]: {
     subject: "{{statusPageName}} - Please confirm your subscription",
-    body: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b;">
-  <h2 style="color: #1a1a2e; font-size: 24px; line-height: 32px; font-weight: 700; margin: 0 0 16px 0;">{{statusPageName}} - Please confirm your subscription</h2>
-  <p style="color: #374151; font-size: 15px; line-height: 26px; margin: 0 0 16px 0;">You will be the first to hear from us when there are any incidents, announcements or scheduled maintenance events.</p>
+    body: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; width: 100%; max-width: 600px; box-sizing: border-box; margin: 0 auto; padding: 32px 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff; color: #475569; overflow-wrap: anywhere; word-break: break-word;">
+  <h1 style="color: #0f172a; font-size: 28px; line-height: 36px; letter-spacing: -0.6px; font-weight: 700; margin: 0 0 16px 0;">{{statusPageName}} - Please confirm your subscription</h1>
+  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 16px 0;">You will be the first to hear from us when there are any incidents, announcements or scheduled maintenance events.</p>
   <p style="margin: 0 0 24px 0;">
-    <a href="{{confirmationUrl}}" style="display: inline-block; background-color: #111827; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">Confirm Subscription</a>
+    <a href="{{confirmationUrl}}" style="display: inline-block; max-width: 100%; box-sizing: border-box; text-align: center; line-height: 22px; background-color: #4f46e5; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">Confirm Subscription</a>
   </p>
-  <p style="color: #374151; font-size: 15px; line-height: 26px; margin: 0 0 4px 0;">You can also view the status page by visiting this link:</p>
-  <p style="color: #374151; font-size: 15px; line-height: 26px; margin: 0 0 24px 0;"><a href="{{statusPageUrl}}" style="color: #4f46e5;">{{statusPageUrl}}</a></p>
-  <p style="color: #6b7280; font-size: 12px; line-height: 18px; margin: 32px 0 0 0;">
-    If you no longer wish to receive these notifications, you can <a href="{{unsubscribeUrl}}" style="color: #6b7280;">unsubscribe</a>.
+  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 4px 0;">You can also view the status page by visiting this link:</p>
+  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 24px 0;"><a href="{{statusPageUrl}}" style="color: #4f46e5; overflow-wrap: anywhere; word-break: break-all;">{{statusPageUrl}}</a></p>
+  <p style="color: #64748b; font-size: 12px; line-height: 18px; margin: 32px 0 0 0;">
+    If you no longer wish to receive these notifications, you can <a href="{{unsubscribeUrl}}" style="color: #64748b;">unsubscribe</a>.
   </p>
 </div>`,
   },
@@ -96,16 +96,16 @@ const subscriptionConfirmationDefaults: EventDefaults = {
 const subscribedDefaults: EventDefaults = {
   [StatusPageSubscriberNotificationMethod.Email]: {
     subject: "You have been subscribed to {{statusPageName}}",
-    body: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b;">
-  <h2 style="color: #1a1a2e; font-size: 24px; line-height: 32px; font-weight: 700; margin: 0 0 16px 0;">You have been subscribed to status page - {{statusPageName}}</h2>
-  <p style="color: #374151; font-size: 15px; line-height: 26px; margin: 0 0 16px 0;">You will be the first to hear from us when there are any incidents, announcements or scheduled maintenance events.</p>
+    body: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; width: 100%; max-width: 600px; box-sizing: border-box; margin: 0 auto; padding: 32px 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff; color: #475569; overflow-wrap: anywhere; word-break: break-word;">
+  <h1 style="color: #0f172a; font-size: 28px; line-height: 36px; letter-spacing: -0.6px; font-weight: 700; margin: 0 0 16px 0;">You have been subscribed to status page - {{statusPageName}}</h1>
+  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 16px 0;">You will be the first to hear from us when there are any incidents, announcements or scheduled maintenance events.</p>
   <p style="margin: 0 0 24px 0;">
-    <a href="{{statusPageUrl}}" style="display: inline-block; background-color: #111827; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">Go to Status Page</a>
+    <a href="{{statusPageUrl}}" style="display: inline-block; max-width: 100%; box-sizing: border-box; text-align: center; line-height: 22px; background-color: #4f46e5; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">Go to Status Page</a>
   </p>
-  <p style="color: #374151; font-size: 15px; line-height: 26px; margin: 0 0 4px 0;">You can also view the status page by visiting this link:</p>
-  <p style="color: #374151; font-size: 15px; line-height: 26px; margin: 0 0 24px 0;"><a href="{{statusPageUrl}}" style="color: #4f46e5;">{{statusPageUrl}}</a></p>
-  <p style="color: #6b7280; font-size: 12px; line-height: 18px; margin: 32px 0 0 0;">
-    If you no longer wish to receive these notifications, you can <a href="{{unsubscribeUrl}}" style="color: #6b7280;">unsubscribe</a>.
+  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 4px 0;">You can also view the status page by visiting this link:</p>
+  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 24px 0;"><a href="{{statusPageUrl}}" style="color: #4f46e5; overflow-wrap: anywhere; word-break: break-all;">{{statusPageUrl}}</a></p>
+  <p style="color: #64748b; font-size: 12px; line-height: 18px; margin: 32px 0 0 0;">
+    If you no longer wish to receive these notifications, you can <a href="{{unsubscribeUrl}}" style="color: #64748b;">unsubscribe</a>.
   </p>
 </div>`,
   },
@@ -114,14 +114,14 @@ const subscribedDefaults: EventDefaults = {
 const manageSubscriptionDefaults: EventDefaults = {
   [StatusPageSubscriberNotificationMethod.Email]: {
     subject: "Manage your Subscription for {{statusPageName}}",
-    body: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b;">
-  <h2 style="color: #1a1a2e; font-size: 24px; line-height: 32px; font-weight: 700; margin: 0 0 16px 0;">{{statusPageName}} - Manage Subscription</h2>
-  <p style="color: #374151; font-size: 15px; line-height: 26px; margin: 0 0 16px 0;">Please click on the link below to manage or unsubscribe from status page notifications.</p>
+    body: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; width: 100%; max-width: 600px; box-sizing: border-box; margin: 0 auto; padding: 32px 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff; color: #475569; overflow-wrap: anywhere; word-break: break-word;">
+  <h1 style="color: #0f172a; font-size: 28px; line-height: 36px; letter-spacing: -0.6px; font-weight: 700; margin: 0 0 16px 0;">{{statusPageName}} - Manage Subscription</h1>
+  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 16px 0;">Please click on the link below to manage or unsubscribe from status page notifications.</p>
   <p style="margin: 0 0 24px 0;">
-    <a href="{{manageSubscriptionUrl}}" style="display: inline-block; background-color: #111827; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">Manage Subscription</a>
+    <a href="{{manageSubscriptionUrl}}" style="display: inline-block; max-width: 100%; box-sizing: border-box; text-align: center; line-height: 22px; background-color: #4f46e5; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">Manage Subscription</a>
   </p>
-  <p style="color: #374151; font-size: 15px; line-height: 26px; margin: 0 0 4px 0;">You can also view the status page by visiting this link:</p>
-  <p style="color: #374151; font-size: 15px; line-height: 26px; margin: 0 0 24px 0;"><a href="{{statusPageUrl}}" style="color: #4f46e5;">{{statusPageUrl}}</a></p>
+  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 4px 0;">You can also view the status page by visiting this link:</p>
+  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 24px 0;"><a href="{{statusPageUrl}}" style="color: #4f46e5; overflow-wrap: anywhere; word-break: break-all;">{{statusPageUrl}}</a></p>
 </div>`,
   },
   [StatusPageSubscriberNotificationMethod.SMS]: {
@@ -780,74 +780,79 @@ const episodeNoteCreatedDefaults: EventDefaults = {
 const reportDefaults: EventDefaults = {
   [StatusPageSubscriberNotificationMethod.Email]: {
     subject: "[Report] {{statusPageName}}",
-    body: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b;">
-  <h2 style="color: #1a1a2e; font-size: 24px; line-height: 32px; font-weight: 700; margin: 0 0 8px 0;">Uptime Report: {{statusPageName}}</h2>
-  <p style="color: #374151; font-size: 15px; line-height: 26px; margin: 0 0 24px 0;">Here is your status summary for {{report.reportPeriodName}}.</p>
+    body: `<style>
+  @media only screen and (max-width: 600px) {
+    .st-StandaloneReport .st-ReportIndent { margin-left: 0 !important; }
+  }
+</style>
+<div class="st-StandaloneReport" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; width: 100%; max-width: 600px; box-sizing: border-box; margin: 0 auto; padding: 32px 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff; color: #475569; overflow-wrap: anywhere; word-break: break-word;">
+  <h1 style="color: #0f172a; font-size: 28px; line-height: 36px; letter-spacing: -0.6px; font-weight: 700; margin: 0 0 8px 0;">Uptime Report: {{statusPageName}}</h1>
+  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 24px 0;">Here is your status summary for {{report.reportPeriodName}}.</p>
   {{#if report.totalResources}}
-  <div style="background-color: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 12px; padding: 28px 24px; text-align: center; margin: 0 0 14px 0;">
+  <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 28px 24px; text-align: center; margin: 0 0 14px 0;">
     <p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: #64748b;">Average Uptime</p>
-    <p style="margin: 0; font-size: 52px; line-height: 56px; font-weight: 700; color: #1a1a2e;">{{report.averageUptimePercent}}</p>
+    <p style="margin: 0; font-size: 44px; line-height: 52px; letter-spacing: -1.2px; font-weight: 700; color: #0f172a;">{{report.averageUptimePercent}}</p>
     <p style="margin: 10px 0 0 0; font-size: 13px; color: #64748b;">{{report.reportStartDate}} &ndash; {{report.reportEndDate}} ({{report.reportTimezone}})</p>
   </div>
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 12px; margin: 0 0 24px 0;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; table-layout: fixed; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; margin: 0 0 24px 0;">
     <tr>
       <td width="33%" align="center" style="padding: 18px 8px; border-right: 1px solid #e2e8f0;">
-        <p style="margin: 0; font-size: 24px; font-weight: 700; color: #1a1a2e;">{{report.totalDowntimeInHoursAndMinutes}}</p>
+        <p style="margin: 0; font-size: 24px; font-weight: 700; color: #0f172a;">{{report.totalDowntimeInHoursAndMinutes}}</p>
         <p style="margin: 6px 0 0 0; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #64748b;">Downtime</p>
       </td>
       <td width="33%" align="center" style="padding: 18px 8px; border-right: 1px solid #e2e8f0;">
-        <p style="margin: 0; font-size: 24px; font-weight: 700; color: #1a1a2e;">{{report.totalIncidents}}</p>
+        <p style="margin: 0; font-size: 24px; font-weight: 700; color: #0f172a;">{{report.totalIncidents}}</p>
         <p style="margin: 6px 0 0 0; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #64748b;">Incidents</p>
       </td>
       <td width="34%" align="center" style="padding: 18px 8px;">
-        <p style="margin: 0; font-size: 24px; font-weight: 700; color: #1a1a2e;">{{report.totalResources}}</p>
+        <p style="margin: 0; font-size: 24px; font-weight: 700; color: #0f172a;">{{report.totalResources}}</p>
         <p style="margin: 6px 0 0 0; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #64748b;">Resources</p>
       </td>
     </tr>
   </table>
-  <h3 style="color: #1a1a2e; font-size: 16px; font-weight: 700; margin: 0 0 12px 0;">{{#if report.hasGroups}}Breakdown by group{{else}}Per-resource breakdown{{/if}}</h3>
-  <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: separate; border-spacing: 0; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; margin: 0 0 24px 0;">
+  <h2 style="color: #0f172a; font-size: 16px; font-weight: 700; margin: 0 0 12px 0;">{{#if report.hasGroups}}Breakdown by group{{else}}Per-resource breakdown{{/if}}</h2>
+  <table aria-label="Uptime by resource" width="100%" cellpadding="0" cellspacing="0" style="width: 100%; table-layout: fixed; overflow-wrap: anywhere; word-break: break-word; border-collapse: separate; border-spacing: 0; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; margin: 0 0 24px 0;">
     <thead>
       <tr>
-        <th align="left" style="background-color: #1a1a2e; color: #ffffff; padding: 12px 14px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">{{#if report.hasGroups}}Group / Resource{{else}}Resource{{/if}}</th>
-        <th align="right" style="background-color: #1a1a2e; color: #ffffff; padding: 12px 14px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Uptime</th>
-        <th align="right" style="background-color: #1a1a2e; color: #ffffff; padding: 12px 14px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Downtime</th>
-        <th align="right" style="background-color: #1a1a2e; color: #ffffff; padding: 12px 14px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Incidents</th>
+        <th scope="col" width="34%" align="left" style="background-color: #f8fafc; color: #64748b; padding: 12px 8px; font-size: 12px; line-height: 18px; font-weight: 600;">{{#if report.hasGroups}}Group / Resource{{else}}Resource{{/if}}</th>
+        <th scope="col" width="22%" align="right" style="background-color: #f8fafc; color: #64748b; padding: 12px 8px; font-size: 12px; line-height: 18px; font-weight: 600;">Uptime</th>
+        <th scope="col" width="22%" align="right" style="background-color: #f8fafc; color: #64748b; padding: 12px 8px; font-size: 12px; line-height: 18px; font-weight: 600;">Downtime</th>
+        <th scope="col" width="22%" align="right" style="background-color: #f8fafc; color: #64748b; padding: 12px 8px; font-size: 12px; line-height: 18px; font-weight: 600;">Incidents</th>
       </tr>
     </thead>
     <tbody>
       {{!-- report.rows is the status page's group hierarchy flattened into render order, so any depth of nesting renders without recursion. Loop over report.resources instead for a flat list. --}}
       {{#each report.rows}}
       {{#if this.isGroup}}
-      <tr style="background-color: #e8ecf5;">
-        <td align="left" style="padding: 12px 14px; border-top: 1px solid #d6dcea; font-size: 14px; color: #1a1a2e; font-weight: 700;"><div style="margin-left: {{this.indentInPixels}}px;">{{this.name}}</div></td>
-        <td align="right" style="padding: 12px 14px; border-top: 1px solid #d6dcea; font-size: 14px; color: #1a1a2e; font-weight: 700;">{{this.uptimePercentAsString}}</td>
-        <td align="right" style="padding: 12px 14px; border-top: 1px solid #d6dcea; font-size: 14px; color: #1a1a2e; font-weight: 600;">{{this.downtimeInHoursAndMinutes}}</td>
-        <td align="right" style="padding: 12px 14px; border-top: 1px solid #d6dcea; font-size: 14px; color: #1a1a2e; font-weight: 700;">{{this.totalIncidentCount}}</td>
+      <tr style="background-color: #f1f5f9;">
+        <td align="left" style="padding: 12px 8px; border-top: 1px solid #e2e8f0; font-size: 13px; line-height: 20px; color: #0f172a; font-weight: 700;"><div class="st-ReportIndent" style="margin-left: {{this.indentInPixels}}px;">{{this.name}}</div></td>
+        <td align="right" style="padding: 12px 8px; border-top: 1px solid #e2e8f0; font-size: 13px; line-height: 20px; color: #0f172a; font-weight: 700;">{{this.uptimePercentAsString}}</td>
+        <td align="right" style="padding: 12px 8px; border-top: 1px solid #e2e8f0; font-size: 13px; line-height: 20px; color: #0f172a; font-weight: 600;">{{this.downtimeInHoursAndMinutes}}</td>
+        <td align="right" style="padding: 12px 8px; border-top: 1px solid #e2e8f0; font-size: 13px; line-height: 20px; color: #0f172a; font-weight: 700;">{{this.totalIncidentCount}}</td>
       </tr>
       {{else}}
       <tr>
-        <td align="left" style="padding: 12px 14px; border-top: 1px solid #e5e8f0; font-size: 14px; color: #374151; font-weight: 500;"><div style="margin-left: {{this.indentInPixels}}px;">{{this.name}}</div></td>
-        <td align="right" style="padding: 12px 14px; border-top: 1px solid #e5e8f0; font-size: 14px; color: #1e293b; font-weight: 600;">{{this.uptimePercentAsString}}</td>
-        <td align="right" style="padding: 12px 14px; border-top: 1px solid #e5e8f0; font-size: 14px; color: #374151;">{{this.downtimeInHoursAndMinutes}}</td>
-        <td align="right" style="padding: 12px 14px; border-top: 1px solid #e5e8f0; font-size: 14px; color: #1e293b; font-weight: 600;">{{this.totalIncidentCount}}</td>
+        <td align="left" style="padding: 12px 8px; border-top: 1px solid #e2e8f0; font-size: 13px; line-height: 20px; color: #475569; font-weight: 500;"><div class="st-ReportIndent" style="margin-left: {{this.indentInPixels}}px;">{{this.name}}</div></td>
+        <td align="right" style="padding: 12px 8px; border-top: 1px solid #e2e8f0; font-size: 13px; line-height: 20px; color: #0f172a; font-weight: 600;">{{this.uptimePercentAsString}}</td>
+        <td align="right" style="padding: 12px 8px; border-top: 1px solid #e2e8f0; font-size: 13px; line-height: 20px; color: #475569;">{{this.downtimeInHoursAndMinutes}}</td>
+        <td align="right" style="padding: 12px 8px; border-top: 1px solid #e2e8f0; font-size: 13px; line-height: 20px; color: #0f172a; font-weight: 600;">{{this.totalIncidentCount}}</td>
       </tr>
       {{/if}}
       {{/each}}
     </tbody>
   </table>
   {{else}}
-  <p style="color: #374151; font-size: 15px; line-height: 26px; margin: 0 0 24px 0;">No resources have been added to this status page yet, so there is nothing to report this period. Once you add resources, their uptime and incident history will appear in future reports.</p>
+  <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 24px 0;">No resources have been added to this status page yet, so there is nothing to report this period. Once you add resources, their uptime and incident history will appear in future reports.</p>
   {{/if}}
   <p style="margin: 0 0 24px 0;">
-    <a href="{{detailsUrl}}" style="display: inline-block; background-color: #111827; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">View Full Status Page</a>
+    <a href="{{detailsUrl}}" style="display: inline-block; max-width: 100%; box-sizing: border-box; text-align: center; line-height: 22px; background-color: #4f46e5; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">View Full Status Page</a>
   </p>
   {{#if subscriberEmailNotificationFooterText}}
-  <p style="color: #6b7280; font-size: 13px; line-height: 20px; margin: 0 0 16px 0;">{{subscriberEmailNotificationFooterText}}</p>
+  <p style="color: #64748b; font-size: 13px; line-height: 20px; margin: 0 0 16px 0;">{{subscriberEmailNotificationFooterText}}</p>
   {{/if}}
   {{#if unsubscribeUrl}}
-  <p style="color: #6b7280; font-size: 12px; line-height: 18px; margin: 32px 0 0 0;">
-    If you no longer wish to receive these notifications, you can <a href="{{unsubscribeUrl}}" style="color: #6b7280;">unsubscribe</a>.
+  <p style="color: #64748b; font-size: 12px; line-height: 18px; margin: 32px 0 0 0;">
+    If you no longer wish to receive these notifications, you can <a href="{{unsubscribeUrl}}" style="color: #64748b;">unsubscribe</a>.
   </p>
   {{/if}}
 </div>`,

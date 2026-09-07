@@ -1,80 +1,10 @@
-<!-- Primary Action Button -->
-<table
-  class="st-Copy st-Width st-Width--mobile"
-  border="0"
-  cellpadding="0"
-  cellspacing="0"
-  width="600"
-  style="min-width: 600px;"
->
-  <tbody>
-    <tr>
-      <td
-        class="st-Spacer st-Spacer--gutter"
-        style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
-        width="64"
-      >
-        <div class="st-Spacer st-Spacer--filler"></div>
-      </td>
-      <td
-        class="st-Font st-Font--body"
-        style="border: 0; margin: 0; padding: 0; color: #1a1a2e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;"
-      >
-
-        <!-- Button & Modifier: fullWidth -->
-        <table
-          class="st-Button st-Button--fullWidth"
-          border="0"
-          cellpadding="0"
-          cellspacing="0"
-          width="100%"
-          bgcolor="#111827"
-        >
-          <tbody>
-            <tr>
-              <td
-                align="center"
-                class="st-Button-area"
-                height="48"
-                valign="middle"
-                bgcolor="#111827"
-                style="border: 0; margin: 0; padding: 0; background-color: #111827; border-radius: 8px; text-align: center;"
-              >
-                <a
-                  class="st-Button-link"
-                  style="border: 0; margin: 0; padding: 0; color: #ffffff; display: block; height: 48px; text-align: center; text-decoration: none;"
-                  href={{buttonUrl}}
-                >
-                  <span
-                    class="st-Button-internal"
-                    style="border: 0; margin: 0; padding: 0; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 15px; font-weight: 600; height: 48px; line-height: 48px; mso-line-height-rule: exactly; text-decoration: none; vertical-align: middle; white-space: nowrap; width: 100%; letter-spacing: 0.3px;"
-                  >{{buttonText}}</span>
-                </a>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <!-- /Button & Modifier: fullWidth -->
-
-      </td>
-      <td
-        class="st-Spacer st-Spacer--gutter"
-        style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
-        width="64"
-      >
-        <div class="st-Spacer st-Spacer--filler"></div>
-      </td>
-    </tr>
-    <tr>
-      <td
-        class="st-Spacer st-Spacer--stacked"
-        colspan="3"
-        height="16"
-        style="border: 0; margin: 0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;"
-      >
-        <div class="st-Spacer st-Spacer--filler"></div>
-      </td>
-    </tr>
-  </tbody>
-</table>
-<!-- /Primary Action Button -->
+{{#if buttonUrl}}
+<table role="presentation" class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed;">
+  <tr><td class="st-Gutter " style="padding: 0 40px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 15px; line-height: 24px; color: #475569; overflow-wrap: anywhere; word-break: break-word;">
+    <table role="presentation" class="st-Button" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed;">
+      <tr><td align="center" bgcolor="{{#if secondary}}#f1f5f9{{else}}#4f46e5{{/if}}" style="border-radius: 8px; background-color: {{#if secondary}}#f1f5f9{{else}}#4f46e5{{/if}}; mso-padding-alt: 12px 24px;">
+        <a class="st-Button-link" href="{{buttonUrl}}" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; display: block; padding: 12px 24px; border: 1px solid {{#if secondary}}#e2e8f0{{else}}#4f46e5{{/if}}; border-radius: 8px; color: {{#if secondary}}#0f172a{{else}}#ffffff{{/if}}; font-size: 15px; line-height: 24px; font-weight: 600; text-align: center; text-decoration: none; overflow-wrap: anywhere; word-break: break-word; mso-padding-alt: 0;">{{buttonText}}</a>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>{{/if}}

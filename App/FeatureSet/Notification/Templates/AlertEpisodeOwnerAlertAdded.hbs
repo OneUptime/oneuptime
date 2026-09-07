@@ -15,21 +15,29 @@
 
 {{> InfoBlock info="Alerts added in this update:"}}
 
-<table style="width: calc(100% - 64px); margin: 18px 32px; border-collapse: collapse; font-size: 14px; font-family: 'Helvetica Neue', Arial, sans-serif; color: #1f2733;">
+<table role="presentation" class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; max-width: 100%; table-layout: fixed;">
+  <tbody>
     <tr>
-        <th style="background: #353b4d; color: #ffffff; padding: 13px 12px; text-align: left; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1px solid #2b3040; border-top-left-radius: 10px;">Alert</th>
-        <th style="background: #353b4d; color: #ffffff; padding: 13px 12px; text-align: left; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1px solid #2b3040;">Title</th>
-        <th style="background: #353b4d; color: #ffffff; padding: 13px 12px; text-align: left; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1px solid #2b3040;">Severity</th>
-        <th style="background: #353b4d; color: #ffffff; padding: 13px 12px; text-align: left; font-weight: 700; letter-spacing: 0.3px; border-bottom: 1px solid #2b3040; border-top-right-radius: 10px;">Added At</th>
+      <td class="st-Spacer st-Spacer--gutter" width="40" style="padding: 0;"></td>
+      <td style="padding: 0 0 24px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed; border: 1px solid #e2e8f0; border-radius: 12px; border-collapse: separate; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif;">
+          <tbody>
+            {{#each alerts}}
+            <tr>
+              <td style="padding: 18px 20px; border-bottom: 1px solid #e2e8f0; overflow-wrap: anywhere; word-break: break-word;">
+                <p style="margin: 0 0 6px; font-size: 12px; line-height: 18px; font-weight: 600; color: #64748b;">Alert {{this.alertNumber}}</p>
+                <p style="margin: 0; font-size: 15px; line-height: 24px; font-weight: 600;"><a href="{{this.alertViewLink}}" style="color: #4f46e5; text-decoration: underline; text-underline-offset: 3px;">{{this.alertTitle}}</a></p>
+                <p style="margin: 8px 0 0; font-size: 13px; line-height: 20px; color: #475569;"><strong style="font-weight: 600;">Severity:</strong> {{this.alertSeverity}}</p>
+                <div style="margin: 4px 0 0; font-size: 13px; line-height: 20px; color: #64748b;"><strong style="font-weight: 500;">Added:</strong> {{{this.addedAt}}}</div>
+              </td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" width="40" style="padding: 0;"></td>
     </tr>
-    {{#each alerts}}
-    <tr style="background-color: {{#if @odd}}#f0f3f9{{else}}#ffffff{{/if}};">
-        <td style="padding: 12px 12px; border-bottom: 1px solid #e5e8f0; font-weight: 600;"><a href="{{this.alertViewLink}}" style="color: #4f46e5; text-decoration: none;">{{this.alertNumber}}</a></td>
-        <td style="padding: 12px 12px; border-bottom: 1px solid #e5e8f0;">{{this.alertTitle}}</td>
-        <td style="padding: 12px 12px; border-bottom: 1px solid #e5e8f0;">{{this.alertSeverity}}</td>
-        <td style="padding: 12px 12px; border-bottom: 1px solid #e5e8f0;">{{{this.addedAt}}}</td>
-    </tr>
-    {{/each}}
+  </tbody>
 </table>
 
 {{#ifCond hasMore "true"}}
@@ -40,8 +48,7 @@
 
 {{> ButtonBlock buttonUrl=episodeViewLink buttonText="View Alert Episode"}}
 
-{{> InfoBlock info="You can also copy and paste this link:"}}
-{{> InfoBlock info=episodeViewLink}}
+{{> LinkBlock linkUrl=episodeViewLink linkLabel="You can also copy and paste this link:"}}
 
 {{> OwnerInfo this }}
 {{> UnsubscribeOwnerEmail this }}

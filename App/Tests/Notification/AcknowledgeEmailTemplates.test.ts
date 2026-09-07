@@ -166,12 +166,14 @@ describe("the acknowledge emails render the root cause as HTML", () => {
     test(`${template.file} puts block content in a div, never a p`, () => {
       const html: string = render(template.file, varsFor(template));
 
-      expect(html).toMatch(/<div[^>]*class="st-DetailCard-value"[^>]*>\s*<p>/u);
-      expect(html).not.toMatch(
-        /<p[^>]*class="st-DetailCard-value"[^>]*>\s*<p>/u,
+      expect(html).toMatch(
+        /<div[^>]*class="[^"]*\bst-DetailCard-value\b[^"]*"[^>]*>\s*<p>/u,
       );
       expect(html).not.toMatch(
-        /<p[^>]*class="st-DetailCard-value"[^>]*>\s*<table/u,
+        /<p[^>]*class="[^"]*\bst-DetailCard-value\b[^"]*"[^>]*>\s*<p>/u,
+      );
+      expect(html).not.toMatch(
+        /<p[^>]*class="[^"]*\bst-DetailCard-value\b[^"]*"[^>]*>\s*<table/u,
       );
     });
   }

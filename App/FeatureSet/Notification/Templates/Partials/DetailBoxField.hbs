@@ -1,14 +1,5 @@
-<!-- Detail Card Field -->
-<div
-  class="st-DetailCard-field"
-  style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;"
->
-  {{#if title}}
-    <p
-      class="st-DetailCard-label"
-      style="Margin:0 0 4px 0;font-size:11px;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;line-height:16px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;"
-    >{{title}}</p>
-  {{/if}}
+<div class="st-DetailCard-field" style="padding: 14px 0; border-bottom: 1px solid #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; overflow-wrap: anywhere; word-break: break-word;">
+  {{#if title}}<p class="st-DetailCard-label" style="margin: 0 0 4px; font-size: 12px; line-height: 18px; color: #64748b; font-weight: 600;">{{title}}</p>{{/if}}
   {{!--
     THE ESCAPING CONTRACT FOR THIS PARTIAL.
 
@@ -36,37 +27,18 @@
     name (incidentDescription is Markdown-HTML in one sender and raw in
     another).
 
-    `blockText` is the third slot, and carries the SAME escaping contract as
-    `text` — raw HTML, Markdown.convertToHTML output only. It exists because
-    `text` renders inside a <p>, and Markdown.convertToHTML emits BLOCK
-    elements: the breaching-samples <table> in an alert root cause, and the
-    <ul> in any description written as a list. A <table> inside a <p> is
-    invalid nesting, and every mail client resolves it by auto-closing the
-    paragraph early — so the table escaped the styled .st-DetailCard-value
-    box and landed unstyled against the card edge. This branch is a <div>
-    carrying identical typography, so block content nests legally and still
-    looks like every other field.
-
-    Use `blockText` for anything that came out of Markdown.convertToHTML;
-    `text` remains correct for inline HTML such as
-    OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones.
+    `blockText` carries the same trusted HTML contract as `text`. Both
+    use a div so Markdown paragraphs, lists and tables remain inside the
+    styled value container. Keep both names for existing callers; dates
+    also continue to use the inline HTML `text` slot.
   --}}
   {{#if blockText}}
     <div
-      class="st-DetailCard-value"
-      style="Margin:0;font-size:15px;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;line-height:24px;color:#1e293b;font-weight:500;"
+      class="st-DetailCard-value st-Rich"
+      style="margin: 0; font-size: 15px; line-height: 24px; color: #0f172a;"
     >{{{blockText}}}</div>
   {{/if}}
-  {{#if text}}
-    <p
-      class="st-DetailCard-value"
-      style="Margin:0;font-size:15px;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;line-height:24px;color:#1e293b;font-weight:500;"
-    >{{{text}}}</p>
-  {{/if}}
-  {{#if plainText}}
-    <p
-      class="st-DetailCard-value"
-      style="Margin:0;font-size:15px;font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;line-height:24px;color:#1e293b;font-weight:500;"
-    >{{plainText}}</p>
-  {{/if}}
+
+  {{#if text}}<div class="st-DetailCard-value st-Rich" style="margin: 0; font-size: 15px; line-height: 24px; color: #0f172a;">{{{text}}}</div>{{/if}}
+  {{#if plainText}}<div class="st-DetailCard-value" style="margin: 0; font-size: 15px; line-height: 24px; color: #0f172a;">{{plainText}}</div>{{/if}}
 </div>

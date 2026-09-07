@@ -188,12 +188,12 @@ function nestedMetrics(): Dictionary<StatusPageReportGroupMetrics> {
 
 /*
  * The names of the rows the breakdown table renders, in document order. Every
- * row's name sits in a `<div style="margin-left: ...">` inside the first cell,
+ * row's name sits in a `<div>` with `margin-left` inside the first cell,
  * which is also where the indent lives.
  */
 function renderedRows(html: string): Array<{ name: string; indent: number }> {
   const rows: Array<{ name: string; indent: number }> = [];
-  const pattern: RegExp = /<div style="margin-left: ?(\d+)px;">([^<]*)/g;
+  const pattern: RegExp = /<div\b[^>]*style="margin-left:\s*(\d+)px;">([^<]*)/g;
 
   let match: RegExpExecArray | null = pattern.exec(html);
 
@@ -315,6 +315,18 @@ describe("StatusPageSubscriberReport.hbs", () => {
       expect(indentByName["Unit 0660"]).toBe(48);
       expect(indentByName["Router"]).toBe(64);
       expect(indentByName["Switch 01"]).toBe(64);
+    });
+
+    test("lets deeply nested names use the full name cell on mobile", () => {
+      // The deepest resources retain their 64px desktop hierarchy while the
+      // mobile rule releases that space in the narrow four-column report.
+      expect(html).toMatch(
+        /<div[^>]*class="[^"]*st-ReportIndent[^"]*"[^>]*style="margin-left:\s*64px;">Router/,
+      );
+      expect(html.match(/class="[^"]*st-ReportIndent/g)).toHaveLength(7);
+      expect(html).toMatch(
+        /@media[^{}]*\(max-width:\s*600px\)\s*\{[\s\S]*?body\[override\] \.st-ReportIndent\s*\{\s*margin-left:\s*0 !important;/,
+      );
     });
 
     test("shows the uptime rolled up over each group", () => {
@@ -470,6 +482,25 @@ describe("the default report template offered to customers", () => {
     ]);
 
     expect(html).toContain("Breakdown by group");
+  });
+
+  test("includes its own mobile indentation reset for deeply nested names", () => {
+    const html: string = renderDefaultBody(
+      buildReport({
+        entries: nestedEntries(),
+        statusPageGroups: nestedGroups(),
+        groupMetricsByGroupId: nestedMetrics(),
+      }),
+    );
+
+    expect(html).toContain('class="st-StandaloneReport"');
+    expect(html).toMatch(
+      /<div[^>]*class="st-ReportIndent"[^>]*style="margin-left:\s*64px;">Router/,
+    );
+    expect(html.match(/class="st-ReportIndent"/g)).toHaveLength(7);
+    expect(html).toMatch(
+      /@media[^{}]*\(max-width:\s*600px\)\s*\{\s*\.st-StandaloneReport \.st-ReportIndent\s*\{\s*margin-left:\s*0 !important;/,
+    );
   });
 
   test("falls back to a flat table when the page has no groups", () => {
