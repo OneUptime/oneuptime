@@ -25,6 +25,11 @@ import {
   formatReplayOffsetPrecise,
 } from "../ReplayTimeFormat";
 import {
+  ReplayButtonGroup,
+  ReplayToolButton,
+  getReplaySegmentClassName,
+} from "../ReplayUi";
+import {
   REPLAY_BACKEND_SIGNALS_LIVE_REFRESH_MS,
   ReplayBackendSignalsSnapshot,
   ReplayBackendSignalsStore,
@@ -1198,10 +1203,10 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
 
       badge = (
         <span
-          className={`ml-1 rounded-full px-1.5 text-[10px] tabular-nums ${
+          className={`ml-1 rounded-full px-1 py-px text-[10px] font-semibold tabular-nums ${
             isSelected
-              ? "bg-indigo-200 text-indigo-900"
-              : "bg-gray-100 text-gray-500"
+              ? "bg-indigo-100 text-indigo-700"
+              : "bg-gray-200/70 text-gray-500"
           }`}
           title={
             tab.matchingCount !== null
@@ -1239,11 +1244,10 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
         aria-selected={isSelected}
         aria-controls={`${railId}-list`}
         tabIndex={isSelected ? 0 : -1}
-        className={`inline-flex shrink-0 items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-          isSelected
-            ? "bg-indigo-100 text-indigo-800 ring-indigo-200"
-            : "bg-white text-gray-600 ring-gray-200 hover:bg-gray-50"
-        }`}
+        className={getReplaySegmentClassName({
+          isSelected: isSelected,
+          size: "compact",
+        })}
         onClick={(): void => {
           setActiveTab(tab.id);
         }}
@@ -1356,10 +1360,12 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
         data-testid="rail-empty"
         data-tab={activeTab}
       >
-        <div className="font-medium text-gray-700">{emptyCopy.title}</div>
+        <div className="text-sm font-medium text-gray-800">
+          {emptyCopy.title}
+        </div>
         <div className="mt-1 text-gray-500">{emptyCopy.detail}</div>
         {emptyCopy.snippet && (
-          <pre className="mt-2 overflow-x-auto rounded bg-gray-50 p-2 font-mono text-[10px] leading-4 text-gray-700">
+          <pre className="mt-2 overflow-x-auto rounded-lg bg-gray-50 p-2 font-mono text-[10px] leading-4 text-gray-700 ring-1 ring-inset ring-gray-100">
             {emptyCopy.snippet}
           </pre>
         )}
@@ -1369,7 +1375,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
               return (
                 <code
                   key={capability}
-                  className="rounded bg-gray-100 px-1 text-[10px] text-gray-600"
+                  className="rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600"
                 >
                   {capability}
                 </code>
@@ -1409,18 +1415,18 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
     <div
       ref={dividerRef}
       data-testid="rail-now-divider"
-      className="my-0.5 flex items-center gap-2 px-2"
+      className="my-1 flex items-center gap-2 px-2"
       aria-hidden="true"
     >
-      <div className="h-px flex-1 bg-indigo-300" />
-      <span className="font-mono text-[10px] tabular-nums text-indigo-600">
+      <div className="h-px flex-1 bg-indigo-200" />
+      <span className="rounded-full bg-indigo-50 px-1.5 py-px font-mono text-[10px] font-semibold tabular-nums text-indigo-600">
         {/* Tenths only while paused: at 1x the decimal would flicker ten times a second. */}
         now{" "}
         {props.isPlaying
           ? formatReplayOffset(props.currentTimeMs)
           : formatReplayOffsetPrecise(props.currentTimeMs)}
       </span>
-      <div className="h-px flex-1 bg-indigo-300" />
+      <div className="h-px flex-1 bg-indigo-200" />
     </div>
   );
 
@@ -1550,17 +1556,17 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
 
   return (
     <div
-      className={`flex h-full min-h-0 flex-col rounded-lg border border-gray-200 bg-white ${
+      className={`flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ${
         props.className || ""
       }`}
       data-testid="replay-rail"
     >
-      <div className="flex items-center justify-between gap-2 border-b border-gray-100 px-3 py-2">
-        <div className="min-w-0 text-xs font-semibold text-gray-700">
+      <div className="flex items-center justify-between gap-2 border-b border-gray-200 bg-gray-50/70 px-3 py-2.5">
+        <div className="min-w-0 text-xs font-semibold uppercase tracking-wide text-gray-500">
           Signals
           {alignmentNote && (
             <span
-              className="ml-1 font-normal text-gray-400"
+              className="ml-1.5 font-normal normal-case tracking-normal text-gray-400"
               data-testid="rail-alignment-note"
             >
               {alignmentNote}
@@ -1573,7 +1579,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
             <button
               type="button"
               data-testid="rail-resume-follow"
-              className="rounded-full bg-indigo-600 px-2 py-0.5 text-[11px] font-medium text-white hover:bg-indigo-700"
+              className="rounded-full bg-indigo-600 px-2.5 py-1 text-[11px] font-medium text-white transition-colors hover:bg-indigo-700"
               title="Keep the now divider in view as playback moves (m)"
               onClick={(): void => {
                 setFollow(true);
@@ -1586,7 +1592,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
             <button
               type="button"
               data-testid="rail-jump-to-now"
-              className="rounded-full border border-indigo-200 bg-white px-2 py-0.5 text-[11px] font-medium text-indigo-700 hover:bg-indigo-50"
+              className="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-medium text-indigo-700 ring-1 ring-inset ring-indigo-100 transition-colors hover:bg-indigo-100"
               title="Scroll to the playhead once, without following"
               onClick={scrollDividerIntoPlace}
             >
@@ -1595,7 +1601,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
           )}
           {follow && (
             <span
-              className="text-[10px] text-gray-400"
+              className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-gray-400"
               title="The list follows the playhead; scroll to pause it"
             >
               following
@@ -1617,17 +1623,17 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
         role="tablist"
         aria-label="Signal tabs"
         data-testid="rail-tablist"
-        className="flex flex-wrap items-center gap-1 px-3 pt-2"
+        className="mx-3 mt-2.5 flex flex-wrap items-center gap-0.5 rounded-xl bg-gray-100 p-0.5"
         onKeyDown={handleTabsKeyDown}
       >
         {tabModels.map(renderTab)}
       </div>
 
-      <div className="flex items-center gap-2 px-3 pb-1 pt-2">
+      <div className="flex items-center gap-2 px-3 pb-1 pt-2.5">
         <div className="relative min-w-0 flex-1">
           <Icon
             icon={IconProp.Search}
-            className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
+            className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
           />
           <input
             ref={searchRef}
@@ -1636,7 +1642,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
             data-testid="rail-search-input"
             placeholder="Filter: text, status:>=400, level:error, trace:…"
             aria-label="Filter signals"
-            className="w-full rounded-md border border-gray-200 py-1 pl-7 pr-2 font-mono text-xs text-gray-700 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            className="h-8 w-full rounded-lg bg-gray-100 pl-8 pr-2 text-xs text-gray-800 ring-1 ring-inset ring-transparent transition-colors placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
               setQuery(event.target.value);
             }}
@@ -1654,42 +1660,28 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
           />
         </div>
 
-        <div
-          className="flex shrink-0 overflow-hidden rounded-md ring-1 ring-inset ring-gray-200"
-          role="group"
-          aria-label="Scope"
-          data-testid="rail-scope-toggle"
-        >
-          <button
-            type="button"
-            aria-pressed={scope === "session"}
-            className={`px-2 py-1 text-[11px] ${
-              scope === "session"
-                ? "bg-gray-100 text-gray-800"
-                : "bg-white text-gray-500 hover:bg-gray-50"
-            }`}
+        <ReplayButtonGroup ariaLabel="Scope" dataTestId="rail-scope-toggle">
+          <ReplayToolButton
+            label="All"
+            variant="segment"
+            isPressed={scope === "session"}
+            title="Every signal in the recording"
+            ariaLabel="Scope: whole session"
             onClick={(): void => {
               setScope("session");
             }}
-          >
-            Whole session
-          </button>
-          <button
-            type="button"
-            aria-pressed={scope === "playhead"}
-            className={`px-2 py-1 text-[11px] ${
-              scope === "playhead"
-                ? "bg-gray-100 text-gray-800"
-                : "bg-white text-gray-500 hover:bg-gray-50"
-            }`}
+          />
+          <ReplayToolButton
+            label="±30s"
+            variant="segment"
+            isPressed={scope === "playhead"}
             title="Only rows within 30 seconds of the playhead"
+            ariaLabel="Scope: within 30 seconds of the playhead"
             onClick={(): void => {
               setScope("playhead");
             }}
-          >
-            ±30s
-          </button>
-        </div>
+          />
+        </ReplayButtonGroup>
       </div>
 
       {tabChips.length > 0 && (
@@ -1707,10 +1699,10 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
                 type="button"
                 aria-pressed={isOn}
                 data-testid={`rail-chip-${chip.id}`}
-                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${
+                className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
                   isOn
-                    ? "bg-indigo-50 text-indigo-800 ring-indigo-200"
-                    : "bg-white text-gray-500 ring-gray-200 hover:bg-gray-50"
+                    ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900"
                 }`}
                 onClick={(): void => {
                   setActiveChips(
@@ -1750,7 +1742,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
         } signals`}
         tabIndex={0}
         data-testid="rail-list"
-        className="min-h-0 flex-1 overflow-y-auto px-1 pb-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-300"
+        className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-300"
         onWheel={stopFollowing}
         onTouchMove={stopFollowing}
         onScroll={handleScroll}

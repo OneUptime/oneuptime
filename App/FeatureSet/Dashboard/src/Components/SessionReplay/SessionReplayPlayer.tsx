@@ -1992,111 +1992,126 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
           style={railWidthStyle}
         >
           <div className="flex min-w-0 flex-1 flex-col">
-            <ReplayStageOverlays
-              snapshot={snapshot}
-              signals={recordingSignals}
-              chunks={chunks}
-              entryUrl={manifest.details.entryUrl}
-              recordedSize={recordedSize}
-              scale={scale}
-              fit={fit}
-              onFitChange={setFit}
-              onPlayPause={playPause}
-              onWatchAgain={watchAgain}
-              onRetry={retry}
-              onStillLoadingRetry={stillLoadingRetry}
-              onSkipIdle={skipIdle}
-              getDiagnostic={getDiagnostic}
-              continueInTab={continueInTab}
-              onSwitchTab={switchTab}
-              shellNotice={shellNotice}
-              absence={absence}
-              sealedReason={sealedReason}
-              isLive={isLive}
-            >
-              {isPlayable && engine && (
-                <ReplayStage
-                  engine={engine}
-                  viewportWidth={manifest.details.viewportWidth}
-                  viewportHeight={manifest.details.viewportHeight}
-                  isTheater={isTheater}
-                  fit={fit}
-                  onScaleChange={setScale}
-                />
-              )}
-              {isPlayable && !engine && (
-                <div
-                  className="w-full animate-pulse rounded-lg bg-gray-900"
-                  style={{
-                    aspectRatio:
-                      recordedSize && recordedSize.height > 0
-                        ? `${recordedSize.width} / ${recordedSize.height}`
-                        : "16 / 9",
-                    minHeight: "24rem",
-                    maxHeight: "70vh",
-                  }}
-                  role="status"
-                  aria-label="Loading the replay engine"
-                  data-testid="replay-stage-placeholder"
-                />
-              )}
-            </ReplayStageOverlays>
+            {/*
+             * ONE card for the player.
+             *
+             * The address bar, the picture and the transport used to be
+             * three floating boxes, each with its own border, radius and
+             * shadow, separated by 12px of page background - so the thing
+             * a viewer thinks of as "the player" was drawn as three
+             * unrelated widgets that happened to be stacked. They are now
+             * sections of a single surface, in the order every media
+             * player uses: address -> picture -> track -> transport.
+             * `overflow-hidden` is what lets the dark stage run flush to
+             * the card's rounded edges.
+             */}
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+              <ReplayStageOverlays
+                snapshot={snapshot}
+                signals={recordingSignals}
+                chunks={chunks}
+                entryUrl={manifest.details.entryUrl}
+                recordedSize={recordedSize}
+                scale={scale}
+                fit={fit}
+                onFitChange={setFit}
+                onPlayPause={playPause}
+                onWatchAgain={watchAgain}
+                onRetry={retry}
+                onStillLoadingRetry={stillLoadingRetry}
+                onSkipIdle={skipIdle}
+                getDiagnostic={getDiagnostic}
+                continueInTab={continueInTab}
+                onSwitchTab={switchTab}
+                shellNotice={shellNotice}
+                absence={absence}
+                sealedReason={sealedReason}
+                isLive={isLive}
+              >
+                {isPlayable && engine && (
+                  <ReplayStage
+                    engine={engine}
+                    viewportWidth={manifest.details.viewportWidth}
+                    viewportHeight={manifest.details.viewportHeight}
+                    isTheater={isTheater}
+                    fit={fit}
+                    onScaleChange={setScale}
+                  />
+                )}
+                {isPlayable && !engine && (
+                  <div
+                    className="w-full animate-pulse rounded-lg bg-gray-900"
+                    style={{
+                      aspectRatio:
+                        recordedSize && recordedSize.height > 0
+                          ? `${recordedSize.width} / ${recordedSize.height}`
+                          : "16 / 9",
+                      minHeight: "24rem",
+                      maxHeight: "70vh",
+                    }}
+                    role="status"
+                    aria-label="Loading the replay engine"
+                    data-testid="replay-stage-placeholder"
+                  />
+                )}
+              </ReplayStageOverlays>
 
-            {isPlayable && (
-              <div className="mt-3">
-                <ReplayScrubber
-                  snapshot={snapshot}
-                  bands={bands}
-                  activity={activity}
-                  markers={markers}
-                  signals={allSignals}
-                  ghostMs={ghostMs}
-                  selectedSignalId={selectedSignalId}
-                  startTimeUnixMs={startTimeUnixMs}
-                  errorMessage={snapshot.error?.message ?? null}
-                  areShortcutsEnabled={!isPanelOpen}
-                  keyboardScope={getKeyboardScope}
-                  isFollowEnabled={prefs.follow}
-                  isMouseTrailEnabled={prefs.mouseTrail}
-                  onSeek={seekTo}
-                  onPlayPause={playPause}
-                  onSpeedChange={setSpeed}
-                  onSkipInactiveChange={setSkipInactive}
-                  onSkipIdleJump={skipIdleJump}
-                  onRetry={retry}
-                  onSelectSignal={selectSignalFromTimeline}
-                  onHoverTimeline={setGhostMs}
-                  onNextSignal={(): void => {
-                    railRef.current?.stepSignal(1);
-                  }}
-                  onPrevSignal={(): void => {
-                    railRef.current?.stepSignal(-1);
-                  }}
-                  onToggleTheater={toggleTheater}
-                  onToggleWide={toggleWide}
-                  onFollowChange={handleFollowChange}
-                  onMouseTrailChange={handleMouseTrailChange}
-                  onFocusRailSearch={(): void => {
-                    railRef.current?.focusSearch();
-                  }}
-                  onCopyLink={copyLink}
-                  onToggleDetails={toggleDetails}
-                  onEscape={handleEscape}
-                  onRailRowDown={(): void => {
-                    railRef.current?.moveSelection(1);
-                  }}
-                  onRailRowUp={(): void => {
-                    railRef.current?.moveSelection(-1);
-                  }}
-                  onRailSeekSelected={(): void => {
-                    railRef.current?.seekSelected();
-                  }}
-                  onRailClear={(): void => {
-                    railRef.current?.clearSelection();
-                  }}
-                />
-              </div>
-            )}
+              {isPlayable && (
+                <div className="border-t border-gray-200">
+                  <ReplayScrubber
+                    snapshot={snapshot}
+                    bands={bands}
+                    activity={activity}
+                    markers={markers}
+                    signals={allSignals}
+                    ghostMs={ghostMs}
+                    selectedSignalId={selectedSignalId}
+                    startTimeUnixMs={startTimeUnixMs}
+                    errorMessage={snapshot.error?.message ?? null}
+                    areShortcutsEnabled={!isPanelOpen}
+                    keyboardScope={getKeyboardScope}
+                    isFollowEnabled={prefs.follow}
+                    isMouseTrailEnabled={prefs.mouseTrail}
+                    onSeek={seekTo}
+                    onPlayPause={playPause}
+                    onSpeedChange={setSpeed}
+                    onSkipInactiveChange={setSkipInactive}
+                    onSkipIdleJump={skipIdleJump}
+                    onRetry={retry}
+                    onSelectSignal={selectSignalFromTimeline}
+                    onHoverTimeline={setGhostMs}
+                    onNextSignal={(): void => {
+                      railRef.current?.stepSignal(1);
+                    }}
+                    onPrevSignal={(): void => {
+                      railRef.current?.stepSignal(-1);
+                    }}
+                    onToggleTheater={toggleTheater}
+                    onToggleWide={toggleWide}
+                    onFollowChange={handleFollowChange}
+                    onMouseTrailChange={handleMouseTrailChange}
+                    onFocusRailSearch={(): void => {
+                      railRef.current?.focusSearch();
+                    }}
+                    onCopyLink={copyLink}
+                    onToggleDetails={toggleDetails}
+                    onEscape={handleEscape}
+                    onRailRowDown={(): void => {
+                      railRef.current?.moveSelection(1);
+                    }}
+                    onRailRowUp={(): void => {
+                      railRef.current?.moveSelection(-1);
+                    }}
+                    onRailSeekSelected={(): void => {
+                      railRef.current?.seekSelected();
+                    }}
+                    onRailClear={(): void => {
+                      railRef.current?.clearSelection();
+                    }}
+                  />
+                </div>
+              )}
+            </div>
 
             {captureNotes.length > 0 && (
               <details

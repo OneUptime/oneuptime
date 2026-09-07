@@ -76,9 +76,16 @@ export interface ReplayTimelineProps {
  * gray-500 rather than gray-400: gray-400 on white is about 2.9:1, which
  * fails WCAG AA for text, and these labels are the only thing naming each
  * lane.
+ *
+ * Right-aligned rather than ragged-left, a size smaller, and never
+ * allowed to wrap: left-aligned labels of different lengths made the
+ * track's left edge look like it moved from row to row, and "Nav /
+ * clicks" wrapping to two lines made its own lane taller than the three
+ * beside it. The gutter width and the legend's indent below are one
+ * measurement and have to move together.
  */
 const LANE_LABEL_CLASS: string =
-  "w-20 shrink-0 text-[11px] font-medium uppercase tracking-wide text-gray-500";
+  "w-20 shrink-0 whitespace-nowrap text-right text-[10px] font-medium uppercase tracking-wider text-gray-500";
 
 const HATCH_AMBER: string =
   "repeating-linear-gradient(135deg, rgba(251,191,36,0.55) 0 3px, transparent 3px 7px)";
@@ -96,6 +103,33 @@ const TONE_CLASS: Record<ReplayTimelineMarkerTone, string> = {
   sky: "bg-sky-400 hover:bg-sky-500",
   gray: "bg-gray-400 hover:bg-gray-500",
 };
+
+interface TimelineLegendItem {
+  label: string;
+  swatchClassName: string;
+}
+
+/*
+ * The legend, as data, so the swatches cannot drift from the bands they
+ * stand for: each className here is the fill TrackBand actually paints.
+ */
+const TIMELINE_LEGEND_ITEMS: Array<TimelineLegendItem> = [
+  { label: "Loaded", swatchClassName: "bg-indigo-400" },
+  { label: "Not yet loaded", swatchClassName: "bg-gray-300" },
+  {
+    label: "Gap",
+    swatchClassName: "border border-dashed border-amber-400 bg-amber-50",
+  },
+  { label: "Idle", swatchClassName: "bg-gray-200" },
+  {
+    label: "Tab in background",
+    swatchClassName: "border border-dotted border-gray-400 bg-gray-100",
+  },
+  {
+    label: "Approximate",
+    swatchClassName: "bg-white ring-1 ring-inset ring-gray-400",
+  },
+];
 
 const HOLLOW_TONE_CLASS: Record<ReplayTimelineMarkerTone, string> = {
   rose: "bg-white ring-1 ring-inset ring-rose-500",
@@ -246,7 +280,7 @@ const MarkerLane: FunctionComponent<MarkerLaneProps> = (
       </div>
       <div
         data-testid={`timeline-lane-${props.lane}`}
-        className="relative h-5 flex-1 rounded bg-gray-50 ring-1 ring-inset ring-gray-100"
+        className="relative h-5 flex-1 rounded-md bg-gray-50 ring-1 ring-inset ring-gray-100/80"
       >
         {clusters.map((cluster: ReplayMarkerCluster): ReactElement => {
           const first: ReplayTimelineMarker | undefined = cluster.markers[0];
@@ -702,12 +736,12 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
     <div data-testid="replay-timeline">
       {/* Activity strip: relative event density per chunk. */}
       {isActivityMeasured && props.activity && (
-        <div className="mb-1 flex items-center gap-2">
+        <div className="mb-2 flex items-center gap-2">
           <div className={LANE_LABEL_CLASS}>Activity</div>
           <div
             data-testid="timeline-activity"
             aria-hidden="true"
-            className="relative h-1.5 flex-1 overflow-hidden rounded-sm bg-gray-50"
+            className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100"
           >
             {props.activity.map(
               (bucket: ReplayActivityBucket): ReactElement => {
@@ -752,7 +786,7 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
               {preview && (preview.route || preview.signals.length > 0) && (
                 <div
                   data-testid="timeline-hover-preview"
-                  className="max-w-[18rem] rounded-md border border-gray-200 bg-white px-2 py-1.5 text-[11px] text-gray-700 shadow-md"
+                  className="max-w-[18rem] rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-[11px] text-gray-700 shadow-lg"
                 >
                   {preview.route && (
                     <div className="truncate font-medium text-gray-900">
@@ -777,7 +811,7 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
               )}
               <div
                 data-testid="timeline-hover-time"
-                className="rounded bg-gray-900 px-1.5 py-0.5 font-mono text-[11px] tabular-nums text-white shadow"
+                className="rounded-md bg-gray-900 px-2 py-1 font-mono text-[11px] font-medium tabular-nums text-white shadow-lg"
               >
                 {formatReplayOffsetPrecise(hoverMs)}
                 {hoverWallClock && (
@@ -799,7 +833,7 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
             aria-valuetext={`${formatReplayOffset(playheadMs)} of ${formatReplayOffset(
               durationMs,
             )}`}
-            className="relative h-6 w-full cursor-pointer touch-none rounded bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            className="relative h-8 w-full cursor-pointer touch-none rounded-lg bg-gray-100 ring-1 ring-inset ring-gray-200 transition-shadow hover:ring-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
@@ -854,7 +888,7 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
               <div
                 data-testid="timeline-hover-guide"
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-y-0 w-px bg-gray-500"
+                className="pointer-events-none absolute inset-y-0 z-10 w-px bg-gray-400"
                 style={{ left: `${hoverPercent}%` }}
               />
             )}
@@ -871,16 +905,16 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
             <div
               data-testid="timeline-playhead"
               aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 w-0.5 bg-gray-900"
+              className="pointer-events-none absolute inset-y-0 z-20 w-0.5 -translate-x-1/2 rounded-full bg-gray-900"
               style={{ left: `${playheadPercent}%` }}
             >
-              <span className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gray-900 ring-2 ring-white" />
+              <span className="absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gray-900 shadow ring-2 ring-white" />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="mt-1.5 space-y-1">
+      <div className="mt-2 space-y-1">
         {REPLAY_TIMELINE_LANES.map((lane: ReplayTimelineLane): ReactElement => {
           return (
             <MarkerLane
@@ -900,32 +934,30 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
        * The legend is rendered unconditionally: showing anything only while
        * hovering shifted every lane by a line the moment the pointer entered
        * the track, which made the thing you were aiming at move.
+       *
+       * It is the least important row on the page and now looks like it -
+       * indented under the lane gutter so it lines up with the tracks it
+       * explains, 10px, and quiet enough that the eye skips it until it is
+       * wanted. The reserved height (h-4) is what keeps the lanes still.
        */}
-      <div className="mt-2 flex h-4 flex-wrap items-center gap-3 text-[11px] text-gray-500">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-sm bg-indigo-400" />
-          Loaded
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-sm bg-gray-300" />
-          Not yet loaded
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-sm border border-dashed border-amber-400 bg-amber-50" />
-          Gap
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-sm bg-gray-200" />
-          Idle
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-sm border border-dotted border-gray-400 bg-gray-100" />
-          Tab in background
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-sm bg-white ring-1 ring-inset ring-gray-400" />
-          Approximate
-        </span>
+      <div
+        data-testid="timeline-legend"
+        className="mt-2.5 flex h-4 flex-wrap items-center gap-x-3 gap-y-1 pl-[5.5rem] text-[10px] text-gray-400"
+      >
+        {TIMELINE_LEGEND_ITEMS.map((item: TimelineLegendItem): ReactElement => {
+          return (
+            <span
+              key={item.label}
+              className="inline-flex items-center gap-1.5 whitespace-nowrap"
+            >
+              <span
+                aria-hidden="true"
+                className={`h-2 w-2 shrink-0 rounded-[2px] ${item.swatchClassName}`}
+              />
+              {item.label}
+            </span>
+          );
+        })}
       </div>
     </div>
   );

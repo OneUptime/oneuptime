@@ -139,6 +139,14 @@ describe("ReplayHeader", () => {
     });
   });
 
+  /*
+   * The clock is its own right-hand block since the header redesign: the
+   * wall-clock time leads on its own line, with the start date and the
+   * "playhead / length" pair under it. It used to be one inline run
+   * where the offset pair needed parentheses to stay legible; the pair
+   * is asserted without them now, and the wall clock is asserted from
+   * its own element either way.
+   */
   describe("clock", () => {
     it("shows the playhead as wall-clock time next to the offset and the length", () => {
       render(<ReplayHeader {...makeProps()} />);
@@ -148,7 +156,7 @@ describe("ReplayHeader", () => {
         "10:13:22",
       );
       expect(screen.getByTestId("replay-header-clock")).toHaveTextContent(
-        "(0:41 / 4:12)",
+        "0:41 / 4:12",
       );
     });
 
@@ -162,7 +170,7 @@ describe("ReplayHeader", () => {
         /Invalid/,
       );
       expect(screen.getByTestId("replay-header-clock")).toHaveTextContent(
-        "(0:41 / 4:12)",
+        "0:41 / 4:12",
       );
     });
 

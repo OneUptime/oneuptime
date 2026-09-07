@@ -476,9 +476,7 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
       aria-busy={isBusy}
       className={`oneuptime-replay-stage relative w-full bg-gray-900 ${
         fit === "actual" ? "overflow-auto" : "overflow-hidden"
-      } ${isTheater ? "" : "rounded-lg border border-gray-800"} ${
-        props.className ?? ""
-      }`}
+      } ${props.className ?? ""}`}
       style={outerStyle}
     >
       <style>{REPLAY_STAGE_CSS}</style>
