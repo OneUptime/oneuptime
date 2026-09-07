@@ -249,6 +249,7 @@ export default class MonitorStepViewModel {
       data.dockerSwarmMonitor?.rollingTime ||
       data.hostMonitor?.rollingTime ||
       data.podmanMonitor?.rollingTime ||
+      data.vmwareMonitor?.rollingTime ||
       data.proxmoxMonitor?.rollingTime ||
       data.cephMonitor?.rollingTime
     );
@@ -265,6 +266,7 @@ export default class MonitorStepViewModel {
       MonitorType.Docker,
       MonitorType.Host,
       MonitorType.Podman,
+      MonitorType.VMware,
       MonitorType.Proxmox,
       MonitorType.DockerSwarm,
       MonitorType.Ceph,
@@ -428,6 +430,8 @@ export default class MonitorStepViewModel {
         return MonitorStepViewModel.getPodmanRows(data);
       case MonitorType.Host:
         return MonitorStepViewModel.getHostRows(data);
+      case MonitorType.VMware:
+        return MonitorStepViewModel.getVmwareRows(data);
       case MonitorType.Proxmox:
         return MonitorStepViewModel.getProxmoxRows(data);
       case MonitorType.DockerSwarm:
@@ -1566,6 +1570,42 @@ export default class MonitorStepViewModel {
       ...MonitorStepViewModel.getMetricConfigRows(data, {
         metricViewConfig: hostMonitor?.metricViewConfig,
         rollingTime: hostMonitor?.rollingTime,
+      }),
+    ]);
+  }
+
+  private static getVmwareRows(
+    data: MonitorStepType,
+  ): Array<MonitorStepViewRow> {
+    const config: MonitorStepType["vmwareMonitor"] = data.vmwareMonitor;
+    return compact([
+      {
+        key: "sourceIdentifier",
+        title: "VMware source",
+        description: "Stable source identity used by this monitor.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(config?.sourceIdentifier),
+        placeholder: "No source selected",
+      },
+      optional({
+        key: "resourceType",
+        title: "Resource type",
+        description: "The infrastructure resource type to evaluate.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(config?.resourceFilters.resourceType),
+        placeholder: "All resource types",
+      }),
+      optional({
+        key: "resourceIdentifier",
+        title: "Resource identifier",
+        description: "The stable identity of the selected resource.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(config?.resourceFilters.resourceIdentifier),
+        placeholder: "All resources",
+      }),
+      ...MonitorStepViewModel.getMetricConfigRows(data, {
+        metricViewConfig: config?.metricViewConfig,
+        rollingTime: config?.rollingTime,
       }),
     ]);
   }

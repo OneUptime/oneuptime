@@ -4,7 +4,7 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import Dictionary from "../../../../Types/Dictionary";
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it, test } from "@jest/globals";
 
 /*
  * Regression tests for per-series offline/online auto-resolve.
@@ -195,4 +195,57 @@ describe("Per-series offline/online auto-resolve", () => {
       ).toBe(false);
     });
   });
+});
+
+describe("VMware unknown series recovery guard", () => {
+  test.each(["incident", "alert"])(
+    "keeps an unknown %s open while another series recovers",
+    (kind: string) => {
+      const input: Record<string, unknown> = {
+        openIncident: incident(DEVICE_FP),
+        openAlert: alert(DEVICE_FP),
+        autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+          INCIDENT_AUTO_RESOLVE,
+        autoResolveCriteriaInstanceIdAlertIdsDictionary: ALERT_AUTO_RESOLVE,
+        criteriaInstance: criteria("recovery-criteria", false),
+        breachingSeriesFingerprints: new Set<string>(),
+        unavailableSeriesFingerprints: [DEVICE_FP],
+      };
+      const resolve: (value: Record<string, unknown>) => boolean =
+        kind === "incident" ? shouldCloseIncident : shouldCloseAlert;
+      expect(resolve(input)).toBe(false);
+      input["unavailableSeriesFingerprints"] = ["other-resource"];
+      expect(resolve(input)).toBe(true);
+    },
+  );
+});
+
+describe("VMware affirmative per-series recovery", () => {
+  test.each(["incident", "alert"])(
+    "keeps a %s open through the hysteresis dead band",
+    (kind: string) => {
+      const input: Record<string, unknown> = {
+        openIncident: incident(DEVICE_FP),
+        openAlert: alert(DEVICE_FP),
+        autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+          INCIDENT_AUTO_RESOLVE,
+        autoResolveCriteriaInstanceIdAlertIdsDictionary: ALERT_AUTO_RESOLVE,
+        criteriaInstance: null,
+        breachingSeriesFingerprints: new Set<string>(),
+        breachingSeriesFingerprintsByCriteriaId: {
+          [CREATED_CRITERIA_ID]: new Set<string>(),
+        },
+        recoveredSeriesFingerprints: [],
+      };
+      const resolve: (value: Record<string, unknown>) => boolean =
+        kind === "incident" ? shouldCloseIncident : shouldCloseAlert;
+      expect(resolve(input)).toBe(false);
+      input["recoveredSeriesFingerprints"] = ["another-healthy-resource"];
+      expect(resolve(input)).toBe(false);
+      input["recoveredSeriesFingerprints"] = [DEVICE_FP];
+      expect(resolve(input)).toBe(true);
+      input["unavailableSeriesFingerprints"] = [DEVICE_FP];
+      expect(resolve(input)).toBe(false);
+    },
+  );
 });

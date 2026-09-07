@@ -337,6 +337,20 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: resourcesCategory,
     },
     {
+      title: t("navbar.items.vmwareTitle", "VMware"),
+      description: t(
+        "navbar.items.vmwareDescription",
+        "Monitor vSphere hosts, virtual machines, and datastores.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.VMWARE_SOURCES] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.VMWARE_SOURCES],
+      icon: IconProp.ServerStack,
+      iconColor: "blue",
+      category: resourcesCategory,
+    },
+    {
       title: t("navbar.items.proxmoxTitle", "Proxmox"),
       description: t(
         "navbar.items.proxmoxDescription",

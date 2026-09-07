@@ -1,3 +1,4 @@
+import VMwareRecoveryPolicy from "./VMwareRecoveryPolicy";
 import MonitorProbeService from "../../Services/MonitorProbeService";
 import MonitorService from "../../Services/MonitorService";
 import MonitorStatusTimelineService, {
@@ -943,7 +944,11 @@ export default class MonitorResourceUtil {
           criteriaInstanceMap[response.criteriaMetId!]!;
 
         const monitorStatusTimelineChange: MonitorStatusTimeline | null =
-          await MonitorStatusTimelineUtil.updateMonitorStatusTimeline({
+          VMwareRecoveryPolicy.shouldChangeStatus({
+            monitorType: monitor.monitorType,
+            criteriaInstance: matchedCriteriaInstance,
+            unavailableSeriesFingerprints: (dataToProcess as MetricMonitorResponse).unavailableSeriesFingerprints,
+          }) ? await MonitorStatusTimelineUtil.updateMonitorStatusTimeline({
             monitor: monitor,
             rootCause: response.rootCause,
             dataToProcess: dataToProcess,
@@ -951,7 +956,7 @@ export default class MonitorResourceUtil {
             props: {
               telemetryQuery: telemetryQuery,
             },
-          });
+          }) : null;
 
         if (monitorStatusTimelineChange) {
           const changedStatusName: string | null = await getMonitorStatusName(
@@ -1207,6 +1212,7 @@ export default class MonitorResourceUtil {
         }
       } else if (
         !response.criteriaMetId &&
+        VMwareRecoveryPolicy.shouldChangeStatus({ monitorType: monitor.monitorType }) &&
         /*
          * A trap that matches no criteria is simply ignored — it must not
          * reset the monitor to its default status (the polled checks own

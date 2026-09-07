@@ -57,6 +57,7 @@ export default class TemplateVariablesCatalog {
       input.monitorType === MonitorType.Host ||
       input.monitorType === MonitorType.Podman ||
       input.monitorType === MonitorType.DockerSwarm ||
+      input.monitorType === MonitorType.VMware ||
       input.monitorType === MonitorType.Proxmox ||
       input.monitorType === MonitorType.Ceph
     ) {

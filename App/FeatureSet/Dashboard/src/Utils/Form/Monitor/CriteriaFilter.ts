@@ -1231,6 +1231,7 @@ export default class CriteriaFilterUtil {
       monitorType === MonitorType.Host ||
       monitorType === MonitorType.Podman ||
       monitorType === MonitorType.DockerSwarm ||
+      monitorType === MonitorType.VMware ||
       monitorType === MonitorType.Proxmox ||
       monitorType === MonitorType.Ceph ||
       monitorType === MonitorType.Metrics

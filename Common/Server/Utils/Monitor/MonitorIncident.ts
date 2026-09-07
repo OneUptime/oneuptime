@@ -1,3 +1,7 @@
+import VMwareSeriesContext, {
+  VMwareDisplayContext,
+} from "./VMwareSeriesContext";
+import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
@@ -127,6 +131,12 @@ export default class MonitorIncident {
         breachingSeriesFingerprintsByCriteriaId:
           input.breachingSeriesFingerprintsByCriteriaId,
         disableSeriesAbsenceResolution: input.disableSeriesAbsenceResolution,
+        unavailableSeriesFingerprints: (
+          input.dataToProcess as MetricMonitorResponse
+        ).unavailableSeriesFingerprints,
+        recoveredSeriesFingerprints: (
+          input.dataToProcess as MetricMonitorResponse
+        ).recoveredSeriesFingerprints,
       });
 
       if (shouldClose) {
@@ -606,21 +616,32 @@ export default class MonitorIncident {
            * an incident. See SeriesContextEnricher for why this is not
            * done inside the template itself.
            */
+          const vmwareDisplayContext: VMwareDisplayContext | null =
+            await VMwareSeriesContext.resolve({
+              projectId: input.monitor.projectId!,
+              seriesLabels,
+            });
+          const displaySeriesLabels: JSONObject | undefined =
+            vmwareDisplayContext?.displayLabels || seriesLabels;
           incident.title = SeriesContextEnricher.enrichTitle({
             title: MonitorTemplateUtil.processTemplateString({
               value: criteriaIncident.title,
               storageMap,
             }),
-            seriesLabels,
+            seriesLabels: displaySeriesLabels,
           });
           incident.description = SeriesContextEnricher.enrichDescription({
             description: MonitorTemplateUtil.processTemplateString({
               value: criteriaIncident.description,
               storageMap,
             }),
-            seriesLabels,
+            seriesLabels: displaySeriesLabels,
             monitorType: input.monitor.monitorType,
           });
+
+          if (vmwareDisplayContext?.linksMarkdown) {
+            incident.description += `\n\n${vmwareDisplayContext.linksMarkdown}`;
+          }
 
           /*
            * Resolve the incident severity. `criteriaIncident.incidentSeverityId`
@@ -1153,9 +1174,28 @@ export default class MonitorIncident {
       | Dictionary<Set<string>>
       | undefined;
     disableSeriesAbsenceResolution?: boolean | undefined;
+    unavailableSeriesFingerprints?: Array<string> | undefined;
+    recoveredSeriesFingerprints?: Array<string> | undefined;
   }): boolean {
     const openSeriesFingerprint: string | undefined =
       input.openIncident.seriesFingerprint || undefined;
+
+    // An absent/unknown VMware reading cannot affirm recovery. Other series
+    // still recover independently and existing non-VMware behavior is unchanged.
+    if (
+      openSeriesFingerprint &&
+      input.unavailableSeriesFingerprints?.includes(openSeriesFingerprint)
+    ) {
+      return false;
+    }
+
+    if (
+      openSeriesFingerprint &&
+      input.recoveredSeriesFingerprints !== undefined &&
+      !input.recoveredSeriesFingerprints.includes(openSeriesFingerprint)
+    ) {
+      return false;
+    }
 
     /*
      * Event-driven (incoming-request / webhook) per-key incidents must

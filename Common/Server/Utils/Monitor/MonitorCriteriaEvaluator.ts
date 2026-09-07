@@ -1,3 +1,4 @@
+import VMwareRecoveryPolicy from "./VMwareRecoveryPolicy";
 import logger, { LogAttributes } from "../Logger";
 import LogAggregationService from "../../Services/LogAggregationService";
 import VMUtil from "../VM/VMAPI";
@@ -167,6 +168,18 @@ export default class MonitorCriteriaEvaluator {
       isPerSeriesMonitor &&
       input.monitor.monitorType !== MonitorType.IncomingRequest;
 
+    // Native VMware incidents retain their state in the threshold dead band.
+    // Only an affirmative, enabled recovery criterion can close that series.
+    const recoveredSeriesFingerprints: Set<string> | undefined =
+      input.monitor.monitorType === MonitorType.VMware
+        ? new Set<string>()
+        : undefined;
+    if (recoveredSeriesFingerprints) {
+      (
+        input.dataToProcess as MetricMonitorResponse
+      ).recoveredSeriesFingerprints = [];
+    }
+
     const matchedCriteria: Array<MatchedCriteriaResult> = [];
     const evaluatedCriteriaIds: Array<string> = [];
 
@@ -301,6 +314,15 @@ export default class MonitorCriteriaEvaluator {
         continue;
       }
 
+      if (
+        recoveredSeriesFingerprints &&
+        VMwareRecoveryPolicy.isRecoveryCriteria(criteriaInstance)
+      ) {
+        for (const match of perSeriesMatches) {
+          recoveredSeriesFingerprints.add(match.fingerprint);
+        }
+      }
+
       const isFirstMatch: boolean = matchedCriteria.length === 0;
 
       const contextBlock: string | null =
@@ -386,6 +408,12 @@ ${contextBlock}
     if (fanOutAcrossCriteria) {
       input.probeApiIngestResponse.matchedCriteria = matchedCriteria;
       input.probeApiIngestResponse.evaluatedCriteriaIds = evaluatedCriteriaIds;
+    }
+
+    if (recoveredSeriesFingerprints) {
+      (
+        input.dataToProcess as MetricMonitorResponse
+      ).recoveredSeriesFingerprints = Array.from(recoveredSeriesFingerprints);
     }
 
     return input.probeApiIngestResponse;
@@ -1102,6 +1130,7 @@ ${contextBlock}
       input.monitor.monitorType === MonitorType.Host ||
       input.monitor.monitorType === MonitorType.Podman ||
       input.monitor.monitorType === MonitorType.DockerSwarm ||
+      input.monitor.monitorType === MonitorType.VMware ||
       input.monitor.monitorType === MonitorType.Proxmox ||
       input.monitor.monitorType === MonitorType.Ceph ||
       input.monitor.monitorType === MonitorType.IoTDevice

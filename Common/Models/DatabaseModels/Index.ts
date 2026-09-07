@@ -48,6 +48,8 @@ import IoTFleetOwnerUser from "./IoTFleetOwnerUser";
 import IoTDevice from "./IoTDevice";
 import IoTDeviceCredential from "./IoTDeviceCredential";
 import CephCluster from "./CephCluster";
+import VMwareSource from "./VMwareSource";
+import VMwareResource from "./VMwareResource";
 import CephClusterOwnerTeam from "./CephClusterOwnerTeam";
 import CephClusterOwnerUser from "./CephClusterOwnerUser";
 import CephResource from "./CephResource";
@@ -921,6 +923,8 @@ const AllModelTypes: Array<{
   IoTDevice,
   IoTDeviceCredential,
   CephCluster,
+  VMwareSource,
+  VMwareResource,
   CephClusterOwnerTeam,
   CephClusterOwnerUser,
   CephResource,

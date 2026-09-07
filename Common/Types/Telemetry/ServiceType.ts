@@ -19,6 +19,7 @@ enum ServiceType {
   KubernetesCluster = "KubernetesCluster",
   ProxmoxCluster = "ProxmoxCluster",
   CephCluster = "CephCluster",
+  VMwareSource = "VMwareSource",
   DockerSwarmCluster = "DockerSwarmCluster",
   IoTDevice = "IoTDevice",
   ServerlessFunction = "ServerlessFunction",

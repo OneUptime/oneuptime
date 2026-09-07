@@ -105,6 +105,13 @@ const FriendlyLabelNames: Record<string, string> = {
   node: "Node",
   storage: "Storage",
 
+  // --- VMware ---
+  "oneuptime.vmware.source.id": "VMware Source ID",
+  "oneuptime.vmware.source.name": "VMware Source",
+  "oneuptime.vmware.resource.id": "Resource ID",
+  "oneuptime.vmware.resource.type": "Resource Type",
+  "oneuptime.vmware.resource.name": "VMware Resource",
+
   // --- Ceph ---
   "ceph.cluster.name": "Ceph Cluster",
   ceph_daemon: "Ceph Daemon",
@@ -154,6 +161,11 @@ const FriendlyLabelNames: Record<string, string> = {
  * qualify the answer rather than being it.
  */
 const LabelPriority: Record<string, number> = {
+  "oneuptime.vmware.resource.name": 20,
+  "oneuptime.vmware.resource.id": 25,
+  "oneuptime.vmware.resource.type": 55,
+  "oneuptime.vmware.source.name": 60,
+  "oneuptime.vmware.source.id": 65,
   "k8s.container.name": 10,
   "container.name": 10,
   "k8s.pod.name": 20,

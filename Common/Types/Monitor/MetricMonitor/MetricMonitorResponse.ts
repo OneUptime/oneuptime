@@ -87,6 +87,12 @@ export interface DockerSwarmResourceBreakdown {
 }
 
 export default interface MetricMonitorResponse {
+  /** Resource snapshots that cannot establish recovery on this evaluation. */
+  unavailableSeriesFingerprints?: Array<string> | undefined;
+  /** Native VMware recovery requires an affirmative healthy match for this series. */
+  recoveredSeriesFingerprints?: Array<string> | undefined;
+  /** Collection is unavailable; preserve statuses and incidents until data returns. */
+  skipEvaluationReason?: string | undefined;
   projectId: ObjectID;
   startAndEndDate?: InBetween<Date>;
   metricResult: Array<AggregatedResult>;

@@ -1,0 +1,54 @@
+services:
+  collector:
+    image: otel/opentelemetry-collector-contrib:0.160.0
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yaml"]
+    environment:
+      VMWARE_SOURCE_ID: "${VMWARE_SOURCE_ID:?Set VMWARE_SOURCE_ID}"
+      VMWARE_SOURCE_NAME: "${VMWARE_SOURCE_NAME:?Set VMWARE_SOURCE_NAME}"
+      VMWARE_ENDPOINT: "${VMWARE_ENDPOINT:?Set VMWARE_ENDPOINT}"
+      VMWARE_USERNAME: "${VMWARE_USERNAME:?Set VMWARE_USERNAME}"
+      VMWARE_PASSWORD: "${VMWARE_PASSWORD:?Set VMWARE_PASSWORD}"
+      VMWARE_CA_FILE: "${VMWARE_CA_FILE:-}"
+      ONEUPTIME_URL: "${ONEUPTIME_URL:?Set ONEUPTIME_URL}"
+      ONEUPTIME_TELEMETRY_INGESTION_KEY: "${ONEUPTIME_TELEMETRY_INGESTION_KEY:?Set ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+      - ./certs:/etc/vmware-certs:ro
+    # The OTLP listener is loopback-only and is not published on the host.
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    mem_limit: 512m
+    stop_grace_period: 45s
+
+  inventory:
+    build:
+      context: .
+      dockerfile: Dockerfile.tpl
+    restart: unless-stopped
+    depends_on: [collector]
+    network_mode: service:collector
+    environment:
+      VMWARE_SOURCE_ID: "${VMWARE_SOURCE_ID:?Set VMWARE_SOURCE_ID}"
+      VMWARE_SOURCE_NAME: "${VMWARE_SOURCE_NAME:?Set VMWARE_SOURCE_NAME}"
+      VMWARE_ENDPOINT: "${VMWARE_ENDPOINT:?Set VMWARE_ENDPOINT}"
+      VMWARE_USERNAME: "${VMWARE_USERNAME:?Set VMWARE_USERNAME}"
+      VMWARE_PASSWORD: "${VMWARE_PASSWORD:?Set VMWARE_PASSWORD}"
+      VMWARE_CA_FILE: "${VMWARE_CA_FILE:-}"
+      VMWARE_COLLECTION_INTERVAL_SECONDS: "${VMWARE_COLLECTION_INTERVAL_SECONDS:-60}"
+      VMWARE_REQUEST_TIMEOUT_SECONDS: "${VMWARE_REQUEST_TIMEOUT_SECONDS:-15}"
+      VMWARE_MAX_OBJECTS: "${VMWARE_MAX_OBJECTS:-10000}"
+      VMWARE_POLICY_FILE: /etc/oneuptime-vmware/policy.json
+    volumes:
+      - inventory:/var/lib/oneuptime-vmware
+      - ./policy.json:/etc/oneuptime-vmware/policy.json:ro
+      - ./certs:/etc/vmware-certs:ro
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    mem_limit: 512m
+    stop_grace_period: 5m
+
+volumes:
+  inventory:
