@@ -25,6 +25,7 @@ import ko from "../Locales/ko.json";
 import zhCN from "../Locales/zh-CN.json";
 import zhTW from "../Locales/zh-TW.json";
 import hi from "../Locales/hi.json";
+import fa from "../Locales/fa.json";
 
 export type SupportedLanguage = AdminDashboardLanguage;
 
@@ -104,6 +105,7 @@ i18n
       "zh-CN": { translation: zhCN },
       "zh-TW": { translation: zhTW },
       hi: { translation: hi },
+      fa: { translation: fa },
     },
     fallbackLng: DEFAULT_LANGUAGE,
     supportedLngs: SUPPORTED_ADMIN_DASHBOARD_LANGUAGE_CODES,

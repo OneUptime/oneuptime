@@ -83,7 +83,7 @@ export const getRunnerLiveStatus: GetRunnerLiveStatusFunction = (
 /*
  * The English label for each state, which is also its i18next lookup key.
  *
- * "Connected" and "Disconnected" already had translations in all sixteen
+ * "Connected" and "Disconnected" already had translations in all seventeen
  * Dashboard locale files before any of this — the probe pages have used them
  * for years — so routing every Runner status label through these three
  * constants is what lets the new state reuse them instead of inventing a

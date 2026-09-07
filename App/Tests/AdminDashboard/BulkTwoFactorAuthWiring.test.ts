@@ -319,7 +319,7 @@ describe("Bulk two factor auth action extraction", () => {
     expect(interpolatedTranslationKeys().length).toBe(4);
   });
 
-  test("all sixteen locale files are being looked at", () => {
+  test("all seventeen locale files are being looked at", () => {
     /*
      * The locale loops prove nothing if the directory read comes back short.
      * i18next's fallbackLng is "en", so a locale file that simply lacks these
@@ -330,6 +330,7 @@ describe("Bulk two factor auth action extraction", () => {
       "de.json",
       "en.json",
       "es.json",
+      "fa.json",
       "fr.json",
       "hi.json",
       "it.json",
@@ -664,7 +665,7 @@ describe("Bulk two factor auth translations", () => {
      * The title, the confirm heading and the confirm body, in both directions -
      * six keys. A hard-coded English string here is invisible to
      * `npm run i18n:validate` and renders as English inside an otherwise
-     * translated menu for the other fifteen locales.
+     * translated menu for the other sixteen locales.
      */
     expect(twoFactorTranslationKeys()).toEqual([
       "pages.users.bulkDoNotRequireTwoFactorAuth",
@@ -735,7 +736,7 @@ describe("Bulk two factor auth translations", () => {
     expect(withoutPlaceholder).toEqual([]);
   });
 
-  test("all six keys are translated in all sixteen locales", () => {
+  test("all six keys are translated in all seventeen locales", () => {
     /*
      * i18next's fallbackLng is "en", so a locale file missing one of these
      * renders an English menu item or an English confirmation inside an

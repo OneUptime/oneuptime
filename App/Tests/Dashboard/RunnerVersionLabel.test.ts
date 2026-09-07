@@ -17,7 +17,7 @@ import path from "path";
  *      RecommendationPageWiring.test.ts take for dashboard wiring.
  *   2. That literal IS the i18n key. FieldLabel calls translateString(title),
  *      and i18next is configured with defaultValue: value — so a title with no
- *      matching key renders fine in English and renders ENGLISH in all fifteen
+ *      matching key renders fine in English and renders ENGLISH in all sixteen
  *      other languages. Nothing errors. Only a Japanese user sees the bug.
  *   3. The old "Agent Version" key must SURVIVE, because eleven unrelated
  *      monitoring-agent pages (Host, Docker, Podman, Kubernetes, Ceph, Proxmox,
@@ -51,7 +51,7 @@ const TS_SOURCE: RegExp = /\.tsx?$/;
 
 /*
  * en.json is the source of truth; Scripts/I18n/ValidateLocales.js (run in CI by
- * the js-lint job) requires these fifteen to mirror it key-for-key.
+ * the js-lint job) requires these sixteen to mirror it key-for-key.
  */
 const TRANSLATED_LOCALES: Array<string> = [
   "de",
@@ -69,6 +69,7 @@ const TRANSLATED_LOCALES: Array<string> = [
   "zh-CN",
   "zh-TW",
   "hi",
+  "fa",
 ];
 
 const ALL_LOCALES: Array<string> = ["en", ...TRANSLATED_LOCALES];
@@ -285,7 +286,7 @@ describe("locale coverage for the new label", () => {
    * The label the .tsx renders IS the lookup key. Deriving the expected key
    * from the source rather than hardcoding it means editing the title without
    * adding locale entries fails here instead of silently falling back to
-   * English for fifteen languages.
+   * English for sixteen languages.
    */
   test("the literal used in RunnerView.tsx is a key in every locale", () => {
     const match: RegExpMatchArray | null = readCode(...RUNNER_VIEW).match(
@@ -352,7 +353,7 @@ describe("the shared 'Agent Version' key survives for the monitoring agents", ()
  * A scoped re-implementation of Scripts/I18n/ValidateLocales.js. That script is
  * an ESM module and cannot be require()'d from this CommonJS suite, and it only
  * runs in the js-lint CI job — so adding one key to en.json and forgetting the
- * other fifteen files would go green here and red much later. These assertions
+ * other sixteen files would go green here and red much later. These assertions
  * make the App suite itself refuse the drift.
  */
 describe("Dashboard locale files stay in parity with en.json", () => {

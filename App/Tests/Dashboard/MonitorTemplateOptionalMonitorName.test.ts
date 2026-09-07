@@ -310,7 +310,7 @@ describe("Creating a monitor from a template still needs a name", () => {
 
 /*
  * Every user-facing string is looked up in the active locale by its English
- * text. A string that is not a key renders in English for the other fifteen
+ * text. A string that is not a key renders in English for the other sixteen
  * languages, and the parity check in CI cannot catch that - it only compares
  * the locale files to each other, never to the source.
  */
@@ -332,6 +332,7 @@ describe("the new copy is translatable", () => {
     "zh-CN",
     "zh-TW",
     "hi",
+    "fa",
   ];
 
   test.each([BLANK_NAME_DESCRIPTION, "Named after the resource"])(

@@ -196,7 +196,7 @@ describe("the go-to catalog", () => {
   test("labels every destination with a key the English locale actually has", () => {
     /*
      * The catalog carries English defaults because en.json is the key-for-key
-     * source of truth for fifteen other locale files, and a key added to
+     * source of truth for sixteen other locale files, and a key added to
      * English alone fails locale validation. That makes drift possible in the
      * other direction: a renamed navbar key would silently downgrade these
      * rows to their hard-coded defaults in every language. Checking the pair
