@@ -542,49 +542,93 @@ describe("both explorers surface the host's scope as read-only chips", () => {
   );
 });
 
-describe("the surviving table call sites are untouched", () => {
+describe("the two dense tables survive for their non-snapshot users", () => {
   /*
-   * Both tables are still the right component for a live monitor-config
-   * preview, a trace's own exceptions and the session-replay panel — none of
-   * which is an event snapshot. Deleting them would also break
-   * TelemetryPreviewSnapshotWindow.test.ts, which readFileSyncs both.
+   * The snapshot cards stopped using TraceTable and ExceptionInstanceTable,
+   * but neither component is dead: a live monitor-config preview, a trace's
+   * own exceptions and the monitor detail page all still want a table,
+   * because none of them is an event snapshot. Deleting either would also
+   * break TelemetryPreviewSnapshotWindow.test.ts, which readFileSyncs both.
+   *
+   * Asserted by SCANNING for mounters rather than by naming call sites. An
+   * earlier version listed the files it expected and went red the moment
+   * unrelated session-replay work removed one of them — pinning another
+   * team's file contents to guard THIS change is a promise the test cannot
+   * keep. What matters is that the components still exist and still have a
+   * user outside the surfaces this change moved.
    */
+  const SNAPSHOT_HOST_PATHS: ReadonlyArray<string> = [
+    path.join("Pages", "Alerts", "View", "Index.tsx"),
+    path.join("Pages", "Incidents", "View", "Index.tsx"),
+    path.join("Components", "Telemetry", "TelemetrySnapshotPanel.tsx"),
+    path.join("Components", "Telemetry", "TelemetryCompanionSignalTabs.tsx"),
+  ];
+
+  function collectSourceFiles(directory: string): Array<string> {
+    const files: Array<string> = [];
+
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const full: string = path.join(directory, entry.name);
+
+      if (entry.isDirectory()) {
+        files.push(...collectSourceFiles(full));
+        continue;
+      }
+
+      if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
+        files.push(full);
+      }
+    }
+
+    return files;
+  }
+
+  const ALL_SOURCES: Array<string> = collectSourceFiles(DASHBOARD_SRC);
+
+  function findMounters(componentName: string): Array<string> {
+    return ALL_SOURCES.filter((file: string): boolean => {
+      const relative: string = path.relative(DASHBOARD_SRC, file);
+
+      if (
+        SNAPSHOT_HOST_PATHS.includes(relative) ||
+        path.basename(file) === `${componentName}.tsx`
+      ) {
+        return false;
+      }
+
+      return squash(stripComments(fs.readFileSync(file, "utf8"))).includes(
+        `<${componentName}`,
+      );
+    });
+  }
+
   test.each([
+    ["TraceTable", path.join("Components", "Traces", "TraceTable.tsx")],
     [
-      "monitor trace preview",
-      ["Components", "Monitor", "TraceMonitor", "TraceMonitorPreview.tsx"],
-      "<TraceTable",
-    ],
-    [
-      "monitor detail page",
-      ["Pages", "Monitor", "View", "Index.tsx"],
-      "<TraceTable",
-    ],
-    [
-      "trace detail exceptions",
-      ["Components", "Traces", "TraceExplorer.tsx"],
-      "<ExceptionInstanceTable",
-    ],
-    [
-      "exception monitor preview",
-      [
-        "Components",
-        "Form",
-        "Monitor",
-        "ExceptionMonitor",
-        "ExceptionMonitorStepForm.tsx",
-      ],
-      "<ExceptionInstanceTable",
-    ],
-    [
-      "session replay panel",
-      ["Components", "SessionReplay", "ReplayCorrelationPanel.tsx"],
-      "<ExceptionInstanceTable",
+      "ExceptionInstanceTable",
+      path.join("Components", "Exceptions", "ExceptionInstanceTable.tsx"),
     ],
   ])(
-    "%s still mounts its table",
-    (_name: string, parts: Array<string>, marker: string) => {
-      expect(readSource(...parts)).toContain(marker);
+    "%s still exists and is still mounted outside the snapshot hosts",
+    (componentName: string, componentRelativePath: string) => {
+      expect(
+        fs.existsSync(path.join(DASHBOARD_SRC, componentRelativePath)),
+      ).toBe(true);
+      expect(findMounters(componentName).length).toBeGreaterThan(0);
+    },
+  );
+
+  test.each(SNAPSHOT_HOST_PATHS)(
+    "%s does not mount either table any more",
+    (relative: string) => {
+      const source: string = squash(
+        stripComments(
+          fs.readFileSync(path.join(DASHBOARD_SRC, relative), "utf8"),
+        ),
+      );
+
+      expect(source).not.toContain("<TraceTable");
+      expect(source).not.toContain("<ExceptionInstanceTable");
     },
   );
 });
