@@ -24,9 +24,11 @@ function readTemplate(name: string): string {
   return fs.readFileSync(Path.join(TEMPLATES_DIR, name), "utf8");
 }
 
-// Discover files as well as checking the enum so new and legacy templates are
-// included automatically. BlankTemplate is the deliberate customer-HTML escape
-// hatch and is tested separately instead of imposing our layout on it.
+/*
+ * Discover files as well as checking the enum so new and legacy templates are
+ * included automatically. BlankTemplate is the deliberate customer-HTML escape
+ * hatch and is tested separately instead of imposing our layout on it.
+ */
 const catalog: Array<string> = fs
   .readdirSync(TEMPLATES_DIR)
   .filter((name: string): boolean => {
@@ -194,8 +196,10 @@ describe("the complete built-in email design", () => {
       expect(shell).toBeDefined();
       expect(shell).toContain('width="100%"');
       expect(shell).toMatch(/max-width:\s*640px/i);
-      // A fixed minimum in even one nested table forces horizontal scrolling
-      // on mobile, regardless of whether the outer shell is responsive.
+      /*
+       * A fixed minimum in even one nested table forces horizontal scrolling
+       * on mobile, regardless of whether the outer shell is responsive.
+       */
       expect(html).not.toMatch(/min-width:\s*[4-9]\d{2}px/i);
       expect(html).not.toMatch(/<table\b[^>]*\bwidth="600"/i);
       expect(html).not.toContain("{{");
@@ -540,8 +544,10 @@ describe("the email starter templates offered to status-page customers", () => {
 
       expect(defaults?.body).toBeTruthy();
 
-      // A fresh engine proves these HTML starters do not depend on the
-      // application's private partial registration or custom helpers.
+      /*
+       * A fresh engine proves these HTML starters do not depend on the
+       * application's private partial registration or custom helpers.
+       */
       const standaloneHandlebars: typeof Handlebars = Handlebars.create();
       const html: string = standaloneHandlebars.compile(defaults!.body)(
         templateVariables({

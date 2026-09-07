@@ -318,8 +318,10 @@ describe("StatusPageSubscriberReport.hbs", () => {
     });
 
     test("lets deeply nested names use the full name cell on mobile", () => {
-      // The deepest resources retain their 64px desktop hierarchy while the
-      // mobile rule releases that space in the narrow four-column report.
+      /*
+       * The deepest resources retain their 64px desktop hierarchy while the
+       * mobile rule releases that space in the narrow four-column report.
+       */
       expect(html).toMatch(
         /<div[^>]*class="[^"]*st-ReportIndent[^"]*"[^>]*style="margin-left:\s*64px;">Router/,
       );
