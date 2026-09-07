@@ -198,16 +198,23 @@ x-common-runtime-variables: &common-runtime-variables
   QUEUE_DASHBOARD_SECRET: ${QUEUE_DASHBOARD_SECRET}
 
 services:
-  redis:
-    image: redis:7.0.12
+  # Valkey is the BSD-licensed fork of Redis 7.2 that most of the original Redis
+  # contributors moved to after Redis 7.4 left the BSD licence. It speaks the
+  # same wire protocol, so every REDIS_* setting below and in config.env is
+  # unchanged. The service is reachable as both "valkey" and "redis" (see the
+  # network alias) so an existing config.env with REDIS_HOST=redis keeps working.
+  valkey:
+    image: valkey/valkey:9.1-alpine
     restart: always
     networks:
-      - oneuptime
-    command: redis-server --requirepass "${REDIS_PASSWORD}" --save "" --appendonly no
+      oneuptime:
+        aliases:
+          - redis
+    command: valkey-server --requirepass "${REDIS_PASSWORD}" --save "" --appendonly no
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "valkey-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5

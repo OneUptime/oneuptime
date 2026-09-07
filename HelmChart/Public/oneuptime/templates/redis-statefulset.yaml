@@ -66,9 +66,21 @@ spec:
           - sh
           - -c
           - |
+            # The config file keeps its redis.conf name, as does the ConfigMap
+            # it comes from: valkey-server reads the same directives, and
+            # renaming the key would leave a window during `helm upgrade` where
+            # the not-yet-rolled pod finds no template at the path its own spec
+            # still points at.
+            #
+            # `set -e` is load-bearing, not hygiene. Without it a sed that cannot
+            # read the template still leaves an EMPTY /tmp/redis.conf behind, and
+            # the server would boot on stock defaults -- no requirepass, open to
+            # the whole pod network. Failing the container is the only safe
+            # outcome.
+            set -e
             # Replace ${REDIS_PASSWORD} with actual password in config file
             sed "s/\${REDIS_PASSWORD}/${REDIS_PASSWORD}/g" /etc/redis/redis.conf.template > /tmp/redis.conf
-            exec redis-server /tmp/redis.conf
+            exec valkey-server /tmp/redis.conf
         ports:
         - name: redis
           containerPort: 6379
@@ -88,7 +100,7 @@ spec:
         livenessProbe:
           exec:
             command:
-            - redis-cli
+            - valkey-cli
             - -a
             - $(REDIS_PASSWORD)
             - ping
@@ -101,7 +113,7 @@ spec:
         readinessProbe:
           exec:
             command:
-            - redis-cli
+            - valkey-cli
             - -a
             - $(REDIS_PASSWORD)
             - ping

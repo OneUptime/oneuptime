@@ -37,7 +37,7 @@ jobs:
   # itself died, and every shard failed with "the runner has received a
   # shutdown signal" rather than a test failure. A shard's live set measures
   # ~2 GB per worker and peaks near 3.5 GB, so 2 workers x 4 GB keeps the hard
-  # ceiling at 8 GB with room to spare for the postgres and redis containers
+  # ceiling at 8 GB with room to spare for the postgres and valkey containers
   # test-setup.sh starts alongside.
   #
   # Type checking is deliberately left on. App's suite could go transpile-only

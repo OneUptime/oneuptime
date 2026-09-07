@@ -1,0 +1,152 @@
+suite: valkey cache and queue backend
+release:
+  name: ou
+  namespace: oneuptime
+tests:
+  # The whole point of the swap: the bundled cache/queue container must not be
+  # the Redis image any more. Redis 7.4 left the BSD licence; Valkey is the
+  # BSD-licensed fork the original contributors moved to.
+  - it: runs the valkey image, not redis
+    templates:
+      - templates/redis-statefulset.yaml
+    asserts:
+      - isKind:
+          of: StatefulSet
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: valkey/valkey:9.1-alpine
+      # A floating `latest`/`alpine` tag would let a major engine bump arrive on
+      # an unrelated `helm upgrade`; the tag is pinned to a minor line and kept
+      # in step with docker-compose.base.yml.
+      - notMatchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: '^redis(:|$)'
+      - notMatchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ':(latest|alpine)$'
+
+  # The startup command, the ConfigMap key it reads and the mount path are one
+  # unit -- moving any one of them alone leaves the pod crash-looping on a
+  # missing config file, which nothing else in this chart would catch. All three
+  # keep their `redis` names on purpose: valkey-server reads the same directives
+  # from the same file, and renaming the key would open a window during
+  # `helm upgrade` where the not-yet-rolled pod finds no template at the path its
+  # own spec still points at.
+  - it: renders the config template and mount path the startup command reads
+    templates:
+      - templates/redis-statefulset.yaml
+      - templates/redis-configmap.yaml
+    asserts:
+      - matchRegex:
+          path: data["redis.conf.template"]
+          pattern: '(?m)^\s*requirepass \$\{REDIS_PASSWORD\}\s*$'
+        template: templates/redis-configmap.yaml
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].mountPath
+          value: /etc/redis
+        template: templates/redis-statefulset.yaml
+      - matchRegex:
+          path: spec.template.spec.containers[0].command[2]
+          pattern: '/etc/redis/redis\.conf\.template'
+        template: templates/redis-statefulset.yaml
+      # The engine is what changed: valkey-server, not redis-server.
+      - matchRegex:
+          path: spec.template.spec.containers[0].command[2]
+          pattern: 'exec valkey-server /tmp/redis\.conf'
+        template: templates/redis-statefulset.yaml
+      - notMatchRegex:
+          path: spec.template.spec.containers[0].command[2]
+          pattern: 'exec redis-server'
+        template: templates/redis-statefulset.yaml
+
+  # Without `set -e`, a sed that cannot read the template still leaves an empty
+  # /tmp/redis.conf behind and the server boots on stock defaults -- no
+  # requirepass, reachable by anything in the pod network. Verified against the
+  # real image: the guard turns that into exit 1 (CrashLoopBackOff) instead.
+  - it: refuses to start rather than fall back to an unauthenticated server
+    templates:
+      - templates/redis-statefulset.yaml
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].command[2]
+          pattern: '(?m)^set -e$'
+
+  # `redis-cli` happens to survive as a symlink inside the valkey image, so a
+  # stale probe command would keep passing here and silently rot the day that
+  # symlink goes away. Pin the probes to the real binary name.
+  - it: probes with valkey-cli
+    templates:
+      - templates/redis-statefulset.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.exec.command[0]
+          value: valkey-cli
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.exec.command[0]
+          value: valkey-cli
+      # The password still arrives as REDIS_PASSWORD -- the env var names are
+      # part of the app's public config surface and did not change.
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.exec.command[2]
+          value: $(REDIS_PASSWORD)
+
+  # Renaming the Kubernetes objects would invalidate every existing
+  # `redis.auth.existingSecret` reference and externally-managed secret, so the
+  # names deliberately stay as they are. This test is the record of that choice.
+  - it: keeps the redis object and secret names so existing releases upgrade in place
+    templates:
+      - templates/redis-statefulset.yaml
+      - templates/redis-service.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: ou-redis
+        template: templates/redis-statefulset.yaml
+      - equal:
+          path: spec.template.spec.containers[0].env[0].valueFrom.secretKeyRef.name
+          value: ou-redis
+        template: templates/redis-statefulset.yaml
+      - equal:
+          path: spec.template.spec.containers[0].env[0].valueFrom.secretKeyRef.key
+          value: redis-password
+        template: templates/redis-statefulset.yaml
+      - equal:
+          path: metadata.name
+          value: ou-redis-master
+        template: templates/redis-service.yaml
+        documentIndex: 0
+
+  # REDIS_HOST has to keep pointing at the same in-cluster Service the app has
+  # always used; the engine changed underneath it, the address did not.
+  - it: still points the app at the in-cluster service over the redis protocol
+    templates:
+      - templates/app.yaml
+    # app.yaml renders both a Service and a Deployment under the same name, so
+    # select the Deployment by kind.
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: REDIS_HOST
+            value: ou-redis-master.oneuptime.svc.cluster.local
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: REDIS_PORT
+            value: "6379"
+
+  # An operator pointing the chart at a managed Redis must not get a Valkey
+  # StatefulSet as well.
+  - it: ships nothing when an external redis is configured
+    set:
+      redis.enabled: false
+    templates:
+      - templates/redis-statefulset.yaml
+      - templates/redis-configmap.yaml
+      - templates/redis-service.yaml
+    asserts:
+      - hasDocuments:
+          count: 0

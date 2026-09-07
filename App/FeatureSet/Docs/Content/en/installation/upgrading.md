@@ -8,6 +8,23 @@ This guide covers how to safely upgrade your self-hosted OneUptime installation.
 - You can leapfrog minor/patch versions (for example, 8.1 → 8.4) as long as you follow the release notes.
 - Always take backups before upgrading, and validate you can restore them.
 
+### Redis is now Valkey (Docker Compose and Helm)
+
+The bundled cache and queue container runs [Valkey](https://valkey.io), the
+BSD-licensed fork of Redis 7.2, instead of the Redis image — Redis 7.4 moved to
+a stricter licence and the bulk of the original contributors moved to Valkey.
+Valkey speaks the Redis wire protocol, so **no action is required**: every
+`REDIS_*` variable, the Helm `redis:` values key, and the Kubernetes object and
+secret names (`<release>-redis`) are unchanged, and pointing `externalRedis` at
+a real Redis instance still works.
+
+One Docker Compose detail: the service is now called `valkey` rather than
+`redis`. It keeps `redis` as a network alias, so an existing `config.env` with
+`REDIS_HOST=redis` resolves without editing. Upgrade with `npm run update` (or
+any `docker compose up --remove-orphans`) so the old `redis` container is
+removed — leaving it running would put two containers behind the same `redis`
+hostname, and half the connections would land on the stale one.
+
 ## Upgrading from OneUptime 11 → 12
 
 OneUptime 12 merges two components into one. The **Runbook Agent** (the

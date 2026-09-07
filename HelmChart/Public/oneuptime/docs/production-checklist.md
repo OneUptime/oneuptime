@@ -13,7 +13,7 @@ Work through this list to make your OneUptime installation production-ready.
     tag: <specific-version>
   ```
 
-- [ ] **Pin PostgreSQL, Redis, and ClickHouse versions too.** Find the running
+- [ ] **Pin PostgreSQL, Valkey, and ClickHouse versions too.** Find the running
   version by describing a pod:
 
   ```console

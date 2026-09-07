@@ -556,11 +556,11 @@ check_clickhouse() {
 }
 
 # ---------------------------------------------------------------------------
-# 5. Redis
+# 5. Redis / Valkey
 # ---------------------------------------------------------------------------
 
 check_redis() {
-  section "Redis"
+  section "Redis (Valkey)"
   local pod
   pod=$(first_ready_pod "app=${RELEASE}-redis")
   if [ -z "$pod" ]; then
@@ -572,6 +572,15 @@ check_redis() {
   fi
   step "pod: $pod"
 
+  # The chart ships Valkey, whose CLI is valkey-cli. Releases installed before
+  # the switch still run the redis image, and a diagnose.sh from the repo is
+  # routinely pointed at one of those, so fall back rather than assume. (The
+  # valkey image does ship a redis-cli symlink, but the reverse is not true.)
+  local cli="valkey-cli"
+  if ! kc_exec "$pod" "$cli" --version >/dev/null 2>&1; then
+    cli="redis-cli"
+  fi
+
   local pw
   pw=$(secret_value "${RELEASE}-redis" "redis-password")
   local auth_arg=()
@@ -580,8 +589,8 @@ check_redis() {
   fi
 
   local info_mem info_stats
-  info_mem=$(kc_exec "$pod" redis-cli "${auth_arg[@]}" INFO memory 2>/dev/null)
-  info_stats=$(kc_exec "$pod" redis-cli "${auth_arg[@]}" INFO stats 2>/dev/null)
+  info_mem=$(kc_exec "$pod" "$cli" "${auth_arg[@]}" INFO memory 2>/dev/null)
+  info_stats=$(kc_exec "$pod" "$cli" "${auth_arg[@]}" INFO stats 2>/dev/null)
 
   if [ -z "$info_mem" ]; then
     warn "Could not query Redis (auth failed or pod not ready)"
@@ -615,13 +624,13 @@ check_redis() {
 
   # Queue backlog (BullMQ uses bull:* keys).
   local queue_keys
-  queue_keys=$(kc_exec "$pod" redis-cli "${auth_arg[@]}" --scan --pattern "bull:*:wait" 2>/dev/null | head -n 10)
+  queue_keys=$(kc_exec "$pod" "$cli" "${auth_arg[@]}" --scan --pattern "bull:*:wait" 2>/dev/null | head -n 10)
   if [ -n "$queue_keys" ]; then
     info "BullMQ wait queues found (showing depth):"
     while IFS= read -r k; do
       [ -z "$k" ] && continue
       local depth
-      depth=$(kc_exec "$pod" redis-cli "${auth_arg[@]}" LLEN "$k" 2>/dev/null | tr -d ' \r')
+      depth=$(kc_exec "$pod" "$cli" "${auth_arg[@]}" LLEN "$k" 2>/dev/null | tr -d ' \r')
       echo "      $k -> $depth"
       if [ -n "$depth" ] && [ "$depth" -ge 1000 ] 2>/dev/null; then
         add_finding "WARN" "worker" \

@@ -3,7 +3,7 @@
 OneUptime uses three databases:
 
 - **PostgreSQL** — application data, users, and configuration.
-- **Redis** — caching and session management.
+- **Redis** — caching and session management. The bundled image is Valkey, the BSD-licensed Redis fork; the wire protocol and every `REDIS_*` setting are unchanged.
 - **ClickHouse** — analytics, logs, and time-series data.
 
 Each one ships **built-in** (a single, standalone instance — great for getting
@@ -178,11 +178,19 @@ operations (including [PgBouncer connection pooling](../../../Docs/Postgres.md))
 
 ---
 
-## Redis
+## Redis (Valkey)
+
+The bundled cache/queue container is [Valkey](https://valkey.io), the
+BSD-licensed fork of Redis 7.2 that most of the original Redis contributors
+moved to after Redis 7.4 left the BSD licence. It speaks the Redis wire
+protocol, so the values key, the object names (`<release>-redis`,
+`<release>-redis-master`) and the `REDIS_*` environment variables handed to the
+app are all unchanged — only the image differs. Point `externalRedis` at a real
+Redis instance and that keeps working too.
 
 ### Built-in (default)
 
-A standalone Redis instance with authentication enabled:
+A standalone Valkey instance with authentication enabled:
 
 ```yaml
 redis:
@@ -191,8 +199,8 @@ redis:
     # Auto-generated if not provided
     password: "your-redis-password"
   image:
-    repository: redis
-    tag: latest
+    repository: valkey/valkey
+    tag: 9.1-alpine
     pullPolicy: IfNotPresent
   master:
     service:

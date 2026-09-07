@@ -280,7 +280,7 @@ export const ArchitectureTiers: Array<ArchitectureTier> = [
       {
         name: "Redis",
         description:
-          "Queues, caching, and coordination between the API and worker tiers.",
+          "Queues, caching, and coordination between the API and worker tiers. The bundled container runs Valkey, the BSD-licensed Redis fork, and speaks the Redis protocol.",
         scaling: "Bundled or external",
       },
       {

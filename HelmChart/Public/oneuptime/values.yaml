@@ -862,6 +862,16 @@ pgbouncer:
   extraVolumes: []
   extraVolumeMounts: []
 
+# The in-cluster cache and BullMQ queue backend. The image is Valkey -- the
+# BSD-licensed fork of Redis 7.2 that most of the original Redis contributors
+# moved to after Redis 7.4 left the BSD licence -- and it speaks the Redis wire
+# protocol, so nothing above the socket changed.
+#
+# The value key, the Kubernetes object names (`<release>-redis`,
+# `<release>-redis-master`) and the `REDIS_*` environment variables are
+# deliberately left as they are: renaming them would silently invalidate every
+# existing values.yaml override, `redis.auth.existingSecret` reference and
+# externally-managed secret out there, for no functional gain.
 redis:
   enabled: true
   auth:
@@ -872,9 +882,11 @@ redis:
       name:
       passwordKey:
   image:
-    repository: redis
-    # Use the alpine variant. The debian-based redis:latest image carries unfixable CVEs; alpine is a drop-in replacement.
-    tag: alpine
+    repository: valkey/valkey
+    # Use the alpine variant -- the debian-based images carry unfixable CVEs.
+    # Pinned to a minor line (patch releases still flow in) and kept aligned
+    # with docker-compose.base.yml so compose and Helm run the same engine.
+    tag: 9.1-alpine
     pullPolicy: IfNotPresent
   master:
     service:
@@ -892,12 +904,13 @@ redis:
     podSecurityContext: {}
     containerSecurityContext: {}
     resources: {}
-  # Liveness/readiness probes for the Redis container. Both run "redis-cli ping"
-  # inside the pod. Under transient disk fsync or CPU contention (common on
-  # slower disks such as GCP pd-standard) a single PING can take longer than a
-  # second, so the defaults below are deliberately tolerant: a few slow PINGs
-  # must not flap readiness or trigger a liveness kill and restart loop. Raise
-  # the timeouts/thresholds further if you run Redis on constrained nodes.
+  # Liveness/readiness probes for the Valkey container. Both run
+  # "valkey-cli ping" inside the pod. Under transient disk fsync or CPU
+  # contention (common on slower disks such as GCP pd-standard) a single PING
+  # can take longer than a second, so the defaults below are deliberately
+  # tolerant: a few slow PINGs must not flap readiness or trigger a liveness
+  # kill and restart loop. Raise the timeouts/thresholds further if you run it
+  # on constrained nodes.
   livenessProbe:
     enabled: true
     initialDelaySeconds: 30

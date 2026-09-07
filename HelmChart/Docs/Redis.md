@@ -1,4 +1,7 @@
-### Redis Ops
+### Redis (Valkey) Ops
+
+The in-cluster container runs the Valkey image, but the release's object and
+secret names still use `redis`.
 
 Get Redis Password
 
