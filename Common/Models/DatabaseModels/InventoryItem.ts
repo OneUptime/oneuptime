@@ -18,7 +18,19 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import EntitySource from "../../Types/Telemetry/EntitySource";
 import EntityType from "../../Types/Telemetry/EntityType";
-import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import {
+  InventoryLiveness,
+  INVENTORY_LIVE_WINDOW_MINUTES,
+  INVENTORY_STALE_AFTER_MINUTES,
+} from "../../Types/Telemetry/InventoryLiveness";
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  VirtualColumn,
+} from "typeorm";
 import DatabaseBaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 
 /*
@@ -367,6 +379,37 @@ export default class InventoryItem extends DatabaseBaseModel {
   })
   @Column({ type: ColumnType.Date, nullable: true })
   public lastSeenAt?: Date = undefined;
+
+  /**
+   * Computed at read time so filters, counts and pagination use the same
+   * status without persisting a value that becomes stale as time passes.
+   * A virtual column needs no schema migration and is never written.
+   *
+   * The badge floors elapsed minutes before applying inclusive thresholds:
+   * 30m59s is still Live, and 24h00m59s is still Recent. Strict comparisons
+   * against the following minute preserve those exact boundaries.
+   */
+  @ColumnAccessControl({ create: [], read: READ_PERMS, update: [] })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    title: "Status",
+    description:
+      "Current heartbeat status: live, recent, stale, never seen, or not tracked.",
+  })
+  @VirtualColumn({
+    type: ColumnType.ShortText,
+    query: (alias: string): string => {
+      return `CASE
+        WHEN ${alias}."source" IS DISTINCT FROM '${EntitySource.Discovered}' THEN '${InventoryLiveness.NotTracked}'
+        WHEN ${alias}."lastSeenAt" IS NULL THEN '${InventoryLiveness.Never}'
+        WHEN ${alias}."lastSeenAt" > CURRENT_TIMESTAMP - INTERVAL '${INVENTORY_LIVE_WINDOW_MINUTES + 1} minutes' THEN '${InventoryLiveness.Live}'
+        WHEN ${alias}."lastSeenAt" > CURRENT_TIMESTAMP - INTERVAL '${INVENTORY_STALE_AFTER_MINUTES + 1} minutes' THEN '${InventoryLiveness.Recent}'
+        ELSE '${InventoryLiveness.Stale}'
+      END`;
+    },
+  })
+  public inventoryStatus?: InventoryLiveness = undefined;
 
   /*
    * Archiving is the disposal route that actually works for this table.
