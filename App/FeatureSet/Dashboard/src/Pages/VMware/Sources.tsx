@@ -30,6 +30,8 @@ const VMwareSources: FunctionComponent = (): ReactElement => {
       <ModelTable<VMwareSource>
         modelType={VMwareSource}
         id="vmware-sources"
+        userPreferencesKey="vmware-sources-table"
+        filters={[]}
         name="VMware Sources"
         isCreateable={false}
         isDeleteable={false}
@@ -113,7 +115,10 @@ const VMwareSources: FunctionComponent = (): ReactElement => {
           {
             field: { kind: true },
             title: "Endpoint type",
-            type: FieldType.Text,
+            type: FieldType.Element,
+            getElement: (item: VMwareSource): ReactElement => (
+              <span>{sourceKindLabel(item.kind)}</span>
+            ),
           },
           {
             field: { lastSeenAt: true },

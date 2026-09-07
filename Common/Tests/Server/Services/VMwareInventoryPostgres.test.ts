@@ -87,7 +87,7 @@ describePostgres("VMware inventory PostgreSQL integration", () => {
       sql: string,
       params: Array<unknown>,
     ): Promise<Array<Record<string, unknown>>> =>
-      (await pool.query(sql, params)).rows;
+      {return (await pool.query(sql, params)).rows};
     for (const service of [VMwareSourceService, VMwareResourceService]) {
       jest
         .spyOn(service, "getRepository")
@@ -111,11 +111,11 @@ describePostgres("VMware inventory PostgreSQL integration", () => {
   it("concurrent source discovery converges but identical IDs in another project stay separate", async () => {
     const results: Array<SourceIdentity> = await Promise.all(
       Array.from({ length: 4 }, () =>
-        VMwareSourceService.ingestSnapshot(PROJECT, source()),
+        {return VMwareSourceService.ingestSnapshot(PROJECT, source())},
       ),
     );
     expect(
-      new Set(results.map((item: SourceIdentity) => item!.id.toString())).size,
+      new Set(results.map((item: SourceIdentity) => {return item!.id.toString()})).size,
     ).toBe(1);
     const other: SourceIdentity = await VMwareSourceService.ingestSnapshot(
       OTHER_PROJECT,

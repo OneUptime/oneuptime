@@ -3,6 +3,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import MonitorType from "Common/Types/Monitor/MonitorType";
+import IconProp from "Common/Types/Icon/IconProp";
 import MonitorTable from "../../Components/Monitor/MonitorTable";
 import Navigation from "Common/UI/Utils/Navigation";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -18,6 +19,7 @@ const VMwareMonitors: FunctionComponent = (): ReactElement => (
       PermissionGate.gateCardButton(
         {
           title: "Create VMware monitor",
+          icon: IconProp.Add,
           buttonStyle: ButtonStyleType.PRIMARY,
           onClick: () => {
             Navigation.navigate(monitorRoute());

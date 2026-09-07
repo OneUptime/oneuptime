@@ -31,6 +31,8 @@ const VMwareResources: FunctionComponent<{
     <ModelTable<VMwareResource>
       modelType={VMwareResource}
       id={`vmware-resources-${resourceType}`}
+      userPreferencesKey={`vmware-resources-${resourceType}-table`}
+      filters={[]}
       name="VMware Resources"
       isCreateable={false}
       isEditable={false}

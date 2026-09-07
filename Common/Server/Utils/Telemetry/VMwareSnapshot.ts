@@ -86,7 +86,7 @@ export function getVMwareSourceIdentifier(attributes: unknown): string | null {
 }
 
 /* Fold once per OTLP batch, independently of metric count. No metric allow-list is
- * needed to store telemetry, but inventory only consumes the companion contract.
+ * needed to store telemetry, but resource inventory only consumes the companion contract.
  * Collector failure never deletes inventory or replaces absent metrics with zero. */
 export function scanVMwareSnapshots(
   resourceMetrics: JSONArray,
@@ -125,7 +125,7 @@ export function scanVMwareSnapshots(
     ).slice(0, ColumnLength.LongText);
     const kind: JSONValue | undefined =
       attributes[`${VMWARE_PREFIX}source.kind`];
-    // Only a validated numeric companion sample establishes liveness.
+    // Only a validated numeric VMware sample establishes source liveness.
     const scopes: JSONValue | undefined = resourceMetric["scopeMetrics"];
     if (!Array.isArray(scopes)) {
       continue;

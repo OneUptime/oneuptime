@@ -947,16 +947,23 @@ export default class MonitorResourceUtil {
           VMwareRecoveryPolicy.shouldChangeStatus({
             monitorType: monitor.monitorType,
             criteriaInstance: matchedCriteriaInstance,
-            unavailableSeriesFingerprints: (dataToProcess as MetricMonitorResponse).unavailableSeriesFingerprints,
-          }) ? await MonitorStatusTimelineUtil.updateMonitorStatusTimeline({
-            monitor: monitor,
-            rootCause: response.rootCause,
-            dataToProcess: dataToProcess,
-            criteriaInstance: matchedCriteriaInstance,
-            props: {
-              telemetryQuery: telemetryQuery,
-            },
-          }) : null;
+            unavailableSeriesFingerprints: (
+              dataToProcess as MetricMonitorResponse
+            ).unavailableSeriesFingerprints,
+            operationalMonitorStatusIds: (
+              dataToProcess as MetricMonitorResponse
+            ).operationalMonitorStatusIds,
+          })
+            ? await MonitorStatusTimelineUtil.updateMonitorStatusTimeline({
+                monitor: monitor,
+                rootCause: response.rootCause,
+                dataToProcess: dataToProcess,
+                criteriaInstance: matchedCriteriaInstance,
+                props: {
+                  telemetryQuery: telemetryQuery,
+                },
+              })
+            : null;
 
         if (monitorStatusTimelineChange) {
           const changedStatusName: string | null = await getMonitorStatusName(
@@ -1212,7 +1219,9 @@ export default class MonitorResourceUtil {
         }
       } else if (
         !response.criteriaMetId &&
-        VMwareRecoveryPolicy.shouldChangeStatus({ monitorType: monitor.monitorType }) &&
+        VMwareRecoveryPolicy.shouldChangeStatus({
+          monitorType: monitor.monitorType,
+        }) &&
         /*
          * A trap that matches no criteria is simply ignored — it must not
          * reset the monitor to its default status (the polled checks own

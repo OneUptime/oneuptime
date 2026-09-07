@@ -224,6 +224,7 @@ const VmwareMonitorStepForm: FunctionComponent<ComponentProps> = (
         </p>
       )}
       <Tabs
+        onTabChange={() => {}}
         tabs={[
           {
             name: "Alert templates",

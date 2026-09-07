@@ -175,9 +175,13 @@ export default class MonitorCriteriaEvaluator {
         ? new Set<string>()
         : undefined;
     if (recoveredSeriesFingerprints) {
-      (
-        input.dataToProcess as MetricMonitorResponse
-      ).recoveredSeriesFingerprints = [];
+      const metricResponse: MetricMonitorResponse =
+        input.dataToProcess as MetricMonitorResponse;
+      metricResponse.recoveredSeriesFingerprints = [];
+      metricResponse.operationalMonitorStatusIds =
+        await VMwareRecoveryPolicy.getOperationalStatusIds(
+          input.monitor.projectId!,
+        );
     }
 
     const matchedCriteria: Array<MatchedCriteriaResult> = [];
@@ -316,7 +320,11 @@ export default class MonitorCriteriaEvaluator {
 
       if (
         recoveredSeriesFingerprints &&
-        VMwareRecoveryPolicy.isRecoveryCriteria(criteriaInstance)
+        VMwareRecoveryPolicy.isRecoveryCriteria(
+          criteriaInstance,
+          (input.dataToProcess as MetricMonitorResponse)
+            .operationalMonitorStatusIds || [],
+        )
       ) {
         for (const match of perSeriesMatches) {
           recoveredSeriesFingerprints.add(match.fingerprint);
