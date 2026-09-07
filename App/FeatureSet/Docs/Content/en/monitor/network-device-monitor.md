@@ -41,6 +41,7 @@ Once registered, the device is pinged by the probe you assigned within a couple 
 | ----------- | ---------------------------------------------------------------- | -------- |
 | Name        | A friendly name for the device (e.g., core-switch-01)            | Yes      |
 | Hostname    | IP address or hostname the probe pings, and walks over SNMP      | Yes      |
+| MAC Address | The device's own MAC. Lets the topology map put a device that speaks neither LLDP nor CDP on the switch port that learned it — see [Network Topology](#network-topology). Usually learned for you from a router's ARP table. | No |
 | Description | Free text                                                        | No       |
 | Role        | Device role (core switch, access switch, firewall …) — drives topology tiering and alert-policy scoping | No |
 
@@ -202,7 +203,7 @@ Polling settings live on the device (Device -> **Settings** -> **Polling & Data 
 | Polling Enabled             | The assigned probe polls this device on the schedule below. Disable to pause polling without deleting the device.                                                           | On      |
 | Polling Interval (Minutes)  | How often the probe polls the device. Minimum 1 minute.                                                                                                                    | 5       |
 | Walk Interfaces             | Walk the interface tables (IF-MIB) on each poll — per-interface status, bandwidth, utilization and errors — plus LLDP/CDP neighbours for the topology map. Needs credentials. | On      |
-| Collect Connected Endpoints | Also walk the device's ARP and bridge-forwarding tables to discover endpoints attached to it (POS terminals, printers, phones, laptops). Costs extra SNMP walks per poll.    | Off     |
+| Collect Connected Endpoints | Also walk the device's ARP and bridge-forwarding tables to discover endpoints attached to it (POS terminals, printers, phones, laptops), and — on a router, or any device whose walk returns an ARP table — fill in the MAC address of registered devices found there, which is what puts a ping-only device on its switch port on the map. Costs extra SNMP walks per poll. | Off     |
 | OID Collection Template     | A reusable, named OID list this device collects. Editing the template changes every device linked to it on its next poll.                                                   | None    |
 | Device-Specific Health OIDs | Extra SNMP OIDs only this device collects, on top of its template. Recorded as device metrics.                                                                              | None    |
 
@@ -590,6 +591,25 @@ For the map to populate:
 
 Clicking an unmanaged peer offers **Add to Monitoring**, which registers it as a probe-polled device: it inherits the probe its neighbours agree on, so it is pinged from its first poll, and you add credentials afterwards if it turns out to have them.
 
+### Ping-only devices and their switch port
+
+A register, a handset, a kiosk or a camera speaks neither LLDP nor CDP, so nothing it reports can place it on the map. Its switch knows, though: every walked switch reports its forwarding table — which MAC it learned on which port — and the map uses that to draw the device's cable, from the switch to the device's own node, with the port and VLAN it was learned on. The link is worked out each time the map loads from the latest walk, so when the device is moved to another port or another switch the map follows on the next poll; nothing has to be redrawn.
+
+For that to happen the map has to know which learned MAC is the device's. Two ways, and you normally need neither by hand:
+
+- **From an ARP table.** When a router at the site — or any walked device whose walk returns an ARP table — has **Collect Connected Endpoints** on, that table binds each address to a MAC, and a registered device whose hostname is that address has its **MAC Address** filled in automatically. A MAC learned this way is corrected when a later walk binds the address to a different MAC (the unit was swapped, or the row was stale); a MAC you typed in is never touched. Devices registered by IP, which is what a discovery import does, need nothing else.
+- **By typing it.** Set **MAC Address** on the device (Device -> **Settings**, or the Overview card) when its hostname is a DNS name, or when no router at the site is walked. Any of the usual spellings is accepted.
+
+The switch the device hangs off needs **Collect Connected Endpoints** on as well — that is where the port comes from. The match is made within the device's site: every branch has a `10.0.0.5`, so an address is only ever matched to a device in the same site as the switch that learned it. A MAC matches regardless of site.
+
+Where to see it: the device's Overview page has a **Connected to** card naming the switch, port and VLAN; on the map, the device's drawer shows the same under **Connected to**, and the link's drawer explains that it was learned from the switch's forwarding table. In the Parent-Child view the device is drawn beneath its switch. A link you drew by hand under **Device Links** for the same pair merges with the learned one rather than doubling it — the learned port replaces a mistyped one, and a parent you declared on the hand-drawn link is kept.
+
+![Parent-Child topology view drawing a ping-only register beneath its switch over a learned link](/docs/static/images/NetworkTopologyLearnedLink.png)
+
+![The link drawer explaining that the switch learned the device's MAC address on port Gi0/4](/docs/static/images/NetworkTopologyLearnedLinkDrawer.png)
+
+![The Connected to card on a device's Overview page naming the switch, port and VLAN](/docs/static/images/NetworkDeviceConnectedToCard.png)
+
 ## Troubleshooting
 
 ### Device stays Pending
@@ -622,6 +642,16 @@ The device has been polled and no walk was attempted, because no usable credenti
 - Confirm **Walk Interfaces** is on in the device's polling settings
 - Check the `{{interfaceWalkFailure}}` template variable / monitor logs — the device may restrict the IF-MIB subtree for your credentials
 
+### Ping-only device is not attached to its switch
+
+The map draws a ping-only device's cable from its switch's forwarding table, which needs three things to line up:
+
+- **The switch collects endpoints** — **Collect Connected Endpoints** on in the switch's polling settings, with credentials that let the walk succeed. The device's own Overview page shows a **Connected to** card once a switch has learned it.
+- **The device's MAC is known.** Either the **MAC Address** field is set, or a router at the site collects endpoints and the device's hostname is the IP address that router's ARP table binds. A device registered by DNS name with no MAC cannot be matched — type the MAC in.
+- **Same site.** An address is only matched to a device in the same site as the switch that learned it. A device with no site matches by address only when the switch that learned it has no site either; if the switch is on a site, put the device on the same one (a MAC matches regardless of site).
+
+If the device sits behind an unmanaged switch or a hub, the managed switch learns every MAC behind it on one port, and that is the port the map draws — the physical truth from the managed switch's point of view.
+
 ### Traps not arriving
 
 - Publish/allow UDP port 162 through to the probe (or the custom `PROBE_SNMP_TRAP_RECEIVER_PORT`)
@@ -650,5 +680,6 @@ snmpget -v3 -u username -l authPriv -a SHA -A authpassword -x AES -X privpasswor
 6. **Write the fleet's alerting intent down as a policy** — even while [provisioning is off](#alert-policies), a policy records what a set of devices should be alerted on, which is the part hand-built monitors never capture: they cover the devices you had, not the ones you are about to discover.
 7. **Register devices by the IP they send traps from** — trap-to-monitor matching is by source IP.
 8. **Keep interface walking on for switches and routers** — it powers interface alerts, utilization data and the topology map.
-9. **Use descriptive OID names** — makes alert messages and template variables easier to read.
-10. **Reserve the bound-monitor override for gear a probe genuinely cannot reach** — it turns polling off, and with it interfaces, inventory and the device's own metrics.
+9. **Turn on Collect Connected Endpoints on each site's switches and its router** — the switches put every ping-only device on the port it is plugged into, and the router fills in the MAC addresses that make the match, so a site's registers and handsets are cabled on the map without a single link drawn by hand.
+10. **Use descriptive OID names** — makes alert messages and template variables easier to read.
+11. **Reserve the bound-monitor override for gear a probe genuinely cannot reach** — it turns polling off, and with it interfaces, inventory and the device's own metrics.

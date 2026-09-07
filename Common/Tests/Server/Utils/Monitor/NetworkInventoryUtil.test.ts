@@ -20,6 +20,8 @@ import SnmpVendorTemplateUtil, {
 import NetworkDeviceMonitoringMethod from "../../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import { NetworkDevicePollMode } from "../../../../Server/Utils/Monitor/NetworkDeviceHydrationUtil";
 import logger from "../../../../Server/Utils/Logger";
+import { JSONObject } from "../../../../Types/JSON";
+import { FindOperator } from "typeorm";
 
 /*
  * NetworkInventoryUtil.updateFromWalk is the single writer that keeps the
@@ -47,6 +49,8 @@ let deviceUpdateSpy: jest.SpyInstance;
 let interfaceFindSpy: jest.SpyInstance;
 let interfaceUpsertSpy: jest.SpyInstance;
 let endpointUpsertSpy: jest.SpyInstance;
+let deviceLookupSpy: jest.SpyInstance;
+let macWriteSpy: jest.SpyInstance;
 
 function mockServices(
   existingInterfaces: Array<NetworkInterface> = [],
@@ -119,6 +123,19 @@ function mockServices(
   endpointUpsertSpy = jest
     .spyOn(NetworkEndpointService, "upsertDiscoveredEndpoints")
     .mockResolvedValue(undefined as never);
+  /*
+   * Device MAC learning follows the endpoint upsert on any walk that
+   * carried ARP bindings: one findBy for the devices registered at the
+   * bound addresses, then a hook-free compare-and-set write per device the
+   * planner picked. Stubbed here so the ARP cases never reach a database;
+   * the learning block seeds findBy with real rows where it matters.
+   */
+  deviceLookupSpy = jest
+    .spyOn(NetworkDeviceService, "findBy")
+    .mockResolvedValue([]);
+  macWriteSpy = jest
+    .spyOn(NetworkDeviceService, "updateColumnsByIdWithoutHooks")
+    .mockResolvedValue(undefined);
 }
 
 function deviceUpdatePayload(): DeviceUpdatePayload {
@@ -1098,6 +1115,306 @@ describe("NetworkInventoryUtil.updateFromWalk — endpoint discovery", () => {
         routerInterfaceIndex: 3,
       },
     ]);
+  });
+});
+
+/*
+ * A walked router's ARP table binds the address a managed device is
+ * registered at to the MAC the switches learned - the one fact a ping-only
+ * register or handset never reports about itself. After the endpoint
+ * inventory is written, the walk hands those bindings to
+ * NetworkDeviceMacLearningUtil, which stamps the MAC on the device row while
+ * its column is still empty. The planner's rules are pinned in
+ * Tests/Utils/Monitor/DeviceMacLearningUtil.test.ts and the database contract
+ * in Tests/Server/Utils/Monitor/NetworkDeviceMacLearningUtil.test.ts; what is
+ * pinned HERE is the hand-off from the walk: when learning runs, what it is
+ * scoped by, and that a failure in it stays in it.
+ */
+describe("NetworkInventoryUtil.updateFromWalk — device MAC learning", () => {
+  const SITE_ID: ObjectID = new ObjectID(
+    "5a5a5a5a-0000-4000-8000-00000000000a",
+  );
+  const OTHER_SITE_ID: ObjectID = new ObjectID(
+    "5b5b5b5b-0000-4000-8000-00000000000b",
+  );
+  const REGISTER_ID: string = "8f2c1f0e-0000-4000-8000-0000000000bb";
+  const HANDSET_ID: string = "8f2c1f0e-0000-4000-8000-0000000000cc";
+  const REGISTER_IP: string = "10.0.0.5";
+  const REGISTER_MAC: string = "aa:bb:cc:00:11:22";
+
+  // A managed, ping-only device registered at the address the router bound.
+  function registeredDevice(
+    id: string,
+    overrides?: { siteId?: ObjectID; macAddress?: string },
+  ): NetworkDevice {
+    const row: NetworkDevice = new NetworkDevice();
+    row.id = new ObjectID(id);
+    row.hostname = REGISTER_IP;
+    if (overrides?.siteId) {
+      row.siteId = overrides.siteId;
+    }
+    if (overrides?.macAddress !== undefined) {
+      row.macAddress = overrides.macAddress;
+    }
+    return row;
+  }
+
+  // The ARP table spelling differs from the column's: learning normalizes.
+  function arpWalk(): Partial<SnmpMonitorResponse> {
+    return {
+      arpEntries: [
+        {
+          ipAddress: REGISTER_IP,
+          macAddress: "AA-BB-CC-00-11-22",
+          interfaceIndex: 3,
+          entryType: "dynamic",
+        },
+      ],
+    };
+  }
+
+  /*
+   * The addresses the device lookup asked about. QueryHelper.any renders
+   * them into a TypeORM Raw operator with a RANDOM parameter name, so the
+   * list is recovered from the operator's parameters.
+   */
+  function addressesLookedUp(): Array<string> {
+    const query: JSONObject = (deviceLookupSpy.mock.calls[0]![0] as JSONObject)[
+      "query"
+    ] as JSONObject;
+    const operator: FindOperator<string> = query[
+      "hostname"
+    ] as unknown as FindOperator<string>;
+    const parameters: Record<string, unknown> =
+      (operator.objectLiteralParameters || {}) as Record<string, unknown>;
+    const values: Array<unknown> =
+      (Object.values(parameters)[0] as Array<unknown>) || [];
+    return values.map((value: unknown): string => {
+      return String(value);
+    });
+  }
+
+  function spyError(): jest.SpyInstance {
+    return jest.spyOn(logger, "error").mockImplementation(() => {
+      return undefined;
+    });
+  }
+
+  test("a walk carrying an ARP entry looks up the devices at the bound address, in the walked device's project", async () => {
+    mockServices([], { siteId: SITE_ID });
+    deviceLookupSpy.mockResolvedValue([
+      registeredDevice(REGISTER_ID, { siteId: SITE_ID }),
+    ]);
+
+    await runWalk(arpWalk());
+
+    expect(deviceLookupSpy).toHaveBeenCalledTimes(1);
+
+    const query: JSONObject = (deviceLookupSpy.mock.calls[0]![0] as JSONObject)[
+      "query"
+    ] as JSONObject;
+
+    expect((query["projectId"] as ObjectID).toString()).toBe(PROJECT_ID);
+    expect(addressesLookedUp()).toEqual([REGISTER_IP]);
+  });
+
+  test("a device with an empty MAC in the router's site is stamped through the hook-free compare-and-set write", async () => {
+    mockServices([], { siteId: SITE_ID });
+    deviceLookupSpy.mockResolvedValue([
+      registeredDevice(REGISTER_ID, { siteId: SITE_ID }),
+    ]);
+
+    await runWalk(arpWalk());
+
+    expect(macWriteSpy).toHaveBeenCalledTimes(1);
+
+    const write: JSONObject = macWriteSpy.mock.calls[0]![0] as JSONObject;
+
+    expect((write["id"] as ObjectID).toString()).toBe(REGISTER_ID);
+    expect(write["data"]).toEqual({
+      macAddress: REGISTER_MAC,
+      isMacAddressLearned: true,
+    });
+    expect(write["expectedData"]).toEqual({
+      macAddress: null,
+      deletedAt: null,
+    });
+    // The walked router's own row is untouched by learning.
+    expect(deviceUpdateSpy).toHaveBeenCalledTimes(1);
+    expect(deviceUpdatePayload()).not.toHaveProperty("macAddress");
+  });
+
+  test("learning runs after the endpoint inventory has been written", async () => {
+    mockServices([], { siteId: SITE_ID });
+
+    await runWalk(arpWalk());
+
+    expect(endpointUpsertSpy).toHaveBeenCalledTimes(1);
+    expect(deviceLookupSpy).toHaveBeenCalledTimes(1);
+    expect(endpointUpsertSpy.mock.invocationCallOrder[0]!).toBeLessThan(
+      deviceLookupSpy.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("a walk with FDB entries only never looks devices up", async () => {
+    mockServices([], { siteId: SITE_ID });
+
+    await runWalk({
+      interfaces: [walkedInterface({ interfaceIndex: 5, name: "Gi0/5" })],
+      fdbEntries: [
+        {
+          macAddress: REGISTER_MAC,
+          bridgePort: 5,
+          interfaceIndex: 5,
+          status: "learned",
+        },
+      ],
+    });
+
+    // The attachment was still written; only the ARP half was absent.
+    expect(endpointUpsertSpy).toHaveBeenCalledTimes(1);
+    expect(deviceLookupSpy).not.toHaveBeenCalled();
+    expect(macWriteSpy).not.toHaveBeenCalled();
+  });
+
+  test("a walk without endpoint arrays at all never looks devices up", async () => {
+    mockServices([], { siteId: SITE_ID });
+
+    await runWalk({ interfaces: [walkedInterface()] });
+
+    expect(deviceLookupSpy).not.toHaveBeenCalled();
+    expect(macWriteSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Learning keys off the bindings the attachment pass KEPT, not the raw
+   * ARP rows: an entry for the router's own interface MAC is dropped there
+   * and must not come back as a lookup here.
+   */
+  test("an ARP entry the attachment pass discards never reaches learning", async () => {
+    mockServices([], { siteId: SITE_ID });
+
+    await runWalk({
+      interfaces: [
+        walkedInterface({ interfaceIndex: 3, macAddress: REGISTER_MAC }),
+      ],
+      ...arpWalk(),
+    });
+
+    expect(endpointUpsertSpy).not.toHaveBeenCalled();
+    expect(deviceLookupSpy).not.toHaveBeenCalled();
+    expect(macWriteSpy).not.toHaveBeenCalled();
+  });
+
+  test("a failure in the learning step is logged and does not prevent the walk from completing", async () => {
+    mockServices([], { siteId: SITE_ID });
+    deviceLookupSpy.mockRejectedValue(new Error("connection reset"));
+    const error: jest.SpyInstance = spyError();
+
+    const snmpResponse: SnmpMonitorResponse = await runWalk(arpWalk());
+
+    // Nothing escaped, and everything before the learning step landed.
+    expect(snmpResponse).toBeDefined();
+    expect(deviceUpdateSpy).toHaveBeenCalledTimes(1);
+    expect(endpointUpsertSpy).toHaveBeenCalledTimes(1);
+    expect(macWriteSpy).not.toHaveBeenCalled();
+
+    const messages: Array<string> = error.mock.calls.map(
+      (call: Array<unknown>) => {
+        return String(call[0]);
+      },
+    );
+
+    /*
+     * Its OWN catch, naming the device - never the outer "failed to update
+     * network inventory" line, which would read as the endpoint upsert
+     * having failed too.
+     */
+    expect(
+      messages.some((message: string) => {
+        return message.includes("MAC") && message.includes(DEVICE_ID);
+      }),
+    ).toBe(true);
+    expect(
+      messages.some((message: string) => {
+        return message.includes("Failed to update network inventory");
+      }),
+    ).toBe(false);
+  });
+
+  test("a failing MAC write is contained the same way", async () => {
+    mockServices([], { siteId: SITE_ID });
+    deviceLookupSpy.mockResolvedValue([
+      registeredDevice(REGISTER_ID, { siteId: SITE_ID }),
+    ]);
+    macWriteSpy.mockRejectedValue(new Error("deadlock detected"));
+    const error: jest.SpyInstance = spyError();
+
+    await expect(runWalk(arpWalk())).resolves.toBeDefined();
+
+    expect(endpointUpsertSpy).toHaveBeenCalledTimes(1);
+    expect(error).toHaveBeenCalled();
+  });
+
+  test("the observing device's site scopes the match: a device in another site is not stamped", async () => {
+    mockServices([], { siteId: SITE_ID });
+    deviceLookupSpy.mockResolvedValue([
+      registeredDevice(REGISTER_ID, { siteId: OTHER_SITE_ID }),
+    ]);
+
+    await runWalk(arpWalk());
+
+    // Looked up - the read is project-wide by design - but refused.
+    expect(deviceLookupSpy).toHaveBeenCalledTimes(1);
+    expect(macWriteSpy).not.toHaveBeenCalled();
+  });
+
+  test("an observing device with no site stamps only a device with no site", async () => {
+    // The default device carries no siteId: a project without sites.
+    mockServices();
+    const siteless: NetworkDevice = registeredDevice(HANDSET_ID);
+    deviceLookupSpy.mockResolvedValue([
+      registeredDevice(REGISTER_ID, { siteId: SITE_ID }),
+    ]);
+
+    await runWalk(arpWalk());
+    expect(macWriteSpy).not.toHaveBeenCalled();
+
+    deviceLookupSpy.mockResolvedValue([siteless]);
+
+    await runWalk(arpWalk());
+    expect(macWriteSpy).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        (macWriteSpy.mock.calls[0]![0] as JSONObject)["id"] as ObjectID
+      ).toString(),
+    ).toBe(HANDSET_ID);
+  });
+
+  test("a device that already carries a MAC is left alone", async () => {
+    mockServices([], { siteId: SITE_ID });
+    deviceLookupSpy.mockResolvedValue([
+      registeredDevice(REGISTER_ID, {
+        siteId: SITE_ID,
+        macAddress: "00:11:22:33:44:55",
+      }),
+    ]);
+
+    await runWalk(arpWalk());
+
+    expect(deviceLookupSpy).toHaveBeenCalledTimes(1);
+    expect(macWriteSpy).not.toHaveBeenCalled();
+  });
+
+  test("selects siteId on the device read, or learning could never scope by site", async () => {
+    mockServices();
+
+    await runWalk();
+
+    const findArgs: { select?: Record<string, boolean> } = deviceFindSpy.mock
+      .calls[0]![0] as unknown as { select?: Record<string, boolean> };
+
+    expect(findArgs.select?.["siteId"]).toBe(true);
   });
 });
 

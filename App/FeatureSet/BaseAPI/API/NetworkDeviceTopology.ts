@@ -15,7 +15,9 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import Query from "Common/Server/Types/Database/Query";
+import Select from "Common/Server/Types/Database/Select";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import { normalizeMac } from "Common/Utils/Monitor/EndpointAttachmentUtil";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkInterfaceService from "Common/Server/Services/NetworkInterfaceService";
@@ -60,6 +62,14 @@ import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/Ne
 
 // Hard cap on endpoint rows fed to the builder — beyond this the map is noise.
 const MAX_TOPOLOGY_ENDPOINTS: number = 2000;
+
+/*
+ * The loose shape test the builder uses to decide a hostname is an address
+ * worth offering as an adoption key. Hoisted so the literal is not the
+ * object of a member expression, which `wrap-regex` and Prettier cannot
+ * agree on.
+ */
+const IPV4_HOSTNAME_PATTERN: RegExp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
 
 /*
  * Bounds on the link-rule device sweep.
@@ -264,6 +274,13 @@ export default class NetworkDeviceTopologyAPI {
                 _id: true,
                 name: true,
                 hostname: true,
+                /*
+                 * The device's own MAC, declared or ARP-learned. Not
+                 * rendered as such - it is what lets a switch's forwarding
+                 * table say which port a ping-only device is on, which is
+                 * the only link such a device can ever have (issue #3489).
+                 */
+                macAddress: true,
                 sysName: true,
                 /*
                  * Reachability: the OUTCOME of the last poll (isReachable),
@@ -469,6 +486,26 @@ export default class NetworkDeviceTopologyAPI {
            * thousand leaf nodes the graph is unreadable anyway, and the
            * cap is surfaced to the UI below.
            */
+          const endpointSelect: Select<NetworkEndpoint> = {
+            _id: true,
+            macAddress: true,
+            ipAddress: true,
+            vendor: true,
+            classification: true,
+            vlanId: true,
+            attachedNetworkDeviceId: true,
+            attachedInterfaceIndex: true,
+            attachedPortName: true,
+            lastSeenAt: true,
+            /*
+             * The site of the switch that learned the MAC. Read only by the
+             * builder's by-address match, which is scoped to it: every
+             * branch has a 10.0.0.5, and without the site an endpoint at
+             * that address would name one register in every store.
+             */
+            siteId: true,
+          };
+
           let endpointRows: Array<NetworkEndpoint> = [];
           if (deviceIds.size > 0) {
             endpointRows = await NetworkEndpointService.findBy({
@@ -476,18 +513,7 @@ export default class NetworkDeviceTopologyAPI {
                 projectId: props.tenantId,
                 attachedNetworkDeviceId: QueryHelper.any(Array.from(deviceIds)),
               },
-              select: {
-                _id: true,
-                macAddress: true,
-                ipAddress: true,
-                vendor: true,
-                classification: true,
-                vlanId: true,
-                attachedNetworkDeviceId: true,
-                attachedInterfaceIndex: true,
-                attachedPortName: true,
-                lastSeenAt: true,
-              },
+              select: endpointSelect,
               sort: {
                 macAddress: SortOrder.Ascending,
               },
@@ -495,6 +521,82 @@ export default class NetworkDeviceTopologyAPI {
               skip: 0,
               props: props,
             });
+          }
+
+          /*
+           * The endpoint rows that ARE managed devices, when the page above
+           * may have missed them.
+           *
+           * The cap is by MAC order, so on a map with more learned MACs
+           * than the cap the row that puts a ping-only device on its switch
+           * port can sit past the cut - and the device then floats exactly
+           * as it did before it had a MAC. Devices with a declared or
+           * learned MAC are therefore looked up by it directly, which the
+           * (projectId, macAddress) index serves, and merged in. Skipped
+           * whenever the page came back short: a short page is the whole
+           * set, and every one of those rows is already in hand.
+           */
+          if (endpointRows.length >= MAX_TOPOLOGY_ENDPOINTS) {
+            /*
+             * Both keys the builder adopts by: the declared or learned
+             * MAC, and the hostname when it is an IPv4 literal (an
+             * address is matched within the site, but the site is the
+             * builder's business - here every row at one of these
+             * addresses is fetched and the builder decides).
+             */
+            const declaredMacs: Array<string> = [];
+            const addressHostnames: Array<string> = [];
+            for (const device of devices) {
+              const mac: string | undefined = normalizeMac(device.macAddress);
+              if (mac) {
+                declaredMacs.push(mac);
+              }
+              const hostname: string = (device.hostname || "").trim();
+              if (IPV4_HOSTNAME_PATTERN.test(hostname)) {
+                addressHostnames.push(hostname);
+              }
+            }
+
+            const seenEndpointIds: Set<string> = new Set<string>(
+              endpointRows.map((endpoint: NetworkEndpoint) => {
+                return endpoint._id?.toString() || "";
+              }),
+            );
+
+            const targetedQueries: Array<Query<NetworkEndpoint>> = [];
+            if (declaredMacs.length > 0) {
+              targetedQueries.push({
+                projectId: props.tenantId,
+                attachedNetworkDeviceId: QueryHelper.any(Array.from(deviceIds)),
+                macAddress: QueryHelper.any(declaredMacs),
+              });
+            }
+            if (addressHostnames.length > 0) {
+              targetedQueries.push({
+                projectId: props.tenantId,
+                attachedNetworkDeviceId: QueryHelper.any(Array.from(deviceIds)),
+                ipAddress: QueryHelper.any(addressHostnames),
+              });
+            }
+
+            for (const targetedQuery of targetedQueries) {
+              const deviceEndpointRows: Array<NetworkEndpoint> =
+                await NetworkEndpointService.findBy({
+                  query: targetedQuery,
+                  select: endpointSelect,
+                  limit: LIMIT_PER_PROJECT,
+                  skip: 0,
+                  props: props,
+                });
+
+              for (const endpoint of deviceEndpointRows) {
+                const id: string = endpoint._id?.toString() || "";
+                if (id && !seenEndpointIds.has(id)) {
+                  seenEndpointIds.add(id);
+                  endpointRows.push(endpoint);
+                }
+              }
+            }
           }
 
           const endpointInput: Array<TopologyEndpointInput> = [];
@@ -514,6 +616,11 @@ export default class NetworkDeviceTopologyAPI {
               attachedInterfaceIndex: endpoint.attachedInterfaceIndex,
               attachedPortName: endpoint.attachedPortName,
               lastSeenAt: endpoint.lastSeenAt,
+              /*
+               * .toString() is load-bearing, as for the link rules above:
+               * the builder keys a Map on it.
+               */
+              siteId: endpoint.siteId?.toString(),
             });
           }
 
@@ -646,6 +753,12 @@ export default class NetworkDeviceTopologyAPI {
                 serialNumber: device.serialNumber,
                 isNeighborDiscoveryEnabled: device.walkInterfaces,
                 macAddresses: macAddressesByDeviceId.get(device.id!.toString()),
+                macAddress: device.macAddress,
+                /*
+                 * .toString() is load-bearing here too - the endpoint
+                 * adoption keys a Map on it.
+                 */
+                siteId: device.siteId?.toString(),
                 lldpNeighbors: device.lldpNeighbors,
                 cdpNeighbors: device.cdpNeighbors,
               };

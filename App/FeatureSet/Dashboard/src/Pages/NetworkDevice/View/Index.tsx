@@ -8,6 +8,8 @@ import DeviceMonitorLookupUtil, {
 } from "../../../Components/NetworkDevice/DeviceMonitorLookupUtil";
 import DeviceMonitorsCard from "../../../Components/NetworkDevice/DeviceMonitorsCard";
 import DeviceVendorTemplateBanner from "../../../Components/NetworkDevice/DeviceVendorTemplateBanner";
+import DeviceAttachmentCard from "../../../Components/NetworkDevice/DeviceAttachmentCard";
+import { getMacAddressFormField } from "../MacAddressFormField";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -105,6 +107,7 @@ const NetworkDeviceView: FunctionComponent<
             placeholder: "10.0.0.1 or switch-01.example.com",
             description: HOSTNAME_FIELD_DESCRIPTION,
           },
+          getMacAddressFormField(),
           {
             field: {
               site: true,
@@ -155,6 +158,16 @@ const NetworkDeviceView: FunctionComponent<
               },
               title: "Hostname",
               fieldType: FieldType.Text,
+            },
+            {
+              field: {
+                macAddress: true,
+              },
+              title: "MAC Address",
+              fieldType: FieldType.Text,
+              showIf: (item: NetworkDevice): boolean => {
+                return Boolean(item.macAddress);
+              },
             },
             {
               field: {
@@ -227,6 +240,7 @@ const NetworkDeviceView: FunctionComponent<
         }}
       />
       <DeviceInterfacesPreview modelId={modelId} />
+      <DeviceAttachmentCard modelId={modelId} />
       <DeviceInventoryCard modelId={modelId} />
       <DeviceMonitorsCard
         monitors={monitors}

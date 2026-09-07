@@ -530,3 +530,35 @@ describe("the Add to Monitoring dialog", () => {
     }
   });
 });
+
+/*
+ * The MAC the map already knows for a neighbour rides into the create form,
+ * so a device adopted from the drawer keeps its switch port from its first
+ * poll rather than waiting for a router's ARP table to say it again.
+ */
+describe("the MAC Address the map knows is pre-filled", () => {
+  beforeEach(() => {
+    captured = null;
+    neighborQueries = [];
+    neighborRows = [{ _id: "switch-1", probeId: "probe-a", siteId: "site-a" }];
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("a neighbour with a known MAC opens with it filled in", async () => {
+    const props: CapturedModalProps = await openDialog({
+      ...PHONE_NODE,
+      macAddress: "aa:bb:cc:dd:ee:01",
+    });
+
+    expect(props.initialValues["macAddress"]).toBe("aa:bb:cc:dd:ee:01");
+  });
+
+  test("a neighbour with no known MAC opens with the field empty", async () => {
+    const props: CapturedModalProps = await openDialog(PHONE_NODE);
+
+    expect(props.initialValues["macAddress"]).toBeUndefined();
+  });
+});

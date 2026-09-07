@@ -1,6 +1,7 @@
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
 import NetworkEndpointService from "../../Services/NetworkEndpointService";
+import NetworkDeviceMacLearningUtil from "./NetworkDeviceMacLearningUtil";
 import NetworkInterfaceService, {
   InterfaceWalkUpsertResult,
 } from "../../Services/NetworkInterfaceService";
@@ -444,6 +445,32 @@ export default class NetworkInventoryUtil {
             ipBindings: endpointResult.ipBindings,
             now: now,
           });
+        }
+
+        /*
+         * --- Device MAC learning (ARP) ---
+         * The ARP table also names the MACs of managed devices registered
+         * at the addresses it binds - the ping-only registers and handsets
+         * that the switches' forwarding tables can put on a port, but only
+         * once something has said which MAC is theirs. Stamped on the
+         * device, once, while its MAC column is empty. Its own try/catch:
+         * the endpoint inventory above is already written, and a failure
+         * here must not read as one there.
+         */
+        if (endpointResult.ipBindings.length > 0) {
+          try {
+            await NetworkDeviceMacLearningUtil.learnFromArpBindings({
+              projectId: data.projectId,
+              observingDeviceId: deviceId,
+              observingSiteId: ownedDevice.siteId,
+              ipBindings: endpointResult.ipBindings,
+            });
+          } catch (err) {
+            logger.error(
+              `Failed to learn device MAC addresses from the ARP table of network device ${deviceId.toString()}:`,
+            );
+            logger.error(err);
+          }
         }
       }
     } catch (err) {

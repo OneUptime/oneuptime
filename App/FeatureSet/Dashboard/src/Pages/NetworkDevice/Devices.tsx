@@ -124,6 +124,7 @@ import {
 } from "../../Components/ResourceOwners/FilterChipDropdownTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { getSnmpConfigFormFields } from "./SnmpConfigFormFields";
+import { getMacAddressFormField } from "./MacAddressFormField";
 
 /*
  * Stable object identity, because ModelTable decides whether to refetch by
@@ -1076,6 +1077,12 @@ const NetworkDevices: FunctionComponent<
             placeholder: "10.0.0.1 or switch-01.example.com",
             description: HOSTNAME_FIELD_DESCRIPTION,
           },
+          /*
+           * Beside the hostname because it is the device's other address:
+           * the one a switch's forwarding table knows it by, which is how a
+           * ping-only device lands on its switch port on the map.
+           */
+          getMacAddressFormField({ stepId: "device-details" }),
           {
             /*
              * Asked BEFORE the probe, because it answers it: a site carries
