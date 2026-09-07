@@ -111,9 +111,9 @@ const REFRESH_INTERVAL_MS: number = 60 * 1000;
 // Debounce for mirroring drill state into the URL (Safari rate-limits it).
 const QUERY_STRING_DEBOUNCE_MS: number = 200;
 
-const CARD_TITLE: string = "Network Topology";
+const CARD_TITLE: string = "Browse by site";
 const CARD_DESCRIPTION: string =
-  "Your network by the levels you model it in. Each card rolls up the health of every device beneath it — open one to go a level deeper, and the last level opens its live device map.";
+  "Start with a location to understand its network and find devices that need attention.";
 
 /*
  * How a load ended. "superseded" is not a failure: a newer request (a
@@ -141,9 +141,9 @@ const FLAT_FALLBACK_COPY: Record<
   string
 > = {
   "no-sites":
-    "This project has no network sites yet, so the whole network is drawn as one map. Group your devices into sites to browse them level by level.",
+    "You're viewing every device in one map. Organize devices into sites to explore your network by location.",
   "no-attached-devices":
-    "None of your devices are attached to a site yet, so the whole network is drawn as one map. Set a site on a device and it will appear under that site here.",
+    "Your devices aren't assigned to sites yet. Set a site on each device to explore its network by location.",
 };
 
 const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
@@ -526,11 +526,11 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
     breadcrumb.length > 0 || showDeviceToggle || showToggleFromDeviceView;
 
   const deviceToggleLabels: { level: string; devices: string } = isAtRoot
-    ? { level: "Hierarchy", devices: "All devices" }
+    ? { level: "Browse by site", devices: "All devices" }
     : { level: "Sites here", devices: "Devices here" };
 
   const header: ReactElement = (
-    <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div className="mb-4 flex flex-col gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 md:flex-row md:items-center md:justify-between">
       <SiteBreadcrumbs breadcrumb={breadcrumb} onNavigate={changeSite} />
       {showDeviceToggle || showToggleFromDeviceView ? (
         <div
@@ -673,7 +673,15 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
             className="mb-3 rounded-md border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-600"
             data-testid="topology-hierarchy-flat-note"
           >
-            {translateString(explanation) || explanation}
+            {translateString(explanation) || explanation}{" "}
+            <Link
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.NETWORK_SITES] as Route,
+              )}
+              className="font-medium text-indigo-600 hover:text-indigo-800"
+            >
+              {translateString("Manage sites") || "Manage sites"}
+            </Link>
           </div>
         ) : (
           <></>
@@ -715,9 +723,7 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
         title={currentSite ? currentSite.name : CARD_TITLE}
         description={
           currentSite
-            ? `The ${childTypeLabelPlural} inside ${
-                currentSite.name
-              }, each rolling up the health of every device beneath it.`
+            ? `Explore the ${childTypeLabelPlural} in ${currentSite.name}. Each card includes the health of the devices below it.`
             : CARD_DESCRIPTION
         }
         buttons={[
@@ -740,11 +746,58 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
+        <div
+          className="mb-5 grid gap-3 rounded-xl border border-indigo-100 bg-indigo-50 p-4 sm:grid-cols-3"
+          data-testid="topology-hierarchy-guide"
+        >
+          {[
+            {
+              step: "1",
+              title: "Choose a site",
+              description: "Open a location to explore the sites inside it.",
+            },
+            {
+              step: "2",
+              title: "Follow the network",
+              description: "At the last level, see how its devices connect.",
+            },
+            {
+              step: "3",
+              title: "Find the problem",
+              description:
+                "Filter by health, then select a device for details.",
+            },
+          ].map(
+            (item: {
+              step: string;
+              title: string;
+              description: string;
+            }): ReactElement => {
+              return (
+                <div key={item.step} className="flex items-start gap-3">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-indigo-600">
+                    {item.step}
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-indigo-900">
+                      {translateString(item.title) || item.title}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-indigo-700">
+                      {translateString(item.description) || item.description}
+                    </p>
+                  </div>
+                </div>
+              );
+            },
+          )}
+        </div>
+
         <div className="mb-4 flex flex-col gap-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
             <div className="md:w-72">
               <Input
                 dataTestId="topology-hierarchy-search"
+                ariaLabel={`Search ${childTypeLabelPlural}`}
                 placeholder={
                   translateString(`Search ${childTypeLabelPlural}`) ||
                   `Search ${childTypeLabelPlural}`
@@ -755,12 +808,31 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
                 }}
               />
             </div>
-            <p className="text-xs text-gray-500 md:ml-auto">
-              {translateString(
-                "Counts roll up everything below each card and refresh every minute.",
-              ) ||
-                "Counts roll up everything below each card and refresh every minute."}
-            </p>
+            <div className="flex flex-wrap items-center gap-3 md:ml-auto">
+              <p
+                className="text-xs text-gray-500"
+                role="status"
+                aria-live="polite"
+                data-testid="topology-hierarchy-result-count"
+              >
+                {`${visibleSites.length} of ${allLevelSites.length} ${childTypeLabelPlural} · Updates every minute`}
+              </p>
+              {normalizedSearch || healthFilterMode !== "all" ? (
+                <button
+                  type="button"
+                  data-testid="topology-hierarchy-reset-filters"
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500"
+                  onClick={() => {
+                    setSearchText("");
+                    setHealthFilterMode("all");
+                  }}
+                >
+                  {translateString("Clear filters") || "Clear filters"}
+                </button>
+              ) : (
+                <></>
+              )}
+            </div>
           </div>
 
           {/*
@@ -862,10 +934,11 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
         {visibleSites.length === 0 ? (
           <EmptyState
             id="topology-hierarchy-empty"
+            paddingClassName="py-16"
             icon={IconProp.FlowDiagram}
             title={
               normalizedSearch || healthFilterMode !== "all"
-                ? "Nothing here matches"
+                ? "No sites match your filters"
                 : "Nothing at this level yet"
             }
             description={
