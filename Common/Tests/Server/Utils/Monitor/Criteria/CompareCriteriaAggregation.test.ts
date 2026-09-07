@@ -312,7 +312,7 @@ describe("CompareCriteria aggregation semantics", () => {
       });
 
       expect(message).toBe(
-        "Any value of CPU is 95, 96, 97 % which is greater than 90 %.",
+        "Any value of CPU is 95.00%, 96.00%, 97.00% which is greater than 90.00%.",
       );
     });
 
@@ -328,7 +328,7 @@ describe("CompareCriteria aggregation semantics", () => {
         unit: "%",
       });
 
-      expect(message).toContain("80, 70");
+      expect(message).toContain("80.00%, 70.00%");
       expect(message).not.toContain("95");
     });
 
@@ -345,7 +345,7 @@ describe("CompareCriteria aggregation semantics", () => {
       });
 
       expect(message).toBe(
-        "All values of CPU is 95, 96 % which is greater than 90 %.",
+        "All values of CPU is 95.00%, 96.00% which is greater than 90.00%.",
       );
     });
 
@@ -513,15 +513,21 @@ describe("CompareCriteria aggregation semantics", () => {
       /*
        * The guard against over-suppression. If this ever goes quiet the
        * fix has widened into a general unit filter.
+       *
+       * The unit now rides each NUMBER at the scale that number landed on,
+       * so a sub-byte value reports "B" and 0.85 ms is written out as the
+       * 850 µs it is. Both halves of the sentence go through the same
+       * renderer, which is the property that matters here: the observed
+       * value and the threshold can never be quoted in different units.
        */
       expect(unitMessage("By")).toBe(
-        "Any value of Metric Value is 0.85 By which is greater than 0.8 By.",
+        "Any value of Metric Value is 0.85 B which is greater than 0.8 B.",
       );
       expect(unitMessage("%")).toBe(
-        "Any value of Metric Value is 0.85 % which is greater than 0.8 %.",
+        "Any value of Metric Value is 0.85% which is greater than 0.80%.",
       );
       expect(unitMessage("ms")).toBe(
-        "Any value of Metric Value is 0.85 ms which is greater than 0.8 ms.",
+        "Any value of Metric Value is 850 µs which is greater than 800 µs.",
       );
       // "1" is suppressed; a unit that merely CONTAINS a 1 is not.
       expect(unitMessage("m/s2")).toContain("0.85 m/s2");
@@ -532,7 +538,7 @@ describe("CompareCriteria aggregation semantics", () => {
       const message: string = unitMessage(" ms ");
 
       expect(message).toBe(
-        "Any value of Metric Value is 0.85 ms which is greater than 0.8 ms.",
+        "Any value of Metric Value is 850 µs which is greater than 800 µs.",
       );
       expect(message).not.toContain("  ");
     });

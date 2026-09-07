@@ -111,8 +111,15 @@ describe("MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
       await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet(inputs);
 
     expect(message).toBeTruthy();
-    expect(message).toContain("greater than 2000 ms");
-    expect(message).toContain("2500 ms");
+    /*
+     * The COMPARISON happens in the metric's native ms — that is what this
+     * test is about, and the context below pins it. The MESSAGE renders
+     * those same milliseconds at the scale a human reads them at, so 2500
+     * ms is written "2.5 sec"; the threshold gets the same treatment so
+     * the two halves of the sentence cannot disagree.
+     */
+    expect(message).toContain("greater than 2 sec");
+    expect(message).toContain("2.5 sec");
     expect(criteriaFilter.metricCriteriaContext?.unit).toBe("ms");
     expect(criteriaFilter.metricCriteriaContext?.breachingSample?.value).toBe(
       2500,
@@ -228,11 +235,23 @@ describe("MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
       await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet(inputs);
 
     /*
-     * No conversion possible, so the displayed unit/values use user's MB
-     * label but values are passed through.
+     * No conversion possible, so the sample value is passed through
+     * untouched and the criteria still speaks the user's chosen MB. Those
+     * two facts are the subject of this test and are asserted directly on
+     * the context.
+     *
+     * The rendered sentence is deliberately NOT asserted on: the user has
+     * mislabelled a 5000 ms sample as 5000 MB, and the renderer takes that
+     * label at its word and reads it out as "5 GB". Any string this
+     * sentence can produce is wrong, because the input is wrong — pinning
+     * one spelling of a wrong answer would only make the misconfiguration
+     * look supported.
      */
     expect(message).toBeTruthy();
-    expect(message).toContain("MB");
+    expect(criteriaFilter.metricCriteriaContext?.unit).toBe("MB");
+    expect(criteriaFilter.metricCriteriaContext?.breachingSample?.value).toBe(
+      5000,
+    );
   });
 
   test("no data + NoDataPolicy.Trigger triggers regardless of threshold", async () => {
@@ -495,7 +514,12 @@ describe("MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
       await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet(inputs);
 
     expect(message).toBeTruthy();
-    expect(message).toContain("10 samples between 110 and 200");
+    /*
+     * Both ends of the summary carry the unit, because either end can
+     * land on a different scale than the other once values spread far
+     * enough apart.
+     */
+    expect(message).toContain("10 samples between 110 ms and 200 ms");
     expect(message).toContain("greater than 100 ms");
     // The raw comma-joined dump is no longer in the message
     expect(message).not.toContain("110, 120, 130, 140, 150, 160");
