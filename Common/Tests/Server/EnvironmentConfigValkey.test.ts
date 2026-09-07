@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, jest } from "@jest/globals";
 /*
  * How the cache/queue settings are read.
  *
- * They are named VALKEY_* since 12.0.36. The REDIS_* names they shipped under
+ * They are named VALKEY_* since 13.0.0. The REDIS_* names they shipped under
  * for years are still read as a deprecated fallback, and that fallback is the
  * ONLY reason an existing self-hosted config.env keeps working across the
  * upgrade -- `npm run update` deliberately does not rewrite it. Nothing here is

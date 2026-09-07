@@ -1,7 +1,7 @@
 ### Cache (Valkey) Ops
 
 The cache and queue tier runs [Valkey](https://valkey.io), the BSD-licensed fork
-of Redis 7.2. Its objects were named `redis` until 12.0.36; a release upgraded
+of Redis 7.2. Its objects were named `redis` until 13.0.0; a release upgraded
 across that boundary keeps a `<release>-redis` Secret behind, holding a
 now-unused copy of the same password. It is safe to delete once the upgrade has
 stuck.

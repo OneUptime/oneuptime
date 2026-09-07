@@ -286,7 +286,7 @@ names are worth not repeating: `DISABLE_QUEUE_WORKERS` is what makes a pod a
 `worker` rather than an API pod (and the reverse on `telemetryWriter`), so
 setting it chart-wide silently changes what those tiers do.
 
-The cache variables are a trap of their own: since 12.0.36 the app reads
+The cache variables are a trap of their own: since 13.0.0 the app reads
 `VALKEY_*` and only falls back to `REDIS_*`, so an `extraEnv` entry named
 `REDIS_HOST` still wins the `REDIS_HOST` slot and is then **ignored**, because
 the chart also sets `VALKEY_HOST` to its own cache. Override `VALKEY_HOST`,

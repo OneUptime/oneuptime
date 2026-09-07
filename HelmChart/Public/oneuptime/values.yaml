@@ -868,7 +868,7 @@ pgbouncer:
 # protocol, so any Redis-protocol server can stand in for it (see
 # `externalValkey` below).
 #
-# This block was called `redis:` until 12.0.36. That key still works: whatever
+# This block was called `redis:` until 13.0.0. That key still works: whatever
 # you set under it is layered on top of these defaults, so an unedited
 # values.yaml from an earlier chart keeps behaving exactly as it did. Prefer
 # `valkey:` in new files -- if you set the same setting under both names, the
@@ -928,7 +928,7 @@ valkey:
     appendonly no
     save ""
     maxmemory-policy noeviction
-  # Also publish the Service under its pre-12.0.36 name,
+  # Also publish the Service under its pre-13.0.0 name,
   # `<release>-redis-master`, pointing at the same pods.
   #
   # app/worker/probe/runner pods carry the old hostname in their env until they
@@ -1627,7 +1627,7 @@ externalPostgres:
 # Any Redis-protocol server works here -- Valkey, real Redis, or a managed
 # service such as ElastiCache or Memorystore.
 #
-# This block was called `externalRedis:` until 12.0.36; that key still works and
+# This block was called `externalRedis:` until 13.0.0; that key still works and
 # is layered on top of whatever is set here.
 
 externalValkey:

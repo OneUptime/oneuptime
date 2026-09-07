@@ -164,7 +164,7 @@ patch_secret_value "$CHART_SECRET" 'runner-key' "$RUNNER_KEY_0"
 patch_secret_value "${RELEASE}-valkey" 'valkey-password' "$VALKEY_0"
 
 echo
-echo "=== 3b. an upgrade adopts a pre-12.0.36 <release>-redis secret ==="
+echo "=== 3b. an upgrade adopts a pre-13.0.0 <release>-redis secret ==="
 # The cache secret was <release>-redis, keyed redis-password, until the Valkey
 # rename. Renaming it without carrying the value over would mint a fresh random
 # password on the first upgrade of every existing install -- silently, because

@@ -79,7 +79,7 @@ OneUptime **不**支援設定 SSL/TLS 憑證。您需要自行設定 SSL/TLS 憑
 - **SSL/TLS**：設定 SSL/TLS 憑證。OneUptime 不支援設定 SSL/TLS 憑證。您需要自行設定 SSL/TLS 憑證。請參閱上方說明。
 - **密鑰（Secrets）**：請確認您的 `config.env` 檔案中使用了隨機產生的密鑰。該檔案中有一些預設的密鑰，請將它們替換為隨機的長字串。
 - **備份**：定期備份您的資料庫（Clickhouse、Postgres）。快取是無狀態的，可以放心忽略。
-- **快取與佇列**：`valkey` 服務執行的是 [Valkey](https://valkey.io)，即 Redis 7.2 的 BSD 授權分支，並透過 `config.env` 中的 `VALKEY_*` 設定進行組態。任何使用 Redis 通訊協定的伺服器皆可運作；若您偏好，也可以將 `VALKEY_HOST` 指向代管的 Redis。這些設定在 12.0.36 之前名為 `REDIS_*`；舊名稱仍會被讀取，容器同樣會回應 `redis` 這個主機名稱，而 `npm run update` 也不會改寫它們，因此較舊的 `config.env` 無需任何修改。
+- **快取與佇列**：`valkey` 服務執行的是 [Valkey](https://valkey.io)，即 Redis 7.2 的 BSD 授權分支，並透過 `config.env` 中的 `VALKEY_*` 設定進行組態。任何使用 Redis 通訊協定的伺服器皆可運作；若您偏好，也可以將 `VALKEY_HOST` 指向代管的 Redis。這些設定在 13.0.0 之前名為 `REDIS_*`；舊名稱仍會被讀取，容器同樣會回應 `redis` 這個主機名稱，而 `npm run update` 也不會改寫它們，因此較舊的 `config.env` 無需任何修改。
 - **更新**：請定期更新 OneUptime。我們每天都會發布更新。如果您在生產環境中執行，我們建議您至少每週更新一次軟體。
 
 ### 更新 OneUptime

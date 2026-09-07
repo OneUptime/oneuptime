@@ -1381,7 +1381,7 @@
                         "boolean",
                         "null"
                     ],
-                    "description": "Also publish the cache Service under its pre-12.0.36 name, <release>-redis-master, selecting the same pods. Keeps app pods that have not yet rolled onto the new spec resolving during a `helm upgrade` across the rename. Safe to set to false once every workload has rolled."
+                    "description": "Also publish the cache Service under its pre-13.0.0 name, <release>-redis-master, selecting the same pods. Keeps app pods that have not yet rolled onto the new spec resolving during a `helm upgrade` across the rename. Safe to set to false once every workload has rolled."
                 }
             },
             "additionalProperties": false,
@@ -1573,11 +1573,11 @@
                         "boolean",
                         "null"
                     ],
-                    "description": "Also publish the cache Service under its pre-12.0.36 name, <release>-redis-master, selecting the same pods. Keeps app pods that have not yet rolled onto the new spec resolving during a `helm upgrade` across the rename. Safe to set to false once every workload has rolled."
+                    "description": "Also publish the cache Service under its pre-13.0.0 name, <release>-redis-master, selecting the same pods. Keeps app pods that have not yet rolled onto the new spec resolving during a `helm upgrade` across the rename. Safe to set to false once every workload has rolled."
                 }
             },
             "additionalProperties": false,
-            "description": "The in-cluster cache and BullMQ queue backend (Valkey, the BSD-licensed fork of Redis 7.2). Renamed from `redis:` in 12.0.36; the old key still works and is layered on top of whatever is set here."
+            "description": "The in-cluster cache and BullMQ queue backend (Valkey, the BSD-licensed fork of Redis 7.2). Renamed from `redis:` in 13.0.0; the old key still works and is layered on top of whatever is set here."
         },
         "image": {
             "type": "object",
@@ -2925,7 +2925,7 @@
                 }
             },
             "additionalProperties": false,
-            "description": "Bring-your-own cache, used when valkey.enabled is false. Any Redis-protocol server works, including real Redis and managed services. Renamed from `externalRedis:` in 12.0.36; the old key still works."
+            "description": "Bring-your-own cache, used when valkey.enabled is false. Any Redis-protocol server works, including real Redis and managed services. Renamed from `externalRedis:` in 13.0.0; the old key still works."
         },
         "externalClickhouse": {
             "type": "object",

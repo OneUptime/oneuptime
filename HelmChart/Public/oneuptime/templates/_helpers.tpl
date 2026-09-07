@@ -14,7 +14,7 @@ Usage:
 {{/*
 The effective settings for the cache/queue tier, which runs Valkey.
 
-These lived under `redis:` and `externalRedis:` until 12.0.36. Both old keys are
+These lived under `redis:` and `externalRedis:` until 13.0.0. Both old keys are
 still honoured -- a values.yaml written against any earlier chart has to keep
 working with no edits -- so every template reads through these helpers instead of
 touching `.Values.valkey` directly.
@@ -611,7 +611,7 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
   Cache / queue wiring.
 
   Every setting is emitted TWICE: once as VALKEY_*, and once as the REDIS_* name
-  it used until 12.0.36, carrying the identical value. The app reads VALKEY_*
+  it used until 13.0.0, carrying the identical value. The app reads VALKEY_*
   and only falls back to REDIS_*, so for a matching image the second copy is
   dead weight -- it is here because `image.tag` is a documented pin (the
   production checklist tells you to set it), so a chart from after the rename
