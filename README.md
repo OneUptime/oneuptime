@@ -1,0 +1,1 @@
+Overview redesign screenshots rendered from the real OneUptime dashboard pages with explicitly labelled synthetic data. incident-before.png uses master e23d909319b; other images use the redesign. Browser fixture and tests are in E2E/OperationsOverview on codex/operations-overview-redesign.
