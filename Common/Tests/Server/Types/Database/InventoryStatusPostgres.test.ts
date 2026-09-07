@@ -123,7 +123,7 @@ describePostgres("inventory status facets against Postgres", () => {
     const id: string = ObjectID.generate().toString();
     ids[name] = id;
     await runner.query(
-      `INSERT INTO "InventoryItem" ("_id", "projectId", "displayName", "entityType", "source", "lastSeenAt", "isArchived") VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      `INSERT INTO "${schema}"."InventoryItem" ("_id", "projectId", "displayName", "entityType", "source", "lastSeenAt", "isArchived") VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [
         id,
         (options.projectId || projectId).toString(),
