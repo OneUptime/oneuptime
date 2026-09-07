@@ -117,13 +117,18 @@ function metricResponse(
 describe("MonitorCriteriaEvaluator - Proxmox root cause breakdown", () => {
   test("renders the Resource/Type/Node/Value table: zero rows dropped, worst first", () => {
     const affectedResources: Array<ProxmoxAffectedResource> = [
+      /*
+       * pve_cpu_usage_ratio is a [0, 1] ratio — the catalog says so and
+       * pve-exporter reports it that way — so these are 42% and 97% of a
+       * node's CPU, and the table is expected to say exactly that.
+       */
       {
         resourceId: "qemu/100",
         resourceName: "web-vm",
         resourceType: "qemu",
         scope: "guest",
         nodeName: "pve1",
-        metricValue: 42,
+        metricValue: 0.42,
       },
       {
         resourceId: "qemu/101",
@@ -131,7 +136,7 @@ describe("MonitorCriteriaEvaluator - Proxmox root cause breakdown", () => {
         resourceType: "qemu",
         scope: "guest",
         nodeName: "pve2",
-        metricValue: 97,
+        metricValue: 0.97,
       },
       // Zero-value row — must be dropped from the table.
       {
@@ -164,16 +169,60 @@ describe("MonitorCriteriaEvaluator - Proxmox root cause breakdown", () => {
     expect(context).toContain("- Metric: CPU Usage (`pve_cpu_usage_ratio`)");
 
     expect(context).toContain("| Resource | Type | Node | Value |");
-    // Worst (97) sorts above 42; the zero row is gone entirely.
+    // Worst (0.97) sorts above 0.42; the zero row is gone entirely.
     const dbIndex: number = context!.indexOf("`db-vm` (`qemu/101`)");
     const webIndex: number = context!.indexOf("`web-vm` (`qemu/100`)");
     expect(dbIndex).toBeGreaterThan(-1);
     expect(webIndex).toBeGreaterThan(dbIndex);
     expect(context).not.toContain("idle-vm");
     expect(context).toContain("**Affected Resources** (2 total)");
+
+    /*
+     * The Value column is rendered in the unit the catalog declares for
+     * the metric — a "ratio" on a `_ratio`-suffixed metric is a fraction,
+     * so the reader gets "97.00%" rather than the bare "0.97" they would
+     * otherwise have to recognise as a percentage themselves.
+     */
     expect(context).toContain(
-      "| `db-vm` (`qemu/101`) | qemu | `pve2` | **97** |",
+      "| `db-vm` (`qemu/101`) | qemu | `pve2` | **97.00%** |",
     );
+    expect(context).toContain(
+      "| `web-vm` (`qemu/100`) | qemu | `pve1` | **42.00%** |",
+    );
+  });
+
+  test("renders bytes in the Value column at human scale", () => {
+    const context: string | null = Evaluator.buildProxmoxRootCauseContext({
+      dataToProcess: metricResponse({
+        proxmoxResourceBreakdown: {
+          clusterName: "prod-cluster",
+          metricName: "pve_memory_usage_bytes",
+          metricFriendlyName: "Memory Usage",
+          affectedResources: [
+            {
+              resourceId: "qemu/101",
+              resourceName: "db-vm",
+              resourceType: "qemu",
+              scope: "guest",
+              nodeName: "pve2",
+              metricValue: 8589934592,
+            },
+          ],
+          attributes: {},
+        },
+      }),
+      monitorStep: proxmoxStep(),
+      monitor: new Monitor(),
+    });
+
+    /*
+     * The whole point of the change: an on-call engineer reading this at
+     * 3am should not have to divide by 2^30 in their head.
+     */
+    expect(context).toContain(
+      "| `db-vm` (`qemu/101`) | qemu | `pve2` | **8.59 GB** |",
+    );
+    expect(context).not.toContain("**8589934592**");
   });
 
   test("caps the table at 10 rows, worst first, with an overflow suffix", () => {
@@ -187,12 +236,18 @@ describe("MonitorCriteriaEvaluator - Proxmox root cause breakdown", () => {
       });
     }
 
+    /*
+     * A `count` metric, so the rows render as bare integers and this test
+     * stays about the cap. It doubles as the backward-compatibility pin
+     * for the unitless path: a metric with no dimension to report must
+     * still show its exact digits, never an abbreviated "1.2K".
+     */
     const context: string | null = Evaluator.buildProxmoxRootCauseContext({
       dataToProcess: metricResponse({
         proxmoxResourceBreakdown: {
           clusterName: "prod-cluster",
-          metricName: "pve_cpu_usage_ratio",
-          metricFriendlyName: "CPU Usage",
+          metricName: "pve_replication_failed_syncs",
+          metricFriendlyName: "Failed Replication Syncs",
           affectedResources,
           attributes: {},
         },
@@ -290,8 +345,14 @@ describe("MonitorCriteriaEvaluator - Ceph root cause breakdown", () => {
     );
 
     expect(context).toContain("| Daemon | Pool | Host | Value |");
-    expect(context).toContain("| `osd.3` | - | `ceph-node-1` | **250** |");
-    expect(context).toContain("| - | `rbd` (`2`) | - | **91** |");
+    /*
+     * ceph_osd_apply_latency_ms carries the catalog unit "ms", so the
+     * Value column names it. 250 ms stays "250 ms" rather than scaling to
+     * seconds — the ladder only moves a value when the magnitude asks
+     * for it.
+     */
+    expect(context).toContain("| `osd.3` | - | `ceph-node-1` | **250 ms** |");
+    expect(context).toContain("| - | `rbd` (`2`) | - | **91 ms** |");
     expect(context).not.toContain("osd.5");
     expect(context).toContain("**Affected Resources** (2 total)");
 
@@ -300,6 +361,71 @@ describe("MonitorCriteriaEvaluator - Ceph root cause breakdown", () => {
     const poolIndex: number = context!.indexOf("`rbd` (`2`)");
     expect(osdIndex).toBeGreaterThan(-1);
     expect(poolIndex).toBeGreaterThan(osdIndex);
+  });
+
+  /*
+   * BACKWARD COMPATIBILITY for the platform tables.
+   *
+   * A metric whose catalog unit is "count" or absent has no dimension to
+   * report, and its Value column must keep every digit — never a chart's
+   * abbreviated "1.2K", and never the noise "250 count". ceph_osd_up is
+   * `unit: "count"`; ceph_health_status has no unit at all.
+   */
+  test("a count metric keeps exact bare digits in the Value column", () => {
+    const context: string | null = Evaluator.buildCephRootCauseContext({
+      dataToProcess: metricResponse({
+        cephResourceBreakdown: {
+          clusterName: "prod-cluster",
+          metricName: "ceph_osd_up",
+          metricFriendlyName: "OSD Up",
+          affectedResources: [
+            { daemon: "osd.3", hostname: "ceph-node-1", metricValue: 5000 },
+          ],
+          attributes: {},
+        },
+      }),
+      monitorStep: cephStep(),
+      monitor: new Monitor(),
+    });
+
+    expect(context).toContain("| `osd.3` | - | `ceph-node-1` | **5000** |");
+    expect(context).not.toContain("5K");
+    expect(context).not.toContain("count");
+  });
+
+  /*
+   * ORDERING INVARIANT. The table sorts and filters on the RAW numeric
+   * metricValue and only formats at render time. If a refactor ever sorted
+   * the formatted strings instead, "1.07 GB" would sort below "900 KB" and
+   * the worst-first table would silently invert — putting the healthiest
+   * daemon at the top of an incident.
+   */
+  test("rows still sort worst-first on the raw value, not the formatted string", () => {
+    const context: string | null = Evaluator.buildCephRootCauseContext({
+      dataToProcess: metricResponse({
+        cephResourceBreakdown: {
+          clusterName: "prod-cluster",
+          metricName: "ceph_pool_rd_bytes",
+          metricFriendlyName: "Pool Read Throughput",
+          affectedResources: [
+            { daemon: "osd.smaller", metricValue: 921600 },
+            { daemon: "osd.bigger", metricValue: 1073741824 },
+          ],
+          attributes: {},
+        },
+      }),
+      monitorStep: cephStep(),
+      monitor: new Monitor(),
+    });
+
+    expect(context).toContain("| `osd.bigger` | - | - | **1.07 GB** |");
+    expect(context).toContain("| `osd.smaller` | - | - | **922 KB** |");
+
+    // "1.07 GB" < "922 KB" as strings — the raw numbers must drive this.
+    const biggerIndex: number = context!.indexOf("`osd.bigger`");
+    const smallerIndex: number = context!.indexOf("`osd.smaller`");
+    expect(biggerIndex).toBeGreaterThan(-1);
+    expect(smallerIndex).toBeGreaterThan(biggerIndex);
   });
 
   test("cluster-wide series (ceph_health_status) render no table", () => {
@@ -521,8 +647,8 @@ describe("MonitorCriteriaEvaluator - Ceph affected-resources breach predicate", 
       ],
     });
 
-    expect(context).toContain("| `osd.3` | - | `ceph-node-1` | **250** |");
-    expect(context).toContain("| - | `rbd` (`2`) | - | **91** |");
+    expect(context).toContain("| `osd.3` | - | `ceph-node-1` | **250 ms** |");
+    expect(context).toContain("| - | `rbd` (`2`) | - | **91 ms** |");
     expect(context).not.toContain("osd.5");
     expect(context).toContain("**Affected Resources** (2 total)");
 
@@ -755,5 +881,93 @@ describe("MonitorCriteriaEvaluator - Kubernetes root cause analysis scoping", ()
     });
 
     expect(analysis).toContain("Pods are stuck in Pending phase");
+  });
+
+  /*
+   * REGRESSION: three of these sentences hardcoded a "%" suffix onto
+   * metrics that are not percentages.
+   *
+   * k8s.node.memory.usage and k8s.node.filesystem.usage are BYTES, so a
+   * node holding 8 GiB was reported as "memory usage is at
+   * 8589934592.0%". k8s.node.cpu.utilization is the kubeletstats CORES
+   * gauge that four other places in this repo warn is misnamed, so 1.4
+   * cores in use read as "1.4% CPU utilization" — a number an on-call
+   * engineer would read as "the node is idle".
+   *
+   * Each sentence now takes its unit from the catalog, which is the same
+   * lookup the worker already ran to resolve metricFriendlyName.
+   */
+  describe("unit rendering in the analysis sentences", () => {
+    test("node CPU reports cores, not a percentage", () => {
+      const analysis: string | null = analyse({
+        metricName: "k8s.node.cpu.utilization",
+        topResource: { nodeName: "node-1", metricValue: 1.4 },
+      });
+
+      expect(analysis).toContain(
+        "Node `node-1` is at **1.4 cores** CPU utilization.",
+      );
+      expect(analysis).not.toContain("1.4%");
+    });
+
+    test("node memory reports bytes at human scale, not a percentage", () => {
+      const analysis: string | null = analyse({
+        metricName: "k8s.node.memory.usage",
+        topResource: { nodeName: "node-1", metricValue: 8589934592 },
+      });
+
+      expect(analysis).toContain(
+        "Node `node-1` memory usage is at **8.59 GB**.",
+      );
+      expect(analysis).not.toContain("8589934592");
+      expect(analysis).not.toContain("%");
+    });
+
+    test("node filesystem reports bytes at human scale, not a percentage", () => {
+      const analysis: string | null = analyse({
+        metricName: "k8s.node.filesystem.usage",
+        topResource: { nodeName: "node-1", metricValue: 1099511627776 },
+      });
+
+      expect(analysis).toContain(
+        "Node `node-1` filesystem usage is at **1.1 TB**.",
+      );
+      expect(analysis).not.toContain("%");
+    });
+
+    /*
+     * Counts keep every digit — and stop reporting the raw float an
+     * aggregation hands back, which used to produce "has restarted
+     * **2.3333333333333335** times".
+     */
+    test("restart counts are rounded and carry no unit", () => {
+      const analysis: string | null = analyse({
+        metricName: "k8s.container.restarts",
+        topResource: {
+          podName: "web-7d9f",
+          containerName: "web",
+          metricValue: 2.3333333333333335,
+        },
+      });
+
+      expect(analysis).toContain("has restarted **2.33** times.");
+      expect(analysis).not.toContain("2.3333333333333335");
+      expect(analysis).not.toContain("2.33 count");
+    });
+
+    test("unavailable replicas stay a bare count", () => {
+      const analysis: string | null = analyse({
+        metricName: "k8s.deployment.unavailable_replicas",
+        topResource: {
+          workloadType: "Deployment",
+          workloadName: "web",
+          metricValue: 3,
+        },
+      });
+
+      expect(analysis).toContain(
+        "Deployment `web` has **3** unavailable replica(s).",
+      );
+    });
   });
 });

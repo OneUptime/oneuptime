@@ -235,6 +235,87 @@ describe("MetricUnitUtil", () => {
     });
   });
 
+  describe("getFamilyBaseUnit", () => {
+    test("returns the family's canonical base for every member", () => {
+      for (const unit of [
+        "B",
+        "b",
+        "By",
+        "bytes",
+        "KB",
+        "kby",
+        "MB",
+        "GB",
+        "TB",
+        "PB",
+      ]) {
+        expect(MetricUnitUtil.getFamilyBaseUnit(unit)).toBe("B");
+      }
+
+      for (const unit of [
+        "ns",
+        "µs",
+        "us",
+        "ms",
+        "s",
+        "sec",
+        "seconds",
+        "min",
+        "hours",
+        "d",
+        "days",
+      ]) {
+        expect(MetricUnitUtil.getFamilyBaseUnit(unit)).toBe("sec");
+      }
+
+      for (const unit of ["%", "percent", "1"]) {
+        expect(MetricUnitUtil.getFamilyBaseUnit(unit)).toBe("%");
+      }
+
+      for (const unit of ["bit", "bits", "kbit", "mbit", "gbit"]) {
+        expect(MetricUnitUtil.getFamilyBaseUnit(unit)).toBe("bit");
+      }
+    });
+
+    test("is case- and whitespace-insensitive", () => {
+      expect(MetricUnitUtil.getFamilyBaseUnit("  GB  ")).toBe("B");
+      expect(MetricUnitUtil.getFamilyBaseUnit("MS")).toBe("sec");
+    });
+
+    test("returns null for an unknown or empty unit", () => {
+      expect(MetricUnitUtil.getFamilyBaseUnit(undefined)).toBeNull();
+      expect(MetricUnitUtil.getFamilyBaseUnit("")).toBeNull();
+      expect(MetricUnitUtil.getFamilyBaseUnit("   ")).toBeNull();
+      expect(MetricUnitUtil.getFamilyBaseUnit("cores")).toBeNull();
+      expect(MetricUnitUtil.getFamilyBaseUnit("widgets")).toBeNull();
+      // Binary prefixes are deliberately not in any family here.
+      expect(MetricUnitUtil.getFamilyBaseUnit("KiBy")).toBeNull();
+    });
+
+    /*
+     * The base is the unit every other member converts into with the
+     * family's own converter — this is the contract MetricValueFormatter
+     * relies on when it restates "2500 GB" as bytes before scaling.
+     */
+    test("the base it names round-trips through convertToMetricUnit", () => {
+      expect(
+        MetricUnitUtil.convertToMetricUnit({
+          value: 2500,
+          fromUnit: "GB",
+          metricUnit: MetricUnitUtil.getFamilyBaseUnit("GB") as string,
+        }),
+      ).toBe(2.5e12);
+
+      expect(
+        MetricUnitUtil.convertToMetricUnit({
+          value: 36,
+          fromUnit: "hours",
+          metricUnit: MetricUnitUtil.getFamilyBaseUnit("hours") as string,
+        }),
+      ).toBe(129600);
+    });
+  });
+
   describe("hasCompatibleUnitFamily", () => {
     test("true for known families", () => {
       expect(MetricUnitUtil.hasCompatibleUnitFamily("bytes")).toBe(true);

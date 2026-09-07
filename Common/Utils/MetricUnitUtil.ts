@@ -298,6 +298,40 @@ export default class MetricUnitUtil {
   }
 
   /*
+   * The canonical base of the family this unit belongs to — "B" for any
+   * data unit, "sec" for any time unit, "%" for percent, "bit" for bits.
+   * Null when the unit belongs to no known family.
+   *
+   * Distinct from getCanonicalUnitValue, which answers "what should the
+   * threshold dropdown default to for this metric" and returns the unit
+   * itself for a known family member. This answers "what is the one unit
+   * every member of this family can be converted into", which is what a
+   * formatter needs before it can pick a human-readable scale: a value
+   * carrying the unit "GB" has to become bytes before a bytes ladder can
+   * decide that 2500 of them read best as "2.5 TB".
+   */
+  public static getFamilyBaseUnit(
+    metricUnit: string | undefined,
+  ): string | null {
+    if (!metricUnit || !metricUnit.trim()) {
+      return null;
+    }
+
+    const family: Array<UnitDefinition> | null = findFamily(metricUnit);
+    if (!family) {
+      return null;
+    }
+
+    const base: UnitDefinition | undefined = family.find(
+      (u: UnitDefinition) => {
+        return u.toCanonical === 1;
+      },
+    );
+
+    return base?.value || null;
+  }
+
+  /*
    * Convenience: does the metric unit belong to a family we can offer
    * conversions for? When false, the UI should still render a dropdown,
    * but with just the raw unit.

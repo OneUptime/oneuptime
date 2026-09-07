@@ -26,6 +26,7 @@ import {
 } from "../../../../Types/Monitor/CriteriaFilter";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import MetricUnitUtil from "../../../../Utils/MetricUnitUtil";
+import MetricValueFormatter from "../../../../Utils/Monitor/MetricValueFormatter";
 import MetricFormulaEvaluator from "../../../../Utils/Metrics/MetricFormulaEvaluator";
 import MetricBaselineService, {
   BaselineSummary,
@@ -369,6 +370,15 @@ export default class MetricMonitorCriteria {
         criteriaFilter: input.criteriaFilter,
         metricDisplayName: metricContext.metricName,
         unit: displayUnit,
+        /*
+         * Only a plain metric criteria has a real metric NAME —
+         * metricContext.metricName is the formula expression when the
+         * criteria targets a formula, and a formula ending in `_ratio`
+         * would trip the fraction heuristic into a 100× render.
+         */
+        metricName: metricContext.isFormula
+          ? undefined
+          : metricContext.metricName,
       });
 
     if (!comparisonMessage) {
@@ -989,13 +999,29 @@ export default class MetricMonitorCriteria {
             : "below";
 
     const sigmaAbs: number = Math.abs(firstBreach.sigma);
-    const unitSuffix: string = metricContext.unit
-      ? ` ${metricContext.unit}`
-      : "";
+
+    /*
+     * Same rendering as the breaching-samples table and the comparison
+     * sentence — an anomaly on a memory metric reads "1.07 GB", not
+     * "1073741824.000 By". σ is a count of standard deviations, not a
+     * quantity in the metric's unit, so it stays a bare number; the
+     * standard deviation itself is in the metric's unit and does not.
+     */
+    const inMetricUnit: (value: number) => string = (value: number): string => {
+      return MetricValueFormatter.format({
+        value: value,
+        unit: metricContext.unit,
+        // Formula expressions are not metric names — see the guard above.
+        metricName: metricContext.isFormula
+          ? undefined
+          : metricContext.metricName,
+      });
+    };
+
     const rootCause: string =
-      `${metricContext.metricName} value ${firstBreach.sample.value.toFixed(3)}${unitSuffix} ` +
+      `${metricContext.metricName} value ${inMetricUnit(firstBreach.sample.value)} ` +
       `is ${sigmaAbs.toFixed(2)}σ ${direction} the same-hour baseline ` +
-      `(mean ${baseline.mean.toFixed(3)}${unitSuffix}, σ ${baseline.stddev.toFixed(3)}${unitSuffix}, ` +
+      `(mean ${inMetricUnit(baseline.mean)}, σ ${inMetricUnit(baseline.stddev)}, ` +
       `${baseline.sampleCount} samples over ${baseline.windowDays} days, sensitivity ${sensitivity}).`;
 
     return {

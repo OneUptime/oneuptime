@@ -7,6 +7,7 @@ import {
 } from "../../../../Types/Monitor/CriteriaFilter";
 import Typeof from "../../../../Types/Typeof";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import MetricValueFormatter from "../../../../Utils/Monitor/MetricValueFormatter";
 
 export default class CompareCriteria {
   /*
@@ -474,6 +475,15 @@ export default class CompareCriteria {
     criteriaFilter: CriteriaFilter;
     metricDisplayName?: string | undefined;
     unit?: string | undefined;
+    /**
+     * The metric NAME, when there is a real one. Distinct from
+     * metricDisplayName, which is the formula expression for a formula
+     * criteria and is only ever used as a label: this one feeds
+     * ValueFormatter.isFractionMetric, which would read the trailing
+     * `_ratio` of a formula like `a / b_ratio` as a signal to multiply
+     * the value by 100. Callers pass it only for plain metric criteria.
+     */
+    metricName?: string | undefined;
   }): string | null {
     if (data.value === null || data.value === undefined) {
       return null;
@@ -499,6 +509,7 @@ export default class CompareCriteria {
           criteriaFilter: data.criteriaFilter,
           metricDisplayName: data.metricDisplayName,
           unit: data.unit,
+          metricName: data.metricName,
         });
       }
 
@@ -521,6 +532,7 @@ export default class CompareCriteria {
           criteriaFilter: data.criteriaFilter,
           metricDisplayName: data.metricDisplayName,
           unit: data.unit,
+          metricName: data.metricName,
         });
       }
 
@@ -543,6 +555,7 @@ export default class CompareCriteria {
           criteriaFilter: data.criteriaFilter,
           metricDisplayName: data.metricDisplayName,
           unit: data.unit,
+          metricName: data.metricName,
         });
       }
 
@@ -565,6 +578,7 @@ export default class CompareCriteria {
           criteriaFilter: data.criteriaFilter,
           metricDisplayName: data.metricDisplayName,
           unit: data.unit,
+          metricName: data.metricName,
         });
       }
 
@@ -587,6 +601,7 @@ export default class CompareCriteria {
           criteriaFilter: data.criteriaFilter,
           metricDisplayName: data.metricDisplayName,
           unit: data.unit,
+          metricName: data.metricName,
         });
       }
 
@@ -609,6 +624,7 @@ export default class CompareCriteria {
           criteriaFilter: data.criteriaFilter,
           metricDisplayName: data.metricDisplayName,
           unit: data.unit,
+          metricName: data.metricName,
         });
       }
 
@@ -625,6 +641,15 @@ export default class CompareCriteria {
     criteriaFilter: CriteriaFilter;
     metricDisplayName?: string | undefined;
     unit?: string | undefined;
+    /**
+     * The metric NAME, when there is a real one. Distinct from
+     * metricDisplayName, which is the formula expression for a formula
+     * criteria and is only ever used as a label: this one feeds
+     * ValueFormatter.isFractionMetric, which would read the trailing
+     * `_ratio` of a formula like `a / b_ratio` as a signal to multiply
+     * the value by 100. Callers pass it only for plain metric criteria.
+     */
+    metricName?: string | undefined;
   }): string {
     // CPU Percent over the last 5 minutes is 10 which is less than the threshold of 20
     let message: string = "";
@@ -695,30 +720,36 @@ export default class CompareCriteria {
     }
 
     /*
-     * Suppress the units that read as noise — or as a wrong number —
-     * next to a value. OTel's dimensionless "1" marks ratio metrics
-     * whose samples are fractions in [0, 1]; rendering "0.06 1" is both
-     * ugly and misleading (it is not 1% — it is 6%), and a CLS breach
-     * read "is 0.31 1 which is greater than or equal to 0.25 1". UCUM
-     * annotation-only units ("{cpu}", "{packets}", "{errors}") are
-     * descriptive braces, not a unit a reader should be shown. Every
-     * real unit passes through unchanged, so "%" stays "%" and "ms"
-     * stays "ms".
+     * A metric value is written the way the dashboard writes it —
+     * "1.07 GB", "1.5 sec", "25.34%" — rather than as raw digits with a
+     * raw UCUM code glued on. Only two of the ~35 callers pass a unit at
+     * all (MetricMonitorCriteria and DatabaseMonitorCriteria); everything
+     * else carries its unit inside the CheckOn label ("Response Time (in
+     * ms)") and must keep its exact digits, so an absent unit leaves this
+     * sentence byte-for-byte as it was.
      *
-     * The dashboard side already applies the "1" half of this rule in
-     * MonitorCriteriaObservationBuilder.normalizeDisplayUnit, and
-     * ValueFormatter applies both halves when it formats a value. The
-     * email path never picked either up, so the same evaluation rendered
-     * worse in the alert than on the dashboard.
+     * MetricValueFormatter also subsumes the unit-suppression rules this
+     * block used to spell out by hand: OTel's dimensionless "1" (which
+     * made a CLS breach read "is 0.31 1 which is greater than or equal to
+     * 0.25 1") and UCUM's annotation-only "{cpu}" / "{packets}" both
+     * disappear, and a fraction metric still carrying "1" is rendered as
+     * the percentage it means.
+     *
+     * The unit rides each NUMBER instead of the sentence, because
+     * auto-scaling can land two samples in the same sentence on different
+     * scales — "is 900 KB, 1.2 MB" — which one trailing suffix cannot
+     * express.
      */
-    const trimmedUnit: string = (data.unit || "").trim();
-    const annotationOnlyUnitPattern: RegExp = /^\{[^{}]*\}$/;
-    const unitSuffix: string =
-      trimmedUnit &&
-      trimmedUnit !== "1" &&
-      !annotationOnlyUnitPattern.test(trimmedUnit)
-        ? ` ${trimmedUnit}`
-        : "";
+    const withUnit: ((value: number) => string) | undefined =
+      MetricValueFormatter.hasDisplayableUnit(data.unit, data.metricName)
+        ? (value: number): string => {
+            return MetricValueFormatter.format({
+              value: value,
+              unit: data.unit,
+              metricName: data.metricName,
+            });
+          }
+        : undefined;
 
     if (
       data.criteriaFilter.filterType !== FilterType.True &&
@@ -750,10 +781,12 @@ export default class CompareCriteria {
         evaluationType: evaluationType,
       });
 
-      const formattedValues: string =
-        CompareCriteria.formatCriteriaValues(reportedValues);
+      const formattedValues: string = CompareCriteria.formatCriteriaValues(
+        reportedValues,
+        withUnit,
+      );
 
-      message += ` is ${formattedValues}${unitSuffix}`;
+      message += ` is ${formattedValues}`;
 
       message += " which is";
 
@@ -778,22 +811,22 @@ export default class CompareCriteria {
 
     switch (data.criteriaFilter.filterType) {
       case FilterType.GreaterThan:
-        message += ` greater than ${CompareCriteria.formatSingleValue(data.threshold)}${unitSuffix}. `;
+        message += ` greater than ${CompareCriteria.formatSingleValue(data.threshold, withUnit)}. `;
         break;
       case FilterType.GreaterThanOrEqualTo:
-        message += ` greater than or equal to ${CompareCriteria.formatSingleValue(data.threshold)}${unitSuffix}. `;
+        message += ` greater than or equal to ${CompareCriteria.formatSingleValue(data.threshold, withUnit)}. `;
         break;
       case FilterType.LessThan:
-        message += ` less than ${CompareCriteria.formatSingleValue(data.threshold)}${unitSuffix}. `;
+        message += ` less than ${CompareCriteria.formatSingleValue(data.threshold, withUnit)}. `;
         break;
       case FilterType.LessThanOrEqualTo:
-        message += ` less than or equal to ${CompareCriteria.formatSingleValue(data.threshold)}${unitSuffix}. `;
+        message += ` less than or equal to ${CompareCriteria.formatSingleValue(data.threshold, withUnit)}. `;
         break;
       case FilterType.NotEqualTo:
-        message += ` not equal to ${CompareCriteria.formatSingleValue(data.threshold)}${unitSuffix}. `;
+        message += ` not equal to ${CompareCriteria.formatSingleValue(data.threshold, withUnit)}. `;
         break;
       case FilterType.EqualTo:
-        message += ` equal to ${CompareCriteria.formatSingleValue(data.threshold)}${unitSuffix}. `;
+        message += ` equal to ${CompareCriteria.formatSingleValue(data.threshold, withUnit)}. `;
         break;
       case FilterType.Contains:
         message += ` contains ${CompareCriteria.formatSingleValue(data.threshold)}. `;
@@ -918,8 +951,16 @@ export default class CompareCriteria {
     }
   }
 
+  /*
+   * `withUnit`, when supplied, is how a NUMBER is rendered — unit
+   * included. It is threaded down rather than applied to the finished
+   * string because the string is not always one number: a large window
+   * collapses to "N samples between X and Y", and both X and Y need the
+   * unit of their own scale.
+   */
   private static formatCriteriaValues(
     values: Array<number | boolean> | number | boolean | string,
+    withUnit?: ((value: number) => string) | undefined,
   ): string {
     if (Array.isArray(values)) {
       /*
@@ -934,7 +975,7 @@ export default class CompareCriteria {
       if (values.length <= MAX_INLINE) {
         return values
           .map((value: number | boolean) => {
-            return CompareCriteria.formatSingleValue(value);
+            return CompareCriteria.formatSingleValue(value, withUnit);
           })
           .join(", ");
       }
@@ -950,24 +991,26 @@ export default class CompareCriteria {
         const max: number = Math.max(...numericValues);
         return `${numericValues.length} samples between ${CompareCriteria.formatSingleValue(
           min,
-        )} and ${CompareCriteria.formatSingleValue(max)}`;
+          withUnit,
+        )} and ${CompareCriteria.formatSingleValue(max, withUnit)}`;
       }
 
       // Fall back to a truncated list when not all values are numeric
       const head: string = values
         .slice(0, MAX_INLINE)
         .map((value: number | boolean) => {
-          return CompareCriteria.formatSingleValue(value);
+          return CompareCriteria.formatSingleValue(value, withUnit);
         })
         .join(", ");
       return `${head}, … (${values.length} values total)`;
     }
 
-    return CompareCriteria.formatSingleValue(values);
+    return CompareCriteria.formatSingleValue(values, withUnit);
   }
 
   private static formatSingleValue(
     value: number | boolean | string | null | undefined,
+    withUnit?: ((value: number) => string) | undefined,
   ): string {
     if (value === null || value === undefined) {
       return "unknown";
@@ -975,6 +1018,10 @@ export default class CompareCriteria {
 
     if (typeof value === Typeof.Number) {
       const numericValue: number = value as number;
+
+      if (withUnit) {
+        return withUnit(numericValue);
+      }
 
       if (Number.isInteger(numericValue)) {
         return numericValue.toString();
