@@ -55,10 +55,9 @@ type ScopeValue = ScopePredicate | Array<ScopePredicate>;
 /**
  * Everything the ClickHouse instance query has to match.
  *
- * The three sources are kept apart because they arrive compiled
- * differently: chips carry the value as the user wrote it (grammar text,
- * compiled here), while search tokens arrive already compiled by the
- * parser.
+ * The sources are kept apart because they arrive compiled differently:
+ * chips carry the value as the user wrote it (grammar text, compiled here),
+ * while search tokens arrive already compiled by the parser.
  */
 export interface ExceptionInstanceScope {
   /** attribute key -> chip values, written in the search grammar. */
@@ -67,6 +66,109 @@ export interface ExceptionInstanceScope {
   attributePredicates: Dictionary<Array<SearchQueryValue>>;
   /** ExceptionInstance column -> predicates no other transport can carry. */
   columnPredicates: Dictionary<Array<SearchQueryValue>>;
+  /**
+   * Raw query fragment ANDed onto the instance query, for filter shapes this
+   * module's predicate vocabulary cannot describe. A host that scopes the
+   * viewer from a STORED query (the incident / alert snapshot) uses it as an
+   * escape hatch: the analytics compiler understands more value shapes than
+   * `SearchQueryValue` covers, and forwarding one verbatim keeps the list
+   * narrow where dropping it would quietly widen the list under an event's
+   * heading. Written before the window and projectId, which always win.
+   */
+  columnQuery?: Query<ExceptionInstance> | undefined;
+}
+
+/**
+ * AND two scopes together — a host-supplied scope (an incident's stored
+ * exception query) with the one the user built out of chips and search.
+ *
+ * Per-key predicate lists concatenate, which is what makes them AND: a host
+ * pinned to `exceptionType IN (...)` plus a typed `@type:Timeout*` matches
+ * instances satisfying both, rather than letting the later write silently
+ * replace the earlier one.
+ */
+export function mergeExceptionInstanceScopes(
+  base: ExceptionInstanceScope,
+  overlay: ExceptionInstanceScope,
+): ExceptionInstanceScope {
+  const mergeSelections: (
+    a: ExceptionAttributeSelections,
+    b: ExceptionAttributeSelections,
+  ) => ExceptionAttributeSelections = (
+    a: ExceptionAttributeSelections,
+    b: ExceptionAttributeSelections,
+  ): ExceptionAttributeSelections => {
+    const merged: ExceptionAttributeSelections = {};
+
+    for (const source of [a, b]) {
+      for (const key of Object.keys(source)) {
+        const values: Array<string> = source[key] || [];
+
+        if (values.length === 0) {
+          continue;
+        }
+
+        if (!merged[key]) {
+          merged[key] = [];
+        }
+
+        for (const value of values) {
+          if (!merged[key]!.includes(value)) {
+            merged[key]!.push(value);
+          }
+        }
+      }
+    }
+
+    return merged;
+  };
+
+  const mergePredicates: (
+    a: Dictionary<Array<SearchQueryValue>>,
+    b: Dictionary<Array<SearchQueryValue>>,
+  ) => Dictionary<Array<SearchQueryValue>> = (
+    a: Dictionary<Array<SearchQueryValue>>,
+    b: Dictionary<Array<SearchQueryValue>>,
+  ): Dictionary<Array<SearchQueryValue>> => {
+    const merged: Dictionary<Array<SearchQueryValue>> = {};
+
+    for (const source of [a, b]) {
+      for (const key of Object.keys(source)) {
+        const values: Array<SearchQueryValue> = source[key] || [];
+
+        if (values.length === 0) {
+          continue;
+        }
+
+        merged[key] = [...(merged[key] || []), ...values];
+      }
+    }
+
+    return merged;
+  };
+
+  const columnQuery: Query<ExceptionInstance> = {
+    ...(base.columnQuery || {}),
+    ...(overlay.columnQuery || {}),
+  };
+
+  return {
+    attributeSelections: mergeSelections(
+      base.attributeSelections,
+      overlay.attributeSelections,
+    ),
+    attributePredicates: mergePredicates(
+      base.attributePredicates,
+      overlay.attributePredicates,
+    ),
+    columnPredicates: mergePredicates(
+      base.columnPredicates,
+      overlay.columnPredicates,
+    ),
+    ...(Object.keys(columnQuery).length > 0
+      ? { columnQuery: columnQuery }
+      : {}),
+  };
 }
 
 export function isExceptionAttributeFacetKey(facetKey: string): boolean {
@@ -127,8 +229,36 @@ export function hasExceptionInstanceScope(
   return (
     Object.keys(scope.attributeSelections).length > 0 ||
     Object.keys(scope.attributePredicates).length > 0 ||
-    Object.keys(scope.columnPredicates).length > 0
+    Object.keys(scope.columnPredicates).length > 0 ||
+    Object.keys(scope.columnQuery || {}).length > 0
   );
+}
+
+/*
+ * The raw fragment, keyed for the resolution cache. Query operators are
+ * compared by their serialized form for the same reason predicates are: two
+ * equal filters are different object identities on every render, and
+ * identity comparison would refetch the fingerprints forever.
+ */
+function serializeColumnQuery(
+  columnQuery: Query<ExceptionInstance> | undefined,
+): Record<string, unknown> {
+  if (!columnQuery) {
+    return {};
+  }
+
+  const ordered: Record<string, unknown> = {};
+
+  for (const key of Object.keys(columnQuery).sort()) {
+    const value: unknown = (columnQuery as Record<string, unknown>)[key];
+
+    ordered[key] =
+      value && typeof value === "object" && "toJSON" in value
+        ? (value as { toJSON: () => unknown }).toJSON()
+        : value;
+  }
+
+  return ordered;
 }
 
 function serializePredicates(
@@ -169,6 +299,7 @@ export function getExceptionInstanceScopeKey(input: {
     orderedSelections,
     serializePredicates(input.scope.attributePredicates),
     serializePredicates(input.scope.columnPredicates),
+    serializeColumnQuery(input.scope.columnQuery),
     input.windowStartMs,
     input.windowEndMs,
   ]);
@@ -263,7 +394,13 @@ export function buildExceptionInstanceScopeQuery(input: {
     }
   }
 
+  /*
+   * Order matters: the raw host fragment goes down first so a predicate the
+   * chips or the search produced for the same column overwrites it, then the
+   * window and projectId, which no scope may override.
+   */
   return {
+    ...(input.scope.columnQuery || {}),
     ...columns,
     projectId: input.projectId,
     time: input.window,
