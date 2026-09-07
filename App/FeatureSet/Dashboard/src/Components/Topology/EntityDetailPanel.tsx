@@ -54,12 +54,15 @@ export interface ComponentProps {
   metricsWindowSeconds: number;
   onClose: () => void;
   onFocus: (entityKey: string) => void;
+  focusButtonLabel?: string | undefined;
+  onSelectEntity?: ((entityKey: string) => void) | undefined;
 }
 
 interface EdgeRow {
   direction: "outbound" | "inbound";
   relationship: InventoryItemRelationship;
   otherLabel: string;
+  otherKey: string | null;
 }
 
 function normalizeHostName(value: string | undefined): string {
@@ -212,9 +215,10 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         rows.push({
           direction: "outbound",
           relationship,
+          otherKey: other?.entityKey || null,
           otherLabel:
             other?.displayName ||
-            `${(relationship.toEntityKey || "").substring(0, 8)}…`,
+            (other ? "Unnamed resource" : "Undiscovered resource"),
         });
       } else if (relationship.toEntityKey === entityKey) {
         const other: InventoryItem | undefined = props.entityByKey.get(
@@ -223,9 +227,10 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         rows.push({
           direction: "inbound",
           relationship,
+          otherKey: other?.entityKey || null,
           otherLabel:
             other?.displayName ||
-            `${(relationship.fromEntityKey || "").substring(0, 8)}…`,
+            (other ? "Unnamed resource" : "Undiscovered resource"),
         });
       }
     }
@@ -248,7 +253,20 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         : `${row.otherLabel} ${labelForRelationship(rel.relationshipType)} ${displayName}`;
     return (
       <li key={index} className="py-2">
-        <p className="text-sm text-gray-900">{sentence}</p>
+        {row.otherKey && props.onSelectEntity ? (
+          <button
+            type="button"
+            className="w-full rounded-md text-left text-sm font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            aria-label={`${translateString("View details for")} ${row.otherLabel}`}
+            onClick={() => {
+              props.onSelectEntity?.(row.otherKey!);
+            }}
+          >
+            {sentence} <span aria-hidden={true}>→</span>
+          </button>
+        ) : (
+          <p className="text-sm text-gray-900">{sentence}</p>
+        )}
         {hasMetrics && (
           <p className="mt-0.5 text-xs text-gray-500">
             {formatCallRate(rel.callCount!, props.metricsWindowSeconds)} ·{" "}
@@ -270,7 +288,11 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
       <div className="space-y-6">
         <div className="flex flex-wrap gap-2">
           <Button
-            title={translateString("Focus on this node") || ""}
+            title={
+              translateString(
+                props.focusButtonLabel || "Explore connections",
+              ) || ""
+            }
             buttonStyle={ButtonStyleType.OUTLINE}
             onClick={() => {
               props.onFocus(entityKey);

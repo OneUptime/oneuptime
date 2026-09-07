@@ -1,44 +1,31 @@
 import PageComponentProps from "../PageComponentProps";
 import ServiceMapGraph from "../../Components/Topology/ServiceMapGraph";
-import InfrastructureGraph from "../../Components/Topology/InfrastructureGraph";
-import { buildTopologyInventoryItemQuery } from "../../Components/Topology/TopologyInventoryData";
+import InfrastructureExplorer from "../../Components/Topology/InfrastructureExplorer";
+import useTopologyData from "../../Components/Topology/UseTopologyData";
 import NetworkTopologyExplorer from "../../Components/Topology/NetworkTopologyExplorer";
 import Page from "Common/UI/Components/Page/Page";
-import Tabs from "Common/UI/Components/Tabs/Tabs";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
-import RangeStartAndEndDateTime, {
-  RangeStartAndEndDateTimeUtil,
-} from "Common/Types/Time/RangeStartAndEndDateTime";
+import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
-import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
-import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ProjectUtil from "Common/UI/Utils/Project";
-import API from "Common/UI/Utils/API/API";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, {
   FunctionComponent,
   ReactElement,
-  useEffect,
   useMemo,
   useState,
 } from "react";
 
 /*
- * Topology hub: two purpose-built maps over the entity registry instead of
- * one mixed graph. "Service Map" is the layer-7 call graph (services +
- * depends-on edges with traffic metrics); "Infrastructure" is the
- * containment graph (pods on nodes, containers on hosts, ...). Entities
- * Inventory items load from the complete, non-archived catalog. Relationships
- * load for the selected time range and both tabs share the results.
+ * Service Map and Infrastructure share the current, non-archived inventory
+ * and connections last observed since the selected range's start. Service
+ * Map presents service dependencies and traffic; Infrastructure presents
+ * resource containment. Network discovery uses its own live data source.
  */
 
 /*
@@ -56,79 +43,15 @@ const TopologyPage: FunctionComponent<
     range: TimeRange.PAST_ONE_DAY,
   });
 
-  const [entities, setEntities] = useState<Array<InventoryItem>>([]);
-  const [relationships, setRelationships] = useState<
-    Array<InventoryItemRelationship>
-  >([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
-  const [isTruncated, setIsTruncated] = useState<boolean>(false);
-
-  useEffect(() => {
-    const load: () => Promise<void> = async (): Promise<void> => {
-      setIsLoading(true);
-      setError("");
-      try {
-        const window: InBetween<Date> =
-          RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
-
-        const [entityResult, relationshipResult]: [
-          ListResult<InventoryItem>,
-          ListResult<InventoryItemRelationship>,
-        ] = await Promise.all([
-          ModelAPI.getList<InventoryItem>({
-            modelType: InventoryItem,
-            query: buildTopologyInventoryItemQuery(
-              ProjectUtil.getCurrentProjectId()!,
-            ),
-            select: {
-              _id: true,
-              entityKey: true,
-              displayName: true,
-              entityType: true,
-              resourceType: true,
-              resourceId: true,
-              firstSeenAt: true,
-              lastSeenAt: true,
-            },
-            sort: {},
-            skip: 0,
-            limit: LIMIT_PER_PROJECT,
-          }),
-          ModelAPI.getList<InventoryItemRelationship>({
-            modelType: InventoryItemRelationship,
-            query: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-              lastSeenAt: new GreaterThanOrEqual<Date>(window.startValue),
-            },
-            select: {
-              fromEntityKey: true,
-              toEntityKey: true,
-              relationshipType: true,
-              callCount: true,
-              errorCount: true,
-              avgDurationMs: true,
-            },
-            sort: {},
-            skip: 0,
-            limit: LIMIT_PER_PROJECT,
-          }),
-        ]);
-
-        setEntities(entityResult.data);
-        setRelationships(relationshipResult.data);
-        setIsTruncated(
-          entityResult.count > entityResult.data.length ||
-            relationshipResult.count > relationshipResult.data.length,
-        );
-      } catch (err) {
-        setError(API.getFriendlyMessage(err));
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    void load();
-  }, [timeRange]);
+  const {
+    entities,
+    relationships,
+    isLoading,
+    error,
+    isTruncated,
+    reload,
+    lastUpdatedAt,
+  } = useTopologyData(timeRange);
 
   /*
    * The Network tab is a live LLDP view (also surfaced under Network
@@ -155,7 +78,18 @@ const TopologyPage: FunctionComponent<
       return <ComponentLoader />;
     }
     if (error) {
-      return <ErrorMessage message={error} />;
+      return (
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
+          <ErrorMessage message={error} />
+          <button
+            type="button"
+            className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            onClick={reload}
+          >
+            {translateString("Try again") || "Try again"}
+          </button>
+        </div>
+      );
     }
     return graph;
   };
@@ -176,7 +110,7 @@ const TopologyPage: FunctionComponent<
       {
         name: "Infrastructure",
         children: wrapTelemetryTab(
-          <InfrastructureGraph
+          <InfrastructureExplorer
             entities={entities}
             relationships={relationships}
             metricsWindowSeconds={METRICS_WINDOW_SECONDS}
@@ -188,48 +122,184 @@ const TopologyPage: FunctionComponent<
         children: <NetworkTopologyExplorer />,
       },
     ];
-  }, [entities, relationships, timeRange, isLoading, error]);
+  }, [entities, relationships, timeRange, isLoading, error, reload]);
+
+  const viewDescriptions: Record<
+    string,
+    { icon: IconProp; description: string }
+  > = {
+    "Service Map": {
+      icon: IconProp.FlowDiagram,
+      description: "Which services depend on each other?",
+    },
+    Infrastructure: {
+      icon: IconProp.Layers,
+      description: "What runs where in your infrastructure?",
+    },
+    Network: {
+      icon: IconProp.ServerStack,
+      description: "How are your network devices connected?",
+    },
+  };
+  const selectTab: (name: string) => void = (name: string): void => {
+    setActiveTabName(name);
+    Navigation.setQueryString({ tab: name === "Service Map" ? null : name });
+  };
+  const handleTabKey: (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => void = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ): void => {
+    let nextIndex: number = index;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      nextIndex = (index + 1) % TAB_NAMES.length;
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      nextIndex = (index + TAB_NAMES.length - 1) % TAB_NAMES.length;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = TAB_NAMES.length - 1;
+    } else {
+      return;
+    }
+    event.preventDefault();
+    selectTab(TAB_NAMES[nextIndex]!);
+    document.getElementById(`topology-view-${nextIndex}`)?.focus();
+  };
 
   return (
-    <Page title="Topology" breadcrumbLinks={[]}>
-      <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <p className="text-sm text-gray-500">
-          {isNetworkTab
-            ? translateString(
-                "The network map is live. Start at the sites you model your network in and drill down — the last level opens the devices as they report themselves right now.",
-              ) || ""
-            : translateString(
-                "The map includes every current inventory item. Connections reflect OpenTelemetry data from the selected time range.",
-              ) || ""}
-        </p>
-        {isNetworkTab ? (
-          <></>
-        ) : (
-          <TelemetryTimeRangePicker value={timeRange} onChange={setTimeRange} />
-        )}
-      </div>
-
-      {isTruncated && !isNetworkTab && !isLoading && !error ? (
-        <div className="mb-3 rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800">
-          {translateString(
-            "This map is very large, so only part of it is shown. Use search, filters or the focus mode to narrow it down.",
-          ) || ""}
+    <Page
+      title="Topology"
+      description="Understand how your services, infrastructure, and network connect."
+      breadcrumbLinks={[]}
+    >
+      <div className="space-y-5">
+        <nav
+          role="tablist"
+          aria-label={translateString("Topology views") || "Topology views"}
+          className="grid gap-3 sm:grid-cols-3"
+        >
+          {tabs.map((tab: Tab, index: number): ReactElement => {
+            const selected: boolean = activeTabName === tab.name;
+            const info: { icon: IconProp; description: string } =
+              viewDescriptions[tab.name]!;
+            return (
+              <button
+                type="button"
+                key={tab.name}
+                id={`topology-view-${index}`}
+                role="tab"
+                aria-label={translateString(tab.name) || tab.name}
+                aria-selected={selected}
+                aria-controls="topology-view-panel"
+                tabIndex={selected ? 0 : -1}
+                onClick={() => {
+                  selectTab(tab.name);
+                }}
+                onKeyDown={(event: React.KeyboardEvent<HTMLButtonElement>) => {
+                  handleTabKey(event, index);
+                }}
+                className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${selected ? "border-indigo-300 bg-indigo-50 shadow-sm" : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"}`}
+              >
+                <span
+                  className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${selected ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-500"}`}
+                >
+                  <Icon icon={info.icon} className="h-5 w-5" />
+                </span>
+                <span className="min-w-0">
+                  <span
+                    className={`block text-sm font-semibold ${selected ? "text-indigo-900" : "text-gray-800"}`}
+                  >
+                    {translateString(tab.name)}
+                  </span>
+                  <span
+                    aria-hidden={true}
+                    className={`mt-1 block text-xs leading-5 ${selected ? "text-indigo-600" : "text-gray-500"}`}
+                  >
+                    {translateString(info.description)}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-xs text-gray-500">
+            {isNetworkTab ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                {translateString(
+                  "The network map is live. Device connections refresh automatically.",
+                )}
+              </span>
+            ) : (
+              <details className="relative">
+                <summary className="cursor-pointer rounded text-gray-500 hover:text-gray-800 focus:ring-2 focus:ring-indigo-500">
+                  {translateString("Current inventory · About this data")}
+                </summary>
+                <p className="mt-2 max-w-xl leading-5">
+                  {translateString(
+                    "All current inventory resources are included. Connections are those last observed since the start of the selected range. Traffic metrics show the latest 15-minute sample, not totals for the selected range.",
+                  )}
+                </p>
+              </details>
+            )}
+          </div>
+          {!isNetworkTab && (
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-xs text-gray-500">
+                {translateString("Connection activity")}
+              </span>
+              <TelemetryTimeRangePicker
+                value={timeRange}
+                onChange={setTimeRange}
+              />
+              <button
+                type="button"
+                aria-label={
+                  translateString("Refresh topology") || "Refresh topology"
+                }
+                title={
+                  lastUpdatedAt
+                    ? `${translateString("Last refreshed")}: ${lastUpdatedAt.toLocaleTimeString()}`
+                    : undefined
+                }
+                disabled={isLoading}
+                className="rounded-lg border border-gray-200 bg-white p-2 text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40"
+                onClick={reload}
+              >
+                <Icon icon={IconProp.Refresh} className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
-      ) : (
-        <></>
-      )}
-
-      <Tabs
-        tabs={tabs}
-        initialTabName={initialTabName}
-        onTabChange={(tab: Tab) => {
-          setActiveTabName(tab.name);
-          // Keep the view shareable; default tab keeps the URL clean.
-          Navigation.setQueryString({
-            tab: tab.name === "Service Map" ? null : tab.name,
-          });
-        }}
-      />
+        {isTruncated && !isNetworkTab && !isLoading && !error && (
+          <div
+            role="status"
+            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+          >
+            <span className="font-semibold">
+              {translateString("Partial inventory loaded.")}
+            </span>{" "}
+            {translateString(
+              "This project exceeds the map loading limit. Counts, search results, and connections cover the loaded resources only.",
+            )}
+          </div>
+        )}
+        <div
+          id="topology-view-panel"
+          role="tabpanel"
+          aria-labelledby={`topology-view-${TAB_NAMES.indexOf(activeTabName)}`}
+        >
+          {
+            tabs.find((tab: Tab): boolean => {
+              return tab.name === activeTabName;
+            })?.children
+          }
+        </div>
+      </div>
     </Page>
   );
 };

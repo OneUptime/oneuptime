@@ -20,8 +20,6 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import InventoryItemRelationship from "Common/Models/DatabaseModels/InventoryItemRelationship";
-import EntityType from "Common/Types/Telemetry/EntityType";
-import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Input from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
@@ -41,10 +39,18 @@ import {
   ServiceOperationalStatus,
   fetchServiceOperationalStatuses,
 } from "./OperationalOverlay";
+import {
+  ServiceMapEntry,
+  ServiceMapModel,
+  ServiceMapVisibility,
+  SERVICE_TRAFFIC_LABELS,
+  buildServiceMapModel,
+  resolveServiceMapVisibility,
+  serviceIsolatedPosition,
+} from "./ServiceMapViewModel";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import {
   HEALTH_COLORS,
-  TrafficHealth,
   edgeWidthForCalls,
   formatCallRate,
   formatDurationMs,
@@ -56,12 +62,13 @@ import {
  * Service Map: services and their call relationships only (`depends-on`
  * edges derived from cross-service span pairs). Infrastructure containment
  * lives in the sibling Infrastructure tab. Edge width tracks call volume,
- * edge/node color tracks error rate, and every edge is annotated with its
- * recent rate / error % / latency from the ComputeServiceDependencies cron.
+ * edge/node color tracks error rate, and optional labels expose recent rate,
+ * error percentage or latency from the ComputeServiceDependencies cron.
  */
 
 const X_GAP: number = 260;
-const Y_GAP: number = 150;
+const Y_GAP: number = 180;
+const SERVICES_PER_PAGE: number = 40;
 
 export interface ComponentProps {
   entities: Array<InventoryItem>;
@@ -72,17 +79,14 @@ export interface ComponentProps {
   timeRange: RangeStartAndEndDateTime;
 }
 
-interface ServiceNodeData {
-  label: string;
-  health: TrafficHealth;
+interface ServiceNodeData extends ServiceMapEntry {
   rateText: string | null;
   errorText: string | null;
   dimmed: boolean;
-  incidentCount: number;
-  incidentColor: string | null;
-  alertCount: number;
-  alertColor: string | null;
 }
+
+type ServiceView = "list" | "map";
+type ConnectionMetric = "none" | "calls" | "errors" | "latency";
 
 // Fallbacks when a severity has no color configured.
 const INCIDENT_FALLBACK_COLOR: string = "#dc2626";
@@ -97,6 +101,7 @@ const ServiceMapNode: FunctionComponent<NodeProps<ServiceNodeData>> = (
   props: NodeProps<ServiceNodeData>,
 ): ReactElement => {
   const { data } = props;
+  const { translateString } = useTranslateValue();
   const statLines: Array<ReactElement> = [];
   if (data.incidentCount > 0) {
     statLines.push(
@@ -137,7 +142,7 @@ const ServiceMapNode: FunctionComponent<NodeProps<ServiceNodeData>> = (
               marginLeft: 8,
             }}
           >
-            {data.errorText} err
+            {data.errorText} errors
           </span>
         )}
       </span>,
@@ -157,6 +162,7 @@ const ServiceMapNode: FunctionComponent<NodeProps<ServiceNodeData>> = (
       borderColor={borderColor}
       dimmed={data.dimmed}
       statLines={statLines}
+      statusLabel={translateString(SERVICE_TRAFFIC_LABELS[data.health]) || ""}
     />
   );
 };
@@ -181,6 +187,13 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
   const [searchText, setSearchTextState] = useState<string>(
     Navigation.getQueryStringByName("search") || "",
   );
+  const [view, setView] = useState<ServiceView>(
+    Navigation.getQueryStringByName("serviceView") === "map" ? "map" : "list",
+  );
+  const [attentionOnly, setAttentionOnly] = useState<boolean>(false);
+  const [page, setPage] = useState<number>(0);
+  const [connectionMetric, setConnectionMetric] =
+    useState<ConnectionMetric>("none");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [focusKey, setFocusKeyState] = useState<string | null>(
@@ -212,24 +225,40 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
   const flowInstance: React.MutableRefObject<ReactFlowInstance | null> =
     useRef<ReactFlowInstance | null>(null);
 
-  const serviceEntities: Array<InventoryItem> = useMemo(() => {
-    return props.entities.filter((entity: InventoryItem) => {
-      return entity.entityType === EntityType.Service && entity.entityKey;
-    });
-  }, [props.entities]);
-
-  const entityByKey: Map<string, InventoryItem> = useMemo(() => {
-    const map: Map<string, InventoryItem> = new Map<string, InventoryItem>();
-    for (const entity of serviceEntities) {
-      map.set(entity.entityKey!, entity);
-    }
-    return map;
-  }, [serviceEntities]);
-
-  // Operational overlay: incidents/alerts per service, keyed by lowercase name.
   const [operationalStatuses, setOperationalStatuses] = useState<
     Map<string, ServiceOperationalStatus>
   >(new Map<string, ServiceOperationalStatus>());
+  const baseModel: ServiceMapModel = useMemo(() => {
+    return buildServiceMapModel(props.entities, props.relationships);
+  }, [props.entities, props.relationships]);
+  const model: ServiceMapModel = useMemo(() => {
+    return buildServiceMapModel(
+      props.entities,
+      props.relationships,
+      operationalStatuses,
+    );
+  }, [props.entities, props.relationships, operationalStatuses]);
+  const serviceEntities: Array<InventoryItem> = useMemo(() => {
+    return baseModel.entries.map((entry: ServiceMapEntry) => {
+      return entry.entity;
+    });
+  }, [baseModel]);
+  const entityByKey: Map<string, InventoryItem> = useMemo(() => {
+    return new Map<string, InventoryItem>(
+      model.entries.map((entry: ServiceMapEntry) => {
+        return [entry.key, entry.entity];
+      }),
+    );
+  }, [model]);
+  const dependsOnEdges: Array<InventoryItemRelationship> = model.relationships;
+
+  useEffect(() => {
+    return () => {
+      if (searchUrlTimeout.current) {
+        clearTimeout(searchUrlTimeout.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled: boolean = false;
@@ -261,95 +290,88 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     };
   }, [serviceEntities]);
 
-  const dependsOnEdges: Array<InventoryItemRelationship> = useMemo(() => {
-    return props.relationships.filter(
-      (relationship: InventoryItemRelationship) => {
-        return (
-          relationship.relationshipType === EntityRelationshipType.DependsOn &&
-          Boolean(relationship.fromEntityKey) &&
-          Boolean(relationship.toEntityKey) &&
-          entityByKey.has(relationship.fromEntityKey!) &&
-          entityByKey.has(relationship.toEntityKey!)
-        );
-      },
-    );
-  }, [props.relationships, entityByKey]);
-
-  // Only honor a focus key that exists in THIS graph.
-  const effectiveFocusKey: string | null =
-    focusKey && entityByKey.has(focusKey) ? focusKey : null;
-
-  // Focus mode: every service reachable from the focused one, both ways.
-  const focusedKeys: Set<string> | null = useMemo(() => {
-    if (!effectiveFocusKey) {
-      return null;
-    }
-    const neighbors: Map<string, Array<string>> = new Map<
-      string,
-      Array<string>
-    >();
-    for (const edge of dependsOnEdges) {
-      neighbors.set(edge.fromEntityKey!, [
-        ...(neighbors.get(edge.fromEntityKey!) || []),
-        edge.toEntityKey!,
-      ]);
-      neighbors.set(edge.toEntityKey!, [
-        ...(neighbors.get(edge.toEntityKey!) || []),
-        edge.fromEntityKey!,
-      ]);
-    }
-    const reached: Set<string> = new Set<string>([effectiveFocusKey]);
-    const queue: Array<string> = [effectiveFocusKey];
-    while (queue.length > 0) {
-      const current: string = queue.shift()!;
-      for (const neighbor of neighbors.get(current) || []) {
-        if (!reached.has(neighbor)) {
-          reached.add(neighbor);
-          queue.push(neighbor);
-        }
-      }
-    }
-    return reached;
-  }, [effectiveFocusKey, dependsOnEdges]);
+  const visibility: ServiceMapVisibility = useMemo(() => {
+    return resolveServiceMapVisibility({
+      model,
+      search: searchText,
+      focusKey,
+      attentionOnly,
+    });
+  }, [model, searchText, focusKey, attentionOnly]);
+  const effectiveFocusKey: string | null = visibility.effectiveFocusKey;
+  const matchedEntries: Array<ServiceMapEntry> = model.entries.filter(
+    (entry: ServiceMapEntry) => {
+      return visibility.matchedKeys.has(entry.key);
+    },
+  );
+  const attentionCount: number = model.entries.filter(
+    (entry: ServiceMapEntry) => {
+      return entry.needsAttention;
+    },
+  ).length;
+  const pageCount: number = Math.max(
+    1,
+    Math.ceil(matchedEntries.length / SERVICES_PER_PAGE),
+  );
+  const currentPage: number = Math.min(page, pageCount - 1);
+  const pageEntries: Array<ServiceMapEntry> = matchedEntries.slice(
+    currentPage * SERVICES_PER_PAGE,
+    (currentPage + 1) * SERVICES_PER_PAGE,
+  );
+  useEffect(() => {
+    setPage(0);
+  }, [searchText, effectiveFocusKey, attentionOnly]);
+  useEffect(() => {
+    setPage((value: number) => {
+      return Math.min(value, pageCount - 1);
+    });
+  }, [pageCount]);
+  const isolatedCount: number = model.entries.filter(
+    (entry: ServiceMapEntry) => {
+      return entry.callers === 0 && entry.dependencies === 0;
+    },
+  ).length;
+  const changeView: (value: ServiceView) => void = (
+    value: ServiceView,
+  ): void => {
+    setView(value);
+    Navigation.setQueryString({ serviceView: value === "map" ? "map" : null });
+  };
+  const resetFilters: () => void = (): void => {
+    setSearchText("");
+    setFocusKey(null);
+    setAttentionOnly(false);
+  };
+  const viewConnections: (key: string) => void = (key: string): void => {
+    setSelectedKey(null);
+    setSelectedEdgeId(null);
+    setSearchText("");
+    setAttentionOnly(false);
+    setFocusKey(key);
+    changeView("map");
+  };
 
   const { nodes, edges } = useMemo((): {
     nodes: Array<Node<ServiceNodeData>>;
     edges: Array<Edge>;
   } => {
-    const visibleServices: Array<InventoryItem> = serviceEntities.filter(
-      (entity: InventoryItem) => {
-        return !focusedKeys || focusedKeys.has(entity.entityKey!);
+    if (view !== "map") {
+      return { nodes: [], edges: [] };
+    }
+    const visibleServices: Array<ServiceMapEntry> = model.entries.filter(
+      (entry: ServiceMapEntry) => {
+        return visibility.visibleKeys.has(entry.key);
       },
-    );
-    const visibleKeys: Set<string> = new Set<string>(
-      visibleServices.map((entity: InventoryItem) => {
-        return entity.entityKey!;
-      }),
     );
     const visibleEdges: Array<InventoryItemRelationship> =
       dependsOnEdges.filter((relationship: InventoryItemRelationship) => {
         return (
-          visibleKeys.has(relationship.fromEntityKey!) &&
-          visibleKeys.has(relationship.toEntityKey!)
+          visibility.visibleKeys.has(relationship.fromEntityKey!) &&
+          visibility.visibleKeys.has(relationship.toEntityKey!)
         );
       });
 
-    // Served traffic per service: aggregate over inbound depends-on edges.
-    const inboundCalls: Map<string, { calls: number; errors: number }> =
-      new Map<string, { calls: number; errors: number }>();
-    for (const relationship of visibleEdges) {
-      if (!relationship.callCount) {
-        continue;
-      }
-      const current: { calls: number; errors: number } = inboundCalls.get(
-        relationship.toEntityKey!,
-      ) || { calls: 0, errors: 0 };
-      current.calls += relationship.callCount;
-      current.errors += relationship.errorCount || 0;
-      inboundCalls.set(relationship.toEntityKey!, current);
-    }
-
-    // Connected services get the layered layout; isolated ones a row below.
+    // Connected services get the layered layout; isolated ones a grid below.
     const connectedKeys: Set<string> = new Set<string>();
     for (const relationship of visibleEdges) {
       connectedKeys.add(relationship.fromEntityKey!);
@@ -369,55 +391,39 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     for (const [, point] of layout) {
       maxY = Math.max(maxY, point.y);
     }
-    const isolated: Array<InventoryItem> = visibleServices
-      .filter((entity: InventoryItem) => {
-        return !connectedKeys.has(entity.entityKey!);
-      })
-      .sort((a: InventoryItem, b: InventoryItem) => {
-        return (a.displayName || "").localeCompare(b.displayName || "");
-      });
-
-    const lowerSearch: string = searchText.trim().toLowerCase();
+    const isolated: Array<ServiceMapEntry> = visibleServices.filter(
+      (entry: ServiceMapEntry) => {
+        return !connectedKeys.has(entry.key);
+      },
+    );
     const builtNodes: Array<Node<ServiceNodeData>> = visibleServices.map(
-      (entity: InventoryItem): Node<ServiceNodeData> => {
-        const key: string = entity.entityKey!;
-        const served: { calls: number; errors: number } | undefined =
-          inboundCalls.get(key);
-        const health: TrafficHealth = healthForErrorRate(
-          served?.calls,
-          served?.errors,
-        );
-        const label: string = entity.displayName || "Unnamed service";
-        const dimmed: boolean = Boolean(
-          lowerSearch && !label.toLowerCase().includes(lowerSearch),
-        );
-        const point: LayoutPoint = layout.get(key) || {
-          x:
-            isolated.findIndex((candidate: InventoryItem) => {
-              return candidate.entityKey === key;
-            }) * X_GAP,
-          y: (layout.size > 0 ? maxY + Y_GAP : 0) + Y_GAP,
-        };
-        const incidentStatus: ServiceOperationalStatus | undefined =
-          operationalStatuses.get(label.toLowerCase());
+      (entry: ServiceMapEntry): Node<ServiceNodeData> => {
+        const point: LayoutPoint =
+          layout.get(entry.key) ||
+          serviceIsolatedPosition({
+            index: isolated.findIndex((candidate: ServiceMapEntry) => {
+              return candidate.key === entry.key;
+            }),
+            count: isolated.length,
+            xGap: X_GAP,
+            yGap: Y_GAP,
+            startY: layout.size > 0 ? maxY + Y_GAP : 0,
+          });
         return {
-          id: key,
+          id: entry.key,
           type: "serviceMapNode",
           position: point,
           data: {
-            label,
-            health,
-            rateText: served
-              ? formatCallRate(served.calls, props.metricsWindowSeconds)
-              : null,
-            errorText: served
-              ? formatErrorRate(served.calls, served.errors)
-              : null,
-            dimmed,
-            incidentCount: incidentStatus?.activeIncidentCount || 0,
-            incidentColor: incidentStatus?.worstIncidentSeverityColor || null,
-            alertCount: incidentStatus?.activeAlertCount || 0,
-            alertColor: incidentStatus?.worstAlertSeverityColor || null,
+            ...entry,
+            rateText:
+              entry.calls > 0
+                ? formatCallRate(entry.calls, props.metricsWindowSeconds)
+                : null,
+            errorText:
+              entry.calls > 0
+                ? formatErrorRate(entry.calls, entry.errors)
+                : null,
+            dimmed: visibility.contextKeys.has(entry.key),
           },
         };
       },
@@ -425,10 +431,8 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
 
     const builtEdges: Array<Edge> = visibleEdges.map(
       (relationship: InventoryItemRelationship): Edge => {
-        const health: TrafficHealth = healthForErrorRate(
-          relationship.callCount,
-          relationship.errorCount,
-        );
+        const health: ReturnType<typeof healthForErrorRate> =
+          healthForErrorRate(relationship.callCount, relationship.errorCount);
         const color: string =
           health === "unknown" ? "#94a3b8" : HEALTH_COLORS[health];
         const hasMetrics: boolean = Boolean(
@@ -439,10 +443,18 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
           source: relationship.fromEntityKey!,
           target: relationship.toEntityKey!,
           type: "smoothstep",
-          animated: true,
-          label: hasMetrics
-            ? `${formatCallRate(relationship.callCount!, props.metricsWindowSeconds)} · ${formatErrorRate(relationship.callCount, relationship.errorCount)} · ${formatDurationMs(relationship.avgDurationMs)}`
-            : undefined,
+          animated: false,
+          label:
+            hasMetrics && connectionMetric !== "none"
+              ? connectionMetric === "calls"
+                ? formatCallRate(
+                    relationship.callCount!,
+                    props.metricsWindowSeconds,
+                  )
+                : connectionMetric === "errors"
+                  ? `${formatErrorRate(relationship.callCount, relationship.errorCount)} errors`
+                  : formatDurationMs(relationship.avgDurationMs)
+              : undefined,
           labelStyle: { fontSize: 10, fill: "#6b7280" },
           labelBgStyle: {
             fill: "var(--ou-surface-primary, #ffffff)",
@@ -459,13 +471,19 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
 
     return { nodes: builtNodes, edges: builtEdges };
   }, [
-    serviceEntities,
+    model,
     dependsOnEdges,
-    focusedKeys,
-    searchText,
-    operationalStatuses,
+    visibility,
+    connectionMetric,
     props.metricsWindowSeconds,
+    view,
   ]);
+
+  const visibleGraphKey: string = nodes
+    .map((node: Node<ServiceNodeData>) => {
+      return node.id;
+    })
+    .join("|");
 
   /*
    * Re-fit when the visible graph changes. A new controlled `nodes` array
@@ -474,13 +492,16 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
    * lands.
    */
   useEffect(() => {
+    if (view !== "map" || nodes.length === 0) {
+      return undefined;
+    }
     let raf: number = 0;
     let attempts: number = 20;
     const tryFit: () => void = (): void => {
       const didFit: boolean = Boolean(
         flowInstance.current &&
           nodes.length > 0 &&
-          flowInstance.current.fitView({ padding: 0.2 }),
+          flowInstance.current.fitView({ padding: 0.18, maxZoom: 1 }),
       );
       if (!didFit && attempts > 0) {
         attempts--;
@@ -491,7 +512,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     return () => {
       cancelAnimationFrame(raf);
     };
-  }, [focusKey, nodes.length]);
+  }, [visibleGraphKey, view]);
 
   const selectedEntity: InventoryItem | null =
     (selectedKey && entityByKey.get(selectedKey)) || null;
@@ -520,74 +541,527 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <Fragment>
-      <div className="mb-3 flex flex-col md:flex-row md:items-center gap-3">
-        <div className="md:w-72">
-          <Input
-            dataTestId="service-map-search"
-            placeholder={translateString("Search services by name") || ""}
-            value={searchText}
-            onChange={(value: string) => {
-              setSearchText(value);
-            }}
-          />
-        </div>
-        {effectiveFocusKey && (
-          <button
-            type="button"
-            data-testid="service-map-clear-focus"
-            className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-sm text-indigo-700 hover:bg-indigo-100"
-            onClick={() => {
-              setFocusKey(null);
-            }}
-          >
-            {translateString("Focused on") || "Focused on"}{" "}
-            {entityByKey.get(effectiveFocusKey)?.displayName ||
-              effectiveFocusKey}
-            <span aria-hidden={true}>✕</span>
-          </button>
+    <div
+      className="min-w-0 w-full max-w-full"
+      data-testid="service-map-explorer"
+    >
+      <div
+        className="mb-5 grid min-w-0 w-full max-w-full grid-cols-2 gap-3 xl:grid-cols-4"
+        data-testid="service-map-summary"
+      >
+        {[
+          {
+            label: "Services",
+            value: model.entries.length,
+            detail: "Discovered in your environment",
+            color: "text-gray-900",
+          },
+          {
+            label: "Dependencies",
+            value: dependsOnEdges.length,
+            detail: "Observed service-to-service links",
+            color: "text-indigo-600",
+          },
+          {
+            label: "Need attention",
+            value: attentionCount,
+            detail: "Call errors, incidents or alerts",
+            color: attentionCount > 0 ? "text-amber-600" : "text-gray-900",
+          },
+          {
+            label: "Without connections",
+            value: isolatedCount,
+            detail: "No service dependencies observed",
+            color: "text-gray-900",
+          },
+        ].map(
+          (stat: {
+            label: string;
+            value: number;
+            detail: string;
+            color: string;
+          }) => {
+            return (
+              <div
+                key={stat.label}
+                className="min-w-0 rounded-xl border border-gray-200 bg-white px-5 py-4"
+              >
+                <p className="text-xs font-medium text-gray-500">
+                  {translateString(stat.label)}
+                </p>
+                <p
+                  className={`mt-2 text-3xl font-semibold tracking-tight ${stat.color}`}
+                >
+                  {stat.value}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  {translateString(stat.detail)}
+                </p>
+              </div>
+            );
+          },
         )}
-        <p className="text-xs text-gray-500 md:ml-auto">
-          {translateString(
-            "Edge labels show recent call rate, error rate and average latency. Click an edge for its history.",
-          ) || ""}
-        </p>
       </div>
 
-      <div style={{ height: "70vh", width: "100%" }}>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={NODE_TYPES}
-          fitView={true}
-          proOptions={{ hideAttribution: true }}
-          nodesDraggable={true}
-          nodesConnectable={false}
-          elementsSelectable={true}
-          onInit={(instance: ReactFlowInstance) => {
-            flowInstance.current = instance;
-          }}
-          onNodeClick={(_event: React.MouseEvent, node: Node) => {
-            /*
-             * Panels are exclusive — SideOver has no backdrop, so two
-             * would stack on top of each other.
-             */
-            setSelectedEdgeId(null);
-            setSelectedKey(node.id);
-          }}
-          onEdgeClick={(_event: React.MouseEvent, edge: Edge) => {
-            setSelectedKey(null);
-            setSelectedEdgeId(edge.id);
-          }}
-        >
-          <Controls showInteractive={false} />
-          <Background
-            variant={BackgroundVariant.Dots}
-            gap={16}
-            size={1}
-            color="var(--ou-chart-grid, #cbd5e1)"
-          />
-        </ReactFlow>
+      <div className="min-w-0 w-full max-w-full overflow-hidden rounded-xl border border-gray-200 bg-white">
+        <div className="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-base font-semibold text-gray-900">
+              {translateString("Service dependencies")}
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {translateString(
+                "Find a service, check its traffic, and explore what it depends on.",
+              )}
+            </p>
+          </div>
+          <div
+            className="inline-flex max-w-full self-start rounded-lg bg-gray-100 p-1"
+            role="group"
+            aria-label={translateString("Service view") || "Service view"}
+          >
+            {(["list", "map"] as Array<ServiceView>).map(
+              (option: ServiceView) => {
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    data-testid={`service-map-view-${option}`}
+                    aria-pressed={view === option}
+                    className={`min-w-0 rounded-md px-3 py-2 text-sm font-medium transition-colors sm:px-4 ${view === option ? "bg-white text-indigo-700 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}
+                    onClick={() => {
+                      changeView(option);
+                    }}
+                  >
+                    {translateString(
+                      option === "list" ? "Service list" : "Dependency map",
+                    )}
+                  </button>
+                );
+              },
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 border-b border-gray-200 px-5 py-3 md:flex-row md:items-center">
+          <div className="min-w-0 w-full md:w-80">
+            <Input
+              dataTestId="service-map-search"
+              ariaLabel={
+                translateString("Search services") || "Search services"
+              }
+              placeholder={translateString("Search services by name") || ""}
+              value={searchText}
+              onChange={(value: string) => {
+                setSearchText(value);
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            data-testid="service-map-attention-filter"
+            aria-pressed={attentionOnly}
+            className={`inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium ${attentionOnly ? "border-amber-300 bg-amber-50 text-amber-800" : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}
+            onClick={() => {
+              setAttentionOnly(!attentionOnly);
+            }}
+          >
+            <span
+              className="h-2 w-2 rounded-full bg-amber-500"
+              aria-hidden={true}
+            />
+            {translateString("Needs attention")}
+            <span className="rounded bg-gray-100 px-1.5 text-xs text-gray-600">
+              {attentionCount}
+            </span>
+          </button>
+          {(searchText.trim() || effectiveFocusKey || attentionOnly) && (
+            <button
+              type="button"
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+              onClick={resetFilters}
+              data-testid="service-map-reset-filters"
+            >
+              {translateString("Reset filters")}
+            </button>
+          )}
+          <p
+            className="text-xs text-gray-500 md:ml-auto"
+            role="status"
+            aria-live="polite"
+            data-testid="service-map-result-count"
+          >
+            {matchedEntries.length} {translateString("of")}{" "}
+            {model.entries.length} {translateString("services")}
+            {view === "map" && visibility.contextKeys.size > 0 && (
+              <span>
+                {" "}
+                · {visibility.contextKeys.size}{" "}
+                {translateString("connected services for context")}
+              </span>
+            )}
+          </p>
+        </div>
+
+        {effectiveFocusKey && (
+          <div className="flex flex-wrap items-center gap-2 border-b border-indigo-100 bg-indigo-50 px-5 py-3 text-sm text-indigo-800">
+            <span>
+              {translateString("Direct connections of")}{" "}
+              <strong>
+                {entityByKey.get(effectiveFocusKey)?.displayName ||
+                  effectiveFocusKey}
+              </strong>
+            </span>
+            <button
+              type="button"
+              data-testid="service-map-clear-focus"
+              className="ml-auto font-medium hover:underline"
+              onClick={() => {
+                setFocusKey(null);
+              }}
+            >
+              {translateString("Show all services")}
+            </button>
+          </div>
+        )}
+
+        {matchedEntries.length === 0 ? (
+          <div
+            className="px-6 py-16 text-center"
+            data-testid="service-map-no-results"
+          >
+            <h3 className="text-base font-semibold text-gray-900">
+              {translateString("No services match your filters")}
+            </h3>
+            <p className="mt-2 text-sm text-gray-500">
+              {translateString(
+                "Try a different service name or clear your filters to see every service.",
+              )}
+            </p>
+            <button
+              type="button"
+              className="mt-5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+              onClick={resetFilters}
+            >
+              {translateString("Clear filters")}
+            </button>
+          </div>
+        ) : view === "list" ? (
+          <div className="min-w-0 w-full max-w-full">
+            <div
+              className="relative min-w-0 w-full max-w-full overflow-x-auto"
+              data-testid="service-map-table-scroll"
+              role="region"
+              aria-label={
+                translateString("Service directory table") ||
+                "Service directory table"
+              }
+              tabIndex={0}
+            >
+              <table
+                className="w-full text-left text-sm"
+                data-testid="service-map-list"
+              >
+                <thead className="border-b border-gray-200 bg-gray-50 text-xs text-gray-500">
+                  <tr>
+                    <th scope="col" className="px-5 py-3 font-medium">
+                      {translateString("Service")}
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      {translateString("Status")}
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 font-medium"
+                      title={
+                        translateString(
+                          "Calls received from other services in the metrics window",
+                        ) || ""
+                      }
+                    >
+                      {translateString("Incoming calls")}
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      {translateString("Error rate")}
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      {translateString("Connections")}
+                    </th>
+                    <th scope="col" className="px-5 py-3 font-medium">
+                      <span className="sr-only">
+                        {translateString("Actions")}
+                      </span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {pageEntries.map((entry: ServiceMapEntry) => {
+                    const color: string =
+                      entry.incidentCount > 0
+                        ? entry.incidentColor || INCIDENT_FALLBACK_COLOR
+                        : entry.alertCount > 0
+                          ? entry.alertColor || ALERT_FALLBACK_COLOR
+                          : HEALTH_COLORS[entry.health];
+                    return (
+                      <tr
+                        key={entry.key}
+                        className="hover:bg-gray-50"
+                        data-testid="service-map-list-row"
+                      >
+                        <td className="px-5 py-4">
+                          <button
+                            type="button"
+                            className="max-w-xs break-words text-left font-semibold text-gray-900 hover:text-indigo-600"
+                            onClick={() => {
+                              setSelectedEdgeId(null);
+                              setSelectedKey(entry.key);
+                            }}
+                          >
+                            {entry.label}
+                          </button>
+                          <p className="mt-1 text-xs text-gray-500">
+                            {translateString("Service")}
+                          </p>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-2 whitespace-nowrap text-xs text-gray-700">
+                            <span
+                              className="h-2 w-2 shrink-0 rounded-full"
+                              style={{ backgroundColor: color }}
+                              aria-hidden={true}
+                            />
+                            {entry.incidentCount > 0
+                              ? `${entry.incidentCount} ${translateString(entry.incidentCount === 1 ? "active incident" : "active incidents")}`
+                              : entry.alertCount > 0
+                                ? `${entry.alertCount} ${translateString(entry.alertCount === 1 ? "active alert" : "active alerts")}`
+                                : translateString(
+                                    SERVICE_TRAFFIC_LABELS[entry.health],
+                                  )}
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-4 text-gray-700">
+                          {entry.calls > 0
+                            ? formatCallRate(
+                                entry.calls,
+                                props.metricsWindowSeconds,
+                              )
+                            : "—"}
+                        </td>
+                        <td
+                          className={`px-4 py-4 ${
+                            entry.health === "critical"
+                              ? "text-red-700"
+                              : entry.health === "degraded"
+                                ? "text-amber-700"
+                                : entry.health === "healthy"
+                                  ? "text-green-700"
+                                  : "text-gray-500"
+                          }`}
+                        >
+                          {formatErrorRate(entry.calls, entry.errors)}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-4 text-xs text-gray-500">
+                          {entry.callers}{" "}
+                          {translateString(
+                            entry.callers === 1 ? "caller" : "callers",
+                          )}{" "}
+                          · {entry.dependencies}{" "}
+                          {translateString(
+                            entry.dependencies === 1
+                              ? "dependency"
+                              : "dependencies",
+                          )}
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          <button
+                            type="button"
+                            className="whitespace-nowrap text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                            aria-label={`${translateString("View connections for")} ${entry.label}`}
+                            onClick={() => {
+                              viewConnections(entry.key);
+                            }}
+                          >
+                            {translateString("View connections")}{" "}
+                            <span aria-hidden={true}>→</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {matchedEntries.length > SERVICES_PER_PAGE && (
+              <div
+                className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 px-5 py-3 text-xs text-gray-500"
+                data-testid="service-map-pagination"
+              >
+                <p>
+                  {translateString("Showing")}{" "}
+                  {currentPage * SERVICES_PER_PAGE + 1}–
+                  {Math.min(
+                    (currentPage + 1) * SERVICES_PER_PAGE,
+                    matchedEntries.length,
+                  )}{" "}
+                  {translateString("of")} {matchedEntries.length}{" "}
+                  {translateString("services")}
+                </p>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    aria-label={
+                      translateString("Previous service page") ||
+                      "Previous service page"
+                    }
+                    disabled={currentPage === 0}
+                    className="rounded-md border border-gray-200 px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    onClick={() => {
+                      setPage(currentPage - 1);
+                    }}
+                  >
+                    {translateString("Previous")}
+                  </button>
+                  <span>
+                    {translateString("Page")} {currentPage + 1}{" "}
+                    {translateString("of")} {pageCount}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={
+                      translateString("Next service page") ||
+                      "Next service page"
+                    }
+                    disabled={currentPage >= pageCount - 1}
+                    className="rounded-md border border-gray-200 px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    onClick={() => {
+                      setPage(currentPage + 1);
+                    }}
+                  >
+                    {translateString("Next")}
+                  </button>
+                </div>
+              </div>
+            )}
+            <div className="border-t border-gray-200 bg-gray-50 px-5 py-3 text-xs text-gray-500">
+              {translateString(
+                "Incoming calls and errors are measured between services. A service with no incoming calls is not necessarily unhealthy.",
+              )}
+            </div>
+          </div>
+        ) : (
+          <Fragment>
+            <div className="flex flex-wrap items-center gap-3 border-b border-gray-200 px-5 py-3">
+              <label className="flex items-center gap-2 text-xs text-gray-600">
+                {translateString("Connection labels")}
+                <select
+                  className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs"
+                  aria-label={
+                    translateString("Connection labels") || "Connection labels"
+                  }
+                  value={connectionMetric}
+                  onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
+                    setConnectionMetric(event.target.value as ConnectionMetric);
+                  }}
+                >
+                  <option value="none">{translateString("None")}</option>
+                  <option value="calls">{translateString("Call rate")}</option>
+                  <option value="errors">
+                    {translateString("Error rate")}
+                  </option>
+                  <option value="latency">
+                    {translateString("Average latency")}
+                  </option>
+                </select>
+              </label>
+              <p className="text-xs text-gray-500">
+                {translateString(
+                  "Arrows point from caller to dependency. Thicker lines mean more calls. Select a service or connection for details.",
+                )}
+              </p>
+              <button
+                type="button"
+                className="ml-auto rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                onClick={() => {
+                  flowInstance.current?.fitView({
+                    padding: 0.18,
+                    maxZoom: 1,
+                    duration: 300,
+                  });
+                }}
+              >
+                {translateString("Fit to screen")}
+              </button>
+            </div>
+            <div
+              style={{ height: "62vh", minHeight: 420, width: "100%" }}
+              className="bg-gray-50"
+              data-testid="service-map-canvas"
+            >
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                nodeTypes={NODE_TYPES}
+                fitView={true}
+                fitViewOptions={{ padding: 0.18, maxZoom: 1 }}
+                minZoom={0.08}
+                maxZoom={1.5}
+                proOptions={{ hideAttribution: true }}
+                nodesDraggable={true}
+                nodesConnectable={false}
+                elementsSelectable={true}
+                onInit={(instance: ReactFlowInstance) => {
+                  flowInstance.current = instance;
+                }}
+                onNodeClick={(_event: React.MouseEvent, node: Node) => {
+                  setSelectedEdgeId(null);
+                  setSelectedKey(node.id);
+                }}
+                onEdgeClick={(_event: React.MouseEvent, edge: Edge) => {
+                  setSelectedKey(null);
+                  setSelectedEdgeId(edge.id);
+                }}
+              >
+                <Controls showInteractive={false} />
+                <Background
+                  variant={BackgroundVariant.Dots}
+                  gap={20}
+                  size={1}
+                  color="var(--ou-chart-grid, #e2e8f0)"
+                />
+              </ReactFlow>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-gray-200 px-5 py-3 text-xs text-gray-500">
+              <span className="font-medium text-gray-700">
+                {translateString("Incoming traffic")}
+              </span>
+              {Object.entries(SERVICE_TRAFFIC_LABELS).map(
+                ([health, label]: [string, string]) => {
+                  return (
+                    <span
+                      key={health}
+                      className="inline-flex items-center gap-1.5"
+                    >
+                      <span
+                        className="h-2 w-2 rounded-full"
+                        style={{
+                          backgroundColor:
+                            HEALTH_COLORS[health as keyof typeof HEALTH_COLORS],
+                        }}
+                        aria-hidden={true}
+                      />
+                      {translateString(label)}
+                    </span>
+                  );
+                },
+              )}
+              <span className="ml-auto">
+                {translateString(
+                  "Drag the background to pan · Use + / − to zoom",
+                )}
+              </span>
+            </div>
+          </Fragment>
+        )}
       </div>
 
       {selectedEntity && (
@@ -601,11 +1075,15 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
             ) || null
           }
           metricsWindowSeconds={props.metricsWindowSeconds}
+          onSelectEntity={(entityKey: string) => {
+            setSelectedEdgeId(null);
+            setSelectedKey(entityKey);
+          }}
           onClose={() => {
             setSelectedKey(null);
           }}
           onFocus={(entityKey: string) => {
-            setFocusKey(entityKey);
+            viewConnections(entityKey);
             setSelectedKey(null);
           }}
         />
@@ -645,7 +1123,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
           />
         );
       })()}
-    </Fragment>
+    </div>
   );
 };
 
