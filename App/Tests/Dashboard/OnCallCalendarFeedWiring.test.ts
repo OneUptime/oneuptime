@@ -323,6 +323,103 @@ describe("Pages and cards", () => {
   });
 });
 
+/*
+ * The "no link yet" panel.
+ *
+ * All three empty states (the settings page, the schedule page's personal
+ * half, and the shared link) render the same component, so a change to the
+ * panel cannot drift between them. What a unit test cannot see is that the
+ * cards still go through it at all, and that the sentences handed to it as
+ * props are translatable keys - a literal passed as a prop skips the
+ * translateString scan above and would render in English everywhere.
+ */
+describe("Empty state panel", () => {
+  const personal: string = readCode(
+    "Components",
+    "OnCallPolicy",
+    "CalendarFeed",
+    "PersonalCalendarFeedCard.tsx",
+  );
+  const shared: string = readCode(
+    "Components",
+    "OnCallPolicy",
+    "CalendarFeed",
+    "SharedCalendarFeedCard.tsx",
+  );
+  const panel: string = readCode(
+    "Components",
+    "OnCallPolicy",
+    "CalendarFeed",
+    "FeedEmptyState.tsx",
+  );
+
+  test("both feed cards render their empty state through FeedEmptyState", () => {
+    expect(personal).toContain(
+      'import FeedEmptyState, { FeedEmptyStatePoint } from "./FeedEmptyState";',
+    );
+    expect(shared).toContain('import FeedEmptyState from "./FeedEmptyState";');
+
+    /*
+     * The settings page and the schedule page's personal half, then the
+     * shared card. `\s` so the FeedEmptyStatePoint type annotation is not
+     * mistaken for a third render.
+     */
+    expect(personal.match(/<FeedEmptyState\s/g) || []).toHaveLength(2);
+    expect(shared.match(/<FeedEmptyState\s/g) || []).toHaveLength(1);
+  });
+
+  test("the panel namespaces every test id it renders by its idPrefix", () => {
+    for (const suffix of [
+      "-empty-state",
+      "-empty-icon",
+      "-empty-title",
+      "-empty-description",
+      "-empty-points",
+      "-empty-control",
+    ]) {
+      expect(panel).toContain(`\${props.idPrefix}${suffix}\``);
+    }
+
+    // The bullets and their icons are indexed, so each one is addressable.
+    expect(panel).toContain("`${props.idPrefix}-empty-point-${index}`");
+    expect(panel).toContain("`${props.idPrefix}-empty-point-icon-${index}`");
+  });
+
+  test("the panel translates every string it is handed", () => {
+    expect(panel).toContain("{translateString(props.title)}");
+    expect(panel).toContain("{translateString(props.description)}");
+    expect(panel).toContain("{translateString(point.text)}");
+  });
+
+  test("every sentence written inline at a FeedEmptyState call site is a key in en.json", () => {
+    const en: Record<string, unknown> = readLocale("en");
+    const callPattern: RegExp = /<FeedEmptyState\s([\s\S]*?)\/>/g;
+    const literalPattern: RegExp = /"((?:[^"\\]|\\.)*)"/g;
+    const keys: Array<string> = [];
+
+    for (const source of [squash(personal), squash(shared)]) {
+      for (const call of source.matchAll(callPattern)) {
+        for (const literal of (call[1] as string).matchAll(literalPattern)) {
+          keys.push((literal[1] as string).replace(/\\"/g, '"'));
+        }
+      }
+    }
+
+    // The shared card's two "who is this link for" sentences.
+    expect(keys.length).toBeGreaterThanOrEqual(2);
+
+    for (const key of keys) {
+      expect(en[key]).toBe(key);
+
+      for (const locale of LOCALES) {
+        const json: Record<string, unknown> = readLocale(locale);
+        expect(typeof json[key]).toBe("string");
+        expect((json[key] as string).trim().length).toBeGreaterThan(0);
+      }
+    }
+  });
+});
+
 describe("Notification Settings", () => {
   const page: string = readCode(
     "Pages",
@@ -404,6 +501,8 @@ describe("Locales", () => {
     "Calendar Feeds",
     "Subscribe to your on-call shifts",
     "Subscribe to this schedule",
+    "No calendar link yet",
+    "No shared link yet",
     "Generate calendar link",
     "Regenerate link",
     "Publish shared link",
@@ -564,6 +663,12 @@ describe("Locales", () => {
    */
   test("the shared copy constants are keys in every locale", () => {
     const constantKeys: Array<string> = [
+      "No calendar link yet",
+      "Generate a private link, then subscribe to it from your calendar app.",
+      "Every shift you hold on this project's schedules.",
+      "Shifts you cover for someone else, when an override names you.",
+      "Private to you. Anyone who has the link can read your shifts, so treat it like a password.",
+      "No shared link yet",
       "Every app subscribed to the current link stops updating and shows an empty calendar. For 30 days the old link keeps answering with that empty calendar instead of an error, then it stops working - paste the new link into every app you subscribed with.",
       "Your previous link returns an empty calendar until {{date}}, then stops working.",
       "The previous link returns an empty calendar until {{date}}, then stops working.",
