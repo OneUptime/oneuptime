@@ -1627,6 +1627,10 @@ const useResourceOwners: <TResource extends BaseModel>(
               value={value}
               searchPlaceholder={facet.searchPlaceholder}
               operator={facetOperators[facet.key] || "is"}
+              onClear={() => {
+                // One update prevents a stale operator callback restoring cleared values.
+                applyFacetChange(facet.key, [], "is");
+              }}
               onOperatorChange={(op: FilterOperator) => {
                 applyFacetChange(facet.key, selected, op);
               }}

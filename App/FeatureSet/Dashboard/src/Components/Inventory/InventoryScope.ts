@@ -10,11 +10,11 @@ import { INVENTORY_STALE_AFTER_MINUTES } from "./InventoryLiveness";
  * and every one of them means "show me the items behind this number". Rather
  * than reaching into the table's own filter machinery from another page (its
  * URL state is namespaced and serialized for the table's benefit, not ours),
- * a drill-down is a plain link carrying the three params below, and the Items
- * page turns them straight into the base query it lists with.
+ * a drill-down is a plain link carrying the three params below. The Items
+ * page converts these into regular facet selections before mounting its table.
  *
- * That makes the scope part of the model query rather than a user-removable
- * filter chip. The side menu's All Items link clears the scope. The params are
+ * The arriving scope is visible in the facet bar and can be changed or cleared
+ * there. These short links remain compatible with existing bookmarks. The params are
  * attacker-reachable — anyone can hand-edit the URL — so `parseInventoryScope`
  * validates against the real vocabularies and drops anything it does not
  * recognise, instead of forwarding an arbitrary string into a query.

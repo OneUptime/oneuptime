@@ -97,6 +97,8 @@ export interface ComponentProps {
    * the operator switcher usable.
    */
   onOperatorChange?: ((operator: FilterOperator) => void) | undefined;
+  /** Clear values and operator together when the parent stores them together. */
+  onClear?: (() => void) | undefined;
   /**
    * Which operators to expose in the dropdown. Defaults to ["is", "is_not"].
    * Add "is_empty" / "is_not_empty" for nullable / optional fields.
@@ -463,6 +465,11 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
   const chipInactiveClasses: string = FILTER_CHIP_INACTIVE_CLASSES;
 
   const clearChipFully: () => void = (): void => {
+    if (props.onClear) {
+      props.onClear();
+      return;
+    }
+
     if (isMulti) {
       props.onChange([]);
     } else {
