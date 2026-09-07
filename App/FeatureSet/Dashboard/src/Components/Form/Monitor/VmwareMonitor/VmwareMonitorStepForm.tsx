@@ -230,35 +230,42 @@ const VmwareMonitorStepForm: FunctionComponent<ComponentProps> = (
           {
             name: "Alert templates",
             children: (
-              <div className="grid grid-cols-1 gap-3 py-4 md:grid-cols-2">
-                {getVmwareAlertTemplates().map(
-                  (template: VmwareAlertTemplate) => {
-                    return (
-                      <button
-                        key={template.id}
-                        type="button"
-                        aria-pressed={selectedTemplate === template.id}
-                        disabled={
-                          !config.sourceIdentifier || !templateDefaultsReady
-                        }
-                        onClick={() => {
-                          selectTemplate(template);
-                        }}
-                        className={`rounded-lg border p-4 text-left transition-colors disabled:opacity-50 ${selectedTemplate === template.id ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950" : "border-gray-200 bg-white hover:border-indigo-300 dark:border-gray-700 dark:bg-gray-900"}`}
-                      >
-                        <span className="text-xs font-medium text-indigo-600 dark:text-indigo-300">
-                          {template.category} · {template.severity}
-                        </span>
-                        <span className="mt-1 block text-sm font-semibold text-gray-900 dark:text-gray-100">
-                          {template.name}
-                        </span>
-                        <span className="mt-2 block text-sm leading-5 text-gray-600 dark:text-gray-300">
-                          {template.description}
-                        </span>
-                      </button>
-                    );
-                  },
-                )}
+              <div>
+                <p className="py-3 text-sm text-gray-600 dark:text-gray-300">
+                  Generated alerts and incidents use your project’s default
+                  severities. Review them in the criteria below.
+                </p>
+                <div className="grid grid-cols-1 gap-3 py-4 md:grid-cols-2">
+                  {getVmwareAlertTemplates().map(
+                    (template: VmwareAlertTemplate) => {
+                      return (
+                        <button
+                          key={template.id}
+                          type="button"
+                          aria-pressed={selectedTemplate === template.id}
+                          disabled={
+                            !config.sourceIdentifier || !templateDefaultsReady
+                          }
+                          onClick={() => {
+                            selectTemplate(template);
+                          }}
+                          className={`rounded-lg border p-4 text-left transition-colors disabled:opacity-50 ${selectedTemplate === template.id ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950" : "border-gray-200 bg-white hover:border-indigo-300 dark:border-gray-700 dark:bg-gray-900"}`}
+                        >
+                          <span className="text-xs font-medium text-indigo-600 dark:text-indigo-300">
+                            {template.category} · Recommended severity:{" "}
+                            {template.severity}
+                          </span>
+                          <span className="mt-1 block text-sm font-semibold text-gray-900 dark:text-gray-100">
+                            {template.name}
+                          </span>
+                          <span className="mt-2 block text-sm leading-5 text-gray-600 dark:text-gray-300">
+                            {template.description}
+                          </span>
+                        </button>
+                      );
+                    },
+                  )}
+                </div>
               </div>
             ),
           },

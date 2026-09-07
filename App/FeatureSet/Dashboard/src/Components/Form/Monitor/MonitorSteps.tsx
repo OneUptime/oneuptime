@@ -1,4 +1,5 @@
 import MonitorStepElement from "./MonitorStep";
+import VMwareRecoveryNotice from "../../VMware/RecoveryNotice";
 import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -569,32 +570,36 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
       <HorizontalRule />
 
-      <div className="mt-4">
-        <FieldLabelElement
-          title="Default Monitor Status"
-          description="What should the monitor status be when none of the above criteria is met?"
-          required={true}
-        />
+      {props.monitorType === MonitorType.VMware ? (
+        <VMwareRecoveryNotice />
+      ) : (
+        <div className="mt-4">
+          <FieldLabelElement
+            title="Default Monitor Status"
+            description="What should the monitor status be when none of the above criteria is met?"
+            required={true}
+          />
 
-        <Dropdown
-          value={monitorStatusDropdownOptions.find((i: DropdownOption) => {
-            return (
-              i.value ===
-                monitorSteps?.data?.defaultMonitorStatusId?.toString() ||
-              undefined
-            );
-          })}
-          options={monitorStatusDropdownOptions}
-          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-            monitorSteps?.setDefaultMonitorStatusId(
-              value ? new ObjectID(value.toString()) : undefined,
-            );
-            setMonitorSteps(
-              MonitorSteps.clone(monitorSteps || new MonitorSteps()),
-            );
-          }}
-        />
-      </div>
+          <Dropdown
+            value={monitorStatusDropdownOptions.find((i: DropdownOption) => {
+              return (
+                i.value ===
+                  monitorSteps?.data?.defaultMonitorStatusId?.toString() ||
+                undefined
+              );
+            })}
+            options={monitorStatusDropdownOptions}
+            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              monitorSteps?.setDefaultMonitorStatusId(
+                value ? new ObjectID(value.toString()) : undefined,
+              );
+              setMonitorSteps(
+                MonitorSteps.clone(monitorSteps || new MonitorSteps()),
+              );
+            }}
+          />
+        </div>
+      )}
 
       {error ? (
         <div className="mt-4">
