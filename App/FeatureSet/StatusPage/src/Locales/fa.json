@@ -1,0 +1,307 @@
+{
+  "a11y": {
+    "skipToMainContent": "رفتن به محتوای اصلی",
+    "loading": "در حال بارگذاری..."
+  },
+  "common": {
+    "save": "ذخیره",
+    "cancel": "انصراف",
+    "submit": "ارسال",
+    "close": "بستن",
+    "back": "بازگشت",
+    "next": "بعدی",
+    "loading": "در حال بارگذاری...",
+    "search": "جستجو",
+    "edit": "ویرایش",
+    "delete": "حذف",
+    "yes": "بله",
+    "no": "خیر",
+    "statusPage": "صفحه وضعیت"
+  },
+  "language": {
+    "label": "زبان",
+    "switchLanguage": "تغییر زبان"
+  },
+  "nav": {
+    "overview": "نمای کلی",
+    "incidents": "حوادث",
+    "announcements": "اطلاعیه‌ها",
+    "scheduledEvents": "رویدادهای زمان‌بندی‌شده",
+    "subscribe": "عضویت",
+    "login": "ورود",
+    "logout": "خروج"
+  },
+  "overview": {
+    "uptimeSuffix": "٪ زمان کارکرد",
+    "operational": "عملیاتی",
+    "noResourcesInGroup": "هیچ منبعی به این گروه اضافه نشده است.",
+    "activeIncidents": "حوادث فعال",
+    "scheduledMaintenanceEvents": "رویدادهای تعمیر و نگهداری زمان‌بندی‌شده",
+    "allClearTitle": "همه چیز عالی به نظر می‌رسد",
+    "allClearDescription": "هنوز هیچ منبعی به این صفحه وضعیت اضافه نشده است. لطفاً از داشبورد چند منبع اضافه کنید.",
+    "allResourcesAre": "همه منابع {{status}} هستند",
+    "someResourcesAre": "برخی از منابع {{status}} هستند",
+    "someResourcesAreUnder": "برخی از منابع در وضعیت {{status}} هستند",
+    "oneSubGroup": "۱ گروه",
+    "subGroupCount": "{{total}} گروه"
+  },
+  "eventItem": {
+    "affectedResources": "منابع تحت تأثیر",
+    "stateChangedTo": "وضعیت تغییر کرد به",
+    "view": "مشاهده {{eventType}}",
+    "updateTo": "به‌روزرسانی این {{eventType}}",
+    "postedOn": "منتشر شده در"
+  },
+  "monitorOverview": {
+    "daysAgo": "{{days}} روز پیش",
+    "today": "امروز",
+    "notAvailable": "در دسترس نیست"
+  },
+  "uptimeHistory": {
+    "graphLabel": "تاریخچه زمان کارکرد برای {{total}} روز گذشته",
+    "dayLabel": "{{date}}: {{uptime}}٪ زمان کارکرد",
+    "dayLabelWithIncidents": "{{date}}: {{uptime}}٪ زمان کارکرد، {{total}} حادثه",
+    "dayLabelNoData": "{{date}}: بدون داده",
+    "dayLabelNoDataWithIncidents": "{{date}}: بدون داده، {{total}} حادثه",
+    "uptime": "زمان کارکرد",
+    "noMonitoringData": "برای این روز داده‌ای برای پایش وجود ندارد",
+    "incidents": "حوادث",
+    "noIncidents": "بدون حادثه",
+    "noIncidentsDescription": "در این روز هیچ حادثه‌ای گزارش نشد.",
+    "declared": "اعلام شده",
+    "oneIncidentOnThisDay": "۱ حادثه در این روز گزارش شده است",
+    "incidentsOnThisDay": "{{total}} حادثه در این روز گزارش شده است"
+  },
+  "liveStatus": {
+    "updated": "به‌روزرسانی شد {{time}}",
+    "refresh": "تازه‌سازی",
+    "refreshing": "در حال تازه‌سازی",
+    "refreshFailed": "امکان تازه‌سازی وجود نداشت. آخرین وضعیت شناخته‌شده نمایش داده می‌شود."
+  },
+  "search": {
+    "label": "جستجوی منابع",
+    "placeholder": "جستجوی منابع",
+    "clear": "پاک کردن جستجو",
+    "resultCount": "{{matched}} از {{total}} منبع",
+    "noMatchesInGroup": "هیچ منبعی در اینجا با جستجوی شما مطابقت ندارد.",
+    "noResultsTitle": "منبعی یافت نشد",
+    "noResultsDescription": "هیچ چیزی در این صفحه با «{{query}}» مطابقت ندارد. یک عبارت کوتاه‌تر را امتحان کنید."
+  },
+  "incidents": {
+    "title": "حوادث",
+    "singular": "حادثه",
+    "active": "حوادث فعال",
+    "resolved": "حوادث برطرف‌شده",
+    "none": "بدون حادثه",
+    "noneDescription": "هیچ حادثه‌ای در این صفحه وضعیت ثبت نشده است.",
+    "postmortem": "گزارش تحلیل حادثه",
+    "declaredAt": "اعلام‌شده در ",
+    "report": "گزارش حادثه",
+    "notFound": "حادثه در این صفحه وضعیت یافت نشد."
+  },
+  "episodes": {
+    "report": "گزارش رویداد",
+    "none": "بدون رویداد",
+    "notFound": "رویداد در این صفحه وضعیت یافت نشد."
+  },
+  "announcements": {
+    "title": "اطلاعیه‌ها",
+    "singular": "اطلاعیه",
+    "active": "اطلاعیه‌های فعال",
+    "past": "اطلاعیه‌های گذشته",
+    "none": "بدون اطلاعیه",
+    "noneDescription": "تاکنون هیچ اطلاعیه‌ای در این صفحه منتشر نشده است.",
+    "announcedAt": "اعلام‌شده در ",
+    "notFound": "اطلاعیه در این صفحه وضعیت یافت نشد."
+  },
+  "scheduledEvents": {
+    "title": "رویدادهای زمان‌بندی‌شده",
+    "singular": "رویداد زمان‌بندی‌شده",
+    "scheduledMaintenance": "تعمیر و نگهداری زمان‌بندی‌شده",
+    "ongoing": "رویدادهای در حال انجام",
+    "upcoming": "رویدادهای زمان‌بندی‌شده",
+    "completed": "رویدادهای تکمیل‌شده",
+    "none": "بدون رویداد زمان‌بندی‌شده",
+    "noneDescription": "هیچ رویداد زمان‌بندی‌شده‌ای برای این صفحه وضعیت ثبت نشده است.",
+    "scheduledAt": "زمان‌بندی‌شده در ",
+    "report": "گزارش رویداد زمان‌بندی‌شده",
+    "notFound": "هیچ رویداد زمان‌بندی‌شده‌ای برای این صفحه وضعیت یافت نشد."
+  },
+  "subscribe": {
+    "title": "عضویت",
+    "submit": "عضویت",
+    "newSubscription": "عضویت جدید",
+    "manageExisting": "مدیریت عضویت موجود",
+    "sendManagementLink": "ارسال لینک مدیریت",
+    "subscribedSuccessfully": "عضویت شما با موفقیت انجام شد.",
+    "emailSentCheckSpam": "ایمیلی حاوی لینک برای شما ارسال شد. اگر ایمیل را نمی‌بینید، لطفاً پوشه اسپم خود را بررسی کنید.",
+    "menu": {
+      "email": "ایمیل",
+      "sms": "پیامک",
+      "slack": "اسلک",
+      "microsoftTeams": "مایکروسافت تیمز",
+      "webhooks": "وب‌هوک‌ها"
+    },
+    "email": {
+      "title": "عضویت با ایمیل",
+      "description": "همه به‌روزرسانی‌های ما به این آدرس ایمیل ارسال خواهد شد.",
+      "yourEmail": "ایمیل شما",
+      "placeholder": "subscriber@company.com",
+      "managePrompt": "لطفاً ایمیلی که با آن عضو شده‌اید را وارد کنید",
+      "manageDescription": "لینک مدیریت عضویت را به این ایمیل ارسال خواهیم کرد.",
+      "managePlaceholder": "email@yourcompany.com"
+    },
+    "sms": {
+      "title": "عضویت با پیامک",
+      "description": "همه به‌روزرسانی‌های ما به این شماره تلفن ارسال خواهد شد.",
+      "yourPhoneNumber": "شماره تلفن شما",
+      "placeholder": "+11234567890",
+      "managePrompt": "لطفاً شماره تلفنی که با آن عضو شده‌اید را وارد کنید",
+      "manageDescription": "لینک مدیریت عضویت را به این شماره تلفن ارسال خواهیم کرد."
+    },
+    "slack": {
+      "title": "عضویت با اسلک",
+      "description": "همه به‌روزرسانی‌های ما به این وب‌هوک اسلک ارسال خواهد شد.",
+      "workspaceName": "نام فضای کاری اسلک",
+      "workspaceNameDescription": "برای اعتبارسنجی، نام فضای کاری اسلک خود را وارد کنید.",
+      "workspaceNamePlaceholder": "my-company-workspace",
+      "webhookUrl": "آدرس وب‌هوک ورودی اسلک",
+      "webhookUrlDescription": "به‌روزرسانی‌های صفحه وضعیت به این وب‌هوک اسلک ارسال خواهد شد.",
+      "webhookUrlPlaceholder": "https://hooks.slack.com/services/...",
+      "managePrompt": "لطفاً نام فضای کاری اسلکی که با آن عضو شده‌اید را وارد کنید",
+      "manageDescription": "لینک مدیریت عضویت را به این فضای کاری ارسال خواهیم کرد."
+    },
+    "microsoftTeams": {
+      "title": "عضویت با مایکروسافت تیمز",
+      "description": "همه به‌روزرسانی‌های ما به این وب‌هوک تیمز ارسال خواهد شد.",
+      "workspaceName": "نام فضای کاری مایکروسافت تیمز",
+      "workspaceNameDescription": "برای اعتبارسنجی، نام فضای کاری مایکروسافت تیمز خود را وارد کنید.",
+      "workspaceNamePlaceholder": "my-company-workspace",
+      "webhookUrl": "آدرس وب‌هوک ورودی مایکروسافت تیمز",
+      "webhookUrlDescription": "به‌روزرسانی‌های صفحه وضعیت به این وب‌هوک تیمز ارسال خواهد شد.",
+      "webhookUrlPlaceholder": "https://outlook.office.com/webhook/...",
+      "managePrompt": "لطفاً نام فضای کاری مایکروسافت تیمزی که با آن عضو شده‌اید را وارد کنید",
+      "manageDescription": "لینک مدیریت عضویت را به این فضای کاری ارسال خواهیم کرد."
+    },
+    "webhook": {
+      "title": "عضویت با وب‌هوک",
+      "description": "همه به‌روزرسانی‌های ما به‌صورت درخواست‌های POST با فرمت JSON به این آدرس وب‌هوک ارسال خواهد شد.",
+      "webhookUrl": "آدرس وب‌هوک",
+      "webhookUrlDescription": "با هر رویداد صفحه وضعیت، یک درخواست POST با فرمت JSON به این آدرس ارسال خواهد شد.",
+      "webhookUrlPlaceholder": "https://example.com/webhook"
+    },
+    "resources": {
+      "all": "عضویت در همه منابع",
+      "allDescription": "اگر می‌خواهید در همه منابع عضو شوید، این گزینه را انتخاب کنید.",
+      "select": "انتخاب منابع برای عضویت",
+      "selectDescription": "لطفاً منابعی که می‌خواهید در آن‌ها عضو شوید را انتخاب کنید."
+    },
+    "eventTypes": {
+      "all": "عضویت در همه انواع رویداد",
+      "allDescription": "اگر می‌خواهید در همه انواع رویداد عضو شوید، این گزینه را انتخاب کنید.",
+      "select": "انتخاب انواع رویداد برای عضویت",
+      "selectDescription": "لطفاً انواع رویدادی که می‌خواهید در آن‌ها عضو شوید را انتخاب کنید."
+    },
+    "update": {
+      "title": "به‌روزرسانی عضویت",
+      "description": "می‌توانید تنظیمات عضویت خود را به‌روزرسانی کنید یا لغو عضویت کنید.",
+      "saved": "تغییرات شما ذخیره شد.",
+      "submit": "به‌روزرسانی عضویت",
+      "unsubscribe": "لغو عضویت",
+      "unsubscribeDescription": "اگر می‌خواهید از همه منابع لغو عضویت کنید، این گزینه را انتخاب کنید."
+    },
+    "confirm": {
+      "title": "تأیید عضویت",
+      "success": "عضویت با موفقیت تأیید شد"
+    }
+  },
+  "accounts": {
+    "shared": {
+      "email": "ایمیل",
+      "password": "رمز عبور",
+      "newPassword": "رمز عبور جدید",
+      "confirmPassword": "تأیید رمز عبور",
+      "login": "ورود"
+    },
+    "login": {
+      "welcomeBack": "خوش برگشتید!",
+      "loginPrompt": "برای مشاهده {{statusPageName}} لطفاً وارد شوید",
+      "forgotPassword": "رمز عبور را فراموش کرده‌اید؟",
+      "submit": "ورود",
+      "useSSO": "به جای آن از ورود یکپارچه (SSO) استفاده کنید"
+    },
+    "sso": {
+      "title": "ورود با SSO",
+      "loginPrompt": "برای مشاهده {{statusPageName}} لطفاً وارد شوید",
+      "noProviders": "هیچ ارائه‌دهنده SSO پیکربندی یا فعال نشده است"
+    },
+    "forgotPassword": {
+      "title": "فراموشی رمز عبور",
+      "description": "اگر رمز عبور خود را برای {{statusPageName}} فراموش کرده‌اید، لطفاً ایمیل خود را وارد کنید تا لینک بازنشانی رمز عبور برای شما ارسال شود.",
+      "success": "لینک بازنشانی رمز عبور برای شما ایمیل شد. لطفاً پوشه اسپم را نیز بررسی کنید.",
+      "sendLink": "ارسال لینک بازنشانی رمز عبور",
+      "rememberPassword": "رمز عبور خود را به یاد دارید؟"
+    },
+    "resetPassword": {
+      "description": "یک رمز عبور جدید برای حساب {{statusPageName}} خود ایجاد کنید.",
+      "instructions": "لطفاً رمز عبور جدید خود را وارد کنید تا آن را به‌روزرسانی کنیم.",
+      "success": "رمز عبور شما به‌روزرسانی شد. لطفاً وارد شوید.",
+      "submit": "بازنشانی رمز عبور",
+      "knowPassword": "رمز عبور خود را می‌دانید؟"
+    },
+    "masterPassword": {
+      "enterWithName": "رمز عبور {{statusPageName}} را وارد کنید",
+      "enterGeneric": "رمز عبور را وارد کنید",
+      "prompt": "برای ادامه، لطفاً رمز عبور را وارد کنید.",
+      "passwordRequired": "رمز عبور الزامی است.",
+      "passwordLabel": "رمز عبور",
+      "passwordDescription": "برای باز کردن این صفحه، رمز عبور را وارد کنید.",
+      "passwordPlaceholder": "رمز عبور را وارد کنید",
+      "submit": "باز کردن صفحه وضعیت"
+    },
+    "signingOut": "در حال خروج از حساب شما..."
+  },
+  "errors": {
+    "notFound": {
+      "title": "صفحه یافت نشد.",
+      "description": "صفحه‌ای که به دنبال آن هستید وجود ندارد."
+    },
+    "forbidden": {
+      "title": "ممنوع",
+      "description": "شما اجازه دسترسی به این صفحه را ندارید."
+    },
+    "generic": "مشکلی پیش آمد. لطفاً دوباره تلاش کنید."
+  },
+  "footer": {
+    "poweredBy": "قدرت گرفته از OneUptime"
+  },
+  "statusNames": {
+    "identified": "شناسایی‌شده",
+    "acknowledged": "تأییدشده",
+    "resolved": "برطرف‌شده",
+    "criticalIncident": "حادثه بحرانی",
+    "majorIncident": "حادثه مهم",
+    "minorIncident": "حادثه جزئی",
+    "operational": "عملیاتی",
+    "degraded": "تنزل‌یافته",
+    "offline": "آفلاین",
+    "scheduled": "زمان‌بندی‌شده",
+    "ongoing": "در حال انجام",
+    "ended": "پایان‌یافته",
+    "completed": "تکمیل‌شده"
+  },
+  "Subscriber ID is required": "شناسه مشترک الزامی است",
+  "Token is required": "توکن الزامی است",
+  "{{field}} cannot be less than {{minLength}} characters.": "{{field}} نمی‌تواند کمتر از {{minLength}} کاراکتر باشد.",
+  "{{field}} cannot be more than {{maxLength}} characters.": "{{field}} نمی‌تواند بیشتر از {{maxLength}} کاراکتر باشد.",
+  "{{field}} should not have spaces.": "{{field}} نباید فاصله داشته باشد.",
+  "{{field}} can only contain letters, numbers, hyphens (-), and underscores (_).": "{{field}} فقط می‌تواند شامل حروف، اعداد، خط تیره (-) و زیرخط (_) باشد.",
+  "{{field}} should not have numbers.": "{{field}} نباید شامل عدد باشد.",
+  "{{field}} should be a future date.": "{{field}} باید تاریخی در آینده باشد.",
+  "{{field}} should be a number.": "{{field}} باید یک عدد باشد.",
+  "{{field}} should not be more than {{maxValue}}.": "{{field}} نباید بیشتر از {{maxValue}} باشد.",
+  "{{field}} should not be less than {{minValue}}.": "{{field}} نباید کمتر از {{minValue}} باشد.",
+  "{{field}} is required.": "{{field}} الزامی است.",
+  "{{field}} should match {{matchField}}": "{{field}} باید با {{matchField}} مطابقت داشته باشد",
+  "Email is not valid.": "ایمیل معتبر نیست."
+}
