@@ -1,6 +1,6 @@
 # Sizing & Capacity Planning
 
-This guide helps you size a self-hosted OneUptime deployment on Kubernetes (Helm). It covers the three datastores OneUptime depends on — **PostgreSQL**, **Redis**, and **ClickHouse** — plus the application compute, and gives starting tiers you can adjust once you have real numbers.
+This guide helps you size a self-hosted OneUptime deployment on Kubernetes (Helm). It covers the three datastores OneUptime depends on — **PostgreSQL**, **Valkey**, and **ClickHouse** — plus the application compute, and gives starting tiers you can adjust once you have real numbers.
 
 > **Read this first:** the Helm chart ships with **no CPU/memory requests or limits set** and small **25 Gi** default volumes for PostgreSQL and ClickHouse. Those defaults exist so the chart installs and runs on any cluster — they are **not** production sizing. For anything beyond a quick trial, set resources and storage explicitly using the numbers below.
 
@@ -14,7 +14,7 @@ OneUptime requires three datastores in production. They scale on completely diff
 | -------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
 | **ClickHouse** | All telemetry — logs, metrics, traces, exceptions, profiles                                                        | Telemetry **ingest rate × retention**. This is ~95% of your storage and the dominant cost. |
 | **PostgreSQL** | Configuration and state — monitors, incidents, alerts, users, teams, projects, workflows, status pages, dashboards | **Entity count and history**, not telemetry volume. Grows slowly.                          |
-| **Redis**      | Cache, work queues, and sessions                                                                                   | **Queue depth and active sessions**. Memory-bound and modest. Not a source of truth.       |
+| **Valkey**     | Cache, work queues, and sessions                                                                                   | **Queue depth and active sessions**. Memory-bound and modest. Not a source of truth.       |
 
 Object storage (S3/MinIO) is **not** required for OneUptime to run. It is only used optionally for database **backups** (via the CloudNativePG Barman plugin for PostgreSQL, or `clickhouse-backup` for ClickHouse). OneUptime does not tier telemetry to object storage — see the "Retention and how it affects storage" section below.
 
@@ -57,7 +57,7 @@ PostgreSQL stores your configuration and operational state, not telemetry, so it
 
 If you run many application, worker, and probe replicas, the number of database connections can become the bottleneck before storage does. OneUptime's Helm chart includes an optional **PgBouncer** connection pooler (`pgbouncer.enabled`) for exactly this — enable it for high-replica deployments.
 
-## Redis — cache, queues, and sessions
+## Valkey — cache, queues, and sessions
 
 The cache tier runs [Valkey](https://valkey.io), the BSD-licensed fork of Redis 7.2, and is used as a cache, a work queue, and a session store. Any Redis-protocol server can stand in for it; the sizing below applies either way. It is **memory-bound** and persistence is **disabled by default** (Redis here is not a source of truth — it can be rebuilt). Size it by expected queue depth and concurrent sessions; 2–8 GB of memory covers most deployments. Note the default eviction policy is `noeviction`, so if queues back up under sustained overload, monitor Redis memory.
 
@@ -77,7 +77,7 @@ Pick the tier closest to your environment as a starting point, then watch actual
 | --------------------- | ---------------------------- | ---------------------------- | ------------------------------------------------ |
 | **ClickHouse**        | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe, **sharded** |
 | **PostgreSQL**        | 2 vCPU / 4 GB / 50 GB SSD    | 4 vCPU / 8 GB / 100 GB SSD   | 8 vCPU / 16–32 GB / 250 GB SSD (+ PgBouncer)     |
-| **Redis**             | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                 |
+| **Valkey**            | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                 |
 | **Retention assumed** | 30 days                      | 30–90 days                   | 90 days                                          |
 
 These size the OneUptime **backend**. The OneUptime collectors that run on each monitored cluster are sized separately — see the [Kubernetes Agent](/docs/telemetry/kubernetes-agent) sizing tiers.
@@ -88,7 +88,7 @@ The chart's built-in datastores run as **single instances** by default. For prod
 
 - **PostgreSQL** — enable the bundled [CloudNativePG](https://cloudnative-pg.io) operator (`postgresOperator.cnpg.enabled`) with **3 instances** (1 primary + 2 hot standbys) for automatic failover.
 - **ClickHouse** — enable the bundled [Altinity](https://github.com/Altinity/clickhouse-operator) operator (`clickhouseOperator.altinity.enabled`) with **≥2 replicas per shard** and **3 ClickHouse Keeper** nodes for quorum. Add shards once a single node's disk or RAM becomes the limit.
-- **Redis** — the chart has no in-chart replication. For HA, point OneUptime at an **external managed Redis** (or a AI/cluster deployment).
+- **Valkey** — the chart has no in-chart replication. For HA, point OneUptime at an **external managed Redis** (or a AI/cluster deployment).
 
 ## Retention and how it affects storage
 

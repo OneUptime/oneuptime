@@ -68,7 +68,7 @@ Never delayed, and never counted:
 | Account security                          | Password reset, email verification, password changed, two-factor backup code used or regenerated     |
 | Administrative notices about your account | An administrator changed your notification methods or your on-call rules                             |
 | Billing and balance                       | Invoices, subscription overdue, "we could not page anyone because the card declined"                 |
-| Instance health                           | Postgres, Redis and ClickHouse warnings to instance admins                                           |
+| Instance health                           | Postgres, Valkey and ClickHouse warnings to instance admins                                          |
 | Status page subscribers                   | Every email your status page sends to your own subscribers                                           |
 | SLA breaches                              | Sent immediately even though they reuse the incident-created notification type                       |
 

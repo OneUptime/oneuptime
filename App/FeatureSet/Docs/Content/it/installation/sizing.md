@@ -1,6 +1,6 @@
 # Dimensionamento e pianificazione della capacità
 
-Questa guida ti aiuta a dimensionare un'installazione self-hosted di OneUptime su Kubernetes (Helm). Copre i tre datastore da cui OneUptime dipende — **PostgreSQL**, **Redis** e **ClickHouse** — più il calcolo applicativo, e fornisce livelli iniziali che puoi regolare una volta ottenuti i numeri reali.
+Questa guida ti aiuta a dimensionare un'installazione self-hosted di OneUptime su Kubernetes (Helm). Copre i tre datastore da cui OneUptime dipende — **PostgreSQL**, **Valkey** e **ClickHouse** — più il calcolo applicativo, e fornisce livelli iniziali che puoi regolare una volta ottenuti i numeri reali.
 
 > **Leggi prima questo:** la chart Helm viene fornita con **nessuna richiesta o limite di CPU/memoria impostati** e piccoli volumi predefiniti da **25 Gi** per PostgreSQL e ClickHouse. Quei valori predefiniti esistono affinché la chart si installi e funzioni su qualsiasi cluster — **non** rappresentano un dimensionamento di produzione. Per qualsiasi cosa oltre una prova rapida, imposta esplicitamente le risorse e lo storage usando i numeri qui sotto.
 
@@ -14,7 +14,7 @@ OneUptime richiede tre datastore in produzione. Scalano in base a input completa
 | -------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | **ClickHouse** | Tutta la telemetria — log, metriche, tracce, eccezioni, profili                                                   | **Tasso di ingest × retention** della telemetria. Rappresenta circa il 95% del tuo storage ed è il costo dominante. |
 | **PostgreSQL** | Configurazione e stato — monitor, incidenti, avvisi, utenti, team, progetti, workflow, pagine di stato, dashboard | **Numero di entità e cronologia**, non il volume di telemetria. Cresce lentamente.                                  |
-| **Redis**      | Cache, code di lavoro e sessioni                                                                                  | **Profondità delle code e sessioni attive**. Vincolato alla memoria e modesto. Non è una fonte di verità.           |
+| **Valkey**     | Cache, code di lavoro e sessioni                                                                                  | **Profondità delle code e sessioni attive**. Vincolato alla memoria e modesto. Non è una fonte di verità.           |
 
 L'object storage (S3/MinIO) **non** è richiesto per il funzionamento di OneUptime. Viene usato solo facoltativamente per i **backup** dei database (tramite il plugin CloudNativePG Barman per PostgreSQL, o `clickhouse-backup` per ClickHouse). OneUptime non sposta la telemetria su livelli di object storage — vedi la sezione "La retention e come influisce sullo storage" più sotto.
 
@@ -57,9 +57,9 @@ PostgreSQL memorizza la tua configurazione e lo stato operativo, non la telemetr
 
 Se esegui molte repliche di applicazione, worker e probe, il numero di connessioni al database può diventare il collo di bottiglia prima dello storage. La chart Helm di OneUptime include un connection pooler **PgBouncer** facoltativo (`pgbouncer.enabled`) proprio per questo — abilitalo per le installazioni con un numero elevato di repliche.
 
-## Redis — cache, code e sessioni
+## Valkey — cache, code e sessioni
 
-Redis è usato come cache, come coda di lavoro e come store di sessioni. È **vincolato alla memoria** e la persistenza è **disabilitata per impostazione predefinita** (qui Redis non è una fonte di verità — può essere ricostruito). Dimensionalo in base alla profondità delle code attesa e alle sessioni concorrenti; 2–8 GB di memoria coprono la maggior parte delle installazioni. Nota che la policy di eviction predefinita è `noeviction`, quindi se le code si accumulano sotto sovraccarico prolungato, monitora la memoria di Redis.
+Il livello di cache esegue [Valkey](https://valkey.io), il fork con licenza BSD di Redis 7.2, ed è usato come cache, come coda di lavoro e come store di sessioni. Al suo posto può essere usato qualsiasi server che parli il protocollo Redis; il dimensionamento qui sotto vale in entrambi i casi. È **vincolato alla memoria** e la persistenza è **disabilitata per impostazione predefinita** (qui Redis non è una fonte di verità — può essere ricostruito). Dimensionalo in base alla profondità delle code attesa e alle sessioni concorrenti; 2–8 GB di memoria coprono la maggior parte delle installazioni. Nota che la policy di eviction predefinita è `noeviction`, quindi se le code si accumulano sotto sovraccarico prolungato, monitora la memoria di Redis.
 
 ## Calcolo applicativo
 
@@ -77,7 +77,7 @@ Scegli il livello più vicino al tuo ambiente come punto di partenza, poi osserv
 | --------------------- | ---------------------------- | ---------------------------- | ------------------------------------------------ |
 | **ClickHouse**        | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe, **sharded** |
 | **PostgreSQL**        | 2 vCPU / 4 GB / 50 GB SSD    | 4 vCPU / 8 GB / 100 GB SSD   | 8 vCPU / 16–32 GB / 250 GB SSD (+ PgBouncer)     |
-| **Redis**             | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                 |
+| **Valkey**            | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                 |
 | **Retention assunta** | 30 days                      | 30–90 days                   | 90 days                                          |
 
 Questi dimensionano il **backend** di OneUptime. I collector di OneUptime che girano su ogni cluster monitorato sono dimensionati separatamente — vedi i livelli di dimensionamento dell'[Agente Kubernetes](/docs/telemetry/kubernetes-agent).
@@ -88,7 +88,7 @@ I datastore integrati nella chart girano come **istanze singole** per impostazio
 
 - **PostgreSQL** — abilita l'operatore [CloudNativePG](https://cloudnative-pg.io) incluso (`postgresOperator.cnpg.enabled`) con **3 istanze** (1 primaria + 2 hot standby) per il failover automatico.
 - **ClickHouse** — abilita l'operatore [Altinity](https://github.com/Altinity/clickhouse-operator) incluso (`clickhouseOperator.altinity.enabled`) con **≥2 repliche per shard** e **3 nodi ClickHouse Keeper** per il quorum. Aggiungi shard una volta che il disco o la RAM di un singolo nodo diventano il limite.
-- **Redis** — la chart non ha replica interna. Per l'HA, punta OneUptime a un **Redis gestito esterno** (o a un'installazione AI/cluster).
+- **Valkey** — la chart non ha replica interna. Per l'HA, punta OneUptime a un **Redis gestito esterno** (o a un'installazione AI/cluster).
 
 ## La retention e come influisce sullo storage
 

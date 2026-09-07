@@ -411,7 +411,7 @@ The **recording health strip** on the sessions page and the **Recording health**
 | `healthy` | Chunks are arriving: the strip shows the last chunk's age, sessions today and the sample percentage. | Nothing. |
 | `unknown` | The status endpoint could not be read. | Retry; check the permission error the card shows. |
 
-The card also lists refusals and drops by reason, bytes used today and this month against their limits, the published recorder version and the capabilities of the newest recorder that reported. Counters that come from Redis read **unknown** — never 0 — when Redis is unreachable. Below it, a textarea takes the output of `getDiagnostics()` and explains every code in it.
+The card also lists refusals and drops by reason, bytes used today and this month against their limits, the published recorder version and the capabilities of the newest recorder that reported. Counters that come from Valkey read **unknown** — never 0 — when Valkey is unreachable. Below it, a textarea takes the output of `getDiagnostics()` and explains every code in it.
 
 ## Performance capture triggers
 

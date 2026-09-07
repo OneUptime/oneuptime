@@ -8,6 +8,23 @@
 - 只要您依循發行說明，便可跨越多個次要／修補版本（例如 8.1 → 8.4）。
 - 升級前請務必進行備份，並驗證您能夠成功還原這些備份。
 
+### Redis 現在改為 Valkey
+
+快取與佇列層現在執行的是 [Valkey](https://valkey.io)（Redis 7.2 的 BSD 授權分支）而非 Redis——Redis 7.4 改採更嚴格的授權，而原始貢獻者中的絕大多數都轉往了 Valkey。Valkey 使用與 Redis 相同的通訊協定，因此 socket 之上的一切都沒有改變；若您偏好，仍然可以將 OneUptime 指向真正的 Redis（或代管的 Redis 相容服務）。
+
+現在所有名稱都改以它為準：設定為 `VALKEY_*`，Helm 值為 `valkey:` / `externalValkey:`，Kubernetes 物件則為 `<release>-valkey*`。**所有舊名稱仍然有效**，因此未經變動的 `config.env` 或 `values.yaml` 都能繼續運作——但在升級繁忙的正式環境叢集之前，請先閱讀下方的 Helm 說明。
+
+**Docker Compose——無需任何操作**。服務現在名為 `valkey`，並保留 `redis` 作為網路別名，因此既有 `config.env` 中的 `REDIS_HOST=redis` 無需編輯即可解析。應用程式會讀取 `VALKEY_*`，並在未設定時回退到 `REDIS_*`；而且 `npm run update` **不會**取代您既有的快取設定：它通常會加入在 `config.example.env` 中找到的任何新設定，但它會將這些辨識為重新命名，並讓您的值——包括您的 `REDIS_PASSWORD`——原封不動地留在原處。請以 `npm run update`（或任何 `docker compose up --remove-orphans`）進行升級，讓舊的 `redis` 容器被移除；若放任它繼續執行，同一個 `redis` 主機名稱後方會有兩個容器，而半數的連線會落到過時的那一個。
+
+如果您在 `docker-compose.override.yml` 中手動設定快取變數，請將它們改名為 `VALKEY_*`。基礎檔案會依據您的 `REDIS_HOST` 來設定 `VALKEY_HOST`，因此只設定 `REDIS_HOST` 的覆寫設定不再具有優先權。
+
+**Helm——無需變更 values，但快取會重新啟動一次。**
+
+- `redis:` 與 `externalRedis:` 仍然有效；它們會疊加在新的 `valkey:` / `externalValkey:` 預設值之上，而 `helm upgrade` 會印出一則提示，列出它找到的已棄用鍵值。
+- 產生的密碼會從舊的 `<release>-redis` Secret 沿用到 `<release>-valkey`，因此不會有任何輪替。舊的 Secret 會被保留，其中存放著一份現已不再使用的副本——待升級穩定之後即可將它刪除。
+- 重新命名 StatefulSet 會重建它的 pod。內建的快取不會將任何資料寫入磁碟，因此它會以空白狀態重新啟動：快取的值會消失，而處於等待中、延遲中或退避重試中的 BullMQ 工作也會遺失。可重複執行的工作與 cron 工作會在重新連線時自行重新註冊。如果進行中的遙測資料或工作流程重試對您很重要，請選在離峰時段升級。
+- 如果您是透過 `extraEnv` 而非 `externalValkey:` 指向代管的快取，請將那些項目改名為 `VALKEY_*`。那裡的 `REDIS_HOST` 項目現在會被忽略，因為 chart 也會設定 `VALKEY_HOST`，而應用程式會優先採用它。
+
 ## 從 OneUptime 11 升級到 12
 
 <!-- TODO(i18n): Translate this section. English source: en/installation/upgrading.md (added for the v12 Runner merge). -->

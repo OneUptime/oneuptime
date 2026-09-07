@@ -8,6 +8,23 @@
 - 只要遵循发布说明，您可以跨越次要/补丁版本（例如 8.1 → 8.4）。
 - 升级前务必做好备份，并验证可以从备份中恢复。
 
+### Redis 现已改为 Valkey
+
+缓存与队列层现在运行 [Valkey](https://valkey.io)，即采用 BSD 许可证的 Redis 7.2 分支，而不再运行 Redis——Redis 7.4 改用了更严格的许可证，而原 Redis 的大部分贡献者都转向了 Valkey。Valkey 采用与 Redis 相同的通信协议，因此套接字之上的一切都没有变化；如果您更愿意如此，仍然可以让 OneUptime 指向真正的 Redis（或托管的 Redis 兼容服务）。
+
+现在所有名称都随之改动：设置项为 `VALKEY_*`，Helm 值为 `valkey:` / `externalValkey:`，Kubernetes 对象为 `<release>-valkey*`。**所有旧名称依然有效**，因此未经改动的 `config.env` 或 `values.yaml` 可以继续运行——但在升级繁忙的生产集群之前，请先阅读下面关于 Helm 的说明。
+
+**Docker Compose——无需任何操作。** 该服务现在名为 `valkey`，并保留 `redis` 作为网络别名，因此现有 `config.env` 中的 `REDIS_HOST=redis` 无需修改即可解析。应用会读取 `VALKEY_*`，并回退到 `REDIS_*`；而且 `npm run update` **不会**替换您现有的缓存设置：它通常会把在 `config.example.env` 中发现的所有新设置追加进来，但它能识别出这些属于重命名，会原封不动地保留您的取值——包括您的 `REDIS_PASSWORD`。请使用 `npm run update` 或任意 `docker compose up --remove-orphans` 进行升级，以便移除旧的 `redis` 容器；如果让它继续运行，同一个 `redis` 主机名后面就会有两个容器，其中一半连接会落到过时的那个上。
+
+如果您在 `docker-compose.override.yml` 中手动设置了缓存变量，请将它们重命名为 `VALKEY_*`。基础文件会依据您的 `REDIS_HOST` 设置 `VALKEY_HOST`，因此只设置 `REDIS_HOST` 的覆盖项不再起作用。
+
+**Helm——无需更改 values 配置，但缓存会重启一次。**
+
+- `redis:` 和 `externalRedis:` 仍然有效；它们会叠加在新的 `valkey:` / `externalValkey:` 默认值之上，并且 `helm upgrade` 会打印一条通知，列出它发现的已弃用键。
+- 生成的密码会从旧的 `<release>-redis` Secret 沿用到 `<release>-valkey`，因此不会发生任何轮换。旧的 Secret 会保留下来，其中存有一份现已不再使用的副本——升级稳定之后即可将其删除。
+- 重命名 StatefulSet 会重建它的 Pod。捆绑的缓存不会向磁盘写入任何内容，因此它会以空的状态重新启动：缓存的数据会丢失，处于等待、延迟或退避重试状态的 BullMQ 任务也会丢失。可重复任务和定时任务会在重新连接时自行重新注册。如果传输中的遥测数据或工作流重试对您很重要，请在业务空闲时段升级。
+- 如果您通过 `extraEnv` 而不是 `externalValkey:` 指向托管缓存，请把这些条目重命名为 `VALKEY_*`。其中的 `REDIS_HOST` 条目现在会被忽略，因为 Helm 图表同时设置了 `VALKEY_HOST`，而应用会优先使用它。
+
 ## 从 OneUptime 11 升级到 12
 
 <!-- TODO(i18n): Translate this section. English source: en/installation/upgrading.md (added for the v12 Runner merge). -->

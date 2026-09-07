@@ -2013,7 +2013,7 @@ telemetryWriter:
     targetCPUUtilizationPercentage: 70
     targetMemoryUtilizationPercentage: 0
   # OPT-IN KEDA scaling on the fleet-wide shed rate — 429s rejected across
-  # all writer pods in roughly the last two minutes (Redis-backed counter,
+  # all writer pods in roughly the last two minutes (Valkey-backed counter,
   # served at /metrics/telemetry-writer-shed-rate). Sustained shedding while
   # ClickHouse is healthy is the honest "tier too small" signal; this NEVER
   # scales on queue depth (that is the worker fleet's signal). Optional

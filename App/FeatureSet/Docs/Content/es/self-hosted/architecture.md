@@ -48,7 +48,7 @@ flowchart TB
       direction LR
       PG[("PostgreSQL\n(configuración, estado, metadatos)")]
       CH[("ClickHouse\n(métricas, trazas, registros)")]
-      REDIS[("Redis\n(caché, colas, sesiones)")]
+      REDIS[("Valkey\n(caché, colas, sesiones)")]
     end
 
   end
@@ -115,11 +115,11 @@ flowchart TB
 ## Qué muestra esto
 
 - Los usuarios finales acceden a OneUptime a través del Ingreso de tu clúster (NGINX), que enruta a la UI y la API.
-- Los servicios principales leen/escriben el estado en PostgreSQL, Redis y ClickHouse.
+- Los servicios principales leen/escriben el estado en PostgreSQL, Valkey (el fork con licencia BSD de Redis 7.2) y ClickHouse.
 - Las sondas pueden ejecutarse dentro de tu clúster (recomendado) y/o en otro lugar de tu red. Pueden monitorear:
   - Servicios internos/privados detrás de tu firewall.
   - Recursos externos/públicos en internet.
-- Los resultados de las sondas se envían a la Ingesta de sondas dentro de tu clúster, se ponen en cola a través de Redis y son procesados por el Worker en segundo plano en tus almacenes de datos.
+- Los resultados de las sondas se envían a la Ingesta de sondas dentro de tu clúster, se ponen en cola a través de Valkey y son procesados por el Worker en segundo plano en tus almacenes de datos.
 - Los datos de telemetría (métricas/trazas/registros) y los datos de servidor/agente pueden ingerirse a través de servicios de ingesta dedicados y almacenarse en ClickHouse.
 
 > Nota: Si usas PostgreSQL, Redis o ClickHouse externos en lugar de los integrados, las conexiones desde la API/Worker/Ingesta apuntan a tus puntos de conexión externos. El flujo lógico sigue siendo el mismo.

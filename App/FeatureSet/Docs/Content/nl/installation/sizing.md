@@ -1,6 +1,6 @@
 # Sizing & capaciteitsplanning
 
-Deze gids helpt je bij het dimensioneren van een zelf-gehoste OneUptime-deployment op Kubernetes (Helm). Het behandelt de drie datastores waarvan OneUptime afhankelijk is — **PostgreSQL**, **Redis** en **ClickHouse** — plus de applicatiecompute, en geeft startniveaus die je kunt aanpassen zodra je echte cijfers hebt.
+Deze gids helpt je bij het dimensioneren van een zelf-gehoste OneUptime-deployment op Kubernetes (Helm). Het behandelt de drie datastores waarvan OneUptime afhankelijk is — **PostgreSQL**, **Valkey** en **ClickHouse** — plus de applicatiecompute, en geeft startniveaus die je kunt aanpassen zodra je echte cijfers hebt.
 
 > **Lees dit eerst:** de Helm-chart wordt geleverd met **geen ingestelde CPU/geheugen-requests of -limits** en kleine **25 Gi** standaardvolumes voor PostgreSQL en ClickHouse. Die standaardwaarden bestaan zodat de chart op elke cluster installeert en draait — het is **geen** productie-sizing. Voor alles wat verder gaat dan een snelle proef, stel je resources en opslag expliciet in met de onderstaande cijfers.
 
@@ -14,7 +14,7 @@ OneUptime vereist drie datastores in productie. Ze schalen op volledig verschill
 | -------------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | **ClickHouse** | Alle telemetrie — logs, metrics, traces, exceptions, profiles                                                             | Telemetrie-**ingestratio × retentie**. Dit is ~95% van je opslag en de dominante kostenpost.   |
 | **PostgreSQL** | Configuratie en status — monitors, incidents, alerts, gebruikers, teams, projecten, workflows, statuspagina's, dashboards | **Aantal entiteiten en geschiedenis**, niet het telemetrievolume. Groeit langzaam.             |
-| **Redis**      | Cache, werkwachtrijen en sessies                                                                                          | **Wachtrijdiepte en actieve sessies**. Geheugengebonden en bescheiden. Geen bron van waarheid. |
+| **Valkey**     | Cache, werkwachtrijen en sessies                                                                                          | **Wachtrijdiepte en actieve sessies**. Geheugengebonden en bescheiden. Geen bron van waarheid. |
 
 Objectopslag (S3/MinIO) is **niet** vereist om OneUptime te laten draaien. Het wordt alleen optioneel gebruikt voor database-**backups** (via de CloudNativePG Barman-plugin voor PostgreSQL, of `clickhouse-backup` voor ClickHouse). OneUptime tiert telemetrie niet naar objectopslag — zie de sectie "Retentie en hoe het de opslag beïnvloedt" hieronder.
 
@@ -57,9 +57,9 @@ PostgreSQL slaat je configuratie en operationele status op, geen telemetrie, dus
 
 Als je veel applicatie-, worker- en probe-replicas draait, kan het aantal databaseverbindingen het knelpunt worden voordat de opslag dat doet. De Helm-chart van OneUptime bevat een optionele **PgBouncer** connection pooler (`pgbouncer.enabled`) precies hiervoor — schakel het in voor deployments met veel replicas.
 
-## Redis — cache, wachtrijen en sessies
+## Valkey — cache, wachtrijen en sessies
 
-Redis wordt gebruikt als cache, werkwachtrij en sessieopslag. Het is **geheugengebonden** en persistentie is **standaard uitgeschakeld** (Redis is hier geen bron van waarheid — het kan opnieuw worden opgebouwd). Dimensioneer het op de verwachte wachtrijdiepte en gelijktijdige sessies; 2–8 GB geheugen dekt de meeste deployments. Let op dat het standaard eviction-beleid `noeviction` is, dus als wachtrijen oplopen bij aanhoudende overbelasting, monitor dan het Redis-geheugen.
+De cachelaag draait [Valkey](https://valkey.io), de BSD-gelicentieerde fork van Redis 7.2, en wordt gebruikt als cache, werkwachtrij en sessieopslag. Elke server die het Redis-protocol spreekt, kan zijn plaats innemen; de onderstaande sizing geldt in beide gevallen. Het is **geheugengebonden** en persistentie is **standaard uitgeschakeld** (Redis is hier geen bron van waarheid — het kan opnieuw worden opgebouwd). Dimensioneer het op de verwachte wachtrijdiepte en gelijktijdige sessies; 2–8 GB geheugen dekt de meeste deployments. Let op dat het standaard eviction-beleid `noeviction` is, dus als wachtrijen oplopen bij aanhoudende overbelasting, monitor dan het Redis-geheugen.
 
 ## Applicatiecompute
 
@@ -77,7 +77,7 @@ Kies het niveau dat het dichtst bij jouw omgeving ligt als startpunt, houd vervo
 | ----------------------- | ---------------------------- | ---------------------------- | ------------------------------------------------ |
 | **ClickHouse**          | 4 vCPU / 16 GB / 200 GB NVMe | 8 vCPU / 32 GB / 1–3 TB NVMe | 16+ vCPU / 64–128 GB / 5–15 TB NVMe, **sharded** |
 | **PostgreSQL**          | 2 vCPU / 4 GB / 50 GB SSD    | 4 vCPU / 8 GB / 100 GB SSD   | 8 vCPU / 16–32 GB / 250 GB SSD (+ PgBouncer)     |
-| **Redis**               | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                 |
+| **Valkey**              | 1 vCPU / 2 GB                | 2 vCPU / 4 GB                | 4 vCPU / 8–16 GB                                 |
 | **Retentie aangenomen** | 30 dagen                     | 30–90 dagen                  | 90 dagen                                         |
 
 Deze dimensioneren de OneUptime-**backend**. De OneUptime-collectors die op elke gemonitorde cluster draaien, worden apart gedimensioneerd — zie de sizing-niveaus van de [Kubernetes Agent](/docs/telemetry/kubernetes-agent).
@@ -88,7 +88,7 @@ De in de chart ingebouwde datastores draaien standaard als **enkele instanties**
 
 - **PostgreSQL** — schakel de meegeleverde [CloudNativePG](https://cloudnative-pg.io)-operator in (`postgresOperator.cnpg.enabled`) met **3 instanties** (1 primary + 2 hot standbys) voor automatische failover.
 - **ClickHouse** — schakel de meegeleverde [Altinity](https://github.com/Altinity/clickhouse-operator)-operator in (`clickhouseOperator.altinity.enabled`) met **≥2 replicas per shard** en **3 ClickHouse Keeper**-nodes voor quorum. Voeg shards toe zodra de schijf of het RAM van een enkele node de beperking wordt.
-- **Redis** — de chart heeft geen replicatie binnen de chart. Wijs OneUptime voor HA naar een **extern beheerd Redis** (of een AI-/cluster-deployment).
+- **Valkey** — de chart heeft geen replicatie binnen de chart. Wijs OneUptime voor HA naar een **extern beheerd Redis** (of een AI-/cluster-deployment).
 
 ## Retentie en hoe het de opslag beïnvloedt
 
