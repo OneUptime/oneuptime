@@ -11,6 +11,44 @@ See [Installation & Upgrades](installation.md#upgrading) for the upgrade command
 
 ## Upgrade notes
 
+- **12.0.36 (2026-09-07)** — The cache and queue tier is Valkey, the
+  BSD-licensed fork of Redis 7.2, and everything is named for it. **No values
+  file needs editing**, but read the last two bullets before upgrading
+  production.
+
+  - Values: `redis:` → `valkey:` and `externalRedis:` → `externalValkey:`. The
+    old keys still work — whatever you set under them is layered on top of the
+    new defaults — and `helm upgrade` prints a deprecation notice listing the
+    ones it found. Where you set the same setting under both names, the legacy
+    one wins.
+  - Objects: `<release>-redis` → `<release>-valkey`, `<release>-redis-master` →
+    `<release>-valkey-master`, and the generated Secret's key `redis-password` →
+    `valkey-password`. The chart reads your existing `<release>-redis` Secret and
+    carries the password across, so nothing rotates. That old Secret is annotated
+    `helm.sh/resource-policy: keep`, so it stays behind holding a now-unused
+    copy — delete it once the upgrade has stuck.
+  - Environment: the app now reads `VALKEY_*` and falls back to `REDIS_*`. The
+    chart emits both, from the same values and the same secret key, so an app
+    image pinned to an older release keeps working.
+  - **`extraEnv` overrides need renaming.** If you point at a managed cache with
+    `extraEnv: [{name: REDIS_HOST, ...}]` rather than with `externalValkey:`,
+    your override is now ignored: the app reads `VALKEY_HOST`, which this chart
+    sets to its own cache. Rename those entries to `VALKEY_*` — the chart warns
+    on install if it finds chart-wide ones, but it cannot see per-service lists.
+  - **The cache and queue restart once.** Renaming the StatefulSet recreates its
+    pod, and the bundled cache holds nothing on disk (`appendonly no`, `save ""`,
+    no `dir`), so the cache is cold afterwards and BullMQ jobs that were waiting,
+    delayed or backing off are gone. Repeatable/cron jobs re-register themselves
+    on reconnect. Upgrade at a quiet moment if in-flight telemetry or workflow
+    retries matter to you. For the same reason a `persistence.enabled: true`
+    volume never held anything: the new StatefulSet takes a fresh
+    `data-<release>-valkey-0` and the old `data-<release>-redis-0` can simply be
+    deleted to stop paying for it.
+  - The Service is also published under its old name, `<release>-redis-master`,
+    so pods that have not yet rolled reconnect on their own rather than resolving
+    NXDOMAIN for the length of the rollout. Set `valkey.legacyServiceAlias: false`
+    to drop it once everything has rolled.
+
 - **12.0.21 (2026-08-24)** — The Cal.com booking webhook is removed. Delete any
   `marketing.cal:` block from your values files — the chart schema rejects
   unknown keys, so `helm upgrade` fails validation with

@@ -3,7 +3,7 @@
 OneUptime uses three databases:
 
 - **PostgreSQL** — application data, users, and configuration.
-- **Redis** — caching and session management.
+- **Valkey** — caching, queues and session management. The BSD-licensed fork of Redis 7.2; any Redis-protocol server can stand in for it.
 - **ClickHouse** — analytics, logs, and time-series data.
 
 Each one ships **built-in** (a single, standalone instance — great for getting
@@ -178,27 +178,38 @@ operations (including [PgBouncer connection pooling](../../../Docs/Postgres.md))
 
 ---
 
-## Redis
+## Valkey (cache and queues)
+
+The bundled cache/queue container is [Valkey](https://valkey.io), the
+BSD-licensed fork of Redis 7.2 that most of the original Redis contributors
+moved to after Redis 7.4 left the BSD licence. It speaks the Redis wire
+protocol, so any Redis-protocol server can stand in for it — see **External**
+below.
+
+These values were called `redis:` and `externalRedis:` until 12.0.36, and both
+still work: whatever you set under them is layered on top of the defaults here,
+and `helm upgrade` prints a notice listing the deprecated keys it found. Where
+the same setting is written under both names, the legacy one wins.
 
 ### Built-in (default)
 
-A standalone Redis instance with authentication enabled:
+A standalone Valkey instance with authentication enabled:
 
 ```yaml
-redis:
+valkey:
   enabled: true
   auth:
     # Auto-generated if not provided
-    password: "your-redis-password"
+    password: "your-cache-password"
   image:
-    repository: redis
-    tag: latest
+    repository: valkey/valkey
+    tag: 9.1-alpine
     pullPolicy: IfNotPresent
   master:
     service:
       type: ClusterIP
       ports:
-        redis: "6379"
+        valkey: "6379"
     persistence:
       enabled: false
       size: 8Gi
@@ -210,16 +221,27 @@ redis:
   commonConfiguration: |-
    appendonly no
    save ""
+  # Also publish the Service under its pre-12.0.36 name,
+  # <release>-redis-master. Keeps pods that have not yet rolled onto the new
+  # spec resolving during the upgrade. Set to false once everything has rolled.
+  legacyServiceAlias: true
 ```
+
+The generated password lives in the `<release>-valkey` Secret under the key
+`valkey-password`. Note that persistence is off and nothing is written to disk
+(`appendonly no`, `save ""`), so the cache is rebuilt from scratch whenever the
+pod restarts — it is not a source of truth.
 
 ### External
 
+Any Redis-protocol server works here: Valkey, real Redis, or a managed service.
+
 ```yaml
-redis:
-  # Don't install Redis in the cluster
+valkey:
+  # Don't install a cache in the cluster
   enabled: false
 
-externalRedis:
+externalValkey:
   host:
   port:
   password:
@@ -346,4 +368,4 @@ externalClickhouse:
 
 - [Postgres.md](../../../Docs/Postgres.md) — day-2 operations, backups, connection pooling with PgBouncer.
 - [Clickhouse.md](../../../Docs/Clickhouse.md) — scaling and backups.
-- [Redis.md](../../../Docs/Redis.md) — Redis notes.
+- [Redis.md](../../../Docs/Redis.md) — cache (Valkey) notes.

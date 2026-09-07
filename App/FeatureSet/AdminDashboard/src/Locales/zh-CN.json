@@ -803,9 +803,9 @@
   "You can find this in your Twilio console.": "您可以在 Twilio 控制台中找到此项。",
   "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "您的机器人的 Telegram 用户名，不含前导 @。Telegram 用户名以 “bot” 结尾。",
   "ClickHouse disk": "ClickHouse 磁盘",
-  "Postgres, ClickHouse, Redis and queue health at a glance.": "一目了然地查看 Postgres、ClickHouse、Redis 和队列的健康状况。",
+  "Postgres, ClickHouse, Valkey and queue health at a glance.": "一目了然地查看 Postgres、ClickHouse、Valkey 和队列的健康状况。",
   "Projects, users, monitors and incidents across the instance.": "整个实例中的项目、用户、监视器和事件。",
-  "Redis memory": "Redis 内存",
+  "Valkey memory": "Valkey 内存",
   "Spot job backlogs and failures before they cause incidents.": "在作业积压和失败引发事件之前发现它们。",
   "Track database disk and memory utilization before you run out.": "在耗尽之前跟踪数据库磁盘和内存使用率。"
 }

@@ -12,7 +12,7 @@ const HealthLogs: FunctionComponent = (): ReactElement => {
       currentRoute={RouteMap[PageMap.HEALTH_LOGS] as Route}
       enterpriseOnly={true}
       enterpriseFeatureName="Diagnostic logs"
-      enterpriseFeatureDescription="This app instance's own recent log lines, plus the closest in-app equivalents from Postgres, ClickHouse and Redis."
+      enterpriseFeatureDescription="This app instance's own recent log lines, plus the closest in-app equivalents from Postgres, ClickHouse and Valkey."
     >
       <DiagnosticLogs />
     </HealthPage>

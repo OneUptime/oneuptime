@@ -16,7 +16,7 @@
 #      of those keys, and pods read them from the user's own Secret instead.
 #      https://github.com/OneUptime/oneuptime/issues/3121
 #   4. Switching back to chart-managed secrets does not rotate anything.
-#   5. The datastore secrets (redis / postgres / clickhouse) survive upgrades.
+#   5. The datastore secrets (valkey / postgres / clickhouse) survive upgrades.
 #
 # No container images are pulled: the release is installed without --wait and
 # without hooks, so only the manifests have to apply.
@@ -75,7 +75,7 @@ harness_namespace "$NAMESPACE"
 # and its secrets; start from nothing either way.
 helm uninstall "$RELEASE" -n "$NAMESPACE" >/dev/null 2>&1 || true
 kubectl -n "$NAMESPACE" delete secret \
-    "$CHART_SECRET" "${RELEASE}-redis" "${RELEASE}-postgresql" "${RELEASE}-clickhouse" \
+    "$CHART_SECRET" "${RELEASE}-valkey" "${RELEASE}-redis" "${RELEASE}-postgresql" "${RELEASE}-clickhouse" \
     --ignore-not-found >/dev/null 2>&1 || true
 
 echo
@@ -88,7 +88,7 @@ ENCRYPTION_SECRET_0=$(secret_value "$CHART_SECRET" 'encryption-secret')
 REGISTER_PROBE_KEY_0=$(secret_value "$CHART_SECRET" 'register-probe-key')
 PROBE_KEY_0=$(secret_value "$CHART_SECRET" 'probe-one')
 RUNNER_KEY_0=$(secret_value "$CHART_SECRET" 'runner-key')
-REDIS_0=$(secret_value "${RELEASE}-redis" 'redis-password')
+VALKEY_0=$(secret_value "${RELEASE}-valkey" 'valkey-password')
 POSTGRES_0=$(secret_value "${RELEASE}-postgresql" 'postgres-password')
 CLICKHOUSE_0=$(secret_value "${RELEASE}-clickhouse" 'admin-password')
 
@@ -96,7 +96,7 @@ echo
 echo "=== 1. a fresh install generates every chart-managed secret ==="
 for pair in "oneuptime-secret:$ONEUPTIME_SECRET_0" "encryption-secret:$ENCRYPTION_SECRET_0" \
     "register-probe-key:$REGISTER_PROBE_KEY_0" "probe-one:$PROBE_KEY_0" "runner-key:$RUNNER_KEY_0" \
-    "redis-password:$REDIS_0" "postgres-password:$POSTGRES_0" "admin-password:$CLICKHOUSE_0"; do
+    "valkey-password:$VALKEY_0" "postgres-password:$POSTGRES_0" "admin-password:$CLICKHOUSE_0"; do
     name="${pair%%:*}"
     value="${pair#*:}"
     if [ ${#value} -eq 32 ]; then
@@ -114,7 +114,7 @@ assert_eq "encryption-secret unchanged" "$ENCRYPTION_SECRET_0" "$(secret_value "
 assert_eq "register-probe-key unchanged" "$REGISTER_PROBE_KEY_0" "$(secret_value "$CHART_SECRET" 'register-probe-key')"
 assert_eq "probe-one unchanged" "$PROBE_KEY_0" "$(secret_value "$CHART_SECRET" 'probe-one')"
 assert_eq "runner-key unchanged" "$RUNNER_KEY_0" "$(secret_value "$CHART_SECRET" 'runner-key')"
-assert_eq "redis-password unchanged" "$REDIS_0" "$(secret_value "${RELEASE}-redis" 'redis-password')"
+assert_eq "valkey-password unchanged" "$VALKEY_0" "$(secret_value "${RELEASE}-valkey" 'valkey-password')"
 assert_eq "postgres-password unchanged" "$POSTGRES_0" "$(secret_value "${RELEASE}-postgresql" 'postgres-password')"
 assert_eq "clickhouse admin-password unchanged" "$CLICKHOUSE_0" "$(secret_value "${RELEASE}-clickhouse" 'admin-password')"
 
@@ -127,7 +127,7 @@ HOSTILE_ENCRYPTION='*alias-looking'
 HOSTILE_REGISTER='key: value'
 HOSTILE_PROBE='  padded  '
 HOSTILE_RUNNER='true'
-HOSTILE_REDIS='0123456789'
+HOSTILE_VALKEY='0123456789'
 patch_secret_value() {
     # patch_secret_value <secret> <key> <raw value>
     local encoded
@@ -140,7 +140,7 @@ patch_secret_value "$CHART_SECRET" 'encryption-secret' "$HOSTILE_ENCRYPTION"
 patch_secret_value "$CHART_SECRET" 'register-probe-key' "$HOSTILE_REGISTER"
 patch_secret_value "$CHART_SECRET" 'probe-one' "$HOSTILE_PROBE"
 patch_secret_value "$CHART_SECRET" 'runner-key' "$HOSTILE_RUNNER"
-patch_secret_value "${RELEASE}-redis" 'redis-password' "$HOSTILE_REDIS"
+patch_secret_value "${RELEASE}-valkey" 'valkey-password' "$HOSTILE_VALKEY"
 
 if helm upgrade "$RELEASE" "$CHART_DIR" "${HELM_ARGS[@]}" >/dev/null 2>/tmp/hostile-upgrade.log; then
     pass "upgrade renders with YAML-hostile stored values"
@@ -153,7 +153,7 @@ assert_eq "'$HOSTILE_ENCRYPTION' round-trips" "$HOSTILE_ENCRYPTION" "$(secret_va
 assert_eq "'$HOSTILE_REGISTER' round-trips" "$HOSTILE_REGISTER" "$(secret_value "$CHART_SECRET" 'register-probe-key')"
 assert_eq "'$HOSTILE_PROBE' round-trips" "$HOSTILE_PROBE" "$(secret_value "$CHART_SECRET" 'probe-one')"
 assert_eq "'$HOSTILE_RUNNER' round-trips" "$HOSTILE_RUNNER" "$(secret_value "$CHART_SECRET" 'runner-key')"
-assert_eq "'$HOSTILE_REDIS' round-trips" "$HOSTILE_REDIS" "$(secret_value "${RELEASE}-redis" 'redis-password')"
+assert_eq "'$HOSTILE_VALKEY' round-trips" "$HOSTILE_VALKEY" "$(secret_value "${RELEASE}-valkey" 'valkey-password')"
 
 # Put the generated values back so the rest of the script reads normally.
 patch_secret_value "$CHART_SECRET" 'oneuptime-secret' "$ONEUPTIME_SECRET_0"
@@ -161,7 +161,40 @@ patch_secret_value "$CHART_SECRET" 'encryption-secret' "$ENCRYPTION_SECRET_0"
 patch_secret_value "$CHART_SECRET" 'register-probe-key' "$REGISTER_PROBE_KEY_0"
 patch_secret_value "$CHART_SECRET" 'probe-one' "$PROBE_KEY_0"
 patch_secret_value "$CHART_SECRET" 'runner-key' "$RUNNER_KEY_0"
-patch_secret_value "${RELEASE}-redis" 'redis-password' "$REDIS_0"
+patch_secret_value "${RELEASE}-valkey" 'valkey-password' "$VALKEY_0"
+
+echo
+echo "=== 3b. an upgrade adopts a pre-12.0.36 <release>-redis secret ==="
+# The cache secret was <release>-redis, keyed redis-password, until the Valkey
+# rename. Renaming it without carrying the value over would mint a fresh random
+# password on the first upgrade of every existing install -- silently, because
+# the app and the server both read the new one, so nothing fails until an
+# operator or a sidecar tries the credential they copied out earlier.
+#
+# Simulate that install: delete the new secret, leave only a legacy one holding
+# a known value, and upgrade.
+LEGACY_PASSWORD='legacy-password-from-before-the-rename'
+kubectl -n "$NAMESPACE" delete secret "${RELEASE}-valkey" --ignore-not-found >/dev/null 2>&1 || true
+kubectl -n "$NAMESPACE" create secret generic "${RELEASE}-redis" \
+    --from-literal=redis-password="$LEGACY_PASSWORD" >/dev/null 2>&1 ||
+    patch_secret_value "${RELEASE}-redis" 'redis-password' "$LEGACY_PASSWORD"
+
+helm upgrade "$RELEASE" "$CHART_DIR" "${HELM_ARGS[@]}" >/dev/null
+assert_eq "legacy redis-password is adopted as valkey-password" \
+    "$LEGACY_PASSWORD" "$(secret_value "${RELEASE}-valkey" 'valkey-password')"
+
+# And it must stay adopted -- not be re-read from the legacy secret each time in
+# a way that would break once the operator deletes it.
+kubectl -n "$NAMESPACE" delete secret "${RELEASE}-redis" --ignore-not-found >/dev/null 2>&1 || true
+helm upgrade "$RELEASE" "$CHART_DIR" "${HELM_ARGS[@]}" >/dev/null
+assert_eq "adopted password survives deleting the legacy secret" \
+    "$LEGACY_PASSWORD" "$(secret_value "${RELEASE}-valkey" 'valkey-password')"
+
+# The deprecated Service alias is what keeps not-yet-rolled pods resolving.
+assert_present "the deprecated <release>-redis-master Service alias exists" \
+    "$(kubectl -n "$NAMESPACE" get svc -o name)" "service/${RELEASE}-redis-master"
+
+VALKEY_0="$LEGACY_PASSWORD"
 
 echo
 echo "=== 4. externalSecrets: the chart stops managing those keys (issue 3121) ==="
@@ -208,7 +241,7 @@ assert_present "app ONEUPTIME_SECRET points back at the chart secret" "$APP_ENV"
 echo
 echo "=== 6. a fresh install with externalSecrets never generates the keys ==="
 helm uninstall "$RELEASE" -n "$NAMESPACE" >/dev/null 2>&1 || true
-kubectl -n "$NAMESPACE" delete secret "$CHART_SECRET" "${RELEASE}-redis" "${RELEASE}-postgresql" "${RELEASE}-clickhouse" >/dev/null 2>&1 || true
+kubectl -n "$NAMESPACE" delete secret "$CHART_SECRET" "${RELEASE}-valkey" "${RELEASE}-redis" "${RELEASE}-postgresql" "${RELEASE}-clickhouse" >/dev/null 2>&1 || true
 helm install "$RELEASE" "$CHART_DIR" "${HELM_ARGS[@]}" "${EXTERNAL_ARGS[@]}" >/dev/null
 KEYS=$(secret_keys "$CHART_SECRET")
 assert_absent "install does not create oneuptime-secret" "$KEYS" "oneuptime-secret"

@@ -1,0 +1,99 @@
+{{- $valkey := include "oneuptime.valkey" . | fromYaml }}
+{{- if $valkey.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-valkey-master
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-valkey
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: valkey
+    appname: oneuptime
+spec:
+  type: {{ $valkey.master.service.type | default "ClusterIP" }}
+  {{- if and (eq $valkey.master.service.type "LoadBalancer") $valkey.master.service.loadBalancerIP }}
+  loadBalancerIP: {{ $valkey.master.service.loadBalancerIP }}
+  {{- end }}
+  ports:
+  - name: valkey
+    port: {{ include "oneuptime.valkey.port" . }}
+    targetPort: valkey
+    protocol: TCP
+  selector:
+    app: {{ .Release.Name }}-valkey
+    app.kubernetes.io/component: valkey
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-valkey-headless
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-valkey
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: valkey
+    appname: oneuptime
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: valkey
+    port: {{ include "oneuptime.valkey.port" . }}
+    targetPort: valkey
+    protocol: TCP
+  selector:
+    app: {{ .Release.Name }}-valkey
+    app.kubernetes.io/component: valkey
+
+{{- if $valkey.legacyServiceAlias }}
+---
+{{/*
+  Deprecated alias for the Service that was called <release>-redis-master until
+  12.0.36.
+
+  The old Service is deleted the moment the new manifest is applied, while the
+  app, worker, probe, runner and telemetry-writer Deployments roll pod by pod.
+  Every pod still on the previous spec has REDIS_HOST=<release>-redis-master
+  baked in, so without this alias it resolves NXDOMAIN until it happens to be
+  replaced -- which for a large deployment is the whole rollout.
+
+  Be precise about what it buys, because it is NOT a zero-downtime upgrade: the
+  StatefulSet is renamed, so its pod is recreated, and for the ~seconds until the
+  new one passes readiness BOTH Services have no endpoints and cache and queue
+  writes fail. What the alias fixes is the part that would otherwise last for the
+  whole rollout: once the new pod is Ready, not-yet-rolled pods reconnect through
+  the old name on their own instead of waiting to be replaced.
+
+  It selects the same pods as the real Service, so it is correct to keep and
+  costs one ClusterIP. Set `valkey.legacyServiceAlias: false` to drop it once
+  every workload has rolled -- doing it sooner reopens the NXDOMAIN window.
+*/}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-redis-master
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-valkey
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: valkey
+    appname: oneuptime
+  annotations:
+    oneuptime.com/deprecated: "Renamed to {{ .Release.Name }}-valkey-master. Set valkey.legacyServiceAlias=false to remove."
+spec:
+  type: ClusterIP
+  ports:
+  - name: valkey
+    port: {{ include "oneuptime.valkey.port" . }}
+    targetPort: valkey
+    protocol: TCP
+  selector:
+    app: {{ .Release.Name }}-valkey
+    app.kubernetes.io/component: valkey
+{{- end }}
+{{- end }}

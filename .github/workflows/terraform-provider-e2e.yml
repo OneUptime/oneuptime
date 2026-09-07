@@ -230,7 +230,7 @@ jobs:
       # every request it makes is `http://localhost/api/...`, which is nginx in
       # front of `app`.
       #
-      # Nothing is lost by naming them. postgres, redis and clickhouse still
+      # Nothing is lost by naming them. postgres, valkey and clickhouse still
       # come up — `app` and `ingress` both depend_on them with
       # condition: service_healthy — and all eight endpoints status-check waits
       # on (/, /dashboard, /admin/env.js, /public-dashboard, /accounts,
@@ -304,7 +304,7 @@ jobs:
           echo "===== container status (including exited) ====="
           $COMPOSE ps -a
 
-          for service in app worker ingress postgres clickhouse redis; do
+          for service in app worker ingress postgres clickhouse valkey; do
             echo ""
             echo "===== ${service} (last 300 lines) ====="
             $COMPOSE logs --tail=300 --no-color "${service}" 2>&1

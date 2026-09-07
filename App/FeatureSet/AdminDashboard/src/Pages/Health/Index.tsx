@@ -190,7 +190,7 @@ const HealthOverview: FunctionComponent = (): ReactElement => {
     },
     {
       key: "redis",
-      title: "Redis",
+      title: "Valkey",
       route: route(PageMap.HEALTH_REDIS),
       status: datastoreStatus(redisConnected),
       secondary: redisConnected
@@ -219,7 +219,7 @@ const HealthOverview: FunctionComponent = (): ReactElement => {
     {
       title: "Query Console",
       description:
-        "Run read-only queries against Postgres, ClickHouse and Redis.",
+        "Run read-only queries against Postgres, ClickHouse and Valkey.",
       icon: IconProp.Terminal,
       route: route(PageMap.HEALTH_QUERY),
     },

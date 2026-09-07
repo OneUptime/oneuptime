@@ -803,9 +803,9 @@
   "You can find this in your Twilio console.": "Вы можете найти это в вашей консоли Twilio.",
   "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "Имя пользователя вашего бота в Telegram, без ведущего символа @. Имена пользователей в Telegram оканчиваются на «bot».",
   "ClickHouse disk": "Диск ClickHouse",
-  "Postgres, ClickHouse, Redis and queue health at a glance.": "Состояние Postgres, ClickHouse, Redis и очередей с первого взгляда.",
+  "Postgres, ClickHouse, Valkey and queue health at a glance.": "Состояние Postgres, ClickHouse, Valkey и очередей с первого взгляда.",
   "Projects, users, monitors and incidents across the instance.": "Проекты, пользователи, мониторы и инциденты по всему экземпляру.",
-  "Redis memory": "Память Redis",
+  "Valkey memory": "Память Valkey",
   "Spot job backlogs and failures before they cause incidents.": "Выявляйте очереди и сбои заданий до того, как они приведут к инцидентам.",
   "Track database disk and memory utilization before you run out.": "Отслеживайте использование диска и памяти базы данных, прежде чем они закончатся."
 }

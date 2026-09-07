@@ -96,7 +96,7 @@ const ENGINES: Array<EngineConfig> = [
   },
   {
     key: "redis",
-    label: "Redis",
+    label: "Valkey",
     codeType: CodeType.Text,
     placeholder:
       "# One command per line, redis-cli style.\nDBSIZE\nINFO server\nKEYS *",
@@ -852,7 +852,7 @@ const QueryConsole: FunctionComponent = (): ReactElement => {
       currentRoute={RouteMap[PageMap.HEALTH_QUERY] as Route}
       enterpriseOnly={true}
       enterpriseFeatureName="Query console"
-      enterpriseFeatureDescription="Run ad-hoc Postgres, ClickHouse and Redis queries against the datastores backing this instance, with read-only safety and result export."
+      enterpriseFeatureDescription="Run ad-hoc Postgres, ClickHouse and Valkey queries against the datastores backing this instance, with read-only safety and result export."
     >
       <QueryConsoleContent />
     </HealthPage>

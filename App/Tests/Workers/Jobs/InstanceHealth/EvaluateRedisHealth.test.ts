@@ -143,7 +143,7 @@ describe("EvaluateRedisHealth", () => {
       expect(check?.isCritical).toBe(false);
       expect(check?.observedPercent).toBe(85);
       expect(check?.thresholdPercent).toBe(80);
-      expect(check?.subject).toContain("Redis memory is 85.00% full");
+      expect(check?.subject).toContain("Valkey memory is 85.00% full");
       expect(check?.breachMessage).toContain("reached 85.00%");
     });
 

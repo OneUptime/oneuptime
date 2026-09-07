@@ -8,6 +8,53 @@ This guide covers how to safely upgrade your self-hosted OneUptime installation.
 - You can leapfrog minor/patch versions (for example, 8.1 → 8.4) as long as you follow the release notes.
 - Always take backups before upgrading, and validate you can restore them.
 
+### Redis is now Valkey
+
+The cache and queue tier runs [Valkey](https://valkey.io), the BSD-licensed fork
+of Redis 7.2, instead of Redis — Redis 7.4 moved to a stricter licence and the
+bulk of the original contributors moved to Valkey. Valkey speaks the Redis wire
+protocol, so nothing above the socket changed, and you can still point OneUptime
+at a real Redis (or a managed Redis-compatible service) if you prefer.
+
+Everything is named for it now: the settings are `VALKEY_*`, the Helm values are
+`valkey:` / `externalValkey:`, and the Kubernetes objects are
+`<release>-valkey*`. **Every old name still works**, so an untouched `config.env`
+or `values.yaml` keeps running — but read the Helm note below before upgrading a
+busy production cluster.
+
+**Docker Compose — no action required.** The service is now called `valkey`, and
+it keeps `redis` as a network alias, so an existing `config.env` with
+`REDIS_HOST=redis` resolves without editing. The app reads `VALKEY_*` and falls
+back to `REDIS_*`, and `npm run update` will **not** replace your existing cache
+settings: it normally adds any new setting it finds in `config.example.env`, but
+it recognises these as renames and leaves your values — including your
+`REDIS_PASSWORD` — exactly where they are. Upgrade with `npm run update`, or any
+`docker compose up --remove-orphans`, so the old `redis` container is removed;
+leaving it running would put two containers behind the same `redis` hostname and
+half the connections would land on the stale one.
+
+If you set cache variables by hand in a `docker-compose.override.yml`, rename
+them to `VALKEY_*`. The base file sets `VALKEY_HOST` from your `REDIS_HOST`, and
+an override that only sets `REDIS_HOST` no longer wins.
+
+**Helm — no values change needed, but the cache restarts once.**
+
+- `redis:` and `externalRedis:` still work; they are layered on top of the new
+  `valkey:` / `externalValkey:` defaults, and `helm upgrade` prints a notice
+  listing the deprecated keys it found.
+- The generated password is carried across from the old `<release>-redis` Secret
+  into `<release>-valkey`, so nothing rotates. The old Secret is kept, holding a
+  now-unused copy — delete it once the upgrade has stuck.
+- Renaming the StatefulSet recreates its pod. The bundled cache writes nothing to
+  disk, so it comes back cold: cached values are gone, and BullMQ jobs that were
+  waiting, delayed or backing off are lost. Repeatable and cron jobs re-register
+  themselves on reconnect. Upgrade at a quiet moment if in-flight telemetry or
+  workflow retries matter to you.
+- If you point at a managed cache through `extraEnv` rather than
+  `externalValkey:`, rename those entries to `VALKEY_*`. A `REDIS_HOST` entry
+  there is now ignored, because the chart also sets `VALKEY_HOST` and the app
+  prefers it.
+
 ## Upgrading from OneUptime 11 → 12
 
 OneUptime 12 merges two components into one. The **Runbook Agent** (the

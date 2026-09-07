@@ -23,12 +23,12 @@ const RedisHealthSettings: FunctionComponent = (): ReactElement => {
     <CardModelDetail<GlobalConfig>
       name="Redis Health Policy"
       cardProps={{
-        title: "Redis health policy",
+        title: "Valkey health policy",
         description:
-          "Notify master administrators when Redis runs short of memory or connections, evicts keys, or cannot persist to disk.",
+          "Notify master administrators when Valkey runs short of memory or connections, evicts keys, or cannot persist to disk.",
       }}
       isEditable={true}
-      editButtonText="Edit Redis policy"
+      editButtonText="Edit Valkey policy"
       formFields={[
         {
           field: {
@@ -38,7 +38,7 @@ const RedisHealthSettings: FunctionComponent = (): ReactElement => {
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:
-            "Notify master administrators when Redis memory usage crosses the configured share of maxmemory. Requires maxmemory to be set on Redis.",
+            "Notify master administrators when Valkey memory usage crosses the configured share of maxmemory. Requires maxmemory to be set on Valkey.",
         },
         {
           field: {
@@ -54,7 +54,7 @@ const RedisHealthSettings: FunctionComponent = (): ReactElement => {
           },
           placeholder: "80",
           description:
-            "Send a notification when Redis memory usage rises to this percentage of maxmemory.",
+            "Send a notification when Valkey memory usage rises to this percentage of maxmemory.",
         },
         {
           field: {
@@ -64,7 +64,7 @@ const RedisHealthSettings: FunctionComponent = (): ReactElement => {
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:
-            "Notify master administrators when connected clients approach the maxclients limit, or when Redis starts rejecting connections.",
+            "Notify master administrators when connected clients approach the maxclients limit, or when Valkey starts rejecting connections.",
         },
         {
           field: {
@@ -90,7 +90,7 @@ const RedisHealthSettings: FunctionComponent = (): ReactElement => {
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:
-            "Notify master administrators when Redis discards keys because it reached its memory limit. Leave this off if you run Redis as a pure cache, where eviction is expected.",
+            "Notify master administrators when Valkey discards keys because it reached its memory limit. Leave this off if you run Valkey as a pure cache, where eviction is expected.",
         },
         {
           field: {
@@ -100,7 +100,7 @@ const RedisHealthSettings: FunctionComponent = (): ReactElement => {
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           description:
-            "Notify master administrators when a Redis RDB snapshot or AOF write fails, which means everything since the last successful write is lost if Redis restarts.",
+            "Notify master administrators when a Valkey RDB snapshot or AOF write fails, which means everything since the last successful write is lost if Valkey restarts.",
         },
       ]}
       modelDetailProps={{

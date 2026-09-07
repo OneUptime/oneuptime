@@ -226,7 +226,7 @@ check_pod_health() {
       if [ "${last_reason:-}" = "OOMKilled" ]; then
         add_finding "CRIT" "$pod" \
           "OOMKilled — container memory limit too low (restarted ${restarts}x)" \
-          "Raise the container's memory limit in values.yaml for this component and run 'helm upgrade'. For clickhouse/postgresql/redis, also raise the JVM/buffer-cache settings if applicable."
+          "Raise the container's memory limit in values.yaml for this component and run 'helm upgrade'. For clickhouse/postgresql/valkey, also raise the JVM/buffer-cache settings if applicable."
       else
         add_finding "WARN" "$pod" \
           "Restarted ${restarts} times (last reason: ${last_reason:-unknown})" \
@@ -556,35 +556,52 @@ check_clickhouse() {
 }
 
 # ---------------------------------------------------------------------------
-# 5. Redis
+# 5. Valkey (cache and queues)
 # ---------------------------------------------------------------------------
 
-check_redis() {
-  section "Redis"
+check_valkey() {
+  section "Valkey (cache and queues)"
   local pod
-  pod=$(first_ready_pod "app=${RELEASE}-redis")
+
+  # Everything here is name-probed rather than assumed, because this script is
+  # routinely run against a release older than itself. The workload was called
+  # <release>-redis, holding a <release>-redis secret keyed redis-password and
+  # running the redis image, until 12.0.36.
+  pod=$(first_ready_pod "app=${RELEASE}-valkey")
   if [ -z "$pod" ]; then
-    info "No in-cluster Redis found (external Redis?). Skipping."
-    add_finding "INFO" "redis" \
-      "No in-cluster Redis detected" \
-      "If using externalRedis, check its INFO memory and stats from the managed console."
+    pod=$(first_ready_pod "app=${RELEASE}-redis")
+  fi
+  if [ -z "$pod" ]; then
+    info "No in-cluster cache found (external Valkey/Redis?). Skipping."
+    add_finding "INFO" "valkey" \
+      "No in-cluster cache detected" \
+      "If using externalValkey (or the deprecated externalRedis), check its INFO memory and stats from the managed console."
     return
   fi
   step "pod: $pod"
 
+  # The valkey image ships a redis-cli symlink, but not the reverse.
+  local cli="valkey-cli"
+  if ! kc_exec "$pod" "$cli" --version >/dev/null 2>&1; then
+    cli="redis-cli"
+  fi
+
   local pw
-  pw=$(secret_value "${RELEASE}-redis" "redis-password")
+  pw=$(secret_value "${RELEASE}-valkey" "valkey-password")
+  if [ -z "$pw" ]; then
+    pw=$(secret_value "${RELEASE}-redis" "redis-password")
+  fi
   local auth_arg=()
   if [ -n "$pw" ]; then
     auth_arg=(-a "$pw" --no-auth-warning)
   fi
 
   local info_mem info_stats
-  info_mem=$(kc_exec "$pod" redis-cli "${auth_arg[@]}" INFO memory 2>/dev/null)
-  info_stats=$(kc_exec "$pod" redis-cli "${auth_arg[@]}" INFO stats 2>/dev/null)
+  info_mem=$(kc_exec "$pod" "$cli" "${auth_arg[@]}" INFO memory 2>/dev/null)
+  info_stats=$(kc_exec "$pod" "$cli" "${auth_arg[@]}" INFO stats 2>/dev/null)
 
   if [ -z "$info_mem" ]; then
-    warn "Could not query Redis (auth failed or pod not ready)"
+    warn "Could not query the cache (auth failed or pod not ready)"
     return
   fi
 
@@ -600,28 +617,28 @@ check_redis() {
     local pct=$(( used_bytes * 100 / max_bytes ))
     step "memory pct : ${pct}% of maxmemory"
     if [ "$pct" -ge 85 ]; then
-      warn "Redis memory at ${pct}% of maxmemory"
-      add_finding "WARN" "redis" \
-        "Redis memory at ${pct}% of maxmemory" \
-        "Raise redis.master.resources.limits.memory and maxmemory in values.yaml."
+      warn "Valkey memory at ${pct}% of maxmemory"
+      add_finding "WARN" "valkey" \
+        "Valkey memory at ${pct}% of maxmemory" \
+        "Raise valkey.master.resources.limits.memory and maxmemory in values.yaml."
     fi
   fi
   if [ -n "$evicted" ] && [ "$evicted" -gt 0 ] 2>/dev/null; then
-    crit "Redis has evicted ${evicted} keys — cache or queue data is being lost"
-    add_finding "CRIT" "redis" \
-      "Redis has evicted ${evicted} keys" \
-      "Increase Redis memory immediately (values.yaml: redis.master.resources.limits.memory). If used as a queue (BullMQ), eviction loses jobs — switch maxmemory-policy to 'noeviction' so the app fails fast instead, then size up."
+    crit "Valkey has evicted ${evicted} keys — cache or queue data is being lost"
+    add_finding "CRIT" "valkey" \
+      "Valkey has evicted ${evicted} keys" \
+      "Increase Valkey memory immediately (values.yaml: valkey.master.resources.limits.memory). If used as a queue (BullMQ), eviction loses jobs — switch maxmemory-policy to 'noeviction' so the app fails fast instead, then size up."
   fi
 
   # Queue backlog (BullMQ uses bull:* keys).
   local queue_keys
-  queue_keys=$(kc_exec "$pod" redis-cli "${auth_arg[@]}" --scan --pattern "bull:*:wait" 2>/dev/null | head -n 10)
+  queue_keys=$(kc_exec "$pod" "$cli" "${auth_arg[@]}" --scan --pattern "bull:*:wait" 2>/dev/null | head -n 10)
   if [ -n "$queue_keys" ]; then
     info "BullMQ wait queues found (showing depth):"
     while IFS= read -r k; do
       [ -z "$k" ] && continue
       local depth
-      depth=$(kc_exec "$pod" redis-cli "${auth_arg[@]}" LLEN "$k" 2>/dev/null | tr -d ' \r')
+      depth=$(kc_exec "$pod" "$cli" "${auth_arg[@]}" LLEN "$k" 2>/dev/null | tr -d ' \r')
       echo "      $k -> $depth"
       if [ -n "$depth" ] && [ "$depth" -ge 1000 ] 2>/dev/null; then
         add_finding "WARN" "worker" \
@@ -648,7 +665,7 @@ check_storage() {
 
   # PVC fullness — only meaningful for pods we can exec into.
   local mounts
-  mounts="postgresql:/bitnami/postgresql clickhouse:/var/lib/clickhouse redis:/data"
+  mounts="postgresql:/bitnami/postgresql clickhouse:/var/lib/clickhouse valkey:/data redis:/data"
 
   for spec in $mounts; do
     local comp="${spec%%:*}"
@@ -708,7 +725,7 @@ check_logs() {
       if echo "$errs" | grep -qi "ECONNREFUSED"; then
         add_finding "WARN" "$comp" \
           "Connection refused errors in $comp logs" \
-          "Identify the unreachable service from the logs. Common targets: postgres, clickhouse, redis — check those pods are Running."
+          "Identify the unreachable service from the logs. Common targets: postgres, clickhouse, valkey — check those pods are Running."
       fi
       if echo "$errs" | grep -qi "timeout"; then
         add_finding "WARN" "$comp" \
@@ -881,7 +898,7 @@ check_pod_health
 check_resources
 check_postgres
 check_clickhouse
-check_redis
+check_valkey
 check_storage
 check_logs
 check_autoscaling

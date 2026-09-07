@@ -115,7 +115,7 @@ describe("SelfHosted content model", () => {
     expect(componentNames).toContain("Probes");
     expect(componentNames).toContain("PostgreSQL");
     expect(componentNames).toContain("ClickHouse");
-    expect(componentNames).toContain("Redis");
+    expect(componentNames).toContain("Valkey");
     expect(componentNames).toContain("PgBouncer");
   });
 

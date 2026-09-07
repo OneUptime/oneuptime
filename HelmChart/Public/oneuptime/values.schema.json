@@ -152,7 +152,7 @@
             "properties": {
                 "disableDeployments": {
                     "type": "boolean",
-                    "description": "When set to true, no OneUptime deployments are provisioned. Only databases (Redis, ClickHouse, Postgres) will be running.",
+                    "description": "When set to true, no OneUptime deployments are provisioned. Only databases (Valkey, ClickHouse, Postgres) will be running.",
                     "default": false
                 },
                 "includeTimestampLabel": {
@@ -1276,6 +1276,12 @@
                                         }
                                     },
                                     "additionalProperties": false
+                                },
+                                "loadBalancerIP": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
                                 }
                             },
                             "additionalProperties": false
@@ -1363,9 +1369,215 @@
                 },
                 "commonConfiguration": {
                     "type": "string"
+                },
+                "ipFamily": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "legacyServiceAlias": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ],
+                    "description": "Also publish the cache Service under its pre-12.0.36 name, <release>-redis-master, selecting the same pods. Keeps app pods that have not yet rolled onto the new spec resolving during a `helm upgrade` across the rename. Safe to set to false once every workload has rolled."
                 }
             },
-            "additionalProperties": false
+            "additionalProperties": false,
+            "description": "Deprecated alias for `valkey:`. Anything set here is layered on top of the `valkey:` defaults and wins where both name the same setting."
+        },
+        "valkey": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "auth": {
+                    "type": "object",
+                    "properties": {
+                        "password": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "existingSecret": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "passwordKey": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "repository": {
+                            "type": "string"
+                        },
+                        "tag": {
+                            "type": "string"
+                        },
+                        "pullPolicy": {
+                            "type": "string",
+                            "enum": [
+                                "IfNotPresent",
+                                "Always",
+                                "Never"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "master": {
+                    "type": "object",
+                    "properties": {
+                        "service": {
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "ClusterIP",
+                                        "LoadBalancer",
+                                        "NodePort"
+                                    ]
+                                },
+                                "ports": {
+                                    "type": "object",
+                                    "properties": {
+                                        "valkey": {
+                                            "type": "string"
+                                        },
+                                        "redis": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "loadBalancerIP": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "persistence": {
+                            "type": "object",
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean"
+                                },
+                                "size": {
+                                    "type": "string"
+                                },
+                                "storageClass": {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "nodeSelector": {
+                            "type": "object"
+                        },
+                        "tolerations": {
+                            "type": "array"
+                        },
+                        "affinity": {
+                            "type": "object"
+                        },
+                        "resources": {
+                            "type": [
+                                "object",
+                                "null"
+                            ]
+                        },
+                        "podSecurityContext": {
+                            "type": "object"
+                        },
+                        "containerSecurityContext": {
+                            "type": "object"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "livenessProbe": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "initialDelaySeconds": {
+                            "type": "integer"
+                        },
+                        "timeoutSeconds": {
+                            "type": "integer"
+                        },
+                        "periodSeconds": {
+                            "type": "integer"
+                        },
+                        "failureThreshold": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "readinessProbe": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "initialDelaySeconds": {
+                            "type": "integer"
+                        },
+                        "timeoutSeconds": {
+                            "type": "integer"
+                        },
+                        "periodSeconds": {
+                            "type": "integer"
+                        },
+                        "failureThreshold": {
+                            "type": "integer"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "commonConfiguration": {
+                    "type": "string"
+                },
+                "ipFamily": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "legacyServiceAlias": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ],
+                    "description": "Also publish the cache Service under its pre-12.0.36 name, <release>-redis-master, selecting the same pods. Keeps app pods that have not yet rolled onto the new spec resolving during a `helm upgrade` across the rename. Safe to set to false once every workload has rolled."
+                }
+            },
+            "additionalProperties": false,
+            "description": "The in-cluster cache and BullMQ queue backend (Valkey, the BSD-licensed fork of Redis 7.2). Renamed from `redis:` in 12.0.36; the old key still works and is layered on top of whatever is set here."
         },
         "image": {
             "type": "object",
@@ -2624,7 +2836,96 @@
                     "additionalProperties": false
                 }
             },
-            "additionalProperties": false
+            "additionalProperties": false,
+            "description": "Deprecated alias for `externalValkey:`."
+        },
+        "externalValkey": {
+            "type": "object",
+            "properties": {
+                "host": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "port": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "username": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "password": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "ipFamily": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "existingSecret": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "passwordKey": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "database": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "tls": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "ca": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "cert": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "key": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false,
+            "description": "Bring-your-own cache, used when valkey.enabled is false. Any Redis-protocol server works, including real Redis and managed services. Renamed from `externalRedis:` in 12.0.36; the old key still works."
         },
         "externalClickhouse": {
             "type": "object",

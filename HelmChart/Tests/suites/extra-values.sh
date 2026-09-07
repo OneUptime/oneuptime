@@ -31,7 +31,7 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 
 # Workloads that deliberately do NOT take the extras, matched on metadata.name.
 #
-#   the standalone database StatefulSets -- postgresql, redis, clickhouse and
+#   the standalone database StatefulSets -- postgresql, valkey, clickhouse and
 #   the ClickHouse Keeper are servers, not clients: NODE_EXTRA_CA_CERTS means
 #   nothing to them, and their TLS and tuning surfaces are already first-class
 #   values. They also have operator-managed twins (CloudNativePG, Altinity)
@@ -44,7 +44,7 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 #   is no external endpoint for an operator's CA to apply to.
 SKIP_WORKLOADS=(
     oneuptime-postgresql
-    oneuptime-redis
+    oneuptime-valkey
     oneuptime-clickhouse-shard0
     oneuptime-clickhouse-keeper
     cleanup-crashloopbackoff-pods

@@ -9,11 +9,11 @@ import React, { FunctionComponent, ReactElement } from "react";
 const HealthRedis: FunctionComponent = (): ReactElement => {
   return (
     <HealthPage
-      title="Redis"
+      title="Valkey"
       currentRoute={RouteMap[PageMap.HEALTH_REDIS] as Route}
       enterpriseOnly={true}
-      enterpriseFeatureName="Redis health"
-      enterpriseFeatureDescription="Connectivity and memory capacity for the Redis backing this instance."
+      enterpriseFeatureName="Valkey health"
+      enterpriseFeatureDescription="Connectivity and memory capacity for the Valkey backing this instance."
     >
       <RedisHealth />
       <RedisHealthSettings />

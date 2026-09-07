@@ -13,7 +13,7 @@ Work through this list to make your OneUptime installation production-ready.
     tag: <specific-version>
   ```
 
-- [ ] **Pin PostgreSQL, Redis, and ClickHouse versions too.** Find the running
+- [ ] **Pin PostgreSQL, Valkey, and ClickHouse versions too.** Find the running
   version by describing a pod:
 
   ```console
@@ -28,7 +28,7 @@ Work through this list to make your OneUptime installation production-ready.
   postgresql:
     image:
       tag: <specific-version>
-  redis:
+  valkey:
     image:
       tag: <specific-version>
   clickhouse:
@@ -117,7 +117,7 @@ Work through this list to make your OneUptime installation production-ready.
   CPU/memory HPA; requires `telemetryWriter.resources.requests`) and
   `telemetryWriter.keda` (scales on the tier-wide shed rate — sustained
   429s while ClickHouse is healthy are the honest "tier too small" signal,
-  exported at `/metrics/telemetry-writer-shed-rate` from a Redis-backed
+  exported at `/metrics/telemetry-writer-shed-rate` from a Valkey-backed
   counter). Writer-pod memory
   is bounded by `telemetryWriter.maxInflightRequests`; raise pod resources
   together with it. If individual telemetry rows are very large (multi-KB log
@@ -165,7 +165,7 @@ Work through this list to make your OneUptime installation production-ready.
 
 ## Secrets
 
-- [ ] **Use static database passwords** for Redis, ClickHouse, and PostgreSQL.
+- [ ] **Use static database passwords** for Valkey, ClickHouse, and PostgreSQL.
 - [ ] **Set `oneuptimeSecret` and `encryptionSecret`** (or configure the
   `externalSecrets` section) to long random strings. Use a password generator.
 - [ ] **Set `probes.<key>.key`** to a long random string to secure your probes.

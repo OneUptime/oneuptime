@@ -59,7 +59,7 @@ If you run many application, worker, and probe replicas, the number of database 
 
 ## Redis — cache, queues, and sessions
 
-Redis is used as a cache, a work queue, and a session store. It is **memory-bound** and persistence is **disabled by default** (Redis here is not a source of truth — it can be rebuilt). Size it by expected queue depth and concurrent sessions; 2–8 GB of memory covers most deployments. Note the default eviction policy is `noeviction`, so if queues back up under sustained overload, monitor Redis memory.
+The cache tier runs [Valkey](https://valkey.io), the BSD-licensed fork of Redis 7.2, and is used as a cache, a work queue, and a session store. Any Redis-protocol server can stand in for it; the sizing below applies either way. It is **memory-bound** and persistence is **disabled by default** (Redis here is not a source of truth — it can be rebuilt). Size it by expected queue depth and concurrent sessions; 2–8 GB of memory covers most deployments. Note the default eviction policy is `noeviction`, so if queues back up under sustained overload, monitor Redis memory.
 
 ## Application compute
 
