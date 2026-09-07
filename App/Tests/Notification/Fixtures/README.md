@@ -31,6 +31,10 @@ From `App`, run the focused template suites:
 ```sh
 node node_modules/.bin/jest --runInBand --runTestsByPath \
   Tests/Notification/EmailDesign.test.ts \
+  Tests/Notification/EmailDesignPartials.test.ts \
+  Tests/Notification/EmailActionContracts.test.ts \
+  Tests/Notification/MailServiceEmailDesign.test.ts \
+  Tests/Notification/SubscriberEmailTemplateDefaults.test.ts \
   Tests/Notification/AcknowledgeEmailTemplates.test.ts \
   Tests/Notification/AlertOwnerEmailTemplates.test.ts \
   Tests/Notification/CompleteRegistrationTemplate.test.ts \
@@ -40,3 +44,16 @@ node node_modules/.bin/jest --runInBand --runTestsByPath \
   Tests/Notification/OwnerNotificationPreferencesTemplate.test.ts \
   Tests/Notification/StatusPageSubscriberReportTemplate.test.ts
 ```
+
+The additional suites check distinct layers of the email UI:
+
+- `EmailDesignPartials` tests optional navigation, customer branding, independent
+  rich-content slots, and readable state transitions using bare variable contexts.
+- `EmailActionContracts` checks each primary action and its copyable fallback
+  separately, with distinct URLs for actions, branding and preferences.
+- `MailServiceEmailDesign` uses the production Handlebars initializer and public
+  `MailService.send` path, verifying the final recipient, subject and HTML payload.
+  Transport, persistence and external services are mocked; these tests send no email.
+- `SubscriberEmailTemplateDefaults` tests the worker's actual substitution method,
+  every starter event's content and navigation, report conditions, and existing
+  SMS and webhook defaults.
