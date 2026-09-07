@@ -225,6 +225,15 @@ describe("RuleRunResultUtil.parseAutoImportRuleRunResult", () => {
       monitorFailureReasons: ["Plan limit reached"],
       monitorProvisioningHalted: true,
       isTruncated: true,
+      /*
+       * Absent from the payload above, which is what a pre-#3642 server
+       * sends: a truncated run from one of those reports nothing pending
+       * rather than NaN, and the summary falls back to its unquantified
+       * "stopped at the run cap" sentence.
+       */
+      hostsPendingImport: 0,
+      monitorsPendingCreation: 0,
+      hasUnevaluatedScans: false,
       hasMoreScans: true,
       isDryRun: false,
       matchedIpAddressSample: ["10.0.0.1", "10.0.0.2"],

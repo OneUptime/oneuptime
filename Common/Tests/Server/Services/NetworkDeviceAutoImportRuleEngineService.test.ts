@@ -2933,3 +2933,372 @@ describe("auto-import from a scan that is still sweeping (issue #3599)", () => {
     ]);
   });
 });
+
+/*
+ * OneUptime issue #3642: a discovery scan found 909 routers, the operator ran
+ * the auto-import rule, "500+" arrived, and the remaining 400-odd were
+ * "simply missing, with no error shown".
+ *
+ * The per-run caps were doing their job. What made them read as silence is
+ * that a capped run used to STOP EVALUATING at the cap, so every number it
+ * reported described only the part of the estate it happened to reach: 909
+ * became "matched 500 out of the 500 discovered hosts it looked at", and
+ * nothing in the answer said how many were left or that the monitor half of
+ * the work has its own separate ceiling.
+ *
+ * These pin the fix at the engine: writes stop at the cap, counting does not.
+ */
+describe("a capped run reports the remainder (issue #3642)", () => {
+  // A fleet whose hosts all match, addressed so no two collide.
+  function makeFleet(size: number): Array<DiscoveredNetworkDevice> {
+    return Array.from(
+      { length: size },
+      (_value: unknown, index: number): DiscoveredNetworkDevice => {
+        return makeHost({
+          ipAddress: `10.5.${Math.floor(index / 256)}.${index % 256}`,
+          sysName: `WANRTR-${index}`,
+        });
+      },
+    );
+  }
+
+  function makeInventoryFor(
+    hosts: Array<DiscoveredNetworkDevice>,
+  ): Array<NetworkDevice> {
+    return hosts.map((host: DiscoveredNetworkDevice): NetworkDevice => {
+      return makeExistingDevice({
+        id: ObjectID.generate(),
+        hostname: host.ipAddress,
+        name: host.sysName,
+      });
+    });
+  }
+
+  it("counts the hosts the device cap left un-imported, and still evaluates them all", async () => {
+    const hosts: Array<DiscoveredNetworkDevice> = makeFleet(909);
+
+    scanFindOneByMock.mockResolvedValue(makeScan({ discoveredDevices: hosts }));
+    ruleFindByMock.mockResolvedValue([
+      makeRule({ ipMatchTarget: "10.0.0.0/8" }),
+    ]);
+
+    const result: AutoImportRuleRunResult | null = await processScan();
+
+    // Writes stop at the cap…
+    expect(createMock).toHaveBeenCalledTimes(MAX_DEVICES_PER_AUTO_IMPORT_RUN);
+    expect(result).toMatchObject({
+      devicesCreated: MAX_DEVICES_PER_AUTO_IMPORT_RUN,
+      isTruncated: true,
+      // …counting does not: the whole scan is accounted for.
+      hostsEvaluated: 909,
+      hostsMatched: 909,
+      hostsPendingImport: 909 - MAX_DEVICES_PER_AUTO_IMPORT_RUN,
+      monitorsPendingCreation: 0,
+    });
+  });
+
+  /*
+   * The reporter's own shape: 909 devices already in the inventory, zero
+   * monitors, and a rule that has since had a Monitor Template attached. No
+   * device is created at all, so the DEVICE cap is never even approached —
+   * only the separate monitor cap stops the run.
+   */
+  it("counts the devices the monitor cap left unmonitored", async () => {
+    const hosts: Array<DiscoveredNetworkDevice> = makeFleet(909);
+
+    scanFindOneByMock.mockResolvedValue(makeScan({ discoveredDevices: hosts }));
+    deviceFindByMock.mockResolvedValue(makeInventoryFor(hosts));
+    ruleFindByMock.mockResolvedValue([
+      makeRule({ ipMatchTarget: "10.0.0.0/8", monitorTemplateId: TEMPLATE_ID }),
+    ]);
+    monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+    const result: AutoImportRuleRunResult | null = await processScan();
+
+    expect(monitorCreateMock).toHaveBeenCalledTimes(
+      MAX_MONITORS_PER_AUTO_IMPORT_RUN,
+    );
+    expect(result).toMatchObject({
+      devicesCreated: 0,
+      monitorsCreated: MAX_MONITORS_PER_AUTO_IMPORT_RUN,
+      isTruncated: true,
+      hostsEvaluated: 909,
+      hostsMatched: 909,
+      hostsSkippedAlreadyRegistered: 909,
+      // The number the report was missing.
+      monitorsPendingCreation: 909 - MAX_MONITORS_PER_AUTO_IMPORT_RUN,
+      hostsPendingImport: 0,
+    });
+  });
+
+  /*
+   * A device cap reached first must not be reported as a monitor shortfall:
+   * the hosts past it have no device yet, so what they are waiting on is the
+   * import, not a monitor.
+   */
+  it("does not double-count un-imported hosts as unmonitored devices", async () => {
+    const hosts: Array<DiscoveredNetworkDevice> = makeFleet(600);
+
+    scanFindOneByMock.mockResolvedValue(makeScan({ discoveredDevices: hosts }));
+    ruleFindByMock.mockResolvedValue([
+      makeRule({ ipMatchTarget: "10.0.0.0/8", monitorTemplateId: TEMPLATE_ID }),
+    ]);
+    monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+    const result: AutoImportRuleRunResult | null = await processScan();
+
+    expect(result).toMatchObject({
+      devicesCreated: MAX_DEVICES_PER_AUTO_IMPORT_RUN,
+      hostsPendingImport: 600 - MAX_DEVICES_PER_AUTO_IMPORT_RUN,
+      monitorsPendingCreation: 0,
+      isTruncated: true,
+    });
+  });
+
+  /*
+   * Where the issue actually lands for an operator: pressing "Run Rule"
+   * twice must finish the 909, and the second press must report nothing
+   * left. (The dashboard now chains these passes itself — see
+   * AutoImportRunChain — so this is the server half of one button press.)
+   */
+  it("finishes the 909-device monitor backfill over two manual runs", async () => {
+    const hosts: Array<DiscoveredNetworkDevice> = makeFleet(909);
+    const devices: Array<NetworkDevice> = makeInventoryFor(hosts);
+    const scan: NetworkDeviceDiscoveryScan = makeScan({
+      discoveredDevices: hosts,
+    });
+
+    /*
+     * Monitors accumulate across the two runs the way the database would:
+     * the second run's project-wide snapshot sees what the first created,
+     * and its provenance keys are what make the resume idempotent.
+     */
+    const provisioned: Array<Monitor> = [];
+    monitorCreateMock.mockImplementation(
+      ({ data }: { data: Monitor }): Promise<Monitor> => {
+        data.id = data.id || ObjectID.generate();
+        provisioned.push(data);
+        return Promise.resolve(data);
+      },
+    );
+    monitorFindByMock.mockImplementation((): Promise<Array<Monitor>> => {
+      return Promise.resolve(provisioned);
+    });
+
+    ruleFindOneByMock.mockResolvedValue(
+      makeRule({ ipMatchTarget: "10.0.0.0/8", monitorTemplateId: TEMPLATE_ID }),
+    );
+    ruleFindByMock.mockResolvedValue([]);
+    deviceFindByMock.mockResolvedValue(devices);
+    monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+    mockRunNowScans([scan]);
+    const firstRun: AutoImportRuleRunResult = await runRule(false);
+
+    expect(firstRun).toMatchObject({
+      monitorsCreated: MAX_MONITORS_PER_AUTO_IMPORT_RUN,
+      monitorsPendingCreation: 909 - MAX_MONITORS_PER_AUTO_IMPORT_RUN,
+      isTruncated: true,
+    });
+
+    mockRunNowScans([scan]);
+    const secondRun: AutoImportRuleRunResult = await runRule(false);
+
+    expect(secondRun).toMatchObject({
+      monitorsCreated: 909 - MAX_MONITORS_PER_AUTO_IMPORT_RUN,
+      monitorsSkippedAlreadyExisting: MAX_MONITORS_PER_AUTO_IMPORT_RUN,
+      monitorsPendingCreation: 0,
+      isTruncated: false,
+    });
+
+    // Every router ends up monitored exactly once.
+    expect(provisioned).toHaveLength(909);
+    expect(
+      new Set(
+        provisioned.map((monitor: Monitor): string => {
+          return monitor.autoProvisionedNetworkDeviceId!.toString();
+        }),
+      ).size,
+    ).toBe(909);
+  });
+
+  /*
+   * A capped manual run stops OPENING scans — each is a multi-megabyte jsonb
+   * read it could not act on anyway — so the remainder it counted is a floor.
+   * Reporting it as a total would have the operator run again and watch more
+   * than the promised number appear.
+   */
+  it("says the remainder is a floor when a cap left scans unread", async () => {
+    const hosts: Array<DiscoveredNetworkDevice> = makeFleet(600);
+
+    ruleFindOneByMock.mockResolvedValue(
+      makeRule({ ipMatchTarget: "10.0.0.0/8" }),
+    );
+    ruleFindByMock.mockResolvedValue([]);
+    mockRunNowScans([
+      makeScan({ discoveredDevices: hosts }),
+      makeScan({ discoveredDevices: makeFleet(5) }),
+    ]);
+
+    const result: AutoImportRuleRunResult = await runRule(false);
+
+    expect(result).toMatchObject({
+      isTruncated: true,
+      hostsPendingImport: 600 - MAX_DEVICES_PER_AUTO_IMPORT_RUN,
+      hasUnevaluatedScans: true,
+    });
+    // The second scan was never opened.
+    expect(scanFindOneByMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports an exact remainder when the capped scan was the last one", async () => {
+    ruleFindOneByMock.mockResolvedValue(
+      makeRule({ ipMatchTarget: "10.0.0.0/8" }),
+    );
+    ruleFindByMock.mockResolvedValue([]);
+    mockRunNowScans([makeScan({ discoveredDevices: makeFleet(600) })]);
+
+    const result: AutoImportRuleRunResult = await runRule(false);
+
+    expect(result).toMatchObject({
+      isTruncated: true,
+      hostsPendingImport: 600 - MAX_DEVICES_PER_AUTO_IMPORT_RUN,
+      hasUnevaluatedScans: false,
+    });
+  });
+
+  /*
+   * The dry run predicts the real run, so it must predict the leftovers too
+   * — otherwise "what would this rule import" answers with the cap instead
+   * of with the estate.
+   */
+  it("lets a dry run predict what a real run would leave over", async () => {
+    ruleFindOneByMock.mockResolvedValue(
+      makeRule({ ipMatchTarget: "10.0.0.0/8" }),
+    );
+    ruleFindByMock.mockResolvedValue([]);
+    mockRunNowScans([makeScan({ discoveredDevices: makeFleet(909) })]);
+
+    const result: AutoImportRuleRunResult = await runRule(true);
+
+    expect(result).toMatchObject({
+      isDryRun: true,
+      isTruncated: true,
+      hostsEvaluated: 909,
+      hostsMatched: 909,
+      hostsPendingImport: 909 - MAX_DEVICES_PER_AUTO_IMPORT_RUN,
+    });
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Counting past the cap must not start issuing per-device queries again:
+   * the unindexed monitor JSON search is exactly what the budget check
+   * guards, and running it for every host past the cap would turn a capped
+   * pass into the full-table walk the cap exists to avoid.
+   */
+  it("issues no per-device monitor searches for the hosts it only counted", async () => {
+    const hosts: Array<DiscoveredNetworkDevice> = makeFleet(600);
+
+    scanFindOneByMock.mockResolvedValue(makeScan({ discoveredDevices: hosts }));
+    deviceFindByMock.mockResolvedValue(makeInventoryFor(hosts));
+    ruleFindByMock.mockResolvedValue([
+      makeRule({ ipMatchTarget: "10.0.0.0/8", monitorTemplateId: TEMPLATE_ID }),
+    ]);
+    monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+    await processScan();
+
+    /*
+     * One project-wide snapshot plus one race-check per device the run
+     * actually attempted — and none for the 100 it merely counted.
+     */
+    expect(monitorFindByMock).toHaveBeenCalledTimes(
+      1 + MAX_MONITORS_PER_AUTO_IMPORT_RUN,
+    );
+  });
+
+  /*
+   * A stored result lists duplicate rows often enough that the import path
+   * has a bucket for them. Counting rows rather than distinct work would
+   * inflate the very number this fix exists to make trustworthy.
+   */
+  it("counts a duplicated un-imported host once", async () => {
+    const overflow: DiscoveredNetworkDevice = makeHost({
+      ipAddress: "10.9.9.9",
+      sysName: "WANRTR-overflow",
+    });
+    const hosts: Array<DiscoveredNetworkDevice> = [
+      ...makeFleet(MAX_DEVICES_PER_AUTO_IMPORT_RUN),
+      overflow,
+      { ...overflow },
+      { ...overflow },
+    ];
+
+    scanFindOneByMock.mockResolvedValue(makeScan({ discoveredDevices: hosts }));
+    ruleFindByMock.mockResolvedValue([
+      makeRule({ ipMatchTarget: "10.0.0.0/8" }),
+    ]);
+
+    const result: AutoImportRuleRunResult | null = await processScan();
+
+    expect(result).toMatchObject({
+      isTruncated: true,
+      // Three rows, one address, one host still to import.
+      hostsPendingImport: 1,
+      hostsEvaluated: MAX_DEVICES_PER_AUTO_IMPORT_RUN + 3,
+    });
+  });
+
+  it("counts a duplicated unmonitored device once", async () => {
+    const hosts: Array<DiscoveredNetworkDevice> = makeFleet(
+      MAX_MONITORS_PER_AUTO_IMPORT_RUN,
+    );
+    const overflow: DiscoveredNetworkDevice = makeHost({
+      ipAddress: "10.9.9.9",
+      sysName: "WANRTR-overflow",
+    });
+    const withDuplicates: Array<DiscoveredNetworkDevice> = [
+      ...hosts,
+      overflow,
+      { ...overflow },
+    ];
+
+    scanFindOneByMock.mockResolvedValue(
+      makeScan({ discoveredDevices: withDuplicates }),
+    );
+    deviceFindByMock.mockResolvedValue(makeInventoryFor(withDuplicates));
+    ruleFindByMock.mockResolvedValue([
+      makeRule({ ipMatchTarget: "10.0.0.0/8", monitorTemplateId: TEMPLATE_ID }),
+    ]);
+    monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+    const result: AutoImportRuleRunResult | null = await processScan();
+
+    expect(result).toMatchObject({
+      isTruncated: true,
+      monitorsPendingCreation: 1,
+    });
+  });
+
+  /*
+   * The resume protocol is unchanged by the new accounting: a capped pass
+   * that made progress still leaves the marker NULL so the next worker tick
+   * continues, and the counting past the cap must not accidentally stamp it.
+   */
+  it("still leaves a capped pass's marker unstamped so the sweep resumes", async () => {
+    const hosts: Array<DiscoveredNetworkDevice> = makeFleet(600);
+
+    scanFindOneByMock.mockResolvedValue(makeScan({ discoveredDevices: hosts }));
+    ruleFindByMock.mockResolvedValue([
+      makeRule({ ipMatchTarget: "10.0.0.0/8" }),
+    ]);
+
+    await processScan();
+
+    expect(scanUpdateMock).toHaveBeenCalledTimes(1);
+    const updateCall: { data: JSONObject } = scanUpdateMock.mock
+      .calls[0]![0] as { data: JSONObject };
+    expect(Object.keys(updateCall.data)).not.toContain("autoImportProcessedAt");
+  });
+});

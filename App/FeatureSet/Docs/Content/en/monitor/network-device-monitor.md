@@ -399,6 +399,47 @@ Octet ranges exist for networks that are not shaped like CIDR blocks. `10.16-22.
 
 Devices that are already registered are flagged and skipped. Bind a [Ping](/docs/monitor/ping-monitor) or [IP](/docs/monitor/ip-monitor) monitor to an imported device only if you want that monitor's incidents — an [alert policy](#alert-policies) is usually the better answer at fleet scale.
 
+### Importing Automatically with Auto Import Rules
+
+Reviewing every scan by hand does not scale past the first few subnets.
+**Network** -> **Settings** -> **Auto Import Rules** is where you write the
+import down once: a rule says which discovered hosts to claim (a host IP range,
+and optional system name, description and sysObjectID patterns), and optionally
+which [Monitor Template](#alert-policies) and [OID Collection
+Template](#oid-collection-templates) the devices it imports are given. A rule
+marked as an **exclusion** claims nothing and vetoes the others, which is how
+printers and phones are carved out of a broad subnet rule.
+
+Enabled rules run by themselves against each scan's results as they arrive —
+including the partial results a long sweep uploads while it is still running,
+so hosts are importable within a minute of being found rather than at the end
+of the range.
+
+Two buttons on a rule reach the scans that are *already* in the project, which
+is what you want after writing or editing a rule:
+
+- **Dry Run** evaluates every completed scan and reports what the rule would
+  import and monitor. Nothing is written, so it is the safe way to answer "what
+  would this claim" before enabling a rule against a live estate. A disabled
+  rule can be dry-run; only a real run requires it to be enabled.
+- **Run Rule** does the same evaluation and performs the import.
+
+**Large estates import in paced batches.** Device and monitor creation each run
+the full service pipeline — site assignment, owners, labels, and for monitors
+the plan, status and status-page machinery — so a run creates a few hundred of
+each at a time rather than tens of thousands in one burst. One press of **Run
+Rule** drives as many of those batches as the estate needs and reports the
+total, so a scan of 900 routers is one press, not two. If a run does stop with
+work outstanding, the report says exactly how much is left ("Stopped at the run
+cap with 409 active Network Device monitors still to create") and pressing the
+button again continues — hosts already imported and monitors already created
+are skipped, so re-running is never additive.
+
+Two counts in that report are worth reading together. Devices and monitors are
+separate work with separate limits: a rule that gains a Monitor Template after
+its devices were already imported creates **no** devices at all and only
+monitors, and reports itself that way.
+
 ### Ping-Only Scans
 
 Turn **Check SNMP on hosts that answer** off and the scan becomes a plain ICMP sweep: it pings every address in the range, reports the ones that answered, and sends no SNMP packet at all. The SNMP step disappears from the create form, so no version, community string or v3 credential is asked for — and none is stored on the scan.
@@ -651,6 +692,22 @@ The map draws a ping-only device's cable from its switch's forwarding table, whi
 - **Same site.** An address is only matched to a device in the same site as the switch that learned it. A device with no site matches by address only when the switch that learned it has no site either; if the switch is on a site, put the device on the same one (a MAC matches regardless of site).
 
 If the device sits behind an unmanaged switch or a hub, the managed switch learns every MAC behind it on one port, and that is the port the map draws — the physical truth from the managed switch's point of view.
+
+### Only some discovered devices were imported
+
+The run report is the answer, and it is on the modal that appears when a run
+finishes rather than in a log. A run that stopped at its batch limit says so and
+names the remainder — press **Run Rule** again and it continues from where it
+stopped. A run that finished but claimed fewer hosts than you expected reports
+which bucket the rest fell into: vetoed by an exclusion rule, already registered
+at that address, or simply not matched by the rule's criteria.
+
+Watch for the case where the devices are all present but the monitors are not.
+Devices and monitors are separate work, so a rule that had a Monitor Template
+attached *after* its devices were imported reports zero devices imported and
+only monitors created — that is the rule doing exactly the work that was left,
+not a failed import. See [Auto Import
+Rules](#importing-automatically-with-auto-import-rules).
 
 ### Traps not arriving
 
