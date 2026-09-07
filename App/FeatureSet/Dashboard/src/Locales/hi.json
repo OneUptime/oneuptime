@@ -6141,5 +6141,14 @@
   "No shifts could be listed for the next 30 days.": "अगले 30 दिनों के लिए कोई शिफ्ट सूचीबद्ध नहीं की जा सकी।",
   "Calendar feeds require the Growth plan": "कैलेंडर फ़ीड के लिए Growth प्लान आवश्यक है",
   "This project's plan does not include calendar feeds, so a link generated here would always show an empty calendar.": "इस प्रोजेक्ट के प्लान में कैलेंडर फ़ीड शामिल नहीं है, इसलिए यहाँ बनाया गया लिंक हमेशा खाली कैलेंडर दिखाएगा।",
-  "Upgrade your plan in Billing settings": "बिलिंग सेटिंग्स में अपना प्लान अपग्रेड करें"
+  "Upgrade your plan in Billing settings": "बिलिंग सेटिंग्स में अपना प्लान अपग्रेड करें",
+  "Email Preferences": "ईमेल प्राथमिकताएँ",
+  "Applies to you in this project.": "इस प्रोजेक्ट में आप पर लागू होता है।",
+  "Turn individual emails back on in Notification Settings": "सूचना सेटिंग्स में अलग-अलग ईमेल फिर से चालू करें",
+  "Routine emails turned off.": "नियमित ईमेल बंद कर दिए गए।",
+  "Review your individual preferences in Notification Settings": "सूचना सेटिंग्स में अपनी अलग-अलग प्राथमिकताएँ देखें",
+  "These switches decide which notifications reach you, not how much email they add up to.": "ये स्विच यह तय करते हैं कि कौन-सी सूचनाएँ आप तक पहुँचें, यह नहीं कि वे कितने ईमेल बनें।",
+  "Reduce routine emails or change email rollup in Email Preferences": "ईमेल प्राथमिकताओं में नियमित ईमेल घटाएँ या ईमेल रोलअप बदलें",
+  "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "नोट्स, स्वामी के रूप में जोड़े जाने, नए मॉनिटर और स्थिति पृष्ठों, एपिसोड में जोड़ी गई वस्तुओं, और ऑन-कॉल नीति सदस्यता में बदलाव से जुड़े ईमेल बंद करें।",
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "इंसिडेंट और अलर्ट बनने, स्थिति बदलने, रिमाइंडर, असाइनमेंट, मॉनिटर स्वास्थ्य और ऑन-कॉल शिफ्ट के लिए आपके विकल्प जैसे हैं वैसे ही रहते हैं। अन्य सूचना चैनल, ऑन-कॉल पेजिंग, खाता और बिलिंग ईमेल अप्रभावित रहते हैं।"
 }

@@ -6141,5 +6141,14 @@
   "No shifts could be listed for the next 30 days.": "Não foi possível listar turnos para os próximos 30 dias.",
   "Calendar feeds require the Growth plan": "Os feeds de calendário requerem o plano Growth",
   "This project's plan does not include calendar feeds, so a link generated here would always show an empty calendar.": "O plano deste projeto não inclui feeds de calendário, por isso um link gerado aqui mostraria sempre um calendário vazio.",
-  "Upgrade your plan in Billing settings": "Atualize o seu plano nas definições de faturação"
+  "Upgrade your plan in Billing settings": "Atualize o seu plano nas definições de faturação",
+  "Email Preferences": "Preferências de e-mail",
+  "Applies to you in this project.": "Aplica-se a você neste projeto.",
+  "Turn individual emails back on in Notification Settings": "Reativar e-mails individuais nas configurações de notificação",
+  "Routine emails turned off.": "E-mails de rotina desativados.",
+  "Review your individual preferences in Notification Settings": "Revisar suas preferências individuais nas configurações de notificação",
+  "These switches decide which notifications reach you, not how much email they add up to.": "Estes botões decidem quais notificações chegam até você, não quanto e-mail elas somam.",
+  "Reduce routine emails or change email rollup in Email Preferences": "Reduzir e-mails de rotina ou alterar o agrupamento de e-mails nas preferências de e-mail",
+  "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "Desative os e-mails sobre notas, ser adicionado como proprietário, novos monitores e páginas de status, itens adicionados a episódios e mudanças de participação em políticas de plantão.",
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Suas escolhas para criação de incidentes e alertas, mudanças de estado, lembretes, atribuições, saúde dos monitores e turnos de plantão permanecem como estão. Outros canais de notificação, os acionamentos de plantão e os e-mails de conta e cobrança não são afetados."
 }

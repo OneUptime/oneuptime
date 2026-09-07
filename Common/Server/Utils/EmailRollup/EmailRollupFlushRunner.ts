@@ -751,9 +751,18 @@ export default class EmailRollupFlushRunner {
     const projectHomeLink: string = URL.fromString(dashboardUrl.toString())
       .addRoute(`/${bucket.projectId.toString()}/home`)
       .toString();
+    /*
+     * Email Preferences, not Notification Settings: this footer exists to
+     * offer the reader a way out of BATCHING, and the rollup switch lives on
+     * Email Preferences. Notification Settings is one link further on, from
+     * the page this lands on. The segment is duplicated from the Dashboard's
+     * UserSettingsRoutePath for the reason OnCallSetupReminderService gives -
+     * Common/Server cannot import App sources - so a route rename there has
+     * to be repeated here.
+     */
     const preferencesLink: string = URL.fromString(dashboardUrl.toString())
       .addRoute(
-        `/${bucket.projectId.toString()}/user-settings/notification-settings`,
+        `/${bucket.projectId.toString()}/user-settings/email-preferences`,
       )
       .toString();
 

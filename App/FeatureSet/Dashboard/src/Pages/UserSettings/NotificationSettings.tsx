@@ -1,14 +1,11 @@
 import ProjectUtil from "Common/UI/Utils/Project";
-import EmailNoiseCard from "../../Components/NotificationMethods/EmailNoiseCard";
-import { APP_API_URL } from "Common/UI/Config";
-import URL from "Common/Types/API/URL";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import Link from "Common/UI/Components/Link/Link";
 import PageComponentProps from "../PageComponentProps";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import User from "Common/UI/Utils/User";
-import UserNotificationEmailRollupSetting from "Common/Models/DatabaseModels/UserNotificationEmailRollupSetting";
 import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificationSetting";
 import React, {
   Fragment,
@@ -377,7 +374,6 @@ const buildSection: SectionFactory = (
 interface ChannelCellProps {
   channel: ChannelDef;
   enabled: boolean;
-  disabled: boolean;
   onChange: (next: boolean) => Promise<void>;
 }
 
@@ -387,7 +383,7 @@ const ChannelCell: FunctionComponent<ChannelCellProps> = (
   const [isBusy, setIsBusy] = useState<boolean>(false);
 
   const handleClick: () => Promise<void> = async (): Promise<void> => {
-    if (isBusy || props.disabled) {
+    if (isBusy) {
       return;
     }
     setIsBusy(true);
@@ -409,7 +405,7 @@ const ChannelCell: FunctionComponent<ChannelCellProps> = (
       aria-checked={props.enabled}
       aria-label={`${props.channel.label}: ${props.enabled ? "On" : "Off"}. Click to ${props.enabled ? "disable" : "enable"}.`}
       onClick={handleClick}
-      disabled={isBusy || props.disabled}
+      disabled={isBusy}
       className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-60 ${stateClasses}`}
     >
       {props.enabled ? (
@@ -423,8 +419,6 @@ const ChannelCell: FunctionComponent<ChannelCellProps> = (
 
 interface NotificationMatrixProps {
   section: SectionDef;
-  disabled: boolean;
-  onSavingChange: (isSaving: boolean) => void;
 }
 
 const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
@@ -659,20 +653,14 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
                             <ChannelCell
                               channel={channel}
                               enabled={enabled}
-                              disabled={props.disabled}
                               onChange={async (
                                 nextValue: boolean,
                               ): Promise<void> => {
-                                props.onSavingChange(true);
-                                try {
-                                  await persistToggle(
-                                    event.type,
-                                    channel.key,
-                                    nextValue,
-                                  );
-                                } finally {
-                                  props.onSavingChange(false);
-                                }
+                                await persistToggle(
+                                  event.type,
+                                  channel.key,
+                                  nextValue,
+                                );
                               }}
                             />
                           </td>
@@ -688,223 +676,6 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
             Click any channel to switch it on or off. Changes save
             automatically.
           </p>
-        </Fragment>
-      )}
-    </Card>
-  );
-};
-
-/*
- * THE ESCAPE HATCH FROM OWNER-EMAIL BURST ROLLUP, for one person in one
- * project.
- *
- * Rollup is on for everybody and no row exists in its table until somebody
- * turns it off here, so this card is the only place in the product where a
- * human can learn that their owner emails may be batched at all, and the only
- * place they can say no. It sits above the tabs rather than inside one because
- * it is not a per-event choice: it changes how every row in every tab is
- * delivered, and a reader who cannot see it while reading the matrix would
- * reasonably conclude the per-event settings are the whole story.
- */
-type RollupEnabledResolver = (
-  setting: UserNotificationEmailRollupSetting | null,
-) => boolean;
-
-/*
- * NO ROW MEANS ENABLED. Rollup shipped on with no backfill, so almost nobody
- * has a row here, and reading "no row" as off would show the overwhelming
- * majority of users a switch that disagrees with the mail they actually
- * receive. Only an explicit false is an opt-out - the same reading
- * UserNotificationEmailRollupSettingService.isRollupEnabledForUser does on the
- * server. The two have to agree or this card lies about live behaviour.
- */
-const resolveRollupEnabled: RollupEnabledResolver = (
-  setting: UserNotificationEmailRollupSetting | null,
-): boolean => {
-  return setting?.isEnabled !== false;
-};
-
-const EmailRollupCard: FunctionComponent = (): ReactElement => {
-  const [setting, setSetting] =
-    useState<UserNotificationEmailRollupSetting | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isBusy, setIsBusy] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
-
-  const fetchSetting: () => Promise<void> =
-    useCallback(async (): Promise<void> => {
-      setIsLoading(true);
-      try {
-        const result: ListResult<UserNotificationEmailRollupSetting> =
-          await ModelAPI.getList<UserNotificationEmailRollupSetting>({
-            modelType: UserNotificationEmailRollupSetting,
-            query: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-              userId: User.getUserId(),
-            },
-            /*
-             * The service refuses a second row for the same (user, project),
-             * so one row is all there can be.
-             */
-            limit: 1,
-            skip: 0,
-            select: {
-              _id: true,
-              isEnabled: true,
-            },
-            sort: {},
-          });
-
-        setSetting(result.data[0] || null);
-        setError("");
-      } catch (err) {
-        setError(API.getFriendlyMessage(err));
-      } finally {
-        setIsLoading(false);
-      }
-    }, []);
-
-  useEffect(() => {
-    fetchSetting().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, [fetchSetting]);
-
-  const isEnabled: boolean = resolveRollupEnabled(setting);
-
-  const persistRollupEnabled: (next: boolean) => Promise<void> = async (
-    next: boolean,
-  ): Promise<void> => {
-    const previous: UserNotificationEmailRollupSetting | null = setting;
-
-    /*
-     * Optimistic, like the matrix above: the switch has to move under the
-     * finger that pressed it, and the round trip is undone below if the write
-     * never lands.
-     */
-    const optimistic: UserNotificationEmailRollupSetting =
-      new UserNotificationEmailRollupSetting();
-    if (previous && previous._id) {
-      optimistic._id = previous._id;
-    }
-    optimistic.projectId = ProjectUtil.getCurrentProjectId()!;
-    optimistic.userId = User.getUserId();
-    optimistic.isEnabled = next;
-    setSetting(optimistic);
-
-    try {
-      if (previous && previous.id) {
-        await ModelAPI.updateById<UserNotificationEmailRollupSetting>({
-          modelType: UserNotificationEmailRollupSetting,
-          id: previous.id as ObjectID,
-          data: { isEnabled: next } as JSONObject,
-        });
-      } else {
-        /*
-         * The first opinion this person has expressed in this project: there
-         * is nothing to update, because the default they have been living
-         * under is the absence of a row.
-         */
-        const newModel: UserNotificationEmailRollupSetting =
-          new UserNotificationEmailRollupSetting();
-        newModel.projectId = ProjectUtil.getCurrentProjectId()!;
-        newModel.userId = User.getUserId();
-        newModel.isEnabled = next;
-        await ModelAPI.create<UserNotificationEmailRollupSetting>({
-          model: newModel,
-          modelType: UserNotificationEmailRollupSetting,
-        });
-        /*
-         * Re-read so the next toggle updates that row rather than trying to
-         * create a second one, which the service rejects.
-         */
-        await fetchSetting();
-      }
-      setError("");
-    } catch (err) {
-      setSetting(previous);
-      setError(API.getFriendlyMessage(err));
-    }
-  };
-
-  const handleToggle: () => Promise<void> = async (): Promise<void> => {
-    if (isBusy) {
-      return;
-    }
-    setIsBusy(true);
-    try {
-      await persistRollupEnabled(!isEnabled);
-    } finally {
-      setIsBusy(false);
-    }
-  };
-
-  const trackClasses: string = isEnabled
-    ? "bg-emerald-500 border-emerald-500"
-    : "bg-gray-200 border-gray-300";
-
-  const knobClasses: string = isEnabled ? "translate-x-5" : "translate-x-0.5";
-
-  return (
-    <Card
-      title="Email Rollup"
-      description="How owner notification emails reach you in this project."
-      bodyClassName="mt-5"
-    >
-      {isLoading ? (
-        <ComponentLoader />
-      ) : (
-        <Fragment>
-          {error ? (
-            <div className="mb-4">
-              <ErrorMessage
-                message={error}
-                onRefreshClick={() => {
-                  fetchSetting().catch((err: Error) => {
-                    setError(API.getFriendlyMessage(err));
-                  });
-                }}
-              />
-            </div>
-          ) : null}
-          <div className="flex items-start gap-4">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={isEnabled}
-              aria-label={`Roll up notification emails: ${isEnabled ? "On" : "Off"}. Click to ${isEnabled ? "disable" : "enable"}.`}
-              onClick={handleToggle}
-              disabled={isBusy}
-              className={`relative mt-0.5 inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-60 ${trackClasses}`}
-            >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${knobClasses}`}
-              />
-            </button>
-            <div>
-              <div className="text-sm font-medium text-gray-900">
-                {isEnabled
-                  ? "On: notifications that arrive together are delivered as one email."
-                  : "Off: every notification arrives as its own email, immediately."}
-              </div>
-              <p className="mt-1 text-sm text-gray-500 max-w-2xl">
-                {isEnabled
-                  ? "When a burst of notifications about the resources you own lands at once, the first few are still emailed one by one as they happen. The rest are delivered together a few minutes later. The summary includes the notifications you are still subscribed to when it is sent."
-                  : "Nothing is held back or combined, ever. This is exactly how OneUptime delivered owner notifications before rollup existed, and it is the right choice if you file, filter or forward mail one event at a time."}
-              </p>
-              <p className="mt-3 text-xs text-gray-500 max-w-2xl">
-                Either way, this only changes owner notification email. On-call
-                paging, security and sign-in email, and billing email are never
-                rolled up and are never delayed by this setting, so it cannot
-                make you unreachable. SMS, calls, push and chat notifications
-                are unaffected too.
-              </p>
-              <p className="mt-2 text-xs text-gray-500">
-                This is your own setting, in this project only. It changes
-                nothing for anyone else, and it saves automatically.
-              </p>
-            </div>
-          </div>
         </Fragment>
       )}
     </Card>
@@ -1015,42 +786,12 @@ const onCall: Array<SectionDef> = [
 ];
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const { translateString } = useTranslateValue();
   const projectId: string = ProjectUtil.getCurrentProjectId()?.toString() || "";
-  const [settingsVersion, setSettingsVersion] = useState<number>(0);
-  const [isApplyingPreset, setIsApplyingPreset] = useState<boolean>(false);
-  const [pendingSaves, setPendingSaves] = useState<number>(0);
-  const onSavingChange: (isSaving: boolean) => void = useCallback(
-    (isSaving: boolean): void => {
-      setPendingSaves((count: number): number => {
-        return count + (isSaving ? 1 : -1);
-      });
-    },
-    [],
+
+  const emailPreferencesRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.USER_SETTINGS_EMAIL_PREFERENCES] as Route,
   );
-
-  const reduceRoutineEmails: () => Promise<void> = async (): Promise<void> => {
-    setIsApplyingPreset(true);
-    try {
-      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.post<JSONObject>({
-          url: URL.fromURL(APP_API_URL).addRoute(
-            new Route("/user-notification-setting/reduce-routine-emails"),
-          ),
-          data: {},
-          headers: ModelAPI.getCommonHeaders(),
-        });
-
-      if (response instanceof HTTPErrorResponse || response.isFailure()) {
-        throw response;
-      }
-
-      setSettingsVersion((version: number): number => {
-        return version + 1;
-      });
-    } finally {
-      setIsApplyingPreset(false);
-    }
-  };
 
   const renderSections: (sections: Array<SectionDef>) => ReactElement = (
     sections: Array<SectionDef>,
@@ -1058,14 +799,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return (
       <div className="space-y-4">
         {sections.map((section: SectionDef) => {
-          return (
-            <NotificationMatrix
-              key={`${section.title}-${settingsVersion}`}
-              section={section}
-              disabled={isApplyingPreset}
-              onSavingChange={onSavingChange}
-            />
-          );
+          return <NotificationMatrix key={section.title} section={section} />;
         })}
       </div>
     );
@@ -1073,12 +807,31 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   return (
     <Fragment key={projectId}>
-      <EmailNoiseCard
-        onApply={reduceRoutineEmails}
-        disabled={pendingSaves > 0}
-      />
-      {/* Above the tabs on purpose: it governs delivery for every tab. */}
-      <EmailRollupCard />
+      {/*
+       * THE POINTER THAT KEEPS EMAIL VOLUME DISCOVERABLE.
+       *
+       * The two controls that change how much email this project sends -
+       * the routine-email switch and email rollup - are not per-event, so
+       * they are not rows in the matrix below and they live on their own
+       * page. Without this line the matrix reads as the whole story, and a
+       * reader drowning in mail would conclude that switching individual
+       * events off one at a time is the only remedy OneUptime offers. It is
+       * also where a rollup digest sent before the move still lands, because
+       * those emails carry a link to this page.
+       */}
+      <div className="mb-4 rounded-md border border-gray-200 bg-white px-6 py-4 text-sm text-gray-600">
+        {translateString(
+          "These switches decide which notifications reach you, not how much email they add up to.",
+        )}{" "}
+        <Link
+          to={emailPreferencesRoute}
+          className="text-indigo-600 hover:underline"
+        >
+          {translateString(
+            "Reduce routine emails or change email rollup in Email Preferences",
+          )}
+        </Link>
+      </div>
       <Tabs
         tabs={[
           {

@@ -90,7 +90,7 @@ whose email was held back.
 
 Some people want the batching. Some people file every notification as it lands, or feed the mailbox
 to something that does, and a rollup email breaks that. So rollup can be switched off, per person and
-per project, under **User Settings → Notification Settings** in the dashboard — the same page every
+per project, under **User Settings → Email Preferences** in the dashboard — the same page every
 rollup email links to at the bottom.
 
 With it off, every owner and member notification email in that project is sent to you individually
@@ -105,9 +105,9 @@ everyone until they turn it off; there is nothing to enable and nothing to migra
 
 What it does **not** touch:
 
-- **Which notifications you get.** That is the per-event-type, per-channel setting on the same page
-  (see below). Rollup and this switch only ever change how many emails those notifications are
-  packed into.
+- **Which notifications you get.** That is the per-event-type, per-channel setting under **User
+  Settings → Notification Settings**, one page over. Rollup and this switch only ever change how
+  many emails those notifications are packed into.
 - **On-call paging and shift email**, **account security email**, **billing email**, instance health
   warnings and status page subscriber email. None of those are ever rolled up in the first place, so
   turning rollup off changes nothing about them — see [What is never rolled up](#what-is-never-rolled-up).
@@ -116,8 +116,8 @@ What it does **not** touch:
 
 ## Turning it down further
 
-Open **Manage notification preferences** at the bottom of an owner notification or rollup email,
-or go to **User Settings → Notification Settings** in the dashboard.
+Open the preferences link at the bottom of a rollup email, or go to **User Settings → Email
+Preferences** in the dashboard.
 
 Choose **Reduce routine emails** to turn off these informational emails for yourself in the current
 project:
@@ -133,6 +133,7 @@ incident assignments, monitor health, and on-call shifts. It does not enable any
 disabled. Paging, other delivery channels, account email, billing email, and status page subscriber
 email are unaffected.
 
-The changes save together. Review the per-event switches below to turn any individual email back on.
-These preferences also apply to notifications waiting for a rollup; an already-sent email cannot be
-recalled. Email rollup remains a separate setting that controls batching for the events you keep.
+The changes save together. Review the per-event switches under **User Settings → Notification
+Settings** to turn any individual email back on. These preferences also apply to notifications
+waiting for a rollup; an already-sent email cannot be recalled. Email rollup remains a separate
+setting that controls batching for the events you keep.

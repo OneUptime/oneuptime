@@ -25,7 +25,7 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
 
   const sections: SideMenuSectionProps[] = [
     /*
-     * First, because it is the page that explains the other eleven. Somebody
+     * First, because it is the page that explains the other twelve. Somebody
      * who lands here without knowing the difference between a notification
      * method, a notification rule and a notification setting reaches this
      * before any of the pages that assume they already know.
@@ -64,6 +64,23 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
             ),
           },
           icon: IconProp.Settings,
+        },
+        /*
+         * Last of the three, because it is the only one that answers "how
+         * much", and that question follows "on what channel" and "about
+         * what". Inside this section rather than in one of its own: the two
+         * controls it holds are email-volume controls, and a reader who has
+         * just set up their notifications is exactly the reader who needs to
+         * find them.
+         */
+        {
+          link: {
+            title: "Email Preferences",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.USER_SETTINGS_EMAIL_PREFERENCES] as Route,
+            ),
+          },
+          icon: IconProp.Envelope,
         },
       ],
     },

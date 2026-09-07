@@ -4714,8 +4714,8 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     /*
      * Unlike the two rollup tables above, this one is genuinely used by a
-     * person: the User Settings > Notification Settings page reads and writes
-     * it through this router to turn burst rollup off for themselves. Its
+     * person: the User Settings > Email Preferences page reads and writes it
+     * through this router to turn burst rollup off for themselves. Its
      * access control is Permission.CurrentUser scoped by
      * @CurrentUserCanAccessRecordBy("userId"), so a member can only ever see
      * or change their own row.

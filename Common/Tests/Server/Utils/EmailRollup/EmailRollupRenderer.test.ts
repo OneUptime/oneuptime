@@ -124,7 +124,7 @@ const build: BuildFunction = (
     projectName: projectName,
     projectHomeLink: "https://oneuptime.example.com/dashboard/p1/home",
     preferencesLink:
-      "https://oneuptime.example.com/dashboard/p1/user-settings/notification-settings",
+      "https://oneuptime.example.com/dashboard/p1/user-settings/email-preferences",
     items: sortAscending(items),
   });
 };
@@ -661,7 +661,7 @@ describe("buildRollupEmail escaping contract", () => {
       "https://oneuptime.example.com/dashboard/p1/home",
     );
     expect(varString(email, "preferencesLink")).toBe(
-      "https://oneuptime.example.com/dashboard/p1/user-settings/notification-settings",
+      "https://oneuptime.example.com/dashboard/p1/user-settings/email-preferences",
     );
   });
 });
@@ -858,7 +858,14 @@ describe("buildRollupEmail variable set", () => {
      * conclude batching is mandatory.
      */
     expect(preferences).toContain("turn off email rollup for this project");
-    expect(preferences).toContain("notification settings");
+    /*
+     * "email preferences", not "notification settings": the switch this
+     * paragraph promises is on the Email Preferences page, and naming the
+     * wrong page is the same failure as omitting the paragraph - the reader
+     * goes looking, does not find it, and concludes batching is mandatory.
+     */
+    expect(preferences).toContain("email preferences");
+    expect(preferences).not.toContain("notification settings");
 
     /*
      * The template renders preferencesLink as a bare URL on the line below

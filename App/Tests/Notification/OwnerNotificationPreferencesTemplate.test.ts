@@ -131,9 +131,15 @@ describe("owner notification preferences footer", () => {
 
       expect(html).toContain(`href="${PREFERENCES_URL}"`);
       expect(html.match(/Manage notification preferences/g)).toHaveLength(1);
+      /*
+       * One link, one promise. The sentence used to offer grouping as well,
+       * which stopped being true when the rollup switch moved to Email
+       * Preferences and this link stayed on Notification Settings.
+       */
       expect(html).toContain(
-        "Choose which notifications you receive and how emails are grouped in this project.",
+        "Choose which notifications you receive in this project.",
       );
+      expect(html).not.toContain("how emails are grouped");
       expect(html).not.toContain(FALLBACK);
     },
   );

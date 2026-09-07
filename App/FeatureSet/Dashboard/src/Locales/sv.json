@@ -6141,5 +6141,14 @@
   "No shifts could be listed for the next 30 days.": "Inga pass kunde listas för de kommande 30 dagarna.",
   "Calendar feeds require the Growth plan": "Kalenderflöden kräver Growth-planen",
   "This project's plan does not include calendar feeds, so a link generated here would always show an empty calendar.": "Det här projektets plan innehåller inte kalenderflöden, så en länk som genereras här skulle alltid visa en tom kalender.",
-  "Upgrade your plan in Billing settings": "Uppgradera din plan i faktureringsinställningarna"
+  "Upgrade your plan in Billing settings": "Uppgradera din plan i faktureringsinställningarna",
+  "Email Preferences": "E-postinställningar",
+  "Applies to you in this project.": "Gäller dig i det här projektet.",
+  "Turn individual emails back on in Notification Settings": "Slå på enskilda e-postmeddelanden igen under aviseringsinställningar",
+  "Routine emails turned off.": "Rutinmässiga e-postmeddelanden avstängda.",
+  "Review your individual preferences in Notification Settings": "Granska dina individuella inställningar under aviseringsinställningar",
+  "These switches decide which notifications reach you, not how much email they add up to.": "De här reglagen avgör vilka aviseringar som når dig, inte hur mycket e-post de blir.",
+  "Reduce routine emails or change email rollup in Email Preferences": "Minska rutinmässig e-post eller ändra e-postsamling under e-postinställningar",
+  "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "Stäng av e-post om anteckningar, att läggas till som ägare, nya övervakningar och statussidor, objekt som lagts till i avsnitt och ändringar i medlemskap i jourpolicyer.",
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Dina val för skapande av incidenter och varningar, tillståndsändringar, påminnelser, tilldelningar, övervakningshälsa och jourpass förblir som de är. Andra aviseringskanaler, jourutlarmning samt konto- och faktureringsmejl påverkas inte."
 }

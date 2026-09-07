@@ -973,6 +973,7 @@ export const UserSettingsRoutePath: Dictionary<string> = {
   [PageMap.USER_SETTINGS_INCOMING_CALL_PHONE_NUMBERS]:
     "incoming-call-phone-numbers",
   [PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED]: "calendar-feed",
+  [PageMap.USER_SETTINGS_EMAIL_PREFERENCES]: "email-preferences",
   [PageMap.USER_SETTINGS_SETUP]: "setup",
 };
 
@@ -5151,6 +5152,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/user-settings/${
       UserSettingsRoutePath[PageMap.USER_SETTINGS_ON_CALL_CALENDAR_FEED]
+    }`,
+  ),
+
+  [PageMap.USER_SETTINGS_EMAIL_PREFERENCES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/user-settings/${
+      UserSettingsRoutePath[PageMap.USER_SETTINGS_EMAIL_PREFERENCES]
     }`,
   ),
 

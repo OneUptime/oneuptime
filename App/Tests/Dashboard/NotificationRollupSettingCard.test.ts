@@ -16,9 +16,14 @@ import Route from "Common/Types/API/Route";
  *
  * Each of these fails silently in production if it regresses:
  *
- *  - the card not being mounted, or being moved inside one tab. It compiles
- *    and lints either way. Inside a tab it governs delivery for the five tabs
- *    it is not on, while looking like a setting for the one it is on;
+ *  - the card not being mounted on the Email Preferences page, or that page
+ *    not being routed. A component file that nothing renders compiles and
+ *    lints exactly like one that does, and the preference is then
+ *    unreachable by any human;
+ *  - Notification Settings losing its pointer at Email Preferences. The
+ *    per-event matrix is where somebody drowning in mail goes first, and
+ *    without that line they leave believing switching events off one at a
+ *    time is the only remedy the product has;
  *  - "no row" being read as OFF. Almost nobody has a row - there was no
  *    backfill - so this is not an edge case, it is what nearly every user
  *    sees: a switch saying their mail is delivered individually while the
@@ -42,6 +47,9 @@ import Route from "Common/Types/API/Route";
  * expressions whose MEANING matters rather than their text - the absent-row
  * default and the accessible name - are lifted out and run, the way
  * DiscoveryReviewHostname.test.ts runs the row's own name expression.
+ * Behaviour that CAN be rendered is covered in a real DOM by
+ * Common/Tests/App/Dashboard/UserSettingsEmailPreferencesPage.test.tsx; this
+ * file keeps only what a renderer cannot reach.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -53,7 +61,27 @@ const DASHBOARD_SRC: string = path.join(
   "src",
 );
 
+/*
+ * The card is its own component file now. Reading the whole file IS reading
+ * the card, which removes the slice-between-two-string-markers helper this
+ * suite used to need - and with it the failure mode where a marker moved and
+ * the slice silently widened to cover unrelated code.
+ */
+const CARD_PARTS: Array<string> = [
+  "Components",
+  "EmailPreferences",
+  "EmailRollupCard.tsx",
+];
+
+/* The page that mounts it. */
 const PAGE_PARTS: Array<string> = [
+  "Pages",
+  "UserSettings",
+  "EmailPreferences.tsx",
+];
+
+/* The page that must keep pointing at it. */
+const MATRIX_PAGE_PARTS: Array<string> = [
   "Pages",
   "UserSettings",
   "NotificationSettings.tsx",
@@ -67,8 +95,8 @@ function stripComments(text: string): string {
   return text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
 }
 
-function readPage(): string {
-  return fs.readFileSync(path.join(DASHBOARD_SRC, ...PAGE_PARTS), "utf8");
+function readFile(parts: Array<string>): string {
+  return fs.readFileSync(path.join(DASHBOARD_SRC, ...parts), "utf8");
 }
 
 /*
@@ -77,28 +105,23 @@ function readPage(): string {
  * describe the same behaviour in the same words - a test that a comment can
  * satisfy is a test of nothing.
  */
-function readCode(): string {
-  return squash(stripComments(readPage()));
+function readCode(parts: Array<string>): string {
+  return squash(stripComments(readFile(parts)));
 }
 
-/*
- * The card's own slice of the page. `toContain` against the whole file cannot
- * tell the rollup card's ModelAPI calls from the notification matrix's, and
- * both models are read and written with the same four idioms.
- */
+/* The card's own source. The whole file is the card. */
 function cardCode(): string {
-  const code: string = readCode();
-  const start: number = code.indexOf("const EmailRollupCard");
-  const end: number = code.indexOf("const Settings:", start);
+  const code: string = readCode(CARD_PARTS);
 
-  if (start < 0 || end < 0) {
+  if (!code.includes("const EmailRollupCard")) {
     throw new Error(
-      "NotificationSettings.tsx no longer declares EmailRollupCard ahead of" +
-        " the Settings page component.",
+      "Components/EmailPreferences/EmailRollupCard.tsx no longer declares" +
+        " EmailRollupCard. The rollup opt-out is the only way out of burst" +
+        " rollup and nothing else in the product offers it.",
     );
   }
 
-  return code.slice(start, end);
+  return code;
 }
 
 /*
@@ -123,13 +146,13 @@ let cachedResolver: RollupEnabledResolver | null = null;
  */
 function rollupEnabledResolver(): RollupEnabledResolver {
   if (cachedResolver === null) {
-    const match: RegExpMatchArray | null = readCode().match(
+    const match: RegExpMatchArray | null = cardCode().match(
       /const resolveRollupEnabled[^{]*\{\s*(return [^;]*;)\s*\};/,
     );
 
     if (!match || !match[1]) {
       throw new Error(
-        "NotificationSettings.tsx no longer has a single-expression" +
+        "EmailRollupCard.tsx no longer has a single-expression" +
           " resolveRollupEnabled. The absent-row default is the whole" +
           " correctness of this card and has to stay readable.",
       );
@@ -184,22 +207,55 @@ function settingWith(
   return setting;
 }
 
-describe("Email rollup card on User Settings > Notifications", () => {
+describe("Email rollup card on User Settings > Email Preferences", () => {
   describe("Mounting", () => {
-    test("the page imports the model the preference lives in", () => {
-      expect(readCode()).toContain(
+    test("the card imports the model the preference lives in", () => {
+      expect(cardCode()).toContain(
         'import UserNotificationEmailRollupSetting from "Common/Models/DatabaseModels/UserNotificationEmailRollupSetting"',
       );
     });
 
-    test("the card is rendered above the tabs, so every tab shows it", () => {
-      const code: string = readCode();
-      const cardIndex: number = code.indexOf("<EmailRollupCard />");
-      const tabsIndex: number = code.indexOf("<Tabs");
+    /*
+     * A component nobody renders is indistinguishable from a deleted one as
+     * far as the user is concerned, and it compiles and lints identically.
+     */
+    test("the Email Preferences page imports and renders it", () => {
+      const page: string = readCode(PAGE_PARTS);
 
-      expect(cardIndex).toBeGreaterThan(-1);
-      expect(tabsIndex).toBeGreaterThan(-1);
-      expect(cardIndex).toBeLessThan(tabsIndex);
+      expect(page).toContain(
+        'import EmailRollupCard from "../../Components/EmailPreferences/EmailRollupCard"',
+      );
+      expect(page).toContain("<EmailRollupCard />");
+    });
+
+    test("it is the second card, under the routine-email switch", () => {
+      const page: string = readCode(PAGE_PARTS);
+      const noiseIndex: number = page.indexOf("<EmailNoiseCard");
+      const rollupIndex: number = page.indexOf("<EmailRollupCard />");
+
+      expect(noiseIndex).toBeGreaterThan(-1);
+      expect(rollupIndex).toBeGreaterThan(noiseIndex);
+    });
+
+    /*
+     * THE DISCOVERABILITY THIS PAGE COSTS, bought back.
+     *
+     * Somebody buried in OneUptime mail opens Notification Settings, because
+     * that is what the menu and every owner-email footer call the place your
+     * email choices live. Rollup is not there any more. Without a pointer,
+     * the matrix reads as the whole story and the only remedy on offer is
+     * switching twenty-one events off by hand, one cell at a time.
+     */
+    test("Notification Settings points at the page this card is on", () => {
+      const matrixPage: string = readCode(MATRIX_PAGE_PARTS);
+
+      expect(matrixPage).toContain(
+        "RouteMap[PageMap.USER_SETTINGS_EMAIL_PREFERENCES] as Route",
+      );
+      expect(matrixPage).toContain("<Link to={emailPreferencesRoute}");
+      expect(matrixPage).toContain(
+        '"Reduce routine emails or change email rollup in Email Preferences"',
+      );
     });
 
     test("it is a card, loader and error message like the rest of the page", () => {
@@ -326,14 +382,17 @@ describe("Email rollup card on User Settings > Notifications", () => {
   describe("Reachable without a mouse", () => {
     test("the control is a real button with a switch role, as ChannelCell is", () => {
       const card: string = cardCode();
-      const page: string = readCode();
+      const matrixPage: string = readCode(MATRIX_PAGE_PARTS);
 
       expect(card).toContain(
         '<button type="button" role="switch" aria-checked={isEnabled}',
       );
       expect(card).toContain("onClick={handleToggle}");
-      /* The page's other switch, unchanged: one idiom, not two. */
-      expect(page).toContain(
+      /*
+       * The matrix's switch, unchanged and now in a different file: one
+       * idiom across both pages, not two.
+       */
+      expect(matrixPage).toContain(
         '<button type="button" role="switch" aria-checked={props.enabled}',
       );
     });

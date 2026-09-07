@@ -1,4 +1,8 @@
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import Card from "Common/UI/Components/Card/Card";
+import Link from "Common/UI/Components/Link/Link";
 import API from "Common/UI/Utils/API/API";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, {
@@ -13,6 +17,17 @@ interface ComponentProps {
   disabled?: boolean;
 }
 
+/*
+ * THE BULK WAY OUT OF ROUTINE OWNER EMAIL, for one person in one project.
+ *
+ * The button switches off twenty-one informational event types on the email
+ * channel alone. That is a large, silent edit to somebody's mail, so both the
+ * standing copy and the confirmation have to say where the undo is - and
+ * since this card lives on Email Preferences while the per-event switches
+ * live on Notification Settings, "where" is a different page. The link below
+ * is the undo; without it the reader is told the change is reversible and
+ * given nothing to reverse it with.
+ */
 const EmailNoiseCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -21,6 +36,10 @@ const EmailNoiseCard: FunctionComponent<ComponentProps> = (
   const [isBusy, setIsBusy] = useState<boolean>(false);
   const [isApplied, setIsApplied] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+
+  const notificationSettingsRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS] as Route,
+  );
 
   const apply: () => Promise<void> = async (): Promise<void> => {
     if (applying.current || props.disabled) {
@@ -61,9 +80,15 @@ const EmailNoiseCard: FunctionComponent<ComponentProps> = (
           )}
         </p>
         <p className="mt-2 text-sm text-gray-600">
-          {translateString(
-            "Applies to you in this project. You can turn individual emails back on below.",
-          )}
+          {translateString("Applies to you in this project.")}{" "}
+          <Link
+            to={notificationSettingsRoute}
+            className="text-indigo-600 hover:underline"
+          >
+            {translateString(
+              "Turn individual emails back on in Notification Settings",
+            )}
+          </Link>
         </p>
         <button
           type="button"
@@ -77,9 +102,15 @@ const EmailNoiseCard: FunctionComponent<ComponentProps> = (
         </button>
         {isApplied ? (
           <p role="status" className="mt-3 text-sm text-emerald-700">
-            {translateString(
-              "Routine emails turned off. Review or change individual preferences below.",
-            )}
+            {translateString("Routine emails turned off.")}{" "}
+            <Link
+              to={notificationSettingsRoute}
+              className="text-emerald-700 underline hover:no-underline"
+            >
+              {translateString(
+                "Review your individual preferences in Notification Settings",
+              )}
+            </Link>
           </p>
         ) : null}
         {error ? (

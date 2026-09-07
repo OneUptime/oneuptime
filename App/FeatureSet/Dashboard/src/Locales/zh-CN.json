@@ -6141,5 +6141,14 @@
   "No shifts could be listed for the next 30 days.": "无法列出未来 30 天的值班。",
   "Calendar feeds require the Growth plan": "日历订阅需要 Growth 套餐",
   "This project's plan does not include calendar feeds, so a link generated here would always show an empty calendar.": "此项目的套餐不包含日历订阅，因此在此生成的链接将始终显示空日历。",
-  "Upgrade your plan in Billing settings": "在计费设置中升级套餐"
+  "Upgrade your plan in Billing settings": "在计费设置中升级套餐",
+  "Email Preferences": "邮件偏好设置",
+  "Applies to you in this project.": "在本项目中对您生效。",
+  "Turn individual emails back on in Notification Settings": "在通知设置中重新开启单项邮件",
+  "Routine emails turned off.": "已关闭例行邮件。",
+  "Review your individual preferences in Notification Settings": "在通知设置中查看您的单项偏好",
+  "These switches decide which notifications reach you, not how much email they add up to.": "这些开关决定哪些通知会送达您，而不是它们会变成多少封邮件。",
+  "Reduce routine emails or change email rollup in Email Preferences": "在邮件偏好设置中减少例行邮件或更改邮件合并",
+  "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "关闭有关备注、被添加为所有者、新监控器和状态页、添加到事件集的条目，以及值班策略成员变更的邮件。",
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "您对事故和告警创建、状态变更、提醒、指派、监控器健康状况和值班班次的选择保持不变。其他通知渠道、值班呼叫以及账户和账单邮件均不受影响。"
 }

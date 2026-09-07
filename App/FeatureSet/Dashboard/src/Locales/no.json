@@ -6141,5 +6141,14 @@
   "No shifts could be listed for the next 30 days.": "Ingen vakter kunne listes for de neste 30 dagene.",
   "Calendar feeds require the Growth plan": "Kalenderfeeder krever Growth-abonnementet",
   "This project's plan does not include calendar feeds, so a link generated here would always show an empty calendar.": "Abonnementet til dette prosjektet inkluderer ikke kalenderfeeder, så en lenke generert her ville alltid vise en tom kalender.",
-  "Upgrade your plan in Billing settings": "Oppgrader abonnementet ditt i faktureringsinnstillingene"
+  "Upgrade your plan in Billing settings": "Oppgrader abonnementet ditt i faktureringsinnstillingene",
+  "Email Preferences": "E-postinnstillinger",
+  "Applies to you in this project.": "Gjelder deg i dette prosjektet.",
+  "Turn individual emails back on in Notification Settings": "Slå på enkelte e-poster igjen under varslingsinnstillinger",
+  "Routine emails turned off.": "Rutine-e-poster slått av.",
+  "Review your individual preferences in Notification Settings": "Se gjennom dine individuelle innstillinger under varslingsinnstillinger",
+  "These switches decide which notifications reach you, not how much email they add up to.": "Disse bryterne avgjør hvilke varsler som når deg, ikke hvor mye e-post det blir.",
+  "Reduce routine emails or change email rollup in Email Preferences": "Reduser rutine-e-poster eller endre e-postsamling under e-postinnstillinger",
+  "Turn off emails about notes, being added as an owner, new monitors and status pages, items added to episodes, and on-call policy membership changes.": "Slå av e-poster om notater, å bli lagt til som eier, nye overvåkinger og statussider, elementer lagt til i episoder og endringer i medlemskap i vaktordninger.",
+  "Your choices for incident and alert creation, state changes, reminders, assignments, monitor health, and on-call shifts stay as they are. Other notification channels, paging, account and billing emails are unaffected.": "Valgene dine for oppretting av hendelser og varsler, tilstandsendringer, påminnelser, tildelinger, overvåkingstilstand og vakter forblir som de er. Andre varslingskanaler, vaktoppkall og konto- og faktureringse-poster påvirkes ikke."
 }
