@@ -1,4 +1,5 @@
 import MonitorStepElement from "./MonitorStep";
+import VMwareRecoveryNotice from "../../VMware/RecoveryNotice";
 import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -255,49 +256,53 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         },
       )}
 
-      <div className="mt-4 ml-0.5">
-        <div className="flex">
-          <Icon icon={IconProp.AltGlobe} className="h-5 w-5 text-gray-900" />
-          <div className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
-            <span className="font-medium text-gray-900">
-              Default Monitor Status
-            </span>{" "}
-            When no criteria is met, monitor status should be:
-            <div className="mt-3">
-              {props.monitorSteps.data?.defaultMonitorStatusId && (
-                <Statusbubble
-                  color={
-                    (monitorStatusOptions.find((option: IncidentSeverity) => {
-                      return (
-                        option.id?.toString() ===
-                        props.monitorSteps.data?.defaultMonitorStatusId?.toString()
-                      );
-                    })?.color as Color) || Black
-                  }
-                  shouldAnimate={false}
-                  text={
-                    (monitorStatusOptions.find((option: IncidentSeverity) => {
-                      return (
-                        option.id?.toString() ===
-                        props.monitorSteps.data?.defaultMonitorStatusId?.toString()
-                      );
-                    })?.name as string) || ""
-                  }
-                />
-              )}
-
-              {!props.monitorSteps.data?.defaultMonitorStatusId &&
-                defaultMonitorStatus && (
+      {props.monitorType === MonitorType.VMware ? (
+        <VMwareRecoveryNotice />
+      ) : (
+        <div className="mt-4 ml-0.5">
+          <div className="flex">
+            <Icon icon={IconProp.AltGlobe} className="h-5 w-5 text-gray-900" />
+            <div className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
+              <span className="font-medium text-gray-900">
+                Default Monitor Status
+              </span>{" "}
+              When no criteria is met, monitor status should be:
+              <div className="mt-3">
+                {props.monitorSteps.data?.defaultMonitorStatusId && (
                   <Statusbubble
-                    color={defaultMonitorStatus.color!}
-                    text={defaultMonitorStatus.name!}
+                    color={
+                      (monitorStatusOptions.find((option: IncidentSeverity) => {
+                        return (
+                          option.id?.toString() ===
+                          props.monitorSteps.data?.defaultMonitorStatusId?.toString()
+                        );
+                      })?.color as Color) || Black
+                    }
                     shouldAnimate={false}
+                    text={
+                      (monitorStatusOptions.find((option: IncidentSeverity) => {
+                        return (
+                          option.id?.toString() ===
+                          props.monitorSteps.data?.defaultMonitorStatusId?.toString()
+                        );
+                      })?.name as string) || ""
+                    }
                   />
                 )}
+
+                {!props.monitorSteps.data?.defaultMonitorStatusId &&
+                  defaultMonitorStatus && (
+                    <Statusbubble
+                      color={defaultMonitorStatus.color!}
+                      text={defaultMonitorStatus.name!}
+                      shouldAnimate={false}
+                    />
+                  )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

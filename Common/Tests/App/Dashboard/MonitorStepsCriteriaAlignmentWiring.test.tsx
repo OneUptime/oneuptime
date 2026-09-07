@@ -1,4 +1,6 @@
 import "@testing-library/jest-dom";
+import MonitorStepsElement from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorSteps";
+import MonitorStepsView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MonitorSteps/MonitorSteps";
 import CriteriaFilterUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
 import {
   afterEach,
@@ -78,7 +80,17 @@ jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/ProjectUser", () => {
   };
 });
 
-import MonitorStepsElement from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorSteps";
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MonitorSteps/MonitorStep",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
+  },
+);
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -256,7 +268,13 @@ async function mountWith(data: {
    * bare loader.
    */
   await waitFor(() => {
-    expect(screen.getByText("Default Monitor Status")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        data.monitorType === MonitorType.VMware
+          ? "Recovery behavior"
+          : "Default Monitor Status",
+      ),
+    ).toBeInTheDocument();
   });
 
   return {
@@ -348,5 +366,69 @@ describe("the criteria form keeps its criteria in step with the monitor type", (
     expect(
       unrenderableChecksIn(form.latest(), MonitorType.ExternalStatusPage),
     ).toEqual([]);
+  });
+});
+
+describe("VMware recovery status presentation", () => {
+  beforeEach(() => {
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+    mockModelApi();
+  });
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  test("VMware form explains affirmative recovery without offering an ineffective default status", async () => {
+    const form: MountedForm = await mountWith({
+      initialValue: seededStepsFor(MonitorType.VMware),
+      monitorType: MonitorType.VMware,
+    });
+    expect(
+      screen.getByText(
+        /Returning to an operational status requires fresh data/,
+      ),
+    ).toBeVisible();
+    expect(
+      screen.queryByText("Default Monitor Status"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+    expect(form.latest().data?.defaultMonitorStatusId?.toString()).toBe(
+      ONLINE_STATUS_ID,
+    );
+  });
+
+  test("other monitor forms retain their default status control", async () => {
+    await mountWith({
+      initialValue: seededStepsFor(MonitorType.Website),
+      monitorType: MonitorType.Website,
+    });
+    expect(screen.getByText("Default Monitor Status")).toBeVisible();
+    expect(screen.getByRole("combobox")).toBeVisible();
+    expect(screen.queryByText("Recovery behavior")).not.toBeInTheDocument();
+  });
+
+  test("saved VMware criteria show recovery behavior instead of a default status", async () => {
+    render(
+      <MonitorStepsView
+        monitorType={MonitorType.VMware}
+        monitorSteps={seededStepsFor(MonitorType.VMware)}
+      />,
+    );
+    expect(await screen.findByText("Recovery behavior")).toBeVisible();
+    expect(
+      screen.queryByText("Default Monitor Status"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("saved non-VMware criteria retain their default status", async () => {
+    render(
+      <MonitorStepsView
+        monitorType={MonitorType.Website}
+        monitorSteps={seededStepsFor(MonitorType.Website)}
+      />,
+    );
+    expect(await screen.findByText("Default Monitor Status")).toBeVisible();
+    expect(screen.queryByText("Recovery behavior")).not.toBeInTheDocument();
   });
 });
