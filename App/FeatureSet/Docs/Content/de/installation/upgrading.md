@@ -8,22 +8,93 @@ Diese Anleitung beschreibt, wie Sie Ihre selbst gehostete OneUptime-Installation
 - Sie können Neben-/Patch-Versionen überspringen (z. B. 8.1 → 8.4), sofern Sie die Release-Notes beachten.
 - Erstellen Sie immer Backups vor dem Upgrade und überprüfen Sie, ob Sie diese wiederherstellen können.
 
-### Redis heißt jetzt Valkey
+## Upgrade von OneUptime 12 → 13
 
-Auf der Cache- und Warteschlangen-Ebene läuft [Valkey](https://valkey.io), der BSD-lizenzierte Fork von Redis 7.2, anstelle von Redis — Redis 7.4 ist auf eine strengere Lizenz umgestiegen, und der Großteil der ursprünglichen Mitwirkenden arbeitet inzwischen an Valkey. Valkey spricht das Redis-Wire-Protokoll, oberhalb des Sockets hat sich also nichts geändert, und Sie können OneUptime weiterhin auf ein echtes Redis (oder einen verwalteten Redis-kompatiblen Dienst) verweisen, wenn Sie das bevorzugen.
+OneUptime 13 ersetzt Redis durch [Valkey](https://valkey.io) als mitgelieferte Cache- und Warteschlangen-Engine. Redis 7.4 hat die BSD-Lizenz verlassen, und der Großteil der ursprünglichen Redis-Mitwirkenden ist zu Valkey gewechselt — einem Fork von Redis 7.2, der dasselbe Wire-Protokoll spricht. Oberhalb des Sockets hat sich nichts geändert, und Sie können OneUptime weiterhin auf ein echtes Redis oder einen verwalteten Redis-kompatiblen Dienst verweisen, wenn Sie das bevorzugen.
 
-Die Benennung ist jetzt überall daran angepasst: Die Einstellungen heißen `VALKEY_*`, die Helm-Werte lauten `valkey:` / `externalValkey:`, und die Kubernetes-Objekte heißen `<release>-valkey*`. **Alle alten Namen funktionieren weiterhin**, eine unveränderte `config.env` oder `values.yaml` läuft also weiter — lesen Sie aber den Helm-Hinweis unten, bevor Sie einen stark ausgelasteten Produktions-Cluster aktualisieren.
+Alles, was Sie konfigurieren, ist jetzt danach benannt: Die Einstellungen heißen `VALKEY_*`, die Helm-Werte `valkey:` / `externalValkey:` und die Kubernetes-Objekte `<release>-valkey*`. **Alle alten Namen funktionieren weiterhin**, eine unveränderte `config.env` oder `values.yaml` lässt sich also aktualisieren und läuft weiter. Sie müssen nichts an Ihrer Konfiguration ändern, und es sind keine Daten zu migrieren — der Cache ist keine Datenquelle der Wahrheit, und Postgres und ClickHouse bleiben unberührt.
 
-**Docker Compose — keine Maßnahmen erforderlich.** Der Service heißt jetzt `valkey` und behält `redis` als Netzwerk-Alias bei, sodass eine bestehende `config.env` mit `REDIS_HOST=redis` ohne Änderung aufgelöst wird. Die Anwendung liest `VALKEY_*` und greift ersatzweise auf `REDIS_*` zurück, und `npm run update` ersetzt Ihre vorhandenen Cache-Einstellungen **nicht**: Normalerweise fügt es jede neue Einstellung hinzu, die es in `config.example.env` findet, erkennt diese hier aber als Umbenennungen und lässt Ihre Werte — einschließlich Ihres `REDIS_PASSWORD` — genau dort, wo sie sind. Führen Sie das Upgrade mit `npm run update` oder einem beliebigen `docker compose up --remove-orphans` durch, damit der alte `redis`-Container entfernt wird; ließen Sie ihn weiterlaufen, stünden zwei Container hinter demselben Hostnamen `redis`, und die Hälfte der Verbindungen landete auf dem veralteten Container.
+Was zu tun ist, hängt von Ihrer Installationsart ab:
 
-Wenn Sie Cache-Variablen von Hand in einer `docker-compose.override.yml` setzen, benennen Sie sie in `VALKEY_*` um. Die Basisdatei setzt `VALKEY_HOST` aus Ihrem `REDIS_HOST`, und eine Überschreibung, die nur `REDIS_HOST` setzt, hat keinen Vorrang mehr.
+- **Docker Compose:** wie gewohnt aktualisieren, mit einer wichtigen Option — siehe [Upgrade mit Docker Compose](#upgrade-mit-docker-compose).
+- **Helm:** keine Wertänderung nötig, aber der Cache-Pod wird neu erstellt und kommt leer zurück — siehe [Upgrade mit Helm](#upgrade-mit-helm).
+- **Sie verweisen OneUptime auf einen selbst betriebenen Cache** (verwaltetes Redis, ElastiCache, Memorystore, Ihr eigenes Valkey): lesen Sie [Wenn Sie Ihren eigenen Cache betreiben](#wenn-sie-ihren-eigenen-cache-betreiben). Das ist die eine Konstellation, die Ihren Server unbemerkt nicht mehr erreicht.
+- **Sie haben Dashboards, Alarme, Netzwerkrichtlinien oder Skripte, die auf den Kubernetes-Objektnamen aufsetzen:** diese Namen ändern sich — siehe [Upgrade mit Helm](#upgrade-mit-helm).
 
-**Helm — keine Änderung an den Werten nötig, aber der Cache startet einmalig neu.**
+### Was sich geändert hat und was nicht
 
-- `redis:` und `externalRedis:` funktionieren weiterhin; sie werden über die neuen Standardwerte von `valkey:` / `externalValkey:` gelegt, und `helm upgrade` gibt einen Hinweis mit den gefundenen veralteten Schlüsseln aus.
-- Das generierte Passwort wird aus dem alten Secret `<release>-redis` in `<release>-valkey` übernommen, es wird also nichts rotiert. Das alte Secret bleibt erhalten und enthält eine nun ungenutzte Kopie — löschen Sie es, sobald das Upgrade stabil läuft.
-- Durch die Umbenennung des StatefulSets wird dessen Pod neu erstellt. Der mitgelieferte Cache schreibt nichts auf die Festplatte, er kommt also kalt zurück: Zwischengespeicherte Werte sind weg, und BullMQ-Jobs, die wartend, verzögert oder im Backoff waren, gehen verloren. Wiederholbare Jobs und Cron-Jobs registrieren sich beim erneuten Verbinden selbst wieder. Führen Sie das Upgrade zu einem ruhigen Zeitpunkt durch, wenn Ihnen gerade laufende Telemetrie oder Workflow-Wiederholungen wichtig sind.
-- Wenn Sie über `extraEnv` statt über `externalValkey:` auf einen verwalteten Cache verweisen, benennen Sie diese Einträge in `VALKEY_*` um. Ein dortiger `REDIS_HOST`-Eintrag wird jetzt ignoriert, weil das Chart zusätzlich `VALKEY_HOST` setzt und die Anwendung diesen bevorzugt.
+| | Bis 12 | Ab 13 |
+| --- | --- | --- |
+| Engine | `redis:7.0.12` | `valkey/valkey:9.1-alpine` |
+| Einstellungen | `REDIS_*` | `VALKEY_*` — `REDIS_*` wird weiterhin gelesen |
+| Compose-Service | `redis` | `valkey` — antwortet weiterhin auf den Hostnamen `redis` |
+| Helm-Werte | `redis:`, `externalRedis:` | `valkey:`, `externalValkey:` — alte Schlüssel greifen weiterhin |
+| Kubernetes-Objekte | `<release>-redis`, `<release>-redis-master` | `<release>-valkey`, `<release>-valkey-master` |
+| Erzeugtes Secret | `redis-password` in `<release>-redis` | `valkey-password` in `<release>-valkey` |
+| Secret für externen Cache | `<release>-external-redis` | `<release>-external-valkey` |
+
+Die zehn umbenannten Einstellungen sind `VALKEY_HOST`, `VALKEY_PORT`, `VALKEY_DB`, `VALKEY_USERNAME`, `VALKEY_PASSWORD`, `VALKEY_IP_FAMILY`, `VALKEY_TLS_CA`, `VALKEY_TLS_CERT`, `VALKEY_TLS_KEY` und `VALKEY_TLS_SENTINEL_MODE`. Ist eine Einstellung unter beiden Schreibweisen vorhanden, bevorzugt die Anwendung die `VALKEY_*`-Variante. Das Helm-Chart löst den Konflikt umgekehrt auf: Ein veralteter `redis:`-Schlüssel gewinnt gegen den neuen Standardwert, sodass eine nie angefasste Wertedatei sich exakt so verhält wie zuvor.
+
+**Der Cache startet einmalig neu**, auf beiden Installationswegen, weil der Container ersetzt wird. Er hält nichts auf der Festplatte (`appendonly no`, `save ""`) und kommt deshalb kalt zurück: Zwischengespeicherte Werte sind weg, und BullMQ-Jobs, die wartend, verzögert oder im Backoff waren, gehen verloren. Wiederholbare Jobs und Cron-Jobs registrieren sich beim erneuten Verbinden selbst wieder. Führen Sie das Upgrade zu einem ruhigen Zeitpunkt durch, wenn Ihnen gerade laufende Telemetrie oder Workflow-Wiederholungen wichtig sind.
+
+### Upgrade mit Docker Compose
+
+Das normale Update genügt:
+
+```
+git checkout release # Bitte stellen Sie sicher, dass Sie auf dem release-Branch sind.
+git pull
+npm run update
+```
+
+- **Verwenden Sie `--remove-orphans`, wenn Sie Compose von Hand aufrufen.** `npm run update` und `npm run start` übergeben die Option bereits, und sie ist es, die den alten `redis`-Container entfernt. Lassen Sie ihn laufen, antworten zwei Container auf den Hostnamen `redis` — Verbindungen landen zufällig auf dem veralteten.
+- **Ihre `config.env` wird nicht umgeschrieben.** `npm run update` ergänzt normalerweise jede Einstellung, die es in `config.example.env` findet und die Ihrer Datei fehlt, erkennt diese zehn aber als Umbenennungen und lässt Ihre Werte — einschließlich Ihres `REDIS_PASSWORD` — genau dort, wo sie sind. Es gibt aus, welche es beibehalten hat.
+- Ihre eigenen Schlüssel auf `VALKEY_*` umzubenennen ist optional und kann gefahrlos später erfolgen. Setzen Sie pro Einstellung nur eine Schreibweise.
+- **Wenn Sie Cache-Variablen in einer `docker-compose.override.yml` setzen, benennen Sie sie in `VALKEY_*` um.** Die Basisdatei setzt `VALKEY_HOST` jetzt aus Ihrem `REDIS_HOST`, und die Anwendung liest zuerst `VALKEY_HOST` — eine Überschreibung, die nur `REDIS_HOST` setzt, hat daher keinen Vorrang mehr.
+
+### Upgrade mit Helm
+
+```
+helm repo update
+helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
+```
+
+- **Es ist keine Wertänderung nötig.** `redis:` und `externalRedis:` funktionieren weiterhin — was Sie darunter setzen, wird über die neuen Standardwerte von `valkey:` / `externalValkey:` gelegt — und `helm upgrade` gibt einen `DEPRECATED VALUES`-Hinweis mit den gefundenen alten Schlüsseln aus. Benennen Sie sie um, wenn es Ihnen passt.
+- **Es wird nichts rotiert.** Das Chart liest das Passwort aus Ihrem vorhandenen `<release>-redis`-Secret und überträgt es nach `<release>-valkey`, statt ein neues zu erzeugen.
+- **Beide alten Secrets bleiben erhalten.** `<release>-redis` und — falls Sie Ihren eigenen Cache mitbringen — `<release>-external-redis` sind mit `helm.sh/resource-policy: keep` annotiert und bleiben daher mit nun ungenutzten Kopien zurück. Löschen Sie sie, sobald das Upgrade stabil läuft — lesen Sie aber zuerst [Rollback auf 12](#rollback-auf-12).
+- **Objektnamen ändern sich.** Passen Sie alles an, was auf `<release>-redis` oder `<release>-redis-master` aufsetzt: Grafana-Dashboards, Alarmregeln, NetworkPolicies, ServiceMonitors, Backup-Jobs.
+- Der Service wird zusätzlich unter seinem alten Namen `<release>-redis-master` veröffentlicht, damit Pods, die noch nicht neu ausgerollt wurden, sich von selbst wieder verbinden, statt für die Dauer des Rollouts ins Leere aufzulösen. Setzen Sie `valkey.legacyServiceAlias: false`, um ihn zu entfernen, sobald alle Workloads neu ausgerollt sind.
+- **Falls Sie `persistence.enabled: true` gesetzt hatten**, fordert das neue StatefulSet ein frisches Volume `data-<release>-valkey-0` an. Das alte `data-<release>-redis-0` hat nie etwas enthalten — löschen Sie es, damit es keine Kosten mehr verursacht.
+
+### Wenn Sie Ihren eigenen Cache betreiben
+
+OneUptime auf einen Cache zu verweisen, den es nicht selbst betreibt, wird weiterhin vollständig unterstützt, und der Server am anderen Ende darf Valkey, Redis oder ein verwalteter Redis-kompatibler Dienst sein. Geändert hat sich nur der Name des Blocks, der ihn konfiguriert.
+
+- Benennen Sie `externalRedis:` in Ihrer Wertedatei in `externalValkey:` um. Optional — der alte Schlüssel greift weiterhin — aber es ist die Schreibweise, die das Chart jetzt dokumentiert.
+- Das Chart rendert das Secret unter dem neuen Namen `<release>-external-valkey`. Das alte `<release>-external-redis` bleibt erhalten und wird nicht mehr aktualisiert; verweisen Sie eigene Manifeste, die es namentlich referenzieren, auf das neue.
+- **`extraEnv`-Überschreibungen erreichen den Cache nicht mehr — und zwar unbemerkt.** Wenn Sie mit `extraEnv: [{name: REDIS_HOST, ...}]` statt über den Block `externalValkey:` auf einen verwalteten Cache verweisen, gewinnt Ihr Eintrag zwar weiterhin den `REDIS_HOST`-Slot, aber die Anwendung liest zuerst `VALKEY_HOST` — und das setzt das Chart auf seinen eigenen Cache im Cluster. Ihre Überschreibung steht in der Pod-Spezifikation und wird ignoriert. Benennen Sie diese Einträge in `VALKEY_*` um oder verschieben Sie die Einstellungen nach `externalValkey:`, dem unterstützten Weg. `helm upgrade` warnt bei chart-weiten `extraEnv`-Einträgen; die Listen `<service>.extraEnv` einzelner Dienste sieht es nicht, prüfen Sie diese also selbst. Das Compose-Gegenstück ist eine Override-Datei, die nur `REDIS_HOST` setzt.
+
+### Das Upgrade überprüfen
+
+- **Admin-Dashboard → Health → Valkey** sollte „Connected“ mit einem Speicherwert anzeigen. Das ist dieselbe Erreichbarkeitsprüfung, die auch die Health-Warn-E-Mails verwenden.
+- **Compose:** `docker compose ps` listet einen `valkey`-Service und keinen `redis`-Container mehr.
+- **Helm:** `kubectl get pods,svc -n <namespace>` zeigt `<release>-valkey-0` im Zustand Running und den Service `<release>-valkey-master`. Mit `helm get notes my-oneuptime` lassen sich die Hinweise des Upgrades erneut anzeigen.
+- Für einen tieferen Blick meldet `HelmChart/Public/diagnose.sh` Cache-Speicher, Verdrängungen und Erreichbarkeit und versteht sowohl die alten als auch die neuen Objektnamen.
+
+### Rollback auf 12
+
+- **Helm:** `helm rollback` funktioniert, weil das Chart der Version 12 das von ihm erstellte Secret `<release>-redis` noch vorfindet und dessen Passwort wiederverwendet. Genau deshalb bleiben die alten Secrets erhalten — löschen Sie sie erst, wenn Sie sicher sind, bei 13 zu bleiben.
+- **Docker Compose:** Behalten Sie die Schreibweise `REDIS_*` in `config.env`, bis Sie sicher sind. OneUptime 12 liest ausschließlich `REDIS_*`; ein Rollback mit einer `config.env`, deren Schlüssel Sie umbenannt haben, lässt den Cache ohne konfiguriertes Passwort starten — er steht dann offen im Compose-Netz, während die Anwendung sich nicht authentifizieren kann. Beide Schreibweisen mit identischen Werten zu behalten funktioniert ebenfalls.
+- Ein Rollback startet den Cache erneut neu, mit denselben Kosten eines kalten Starts.
+
+### Namen, die bewusst Redis geblieben sind
+
+Das sind keine Versäumnisse, und keiner davon erfordert eine Aktion:
+
+- **Die API behält ihre Form.** `components.redis` und `summary.redis` in der Instanz-Health-Antwort, die Route `/api/admin/health/redis` und der Engine-Wert `redis` in der Query-Konsole des Admin-Bereichs sind Wire-Schlüssel, kein Anzeigetext. Alles, was Sie dagegen skriptet haben, funktioniert weiter.
+- **Vokabular des Redis-Protokolls:** `redis-cli`, das Feld `redis_version` in `INFO` und der gespeicherte Speicher-Referenzwert, gegen den die Health-Benachrichtigungen vergleichen. Diesen Schlüssel umzubenennen würde die Historie jeder Instanz verwerfen.
+- **Der Standard-Hostname bleibt `redis`**, für handgeschriebene Manifeste und einfache `docker run`-Setups. Er wird nur verwendet, wenn weder `VALKEY_HOST` noch `REDIS_HOST` gesetzt ist, was in unserem eigenen Compose oder Helm nie vorkommt.
+- Interne Klassennamen und Postgres-Spaltennamen, die niemand zu sehen bekommt und deren Umbenennung eine Migration kosten würde.
 
 ## Upgrade von OneUptime 11 → 12
 

@@ -15,6 +15,10 @@ import path from "path";
  * were not, and nothing failed — a stale translation renders perfectly, it just
  * tells the reader to set variables the app no longer prefers.
  *
+ * The rename shipped in 13.0.0, so upgrading.md carries it as the
+ * `12 -> 13` section, alongside every other major-version upgrade the page
+ * documents — not, as it was first written, as a note under General Guidance.
+ *
  * These tests read the English page as the source of truth and assert each
  * locale carries the same content. Two properties matter and neither is
  * cosmetic:
@@ -51,6 +55,17 @@ const SIZING_PAGE: string = "installation/sizing";
 const VALKEY_LINK: string = "https://valkey.io";
 const RENAMED_IN_VERSION: string = "13.0.0";
 const TODO_MARKER: RegExp = /TODO\(i18n\)/;
+
+/*
+ * Locates a "12 -> 13" upgrade heading in any language. Only the two numbers
+ * survive translation -- everything around them is prose ("Upgrading from
+ * OneUptime 12 → 13", "从 OneUptime 12 升级到 13") and even the arrow is
+ * dropped where the local phrasing has no room for it. The \b guards keep this
+ * from matching a 112 or a 130, and the bounded gap keeps it from pairing the
+ * 12 of one heading with the 13 of another.
+ */
+const VERSION_SECTION_HEADING: RegExp = /\b12\b[^\d]{1,24}\b13\b/;
+const PREVIOUS_SECTION_HEADING: RegExp = /\b11\b[^\d]{1,24}\b12\b/;
 
 const FENCE_LINE: RegExp = /^\s*```/;
 const HEADING_LINE: RegExp = /^(#{1,6})\s+(.*)$/;
@@ -98,15 +113,17 @@ function headingsOf(markdown: string): Array<Heading> {
 }
 
 /*
- * The Valkey section is found by its heading rather than by position, because
- * the heading text is translated in every locale but the product names inside it
- * are not. It runs until the next heading at the same level or higher.
+ * The 12 -> 13 section is found by the version numbers in its heading, not by
+ * the word "Valkey" and not by position. The words around the numbers are
+ * translated everywhere, and the section carries subheadings of its own that
+ * name Valkey too, so the numbers are the only reliable handle. The section
+ * runs until the next heading at the same level or higher.
  */
-function valkeySection(markdown: string): { heading: Heading; body: string } {
+function upgradeSection(markdown: string): { heading: Heading; body: string } {
   const headings: Array<Heading> = headingsOf(markdown);
   const matches: Array<Heading> = headings.filter(
     (heading: Heading): boolean => {
-      return heading.text.includes("Valkey");
+      return VERSION_SECTION_HEADING.test(heading.text);
     },
   );
 
@@ -124,6 +141,17 @@ function valkeySection(markdown: string): { heading: Heading; body: string } {
   const end: number = next ? next.line : lines.length;
 
   return { heading, body: lines.slice(heading.line + 1, end).join("\n") };
+}
+
+/*
+ * The levels of the subheadings inside a section, in order. Comparing this
+ * across locales catches a translation that dropped a subheading or demoted
+ * one -- a reader following an in-page link would land nowhere.
+ */
+function headingShapeOf(body: string): Array<number> {
+  return headingsOf(body).map((heading: Heading): number => {
+    return heading.level;
+  });
 }
 
 /*
@@ -185,20 +213,25 @@ describe("Valkey rename — installation docs localization", () => {
   describe("upgrading.md", () => {
     const english: string = readPage(DEFAULT_DOCS_LANGUAGE, UPGRADING_PAGE);
     const englishSection: { heading: Heading; body: string } =
-      valkeySection(english);
+      upgradeSection(english);
 
-    it("documents the rename in the English page's first section", () => {
+    it("documents the rename as the English page's 12 → 13 section", () => {
       const headings: Array<Heading> = headingsOf(english);
-      const firstLevelTwo: Heading = headings.find(
-        (heading: Heading): boolean => {
-          return heading.level === 2;
-        },
-      )!;
 
-      expect(englishSection.heading.level).toBe(3);
-      expect(englishSection.heading.line).toBeGreaterThan(firstLevelTwo.line);
+      /*
+       * The page lists major upgrades newest first, so the 12 -> 13 section
+       * has to sit above the 11 -> 12 one. Anchoring on that rather than on a
+       * line number keeps this passing when a 13 -> 14 section is added above.
+       */
+      const previous: Heading = headings.find((heading: Heading): boolean => {
+        return PREVIOUS_SECTION_HEADING.test(heading.text);
+      })!;
+
+      expect(englishSection.heading.level).toBe(2);
+      expect(englishSection.heading.line).toBeLessThan(previous.line);
       expect(englishSection.body).toContain(VALKEY_LINK);
       expect(codeSpansOf(englishSection.body).length).toBeGreaterThan(0);
+      expect(headingShapeOf(englishSection.body).length).toBeGreaterThan(0);
     });
 
     it("keeps every English identifier intact in every locale", () => {
@@ -207,7 +240,7 @@ describe("Valkey rename — installation docs localization", () => {
       ];
 
       for (const lang of TRANSLATED_LANGUAGES) {
-        const section: { heading: Heading; body: string } = valkeySection(
+        const section: { heading: Heading; body: string } = upgradeSection(
           readPage(lang, UPGRADING_PAGE),
         );
         const present: Array<string> = codeSpansOf(section.body);
@@ -226,8 +259,10 @@ describe("Valkey rename — installation docs localization", () => {
       const expectedItems: number = listItemCount(englishSection.body);
       const expectedParagraphs: number = paragraphCount(englishSection.body);
 
+      const expectedShape: Array<number> = headingShapeOf(englishSection.body);
+
       for (const lang of TRANSLATED_LANGUAGES) {
-        const section: { heading: Heading; body: string } = valkeySection(
+        const section: { heading: Heading; body: string } = upgradeSection(
           readPage(lang, UPGRADING_PAGE),
         );
 
@@ -243,32 +278,34 @@ describe("Valkey rename — installation docs localization", () => {
           lang,
           level: englishSection.heading.level,
         });
+        expect({ lang, shape: headingShapeOf(section.body) }).toEqual({
+          lang,
+          shape: expectedShape,
+        });
         expect(section.body).toContain(VALKEY_LINK);
       }
     });
 
-    it("places the section under the first top-level section in every locale", () => {
+    it("keeps the section ahead of the older upgrades in every locale", () => {
+      /*
+       * Placement is content, not cosmetics: a reader upgrading to 13 scans
+       * for their version and stops at the first one they recognise. A locale
+       * that files this section below 11 -> 12 buries it.
+       */
       for (const lang of TRANSLATED_LANGUAGES) {
         const markdown: string = readPage(lang, UPGRADING_PAGE);
         const headings: Array<Heading> = headingsOf(markdown);
         const section: { heading: Heading; body: string } =
-          valkeySection(markdown);
+          upgradeSection(markdown);
 
-        const enclosing: Heading = headings
-          .filter((heading: Heading): boolean => {
-            return heading.level === 2 && heading.line < section.heading.line;
-          })
-          .pop()!;
-        const firstLevelTwo: Heading = headings.find(
-          (heading: Heading): boolean => {
-            return heading.level === 2;
-          },
-        )!;
+        const previous: Heading = headings.find((heading: Heading): boolean => {
+          return PREVIOUS_SECTION_HEADING.test(heading.text);
+        })!;
 
-        expect({ lang, line: enclosing.line }).toEqual({
+        expect({
           lang,
-          line: firstLevelTwo.line,
-        });
+          before: section.heading.line < previous.line,
+        }).toEqual({ lang, before: true });
       }
     });
 
@@ -276,7 +313,7 @@ describe("Valkey rename — installation docs localization", () => {
       const englishProse: string = proseOnly(englishSection.body);
 
       for (const lang of TRANSLATED_LANGUAGES) {
-        const section: { heading: Heading; body: string } = valkeySection(
+        const section: { heading: Heading; body: string } = upgradeSection(
           readPage(lang, UPGRADING_PAGE),
         );
 

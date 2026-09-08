@@ -54,6 +54,9 @@ See [Installation & Upgrades](installation.md#upgrading) for the upgrade command
     so pods that have not yet rolled reconnect on their own rather than resolving
     NXDOMAIN for the length of the rollout. Set `valkey.legacyServiceAlias: false`
     to drop it once everything has rolled.
+  - See the [upgrading guide](https://oneuptime.com/docs/installation/upgrading)
+    for the full 12 -> 13 migration, including how to verify the cache
+    afterwards and what a rollback to 12 needs.
 
 - **12.0.21 (2026-08-24)** — The Cal.com booking webhook is removed. Delete any
   `marketing.cal:` block from your values files — the chart schema rejects

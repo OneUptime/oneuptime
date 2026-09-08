@@ -8,22 +8,93 @@
 - 只要遵循发布说明，您可以跨越次要/补丁版本（例如 8.1 → 8.4）。
 - 升级前务必做好备份，并验证可以从备份中恢复。
 
-### Redis 现已改为 Valkey
+## 从 OneUptime 12 升级到 13
 
-缓存与队列层现在运行 [Valkey](https://valkey.io)，即采用 BSD 许可证的 Redis 7.2 分支，而不再运行 Redis——Redis 7.4 改用了更严格的许可证，而原 Redis 的大部分贡献者都转向了 Valkey。Valkey 采用与 Redis 相同的通信协议，因此套接字之上的一切都没有变化；如果您更愿意如此，仍然可以让 OneUptime 指向真正的 Redis（或托管的 Redis 兼容服务）。
+OneUptime 13 将内置的缓存与队列引擎由 Redis 换成了 [Valkey](https://valkey.io)。Redis 7.4 已离开 BSD 许可证，大部分早期 Redis 贡献者转而开发 Valkey，它是 Redis 7.2 的分支，使用同样的通信协议。套接字之上的一切都没有变化，如果你更愿意，仍然可以让 OneUptime 指向真正的 Redis 或托管的 Redis 兼容服务。
 
-现在所有名称都随之改动：设置项为 `VALKEY_*`，Helm 值为 `valkey:` / `externalValkey:`，Kubernetes 对象为 `<release>-valkey*`。**所有旧名称依然有效**，因此未经改动的 `config.env` 或 `values.yaml` 可以继续运行——但在升级繁忙的生产集群之前，请先阅读下面关于 Helm 的说明。
+你所配置的一切现在都以它命名：配置项是 `VALKEY_*`，Helm 取值是 `valkey:` / `externalValkey:`，Kubernetes 对象是 `<release>-valkey*`。**所有旧名称依然有效**，因此未做改动的 `config.env` 或 `values.yaml` 也能照常升级并继续运行。没有必须修改的配置，也没有需要迁移的数据——缓存并非事实来源，Postgres 和 ClickHouse 都不受影响。
 
-**Docker Compose——无需任何操作。** 该服务现在名为 `valkey`，并保留 `redis` 作为网络别名，因此现有 `config.env` 中的 `REDIS_HOST=redis` 无需修改即可解析。应用会读取 `VALKEY_*`，并回退到 `REDIS_*`；而且 `npm run update` **不会**替换您现有的缓存设置：它通常会把在 `config.example.env` 中发现的所有新设置追加进来，但它能识别出这些属于重命名，会原封不动地保留您的取值——包括您的 `REDIS_PASSWORD`。请使用 `npm run update` 或任意 `docker compose up --remove-orphans` 进行升级，以便移除旧的 `redis` 容器；如果让它继续运行，同一个 `redis` 主机名后面就会有两个容器，其中一半连接会落到过时的那个上。
+需要做什么取决于你的部署方式：
 
-如果您在 `docker-compose.override.yml` 中手动设置了缓存变量，请将它们重命名为 `VALKEY_*`。基础文件会依据您的 `REDIS_HOST` 设置 `VALKEY_HOST`，因此只设置 `REDIS_HOST` 的覆盖项不再起作用。
+- **Docker Compose：**照常更新，但有一个参数很重要——参见[使用 Docker Compose 升级](#使用-docker-compose-升级)。
+- **Helm：**无需改动取值，但缓存 Pod 会被重建并以空状态回来——参见[使用 Helm 升级](#使用-helm-升级)。
+- **你让 OneUptime 指向自建缓存**（托管 Redis、ElastiCache、Memorystore 或你自己的 Valkey）：请阅读[如果你自行运行缓存](#如果你自行运行缓存)。这是唯一一种可能在毫无提示的情况下不再连上你的服务器的配置。
+- **你有依赖 Kubernetes 对象名称的仪表板、告警、网络策略或脚本：**这些名称会变——参见[使用 Helm 升级](#使用-helm-升级)。
 
-**Helm——无需更改 values 配置，但缓存会重启一次。**
+### 哪些变了，哪些没变
 
-- `redis:` 和 `externalRedis:` 仍然有效；它们会叠加在新的 `valkey:` / `externalValkey:` 默认值之上，并且 `helm upgrade` 会打印一条通知，列出它发现的已弃用键。
-- 生成的密码会从旧的 `<release>-redis` Secret 沿用到 `<release>-valkey`，因此不会发生任何轮换。旧的 Secret 会保留下来，其中存有一份现已不再使用的副本——升级稳定之后即可将其删除。
-- 重命名 StatefulSet 会重建它的 Pod。捆绑的缓存不会向磁盘写入任何内容，因此它会以空的状态重新启动：缓存的数据会丢失，处于等待、延迟或退避重试状态的 BullMQ 任务也会丢失。可重复任务和定时任务会在重新连接时自行重新注册。如果传输中的遥测数据或工作流重试对您很重要，请在业务空闲时段升级。
-- 如果您通过 `extraEnv` 而不是 `externalValkey:` 指向托管缓存，请把这些条目重命名为 `VALKEY_*`。其中的 `REDIS_HOST` 条目现在会被忽略，因为 Helm 图表同时设置了 `VALKEY_HOST`，而应用会优先使用它。
+| | 12 及之前 | 13 起 |
+| --- | --- | --- |
+| 引擎 | `redis:7.0.12` | `valkey/valkey:9.1-alpine` |
+| 配置项 | `REDIS_*` | `VALKEY_*` —— `REDIS_*` 仍会被读取 |
+| Compose 服务 | `redis` | `valkey` —— 仍响应主机名 `redis` |
+| Helm 取值 | `redis:`、`externalRedis:` | `valkey:`、`externalValkey:` —— 旧键仍然生效 |
+| Kubernetes 对象 | `<release>-redis`、`<release>-redis-master` | `<release>-valkey`、`<release>-valkey-master` |
+| 生成的 Secret | `<release>-redis` 中的 `redis-password` | `<release>-valkey` 中的 `valkey-password` |
+| 外部缓存 Secret | `<release>-external-redis` | `<release>-external-valkey` |
+
+改名的十个配置项是 `VALKEY_HOST`、`VALKEY_PORT`、`VALKEY_DB`、`VALKEY_USERNAME`、`VALKEY_PASSWORD`、`VALKEY_IP_FAMILY`、`VALKEY_TLS_CA`、`VALKEY_TLS_CERT`、`VALKEY_TLS_KEY` 和 `VALKEY_TLS_SENTINEL_MODE`。当两种写法同时存在时，应用优先使用 `VALKEY_*`。Helm chart 的取舍恰好相反：旧的 `redis:` 键会压过新的默认值，因此你从未改动过的取值文件行为与之前完全一致。
+
+**缓存会重启一次。**两种部署方式都是如此，因为容器被替换了。它不在磁盘上保存任何内容（`appendonly no`、`save ""`），所以回来时是空的：缓存值全部消失，处于等待、延迟或退避状态的 BullMQ 作业也会丢失。可重复作业和定时作业会在重新连接时自行注册。如果进行中的遥测数据或工作流重试对你很重要，请挑一个空闲时段升级。
+
+### 使用 Docker Compose 升级
+
+照常更新即可：
+
+```
+git checkout release # 请确认你在 release 分支上。
+git pull
+npm run update
+```
+
+- **如果你手动运行 Compose，请加上 `--remove-orphans`。** `npm run update` 和 `npm run start` 已经带上了它，正是它删除了旧的 `redis` 容器。若任其继续运行，就会有两个容器响应主机名 `redis`，连接会随机落到过时的那个上。
+- **你的 `config.env` 不会被改写。** `npm run update` 通常会补上 `config.example.env` 中存在而你文件里缺少的配置项，但它会把这十项识别为改名，把你的取值——包括你的 `REDIS_PASSWORD`——原样留在原处，并打印出保留了哪些。
+- 把你自己的键改成 `VALKEY_*` 是可选的，稍后再做也没有风险。每个配置项只保留一种写法。
+- **如果你在 `docker-compose.override.yml` 中设置缓存变量，请把它们改成 `VALKEY_*`。**基础文件现在会依据你的 `REDIS_HOST` 来设置 `VALKEY_HOST`，而应用优先读取 `VALKEY_HOST`，因此只设置 `REDIS_HOST` 的覆盖不再生效。
+
+### 使用 Helm 升级
+
+```
+helm repo update
+helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
+```
+
+- **无需改动取值。** `redis:` 和 `externalRedis:` 仍然可用——你在其中设置的内容会叠加在 `valkey:` / `externalValkey:` 的新默认值之上——并且 `helm upgrade` 会打印 `DEPRECATED VALUES` 提示，列出它找到的旧键。方便时改名即可。
+- **不会轮换任何凭据。**chart 会从你现有的 `<release>-redis` Secret 中读取密码并带入 `<release>-valkey`，而不是重新生成。
+- **两个旧 Secret 都会保留。** `<release>-redis`，以及在你自带缓存时的 `<release>-external-redis`，都带有 `helm.sh/resource-policy: keep` 注解，因此会留下已经不再使用的副本。升级稳定后可以删除，但请先阅读[回滚到 12](#回滚到-12)。
+- **对象名称会变。**请更新一切依赖 `<release>-redis` 或 `<release>-redis-master` 的内容：Grafana 仪表板、告警规则、NetworkPolicy、ServiceMonitor、备份作业。
+- Service 同时以旧名称 `<release>-redis-master` 发布，这样尚未滚动更新的 Pod 能自行重连，而不是在整个滚动期间解析不到任何地址。所有工作负载完成滚动后，设置 `valkey.legacyServiceAlias: false` 即可移除它。
+- **如果你曾设置 `persistence.enabled: true`**，新的 StatefulSet 会申请一个全新的卷 `data-<release>-valkey-0`。旧的 `data-<release>-redis-0` 从未存放过任何内容，删掉它就不必继续为它付费。
+
+### 如果你自行运行缓存
+
+让 OneUptime 指向并非由它启动的缓存依然完全受支持，另一端的服务器可以是 Valkey、Redis 或托管的 Redis 兼容服务。变的只是配置它的那个块的名字。
+
+- 把取值文件中的 `externalRedis:` 改成 `externalValkey:`。这是可选的——旧键仍然生效——但这是 chart 现在所记录的写法。
+- chart 会以新名称 `<release>-external-valkey` 重新生成该 Secret。旧的 `<release>-external-redis` 会保留但不再更新，因此若你自己的清单按名称引用了它，请改指到新的。
+- **`extraEnv` 覆盖不再能作用于缓存——而且这是无声失败。**如果你用 `extraEnv: [{name: REDIS_HOST, ...}]` 而不是 `externalValkey:` 块来指向托管缓存，你的条目仍然占据 `REDIS_HOST` 的位置，但应用会优先读取 `VALKEY_HOST`，而 chart 会把它设成集群内自带的缓存。也就是说，你的覆盖仍在 Pod 规格里，却被忽略了。请把这些条目改成 `VALKEY_*`，或把配置移入受支持的 `externalValkey:` 块。`helm upgrade` 会对 chart 级别的 `extraEnv` 条目发出警告；它看不到各服务的 `<service>.extraEnv` 列表，那些需要你自己检查。Compose 中的对应情形是只设置 `REDIS_HOST` 的覆盖文件。
+
+### 验证升级结果
+
+- **管理后台 → Health → Valkey** 应显示「Connected」以及一个内存数值。这与健康告警邮件所用的可达性检查完全相同。
+- **Compose：**`docker compose ps` 会列出 `valkey` 服务，且不再有 `redis` 容器。
+- **Helm：**`kubectl get pods,svc -n <namespace>` 会显示 `<release>-valkey-0` 处于 Running，以及 Service `<release>-valkey-master`。用 `helm get notes my-oneuptime` 可以重新查看升级时打印的提示。
+- 若要更深入排查，`HelmChart/Public/diagnose.sh` 会报告缓存内存、驱逐次数和连通性，并且新旧对象名称它都认识。
+
+### 回滚到 12
+
+- **Helm：**`helm rollback` 可以正常工作，因为 12 版 chart 会发现它当初创建的 `<release>-redis` Secret 仍在，并复用其中的密码。这正是保留旧 Secret 的原因——在你确定会留在 13 之前不要删除它们。
+- **Docker Compose：**在你确定之前，请让 `config.env` 保持 `REDIS_*` 写法。OneUptime 12 只读取 `REDIS_*`，所以用已改名的 `config.env` 回滚会让缓存在没有配置密码的情况下启动，在 Compose 网络上完全开放，而应用又无法通过认证。把两种写法都保留、取值一致，同样可行。
+- 回滚会再次重启缓存，冷启动的代价相同。
+
+### 有意保持为 Redis 的名称
+
+这些不是疏漏，也都不需要你做任何处理：
+
+- **API 的结构保持不变。**实例健康响应中的 `components.redis` 与 `summary.redis`、路由 `/api/admin/health/redis`，以及管理端查询控制台中的引擎取值 `redis`，都是协议键而非展示文字。你围绕它们编写的脚本可以继续使用。
+- **Redis 协议相关词汇：**`redis-cli`、`INFO` 中的 `redis_version` 字段，以及健康通知用于对比的已存内存基线值。改掉那个键会丢弃每个实例的历史数据。
+- **默认主机名仍然是 `redis`**，这是为手写清单和纯 `docker run` 部署保留的。只有在 `VALKEY_HOST` 和 `REDIS_HOST` 都未设置时才会用到，而我们自己的 Compose 和 Helm 中从不会出现这种情况。
+- 内部类名和 Postgres 列名，没有人会看到它们，改名只会带来一次迁移的成本。
 
 ## 从 OneUptime 11 升级到 12
 

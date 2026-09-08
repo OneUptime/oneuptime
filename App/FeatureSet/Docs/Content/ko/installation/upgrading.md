@@ -8,22 +8,93 @@
 - 릴리스 노트를 따르는 한 부 버전/패치 버전은 건너뛸 수 있습니다 (예: 8.1 → 8.4).
 - 업그레이드 전에 항상 백업을 수행하고 복원할 수 있는지 확인합니다.
 
-### Redis는 이제 Valkey입니다
+## OneUptime 12 → 13 업그레이드
 
-캐시 및 큐 계층은 Redis 대신 Redis 7.2의 BSD 라이선스 포크인 [Valkey](https://valkey.io)를 실행합니다 — Redis 7.4가 더 엄격한 라이선스로 옮겨 갔고, 원래 기여자 대부분이 Valkey로 이동했기 때문입니다. Valkey는 Redis 와이어 프로토콜을 사용하므로 소켓 위쪽에서는 달라진 것이 없으며, 원한다면 여전히 OneUptime이 실제 Redis(또는 관리형 Redis 호환 서비스)를 가리키도록 할 수 있습니다.
+OneUptime 13은 기본 제공 캐시·큐 엔진을 Redis에서 [Valkey](https://valkey.io)로 교체합니다. Redis 7.4가 BSD 라이선스를 떠났고, 초기 Redis 기여자 대부분이 Valkey로 옮겼기 때문입니다. Valkey는 Redis 7.2의 포크이며 동일한 프로토콜을 사용합니다. 소켓 위 계층은 아무것도 바뀌지 않았고, 원한다면 여전히 실제 Redis나 관리형 Redis 호환 서비스를 가리키게 할 수 있습니다.
 
-이제 모든 이름이 여기에 맞춰졌습니다. 설정은 `VALKEY_*`, Helm 값은 `valkey:` / `externalValkey:`, Kubernetes 오브젝트는 `<release>-valkey*`입니다. **기존 이름은 모두 그대로 동작하므로** 손대지 않은 `config.env`나 `values.yaml`로도 계속 실행됩니다 — 다만 바쁜 프로덕션 클러스터를 업그레이드하기 전에 아래 Helm 관련 내용을 읽어 보세요.
+설정하는 항목의 이름도 모두 그에 맞춰졌습니다. 설정은 `VALKEY_*`, Helm 값은 `valkey:` / `externalValkey:`, 쿠버네티스 오브젝트는 `<release>-valkey*`입니다. **기존 이름은 모두 계속 동작합니다.** 손대지 않은 `config.env`나 `values.yaml`도 그대로 업그레이드되어 계속 동작합니다. 반드시 수정해야 하는 설정은 없고, 옮겨야 할 데이터도 없습니다. 캐시는 진실의 원천이 아니며 Postgres와 ClickHouse는 영향을 받지 않습니다.
 
-**Docker Compose — 조치할 것이 없습니다.** 서비스 이름은 이제 `valkey`이지만 `redis`를 네트워크 별칭으로 유지하므로, `REDIS_HOST=redis`가 들어 있는 기존 `config.env`도 수정 없이 그대로 해석됩니다. 애플리케이션은 `VALKEY_*`를 읽고 없으면 `REDIS_*`로 폴백하며, `npm run update`는 기존 캐시 설정을 **교체하지 않습니다**. 이 명령은 보통 `config.example.env`에서 발견한 새 설정을 추가하지만, 이번 설정들은 이름 변경으로 인식하여 `REDIS_PASSWORD`를 포함한 여러분의 값을 있는 그대로 둡니다. `npm run update`로, 또는 `docker compose up --remove-orphans`를 포함한 아무 명령으로든 업그레이드하여 기존 `redis` 컨테이너가 제거되도록 하세요. 그대로 두면 같은 `redis` 호스트 이름 뒤에 컨테이너가 두 개 놓이게 되고, 연결의 절반이 오래된 쪽으로 가게 됩니다.
+무엇을 해야 하는지는 배포 방식에 따라 다릅니다.
 
-`docker-compose.override.yml`에서 캐시 관련 변수를 직접 설정했다면 `VALKEY_*`로 이름을 변경하세요. 기본 파일이 여러분의 `REDIS_HOST`로부터 `VALKEY_HOST`를 설정하므로, `REDIS_HOST`만 설정하는 재정의는 더 이상 우선하지 않습니다.
+- **Docker Compose:** 평소대로 업데이트하되, 중요한 옵션이 하나 있습니다 — [Docker Compose 업그레이드](#docker-compose-업그레이드)를 참고하세요.
+- **Helm:** 값을 바꿀 필요는 없지만 캐시 파드가 다시 생성되어 비어 있는 상태로 돌아옵니다 — [Helm 업그레이드](#helm-업그레이드)를 참고하세요.
+- **직접 운영하는 캐시를 OneUptime이 바라보게 한 경우**(관리형 Redis, ElastiCache, Memorystore, 직접 운영하는 Valkey): [직접 캐시를 운영하는 경우](#직접-캐시를-운영하는-경우)를 읽어 보세요. 아무 신호 없이 서버에 도달하지 못하게 될 수 있는 유일한 구성입니다.
+- **쿠버네티스 오브젝트 이름에 의존하는 대시보드, 알림, 네트워크 정책, 스크립트가 있는 경우:** 그 이름들이 바뀝니다 — [Helm 업그레이드](#helm-업그레이드)를 참고하세요.
 
-**Helm — 값을 변경할 필요는 없지만 캐시가 한 번 재시작됩니다.**
+### 무엇이 바뀌고 무엇이 그대로인가
 
-- `redis:`와 `externalRedis:`는 여전히 동작합니다. 이들은 새로운 `valkey:` / `externalValkey:` 기본값 위에 겹쳐 적용되며, `helm upgrade`는 발견한 더 이상 사용되지 않는 키를 나열하는 알림을 출력합니다.
-- 생성된 비밀번호는 기존 `<release>-redis` Secret에서 `<release>-valkey`로 그대로 옮겨지므로 교체되는 것은 없습니다. 기존 Secret은 이제 쓰이지 않는 사본을 담은 채 유지됩니다 — 업그레이드가 자리를 잡으면 삭제하세요.
-- StatefulSet의 이름이 바뀌면 그 파드는 다시 생성됩니다. 번들된 캐시는 디스크에 아무것도 쓰지 않으므로 비어 있는 상태로 돌아옵니다. 캐시된 값은 사라지고, 대기 중이거나 지연되었거나 백오프 중이던 BullMQ 작업은 유실됩니다. 반복 작업과 cron 작업은 재연결 시 스스로 다시 등록됩니다. 처리 중인 텔레메트리나 워크플로 재시도가 중요하다면 한산한 시간대에 업그레이드하세요.
-- `externalValkey:` 대신 `extraEnv`를 통해 관리형 캐시를 가리키고 있다면 해당 항목들의 이름을 `VALKEY_*`로 변경하세요. 차트가 `VALKEY_HOST`도 함께 설정하고 애플리케이션이 그쪽을 우선하므로, 거기에 있는 `REDIS_HOST` 항목은 이제 무시됩니다.
+| | 12까지 | 13부터 |
+| --- | --- | --- |
+| 엔진 | `redis:7.0.12` | `valkey/valkey:9.1-alpine` |
+| 설정 | `REDIS_*` | `VALKEY_*` — `REDIS_*`도 계속 읽음 |
+| Compose 서비스 | `redis` | `valkey` — 호스트 이름 `redis`로도 계속 응답 |
+| Helm 값 | `redis:`, `externalRedis:` | `valkey:`, `externalValkey:` — 기존 키도 계속 적용 |
+| 쿠버네티스 오브젝트 | `<release>-redis`, `<release>-redis-master` | `<release>-valkey`, `<release>-valkey-master` |
+| 생성되는 Secret | `<release>-redis`의 `redis-password` | `<release>-valkey`의 `valkey-password` |
+| 외부 캐시 Secret | `<release>-external-redis` | `<release>-external-valkey` |
+
+이름이 바뀐 설정은 `VALKEY_HOST`, `VALKEY_PORT`, `VALKEY_DB`, `VALKEY_USERNAME`, `VALKEY_PASSWORD`, `VALKEY_IP_FAMILY`, `VALKEY_TLS_CA`, `VALKEY_TLS_CERT`, `VALKEY_TLS_KEY`, `VALKEY_TLS_SENTINEL_MODE` 열 개입니다. 두 표기가 모두 있으면 애플리케이션은 `VALKEY_*` 쪽을 우선합니다. Helm 차트는 반대로 처리합니다. 예전 `redis:` 키가 새 기본값을 이기므로, 한 번도 건드리지 않은 값 파일은 이전과 완전히 똑같이 동작합니다.
+
+**캐시는 한 번 재시작합니다.** 컨테이너가 교체되므로 두 배포 방식 모두 마찬가지입니다. 디스크에는 아무것도 저장하지 않으므로(`appendonly no`, `save ""`) 비어 있는 상태로 돌아옵니다. 캐시된 값은 사라지고, 대기 중이거나 지연되었거나 백오프 중이던 BullMQ 작업도 사라집니다. 반복 작업과 cron 작업은 재연결 시 스스로 다시 등록됩니다. 진행 중인 텔레메트리나 워크플로 재시도가 중요하다면 한산한 시간대에 업그레이드하세요.
+
+### Docker Compose 업그레이드
+
+평소의 업데이트로 충분합니다.
+
+```
+git checkout release # release 브랜치에 있는지 확인하세요.
+git pull
+npm run update
+```
+
+- **Compose를 직접 실행한다면 `--remove-orphans`를 사용하세요.** `npm run update`와 `npm run start`는 이미 이 옵션을 넘기며, 이것이 예전 `redis` 컨테이너를 제거합니다. 그대로 두면 두 컨테이너가 호스트 이름 `redis`에 응답해 연결이 무작위로 낡은 쪽에 도달합니다.
+- **`config.env`는 다시 쓰이지 않습니다.** `npm run update`는 보통 `config.example.env`에는 있고 사용자 파일에는 없는 설정을 덧붙이지만, 이 열 개는 이름 변경으로 인식해 `REDIS_PASSWORD`를 포함한 값을 있던 자리에 그대로 둡니다. 무엇을 유지했는지도 출력합니다.
+- 자신의 키를 `VALKEY_*`로 바꾸는 것은 선택 사항이며 나중에 해도 안전합니다. 설정마다 표기는 하나만 두세요.
+- **`docker-compose.override.yml`에서 캐시 변수를 설정한다면 `VALKEY_*`로 바꾸세요.** 베이스 파일이 이제 사용자의 `REDIS_HOST`로부터 `VALKEY_HOST`를 설정하고 애플리케이션은 `VALKEY_HOST`를 먼저 읽으므로, `REDIS_HOST`만 설정하는 오버라이드는 더 이상 우선하지 않습니다.
+
+### Helm 업그레이드
+
+```
+helm repo update
+helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
+```
+
+- **값을 바꿀 필요가 없습니다.** `redis:`와 `externalRedis:`는 계속 동작하며, 그 아래에 설정한 내용은 `valkey:` / `externalValkey:`의 새 기본값 위에 덮입니다. 그리고 `helm upgrade`는 발견한 예전 키를 나열하는 `DEPRECATED VALUES` 안내를 출력합니다. 편할 때 이름을 바꾸면 됩니다.
+- **회전되는 값은 없습니다.** 차트는 기존 `<release>-redis` Secret에서 비밀번호를 읽어 새로 만들지 않고 `<release>-valkey`로 옮깁니다.
+- **예전 Secret 두 개는 그대로 남습니다.** `<release>-redis`와, 자체 캐시를 사용한다면 `<release>-external-redis`에는 `helm.sh/resource-policy: keep` 주석이 붙어 있어 이제 쓰이지 않는 사본으로 남습니다. 업그레이드가 안정되면 삭제하세요. 다만 먼저 [12로 롤백](#12로-롤백)을 읽어 보세요.
+- **오브젝트 이름이 바뀝니다.** `<release>-redis`나 `<release>-redis-master`에 의존하는 것들, 즉 Grafana 대시보드, 알림 규칙, NetworkPolicy, ServiceMonitor, 백업 작업을 갱신하세요.
+- Service는 예전 이름 `<release>-redis-master`로도 함께 게시되므로, 아직 교체되지 않은 파드가 롤아웃 내내 이름 해석에 실패하지 않고 스스로 다시 연결됩니다. 모든 워크로드가 교체된 뒤에는 `valkey.legacyServiceAlias: false`로 설정해 제거하세요.
+- **`persistence.enabled: true`를 쓰고 있었다면**, 새 StatefulSet은 새 볼륨 `data-<release>-valkey-0`을 요구합니다. 예전 `data-<release>-redis-0`에는 아무것도 들어 있지 않았으니 비용이 더 나가지 않도록 삭제하세요.
+
+### 직접 캐시를 운영하는 경우
+
+OneUptime이 직접 실행하지 않는 캐시를 가리키는 구성은 여전히 완전히 지원되며, 반대편 서버는 Valkey든 Redis든 관리형 Redis 호환 서비스든 상관없습니다. 달라진 것은 그것을 설정하는 블록의 이름뿐입니다.
+
+- 값 파일의 `externalRedis:`를 `externalValkey:`로 바꾸세요. 선택 사항이지만(예전 키도 계속 적용됩니다) 차트가 지금 문서화하는 표기입니다.
+- 차트는 Secret을 새 이름 `<release>-external-valkey`로 다시 만듭니다. 예전 `<release>-external-redis`는 남지만 더 이상 갱신되지 않으므로, 직접 작성한 매니페스트가 이름으로 참조한다면 대상을 옮기세요.
+- **`extraEnv` 오버라이드는 더 이상 캐시에 도달하지 않으며, 조용히 실패합니다.** `externalValkey:` 블록 대신 `extraEnv: [{name: REDIS_HOST, ...}]`로 관리형 캐시를 가리키고 있다면, 해당 항목은 여전히 `REDIS_HOST` 자리를 차지하지만 애플리케이션은 `VALKEY_HOST`를 먼저 읽고 차트는 그 값을 클러스터 안의 자체 캐시로 설정합니다. 즉 오버라이드는 파드 스펙에 남은 채 무시됩니다. 해당 항목을 `VALKEY_*`로 바꾸거나, 지원되는 방식인 `externalValkey:`로 설정을 옮기세요. `helm upgrade`는 차트 전역의 `extraEnv` 항목에 대해서는 경고하지만 서비스별 `<service>.extraEnv` 목록은 볼 수 없으므로 직접 확인해야 합니다. Compose에서의 대응물은 `REDIS_HOST`만 설정하는 오버라이드 파일입니다.
+
+### 업그레이드 확인
+
+- **관리자 대시보드 → Health → Valkey**에 「Connected」와 메모리 수치가 표시되어야 합니다. 상태 경고 이메일이 사용하는 것과 같은 도달성 점검입니다.
+- **Compose:** `docker compose ps`에 `valkey` 서비스가 보이고 `redis` 컨테이너는 없습니다.
+- **Helm:** `kubectl get pods,svc -n <namespace>`에 `<release>-valkey-0`이 Running으로, Service `<release>-valkey-master`가 함께 표시됩니다. `helm get notes my-oneuptime`으로 업그레이드가 출력한 안내를 다시 볼 수 있습니다.
+- 더 깊이 보려면 `HelmChart/Public/diagnose.sh`가 캐시 메모리, 축출, 연결성을 보고하며 예전 이름과 새 이름을 모두 이해합니다.
+
+### 12로 롤백
+
+- **Helm:** `helm rollback`은 정상 동작합니다. 12 차트가 자신이 만든 `<release>-redis` Secret이 그대로 있는 것을 찾아 그 비밀번호를 다시 쓰기 때문입니다. 예전 Secret을 남겨 두는 이유가 이것이니, 13에 머무를 것이 확실해질 때까지 삭제하지 마세요.
+- **Docker Compose:** 확신이 설 때까지 `config.env`의 표기를 `REDIS_*`로 유지하세요. OneUptime 12는 `REDIS_*`만 읽으므로, 키 이름을 바꾼 `config.env` 그대로 롤백하면 캐시는 비밀번호가 설정되지 않은 채 Compose 네트워크에 열린 상태로 시작하고 애플리케이션은 인증하지 못합니다. 두 표기를 같은 값으로 함께 두는 방법도 괜찮습니다.
+- 롤백도 캐시를 다시 재시작하므로 콜드 스타트 비용은 동일합니다.
+
+### 의도적으로 Redis로 남긴 이름
+
+이것들은 빠뜨린 것이 아니며, 어느 것도 조치가 필요하지 않습니다.
+
+- **API 형태는 그대로입니다.** 인스턴스 상태 응답의 `components.redis`와 `summary.redis`, 경로 `/api/admin/health/redis`, 관리자 쿼리 콘솔의 엔진 값 `redis`는 표시 문구가 아니라 프로토콜 키입니다. 이를 대상으로 작성한 스크립트는 그대로 동작합니다.
+- **Redis 프로토콜 용어:** `redis-cli`, `INFO`의 `redis_version` 필드, 그리고 상태 알림이 비교 기준으로 삼는 저장된 메모리 기준값. 이 키의 이름을 바꾸면 모든 인스턴스의 이력이 사라집니다.
+- **기본 호스트 이름은 여전히 `redis`입니다.** 손으로 작성한 매니페스트와 단순한 `docker run` 구성을 위한 것입니다. `VALKEY_HOST`와 `REDIS_HOST`가 모두 없을 때만 쓰이는데, 저희 Compose나 Helm에서는 그런 일이 없습니다.
+- 내부 클래스 이름과 Postgres 열 이름. 아무도 보지 않으며 이름을 바꾸면 마이그레이션 비용만 듭니다.
 
 ## OneUptime 11 → 12 업그레이드
 
