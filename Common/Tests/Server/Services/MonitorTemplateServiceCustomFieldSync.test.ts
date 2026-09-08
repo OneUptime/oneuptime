@@ -11,6 +11,10 @@ import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import MonitorType from "../../../Types/Monitor/MonitorType";
+import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import UpdateOneBy from "../../../Server/Types/Database/UpdateOneBy";
+import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
@@ -53,8 +57,8 @@ function buildTemplate(data?: {
   template.id = TEMPLATE_ID;
   template.projectId = PROJECT_ID;
   /*
-   * Ping rather than Network Device, so nothing but custom fields can push a
-   * sync onto the per-monitor path.
+   * No monitor steps are supplied here, so custom fields are the only reason
+   * these fixtures take the per-monitor path.
    */
   template.monitorType = data?.monitorType || MonitorType.Ping;
   template.monitoringInterval = "*/10 * * * *";
@@ -85,7 +89,7 @@ function buildLinkedMonitor(customFields?: JSONObject | undefined): Monitor {
 }
 
 interface MockedSync {
-  updateOneSpy: SpyInstance<typeof MonitorService.updateOneById>;
+  updateOneSpy: SpyInstance<typeof MonitorService.updateOneBy>;
   bulkUpdateSpy: SpyInstance<typeof MonitorService.updateBy>;
   findBySpy: SpyInstance<typeof MonitorService.findBy>;
   permissionSpy: SpyInstance<
@@ -106,7 +110,7 @@ function mockSync(data: {
 
   return {
     updateOneSpy: jest
-      .spyOn(MonitorService, "updateOneById")
+      .spyOn(MonitorService, "updateOneBy")
       .mockResolvedValue(1),
     bulkUpdateSpy: jest.spyOn(MonitorService, "updateBy").mockResolvedValue(0),
     findBySpy: jest
@@ -126,7 +130,7 @@ function mockSync(data: {
 }
 
 function writtenCustomFields(
-  updateOneSpy: SpyInstance<typeof MonitorService.updateOneById>,
+  updateOneSpy: SpyInstance<typeof MonitorService.updateOneBy>,
   callIndex: number,
 ): JSONObject {
   return updateOneSpy.mock.calls[callIndex]![0].data
@@ -138,6 +142,90 @@ afterEach(() => {
 });
 
 describe("MonitorTemplateService custom field default synchronization", () => {
+  it.each([
+    ["fleet", false],
+    ["fleet", true],
+    ["single", false],
+    ["single", true],
+  ])(
+    "combines custom field defaults with optional target sync via %s (explicit target: %s)",
+    async (pathway: string, explicitTarget: boolean) => {
+      const template: MonitorTemplate = buildTemplate({
+        monitorType: MonitorType.Website,
+        customFields: { Vendor: "Cisco", Notes: "" },
+      });
+      template.monitorSteps = new MonitorSteps();
+      const templateStep: MonitorStep =
+        template.monitorSteps.data!.monitorStepsInstanceArray[0]!;
+      templateStep.data!.id = "website-step";
+      templateStep.data!.monitorDestination = explicitTarget
+        ? URL.fromString("https://shared.example.com")
+        : undefined;
+      templateStep.data!.requestTimeoutInMs = 10000;
+      const monitor: Monitor = buildLinkedMonitor({
+        Vendor: "Juniper",
+        Notes: "Keep this monitor's notes",
+      });
+      monitor.monitorType = MonitorType.Website;
+      monitor.monitorSteps = new MonitorSteps();
+      const currentStep: MonitorStep =
+        monitor.monitorSteps.data!.monitorStepsInstanceArray[0]!;
+      currentStep.data!.id = "website-step";
+      currentStep.data!.monitorDestination = URL.fromString(
+        "https://current.example.com",
+      );
+      const mocks: MockedSync = mockSync({ template, monitors: [monitor] });
+      jest.spyOn(MonitorService, "findOneById").mockResolvedValue(monitor);
+
+      if (pathway === "fleet") {
+        await MonitorTemplateService.syncLinkedMonitors({
+          monitorTemplateId: TEMPLATE_ID,
+          fields: ["monitorSteps", "customFields"],
+          props: { isRoot: true },
+        });
+        expect(
+          Object.keys(mocks.permissionSpy.mock.calls[0]![2] as JSONObject),
+        ).toEqual(["monitorSteps", "customFields"]);
+      } else {
+        await MonitorTemplateService.syncToMonitor({
+          monitorTemplateId: TEMPLATE_ID,
+          monitorId: monitor.id!,
+          fields: ["monitorSteps", "customFields"],
+          props: { isRoot: true },
+        });
+      }
+
+      expect(mocks.updateOneSpy).toHaveBeenCalledTimes(1);
+      const update: UpdateOneBy<Monitor> = mocks.updateOneSpy.mock.calls[0]![0];
+      const syncedSteps: MonitorSteps = update.data
+        .monitorSteps as MonitorSteps;
+      expect(
+        syncedSteps.data!.monitorStepsInstanceArray[0]!.data!.monitorDestination!.toString(),
+      ).toBe(
+        explicitTarget
+          ? "https://shared.example.com/"
+          : "https://current.example.com/",
+      );
+      expect(
+        syncedSteps.data!.monitorStepsInstanceArray[0]!.data!
+          .requestTimeoutInMs,
+      ).toBe(10000);
+      expect(writtenCustomFields(mocks.updateOneSpy, 0)).toEqual({
+        Vendor: "Cisco",
+        Notes: "Keep this monitor's notes",
+      });
+      expect(update.query).toEqual({
+        _id: monitor.id,
+        monitorTemplateId: TEMPLATE_ID,
+        projectId: PROJECT_ID,
+      });
+      expect(monitor.customFields).toEqual({
+        Vendor: "Juniper",
+        Notes: "Keep this monitor's notes",
+      });
+    },
+  );
+
   it("is not pushed by an unscoped sync", async () => {
     const template: MonitorTemplate = buildTemplate();
     const monitor: Monitor = buildLinkedMonitor({ Vendor: "Juniper" });
@@ -437,8 +525,9 @@ describe("MonitorTemplateService custom field default synchronization", () => {
         .spyOn(MonitorTemplateService, "findOneById")
         .mockResolvedValue(template);
       jest.spyOn(MonitorService, "findOneById").mockResolvedValue(monitor);
-      const updateOneSpy: SpyInstance<typeof MonitorService.updateOneById> =
-        jest.spyOn(MonitorService, "updateOneById").mockResolvedValue(1);
+      const updateOneSpy: SpyInstance<typeof MonitorService.updateOneBy> = jest
+        .spyOn(MonitorService, "updateOneBy")
+        .mockResolvedValue(1);
 
       await MonitorTemplateService.syncToMonitor({
         monitorTemplateId: TEMPLATE_ID,
@@ -464,7 +553,7 @@ describe("MonitorTemplateService custom field default synchronization", () => {
         .mockResolvedValue(template);
       const monitorReadSpy: SpyInstance<typeof MonitorService.findOneById> =
         jest.spyOn(MonitorService, "findOneById").mockResolvedValue(monitor);
-      jest.spyOn(MonitorService, "updateOneById").mockResolvedValue(1);
+      jest.spyOn(MonitorService, "updateOneBy").mockResolvedValue(1);
 
       await MonitorTemplateService.syncToMonitor({
         monitorTemplateId: TEMPLATE_ID,
@@ -486,8 +575,9 @@ describe("MonitorTemplateService custom field default synchronization", () => {
         .spyOn(MonitorTemplateService, "findOneById")
         .mockResolvedValue(template);
       jest.spyOn(MonitorService, "findOneById").mockResolvedValue(monitor);
-      const updateOneSpy: SpyInstance<typeof MonitorService.updateOneById> =
-        jest.spyOn(MonitorService, "updateOneById").mockResolvedValue(1);
+      const updateOneSpy: SpyInstance<typeof MonitorService.updateOneBy> = jest
+        .spyOn(MonitorService, "updateOneBy")
+        .mockResolvedValue(1);
 
       await MonitorTemplateService.syncToMonitor({
         monitorTemplateId: TEMPLATE_ID,

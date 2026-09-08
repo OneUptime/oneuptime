@@ -1,3 +1,4 @@
+import MonitorTargetFieldLabel from "../MonitorTemplateContext";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import MonitorStepDomainMonitor from "Common/Types/Monitor/MonitorStepDomainMonitor";
 import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupMethod";
@@ -27,7 +28,7 @@ const DomainMonitorStepForm: FunctionComponent<ComponentProps> = (
   return (
     <div className="space-y-5">
       <div>
-        <FieldLabelElement
+        <MonitorTargetFieldLabel
           title="Domain Name"
           description="The domain name to monitor (e.g. example.com)"
           required={true}

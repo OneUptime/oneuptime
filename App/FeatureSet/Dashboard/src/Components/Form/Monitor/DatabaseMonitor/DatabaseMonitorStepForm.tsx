@@ -1,4 +1,14 @@
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import MonitorTemplateTargetPolicy from "Common/Types/Monitor/MonitorTemplateTargetPolicy";
+import MonitorTargetFieldLabel, {
+  MonitorTemplateContext,
+} from "../MonitorTemplateContext";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useState,
+  useContext,
+  useEffect,
+} from "react";
 import MonitorStepDatabaseMonitor, {
   DEFAULT_DATABASE_METRIC_GROUPS,
 } from "Common/Types/Monitor/MonitorStepDatabaseMonitor";
@@ -149,8 +159,29 @@ const isGroupCollectable: IsGroupCollectableFunction = (
 const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const isMonitorTemplate: boolean = useContext(MonitorTemplateContext);
   const [showAdvancedOptions, setShowAdvancedOptions] =
     useState<boolean>(false);
+
+  /*
+   * Creating an actual monitor from a targetless template must persist the
+   * conventional port shown in the field, while the template keeps it unset.
+   */
+  useEffect(() => {
+    if (
+      !isMonitorTemplate &&
+      MonitorTemplateTargetPolicy.isBlankTargetValue(
+        props.monitorStepDatabaseMonitor.port,
+      )
+    ) {
+      props.onChange({
+        ...props.monitorStepDatabaseMonitor,
+        port: SqlDatabaseTypeUtil.getDefaultPort(
+          props.monitorStepDatabaseMonitor.databaseType,
+        ),
+      });
+    }
+  }, [isMonitorTemplate, props.monitorStepDatabaseMonitor, props.onChange]);
 
   const databaseTypeOptions: Array<DropdownOption> =
     SqlDatabaseTypeUtil.getSupportedDatabaseTypes().map(
@@ -248,7 +279,7 @@ const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="Host"
             description="Database host reachable from the probe (e.g. db.internal)"
             required={true}
@@ -266,18 +297,31 @@ const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div>
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="Port"
             description="Database port"
             required={true}
           />
           <Input
             initialValue={
-              props.monitorStepDatabaseMonitor.port?.toString() || "5432"
+              props.monitorStepDatabaseMonitor.port?.toString() ||
+              (isMonitorTemplate
+                ? ""
+                : SqlDatabaseTypeUtil.getDefaultPort(
+                    props.monitorStepDatabaseMonitor.databaseType,
+                  ).toString())
             }
             placeholder="5432"
             type={InputType.NUMBER}
             onChange={(value: string) => {
+              if (isMonitorTemplate && !value.trim()) {
+                const config: MonitorStepDatabaseMonitor = {
+                  ...props.monitorStepDatabaseMonitor,
+                };
+                delete (config as Partial<MonitorStepDatabaseMonitor>).port;
+                props.onChange(config);
+                return;
+              }
               props.onChange({
                 ...props.monitorStepDatabaseMonitor,
                 port:
@@ -295,7 +339,7 @@ const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
         }`}
       >
         <div>
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="Database Name"
             description="The database to connect to. Server-wide metrics cover the whole instance; size and throughput are reported for this database."
             required={true}
@@ -314,7 +358,7 @@ const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
 
         {!useWindowsIntegratedAuthentication && (
           <div>
-            <FieldLabelElement
+            <MonitorTargetFieldLabel
               title="Username"
               description="Use a dedicated monitoring login. It needs to read statistics and nothing else."
               required={false}
@@ -335,7 +379,7 @@ const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
 
       {!useWindowsIntegratedAuthentication && (
         <div>
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="Password"
             description={
               <p>

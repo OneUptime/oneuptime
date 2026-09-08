@@ -1,3 +1,4 @@
+import MonitorTargetFieldLabel from "../MonitorTemplateContext";
 import MonitorStepPodmanMonitor, {
   MonitorStepPodmanMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepPodmanMonitor";
@@ -200,7 +201,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
   const renderHostDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
-        <FieldLabelElement
+        <MonitorTargetFieldLabel
           title="Podman Host"
           description={"Select the Podman host to monitor."}
           required={true}
@@ -226,7 +227,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <>
         <div className="mt-3">
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="Container Name"
             description={"Filter by container name (optional)."}
             required={false}
@@ -249,7 +250,7 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="Container Image"
             description={"Filter by container image (optional)."}
             required={false}

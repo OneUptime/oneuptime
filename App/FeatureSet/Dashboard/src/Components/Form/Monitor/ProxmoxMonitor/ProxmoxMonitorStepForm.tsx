@@ -1,3 +1,4 @@
+import MonitorTargetFieldLabel from "../MonitorTemplateContext";
 import MonitorStepProxmoxMonitor, {
   MonitorStepProxmoxMonitorUtil,
   ProxmoxResourceScope,
@@ -227,7 +228,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
   const renderClusterDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
-        <FieldLabelElement
+        <MonitorTargetFieldLabel
           title="Proxmox Cluster"
           description={"Select the Proxmox cluster to monitor."}
           required={true}
@@ -261,7 +262,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <>
         <div className="mt-3">
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="Resource Scope"
             description={
               "Filter by resource type — nodes, guests, or storage volumes (optional)."
@@ -289,7 +290,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="PVE ID"
             description={
               "Filter by the part of the resource id after the first slash — a node name (`pve1`), a VMID (`100`), or `<node>/<storage>` for storage (`pve1/local`, since storage ids are `storage/<node>/<storage>`). Optional; pair with a scope to target one resource."
@@ -312,7 +313,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="Node Name"
             description={
               "Filter to a single node's OWN series (optional). This cannot scope guests/storage by their parent node."
@@ -335,7 +336,7 @@ const ProxmoxMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="Guest ID"
             description={
               "Filter by guest id — the raw `id` datapoint label (optional). Wins over the other filters when set."

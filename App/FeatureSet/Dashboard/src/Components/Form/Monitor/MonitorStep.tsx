@@ -1,3 +1,5 @@
+import MonitorTemplateTargetPolicy from "Common/Types/Monitor/MonitorTemplateTargetPolicy";
+import MonitorTargetFieldLabel from "./MonitorTemplateContext";
 import MonitorCriteriaElement from "./MonitorCriteria";
 import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
@@ -178,6 +180,7 @@ export interface ComponentProps {
   onChange?: undefined | ((value: MonitorStep) => void);
   // onDelete?: undefined | (() => void);
   monitorType: MonitorType;
+  isMonitorTemplate?: boolean | undefined;
   allMonitorSteps: MonitorSteps;
   probes: Array<Probe>;
   monitorId?: ObjectID | undefined; // this is used to populate secrets when testing the monitor.
@@ -641,6 +644,11 @@ return {
       setDestinationFieldDescription(
         "Whats the URL of the website you want to monitor?",
       );
+    } else if (props.monitorType === MonitorType.SSLCertificate) {
+      setDestinationFieldTitle("Certificate URL");
+      setDestinationFieldDescription(
+        "The HTTPS URL whose certificate you want to monitor.",
+      );
     } else if (props.monitorType === MonitorType.Ping) {
       setDestinationFieldTitle("Ping Hostname or IP address");
       setDestinationFieldDescription(
@@ -680,6 +688,20 @@ return {
   }
 
   const monitorStep: MonitorStep = props.value || new MonitorStep();
+  const defaultConnectionConfigs: {
+    sqlMonitor: MonitorStepSqlMonitor;
+    databaseMonitor: MonitorStepDatabaseMonitor;
+  } = {
+    sqlMonitor: MonitorStepSqlMonitorUtil.getDefault(),
+    databaseMonitor: MonitorStepDatabaseMonitorUtil.getDefault(),
+  };
+
+  if (props.isMonitorTemplate) {
+    MonitorTemplateTargetPolicy.clearTargets(
+      defaultConnectionConfigs,
+      props.monitorType,
+    );
+  }
 
   // Check if there are any advanced options configured
   const hasAdvancedOptionsConfigured: boolean =
@@ -776,7 +798,7 @@ return {
         >
           <div className="space-y-4">
             <div>
-              <FieldLabelElement
+              <MonitorTargetFieldLabel
                 title={destinationFieldTitle}
                 description={destinationFieldDescription}
                 required={true}
@@ -790,7 +812,10 @@ return {
                     destination: true,
                   });
 
-                  if (!monitorStep?.data?.monitorDestination?.toString()) {
+                  if (
+                    !destinationInputValue.trim() &&
+                    !props.isMonitorTemplate
+                  ) {
                     setErrors({
                       ...errors,
                       destination: "Destination is required",
@@ -800,9 +825,11 @@ return {
                       ...errors,
                       destination: "",
                     });
-                    setDestinationInputValue(
-                      monitorStep?.data?.monitorDestination?.toString(),
-                    );
+                    if (monitorStep?.data?.monitorDestination) {
+                      setDestinationInputValue(
+                        monitorStep.data.monitorDestination.toString(),
+                      );
+                    }
                   }
                 }}
                 error={
@@ -812,6 +839,19 @@ return {
                 }
                 onChange={(value: string) => {
                   let destination: IP | URL | Hostname | undefined = undefined;
+
+                  if (!value.trim()) {
+                    monitorStep.setMonitorDestination(undefined);
+                    setDestinationInputValue(value);
+                    setErrors({
+                      ...errors,
+                      destination: props.isMonitorTemplate
+                        ? ""
+                        : "Destination is required",
+                    });
+                    props.onChange?.(MonitorStep.clone(monitorStep));
+                    return;
+                  }
 
                   try {
                     if (props.monitorType === MonitorType.IP) {
@@ -911,7 +951,7 @@ return {
 
             {props.monitorType === MonitorType.Port && (
               <div>
-                <FieldLabelElement
+                <MonitorTargetFieldLabel
                   title={"Port"}
                   description={"Whats the port you want to monitor?"}
                   required={true}
@@ -919,7 +959,9 @@ return {
                 <Input
                   initialValue={monitorStep?.data?.monitorDestinationPort?.toString()}
                   onChange={(value: string) => {
-                    const port: Port = new Port(value);
+                    const port: Port | undefined = value.trim()
+                      ? new Port(value)
+                      : undefined;
                     monitorStep.setPort(port);
                     if (props.onChange) {
                       props.onChange(MonitorStep.clone(monitorStep));
@@ -1785,7 +1827,7 @@ return {
           <SqlMonitorStepForm
             monitorStepSqlMonitor={
               monitorStep.data?.sqlMonitor ||
-              MonitorStepSqlMonitorUtil.getDefault()
+              defaultConnectionConfigs.sqlMonitor
             }
             onChange={(value: MonitorStepSqlMonitor) => {
               monitorStep.setSqlMonitor(value);
@@ -1803,7 +1845,7 @@ return {
           <DatabaseMonitorStepForm
             monitorStepDatabaseMonitor={
               monitorStep.data?.databaseMonitor ||
-              MonitorStepDatabaseMonitorUtil.getDefault()
+              defaultConnectionConfigs.databaseMonitor
             }
             onChange={(value: MonitorStepDatabaseMonitor) => {
               monitorStep.setDatabaseMonitor(value);

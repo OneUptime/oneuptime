@@ -237,6 +237,18 @@ describe("NetworkDeviceAutoImportRuleService.onBeforeCreate monitor template val
     );
   });
 
+  it("accepts a criteria-only Network Device template without a device configuration", async () => {
+    const monitorSteps: MonitorSteps = new MonitorSteps();
+    monitorSteps.data!.monitorStepsInstanceArray[0]!.data!.networkDeviceMonitor =
+      undefined;
+    mockMonitorTemplate({ monitorSteps });
+    await expect(
+      (NetworkDeviceAutoImportRuleService as any).onBeforeCreate(
+        makeCreateBy({ monitorTemplateId: TEMPLATE_ID }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
   it("uses the request tenant before DatabaseService injects projectId", async () => {
     mockMonitorTemplate();
     const createBy: CreateBy<NetworkDeviceAutoImportRule> = makeCreateBy({

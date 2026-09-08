@@ -1,3 +1,4 @@
+import MonitorTargetFieldLabel from "../MonitorTemplateContext";
 import MonitorStepDockerSwarmMonitor, {
   MonitorStepDockerSwarmMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepDockerSwarmMonitor";
@@ -215,7 +216,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
   const renderClusterDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
-        <FieldLabelElement
+        <MonitorTargetFieldLabel
           title="Docker Swarm Cluster"
           description={"Select the Docker Swarm cluster to monitor."}
           required={true}
@@ -250,7 +251,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <>
         <div className="mt-3">
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="Service Name"
             description={"Filter to a single Swarm service's tasks (optional)."}
             required={false}
@@ -273,7 +274,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="Node Name"
             description={
               "Filter to containers running on a single Swarm node (optional)."
@@ -296,7 +297,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="Container Name"
             description={
               "Filter to a single task's container — a Swarm task container is named `<service>.<slot>.<taskid>` (optional)."
@@ -321,7 +322,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="Container Image"
             description={
               "Filter to tasks running a given container image (optional)."

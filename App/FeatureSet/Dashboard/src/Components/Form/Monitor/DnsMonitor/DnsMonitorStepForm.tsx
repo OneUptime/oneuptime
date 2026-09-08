@@ -1,3 +1,4 @@
+import MonitorTargetFieldLabel from "../MonitorTemplateContext";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import MonitorStepDnsMonitor from "Common/Types/Monitor/MonitorStepDnsMonitor";
 import DnsRecordType from "Common/Types/Monitor/DnsMonitor/DnsRecordType";
@@ -27,7 +28,7 @@ const DnsMonitorStepForm: FunctionComponent<ComponentProps> = (
   return (
     <div className="space-y-5">
       <div>
-        <FieldLabelElement
+        <MonitorTargetFieldLabel
           title="Domain Name"
           description="The domain name to query (e.g. example.com)"
           required={true}

@@ -7,6 +7,7 @@ import MonitorTemplateService, {
   SyncLinkedMonitorsResult,
 } from "../../../Server/Services/MonitorTemplateService";
 import Query from "../../../Server/Types/Database/Query";
+import UpdateOneBy from "../../../Server/Types/Database/UpdateOneBy";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -99,8 +100,8 @@ describe("MonitorTemplateService Network Device synchronization", () => {
     jest
       .spyOn(MonitorService, "findBy")
       .mockResolvedValue([firstMonitor, secondMonitor]);
-    const updateOneSpy: SpyInstance<typeof MonitorService.updateOneById> = jest
-      .spyOn(MonitorService, "updateOneById")
+    const updateOneSpy: SpyInstance<typeof MonitorService.updateOneBy> = jest
+      .spyOn(MonitorService, "updateOneBy")
       .mockResolvedValue(1);
     const bulkUpdateSpy: SpyInstance<typeof MonitorService.updateBy> =
       jest.spyOn(MonitorService, "updateBy");
@@ -115,6 +116,24 @@ describe("MonitorTemplateService Network Device synchronization", () => {
     expect(result).toEqual({ totalLinkedMonitors: 2, syncedMonitors: 2 });
     expect(updateOneSpy).toHaveBeenCalledTimes(2);
     expect(bulkUpdateSpy).not.toHaveBeenCalled();
+    expect(
+      updateOneSpy.mock.calls.map(
+        (call: [UpdateOneBy<Monitor>]): Query<Monitor> => {
+          return call[0].query;
+        },
+      ),
+    ).toEqual([
+      {
+        _id: firstMonitor.id,
+        monitorTemplateId: TEMPLATE_ID,
+        projectId: PROJECT_ID,
+      },
+      {
+        _id: secondMonitor.id,
+        monitorTemplateId: TEMPLATE_ID,
+        projectId: PROJECT_ID,
+      },
+    ]);
 
     const firstSteps: MonitorSteps = updateOneSpy.mock.calls[0]![0].data
       .monitorSteps as MonitorSteps;
@@ -175,8 +194,8 @@ describe("MonitorTemplateService Network Device synchronization", () => {
     const findSpy: SpyInstance<typeof MonitorService.findBy> = jest
       .spyOn(MonitorService, "findBy")
       .mockResolvedValue([visibleMonitor]);
-    const updateOneSpy: SpyInstance<typeof MonitorService.updateOneById> = jest
-      .spyOn(MonitorService, "updateOneById")
+    const updateOneSpy: SpyInstance<typeof MonitorService.updateOneBy> = jest
+      .spyOn(MonitorService, "updateOneBy")
       .mockResolvedValue(1);
 
     const result: SyncLinkedMonitorsResult =
@@ -203,10 +222,19 @@ describe("MonitorTemplateService Network Device synchronization", () => {
     );
     expect(updateOneSpy).toHaveBeenCalledTimes(1);
     expect(updateOneSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ id: visibleMonitor.id }),
+      expect.objectContaining({
+        query: {
+          _id: visibleMonitor.id,
+          monitorTemplateId: TEMPLATE_ID,
+          projectId: PROJECT_ID,
+        },
+        props,
+      }),
     );
     expect(updateOneSpy).not.toHaveBeenCalledWith(
-      expect.objectContaining({ id: hiddenMonitor.id }),
+      expect.objectContaining({
+        query: expect.objectContaining({ _id: hiddenMonitor.id }),
+      }),
     );
     expect(result).toEqual({ totalLinkedMonitors: 2, syncedMonitors: 1 });
   });
@@ -232,7 +260,7 @@ describe("MonitorTemplateService Network Device synchronization", () => {
         },
       );
     jest.spyOn(MonitorService, "findBy").mockResolvedValue([monitor]);
-    jest.spyOn(MonitorService, "updateOneById").mockResolvedValue(0);
+    jest.spyOn(MonitorService, "updateOneBy").mockResolvedValue(0);
 
     const result: SyncLinkedMonitorsResult =
       await MonitorTemplateService.syncLinkedMonitors({
@@ -261,8 +289,8 @@ describe("MonitorTemplateService Network Device synchronization", () => {
     jest
       .spyOn(MonitorService, "findBy")
       .mockResolvedValue([validMonitor, ambiguousMonitor]);
-    const updateSpy: SpyInstance<typeof MonitorService.updateOneById> =
-      jest.spyOn(MonitorService, "updateOneById");
+    const updateSpy: SpyInstance<typeof MonitorService.updateOneBy> =
+      jest.spyOn(MonitorService, "updateOneBy");
 
     await expect(
       MonitorTemplateService.syncLinkedMonitors({
@@ -284,8 +312,8 @@ describe("MonitorTemplateService Network Device synchronization", () => {
       .spyOn(MonitorTemplateService, "findOneById")
       .mockResolvedValue(template);
     jest.spyOn(MonitorService, "findOneById").mockResolvedValue(monitor);
-    const updateSpy: SpyInstance<typeof MonitorService.updateOneById> = jest
-      .spyOn(MonitorService, "updateOneById")
+    const updateSpy: SpyInstance<typeof MonitorService.updateOneBy> = jest
+      .spyOn(MonitorService, "updateOneBy")
       .mockResolvedValue(1);
 
     await MonitorTemplateService.syncToMonitor({
@@ -295,6 +323,11 @@ describe("MonitorTemplateService Network Device synchronization", () => {
       props: { isRoot: true },
     });
 
+    expect(updateSpy.mock.calls[0]![0].query).toEqual({
+      _id: monitor.id,
+      monitorTemplateId: TEMPLATE_ID,
+      projectId: PROJECT_ID,
+    });
     const syncedSteps: MonitorSteps = updateSpy.mock.calls[0]![0].data
       .monitorSteps as MonitorSteps;
     expect(
@@ -313,8 +346,8 @@ describe("MonitorTemplateService Network Device synchronization", () => {
       .spyOn(MonitorTemplateService, "findOneById")
       .mockResolvedValue(template);
     jest.spyOn(MonitorService, "findOneById").mockResolvedValue(monitor);
-    const updateSpy: SpyInstance<typeof MonitorService.updateOneById> = jest
-      .spyOn(MonitorService, "updateOneById")
+    const updateSpy: SpyInstance<typeof MonitorService.updateOneBy> = jest
+      .spyOn(MonitorService, "updateOneBy")
       .mockResolvedValue(1);
 
     await MonitorTemplateService.syncToMonitor({
@@ -341,8 +374,8 @@ describe("MonitorTemplateService Network Device synchronization", () => {
       .spyOn(MonitorTemplateService, "findOneById")
       .mockResolvedValue(template);
     jest.spyOn(MonitorService, "findOneById").mockResolvedValue(monitor);
-    const updateSpy: SpyInstance<typeof MonitorService.updateOneById> =
-      jest.spyOn(MonitorService, "updateOneById");
+    const updateSpy: SpyInstance<typeof MonitorService.updateOneBy> =
+      jest.spyOn(MonitorService, "updateOneBy");
 
     await expect(
       MonitorTemplateService.syncToMonitor({
@@ -369,7 +402,7 @@ describe("MonitorTemplateService Network Device synchronization", () => {
     /*
      * The bulk path reads ids so it can cover a fleet larger than one update
      * batch, but it must still write through updateBy rather than rebinding
-     * each monitor the way the Network Device path does.
+     * each monitor when monitor steps are not being synced.
      */
     jest
       .spyOn(MonitorService, "findBy")
@@ -378,9 +411,8 @@ describe("MonitorTemplateService Network Device synchronization", () => {
         buildLinkedMonitor([DEVICE_ONE_ID]),
         buildLinkedMonitor([DEVICE_TWO_ID]),
       ]);
-    const perMonitorUpdateSpy: SpyInstance<
-      typeof MonitorService.updateOneById
-    > = jest.spyOn(MonitorService, "updateOneById");
+    const perMonitorUpdateSpy: SpyInstance<typeof MonitorService.updateOneBy> =
+      jest.spyOn(MonitorService, "updateOneBy");
 
     const result: SyncLinkedMonitorsResult =
       await MonitorTemplateService.syncLinkedMonitors({

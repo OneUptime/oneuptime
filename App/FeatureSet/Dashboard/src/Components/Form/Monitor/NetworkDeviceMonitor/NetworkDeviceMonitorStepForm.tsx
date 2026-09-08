@@ -1,9 +1,9 @@
+import MonitorTargetFieldLabel from "../MonitorTemplateContext";
 import React, { FunctionComponent, ReactElement } from "react";
 import MonitorStepNetworkDeviceMonitor from "Common/Types/Monitor/MonitorStepNetworkDeviceMonitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import EntityDropdown from "Common/UI/Components/EntityDropdown/EntityDropdown";
 import { DropdownValue } from "Common/UI/Components/Dropdown/Dropdown";
-import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 
 export interface ComponentProps {
   monitorStepNetworkDeviceMonitor: MonitorStepNetworkDeviceMonitor;
@@ -24,7 +24,8 @@ const NetworkDeviceMonitorStepForm: FunctionComponent<ComponentProps> = (
   return (
     <div className="space-y-5">
       <div>
-        <FieldLabelElement
+        <MonitorTargetFieldLabel
+          preserveOnSync={true}
           title="Network Device"
           description="The registered device to alert on. The device is polled by its assigned probe on the device's own schedule — this monitor evaluates its criteria against every poll result and incoming trap."
           required={true}

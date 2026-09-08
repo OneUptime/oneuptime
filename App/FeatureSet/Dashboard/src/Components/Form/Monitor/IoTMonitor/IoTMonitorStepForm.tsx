@@ -1,3 +1,4 @@
+import MonitorTargetFieldLabel from "../MonitorTemplateContext";
 import MonitorStepIoTMonitor, {
   MonitorStepIoTMonitorUtil,
   IoTResourceScope,
@@ -222,7 +223,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
   const renderFleetDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
-        <FieldLabelElement
+        <MonitorTargetFieldLabel
           title="IoT Fleet"
           description={"Select the IoT fleet to monitor."}
           required={true}
@@ -253,7 +254,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <>
         <div className="mt-3">
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="Resource Scope"
             description={
               "Filter by resource type — the whole fleet or individual devices (optional)."
@@ -281,7 +282,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="Device ID"
             description={
               "Filter by the device id — the raw `device.id` datapoint label (optional). Wins over the other filters when set."
@@ -304,7 +305,7 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="Device Type"
             description={
               "Filter by the `iot.device.type` attribute — e.g. sensor, gateway, camera (optional)."

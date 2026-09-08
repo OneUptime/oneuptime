@@ -1,3 +1,4 @@
+import MonitorTargetFieldLabel from "../MonitorTemplateContext";
 import MonitorStepHostMonitor, {
   MonitorStepHostMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepHostMonitor";
@@ -197,7 +198,7 @@ const HostMonitorStepForm: FunctionComponent<ComponentProps> = (
   const renderHostDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
-        <FieldLabelElement
+        <MonitorTargetFieldLabel
           title="Host"
           description={"Select the host to monitor."}
           required={true}

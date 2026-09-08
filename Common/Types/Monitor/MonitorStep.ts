@@ -84,6 +84,13 @@ import MonitorStepIoTMonitor, {
 import MetricsViewConfig from "../Metrics/MetricsViewConfig";
 import MetricQueryConfigData from "../Metrics/MetricQueryConfigData";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
+import MonitorTemplateTargetPolicy, {
+  MonitorTemplateTargetField,
+} from "./MonitorTemplateTargetPolicy";
+
+export interface MonitorStepValidationOptions {
+  isMonitorTemplate?: boolean | undefined;
+}
 
 /*
  * Caps and defaults for per-step request timeout and retry settings.
@@ -483,7 +490,7 @@ export default class MonitorStep extends DatabaseProperty {
   }
 
   public setMonitorDestination(
-    monitorDestination: URL | IP | Hostname,
+    monitorDestination: URL | IP | Hostname | undefined,
   ): MonitorStep {
     this.data!.monitorDestination = monitorDestination;
     return this;
@@ -520,7 +527,7 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
-  public setPort(monitorDestinationPort: Port): MonitorStep {
+  public setPort(monitorDestinationPort: Port | undefined): MonitorStep {
     this.data!.monitorDestinationPort = monitorDestinationPort;
     return this;
   }
@@ -751,14 +758,36 @@ export default class MonitorStep extends DatabaseProperty {
   public static getValidationError(
     value: MonitorStep,
     monitorType: MonitorType,
+    options: MonitorStepValidationOptions = {},
   ): string | null {
     if (!value.data) {
       return "Monitor Step is required.";
     }
 
+    const isMissingRequiredTarget: (
+      path: ReadonlyArray<string>,
+      target: unknown,
+    ) => boolean = (path: ReadonlyArray<string>, target: unknown): boolean => {
+      const isOptionalTemplateTarget: boolean =
+        Boolean(options.isMonitorTemplate) &&
+        MonitorTemplateTargetPolicy.getTargetFields(monitorType).some(
+          (field: MonitorTemplateTargetField) => {
+            return field.path.join(".") === path.join(".");
+          },
+        );
+
+      return (
+        !isOptionalTemplateTarget &&
+        (!target || MonitorTemplateTargetPolicy.isBlankTargetValue(target))
+      );
+    };
+
     // If the monitor type is incoming request, then the monitor destination is not required
     if (
-      !value.data.monitorDestination &&
+      isMissingRequiredTarget(
+        ["monitorDestination"],
+        value.data.monitorDestination,
+      ) &&
       (monitorType === MonitorType.Port ||
         monitorType === MonitorType.API ||
         monitorType === MonitorType.Ping ||
@@ -821,7 +850,10 @@ export default class MonitorStep extends DatabaseProperty {
 
     if (
       monitorType === MonitorType.Port &&
-      !value.data.monitorDestinationPort
+      isMissingRequiredTarget(
+        ["monitorDestinationPort"],
+        value.data.monitorDestinationPort,
+      )
     ) {
       return "Port is required";
     }
@@ -832,27 +864,43 @@ export default class MonitorStep extends DatabaseProperty {
      * OIDs) is configured on the NetworkDevice resource itself, not here.
      */
     if (monitorType === MonitorType.NetworkDevice) {
-      if (!value.data.networkDeviceMonitor?.networkDeviceId) {
+      if (
+        !options.isMonitorTemplate &&
+        isMissingRequiredTarget(
+          ["networkDeviceMonitor", "networkDeviceId"],
+          value.data.networkDeviceMonitor?.networkDeviceId,
+        )
+      ) {
         return "Network Device is required";
       }
     }
 
     if (monitorType === MonitorType.DNS) {
-      if (!value.data.dnsMonitor) {
+      if (!value.data.dnsMonitor && !options.isMonitorTemplate) {
         return "DNS configuration is required";
       }
 
-      if (!value.data.dnsMonitor.queryName) {
+      if (
+        isMissingRequiredTarget(
+          ["dnsMonitor", "queryName"],
+          value.data.dnsMonitor?.queryName,
+        )
+      ) {
         return "DNS query name (domain) is required";
       }
     }
 
     if (monitorType === MonitorType.Domain) {
-      if (!value.data.domainMonitor) {
+      if (!value.data.domainMonitor && !options.isMonitorTemplate) {
         return "Domain configuration is required";
       }
 
-      if (!value.data.domainMonitor.domainName) {
+      if (
+        isMissingRequiredTarget(
+          ["domainMonitor", "domainName"],
+          value.data.domainMonitor?.domainName,
+        )
+      ) {
         return "Domain name is required";
       }
     }
@@ -862,7 +910,12 @@ export default class MonitorStep extends DatabaseProperty {
         return "DNSSEC configuration is required";
       }
 
-      if (!value.data.dnssecMonitor.domainName) {
+      if (
+        isMissingRequiredTarget(
+          ["dnssecMonitor", "domainName"],
+          value.data.dnssecMonitor?.domainName,
+        )
+      ) {
         return "Domain name is required";
       }
 
@@ -879,11 +932,21 @@ export default class MonitorStep extends DatabaseProperty {
         return "SQL monitor configuration is required";
       }
 
-      if (!value.data.sqlMonitor.host) {
+      if (
+        isMissingRequiredTarget(
+          ["sqlMonitor", "host"],
+          value.data.sqlMonitor?.host,
+        )
+      ) {
         return "Database host is required";
       }
 
-      if (!value.data.sqlMonitor.databaseName) {
+      if (
+        isMissingRequiredTarget(
+          ["sqlMonitor", "databaseName"],
+          value.data.sqlMonitor?.databaseName,
+        )
+      ) {
         return "Database name is required";
       }
 
@@ -901,15 +964,25 @@ export default class MonitorStep extends DatabaseProperty {
     }
 
     if (monitorType === MonitorType.Database) {
-      if (!value.data.databaseMonitor) {
+      if (!value.data.databaseMonitor && !options.isMonitorTemplate) {
         return "Database monitor configuration is required";
       }
 
-      if (!value.data.databaseMonitor.host) {
+      if (
+        isMissingRequiredTarget(
+          ["databaseMonitor", "host"],
+          value.data.databaseMonitor?.host,
+        )
+      ) {
         return "Database host is required";
       }
 
-      if (!value.data.databaseMonitor.databaseName) {
+      if (
+        isMissingRequiredTarget(
+          ["databaseMonitor", "databaseName"],
+          value.data.databaseMonitor?.databaseName,
+        )
+      ) {
         return "Database name is required";
       }
 
@@ -921,108 +994,179 @@ export default class MonitorStep extends DatabaseProperty {
        * collects nothing.
        */
       if (
-        value.data.databaseMonitor.useWindowsIntegratedAuthentication &&
-        value.data.databaseMonitor.databaseType !==
+        value.data.databaseMonitor?.useWindowsIntegratedAuthentication &&
+        value.data.databaseMonitor?.databaseType !==
           SqlDatabaseType.MicrosoftSqlServer
       ) {
         return "Windows Integrated Authentication is only supported for Microsoft SQL Server";
       }
 
       if (
-        !value.data.databaseMonitor.useWindowsIntegratedAuthentication &&
-        !value.data.databaseMonitor.username
+        !value.data.databaseMonitor?.useWindowsIntegratedAuthentication &&
+        isMissingRequiredTarget(
+          ["databaseMonitor", "username"],
+          value.data.databaseMonitor?.username,
+        )
       ) {
         return "Database username is required";
       }
     }
 
     if (monitorType === MonitorType.ExternalStatusPage) {
-      if (!value.data.externalStatusPageMonitor) {
+      if (!value.data.externalStatusPageMonitor && !options.isMonitorTemplate) {
         return "External status page configuration is required";
       }
 
-      if (!value.data.externalStatusPageMonitor.statusPageUrl) {
+      if (
+        isMissingRequiredTarget(
+          ["externalStatusPageMonitor", "statusPageUrl"],
+          value.data.externalStatusPageMonitor?.statusPageUrl,
+        )
+      ) {
         return "Status page URL is required";
       }
     }
 
     if (monitorType === MonitorType.Kubernetes) {
-      if (!value.data.kubernetesMonitor) {
+      if (!value.data.kubernetesMonitor && !options.isMonitorTemplate) {
         return "Kubernetes monitor configuration is required";
       }
 
-      if (!value.data.kubernetesMonitor.clusterIdentifier) {
+      if (
+        isMissingRequiredTarget(
+          ["kubernetesMonitor", "clusterIdentifier"],
+          value.data.kubernetesMonitor?.clusterIdentifier,
+        )
+      ) {
         return "Kubernetes cluster is required";
       }
     }
 
     if (monitorType === MonitorType.Docker) {
-      if (!value.data.dockerMonitor) {
+      if (!value.data.dockerMonitor && !options.isMonitorTemplate) {
         return "Docker monitor configuration is required";
       }
 
-      if (!value.data.dockerMonitor.hostIdentifier) {
+      if (
+        isMissingRequiredTarget(
+          ["dockerMonitor", "hostIdentifier"],
+          value.data.dockerMonitor?.hostIdentifier,
+        )
+      ) {
         return "Docker host is required";
       }
     }
 
     if (monitorType === MonitorType.Host) {
-      if (!value.data.hostMonitor) {
+      if (!value.data.hostMonitor && !options.isMonitorTemplate) {
         return "Host monitor configuration is required";
       }
 
-      if (!value.data.hostMonitor.hostIdentifier) {
+      if (
+        isMissingRequiredTarget(
+          ["hostMonitor", "hostIdentifier"],
+          value.data.hostMonitor?.hostIdentifier,
+        )
+      ) {
         return "Host is required";
       }
     }
 
     if (monitorType === MonitorType.Podman) {
-      if (!value.data.podmanMonitor) {
+      if (!value.data.podmanMonitor && !options.isMonitorTemplate) {
         return "Podman monitor configuration is required";
       }
 
-      if (!value.data.podmanMonitor.hostIdentifier) {
+      if (
+        isMissingRequiredTarget(
+          ["podmanMonitor", "hostIdentifier"],
+          value.data.podmanMonitor?.hostIdentifier,
+        )
+      ) {
         return "Podman host is required";
       }
     }
 
     if (monitorType === MonitorType.Proxmox) {
-      if (!value.data.proxmoxMonitor) {
+      if (!value.data.proxmoxMonitor && !options.isMonitorTemplate) {
         return "Proxmox monitor configuration is required";
       }
 
-      if (!value.data.proxmoxMonitor.clusterIdentifier) {
+      if (
+        isMissingRequiredTarget(
+          ["proxmoxMonitor", "clusterIdentifier"],
+          value.data.proxmoxMonitor?.clusterIdentifier,
+        )
+      ) {
         return "Proxmox cluster is required";
       }
     }
 
     if (monitorType === MonitorType.DockerSwarm) {
-      if (!value.data.dockerSwarmMonitor) {
+      if (!value.data.dockerSwarmMonitor && !options.isMonitorTemplate) {
         return "Docker Swarm monitor configuration is required";
       }
 
-      if (!value.data.dockerSwarmMonitor.clusterIdentifier) {
+      if (
+        isMissingRequiredTarget(
+          ["dockerSwarmMonitor", "clusterIdentifier"],
+          value.data.dockerSwarmMonitor?.clusterIdentifier,
+        )
+      ) {
         return "Docker Swarm cluster is required";
       }
     }
 
     if (monitorType === MonitorType.Ceph) {
-      if (!value.data.cephMonitor) {
+      if (!value.data.cephMonitor && !options.isMonitorTemplate) {
         return "Ceph monitor configuration is required";
       }
 
-      if (!value.data.cephMonitor.clusterIdentifier) {
+      if (
+        isMissingRequiredTarget(
+          ["cephMonitor", "clusterIdentifier"],
+          value.data.cephMonitor?.clusterIdentifier,
+        )
+      ) {
         return "Ceph cluster is required";
       }
     }
 
     if (monitorType === MonitorType.IoTDevice) {
-      if (!value.data.iotMonitor) {
+      if (!value.data.iotMonitor && !options.isMonitorTemplate) {
         return "IoT monitor configuration is required";
       }
 
-      if (!value.data.iotMonitor.fleetIdentifier) {
+      if (
+        isMissingRequiredTarget(
+          ["iotMonitor", "fleetIdentifier"],
+          value.data.iotMonitor?.fleetIdentifier,
+        )
+      ) {
         return "IoT fleet is required";
+      }
+    }
+
+    if (
+      monitorType === MonitorType.SQLQuery ||
+      monitorType === MonitorType.Database
+    ) {
+      const port: number | undefined =
+        monitorType === MonitorType.SQLQuery
+          ? value.data.sqlMonitor?.port
+          : value.data.databaseMonitor?.port;
+
+      if (MonitorTemplateTargetPolicy.isBlankTargetValue(port)) {
+        if (!options.isMonitorTemplate) {
+          return "Database port is required";
+        }
+      } else if (
+        typeof port !== "number" ||
+        !Number.isInteger(port) ||
+        port < 1 ||
+        port > 65535
+      ) {
+        return "Database port must be a whole number between 1 and 65535";
       }
     }
 
@@ -1200,6 +1344,15 @@ export default class MonitorStep extends DatabaseProperty {
       );
     }
 
+    if (
+      !MonitorTemplateTargetPolicy.isBlankTargetValue(
+        json["monitorDestination"],
+      ) &&
+      !monitorDestination
+    ) {
+      throw new BadDataException("Invalid monitor destination");
+    }
+
     const monitorDestinationPort: Port | undefined = json[
       "monitorDestinationPort"
     ]
@@ -1319,11 +1472,15 @@ export default class MonitorStep extends DatabaseProperty {
        * defend against a step written by an older build or by hand.
        */
       databaseMonitor: json["databaseMonitor"]
-        ? MonitorStepDatabaseMonitorUtil.toJSON(
-            MonitorStepDatabaseMonitorUtil.fromJSON(
-              json["databaseMonitor"] as JSONObject,
+        ? {
+            ...MonitorStepDatabaseMonitorUtil.toJSON(
+              MonitorStepDatabaseMonitorUtil.fromJSON(
+                json["databaseMonitor"] as JSONObject,
+              ),
             ),
-          )
+            // An omitted template port means retain each monitor's port.
+            port: (json["databaseMonitor"] as JSONObject)["port"],
+          }
         : undefined,
       externalStatusPageMonitor: json["externalStatusPageMonitor"]
         ? (json["externalStatusPageMonitor"] as JSONObject)

@@ -22,6 +22,7 @@ type RegisterAndCreateProjectFunction = (data: {
    * Specs that touch plan-gated features need this.
    */
   preferredPlanName?: string | undefined;
+  email?: string | undefined;
 }) => Promise<string>;
 
 export const registerAndCreateProject: RegisterAndCreateProjectFunction =
@@ -29,6 +30,7 @@ export const registerAndCreateProject: RegisterAndCreateProjectFunction =
     page: Page;
     projectNamePrefix: string;
     preferredPlanName?: string | undefined;
+    email?: string | undefined;
   }): Promise<string> => {
     const page: Page = data.page;
 
@@ -50,7 +52,7 @@ export const registerAndCreateProject: RegisterAndCreateProjectFunction =
       }
     }
 
-    const email: string = Faker.generateEmail().toString();
+    const email: string = data.email || Faker.generateEmail().toString();
 
     await page.getByTestId("email").click();
     await page.getByTestId("email").fill(email);

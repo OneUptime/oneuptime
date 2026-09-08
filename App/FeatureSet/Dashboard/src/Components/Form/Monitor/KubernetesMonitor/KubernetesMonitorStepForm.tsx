@@ -1,3 +1,4 @@
+import MonitorTargetFieldLabel from "../MonitorTemplateContext";
 import MonitorStepKubernetesMonitor, {
   MonitorStepKubernetesMonitorUtil,
   KubernetesResourceScope,
@@ -309,7 +310,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
   const renderClusterDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
-        <FieldLabelElement
+        <MonitorTargetFieldLabel
           title="Kubernetes Cluster"
           description={"Select the Kubernetes cluster to monitor."}
           required={true}
@@ -338,7 +339,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
       <>
         {showNamespaceFilter && (
           <div className="mt-3">
-            <FieldLabelElement
+            <MonitorTargetFieldLabel
               title="Namespace"
               description={"Filter by namespace (optional)."}
               required={false}
@@ -363,7 +364,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
 
         {showWorkloadFilter && (
           <div className="mt-3">
-            <FieldLabelElement
+            <MonitorTargetFieldLabel
               title="Workload Name"
               description={"Filter by workload name (optional)."}
               required={false}
@@ -388,7 +389,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
 
         {showNodeFilter && (
           <div className="mt-3">
-            <FieldLabelElement
+            <MonitorTargetFieldLabel
               title="Node Name"
               description={"Filter by node name (optional)."}
               required={false}
@@ -413,7 +414,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
 
         {showPodFilter && (
           <div className="mt-3">
-            <FieldLabelElement
+            <MonitorTargetFieldLabel
               title="Pod Name"
               description={"Filter by pod name (optional)."}
               required={false}

@@ -237,12 +237,14 @@ interface MountedForm {
 async function mountWith(data: {
   initialValue?: MonitorSteps | undefined;
   monitorType: MonitorType;
+  isMonitorTemplate?: boolean | undefined;
 }): Promise<MountedForm> {
   const changes: Array<MonitorSteps> = [];
 
   render(
     <MonitorStepsElement
       monitorType={data.monitorType}
+      isMonitorTemplate={data.isMonitorTemplate}
       monitorName={MONITOR_NAME}
       {...(data.initialValue ? { initialValue: data.initialValue } : {})}
       onChange={(value: MonitorSteps) => {
@@ -348,5 +350,67 @@ describe("the criteria form keeps its criteria in step with the monitor type", (
     expect(
       unrenderableChecksIn(form.latest(), MonitorType.ExternalStatusPage),
     ).toEqual([]);
+  });
+});
+
+describe("monitor template target initialization", () => {
+  beforeEach(() => {
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+    mockModelApi();
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  test("fresh database templates do not silently opt into syncing the default port", async () => {
+    const form: MountedForm = await mountWith({
+      monitorType: MonitorType.Database,
+      isMonitorTemplate: true,
+    });
+    expect(
+      form.latest().data?.monitorStepsInstanceArray[0]?.data?.databaseMonitor
+        ?.port,
+    ).toBeUndefined();
+    expect(checksIn(form.latest()).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Optional template targets/)).toBeInTheDocument();
+  });
+
+  test("fresh ordinary database monitors retain their default port", async () => {
+    const form: MountedForm = await mountWith({
+      monitorType: MonitorType.Database,
+    });
+    expect(
+      form.latest().data?.monitorStepsInstanceArray[0]?.data?.databaseMonitor
+        ?.port,
+    ).toBe(5432);
+    expect(
+      screen.queryByText(/Optional template targets/),
+    ).not.toBeInTheDocument();
+  });
+
+  test("opening an existing template preserves its explicitly configured port", async () => {
+    const steps: MonitorSteps = seededStepsFor(MonitorType.Database);
+    steps.data!.monitorStepsInstanceArray[0]!.data!.databaseMonitor!.port = 6432;
+    const form: MountedForm = await mountWith({
+      initialValue: steps,
+      monitorType: MonitorType.Database,
+      isMonitorTemplate: true,
+    });
+    expect(
+      form.latest().data?.monitorStepsInstanceArray[0]?.data?.databaseMonitor
+        ?.port,
+    ).toBe(6432);
+  });
+
+  test("ordinary check-only monitor types do not claim to have optional target fields", async () => {
+    await mountWith({
+      monitorType: MonitorType.CustomJavaScriptCode,
+      isMonitorTemplate: true,
+    });
+    expect(
+      screen.queryByText(/Optional template targets/),
+    ).not.toBeInTheDocument();
   });
 });

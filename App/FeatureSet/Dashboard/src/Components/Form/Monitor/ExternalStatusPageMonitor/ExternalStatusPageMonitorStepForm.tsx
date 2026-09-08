@@ -1,3 +1,4 @@
+import MonitorTargetFieldLabel from "../MonitorTemplateContext";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import MonitorStepExternalStatusPageMonitor from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
 import ExternalStatusPageProviderType from "Common/Types/Monitor/ExternalStatusPageProviderType";
@@ -27,7 +28,7 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
   return (
     <div className="space-y-5">
       <div>
-        <FieldLabelElement
+        <MonitorTargetFieldLabel
           title="Status Page URL"
           description="The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)"
           required={true}
@@ -89,7 +90,7 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
           <h4 className="font-medium">Advanced Options</h4>
 
           <div>
-            <FieldLabelElement
+            <MonitorTargetFieldLabel
               title="Component Group Filter (Optional)"
               description="Scope to a specific component group, e.g. 'APIs'. Incidents and component statuses outside this group are ignored. Supported for Atlassian Statuspage and incident.io."
               required={false}
@@ -110,8 +111,9 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
           </div>
 
           <div>
-            <FieldLabelElement
+            <MonitorTargetFieldLabel
               title="Component Name Filter (Optional)"
+              templateDescription="Filter to a specific component by name, within the component group when one is set."
               description="Filter to a specific component by name (applied within the component group when one is set). Leave blank to monitor all components in scope."
               required={false}
             />

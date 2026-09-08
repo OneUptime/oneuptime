@@ -1,3 +1,4 @@
+import MonitorTargetFieldLabel from "../MonitorTemplateContext";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import MonitorStepDnssecMonitor from "Common/Types/Monitor/MonitorStepDnssecMonitor";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
@@ -19,7 +20,7 @@ const DnssecMonitorStepForm: FunctionComponent<ComponentProps> = (
   return (
     <div className="space-y-5">
       <div>
-        <FieldLabelElement
+        <MonitorTargetFieldLabel
           title="Zone (Domain Name)"
           description="The zone to validate via DNSSEC (e.g. example.com)"
           required={true}

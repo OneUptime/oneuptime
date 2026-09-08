@@ -196,6 +196,7 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
               return MonitorStepsType.getValidationError(
                 values.monitorSteps as MonitorStepsType,
                 values.monitorType as MonitorType,
+                { isMonitorTemplate: true },
               );
             },
             getCustomElement: (
@@ -212,6 +213,7 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
                */
               return (
                 <MonitorStepsForm
+                  isMonitorTemplate={true}
                   {...fieldProps}
                   monitorType={value.monitorType || MonitorType.Manual}
                   monitorName={

@@ -4,6 +4,7 @@ import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
+import { MonitorStepNetworkDeviceMonitorUtil } from "../../Types/Monitor/MonitorStepNetworkDeviceMonitor";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import ObjectID from "../../Types/ObjectID";
 import MonitorTemplateCustomFieldUtil from "./MonitorTemplateCustomFieldUtil";
@@ -11,9 +12,8 @@ import MonitorTemplateCustomFieldUtil from "./MonitorTemplateCustomFieldUtil";
 /*
  * Materialises a project MonitorTemplate for one discovered NetworkDevice.
  *
- * A Network Device template necessarily contains a concrete device id today:
- * the ordinary template form uses the same required step editor as a Monitor.
- * That id is only a design-time placeholder when the template is used by
+ * A Network Device template can leave its device reference blank. A supplied
+ * reference is only a design-time placeholder when the template is used by
  * discovery automation. Every step is therefore cloned and rebound here; the
  * template object must never be mutated, because the same instance can serve a
  * whole discovered estate.
@@ -83,18 +83,15 @@ export default class NetworkDeviceMonitorTemplateUtil {
       );
     }
 
-    this.validateMonitorSteps(data.monitorSteps, "Monitor template");
+    this.validateMonitorSteps(data.monitorSteps, "Monitor template", true);
 
     const clonedSteps: MonitorSteps = MonitorSteps.clone(data.monitorSteps!);
 
     for (const step of clonedSteps.data!.monitorStepsInstanceArray) {
-      if (!step.data?.networkDeviceMonitor) {
-        throw new BadDataException(
-          "Monitor template contains a Network Device step without Network Device configuration.",
-        );
-      }
-
-      step.data.networkDeviceMonitor.networkDeviceId = networkDeviceId;
+      step.data!.networkDeviceMonitor =
+        step.data!.networkDeviceMonitor ||
+        MonitorStepNetworkDeviceMonitorUtil.getDefault();
+      step.data!.networkDeviceMonitor.networkDeviceId = networkDeviceId;
     }
 
     return clonedSteps;
@@ -193,7 +190,11 @@ export default class NetworkDeviceMonitorTemplateUtil {
       );
     }
 
-    this.validateMonitorSteps(monitorTemplate.monitorSteps, "Monitor template");
+    this.validateMonitorSteps(
+      monitorTemplate.monitorSteps,
+      "Monitor template",
+      true,
+    );
 
     const monitor: Monitor = new Monitor();
     monitor.projectId = new ObjectID(networkDevice.projectId.toString());
@@ -234,6 +235,7 @@ export default class NetworkDeviceMonitorTemplateUtil {
   public static validateMonitorSteps(
     monitorSteps: MonitorSteps | JSONObject | undefined,
     subject: string = "Network Device monitor",
+    allowMissingConfiguration: boolean = false,
   ): void {
     const normalizedSteps: MonitorSteps = this.normalizeMonitorSteps(
       monitorSteps,
@@ -248,7 +250,10 @@ export default class NetworkDeviceMonitorTemplateUtil {
     }
 
     for (const step of normalizedSteps.data.monitorStepsInstanceArray) {
-      if (!step.data?.networkDeviceMonitor) {
+      if (
+        !step?.data ||
+        (!allowMissingConfiguration && !step.data.networkDeviceMonitor)
+      ) {
         throw new BadDataException(
           `${subject} contains a Network Device step without Network Device configuration.`,
         );

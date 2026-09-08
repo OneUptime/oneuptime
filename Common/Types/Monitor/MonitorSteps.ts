@@ -3,7 +3,7 @@ import BadDataException from "../Exception/BadDataException";
 import { JSONArray, JSONObject, ObjectType } from "../JSON";
 import JSONFunctions from "../JSONFunctions";
 import ObjectID from "../ObjectID";
-import MonitorStep from "./MonitorStep";
+import MonitorStep, { MonitorStepValidationOptions } from "./MonitorStep";
 import MonitorType from "./MonitorType";
 import { FindOperator } from "typeorm";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
@@ -146,6 +146,7 @@ export default class MonitorSteps extends DatabaseProperty {
   public static getValidationError(
     value: MonitorSteps,
     monitorType: MonitorType,
+    options: MonitorStepValidationOptions = {},
   ): string | null {
     if (!value.data) {
       return "Monitor Steps is required";
@@ -160,8 +161,14 @@ export default class MonitorSteps extends DatabaseProperty {
     }
 
     for (const step of value.data.monitorStepsInstanceArray) {
-      if (MonitorStep.getValidationError(step, monitorType)) {
-        return MonitorStep.getValidationError(step, monitorType);
+      const error: string | null = MonitorStep.getValidationError(
+        step,
+        monitorType,
+        options,
+      );
+
+      if (error) {
+        return error;
       }
     }
 

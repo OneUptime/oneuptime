@@ -558,6 +558,7 @@ export class Service extends DatabaseService<Model> {
     NetworkDeviceMonitorTemplateUtil.validateMonitorSteps(
       monitorTemplate.monitorSteps,
       "Monitor template",
+      true,
     );
 
     /*

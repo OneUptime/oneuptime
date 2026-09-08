@@ -1,3 +1,9 @@
+import {
+  MonitorTemplateContext,
+  TEMPLATE_TARGET_DESCRIPTION,
+  NETWORK_DEVICE_TEMPLATE_TARGET_DESCRIPTION,
+} from "./MonitorTemplateContext";
+import MonitorTemplateTargetPolicy from "Common/Types/Monitor/MonitorTemplateTargetPolicy";
 import MonitorStepElement from "./MonitorStep";
 import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -41,6 +47,7 @@ export interface ComponentProps extends CustomElementProps {
   onBlur?: () => void;
   initialValue?: MonitorSteps;
   monitorType: MonitorType;
+  isMonitorTemplate?: boolean | undefined;
   monitorName?: string | undefined; // this is used to prefill incident title and description. If not provided then it will be empty.
   monitorId?: ObjectID | undefined; // this is used to populate secrets when testing the monitor.
 }
@@ -384,17 +391,28 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       // if there is no initial value then....
 
       if (!monitorSteps) {
-        setMonitorSteps(
-          MonitorSteps.getDefaultMonitorSteps({
-            monitorType: props.monitorType,
-            monitorName: props.monitorName || "",
-            defaultMonitorStatusId: operationalMonitorStatusId!,
-            onlineMonitorStatusId: operationalMonitorStatusId!,
-            offlineMonitorStatusId: offlineStatusId!,
-            defaultIncidentSeverityId: incidentSeverityId!,
-            defaultAlertSeverityId: alertSeverityId!,
-          }),
-        );
+        const defaultSteps: MonitorSteps = MonitorSteps.getDefaultMonitorSteps({
+          monitorType: props.monitorType,
+          monitorName: props.monitorName || "",
+          defaultMonitorStatusId: operationalMonitorStatusId!,
+          onlineMonitorStatusId: operationalMonitorStatusId!,
+          offlineMonitorStatusId: offlineStatusId!,
+          defaultIncidentSeverityId: incidentSeverityId!,
+          defaultAlertSeverityId: alertSeverityId!,
+        });
+
+        if (props.isMonitorTemplate) {
+          defaultSteps.data?.monitorStepsInstanceArray.forEach(
+            (step: MonitorStep) => {
+              MonitorTemplateTargetPolicy.clearTargets(
+                step.data,
+                props.monitorType,
+              );
+            },
+          );
+        }
+
+        setMonitorSteps(defaultSteps);
       }
 
       const probes: Array<Probe> = await ProbeUtil.getAllProbes();
@@ -472,84 +490,102 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div>
-      {monitorSteps?.data?.monitorStepsInstanceArray?.map(
-        (i: MonitorStep, index: number) => {
-          return (
-            <MonitorStepElement
-              monitorType={props.monitorType}
-              allMonitorSteps={monitorSteps}
-              key={index}
-              monitorStatusDropdownOptions={monitorStatusDropdownOptions}
-              incidentSeverityDropdownOptions={incidentSeverityDropdownOptions}
-              alertSeverityDropdownOptions={alertSeverityDropdownOptions}
-              onCallPolicyDropdownOptions={onCallPolicyDropdownOptions}
-              labelDropdownOptions={labelDropdownOptions}
-              teamDropdownOptions={teamDropdownOptions}
-              userDropdownOptions={userDropdownOptions}
-              incidentRoleOptions={incidentRoleOptions}
-              value={i}
-              probes={probes}
-              monitorId={props.monitorId}
-              onlineMonitorStatusId={onlineMonitorStatusId}
-              offlineMonitorStatusId={offlineMonitorStatusId}
-              defaultIncidentSeverityId={defaultIncidentSeverityId}
-              defaultAlertSeverityId={defaultAlertSeverityId}
-              monitorName={props.monitorName}
-              /*
-               * onDelete={() => {
-               *     // remove the criteria filter
-               * const index: number | undefined =
-               * monitorSteps.data?.monitorStepsInstanceArray.findIndex((item: MonitorStep) => {
-               *     return item.data?.id === value.data?.id;
-               * })
-               */
-
-              /*
-               * if (index === undefined) {
-               *     return;
-               * }
-               *     const newMonitorSteps: Array<MonitorStep> = [
-               *         ...(monitorSteps.data
-               *             ?.monitorStepsInstanceArray || []),
-               *     ];
-               *     newMonitorSteps.splice(index, 1);
-               *     setMonitorSteps(
-               *         new MonitorSteps().fromJSON({
-               *             _type: 'MonitorSteps',
-               *             value: {
-               *                 monitorStepsInstanceArray:
-               *                     newMonitorSteps,
-               *             },
-               *         })
-               *     );
-               * }}
-               */
-              onChange={(value: MonitorStep) => {
-                const index: number | undefined =
-                  monitorSteps.data?.monitorStepsInstanceArray.findIndex(
-                    (item: MonitorStep) => {
-                      return item.data?.id === value.data?.id;
-                    },
-                  );
-
-                if (index === undefined) {
-                  return;
-                }
-
-                const newMonitorSteps: Array<MonitorStep> = [
-                  ...(monitorSteps.data?.monitorStepsInstanceArray || []),
-                ];
-                newMonitorSteps[index] = value;
-                monitorSteps.setMonitorStepsInstanceArray(newMonitorSteps);
-                setMonitorSteps(MonitorSteps.clone(monitorSteps));
-              }}
+    <MonitorTemplateContext.Provider value={Boolean(props.isMonitorTemplate)}>
+      <div>
+        {props.isMonitorTemplate &&
+          (MonitorTemplateTargetPolicy.supportsMonitorType(props.monitorType) ||
+            props.monitorType === MonitorType.NetworkDevice) && (
+            <Alert
+              type={AlertType.INFO}
+              strongTitle="Optional template targets"
+              title={
+                props.monitorType === MonitorType.NetworkDevice
+                  ? NETWORK_DEVICE_TEMPLATE_TARGET_DESCRIPTION
+                  : TEMPLATE_TARGET_DESCRIPTION
+              }
+              className="mb-4"
             />
-          );
-        },
-      )}
+          )}
+        {monitorSteps?.data?.monitorStepsInstanceArray?.map(
+          (i: MonitorStep, index: number) => {
+            return (
+              <MonitorStepElement
+                monitorType={props.monitorType}
+                isMonitorTemplate={props.isMonitorTemplate}
+                allMonitorSteps={monitorSteps}
+                key={index}
+                monitorStatusDropdownOptions={monitorStatusDropdownOptions}
+                incidentSeverityDropdownOptions={
+                  incidentSeverityDropdownOptions
+                }
+                alertSeverityDropdownOptions={alertSeverityDropdownOptions}
+                onCallPolicyDropdownOptions={onCallPolicyDropdownOptions}
+                labelDropdownOptions={labelDropdownOptions}
+                teamDropdownOptions={teamDropdownOptions}
+                userDropdownOptions={userDropdownOptions}
+                incidentRoleOptions={incidentRoleOptions}
+                value={i}
+                probes={probes}
+                monitorId={props.monitorId}
+                onlineMonitorStatusId={onlineMonitorStatusId}
+                offlineMonitorStatusId={offlineMonitorStatusId}
+                defaultIncidentSeverityId={defaultIncidentSeverityId}
+                defaultAlertSeverityId={defaultAlertSeverityId}
+                monitorName={props.monitorName}
+                /*
+                 * onDelete={() => {
+                 *     // remove the criteria filter
+                 * const index: number | undefined =
+                 * monitorSteps.data?.monitorStepsInstanceArray.findIndex((item: MonitorStep) => {
+                 *     return item.data?.id === value.data?.id;
+                 * })
+                 */
 
-      {/* <Button
+                /*
+                 * if (index === undefined) {
+                 *     return;
+                 * }
+                 *     const newMonitorSteps: Array<MonitorStep> = [
+                 *         ...(monitorSteps.data
+                 *             ?.monitorStepsInstanceArray || []),
+                 *     ];
+                 *     newMonitorSteps.splice(index, 1);
+                 *     setMonitorSteps(
+                 *         new MonitorSteps().fromJSON({
+                 *             _type: 'MonitorSteps',
+                 *             value: {
+                 *                 monitorStepsInstanceArray:
+                 *                     newMonitorSteps,
+                 *             },
+                 *         })
+                 *     );
+                 * }}
+                 */
+                onChange={(value: MonitorStep) => {
+                  const index: number | undefined =
+                    monitorSteps.data?.monitorStepsInstanceArray.findIndex(
+                      (item: MonitorStep) => {
+                        return item.data?.id === value.data?.id;
+                      },
+                    );
+
+                  if (index === undefined) {
+                    return;
+                  }
+
+                  const newMonitorSteps: Array<MonitorStep> = [
+                    ...(monitorSteps.data?.monitorStepsInstanceArray || []),
+                  ];
+                  newMonitorSteps[index] = value;
+                  monitorSteps.setMonitorStepsInstanceArray(newMonitorSteps);
+                  setMonitorSteps(MonitorSteps.clone(monitorSteps));
+                }}
+              />
+            );
+          },
+        )}
+
+        {/* <Button
                 title="Add Step"
                 onClick={() => {
                     const newMonitorSteps: Array<MonitorStep> = [
@@ -567,43 +603,44 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
                 }}
             /> */}
 
-      <HorizontalRule />
+        <HorizontalRule />
 
-      <div className="mt-4">
-        <FieldLabelElement
-          title="Default Monitor Status"
-          description="What should the monitor status be when none of the above criteria is met?"
-          required={true}
-        />
-
-        <Dropdown
-          value={monitorStatusDropdownOptions.find((i: DropdownOption) => {
-            return (
-              i.value ===
-                monitorSteps?.data?.defaultMonitorStatusId?.toString() ||
-              undefined
-            );
-          })}
-          options={monitorStatusDropdownOptions}
-          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-            monitorSteps?.setDefaultMonitorStatusId(
-              value ? new ObjectID(value.toString()) : undefined,
-            );
-            setMonitorSteps(
-              MonitorSteps.clone(monitorSteps || new MonitorSteps()),
-            );
-          }}
-        />
-      </div>
-
-      {error ? (
         <div className="mt-4">
-          <Alert title={error} type={AlertType.DANGER} />
+          <FieldLabelElement
+            title="Default Monitor Status"
+            description="What should the monitor status be when none of the above criteria is met?"
+            required={true}
+          />
+
+          <Dropdown
+            value={monitorStatusDropdownOptions.find((i: DropdownOption) => {
+              return (
+                i.value ===
+                  monitorSteps?.data?.defaultMonitorStatusId?.toString() ||
+                undefined
+              );
+            })}
+            options={monitorStatusDropdownOptions}
+            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              monitorSteps?.setDefaultMonitorStatusId(
+                value ? new ObjectID(value.toString()) : undefined,
+              );
+              setMonitorSteps(
+                MonitorSteps.clone(monitorSteps || new MonitorSteps()),
+              );
+            }}
+          />
         </div>
-      ) : (
-        <></>
-      )}
-    </div>
+
+        {error ? (
+          <div className="mt-4">
+            <Alert title={error} type={AlertType.DANGER} />
+          </div>
+        ) : (
+          <></>
+        )}
+      </div>
+    </MonitorTemplateContext.Provider>
   );
 };
 

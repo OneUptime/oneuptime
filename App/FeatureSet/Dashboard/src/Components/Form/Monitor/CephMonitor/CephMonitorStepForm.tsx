@@ -1,3 +1,4 @@
+import MonitorTargetFieldLabel from "../MonitorTemplateContext";
 import MonitorStepCephMonitor, {
   MonitorStepCephMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepCephMonitor";
@@ -199,7 +200,7 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
   const renderClusterDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
-        <FieldLabelElement
+        <MonitorTargetFieldLabel
           title="Ceph Cluster"
           description={"Select the Ceph cluster to monitor."}
           required={true}
@@ -225,7 +226,7 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <>
         <div className="mt-3">
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="OSD"
             description={
               "Filter by OSD daemon — the ceph_daemon label (optional)."
@@ -248,7 +249,7 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="Pool ID"
             description={
               "Filter by pool id — the pool_id label (optional). Pool data series carry only pool_id; the pool name exists solely on ceph_pool_metadata."

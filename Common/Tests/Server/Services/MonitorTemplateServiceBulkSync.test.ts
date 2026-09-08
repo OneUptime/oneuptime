@@ -26,7 +26,7 @@ function buildPingTemplate(): MonitorTemplate {
   const template: MonitorTemplate = new MonitorTemplate();
   template.id = TEMPLATE_ID;
   template.projectId = PROJECT_ID;
-  // Not a Network Device template, so sync takes the bulk update path.
+  // These tests sync the interval, which uses the bulk update path.
   template.monitorType = MonitorType.Ping;
   template.monitoringInterval = "*/10 * * * *";
   template.minimumProbeAgreement = 2;
@@ -310,9 +310,9 @@ describe("MonitorTemplateService bulk sync coverage", () => {
   });
 
   /*
-   * The per-monitor rebind path exists only to keep each Network Device
-   * monitor pointed at its own device, which is a monitorSteps concern. A
-   * sync that leaves steps alone has no reason to pay for it.
+   * The per-monitor path preserves each monitor's destination or device,
+   * which is a monitorSteps concern. A sync that leaves steps alone has no
+   * reason to pay for it.
    */
   it("takes the bulk path for a Network Device template when steps are not synced", async () => {
     const template: MonitorTemplate = buildPingTemplate();
@@ -329,8 +329,8 @@ describe("MonitorTemplateService bulk sync coverage", () => {
     const updateSpy: SpyInstance<typeof MonitorService.updateBy> = jest
       .spyOn(MonitorService, "updateBy")
       .mockResolvedValue(2);
-    const perMonitorSpy: SpyInstance<typeof MonitorService.updateOneById> =
-      jest.spyOn(MonitorService, "updateOneById");
+    const perMonitorSpy: SpyInstance<typeof MonitorService.updateOneBy> =
+      jest.spyOn(MonitorService, "updateOneBy");
 
     const result: SyncLinkedMonitorsResult =
       await MonitorTemplateService.syncLinkedMonitors({

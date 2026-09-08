@@ -40,6 +40,11 @@ import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField"
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import MonitorTemplateCustomFieldUtil from "Common/Utils/Monitor/MonitorTemplateCustomFieldUtil";
 import MonitorStepsType from "Common/Types/Monitor/MonitorSteps";
+import MonitorTemplateTargetPolicy from "Common/Types/Monitor/MonitorTemplateTargetPolicy";
+import {
+  TEMPLATE_TARGET_DESCRIPTION,
+  NETWORK_DEVICE_TEMPLATE_TARGET_DESCRIPTION,
+} from "../../../Components/Form/Monitor/MonitorTemplateContext";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
@@ -605,6 +610,16 @@ const MonitorTemplatesView: FunctionComponent<
 
   const hasCustomFieldDefaults: boolean = customFieldDefaultNames.length > 0;
 
+  const supportsOptionalTargets: boolean =
+    MonitorTemplateTargetPolicy.supportsMonitorType(monitorType);
+
+  const destinationSyncDescription: string =
+    monitorType === MonitorType.NetworkDevice
+      ? "Each monitor keeps its selected network device. "
+      : supportsOptionalTargets
+        ? "Blank target fields keep each monitor's current value; filled target fields are copied from the template. "
+        : "";
+
   /*
    * The count goes in the title rather than only inside the sync buttons: "how
    * many monitors would a template edit touch" is the question this page is
@@ -837,7 +852,11 @@ const MonitorTemplatesView: FunctionComponent<
           cardProps={{
             title: "Monitoring Criteria",
             description:
-              "What this template watches for and when it should fire.",
+              monitorType === MonitorType.NetworkDevice
+                ? NETWORK_DEVICE_TEMPLATE_TARGET_DESCRIPTION
+                : supportsOptionalTargets
+                  ? TEMPLATE_TARGET_DESCRIPTION
+                  : "What this template watches for and when it should fire.",
             buttons: [
               {
                 title: syncCriteriaButtonTitle,
@@ -867,6 +886,7 @@ const MonitorTemplatesView: FunctionComponent<
                 return MonitorStepsType.getValidationError(
                   values.monitorSteps as MonitorStepsType,
                   monitorType,
+                  { isMonitorTemplate: true },
                 );
               },
               getCustomElement: (
@@ -875,6 +895,7 @@ const MonitorTemplatesView: FunctionComponent<
               ) => {
                 return (
                   <MonitorStepsForm
+                    isMonitorTemplate={true}
                     {...fieldProps}
                     monitorType={monitorType}
                     monitorName={criteriaSeedMonitorName}
@@ -1195,7 +1216,7 @@ const MonitorTemplatesView: FunctionComponent<
           title="Sync Criteria to Linked Monitors"
           description={
             <span>
-              {`This will overwrite ONLY the monitor criteria on ${linkedMonitorCount} monitor${linkedMonitorCount === 1 ? "" : "s"} created from this template. Monitoring interval, minimum probe agreement, name, description, labels, and custom field values will be left alone. This cannot be undone.`}
+              {`This will overwrite the criteria and other check settings on ${linkedMonitorCount} linked monitor${linkedMonitorCount === 1 ? "" : "s"}. ${destinationSyncDescription}Monitoring interval, minimum probe agreement, name, description, labels, and custom field values will be left alone. This cannot be undone.`}
             </span>
           }
           submitButtonText="Sync Criteria"
@@ -1275,7 +1296,7 @@ const MonitorTemplatesView: FunctionComponent<
           title="Sync Monitor from Template"
           description={
             <span>
-              {`This will overwrite the criteria, monitoring interval, minimum probe agreement, and labels on "${singleSyncMonitor.name || "this monitor"}" with the template's current values. Name, description, and custom field values will be left alone. This cannot be undone.`}
+              {`This will overwrite the criteria, other check settings, monitoring interval, minimum probe agreement, and labels on "${singleSyncMonitor.name || "this monitor"}" with the template's current values. ${destinationSyncDescription}Name, description, and custom field values will be left alone. This cannot be undone.`}
             </span>
           }
           submitButtonText="Sync Now"

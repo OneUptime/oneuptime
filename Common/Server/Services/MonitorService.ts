@@ -98,6 +98,9 @@ import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 import MonitorTemplateService from "./MonitorTemplateService";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
+import MonitorTemplateTargetPolicy, {
+  MonitorTemplateTargetField,
+} from "../../Types/Monitor/MonitorTemplateTargetPolicy";
 
 const MONITOR_TEMPLATE_RELATION_KEYS: Array<string> = [
   "monitorTemplateId",
@@ -1378,6 +1381,65 @@ export class Service extends DatabaseService<Model> {
         monitorType: createBy.data.monitorType,
         props: createBy.props,
       });
+
+      /*
+       * Templates may leave targets blank; a newly created monitor needs its
+       * own concrete targets before it can start running those shared checks.
+       */
+      const requiredTargets: ReadonlyArray<MonitorTemplateTargetField> =
+        createBy.data.monitorType === MonitorType.NetworkDevice
+          ? [
+              {
+                path: ["networkDeviceMonitor", "networkDeviceId"],
+                label: "Network Device",
+                requiredOnMonitor: true,
+              },
+            ]
+          : MonitorTemplateTargetPolicy.getTargetFields(
+              createBy.data.monitorType,
+            ).filter((field: MonitorTemplateTargetField) => {
+              return field.requiredOnMonitor;
+            });
+
+      if (requiredTargets.length > 0) {
+        const steps: MonitorSteps = MonitorSteps.fromJSON(
+          createBy.data.monitorSteps,
+        );
+
+        if (!steps.data?.monitorStepsInstanceArray.length) {
+          throw new BadDataException("Monitor steps are required");
+        }
+
+        for (const step of steps.data.monitorStepsInstanceArray) {
+          for (const field of requiredTargets) {
+            const target: unknown = MonitorTemplateTargetPolicy.getValue(
+              step.data,
+              field.path,
+            );
+
+            if (
+              !target ||
+              MonitorTemplateTargetPolicy.isBlankTargetValue(target)
+            ) {
+              throw new BadDataException(
+                `${field.label} is required when creating a monitor from a template.`,
+              );
+            }
+          }
+
+          if (
+            createBy.data.monitorType === MonitorType.Database &&
+            !step.data?.databaseMonitor?.useWindowsIntegratedAuthentication &&
+            MonitorTemplateTargetPolicy.isBlankTargetValue(
+              step.data?.databaseMonitor?.username,
+            )
+          ) {
+            throw new BadDataException(
+              "Database username is required when creating a monitor from a template.",
+            );
+          }
+        }
+      }
     }
 
     if (IsBillingEnabled && createBy.props.tenantId) {

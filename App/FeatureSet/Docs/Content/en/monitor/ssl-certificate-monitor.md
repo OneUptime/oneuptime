@@ -26,6 +26,14 @@ SSL Certificate monitors connect to your HTTPS endpoints and inspect the SSL/TLS
 
 Enter the full HTTPS URL of the endpoint whose SSL certificate you want to monitor (e.g., `https://example.com` or `https://example.com:8443`).
 
+### Sharing criteria with a monitor template
+
+Use an SSL Certificate monitor template to share certificate criteria across endpoints. Create a monitor from the template for each endpoint, then set that monitor's URL.
+
+Leave the template's destination blank to share criteria across different endpoints. **Sync Criteria to Linked Monitors** and **Sync from Template** then preserve each existing monitor's URL, including its port, while copying the template's criteria and other check settings. If you provide a destination in the template, syncing copies that destination too. New monitors still need a destination before they can be saved.
+
+The same rule applies to other monitor templates: blank target fields retain each linked monitor's values, while supplied target fields are copied. For example, a Port template can share a port while leaving each monitor's host unchanged, and a Domain template can share expiration criteria without specifying a domain.
+
 ## Monitoring Criteria
 
 You can configure criteria to determine when your certificate status is considered online, degraded, or offline based on:

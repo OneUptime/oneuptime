@@ -1,3 +1,4 @@
+import MonitorTargetFieldLabel from "../MonitorTemplateContext";
 import MonitorStepDockerMonitor, {
   MonitorStepDockerMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepDockerMonitor";
@@ -200,7 +201,7 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
   const renderHostDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
-        <FieldLabelElement
+        <MonitorTargetFieldLabel
           title="Docker Host"
           description={"Select the Docker host to monitor."}
           required={true}
@@ -226,7 +227,7 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <>
         <div className="mt-3">
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="Container Name"
             description={"Filter by container name (optional)."}
             required={false}
@@ -249,7 +250,7 @@ const DockerMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
+          <MonitorTargetFieldLabel
             title="Container Image"
             description={"Filter by container image (optional)."}
             required={false}

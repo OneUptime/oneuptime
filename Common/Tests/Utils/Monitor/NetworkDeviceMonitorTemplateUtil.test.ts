@@ -658,17 +658,46 @@ describe("NetworkDeviceMonitorTemplateUtil.rebindMonitorSteps", () => {
     }, "Monitor template monitor steps are required");
   });
 
-  it("rejects a malformed Network Device step", () => {
+  it("materializes a missing Network Device template configuration when rebinding", () => {
     const steps: MonitorSteps = buildSteps();
     steps.data!.monitorStepsInstanceArray[0]!.data!.networkDeviceMonitor =
       undefined;
-
-    expectBadData(() => {
-      return NetworkDeviceMonitorTemplateUtil.rebindMonitorSteps({
+    const result: MonitorSteps =
+      NetworkDeviceMonitorTemplateUtil.rebindMonitorSteps({
         monitorSteps: steps,
         networkDeviceId: DEVICE_ID,
       });
-    }, "without Network Device configuration");
+    expect(
+      result.data!.monitorStepsInstanceArray[0]!.data!.networkDeviceMonitor
+        ?.networkDeviceId,
+    ).toBe(DEVICE_ID.toString());
+    expect(
+      steps.data!.monitorStepsInstanceArray[0]!.data!.networkDeviceMonitor,
+    ).toBeUndefined();
+    expect(
+      result.data!.monitorStepsInstanceArray[0]!.data!.monitorCriteria.toJSON(),
+    ).toEqual(
+      steps.data!.monitorStepsInstanceArray[0]!.data!.monitorCriteria.toJSON(),
+    );
+  });
+
+  it("auto-provisions a criteria-only Network Device template", () => {
+    const template: MonitorTemplate = buildTemplate();
+    for (const step of template.monitorSteps!.data!.monitorStepsInstanceArray) {
+      step.data!.networkDeviceMonitor = undefined;
+    }
+    const result: Monitor = NetworkDeviceMonitorTemplateUtil.buildMonitor({
+      template,
+      networkDevice: buildDevice(),
+    });
+    expect(result.autoProvisionedNetworkDeviceId!.toString()).toBe(
+      DEVICE_ID.toString(),
+    );
+    for (const step of result.monitorSteps!.data!.monitorStepsInstanceArray) {
+      expect(step.data!.networkDeviceMonitor!.networkDeviceId).toBe(
+        DEVICE_ID.toString(),
+      );
+    }
   });
 });
 
