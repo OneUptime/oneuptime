@@ -14,6 +14,15 @@ import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSch
 import ProjectUtil from "../../../UI/Utils/Project";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
+import ModelForm, { FormType } from "../../../UI/Components/Forms/ModelForm";
+import {
+  MONITOR_CONSENT_ERROR,
+  MONITOR_CONSENT_FIELD_KEY,
+  TELEMETRY_CONSENT_ERROR,
+  TELEMETRY_CONSENT_FIELD_KEY,
+  getMonitorPayAsYouGoFormFields,
+  getTelemetryPayAsYouGoFormFields,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo";
 
 /*
  * The consent checkbox is the whole point of the change: on the Free plan a
@@ -116,16 +125,6 @@ jest.mock("../../../UI/Config", () => {
   return mocked;
 });
 
-// Imported after the mocks above.
-import ModelForm, { FormType } from "../../../UI/Components/Forms/ModelForm";
-import {
-  MONITOR_CONSENT_ERROR,
-  MONITOR_CONSENT_FIELD_KEY,
-  TELEMETRY_CONSENT_ERROR,
-  TELEMETRY_CONSENT_FIELD_KEY,
-  getMonitorPayAsYouGoFormFields,
-  getTelemetryPayAsYouGoFormFields,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo";
 
 /*
  * These render real forms that validate on every keystroke, so give the waits

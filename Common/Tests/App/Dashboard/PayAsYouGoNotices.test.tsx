@@ -16,6 +16,24 @@ import { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import ProjectUtil from "../../../UI/Utils/Project";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
+import {
+  ACTIVE_MONITOR_PRICE_TEXT,
+  MONITOR_CONSENT_ERROR,
+  MONITOR_CONSENT_FIELD_KEY,
+  MonitorBatchPayAsYouGoConsent,
+  MonitorPayAsYouGoCard,
+  SESSION_REPLAY_PRICE_PER_GB_TEXT,
+  TELEMETRY_CONSENT_ERROR,
+  TELEMETRY_CONSENT_FIELD_KEY,
+  TELEMETRY_PRICE_PER_GB_TEXT,
+  TelemetryPayAsYouGoCard,
+  getMonitorBatchPriceSentence,
+  getMonitorPayAsYouGoFormFields,
+  getTelemetryPayAsYouGoFormFields,
+  isMonitorBatchConsentRequired,
+  validateMonitorConsent,
+  validateTelemetryConsent,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo";
 
 /*
  * The pay-as-you-go notices are the only warning a Free plan user gets before
@@ -53,25 +71,6 @@ jest.mock("../../../UI/Config", () => {
   return mocked;
 });
 
-// Imported after the mock so the components read the switchable flag.
-import {
-  ACTIVE_MONITOR_PRICE_TEXT,
-  MONITOR_CONSENT_ERROR,
-  MONITOR_CONSENT_FIELD_KEY,
-  MonitorBatchPayAsYouGoConsent,
-  MonitorPayAsYouGoCard,
-  SESSION_REPLAY_PRICE_PER_GB_TEXT,
-  TELEMETRY_CONSENT_ERROR,
-  TELEMETRY_CONSENT_FIELD_KEY,
-  TELEMETRY_PRICE_PER_GB_TEXT,
-  TelemetryPayAsYouGoCard,
-  getMonitorBatchPriceSentence,
-  getMonitorPayAsYouGoFormFields,
-  getTelemetryPayAsYouGoFormFields,
-  isMonitorBatchConsentRequired,
-  validateMonitorConsent,
-  validateTelemetryConsent,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo";
 
 type SetPlanFunction = (plan: PlanType | null) => void;
 

@@ -54,6 +54,7 @@ describe("metered billing payment protection", () => {
   let report: jest.SpyInstance;
 
   beforeEach(() => {
+    jest.clearAllMocks();
     canUse = getJestSpyOn(
       PayAsYouGoBillingService,
       "canUsePayAsYouGo",

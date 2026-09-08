@@ -26,6 +26,7 @@ describe("BillingService metered payment authorization", () => {
   let requirePayment: jest.SpyInstance;
 
   beforeEach(() => {
+    jest.clearAllMocks();
     service = new BillingService();
     retrieveCustomer = jest.fn().mockResolvedValue({ metadata: {} });
     updateCustomer = jest.fn().mockResolvedValue({});

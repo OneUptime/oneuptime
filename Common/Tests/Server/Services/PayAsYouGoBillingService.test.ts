@@ -38,6 +38,7 @@ describe("PayAsYouGoBillingService", () => {
   let getPlan: jest.SpyInstance;
 
   beforeEach(() => {
+    jest.clearAllMocks();
     service = new Service();
     project = Object.assign(new Project(), {
       paymentProviderPlanId: "free",
