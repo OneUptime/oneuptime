@@ -799,6 +799,7 @@ describe("the backup-code bucket configuration", () => {
     login: BucketConfigShape;
     twoFactor: BucketConfigShape;
     backupCode: BucketConfigShape;
+    webAuthnChallenge: BucketConfigShape;
   };
 
   interface IdentityRateLimitModule {
@@ -817,6 +818,9 @@ describe("the backup-code bucket configuration", () => {
     "IDENTITY_BACKUP_CODE_RATE_LIMIT_WINDOW_SECONDS",
     "IDENTITY_BACKUP_CODE_RATE_LIMIT_PER_ACCOUNT_PER_WINDOW",
     "IDENTITY_BACKUP_CODE_RATE_LIMIT_PER_IP_PER_WINDOW",
+    "IDENTITY_WEBAUTHN_CHALLENGE_RATE_LIMIT_WINDOW_SECONDS",
+    "IDENTITY_WEBAUTHN_CHALLENGE_RATE_LIMIT_PER_ACCOUNT_PER_WINDOW",
+    "IDENTITY_WEBAUTHN_CHALLENGE_RATE_LIMIT_PER_IP_PER_WINDOW",
   ];
 
   type ConfigsUnderEnvFunction = (
@@ -864,6 +868,9 @@ describe("the backup-code bucket configuration", () => {
           backupCode: freshModule.default.getBucketConfig(
             IdentityRateLimitBucket.BackupCode,
           ),
+          webAuthnChallenge: freshModule.default.getBucketConfig(
+            IdentityRateLimitBucket.WebAuthnChallenge,
+          ),
         };
       });
     } finally {
@@ -903,6 +910,23 @@ describe("the backup-code bucket configuration", () => {
       IDENTITY_BACKUP_CODE_RATE_LIMIT_WINDOW_SECONDS: "333",
       IDENTITY_BACKUP_CODE_RATE_LIMIT_PER_ACCOUNT_PER_WINDOW: "33",
       IDENTITY_BACKUP_CODE_RATE_LIMIT_PER_IP_PER_WINDOW: "3333",
+      IDENTITY_WEBAUTHN_CHALLENGE_RATE_LIMIT_WINDOW_SECONDS: "444",
+      IDENTITY_WEBAUTHN_CHALLENGE_RATE_LIMIT_PER_ACCOUNT_PER_WINDOW: "44",
+      IDENTITY_WEBAUTHN_CHALLENGE_RATE_LIMIT_PER_IP_PER_WINDOW: "4444",
+    });
+
+    /*
+     * The challenge-issuing bucket, added when
+     * /user-webauthn/generate-authentication-options stopped being unmetered.
+     * It is the newest name in the switch and therefore the likeliest to be
+     * the one that was forgotten -- a bucket with no branch silently receives
+     * the PASSWORD budget, and under the shipped defaults nothing about the
+     * numbers would give that away.
+     */
+    expect(configs.webAuthnChallenge).toEqual({
+      windowSeconds: 444,
+      perAccountLimit: 44,
+      perIpLimit: 4444,
     });
 
     expect(configs.backupCode).toEqual({
@@ -949,6 +973,32 @@ describe("the backup-code bucket configuration", () => {
    * budget instead -- the same class of bug this change fixed, one bucket
    * over.
    */
+  /*
+   * The same guard for the challenge bucket. Its defaults deliberately differ
+   * from its siblings' on the per-account number, so a fallthrough to the
+   * login budget IS visible by value here -- but the identity assertion is
+   * what keeps that true if the numbers are ever aligned again.
+   */
+  it("does not hand the challenge bucket the login or two-factor config object", () => {
+    const challengeConfig: ReturnType<
+      typeof IdentityRateLimit.getBucketConfig
+    > = IdentityRateLimit.getBucketConfig(
+      IdentityRateLimitBucket.WebAuthnChallenge,
+    );
+
+    expect(challengeConfig).not.toBe(
+      IdentityRateLimit.getBucketConfig(IdentityRateLimitBucket.Login),
+    );
+
+    expect(challengeConfig).not.toBe(
+      IdentityRateLimit.getBucketConfig(IdentityRateLimitBucket.TwoFactor),
+    );
+
+    expect(challengeConfig).not.toBe(
+      IdentityRateLimit.getBucketConfig(IdentityRateLimitBucket.BackupCode),
+    );
+  });
+
   it("does not hand the recovery bucket the login or two-factor config object", () => {
     const backupCodeConfig: ReturnType<
       typeof IdentityRateLimit.getBucketConfig

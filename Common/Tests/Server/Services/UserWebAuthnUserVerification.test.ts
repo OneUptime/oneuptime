@@ -88,15 +88,21 @@ const buildUser: BuildUserFunction = (): User => {
   user.email = USER_EMAIL;
 
   /*
-   * A live, unexpired challenge, so verification gets past
-   * `getAndClearStoredChallenge` and reaches the library call under test. The
-   * value is whatever the stub issues.
+   * A live, unexpired challenge in BOTH slots, so verification gets past
+   * `getAndClearStoredChallenge` whichever flow is under test and reaches the
+   * library call this file is actually about. The value is whatever the stub
+   * issues. That the slots are separate at all is exercised end to end in
+   * App/Tests/FeatureSet/Identity/WebAuthnUserVerification.test.ts.
    */
-  user.webauthnChallenge = "mock-challenge";
-  user.webauthnChallengeExpiresAt = OneUptimeDate.addRemoveMinutes(
+  const expiresAt: Date = OneUptimeDate.addRemoveMinutes(
     OneUptimeDate.getCurrentDate(),
     5,
   );
+
+  user.webauthnRegistrationChallenge = "mock-challenge";
+  user.webauthnRegistrationChallengeExpiresAt = expiresAt;
+  user.webauthnAuthenticationChallenge = "mock-challenge";
+  user.webauthnAuthenticationChallengeExpiresAt = expiresAt;
 
   return user;
 };
@@ -425,6 +431,174 @@ describe("UserWebAuthnService user verification policy", () => {
     });
   });
 
+  describe("which challenge slot each flow writes", () => {
+    /*
+     * The two flows land on the SAME User row -- registration keyed by the
+     * session's user, signing in keyed by an email address -- and they used to
+     * write the same pair of columns, so whichever went last destroyed the
+     * other's challenge.
+     *
+     * Asserted here at the column level because that is where the separation
+     * either exists or does not: a helper that computed its column names from
+     * a variable, or a refactor that reached for the wrong branch, would still
+     * pass an end-to-end test that only ever runs one flow at a time. The
+     * behavioural proof -- two live flows over one row -- is in
+     * App/Tests/FeatureSet/Identity/WebAuthnUserVerification.test.ts.
+     */
+
+    type WrittenKeysFunction = () => Array<Array<string>>;
+
+    const writtenKeys: WrittenKeysFunction = (): Array<Array<string>> => {
+      return asMock(UserService.updateOneById).mock.calls.map(
+        (call: Array<unknown>): Array<string> => {
+          return Object.keys(
+            (call[0] as { data: Record<string, unknown> }).data,
+          );
+        },
+      );
+    };
+
+    test("registering writes only the registration slot", async () => {
+      await UserWebAuthnService.generateRegistrationOptions({
+        userId: USER_ID,
+      });
+
+      for (const keys of writtenKeys()) {
+        expect(keys.sort()).toEqual([
+          "webauthnRegistrationChallenge",
+          "webauthnRegistrationChallengeExpiresAt",
+        ]);
+      }
+
+      expect(writtenKeys().length).toBeGreaterThan(0);
+    });
+
+    test("signing in writes only the authentication slot", async () => {
+      await UserWebAuthnService.generateAuthenticationOptions({
+        email: USER_EMAIL.toString(),
+      });
+
+      for (const keys of writtenKeys()) {
+        expect(keys.sort()).toEqual([
+          "webauthnAuthenticationChallenge",
+          "webauthnAuthenticationChallengeExpiresAt",
+        ]);
+      }
+
+      expect(writtenKeys().length).toBeGreaterThan(0);
+    });
+
+    test("clearing a spent registration challenge leaves the sign-in slot alone", async () => {
+      /*
+       * The clear is what actually did the damage. `getAndClearStoredChallenge`
+       * empties the slot it read, and with one shared slot that meant every
+       * completed ceremony wiped whatever the other flow had pending.
+       */
+      await UserWebAuthnService.verifyRegistration({
+        credential: CREDENTIAL_FROM_THE_BROWSER,
+        name: "MacBook Touch ID",
+        props: { userId: USER_ID },
+      });
+
+      const touched: Array<string> = writtenKeys().flat();
+
+      expect(touched).toContain("webauthnRegistrationChallenge");
+      expect(touched).not.toContain("webauthnAuthenticationChallenge");
+    });
+
+    test("clearing a spent sign-in challenge leaves the registration slot alone", async () => {
+      await UserWebAuthnService.verifyAuthentication({
+        userId: USER_ID.toString(),
+        credential: CREDENTIAL_FROM_THE_BROWSER,
+      });
+
+      const touched: Array<string> = writtenKeys().flat();
+
+      expect(touched).toContain("webauthnAuthenticationChallenge");
+      expect(touched).not.toContain("webauthnRegistrationChallenge");
+    });
+
+    test("each flow reads back only its own slot", async () => {
+      /*
+       * The read half of the same property. Selecting both slots would work
+       * today and quietly re-create the coupling the moment somebody picked
+       * the wrong one out of the row.
+       */
+      await UserWebAuthnService.verifyAuthentication({
+        userId: USER_ID.toString(),
+        credential: CREDENTIAL_FROM_THE_BROWSER,
+      });
+
+      const selected: Array<string> = asMock(
+        UserService.findOneById,
+      ).mock.calls.flatMap((call: Array<unknown>): Array<string> => {
+        const select: Record<string, unknown> | undefined = (
+          call[0] as { select?: Record<string, unknown> }
+        ).select;
+
+        return select ? Object.keys(select) : [];
+      });
+
+      expect(selected).toContain("webauthnAuthenticationChallenge");
+      expect(selected).not.toContain("webauthnRegistrationChallenge");
+    });
+  });
+
+  describe("what an anonymous caller learns about an account", () => {
+    /*
+     * generateAuthenticationOptions is reached by POSTing an email and nothing
+     * else, from anybody. Two distinguishable refusals made it an
+     * account-existence oracle plus a second one naming which accounts are
+     * protected by a security key -- on a surface whose other doors go out of
+     * their way not to say which half of a credential was wrong.
+     */
+
+    type RefusalForFunction = (setUp: () => void) => Promise<Exception>;
+
+    const refusalFor: RefusalForFunction = async (
+      setUp: () => void,
+    ): Promise<Exception> => {
+      setUp();
+
+      try {
+        await UserWebAuthnService.generateAuthenticationOptions({
+          email: USER_EMAIL.toString(),
+        });
+      } catch (error) {
+        return error as Exception;
+      }
+
+      throw new Error("Expected this to reject, and it resolved");
+    };
+
+    test("an unknown address and a known one without a key get the same answer", async () => {
+      const unknownAccount: Exception = await refusalFor((): void => {
+        UserService.findOneBy = jest.fn().mockResolvedValue(null) as never;
+      });
+
+      const noSecurityKey: Exception = await refusalFor((): void => {
+        UserService.findOneBy = jest
+          .fn()
+          .mockResolvedValue(buildUser()) as never;
+        UserWebAuthnService.findBy = jest.fn().mockResolvedValue([]) as never;
+      });
+
+      expect(unknownAccount.message).toBe(noSecurityKey.message);
+      expect(unknownAccount).toBeInstanceOf(BadDataException);
+      expect(noSecurityKey).toBeInstanceOf(BadDataException);
+    });
+
+    test("neither answer describes what was actually missing", async () => {
+      const unknownAccount: Exception = await refusalFor((): void => {
+        UserService.findOneBy = jest.fn().mockResolvedValue(null) as never;
+      });
+
+      expect(unknownAccount.message).not.toMatch(/user not found/i);
+      expect(unknownAccount.message).not.toMatch(/no webauthn credentials/i);
+      expect(unknownAccount.message).not.toContain(USER_EMAIL.toString());
+    });
+  });
+
   describe("what the policy does not touch", () => {
     test("the challenge is still taken from the server, never from the caller", async () => {
       /*
@@ -482,7 +656,7 @@ describe("UserWebAuthnService user verification policy", () => {
         UserService.updateOneById,
       ).mock.calls.map((call: Array<unknown>): unknown => {
         return (call[0] as { data: Record<string, unknown> }).data[
-          "webauthnChallenge"
+          "webauthnRegistrationChallenge"
         ];
       });
 

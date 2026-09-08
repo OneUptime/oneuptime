@@ -578,6 +578,7 @@ import { SessionReplayRecordEverySessionByDefault1791400000000 } from "./1791400
 import { WidenCustomFieldDropdownOptions1791500000000 } from "./1791500000000-WidenCustomFieldDropdownOptions";
 import { AddCustomFieldValueMapping1791600000000 } from "./1791600000000-AddCustomFieldValueMapping";
 import { AddMacAddressToNetworkDevice1791700000000 } from "./1791700000000-AddMacAddressToNetworkDevice";
+import { SplitWebAuthnChallengeByPurpose1791800000000 } from "./1791800000000-SplitWebAuthnChallengeByPurpose";
 
 export default [
   InitialMigration,
@@ -1160,4 +1161,5 @@ export default [
   WidenCustomFieldDropdownOptions1791500000000,
   AddCustomFieldValueMapping1791600000000,
   AddMacAddressToNetworkDevice1791700000000,
+  SplitWebAuthnChallengeByPurpose1791800000000,
 ];

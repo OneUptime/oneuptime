@@ -18,8 +18,48 @@ import { Host, HttpProtocol } from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../Types/Date";
+import Hostname from "../../Types/API/Hostname";
 
 const WEBAUTHN_CHALLENGE_TTL_MINUTES: number = 5;
+
+/*
+ * Which of the two flows a stored challenge belongs to.
+ *
+ * They used to share one slot on the User row, so whichever wrote last
+ * destroyed the other's -- see the columns on
+ * Common/Models/DatabaseModels/User.ts for what that cost a user with two tabs
+ * open. Every read and write of a challenge now names its purpose, and a
+ * challenge issued for one flow is simply invisible to the other.
+ */
+enum WebAuthnChallengePurpose {
+  Registration = "registration",
+  Authentication = "authentication",
+}
+
+/*
+ * One answer for both ways of having no security key to offer, because the
+ * route that asks is anonymous.
+ *
+ * `generateAuthenticationOptions` is reached by POSTing an email address and
+ * nothing else. It used to answer "User not found" for an address nobody has
+ * registered and "No WebAuthn credentials found for this user" for one that
+ * exists but has no key -- two distinguishable replies, which together are a
+ * free account-existence oracle for anyone who can send a request, and a
+ * second oracle telling them which of those accounts is protected by hardware.
+ *
+ * Every other door on this surface already refuses to say that much: the login
+ * routes deliberately do not reveal which half of a credential was wrong, and
+ * IdentityRateLimit answers identically for a real address and an invented
+ * one specifically so that being throttled does not give back the enumeration
+ * the handlers withhold. This route was the exception.
+ *
+ * Nothing legitimate is lost. A real user only reaches this after signing in
+ * with their password, from a list of their OWN registered keys returned by
+ * /login -- so they cannot arrive here with an account that has none, and the
+ * message they would never see is not worth an oracle to everyone else.
+ */
+const NO_SECURITY_KEY_AVAILABLE: string =
+  "No security key is available for this account.";
 
 /*
  * How much a security key is asked to prove about the person holding it.
@@ -130,6 +170,111 @@ const explainVerificationFailure: VerifyWebAuthnResponseFunction = async (
   }
 };
 
+/*
+ * The relying party id, which is NOT the origin and must not be written as if
+ * it were.
+ *
+ * `expectedOrigin` is a full origin and MUST carry the port: a browser on
+ * https://oneuptime.example.com:8443 puts exactly that in its client data. The
+ * RP ID is a bare registrable domain and must NOT -- the spec defines it as a
+ * domain string, and a browser handed "oneuptime.example.com:8443" rejects the
+ * call outright with a SecurityError before any authenticator is asked
+ * anything. The two are built from the same HOST here, so they were the same
+ * string, and one of them was wrong.
+ *
+ * HOST is whatever the operator put in the environment (`Common/Server/EnvironmentConfig.ts`),
+ * and for a self-hosted instance not sitting on 80/443 that is routinely
+ * `host:port` -- which made WebAuthn unusable on those deployments rather than
+ * merely awkward. Nothing is invalidated by fixing it: on exactly the
+ * deployments this changes, the browser refused to create a credential at all,
+ * so there are none to invalidate. Where HOST carries no port, this is the
+ * identity function and no existing credential moves.
+ *
+ * `fromAuthority` rather than `fromString`: it is the one that understands
+ * bracketed IPv6 literals and userinfo instead of splitting on the first colon
+ * and turning "[::1]:8443" into a host of "[".
+ */
+type WebAuthnRelyingPartyIdFunction = () => string;
+
+const webAuthnRelyingPartyId: WebAuthnRelyingPartyIdFunction = (): string => {
+  return Hostname.fromAuthority(Host.toString()).hostname;
+};
+
+/*
+ * The transports a stored credential reported at registration, back out of the
+ * text column and into the shape `allowCredentials` wants.
+ *
+ * Spelled out locally rather than imported as the library's
+ * `AuthenticatorTransportFuture`, for the same reason the user-verification
+ * policy above is: the type has to hold when Common's jest config swaps the
+ * whole package for a stub.
+ *
+ * Deliberately forgiving, and it returns UNDEFINED rather than an empty array
+ * when it has nothing to say. Every credential registered before this change
+ * holds the literal "[]", and there is a difference between telling the
+ * browser "this key is reachable by no transport" and not telling it anything:
+ * the first is a hint that excludes every option, the second is what those
+ * credentials have always sent. An unreadable value costs the user a hint,
+ * never their sign-in.
+ *
+ * Filtering to the known set happens on READ, not on write, so a transport
+ * some future browser invents is still recorded faithfully in the column and
+ * only the hint drops it.
+ */
+type WebAuthnTransport =
+  | "ble"
+  | "cable"
+  | "hybrid"
+  | "internal"
+  | "nfc"
+  | "smart-card"
+  | "usb";
+
+const KNOWN_WEBAUTHN_TRANSPORTS: Array<string> = [
+  "ble",
+  "cable",
+  "hybrid",
+  "internal",
+  "nfc",
+  "smart-card",
+  "usb",
+];
+
+type ParseTransportsFunction = (
+  stored: string | undefined,
+) => Array<WebAuthnTransport> | undefined;
+
+const parseStoredTransports: ParseTransportsFunction = (
+  stored: string | undefined,
+): Array<WebAuthnTransport> | undefined => {
+  if (!stored) {
+    return undefined;
+  }
+
+  let parsed: unknown = undefined;
+
+  try {
+    parsed = JSON.parse(stored);
+  } catch {
+    return undefined;
+  }
+
+  if (!Array.isArray(parsed)) {
+    return undefined;
+  }
+
+  const transports: Array<WebAuthnTransport> = parsed.filter(
+    (transport: unknown) => {
+      return (
+        typeof transport === "string" &&
+        KNOWN_WEBAUTHN_TRANSPORTS.includes(transport)
+      );
+    },
+  ) as Array<WebAuthnTransport>;
+
+  return transports.length > 0 ? transports : undefined;
+};
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -165,6 +310,7 @@ export class Service extends DatabaseService<Model> {
       },
       select: {
         credentialId: true,
+        transports: true,
       },
       limit: LIMIT_PER_PROJECT,
       skip: 0,
@@ -175,7 +321,7 @@ export class Service extends DatabaseService<Model> {
 
     const options: any = await generateRegistrationOptions({
       rpName: "OneUptime",
-      rpID: Host.toString(),
+      rpID: webAuthnRelyingPartyId(),
       userID: new Uint8Array(Buffer.from(data.userId.toString())),
       userName: user.email.toString(),
       userDisplayName: user.name ? user.name.toString() : user.email.toString(),
@@ -185,9 +331,14 @@ export class Service extends DatabaseService<Model> {
           return cred.credentialId;
         })
         .map((cred: Model) => {
+          /* Same hint as allowCredentials carries; see the note there. */
+          const transports: Array<WebAuthnTransport> | undefined =
+            parseStoredTransports(cred.transports);
+
           return {
             id: cred.credentialId!,
             type: "public-key",
+            ...(transports ? { transports: transports } : {}),
           };
         }),
       authenticatorSelection: {
@@ -213,18 +364,10 @@ export class Service extends DatabaseService<Model> {
     }
 
     // Store the challenge server-side so verification uses a trusted value
-    await UserService.updateOneById({
-      id: data.userId,
-      data: {
-        webauthnChallenge: options.challenge,
-        webauthnChallengeExpiresAt: OneUptimeDate.addRemoveMinutes(
-          OneUptimeDate.getCurrentDate(),
-          WEBAUTHN_CHALLENGE_TTL_MINUTES,
-        ),
-      },
-      props: {
-        isRoot: true,
-      },
+    await this.storeChallenge({
+      userId: data.userId,
+      purpose: WebAuthnChallengePurpose.Registration,
+      challenge: options.challenge,
     });
 
     return {
@@ -244,9 +387,10 @@ export class Service extends DatabaseService<Model> {
     }
 
     // Retrieve the challenge from the server-side store
-    const storedChallenge: string = await this.getAndClearStoredChallenge(
-      data.props.userId,
-    );
+    const storedChallenge: string = await this.getAndClearStoredChallenge({
+      userId: data.props.userId,
+      purpose: WebAuthnChallengePurpose.Registration,
+    });
 
     const expectedOrigin: string = `${HttpProtocol}${Host.toString()}`;
 
@@ -255,7 +399,7 @@ export class Service extends DatabaseService<Model> {
         response: data.credential,
         expectedChallenge: storedChallenge,
         expectedOrigin: expectedOrigin,
-        expectedRPID: Host.toString(),
+        expectedRPID: webAuthnRelyingPartyId(),
         requireUserVerification: WEBAUTHN_REQUIRE_USER_VERIFICATION,
       });
     });
@@ -278,8 +422,40 @@ export class Service extends DatabaseService<Model> {
         publicKey: Buffer.from(registrationInfo.credential.publicKey).toString(
           "base64",
         ),
-        counter: "0",
-        transports: JSON.stringify([]),
+        /*
+         * From the authenticator, not hard-coded.
+         *
+         * The counter used to be written as "0" regardless. Most platform
+         * authenticators do report 0 -- a passkey synced between devices
+         * cannot keep a meaningful count -- but a discrete key that has been
+         * used elsewhere arrives with a real one, and pinning it to 0 threw
+         * that away. `verifyAuthenticationResponse` only compares counters
+         * when at least one side is above zero, so the discarded value was
+         * precisely the clone detection this credential was eligible for:
+         * a key registered at count 40 and a clone of it replaying count 12
+         * both looked fine against a stored 0.
+         *
+         * The trade is not free, and the tail is worth naming: an
+         * authenticator that reports the SAME counter at registration and at
+         * its first assertion now fails that comparison, where a stored 0
+         * would have waved it through. A spec-compliant key increments on
+         * every assertion, so this should not happen -- but if it does, the
+         * key is unusable and the way back in is a backup code (minted at
+         * enrolment, see UserWebAuthnAPI) followed by registering it again.
+         * The alternative is to keep discarding the counter and keep the
+         * clone detection permanently off, which is the worse default.
+         *
+         * Transports were likewise always "[]". They are the browser's hint
+         * about HOW to reach this key -- USB, NFC, the platform itself -- and
+         * with none recorded every sign-in prompt has to offer all of them.
+         */
+        counter:
+          typeof registrationInfo.credential.counter === "number"
+            ? registrationInfo.credential.counter.toString()
+            : "0",
+        transports: JSON.stringify(
+          registrationInfo.credential.transports || [],
+        ),
         isVerified: true,
         userId: data.props.userId,
       },
@@ -307,7 +483,7 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (!user) {
-      throw new BadDataException("User not found");
+      throw new BadDataException(NO_SECURITY_KEY_AVAILABLE);
     }
 
     // Get user's WebAuthn credentials
@@ -318,6 +494,7 @@ export class Service extends DatabaseService<Model> {
       },
       select: {
         credentialId: true,
+        transports: true,
       },
       limit: LIMIT_PER_PROJECT,
       skip: 0,
@@ -327,15 +504,34 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (credentials.length === 0) {
-      throw new BadDataException("No WebAuthn credentials found for this user");
+      throw new BadDataException(NO_SECURITY_KEY_AVAILABLE);
     }
 
     const options: any = await generateAuthenticationOptions({
-      rpID: Host.toString(),
+      rpID: webAuthnRelyingPartyId(),
       allowCredentials: credentials.map((cred: Model) => {
+        /*
+         * Recording transports at registration buys nothing unless they are
+         * handed back here: this is the only place the browser reads them.
+         * With the hint, a key that says "usb" prompts for a USB key rather
+         * than opening the whole carousel of ways a credential might be
+         * reachable. `generateAuthenticationOptions` copies unknown fields
+         * straight through onto the descriptor, and Login.tsx rewrites only
+         * `id`, so the array survives to navigator.credentials.get().
+         *
+         * SPREAD rather than `transports: undefined`, so a credential with no
+         * hint carries no `transports` member at all. The two are not the
+         * same to a browser -- an empty array is a hint that excludes every
+         * transport, and Chromium filters on the hint when it is present, so
+         * an empty one could hide a key that works perfectly well.
+         */
+        const transports: Array<WebAuthnTransport> | undefined =
+          parseStoredTransports(cred.transports);
+
         return {
           id: cred.credentialId!,
           type: "public-key",
+          ...(transports ? { transports: transports } : {}),
         };
       }),
       userVerification: WEBAUTHN_USER_VERIFICATION,
@@ -346,18 +542,10 @@ export class Service extends DatabaseService<Model> {
     // allowCredentials id is already base64url string
 
     // Store the challenge server-side so verification uses a trusted value
-    await UserService.updateOneById({
-      id: user.id!,
-      data: {
-        webauthnChallenge: options.challenge,
-        webauthnChallengeExpiresAt: OneUptimeDate.addRemoveMinutes(
-          OneUptimeDate.getCurrentDate(),
-          WEBAUTHN_CHALLENGE_TTL_MINUTES,
-        ),
-      },
-      props: {
-        isRoot: true,
-      },
+    await this.storeChallenge({
+      userId: user.id!,
+      purpose: WebAuthnChallengePurpose.Authentication,
+      challenge: options.challenge,
     });
 
     return {
@@ -373,9 +561,10 @@ export class Service extends DatabaseService<Model> {
     credential: any;
   }): Promise<User> {
     // Retrieve the challenge from the server-side store
-    const storedChallenge: string = await this.getAndClearStoredChallenge(
-      new ObjectID(data.userId),
-    );
+    const storedChallenge: string = await this.getAndClearStoredChallenge({
+      userId: new ObjectID(data.userId),
+      purpose: WebAuthnChallengePurpose.Authentication,
+    });
 
     const user: User | null = await UserService.findOneById({
       id: new ObjectID(data.userId),
@@ -421,7 +610,7 @@ export class Service extends DatabaseService<Model> {
         response: data.credential,
         expectedChallenge: storedChallenge,
         expectedOrigin: expectedOrigin,
-        expectedRPID: Host.toString(),
+        expectedRPID: webAuthnRelyingPartyId(),
         credential: {
           id: dbCredential.credentialId!,
           publicKey: Buffer.from(dbCredential.publicKey!, "base64"),
@@ -450,16 +639,94 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
-   * Retrieves the stored WebAuthn challenge for the given user,
+   * Writes a freshly issued challenge into the slot belonging to ONE flow.
+   *
+   * The purpose decides the columns, and the two sets never overlap, so a
+   * sign-in page asking for a challenge can no longer wipe out a registration
+   * the same user is halfway through in another tab.
+   *
+   * Written as two literal objects rather than computed column names: this is
+   * the code whose whole job is to keep the two flows apart, and a pair of
+   * string variables indexing into the row is precisely how they would find
+   * their way back together.
+   */
+  private async storeChallenge(data: {
+    userId: ObjectID;
+    purpose: WebAuthnChallengePurpose;
+    challenge: string;
+  }): Promise<void> {
+    const expiresAt: Date = OneUptimeDate.addRemoveMinutes(
+      OneUptimeDate.getCurrentDate(),
+      WEBAUTHN_CHALLENGE_TTL_MINUTES,
+    );
+
+    await UserService.updateOneById({
+      id: data.userId,
+      data:
+        data.purpose === WebAuthnChallengePurpose.Registration
+          ? {
+              webauthnRegistrationChallenge: data.challenge,
+              webauthnRegistrationChallengeExpiresAt: expiresAt,
+            }
+          : {
+              webauthnAuthenticationChallenge: data.challenge,
+              webauthnAuthenticationChallengeExpiresAt: expiresAt,
+            },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /**
+   * Empties one flow's slot. Used both when a challenge is spent and when it
+   * is found expired -- and it touches only the named flow, so clearing a
+   * dead sign-in challenge leaves a live registration one alone.
+   */
+  private async clearChallenge(data: {
+    userId: ObjectID;
+    purpose: WebAuthnChallengePurpose;
+  }): Promise<void> {
+    await UserService.updateOneById({
+      id: data.userId,
+      data:
+        data.purpose === WebAuthnChallengePurpose.Registration
+          ? {
+              webauthnRegistrationChallenge: null as any,
+              webauthnRegistrationChallengeExpiresAt: null as any,
+            }
+          : {
+              webauthnAuthenticationChallenge: null as any,
+              webauthnAuthenticationChallengeExpiresAt: null as any,
+            },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /**
+   * Retrieves the stored WebAuthn challenge for the given user and flow,
    * validates it has not expired, and clears it so it cannot be reused.
    */
-  private async getAndClearStoredChallenge(userId: ObjectID): Promise<string> {
+  private async getAndClearStoredChallenge(data: {
+    userId: ObjectID;
+    purpose: WebAuthnChallengePurpose;
+  }): Promise<string> {
+    const isRegistration: boolean =
+      data.purpose === WebAuthnChallengePurpose.Registration;
+
     const user: User | null = await UserService.findOneById({
-      id: userId,
-      select: {
-        webauthnChallenge: true,
-        webauthnChallengeExpiresAt: true,
-      },
+      id: data.userId,
+      select: isRegistration
+        ? {
+            webauthnRegistrationChallenge: true,
+            webauthnRegistrationChallengeExpiresAt: true,
+          }
+        : {
+            webauthnAuthenticationChallenge: true,
+            webauthnAuthenticationChallengeExpiresAt: true,
+          },
       props: {
         isRoot: true,
       },
@@ -469,29 +736,26 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("User not found");
     }
 
-    if (!user.webauthnChallenge || !user.webauthnChallengeExpiresAt) {
+    const challenge: string | undefined = isRegistration
+      ? user.webauthnRegistrationChallenge
+      : user.webauthnAuthenticationChallenge;
+
+    const expiresAt: Date | undefined = isRegistration
+      ? user.webauthnRegistrationChallengeExpiresAt
+      : user.webauthnAuthenticationChallengeExpiresAt;
+
+    if (!challenge || !expiresAt) {
       throw new BadDataException(
         "No pending WebAuthn challenge found. Please initiate the WebAuthn flow again.",
       );
     }
 
     // Check expiry
-    if (
-      OneUptimeDate.isBefore(
-        user.webauthnChallengeExpiresAt,
-        OneUptimeDate.getCurrentDate(),
-      )
-    ) {
+    if (OneUptimeDate.isBefore(expiresAt, OneUptimeDate.getCurrentDate())) {
       // Clear the expired challenge
-      await UserService.updateOneById({
-        id: userId,
-        data: {
-          webauthnChallenge: null as any,
-          webauthnChallengeExpiresAt: null as any,
-        },
-        props: {
-          isRoot: true,
-        },
+      await this.clearChallenge({
+        userId: data.userId,
+        purpose: data.purpose,
       });
 
       throw new BadDataException(
@@ -499,18 +763,10 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    const challenge: string = user.webauthnChallenge;
-
     // Clear the challenge immediately so it cannot be reused (one-time use)
-    await UserService.updateOneById({
-      id: userId,
-      data: {
-        webauthnChallenge: null as any,
-        webauthnChallengeExpiresAt: null as any,
-      },
-      props: {
-        isRoot: true,
-      },
+    await this.clearChallenge({
+      userId: data.userId,
+      purpose: data.purpose,
     });
 
     return challenge;

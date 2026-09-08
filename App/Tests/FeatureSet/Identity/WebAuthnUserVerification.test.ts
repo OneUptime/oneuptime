@@ -99,14 +99,34 @@ const USER_EMAIL: Email = new Email("clamshell.user@example.com");
 const KEY_NAME: string = "MacBook Touch ID";
 
 /*
- * Whatever the last call to generateRegistrationOptions /
- * generateAuthenticationOptions asked the database to remember. The service
- * stores the challenge on the User row and reads it back at verification, so
- * this is the seam that carries a challenge from one half of a flow to the
- * other -- exactly as the real column does.
+ * The User row's two challenge slots, modelled as the columns actually are:
+ * one for registering a key and a SEPARATE one for signing in with it. They
+ * used to be a single pair, and this harness used to have a single pair of
+ * variables to match -- which is exactly why a test could not have caught the
+ * two flows overwriting each other.
+ *
+ * This is the seam that carries a challenge from the generate half of a flow
+ * to the verify half, so keeping the two apart here is what lets the
+ * independence tests below mean anything.
  */
-let storedChallenge: string | null = null;
-let storedChallengeExpiresAt: Date | null = null;
+type ChallengeSlot = {
+  challenge: string | null;
+  expiresAt: Date | null;
+};
+
+type ChallengeSlots = {
+  registration: ChallengeSlot;
+  authentication: ChallengeSlot;
+};
+
+const emptySlots: () => ChallengeSlots = (): ChallengeSlots => {
+  return {
+    registration: { challenge: null, expiresAt: null },
+    authentication: { challenge: null, expiresAt: null },
+  };
+};
+
+let slots: ChallengeSlots = emptySlots();
 
 /* Rows the stubbed database will answer with. */
 let existingCredentials: Array<UserWebAuthn> = [];
@@ -123,17 +143,22 @@ const buildUser: BuildUserFunction = (): User => {
   /*
    * `findOneById` is used for two different reads — the profile lookup when
    * options are generated, and the challenge lookup when a response is
-   * verified — so the same object has to answer both.
+   * verified — so the same object has to answer both, for both slots.
    */
-  user.webauthnChallenge = storedChallenge as string;
-  user.webauthnChallengeExpiresAt = storedChallengeExpiresAt as unknown as Date;
+  user.webauthnRegistrationChallenge = slots.registration
+    .challenge as unknown as string;
+  user.webauthnRegistrationChallengeExpiresAt = slots.registration
+    .expiresAt as unknown as Date;
+  user.webauthnAuthenticationChallenge = slots.authentication
+    .challenge as unknown as string;
+  user.webauthnAuthenticationChallengeExpiresAt = slots.authentication
+    .expiresAt as unknown as Date;
 
   return user;
 };
 
 beforeEach(() => {
-  storedChallenge = null;
-  storedChallengeExpiresAt = null;
+  slots = emptySlots();
   existingCredentials = [];
   createdCredential = null;
   counterUpdates = [];
@@ -149,12 +174,32 @@ beforeEach(() => {
   UserService.updateOneById = jest
     .fn()
     .mockImplementation(async (data: { data: Record<string, unknown> }) => {
-      if ("webauthnChallenge" in data.data) {
-        storedChallenge = data.data["webauthnChallenge"] as string | null;
-        storedChallengeExpiresAt = data.data[
-          "webauthnChallengeExpiresAt"
-        ] as Date | null;
+      /*
+       * Each write names exactly one slot, which is the property under test:
+       * a write that touched both would be the bug this split removed.
+       */
+      if ("webauthnRegistrationChallenge" in data.data) {
+        slots.registration = {
+          challenge: data.data["webauthnRegistrationChallenge"] as
+            | string
+            | null,
+          expiresAt: data.data[
+            "webauthnRegistrationChallengeExpiresAt"
+          ] as Date | null,
+        };
       }
+
+      if ("webauthnAuthenticationChallenge" in data.data) {
+        slots.authentication = {
+          challenge: data.data["webauthnAuthenticationChallenge"] as
+            | string
+            | null,
+          expiresAt: data.data[
+            "webauthnAuthenticationChallengeExpiresAt"
+          ] as Date | null,
+        };
+      }
+
       return undefined;
     }) as never;
 
@@ -515,7 +560,7 @@ describe("WebAuthn user verification (issue #3652)", () => {
         },
       );
 
-      storedChallengeExpiresAt = OneUptimeDate.addRemoveMinutes(
+      slots.registration.expiresAt = OneUptimeDate.addRemoveMinutes(
         OneUptimeDate.getCurrentDate(),
         -1,
       );
@@ -593,7 +638,7 @@ describe("WebAuthn user verification (issue #3652)", () => {
 
       expect(asTheBrowserSendsItBack).toBe(options.challenge);
       expect(challenge).toBe(options.challenge);
-      expect(storedChallenge).toBe(options.challenge);
+      expect(slots.registration.challenge).toBe(options.challenge);
     });
 
     it("issues a different challenge every time", async () => {
@@ -754,7 +799,7 @@ describe("WebAuthn user verification (issue #3652)", () => {
         },
       );
 
-      storedChallengeExpiresAt = OneUptimeDate.addRemoveMinutes(
+      slots.registration.expiresAt = OneUptimeDate.addRemoveMinutes(
         OneUptimeDate.getCurrentDate(),
         -1,
       );
@@ -769,6 +814,485 @@ describe("WebAuthn user verification (issue #3652)", () => {
 
       expect(thrown).toBeInstanceOf(BadDataException);
       expect((thrown as Exception).message).toMatch(/challenge has expired/i);
+    });
+  });
+
+  describe("the two challenge slots are independent", () => {
+    /*
+     * The property the split exists for, and one no end-to-end assertion about
+     * a single flow can catch.
+     *
+     * Registration is keyed by the session's user and signing in is keyed by
+     * an email address, and both land on the same User row. While they shared
+     * one column, whichever wrote last destroyed the other's challenge -- so a
+     * user adding a second key in one tab, with a stale sign-in page open in
+     * another, lost the registration they were halfway through and got
+     * "No pending WebAuthn challenge found" for a key they were holding.
+     *
+     * These drive both flows through the REAL service against one row, which
+     * is the only way to show they no longer collide.
+     */
+
+    it("issuing a sign-in challenge does not destroy a registration in progress", async () => {
+      const key: SecurityKey = makeKey(false);
+
+      /* Tab one: the user starts adding a key. */
+      const { options: registrationOptions } =
+        await UserWebAuthnService.generateRegistrationOptions({
+          userId: USER_ID,
+        });
+
+      /* Tab two -- or an anonymous caller -- asks for a sign-in challenge. */
+      seedRegisteredKey(key);
+      await UserWebAuthnService.generateAuthenticationOptions({
+        email: USER_EMAIL.toString(),
+      });
+
+      /* Tab one finishes. Before the split this threw. */
+      await expect(
+        UserWebAuthnService.verifyRegistration({
+          credential: key.register({
+            challenge: registrationOptions.challenge,
+          }),
+          name: KEY_NAME,
+          props: { userId: USER_ID },
+        }),
+      ).resolves.toBeUndefined();
+    });
+
+    it("issuing a registration challenge does not destroy a sign-in in progress", async () => {
+      /*
+       * The mirror image, and the more damaging direction: the password has
+       * already been accepted by the time a sign-in challenge is outstanding,
+       * so losing it strands the user at the second step.
+       */
+      const key: SecurityKey = makeKey(false);
+      seedRegisteredKey(key);
+
+      const { options: authenticationOptions } =
+        await UserWebAuthnService.generateAuthenticationOptions({
+          email: USER_EMAIL.toString(),
+        });
+
+      await UserWebAuthnService.generateRegistrationOptions({
+        userId: USER_ID,
+      });
+
+      const user: User = await UserWebAuthnService.verifyAuthentication({
+        userId: USER_ID.toString(),
+        credential: key.authenticate({
+          challenge: authenticationOptions.challenge,
+        }),
+      });
+
+      expect(user.id!.toString()).toBe(USER_ID.toString());
+    });
+
+    it("spending one slot leaves the other one loaded", async () => {
+      /*
+       * Stated on the row itself rather than through a flow, because the
+       * clearing is what used to do the damage: `getAndClearStoredChallenge`
+       * empties the slot it read, and while there was one slot that meant
+       * every completed ceremony wiped the other flow's pending one.
+       */
+      const key: SecurityKey = makeKey(false);
+      seedRegisteredKey(key);
+
+      const { options: authenticationOptions } =
+        await UserWebAuthnService.generateAuthenticationOptions({
+          email: USER_EMAIL.toString(),
+        });
+
+      const { options: registrationOptions } =
+        await UserWebAuthnService.generateRegistrationOptions({
+          userId: USER_ID,
+        });
+
+      expect(slots.registration.challenge).toBe(registrationOptions.challenge);
+      expect(slots.authentication.challenge).toBe(
+        authenticationOptions.challenge,
+      );
+
+      await UserWebAuthnService.verifyRegistration({
+        credential: key.register({ challenge: registrationOptions.challenge }),
+        name: KEY_NAME,
+        props: { userId: USER_ID },
+      });
+
+      expect(slots.registration.challenge).toBeNull();
+      expect(slots.authentication.challenge).toBe(
+        authenticationOptions.challenge,
+      );
+    });
+
+    it("a sign-in challenge cannot be spent as a registration one", async () => {
+      /*
+       * The slots are separate, so a response signed over the wrong flow's
+       * challenge finds nothing to match rather than matching by accident.
+       * A single shared slot would have accepted this.
+       */
+      const key: SecurityKey = makeKey(false);
+      seedRegisteredKey(key);
+
+      const { options: authenticationOptions } =
+        await UserWebAuthnService.generateAuthenticationOptions({
+          email: USER_EMAIL.toString(),
+        });
+
+      await expect(
+        UserWebAuthnService.verifyRegistration({
+          credential: key.register({
+            challenge: authenticationOptions.challenge,
+          }),
+          name: KEY_NAME,
+          props: { userId: USER_ID },
+        }),
+      ).rejects.toThrow(/no pending webauthn challenge/i);
+    });
+  });
+
+  describe("the relying party id the browser is given", () => {
+    /*
+     * An RP ID and an origin are built from the same HOST here and are NOT the
+     * same string. The origin must carry the port -- it is what the browser
+     * puts in its client data -- and the RP ID must not, because the spec
+     * defines it as a domain and a browser handed "host:port" refuses the call
+     * outright. HOST carries a port on every self-hosted instance that is not
+     * on 80/443, and those deployments could not use WebAuthn at all.
+     */
+
+    type WithHostFunction = (
+      host: string,
+      run: () => Promise<void>,
+    ) => Promise<void>;
+
+    const withHost: WithHostFunction = async (
+      host: string,
+      run: () => Promise<void>,
+    ): Promise<void> => {
+      /*
+       * The service reads Host at CALL time off the module object, so
+       * redefining the property is enough and nothing has to be re-imported.
+       */
+      const environmentConfig: Record<string, unknown> = jest.requireMock(
+        "Common/Server/EnvironmentConfig",
+      ) as Record<string, unknown>;
+
+      const original: unknown = environmentConfig["Host"];
+
+      Object.defineProperty(environmentConfig, "Host", {
+        value: host,
+        configurable: true,
+        writable: true,
+      });
+
+      try {
+        await run();
+      } finally {
+        Object.defineProperty(environmentConfig, "Host", {
+          value: original,
+          configurable: true,
+          writable: true,
+        });
+      }
+    };
+
+    it("drops the port from the relying party id", async () => {
+      await withHost("oneuptime.example.com:8443", async () => {
+        const { options } =
+          await UserWebAuthnService.generateRegistrationOptions({
+            userId: USER_ID,
+          });
+
+        expect(options.rp.id).toBe("oneuptime.example.com");
+      });
+    });
+
+    it("drops the port on the sign-in options too", async () => {
+      seedRegisteredKey(makeKey(false));
+
+      await withHost("oneuptime.example.com:8443", async () => {
+        const { options } =
+          await UserWebAuthnService.generateAuthenticationOptions({
+            email: USER_EMAIL.toString(),
+          });
+
+        expect(options.rpId).toBe("oneuptime.example.com");
+      });
+    });
+
+    it("leaves a portless host exactly as it is", async () => {
+      /*
+       * The deployments that work today must not move. A credential is scoped
+       * to its RP ID, so a change here would silently orphan every key already
+       * registered against the hosted product.
+       */
+      const { options } = await UserWebAuthnService.generateRegistrationOptions(
+        {
+          userId: USER_ID,
+        },
+      );
+
+      expect(options.rp.id).toBe(RP_ID);
+    });
+
+    it("accepts a credential from a browser on the ported origin", async () => {
+      /*
+       * The two halves together, which is the only way to show the pair is
+       * consistent: the authenticator scopes itself to the bare domain, the
+       * browser reports the full origin WITH the port, and verification has to
+       * accept both at once. Getting either side wrong fails here.
+       */
+      await withHost("oneuptime.example.com:8443", async () => {
+        const portedKey: SecurityKey = createSecurityKey({
+          rpId: "oneuptime.example.com",
+          origin: "https://oneuptime.example.com:8443",
+          performsUserVerification: false,
+        });
+
+        const { options } =
+          await UserWebAuthnService.generateRegistrationOptions({
+            userId: USER_ID,
+          });
+
+        await expect(
+          UserWebAuthnService.verifyRegistration({
+            credential: portedKey.register({ challenge: options.challenge }),
+            name: KEY_NAME,
+            props: { userId: USER_ID },
+          }),
+        ).resolves.toBeUndefined();
+      });
+    });
+  });
+
+  describe("what the credential row records about the authenticator", () => {
+    it("stores the signature counter the authenticator reported", async () => {
+      /*
+       * It used to be written as "0" whatever the key said. The library only
+       * compares counters when at least one side is above zero, so a discarded
+       * non-zero counter is exactly the clone detection that credential was
+       * eligible for -- a key registered at 40 and a clone replaying 12 both
+       * looked fine against a stored 0.
+       */
+      const key: SecurityKey = createSecurityKey({
+        rpId: RP_ID,
+        origin: ORIGIN,
+        performsUserVerification: false,
+        signCount: 40,
+      });
+
+      await register(key);
+
+      expect(createdCredential!.counter).toBe("40");
+    });
+
+    it("stores 0 when that is what the authenticator reported", async () => {
+      /* A synced passkey counts nothing, forever, and that is not an error. */
+      await register(makeKey(true));
+
+      expect(createdCredential!.counter).toBe("0");
+    });
+
+    it("stores the transports the browser reported", async () => {
+      /*
+       * The value comes from the CLIENT: @simplewebauthn reads it straight off
+       * `response.response.transports`, which is populated in
+       * App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/TwoFactorAuth.tsx
+       * from AuthenticatorAttestationResponse.getTransports(). The fixture
+       * stands in for that line.
+       */
+      await register(makeKey(false));
+
+      expect(createdCredential!.transports).toBe(JSON.stringify(["internal"]));
+    });
+
+    it("registers successfully when the browser reports no transports", async () => {
+      /*
+       * getTransports() is not in the original API and older Safari and
+       * Firefox builds do not have it, so the frontend calls it defensively
+       * and a registration can legitimately arrive with the field missing.
+       * A missing hint must cost the user a hint, not their registration.
+       */
+      const key: SecurityKey = makeKey(false);
+
+      const { options } = await UserWebAuthnService.generateRegistrationOptions(
+        {
+          userId: USER_ID,
+        },
+      );
+
+      const credential: RegistrationResponse = key.register({
+        challenge: options.challenge,
+      });
+
+      delete (credential.response as { transports?: Array<string> | undefined })
+        .transports;
+
+      await expect(
+        UserWebAuthnService.verifyRegistration({
+          credential: credential,
+          name: KEY_NAME,
+          props: { userId: USER_ID },
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(createdCredential!.transports).toBe(JSON.stringify([]));
+    });
+
+    it("hands the stored transports back as a sign-in hint", async () => {
+      /*
+       * Recording them buys nothing unless they reach the browser, and
+       * `allowCredentials` is the only place it reads them.
+       */
+      const key: SecurityKey = makeKey(false);
+
+      await register(key);
+
+      const persisted: UserWebAuthn = new UserWebAuthn();
+      persisted.id = new ObjectID("12341234-5678-4901-8234-567890123456");
+      persisted.credentialId = createdCredential!.credentialId!;
+      persisted.publicKey = createdCredential!.publicKey!;
+      persisted.counter = createdCredential!.counter!;
+      persisted.transports = createdCredential!.transports!;
+      persisted.isVerified = true;
+      persisted.userId = USER_ID;
+
+      existingCredentials = [persisted];
+
+      const { options } =
+        await UserWebAuthnService.generateAuthenticationOptions({
+          email: USER_EMAIL.toString(),
+        });
+
+      expect(options.allowCredentials[0].transports).toEqual(["internal"]);
+    });
+
+    it("sends no hint at all for a credential registered before transports were recorded", async () => {
+      /*
+       * Every existing row holds the literal "[]". An EMPTY array is not the
+       * same as no array: it is a hint that excludes every transport, where
+       * those credentials have always sent nothing. Chromium filters on the
+       * hint when it is present, so an empty one could hide a key that works.
+       */
+      const legacy: UserWebAuthn = new UserWebAuthn();
+      legacy.id = new ObjectID("22223333-4444-4555-8666-777788889999");
+      legacy.credentialId = makeKey(false).credentialId;
+      legacy.publicKey = Buffer.from("legacy").toString("base64");
+      legacy.counter = "0";
+      legacy.transports = JSON.stringify([]);
+      legacy.isVerified = true;
+      legacy.userId = USER_ID;
+
+      existingCredentials = [legacy];
+
+      const { options } =
+        await UserWebAuthnService.generateAuthenticationOptions({
+          email: USER_EMAIL.toString(),
+        });
+
+      expect(options.allowCredentials[0].transports).toBeUndefined();
+    });
+
+    it("sends no hint for a row whose transports column is unreadable", async () => {
+      /*
+       * Rows written before the column existed hold null, and nothing stops a
+       * hand-edited row holding nonsense. Neither is worth an exception on a
+       * sign-in path.
+       */
+      const broken: UserWebAuthn = new UserWebAuthn();
+      broken.id = new ObjectID("33334444-5555-4666-8777-888899990000");
+      broken.credentialId = makeKey(false).credentialId;
+      broken.publicKey = Buffer.from("broken").toString("base64");
+      broken.counter = "0";
+      broken.transports = "not json at all";
+      broken.isVerified = true;
+      broken.userId = USER_ID;
+
+      existingCredentials = [broken];
+
+      const { options } =
+        await UserWebAuthnService.generateAuthenticationOptions({
+          email: USER_EMAIL.toString(),
+        });
+
+      expect(options.allowCredentials[0].transports).toBeUndefined();
+    });
+  });
+
+  describe("what the anonymous sign-in options route will say about an account", () => {
+    /*
+     * POST /user-webauthn/generate-authentication-options takes an email and
+     * nothing else, from anyone. It used to answer "User not found" for an
+     * address nobody has registered and "No WebAuthn credentials found for
+     * this user" for one that exists without a key -- an account-existence
+     * oracle, plus a second one saying which accounts are protected by
+     * hardware, free to anybody who can send a POST.
+     */
+
+    it("answers identically for an unknown account and one with no security key", async () => {
+      const unknownAccount: unknown = await (async (): Promise<unknown> => {
+        UserService.findOneBy = jest.fn().mockResolvedValue(null) as never;
+
+        try {
+          await UserWebAuthnService.generateAuthenticationOptions({
+            email: "nobody@example.com",
+          });
+        } catch (error) {
+          return error;
+        }
+
+        throw new Error("Expected this to reject");
+      })();
+
+      const knownAccountWithoutAKey: unknown =
+        await (async (): Promise<unknown> => {
+          UserService.findOneBy = jest.fn().mockImplementation(async () => {
+            return buildUser();
+          }) as never;
+          existingCredentials = [];
+
+          try {
+            await UserWebAuthnService.generateAuthenticationOptions({
+              email: USER_EMAIL.toString(),
+            });
+          } catch (error) {
+            return error;
+          }
+
+          throw new Error("Expected this to reject");
+        })();
+
+      /*
+       * Identical text is the whole point -- a caller must not be able to tell
+       * the two apart -- and both must still be Exceptions so the handler
+       * answers 400 rather than the 500 that would itself be a tell.
+       */
+      expect((unknownAccount as Exception).message).toBe(
+        (knownAccountWithoutAKey as Exception).message,
+      );
+      expect(unknownAccount).toBeInstanceOf(BadDataException);
+      expect(knownAccountWithoutAKey).toBeInstanceOf(BadDataException);
+    });
+
+    it("does not name the account in what it says", async () => {
+      UserService.findOneBy = jest.fn().mockResolvedValue(null) as never;
+
+      let thrown: unknown = null;
+
+      try {
+        await UserWebAuthnService.generateAuthenticationOptions({
+          email: USER_EMAIL.toString(),
+        });
+      } catch (error) {
+        thrown = error;
+      }
+
+      const message: string = (thrown as Exception).message;
+
+      expect(message).not.toContain(USER_EMAIL.toString());
+      expect(message).not.toMatch(/user not found/i);
+      expect(message).not.toMatch(/no webauthn credentials/i);
     });
   });
 
