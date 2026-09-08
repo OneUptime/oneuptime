@@ -88,7 +88,7 @@ import nodePath from "path";
  * file. Scripts/I18n/ValidateLocales.js does cover
  * App/FeatureSet/Accounts/src/Locales, but it is an ESM module that this
  * CommonJS suite cannot require() and it runs only in the js-lint CI job. So
- * adding a key to en.json and forgetting the other fifteen files goes GREEN in
+ * adding a key to en.json and forgetting the other sixteen files goes GREEN in
  * the App suite and red much later, in a different job, to a different person.
  * The sweep at the bottom closes that gap for the whole directory, not just
  * for the keys this feature added -- and this feature added a whole new
@@ -530,12 +530,13 @@ const SAVE_CODE_KEYS: Array<string> = [
 
 /*
  * en.json is the source of truth; Scripts/I18n/ValidateLocales.js requires
- * these fifteen to mirror it key-for-key.
+ * these sixteen to mirror it key-for-key.
  */
 const TRANSLATED_LOCALES: Array<string> = [
   "da",
   "de",
   "es",
+  "fa",
   "fr",
   "hi",
   "it",
@@ -567,7 +568,7 @@ const readLocaleRaw: ReadLocaleRawFunction = (code: string): string => {
 
 /*
  * Parsing is memoized because the parity sweep compares whole key sets across
- * sixteen files -- re-reading per key turns a millisecond assertion into a
+ * seventeen files -- re-reading per key turns a millisecond assertion into a
  * visibly slow one.
  */
 const localeCache: Map<string, Record<string, unknown>> = new Map<
@@ -708,7 +709,7 @@ describe("every screen this file asserts on was located in Login.tsx", () => {
     );
   });
 
-  test("all sixteen locale files are being looked at", () => {
+  test("all seventeen locale files are being looked at", () => {
     /*
      * The locale loops prove nothing if the directory read comes back short.
      * i18next's fallbackLng is "en", so a locale file that simply is not there
@@ -719,6 +720,7 @@ describe("every screen this file asserts on was located in Login.tsx", () => {
       "de.json",
       "en.json",
       "es.json",
+      "fa.json",
       "fr.json",
       "hi.json",
       "it.json",
@@ -1424,7 +1426,7 @@ describe("the translations Login.tsx asks for", () => {
  * Accounts feature set, which had no locale test of any kind before this file.
  * That script is an ESM module and cannot be require()'d from this CommonJS
  * suite, and it runs only in the js-lint CI job -- so adding one key to en.json
- * and forgetting the other fifteen files goes green here and red much later.
+ * and forgetting the other sixteen files goes green here and red much later.
  * These assertions make the App suite itself refuse the drift, and they cover
  * the whole directory rather than only the keys this feature added.
  */
@@ -1466,7 +1468,7 @@ describe("Accounts locale files stay in parity with en.json", () => {
       /*
        * The other direction, and the one people forget. An extra key is dead
        * weight that never renders, but it is also the fingerprint of a rename
-       * applied to fifteen files and not to en.json -- in which case the
+       * applied to sixteen files and not to en.json -- in which case the
        * "missing" check above is passing on the OLD name.
        */
       const englishKeys: Set<string> = new Set<string>(localeKeys("en"));

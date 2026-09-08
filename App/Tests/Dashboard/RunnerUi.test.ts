@@ -50,6 +50,7 @@ const LOCALE_CODES: Array<string> = [
   "zh-CN",
   "zh-TW",
   "hi",
+  "fa",
 ];
 
 const TRANSLATED_CODES: Array<string> = LOCALE_CODES.filter(
@@ -142,7 +143,7 @@ const readLocale: ReadLocaleFunction = (
 /*
  * Every user-visible English string this change introduced or reworded. Each
  * one is an i18next lookup key, so a missing entry silently renders English in
- * fifteen languages rather than failing anywhere.
+ * sixteen languages rather than failing anywhere.
  */
 const NEW_STRINGS: Array<string> = [
   "Here are more details for this Runner.",
@@ -562,7 +563,7 @@ describe("every new user-visible string is translatable", () => {
    */
   /*
    * No exemption list. Every one of the new strings has a real, distinct
-   * translation in all fifteen locales, so any entry left equal to English is
+   * translation in all sixteen locales, so any entry left equal to English is
    * a genuinely untranslated string — which is exactly the failure the CI
    * validator does NOT catch (it counts identical values and prints them as
    * info).
@@ -631,9 +632,9 @@ describe("every new user-visible string is translatable", () => {
 
 describe("the status labels reuse the existing translations", () => {
   /*
-   * "Connected" and "Disconnected" were already translated in all sixteen
+   * "Connected" and "Disconnected" were already translated in all seventeen
    * files for the probe pages, so routing the Runner bubble through
-   * translateString gets fifteen languages for free.
+   * translateString gets sixteen languages for free.
    */
   test.each(TRANSLATED_CODES)(
     "%s.json already had Connected",

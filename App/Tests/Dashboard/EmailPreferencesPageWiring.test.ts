@@ -77,11 +77,12 @@ const LOCALES: Array<string> = [
   "zh-CN",
   "zh-TW",
   "hi",
+  "fa",
 ];
 
 /*
  * Every string the two pages hand to translateString. A key that is missing
- * from en.json renders English forever for all fifteen other languages and
+ * from en.json renders English forever for all sixteen other languages and
  * nothing fails, so the list is pinned here rather than inferred.
  */
 const REQUIRED_KEYS: Array<string> = [
@@ -481,7 +482,7 @@ describe("Locales", () => {
     }
   });
 
-  test("the fifteen translations mirror en.json key for key", () => {
+  test("the sixteen translations mirror en.json key for key", () => {
     const enKeys: Array<string> = Object.keys(en).sort();
 
     for (const locale of LOCALES) {

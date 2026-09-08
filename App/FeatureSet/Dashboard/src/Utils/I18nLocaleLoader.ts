@@ -6,7 +6,7 @@
  * the template-literal dynamic import below (esbuild turns the
  * `../Locales/${...}.json` pattern into one lazy chunk per matching file), so
  * a user only ever downloads the one locale they actually use instead of all
- * sixteen (~11.8MB of the old entry chunk).
+ * seventeen (~11.8MB of the old entry chunk).
  *
  * Kept free of React and side effects so App/Tests/Dashboard can import it
  * directly under the node test environment.

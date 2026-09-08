@@ -22,7 +22,7 @@ const Search: () => JSX.Element = (): ReactElement => {
    * t(key, default) rather than a locale entry: en.json is the source of truth
    * the other 15 locales must mirror key-for-key (Scripts/I18n/ValidateLocales),
    * so adding the key to English alone would fail validation, and inventing
-   * fifteen translations here would be worse. Same pattern
+   * sixteen translations here would be worse. Same pattern
    * DashboardCommandPalette already uses for its own strings.
    */
   const { t } = useTranslation();

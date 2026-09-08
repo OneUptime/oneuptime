@@ -6,7 +6,7 @@ import NotificationSettingEventType from "Common/Types/NotificationSetting/Notif
 /*
  * The calendar-feed feature is one new User Settings page, one new On-Call
  * Duty page, a card on the schedule page, two links, two notification event
- * rows and ~125 strings in sixteen locale files. None of the wiring between
+ * rows and ~125 strings in seventeen locale files. None of the wiring between
  * them is reachable from a unit test: a PageRoute that imports the wrong
  * page, a breadcrumb missing for a route, an EVENT_LIBRARY row that never made
  * it into the On-Call section, or a locale key that exists in en.json only,
@@ -51,6 +51,7 @@ const LOCALES: Array<string> = [
   "zh-CN",
   "zh-TW",
   "hi",
+  "fa",
 ];
 
 function squash(text: string): string {
@@ -536,7 +537,7 @@ describe("Locales", () => {
     }
   });
 
-  test("the fifteen translations mirror en.json key for key", () => {
+  test("the sixteen translations mirror en.json key for key", () => {
     const enKeys: Array<string> = Object.keys(en).sort();
 
     for (const locale of LOCALES) {
