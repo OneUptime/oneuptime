@@ -1391,7 +1391,10 @@ export class Service extends DatabaseService<Model> {
         createBy.props.tenantId,
       );
 
-      if (currentPlan.isSubscriptionUnpaid) {
+      if (
+        currentPlan.isSubscriptionUnpaid &&
+        createBy.data.monitorType !== MonitorType.Manual
+      ) {
         throw new BadDataException(
           "Your subscription is unpaid. Please update your payment method and pay all the outstanding invoices to add more monitors.",
         );

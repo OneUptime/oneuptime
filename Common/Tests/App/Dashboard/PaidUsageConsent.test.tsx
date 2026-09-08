@@ -1,7 +1,13 @@
 import "@testing-library/jest-dom";
 import React from "react";
 import userEvent from "@testing-library/user-event";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import PaidUsageConsent from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/PaidUsageConsent";
 import BaseAPI from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -54,14 +60,18 @@ describe("PaidUsageConsent", () => {
   });
 
   it("explains locked features and lets the user recheck after billing setup", async () => {
-    jest.spyOn(BaseAPI, "get")
+    jest
+      .spyOn(BaseAPI, "get")
       .mockResolvedValueOnce({ data: { isAllowed: false } } as any)
       .mockResolvedValueOnce({ data: { isAllowed: true } } as any);
     renderConsent();
     await screen.findByText(/Add a payment method before/);
     expect(screen.getByTestId("consent")).toBeDisabled();
-    expect(screen.getByRole("link", { name: "Set up billing" })).toHaveAttribute(
-      "href", `/dashboard/${projectId.toString()}/settings/billing`,
+    expect(
+      screen.getByRole("link", { name: "Set up billing" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${projectId.toString()}/settings/billing`,
     );
     await userEvent.click(screen.getByTestId("consent"));
     expect(onChange).not.toHaveBeenCalled();
@@ -73,7 +83,8 @@ describe("PaidUsageConsent", () => {
   });
 
   it("keeps consent locked on network failure and supports retry", async () => {
-    jest.spyOn(BaseAPI, "get")
+    jest
+      .spyOn(BaseAPI, "get")
       .mockRejectedValueOnce(new Error("Unavailable"))
       .mockResolvedValueOnce({ data: { isAllowed: true } } as any);
     renderConsent();
@@ -86,7 +97,9 @@ describe("PaidUsageConsent", () => {
   });
 
   it("does not accept an absent or nonboolean authorization value", async () => {
-    jest.spyOn(BaseAPI, "get").mockResolvedValue({ data: { isAllowed: "true" } } as any);
+    jest
+      .spyOn(BaseAPI, "get")
+      .mockResolvedValue({ data: { isAllowed: "true" } } as any);
     renderConsent();
     await screen.findByText(/Add a payment method before/);
     expect(screen.getByTestId("consent")).toBeDisabled();
@@ -94,7 +107,8 @@ describe("PaidUsageConsent", () => {
 
   it("does not use a stale project response after the selected project changes", async () => {
     let resolveOld: (value: any) => void = (): void => {};
-    jest.spyOn(BaseAPI, "get")
+    jest
+      .spyOn(BaseAPI, "get")
       .mockImplementationOnce(() => {
         return new Promise<any>((done: (value: any) => void) => {
           resolveOld = done;
@@ -102,8 +116,16 @@ describe("PaidUsageConsent", () => {
       })
       .mockResolvedValueOnce({ data: { isAllowed: false } } as any);
     const view: ReturnType<typeof render> = renderConsent();
-    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(ObjectID.generate());
-    view.rerender(<PaidUsageConsent title="I agree" description="Paid usage" dataTestId="consent" />);
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(ObjectID.generate());
+    view.rerender(
+      <PaidUsageConsent
+        title="I agree"
+        description="Paid usage"
+        dataTestId="consent"
+      />,
+    );
     await screen.findByText(/Add a payment method before/);
     await act(async () => {
       resolveOld({ data: { isAllowed: true } });
@@ -112,24 +134,44 @@ describe("PaidUsageConsent", () => {
   });
 
   it("does not reload eligibility when a form recreates its callback", async () => {
-    const getStatus: jest.SpyInstance = jest.spyOn(BaseAPI, "get")
+    const getStatus: jest.SpyInstance = jest
+      .spyOn(BaseAPI, "get")
       .mockResolvedValue({ data: { isAllowed: true } } as any);
     const view: ReturnType<typeof render> = renderConsent();
     await waitFor(() => {
       expect(screen.getByTestId("consent")).toBeEnabled();
     });
-    view.rerender(<PaidUsageConsent title="I agree" description="Paid usage" dataTestId="consent" onChange={(): void => {}} />);
+    view.rerender(
+      <PaidUsageConsent
+        title="I agree"
+        description="Paid usage"
+        dataTestId="consent"
+        onChange={(): void => {}}
+      />,
+    );
     expect(getStatus).toHaveBeenCalledTimes(1);
   });
 
   it("clears an earlier acknowledgement when changing projects", async () => {
-    jest.spyOn(BaseAPI, "get").mockResolvedValue({ data: { isAllowed: true } } as any);
+    jest
+      .spyOn(BaseAPI, "get")
+      .mockResolvedValue({ data: { isAllowed: true } } as any);
     const view: ReturnType<typeof render> = renderConsent();
     await waitFor(() => {
       expect(screen.getByTestId("consent")).toBeEnabled();
     });
-    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(ObjectID.generate());
-    view.rerender(<PaidUsageConsent title="I agree" description="Paid usage" dataTestId="consent" value={true} onChange={onChange} />);
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(ObjectID.generate());
+    view.rerender(
+      <PaidUsageConsent
+        title="I agree"
+        description="Paid usage"
+        dataTestId="consent"
+        value={true}
+        onChange={onChange}
+      />,
+    );
     expect(onChange).toHaveBeenCalledWith(false);
     await waitFor(() => {
       expect(screen.getByTestId("consent")).toBeEnabled();

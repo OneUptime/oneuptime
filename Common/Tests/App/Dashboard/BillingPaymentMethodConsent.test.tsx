@@ -21,7 +21,7 @@ import { getJestSpyOn } from "../../Spy";
 const confirmSetupMock: MockFunction = getJestMockFunction();
 let stripeReady: boolean = true;
 let elementsReady: boolean = true;
-const mockElements: object = {};
+const mockElements: Record<string, unknown> = {};
 
 jest.mock(
   "@stripe/react-stripe-js",
@@ -196,11 +196,13 @@ describe("Adding a payment method requires acknowledgement of paid usage", () =>
   });
 
   it("suppresses duplicate submissions while setup is in progress", async () => {
-    let resolveSetup: ((result: object) => void) | undefined;
+    let resolveSetup: ((result: Record<string, unknown>) => void) | undefined;
     confirmSetupMock.mockImplementationOnce(() => {
-      return new Promise<object>((resolve: (result: object) => void) => {
-        resolveSetup = resolve;
-      });
+      return new Promise<Record<string, unknown>>(
+        (resolve: (result: Record<string, unknown>) => void) => {
+          resolveSetup = resolve;
+        },
+      );
     });
     const { submit, onSuccess } = renderForm();
     await userEvent.click(

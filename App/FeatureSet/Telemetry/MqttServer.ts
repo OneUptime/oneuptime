@@ -332,8 +332,10 @@ async function handleAuthorizePublish(
     return;
   }
 
-  // A connected session can outlive its project's payment setup, including
-  // device credentials that do not use a project ingestion key.
+  /*
+   * A connected session can outlive its project's payment setup, including
+   * device credentials that do not use a project ingestion key.
+   */
   await PayAsYouGoBillingService.requirePayAsYouGo(projectId);
 
   const payload: Buffer = Buffer.isBuffer(packet.payload)

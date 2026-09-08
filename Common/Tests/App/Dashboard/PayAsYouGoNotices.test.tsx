@@ -71,7 +71,6 @@ jest.mock("../../../UI/Config", () => {
   return mocked;
 });
 
-
 type SetPlanFunction = (plan: PlanType | null) => void;
 
 const setPlan: SetPlanFunction = (plan: PlanType | null): void => {
@@ -81,9 +80,13 @@ const setPlan: SetPlanFunction = (plan: PlanType | null): void => {
 describe("Pay as you go notices", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
-    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(ObjectID.generate());
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(ObjectID.generate());
     jest.spyOn(ModelAPI, "getCommonHeaders").mockReturnValue({});
-    jest.spyOn(BaseAPI, "get").mockResolvedValue({ data: { isAllowed: true } } as any);
+    jest
+      .spyOn(BaseAPI, "get")
+      .mockResolvedValue({ data: { isAllowed: true } } as any);
     config.billingEnabled = true;
     setPlan(PlanType.Free);
   });

@@ -25,26 +25,85 @@ jest.mock("../../../../Server/EnvironmentConfig", () => {
   };
 });
 
-jest.mock("../../../../Server/Services/PayAsYouGoBillingService", () => ({ __esModule: true, default: { canUsePayAsYouGo: jest.fn(), getTelemetryBillingStartDate: jest.fn() } }));
-jest.mock("../../../../Server/Services/BillingService", () => ({ __esModule: true, default: { addOrUpdateMeteredPricingOnSubscription: jest.fn(), getMeteredPlanPriceId: jest.fn(), hasMeteredPlanPriceId: jest.fn() } }));
-jest.mock("../../../../Server/Services/ProjectService", () => ({ __esModule: true, default: { findOneById: jest.fn(), updateOneById: jest.fn() } }));
-jest.mock("../../../../Server/Services/MonitorService", () => ({ __esModule: true, default: { countBy: jest.fn() } }));
-jest.mock("../../../../Server/Services/LogService", () => ({ __esModule: true, default: { groupTelemetryUsageByService: jest.fn() } }));
-jest.mock("../../../../Server/Services/ServiceService", () => ({ __esModule: true, default: {  } }));
-jest.mock("../../../../Server/Services/SpanService", () => ({ __esModule: true, default: {  } }));
-jest.mock("../../../../Server/Services/SecurityEventService", () => ({ __esModule: true, default: {  } }));
-jest.mock("../../../../Server/Services/MetricService", () => ({ __esModule: true, default: {  } }));
-jest.mock("../../../../Server/Services/ExceptionInstanceService", () => ({ __esModule: true, default: {  } }));
-jest.mock("../../../../Server/Services/ProfileService", () => ({ __esModule: true, default: {  } }));
-jest.mock("../../../../Server/Services/RumSessionService", () => ({ __esModule: true, default: {  } }));
-jest.mock("../../../../Server/Services/ProfileSampleService", () => ({ __esModule: true, default: {  } }));
-jest.mock("../../../../Server/Services/HostService", () => ({ __esModule: true, default: {  } }));
-jest.mock("../../../../Server/Services/DockerHostService", () => ({ __esModule: true, default: {  } }));
-jest.mock("../../../../Server/Services/PodmanHostService", () => ({ __esModule: true, default: {  } }));
-jest.mock("../../../../Server/Services/KubernetesClusterService", () => ({ __esModule: true, default: {  } }));
-jest.mock("../../../../Server/Services/ProxmoxClusterService", () => ({ __esModule: true, default: {  } }));
-jest.mock("../../../../Server/Services/CephClusterService", () => ({ __esModule: true, default: {  } }));
-jest.mock("../../../../Server/Services/IoTFleetService", () => ({ __esModule: true, default: {  } }));
+jest.mock("../../../../Server/Services/PayAsYouGoBillingService", () => {
+  return {
+    __esModule: true,
+    default: {
+      canUsePayAsYouGo: jest.fn(),
+      getTelemetryBillingStartDate: jest.fn(),
+    },
+  };
+});
+jest.mock("../../../../Server/Services/BillingService", () => {
+  return {
+    __esModule: true,
+    default: {
+      addOrUpdateMeteredPricingOnSubscription: jest.fn(),
+      getMeteredPlanPriceId: jest.fn(),
+      hasMeteredPlanPriceId: jest.fn(),
+    },
+  };
+});
+jest.mock("../../../../Server/Services/ProjectService", () => {
+  return {
+    __esModule: true,
+    default: { findOneById: jest.fn(), updateOneById: jest.fn() },
+  };
+});
+jest.mock("../../../../Server/Services/MonitorService", () => {
+  return { __esModule: true, default: { countBy: jest.fn() } };
+});
+jest.mock("../../../../Server/Services/LogService", () => {
+  return {
+    __esModule: true,
+    default: { groupTelemetryUsageByService: jest.fn() },
+  };
+});
+jest.mock("../../../../Server/Services/ServiceService", () => {
+  return { __esModule: true, default: {} };
+});
+jest.mock("../../../../Server/Services/SpanService", () => {
+  return { __esModule: true, default: {} };
+});
+jest.mock("../../../../Server/Services/SecurityEventService", () => {
+  return { __esModule: true, default: {} };
+});
+jest.mock("../../../../Server/Services/MetricService", () => {
+  return { __esModule: true, default: {} };
+});
+jest.mock("../../../../Server/Services/ExceptionInstanceService", () => {
+  return { __esModule: true, default: {} };
+});
+jest.mock("../../../../Server/Services/ProfileService", () => {
+  return { __esModule: true, default: {} };
+});
+jest.mock("../../../../Server/Services/RumSessionService", () => {
+  return { __esModule: true, default: {} };
+});
+jest.mock("../../../../Server/Services/ProfileSampleService", () => {
+  return { __esModule: true, default: {} };
+});
+jest.mock("../../../../Server/Services/HostService", () => {
+  return { __esModule: true, default: {} };
+});
+jest.mock("../../../../Server/Services/DockerHostService", () => {
+  return { __esModule: true, default: {} };
+});
+jest.mock("../../../../Server/Services/PodmanHostService", () => {
+  return { __esModule: true, default: {} };
+});
+jest.mock("../../../../Server/Services/KubernetesClusterService", () => {
+  return { __esModule: true, default: {} };
+});
+jest.mock("../../../../Server/Services/ProxmoxClusterService", () => {
+  return { __esModule: true, default: {} };
+});
+jest.mock("../../../../Server/Services/CephClusterService", () => {
+  return { __esModule: true, default: {} };
+});
+jest.mock("../../../../Server/Services/IoTFleetService", () => {
+  return { __esModule: true, default: {} };
+});
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const CUTOFF: Date = new Date("2026-09-09T00:00:00Z");
@@ -273,21 +332,56 @@ describe("metered billing payment protection", () => {
     it("uses the same UTC day key for staging and writes across timezone changes and retries", async () => {
       const resourceId: ObjectID = ObjectID.generate();
       const stored: Array<TelemetryUsageBilling> = [];
-      aggregation.mockResolvedValue([{ primaryEntityId: resourceId.toString(), primaryEntityType: ServiceType.OpenTelemetry, rowCount: 1, estimatedBytes: 1024 }]);
-      getJestSpyOn(TelemetryUsageBillingService, "buildTelemetryRetentionMap").mockResolvedValue(new Map());
-      getJestSpyOn(TelemetryUsageBillingService, "getProjectDefaultRetentionInDays").mockResolvedValue(15);
-      getJestSpyOn(TelemetryUsageBillingService, "findBy").mockImplementation(async (args: any): Promise<Array<TelemetryUsageBilling>> => {
-        return stored.filter((row: TelemetryUsageBilling) => { return row.day === args.query.day; });
+      aggregation.mockResolvedValue([
+        {
+          primaryEntityId: resourceId.toString(),
+          primaryEntityType: ServiceType.OpenTelemetry,
+          rowCount: 1,
+          estimatedBytes: 1024,
+        },
+      ]);
+      getJestSpyOn(
+        TelemetryUsageBillingService,
+        "buildTelemetryRetentionMap",
+      ).mockResolvedValue(new Map());
+      getJestSpyOn(
+        TelemetryUsageBillingService,
+        "getProjectDefaultRetentionInDays",
+      ).mockResolvedValue(15);
+      getJestSpyOn(TelemetryUsageBillingService, "findBy").mockImplementation(
+        async (args: any): Promise<Array<TelemetryUsageBilling>> => {
+          return stored.filter((row: TelemetryUsageBilling) => {
+            return row.day === args.query.day;
+          });
+        },
+      );
+      getJestSpyOn(TelemetryUsageBillingService, "findOneBy").mockResolvedValue(
+        null,
+      );
+      const create: jest.SpyInstance = getJestSpyOn(
+        TelemetryUsageBillingService,
+        "create",
+      ).mockImplementation(
+        async (args: any): Promise<TelemetryUsageBilling> => {
+          stored.push(args.data as TelemetryUsageBilling);
+          return args.data as TelemetryUsageBilling;
+        },
+      );
+      const timezone: jest.SpyInstance = getJestSpyOn(
+        OneUptimeDate,
+        "getCurrentTimezone",
+      ).mockReturnValue("America/Los_Angeles");
+      await TelemetryUsageBillingService.stageTelemetryUsageForProject({
+        projectId: PROJECT_ID,
+        productType: ProductType.Logs,
+        usageDate: new Date("2026-09-09T00:30:00Z"),
       });
-      getJestSpyOn(TelemetryUsageBillingService, "findOneBy").mockResolvedValue(null);
-      const create: jest.SpyInstance = getJestSpyOn(TelemetryUsageBillingService, "create").mockImplementation(async (args: any): Promise<TelemetryUsageBilling> => {
-        stored.push(args.data as TelemetryUsageBilling);
-        return args.data as TelemetryUsageBilling;
-      });
-      const timezone: jest.SpyInstance = getJestSpyOn(OneUptimeDate, "getCurrentTimezone").mockReturnValue("America/Los_Angeles");
-      await TelemetryUsageBillingService.stageTelemetryUsageForProject({ projectId: PROJECT_ID, productType: ProductType.Logs, usageDate: new Date("2026-09-09T00:30:00Z") });
       timezone.mockReturnValue("Asia/Tokyo");
-      await TelemetryUsageBillingService.stageTelemetryUsageForProject({ projectId: PROJECT_ID, productType: ProductType.Logs, usageDate: new Date("2026-09-09T23:30:00Z") });
+      await TelemetryUsageBillingService.stageTelemetryUsageForProject({
+        projectId: PROJECT_ID,
+        productType: ProductType.Logs,
+        usageDate: new Date("2026-09-09T23:30:00Z"),
+      });
       expect(stored[0]?.day).toBe("Sep 09, 2026");
       expect(create).toHaveBeenCalledTimes(1);
       for (const call of aggregation.mock.calls) {

@@ -301,8 +301,9 @@ const TelemetryPayAsYouGoModalNotice: FunctionComponent = (): ReactElement => {
       title="Telemetry is a pay as you go feature"
     >
       <p className="text-sm text-gray-700">
-        Your project is on the Free plan, which does not bundle any telemetry.
-        A payment method is required before you can create a key or send paid telemetry. Data sent with this ingestion key is billed as you use it.{" "}
+        Your project is on the Free plan, which does not bundle any telemetry. A
+        payment method is required before you can create a key or send paid
+        telemetry. Data sent with this ingestion key is billed as you use it.{" "}
         {TELEMETRY_RATES_SENTENCE}{" "}
         <Link
           className="underline"
@@ -356,15 +357,24 @@ export function getTelemetryPayAsYouGoFormFields(): Array<
       doNotShowWhenEditing: true,
       spanFullRow: true,
       fieldType: FormFieldSchemaType.CustomComponent,
-      getCustomElement: (values: FormValues<TelemetryIngestionKey>, props: CustomElementProps): ReactElement => {
-        return <PaidUsageConsent
-          title="I agree to these usage charges"
-          description={TELEMETRY_RATES_SENTENCE}
-          value={(values as Record<string, unknown>)[TELEMETRY_CONSENT_FIELD_KEY] === true}
-          onChange={props.onChange}
-          error={props.error}
-          dataTestId="telemetry-pay-as-you-go-consent"
-        />;
+      getCustomElement: (
+        values: FormValues<TelemetryIngestionKey>,
+        props: CustomElementProps,
+      ): ReactElement => {
+        return (
+          <PaidUsageConsent
+            title="I agree to these usage charges"
+            description={TELEMETRY_RATES_SENTENCE}
+            value={
+              (values as Record<string, unknown>)[
+                TELEMETRY_CONSENT_FIELD_KEY
+              ] === true
+            }
+            onChange={props.onChange}
+            error={props.error}
+            dataTestId="telemetry-pay-as-you-go-consent"
+          />
+        );
       },
       title: "I understand telemetry sent with this key is billed as I use it",
       description: TELEMETRY_RATES_SENTENCE,
@@ -498,15 +508,23 @@ export function getMonitorPayAsYouGoFormFields(data: {
       stepId: data.stepId,
       spanFullRow: true,
       fieldType: FormFieldSchemaType.CustomComponent,
-      getCustomElement: (values: FormValues<Monitor>, props: CustomElementProps): ReactElement => {
-        return <PaidUsageConsent
-          title="I agree to these usage charges"
-          description={`${ACTIVE_MONITOR_PRICE_SENTENCE}. Manual monitors remain free.`}
-          value={(values as Record<string, unknown>)[MONITOR_CONSENT_FIELD_KEY] === true}
-          onChange={props.onChange}
-          error={props.error}
-          dataTestId="monitor-pay-as-you-go-consent"
-        />;
+      getCustomElement: (
+        values: FormValues<Monitor>,
+        props: CustomElementProps,
+      ): ReactElement => {
+        return (
+          <PaidUsageConsent
+            title="I agree to these usage charges"
+            description={`${ACTIVE_MONITOR_PRICE_SENTENCE}. Manual monitors remain free.`}
+            value={
+              (values as Record<string, unknown>)[MONITOR_CONSENT_FIELD_KEY] ===
+              true
+            }
+            onChange={props.onChange}
+            error={props.error}
+            dataTestId="monitor-pay-as-you-go-consent"
+          />
+        );
       },
       title: `I understand this monitor is billed at ${ACTIVE_MONITOR_PRICE_TEXT} per month`,
       description: `Your project is on the Free plan. Every monitor type except ${MonitorType.Manual} is an active monitor, billed at ${ACTIVE_MONITOR_PRICE_SENTENCE}. Pick ${MonitorType.Manual} if you do not want to be billed for this monitor.`,

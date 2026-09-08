@@ -111,8 +111,10 @@ jest.mock(
   { virtual: true },
 );
 
-// Keep the billing page, its usage card and its real checkout form together;
-// unrelated model editors and the external provider are test boundaries.
+/*
+ * Keep the billing page, its usage card and its real checkout form together;
+ * unrelated model editors and the external provider are test boundaries.
+ */
 jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
   return {
     __esModule: true,

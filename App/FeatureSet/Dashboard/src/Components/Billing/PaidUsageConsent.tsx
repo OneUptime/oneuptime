@@ -45,12 +45,13 @@ export default function PaidUsageConsent(props: Props): ReactElement {
         if (!projectId) {
           throw new Error("Project is unavailable");
         }
-        const response: HTTPResponse<JSONObject> = await BaseAPI.get<JSONObject>({
-          url: URL.fromString(APP_API_URL.toString()).addRoute(
-            "/billing/pay-as-you-go-status",
-          ),
-          headers: ModelAPI.getCommonHeaders(),
-        });
+        const response: HTTPResponse<JSONObject> =
+          await BaseAPI.get<JSONObject>({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              "/billing/pay-as-you-go-status",
+            ),
+            headers: ModelAPI.getCommonHeaders(),
+          });
         if (current) {
           setStatus({
             projectId,
@@ -83,7 +84,10 @@ export default function PaidUsageConsent(props: Props): ReactElement {
   return (
     <div className="space-y-3">
       {!allowed && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-gray-700" role="status">
+        <div
+          className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-gray-700"
+          role="status"
+        >
           {state === "loading" && "Checking paid feature access…"}
           {state === "locked" &&
             "Add a payment method before using this paid feature. Free features remain available without a card."}

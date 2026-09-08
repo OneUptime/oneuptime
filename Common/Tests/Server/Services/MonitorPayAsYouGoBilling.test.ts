@@ -112,6 +112,22 @@ describe("monitor creation payment admission", () => {
     expect(PayAsYouGoBillingService.canUsePayAsYouGo).not.toHaveBeenCalled();
   });
 
+  test.each([PlanType.Free, PlanType.Growth])(
+    "keeps free Manual monitors available when the %s subscription is unpaid",
+    async (plan: PlanType) => {
+      jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+        plan,
+        isSubscriptionUnpaid: true,
+      });
+
+      await expect(
+        hooks.onBeforeCreate(createInput(MonitorType.Manual)),
+      ).resolves.toBeDefined();
+      expect(PayAsYouGoBillingService.canUsePayAsYouGo).not.toHaveBeenCalled();
+      expect(MonitorService.countBy).not.toHaveBeenCalled();
+    },
+  );
+
   test("checks the creating tenant even when the payload names another project", async () => {
     const input: CreateBy<Monitor> = createInput(MonitorType.Website);
     input.data.projectId = otherProjectId;

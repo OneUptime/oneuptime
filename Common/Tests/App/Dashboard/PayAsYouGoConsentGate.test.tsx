@@ -44,7 +44,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getItem: (...args: Array<any>) => {
         return getItemMock(...args);
       },
-      getCommonHeaders: () => { return {}; },
+      getCommonHeaders: () => {
+        return {};
+      },
       createOrUpdate: (...args: Array<any>) => {
         return createOrUpdateMock(...args);
       },
@@ -125,7 +127,6 @@ jest.mock("../../../UI/Config", () => {
   return mocked;
 });
 
-
 /*
  * These render real forms that validate on every keystroke, so give the waits
  * room to survive a loaded CI box.
@@ -188,8 +189,12 @@ const renderMonitorForm: RenderMonitorFormFunction = (
 describe("Pay as you go consent gate", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
-    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(ObjectID.generate());
-    jest.spyOn(BaseAPI, "get").mockResolvedValue({ data: { isAllowed: true } } as any);
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(ObjectID.generate());
+    jest
+      .spyOn(BaseAPI, "get")
+      .mockResolvedValue({ data: { isAllowed: true } } as any);
     config.billingEnabled = true;
     createOrUpdateMock.mockReset();
     getItemMock.mockReset();

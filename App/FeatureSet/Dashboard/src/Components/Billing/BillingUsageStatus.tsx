@@ -42,7 +42,9 @@ const BillingUsageStatus: FunctionComponent<ComponentProps> = (
           : !hasPaymentMethod
             ? [
                 {
-                  title: "Enable paid usage",
+                  title: props.isFreePlan
+                    ? "Enable paid usage"
+                    : "Add payment method",
                   icon: IconProp.Billing,
                   onClick: props.onAddPaymentMethod,
                   buttonStyle: ButtonStyleType.NORMAL,

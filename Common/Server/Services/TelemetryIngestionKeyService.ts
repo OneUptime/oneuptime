@@ -411,8 +411,10 @@ export class Service extends DatabaseService<Model> {
       policy.isEnabled &&
       (!policy.expiresAt || policy.expiresAt.getTime() > Date.now())
     ) {
-      // Check even on key-cache hits. Billing eligibility has its own bounded
-      // cache, and must not remain enabled for the lifetime of a live key.
+      /*
+       * Check even on key-cache hits. Billing eligibility has its own bounded
+       * cache, and must not remain enabled for the lifetime of a live key.
+       */
       await PayAsYouGoBillingService.requirePayAsYouGo(policy.projectId);
     }
 

@@ -39,6 +39,17 @@ import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
 import SubscriptionStatus from "../../../Types/Billing/SubscriptionStatus";
 import OneUptimeDate from "../../../Types/Date";
 
+jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
+  return {
+    __esModule: true,
+    default: {
+      requireMeteredSubscriptionPayment: jest.fn(async (): Promise<void> => {
+        return;
+      }),
+    },
+  };
+});
+
 describe("BillingService", () => {
   let billingService: BillingService;
   const customer: CustomerData = getCustomerData();
@@ -746,15 +757,6 @@ describe("BillingService", () => {
 
     describe("addOrUpdateMeteredPricingOnSubscription", () => {
       const quantity: number = 10;
-
-      beforeEach(async () => {
-        const { default: paymentAuthorization } = await import(
-          "../../../Server/Services/PayAsYouGoBillingService"
-        );
-        jest
-          .spyOn(paymentAuthorization, "requireMeteredSubscriptionPayment")
-          .mockResolvedValue(undefined);
-      });
 
       it("should throw if billing is not enabled", async () => {
         billingService = await mockIsBillingEnabled(false);

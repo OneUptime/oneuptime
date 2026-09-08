@@ -89,8 +89,10 @@ export class Service {
       project.paymentProviderCustomerId,
     );
 
-    // Daily aggregates cannot separate pre-card and post-card usage. Forgive
-    // the partial authorization day and begin with the next complete UTC day.
+    /*
+     * Daily aggregates cannot separate pre-card and post-card usage. Forgive
+     * the partial authorization day and begin with the next complete UTC day.
+     */
     return new Date(
       Date.UTC(
         authorizedAt.getUTCFullYear(),
@@ -142,17 +144,20 @@ export class Service {
     }
 
     if (project.resellerId && project.resellerPlanId) {
-      // The redeemed license is bound to the project and reseller. Its
-      // original plan can differ after an authenticated reseller tier change.
-      const redeemedLicense: PromoCode | null = await PromoCodeService.findOneBy({
-        query: {
-          projectId: projectId,
-          resellerId: project.resellerId,
-          isPromoCodeUsed: true,
-        },
-        select: { _id: true },
-        props: { isRoot: true, ignoreHooks: true },
-      });
+      /*
+       * The redeemed license is bound to the project and reseller. Its
+       * original plan can differ after an authenticated reseller tier change.
+       */
+      const redeemedLicense: PromoCode | null =
+        await PromoCodeService.findOneBy({
+          query: {
+            projectId: projectId,
+            resellerId: project.resellerId,
+            isPromoCodeUsed: true,
+          },
+          select: { _id: true },
+          props: { isRoot: true, ignoreHooks: true },
+        });
       if (redeemedLicense) {
         return "reseller";
       }

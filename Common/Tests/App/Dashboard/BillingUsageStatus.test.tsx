@@ -115,8 +115,11 @@ describe("Billing usage status", () => {
     expect(onAddPaymentMethod).not.toHaveBeenCalled();
   });
 
-  it("does not claim a paid invoice contract without a card is locked", () => {
-    renderStatus({ paymentMethodsCount: 0, isFreePlan: false });
+  it("does not claim a paid invoice contract without a card is locked", async () => {
+    const { onAddPaymentMethod } = renderStatus({
+      paymentMethodsCount: 0,
+      isFreePlan: false,
+    });
     expect(
       screen.getByRole("heading", { name: "No payment method on file" }),
     ).toBeInTheDocument();
@@ -127,6 +130,13 @@ describe("Billing usage status", () => {
     expect(
       screen.queryByText(/Your Free subscription/),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Enable paid usage" }),
+    ).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Add payment method" }),
+    );
+    expect(onAddPaymentMethod).toHaveBeenCalledTimes(1);
   });
 
   it("distinguishes subscription charges from paid usage on paid plans", () => {

@@ -9,12 +9,24 @@ import OneUptimeDate from "../../../Types/Date";
 import { getJestSpyOn } from "../../Spy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
-jest.mock("../../../Server/Services/ProjectService", () => ({ __esModule: true, default: {} }));
-jest.mock("../../../Server/Services/MailService", () => ({ __esModule: true, default: {} }));
-jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => ({
-  __esModule: true,
-  default: { requireMeteredSubscriptionPayment: jest.fn() },
-}));
+jest.mock("../../../Server/Services/ProjectService", () => {
+  return {
+    __esModule: true,
+    default: {},
+  };
+});
+jest.mock("../../../Server/Services/MailService", () => {
+  return {
+    __esModule: true,
+    default: {},
+  };
+});
+jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
+  return {
+    __esModule: true,
+    default: { requireMeteredSubscriptionPayment: jest.fn() },
+  };
+});
 const ActiveMonitoringMeteredPlan: ServerMeteredPlan = new ServerMeteredPlan();
 
 describe("BillingService metered payment authorization", () => {

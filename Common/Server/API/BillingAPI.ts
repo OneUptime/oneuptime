@@ -140,11 +140,14 @@ export default class BillingAPI {
             permissions.length === 0 &&
             !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin
           ) {
-            throw new BadDataException("You do not have access to this project");
+            throw new BadDataException(
+              "You do not have access to this project",
+            );
           }
 
           return Response.sendJsonObjectResponse(req, res, {
-            isAllowed: await PayAsYouGoBillingService.canUsePayAsYouGo(projectId),
+            isAllowed:
+              await PayAsYouGoBillingService.canUsePayAsYouGo(projectId),
           });
         } catch (err) {
           next(err);

@@ -16,18 +16,29 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const OTHER_PROJECT_ID: ObjectID = ObjectID.generate();
 
-jest.mock("../../../Server/Services/BillingService", () => ({
-  __esModule: true,
-  default: { isBillingEnabled: jest.fn(), hasPaymentMethods: jest.fn(), getSubscription: jest.fn(), getMeteredBillingStartDate: jest.fn() },
-}));
-jest.mock("../../../Server/Services/ProjectService", () => ({
-  __esModule: true,
-  default: { findOneById: jest.fn(), findOneBy: jest.fn() },
-}));
-jest.mock("../../../Server/Services/PromoCodeService", () => ({
-  __esModule: true,
-  default: { findOneBy: jest.fn() },
-}));
+jest.mock("../../../Server/Services/BillingService", () => {
+  return {
+    __esModule: true,
+    default: {
+      isBillingEnabled: jest.fn(),
+      hasPaymentMethods: jest.fn(),
+      getSubscription: jest.fn(),
+      getMeteredBillingStartDate: jest.fn(),
+    },
+  };
+});
+jest.mock("../../../Server/Services/ProjectService", () => {
+  return {
+    __esModule: true,
+    default: { findOneById: jest.fn(), findOneBy: jest.fn() },
+  };
+});
+jest.mock("../../../Server/Services/PromoCodeService", () => {
+  return {
+    __esModule: true,
+    default: { findOneBy: jest.fn() },
+  };
+});
 
 describe("PayAsYouGoBillingService", () => {
   let service: Service;
@@ -170,15 +181,21 @@ describe("PayAsYouGoBillingService", () => {
   it("preserves explicit reseller billing agreements", async () => {
     project.resellerId = ObjectID.generate();
     project.resellerPlanId = ObjectID.generate();
-    project.paymentProviderCustomerId = undefined;
-    getJestSpyOn(PromoCodeService, "findOneBy").mockResolvedValue(new PromoCode());
+    delete project.paymentProviderCustomerId;
+    getJestSpyOn(PromoCodeService, "findOneBy").mockResolvedValue(
+      new PromoCode(),
+    );
     await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(true);
     expect(hasPaymentMethods).not.toHaveBeenCalled();
-    expect(PromoCodeService.findOneBy).toHaveBeenCalledWith(expect.objectContaining({ query: {
-      projectId: PROJECT_ID,
-      resellerId: project.resellerId,
-      isPromoCodeUsed: true,
-    } }));
+    expect(PromoCodeService.findOneBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {
+          projectId: PROJECT_ID,
+          resellerId: project.resellerId,
+          isPromoCodeUsed: true,
+        },
+      }),
+    );
   });
 
   it("requires a redeemed license bound to this project before granting a reseller exemption", async () => {
@@ -217,9 +234,18 @@ describe("PayAsYouGoBillingService", () => {
     });
 
     it("preserves already authorized invoice history without a new cutoff", async () => {
-      getSubscription.mockResolvedValue({ customer: "cus_project", status: "active", collection_method: "send_invoice" });
-      const start: jest.SpyInstance = getJestSpyOn(BillingService, "getMeteredBillingStartDate");
-      await expect(service.getTelemetryBillingStartDate(PROJECT_ID)).resolves.toBeUndefined();
+      getSubscription.mockResolvedValue({
+        customer: "cus_project",
+        status: "active",
+        collection_method: "send_invoice",
+      });
+      const start: jest.SpyInstance = getJestSpyOn(
+        BillingService,
+        "getMeteredBillingStartDate",
+      );
+      await expect(
+        service.getTelemetryBillingStartDate(PROJECT_ID),
+      ).resolves.toBeUndefined();
       expect(start).not.toHaveBeenCalled();
     });
 
@@ -283,7 +309,9 @@ describe("PayAsYouGoBillingService", () => {
   it("leaves self-hosted and reseller telemetry without a Stripe cutoff", async () => {
     project.resellerId = ObjectID.generate();
     project.resellerPlanId = ObjectID.generate();
-    getJestSpyOn(PromoCodeService, "findOneBy").mockResolvedValue(new PromoCode());
+    getJestSpyOn(PromoCodeService, "findOneBy").mockResolvedValue(
+      new PromoCode(),
+    );
     const start: jest.SpyInstance = getJestSpyOn(
       BillingService,
       "getMeteredBillingStartDate",
@@ -301,17 +329,34 @@ describe("PayAsYouGoBillingService", () => {
   it("resolves the project from the Stripe customer before authorizing a direct metered write", async () => {
     const owner: Project = new Project();
     owner.id = PROJECT_ID;
-    const findOwner: jest.SpyInstance = getJestSpyOn(ProjectService, "findOneBy").mockResolvedValue(owner);
-    const subscription: Stripe.Subscription = { customer: { id: "cus_project" } } as Stripe.Subscription;
-    await expect(service.requireMeteredSubscriptionPayment(subscription)).rejects.toBeInstanceOf(PaymentRequiredException);
-    expect(findOwner).toHaveBeenCalledWith(expect.objectContaining({ query: { paymentProviderCustomerId: "cus_project" } }));
+    const findOwner: jest.SpyInstance = getJestSpyOn(
+      ProjectService,
+      "findOneBy",
+    ).mockResolvedValue(owner);
+    const subscription: Stripe.Subscription = {
+      customer: { id: "cus_project" },
+    } as Stripe.Subscription;
+    await expect(
+      service.requireMeteredSubscriptionPayment(subscription),
+    ).rejects.toBeInstanceOf(PaymentRequiredException);
+    expect(findOwner).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: { paymentProviderCustomerId: "cus_project" },
+      }),
+    );
     hasPaymentMethods.mockResolvedValue(true);
-    await expect(service.requireMeteredSubscriptionPayment(subscription)).resolves.toBeUndefined();
+    await expect(
+      service.requireMeteredSubscriptionPayment(subscription),
+    ).resolves.toBeUndefined();
   });
 
   it("rejects a direct metered write for an unrecognized billing customer", async () => {
     getJestSpyOn(ProjectService, "findOneBy").mockResolvedValue(null);
-    await expect(service.requireMeteredSubscriptionPayment({ customer: "cus_unknown" } as Stripe.Subscription)).rejects.toBeInstanceOf(PaymentRequiredException);
+    await expect(
+      service.requireMeteredSubscriptionPayment({
+        customer: "cus_unknown",
+      } as Stripe.Subscription),
+    ).rejects.toBeInstanceOf(PaymentRequiredException);
     expect(hasPaymentMethods).not.toHaveBeenCalled();
   });
 });
