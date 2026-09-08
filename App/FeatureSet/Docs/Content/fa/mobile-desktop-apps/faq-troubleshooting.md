@@ -52,8 +52,8 @@
 
 ### چگونه حذفش کنم؟
 
-- **iOS:** آیکون را نگه دارید ← **Remove App** ← **Delete App**.
-- **Android:** آیکون را نگه دارید ← **Uninstall**، یا **Settings → Apps → OneUptime On-Call → Uninstall**.
+- **iOS:** آیکون را نگه دارید → **Remove App** → **Delete App**.
+- **Android:** آیکون را نگه دارید → **Uninstall**، یا **Settings → Apps → OneUptime On-Call → Uninstall**.
 
 حساب و داده OneUptime شما روی سرور ذخیره می‌شود و با حذف اپلیکیشن پاک نمی‌شود.
 

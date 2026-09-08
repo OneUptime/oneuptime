@@ -19,7 +19,7 @@ Edge بهترین یکپارچگی PWA روی Windows را با قابلیت‌�
 
    - در نوار نشانی به دنبال **آیکون نصب** (⊞) بگردید
    - روی دکمه **«Install OneUptime»** کلیک کنید
-   - یا روی **منوی سه‌نقطه** ← **Apps** ← **Install this site as an app** بزنید
+   - یا روی **منوی سه‌نقطه** → **Apps** → **Install this site as an app** بزنید
 
 3. **سفارشی‌سازی نصب**
 
@@ -48,7 +48,7 @@ Chrome پشتیبانی عالی از PWA به‌همراه یکپارچگی غ�
 
    - در نوار نشانی به دنبال **آیکون نصب** (⊞) بگردید
    - روی **«Install OneUptime»** کلیک کنید
-   - یا از منو استفاده کنید: **سه نقطه** ← **More tools** ← **Create shortcut**
+   - یا از منو استفاده کنید: **سه نقطه** → **More tools** → **Create shortcut**
 
 3. **گزینه‌های نصب**
 
@@ -73,13 +73,13 @@ Firefox از نصب PWA با یکپارچگی پایه‌ای دسکتاپ پش�
 
 2. **نصب PWA**
    - به دنبال **پیام یا بنر نصب** بگردید
-   - یا روی **منو** ← **Install** کلیک کنید
+   - یا روی **منو** → **Install** کلیک کنید
    - در صورت وجود، معادل **«Add to Home Screen»** را بزنید
 
 ### پیکربندی راه‌اندازی
 
 1. **اجرای خودکار**: OneUptime را طوری تنظیم کنید که با Windows اجرا شود
-   - روی نوار وظیفه راست‌کلیک کنید ← Task Manager ← Startup
+   - روی نوار وظیفه راست‌کلیک کنید → Task Manager → Startup
    - در صورت تمایل OneUptime را فعال کنید
 2. **اندازه پیش‌فرض**: اندازه و موقعیت دلخواه پنجره را تنظیم کنید
 
@@ -87,7 +87,7 @@ Firefox از نصب PWA با یکپارچگی پایه‌ای دسکتاپ پش�
 
 1. **اعلان‌های Windows**
 
-   - Settings ← System ← Notifications & actions
+   - Settings → System → Notifications & actions
    - OneUptime را پیدا کنید و ترجیحات هشدار را تنظیم کنید
    - اعلان‌های بنری را برای حوادث فعال کنید
 
@@ -156,7 +156,7 @@ Solutions:
 
 1. **روش تنظیمات Windows**
 
-   - Settings ← Apps ← Apps & features
+   - Settings → Apps → Apps & features
    - «OneUptime» را جستجو کنید
    - روی آن کلیک کنید و «Uninstall» را بزنید
 
@@ -165,7 +165,7 @@ Solutions:
    - Edge/Chrome را باز کنید
    - به edge://apps/ یا chrome://apps/ بروید
    - OneUptime را پیدا کنید
-   - روی گزینه‌ها ← Uninstall کلیک کنید
+   - روی گزینه‌ها → Uninstall کلیک کنید
 
 3. **روش منوی Start**
    - در منوی Start روی OneUptime راست‌کلیک کنید

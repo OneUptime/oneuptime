@@ -49,4 +49,4 @@ OneUptime Incident → On Create  ──►  Discord component  ──►  messa
 
 - [نمای کلی یکپارچه‌سازی‌ها](/docs/integrations/index) — الگوی خروجی.
 - [Telegram](/docs/integrations/telegram) — همین ایده برای Telegram.
-- [مؤلفه‌ها ← Discord](/docs/workflows/components#discord) — مرجع مؤلفه.
+- [مؤلفه‌ها → Discord](/docs/workflows/components#discord) — مرجع مؤلفه.

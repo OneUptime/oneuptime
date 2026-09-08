@@ -21,7 +21,7 @@ Chrome و Chromium بهترین تجربه PWA را روی Linux با یکپار
 
    - در نوار نشانی به دنبال **آیکون نصب** (⊞) بگردید
    - روی **«Install OneUptime»** کلیک کنید
-   - یا از **منوی Chrome** (⋮) ← **More tools** ← **Create shortcut** استفاده کنید
+   - یا از **منوی Chrome** (⋮) → **More tools** → **Create shortcut** استفاده کنید
 
 3. **گزینه‌های نصب**
 

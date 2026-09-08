@@ -48,7 +48,7 @@
 - `RunbookExecution` — یک سطر به ازای هر اجرا، با کلیدهای خارجی تهی‌پذیر `incidentId`، `alertId` و `scheduledMaintenanceId` و یک آرایه JSON به نام `stepExecutions` که گام‌ها و وضعیت هر گام را تصویربرداری می‌کند.
 - `RunbookRule` — قواعد فعال‌سازی خودکار با یک متمایزکننده `triggerEntityType` (Incident، Alert، ScheduledMaintenance) و رابطه چندبه‌چند با رانبوک‌هایی که باید شروع شوند.
 - `Runner` — یک سطر به ازای هر عامل نصب‌شده: نام، کلید محرمانه، `lastAlive`، `connectionStatus` و اطلاعات میزبان.
-- `RunnerJob` — یک سطر به ازای هر گام Bash یا JavaScript فرستاده‌شده: `targetAgentId` (عاملی که نویسنده گام انتخاب کرده)، نوع گام، اسکریپت، وضعیت (`Pending` ← `Claimed` ← `Running` ← `Succeeded`/`Failed`/`TimedOut`/`Cancelled`)، مهلت برداشتن، اجاره، خروجی و کد خروج.
+- `RunnerJob` — یک سطر به ازای هر گام Bash یا JavaScript فرستاده‌شده: `targetAgentId` (عاملی که نویسنده گام انتخاب کرده)، نوع گام، اسکریپت، وضعیت (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`)، مهلت برداشتن، اجاره، خروجی و کد خروج.
 
 ## نکته‌های عملیاتی
 
