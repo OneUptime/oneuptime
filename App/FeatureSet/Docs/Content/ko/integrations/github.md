@@ -74,3 +74,9 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [통합 개요](/docs/integrations/index) — 패턴과 인증 빠른 참조.
 - [GitLab](/docs/integrations/gitlab) — GitLab에 대한 동일한 아이디어.
 - [GitHub 통합 (자체 호스팅)](/docs/self-hosted/github-integration) — 네이티브 GitHub App 연결.
+
+## 자체 호스팅 배포의 네트워크 액세스
+
+이 페이지의 이슈 생성 워크플로에는 DNS 확인과 OneUptime에서 `api.github.com`으로의 아웃바운드 HTTPS(TCP 443)가 필요합니다. GitHub의 인바운드 콜백은 필요하지 않습니다. [GitHub REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue).
+
+아웃바운드 연결, 인바운드 콜백 및 비공개 배포에 대한 자세한 내용은 [GitHub 통합](/docs/self-hosted/github-integration)의 네트워크 액세스 섹션을 참조하세요.

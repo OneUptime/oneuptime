@@ -7,17 +7,41 @@ To integrate Microsoft Teams with your self-hosted OneUptime instance, you need 
 - Azure Account - You can create one by going to [https://azure.com](https://azure.com)
 - Access to your OneUptime server configuration
 
-### Deployments on private networks
+## Network access
 
 OneUptime uses an Azure Bot for its Teams integration. An Incoming Webhook or Teams Workflow URL does not replace this bot's messaging endpoint. Microsoft requires a [publicly accessible HTTPS endpoint for a self-hosted bot](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0). A private IP address, internal DNS name, or an employee's VPN connection does not give Azure Bot Service access to OneUptime.
 
-Follow [Private network access for integrations](/docs/self-hosted/integration-network-access) before continuing with setup. That guide covers public DNS, trusted TLS, a reverse proxy forwarding to your private deployment, firewall rules, and verification. For Teams, publish `/api/microsoft-bot/messages` and set the Azure Bot **Messaging endpoint** in Step 4 to that complete public HTTPS URL. Keep the `/api` prefix, request body, and `Authorization` header intact. Let the bot's authentication validate requests; an interactive proxy login or browser challenge prevents Microsoft from delivering them.
+| Direction | Destination | Purpose |
+| --- | --- | --- |
+| OneUptime to Microsoft | HTTPS on TCP 443 to Microsoft Graph, Microsoft identity, and Bot Framework services | Token exchange, team/channel lookup, and notification delivery |
+| Microsoft to OneUptime | `POST /api/microsoft-bot/messages` | Bot messages, conversation installation events, and card actions |
+| User's browser to OneUptime | `/api/microsoft-teams/auth` and `/api/microsoft-teams/admin-consent/callback` | Sign-in and administrator-consent redirects |
 
 The app registration redirects `/api/microsoft-teams/auth` and `/api/microsoft-teams/admin-consent/callback` return through the user's browser. That browser must reach OneUptime, for example through your corporate network or VPN. Bot messages and card actions arrive from Microsoft's servers and need their own reachable ingress. Outbound alert delivery alone does not verify inbound connectivity.
 
-For development, Microsoft's [Teams testing guide](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/debug) describes exposing a local service with a tunnel. Forward to the OneUptime ingress and use `/api/microsoft-bot/messages`, replacing Microsoft's sample `/api/messages` path. Update the Azure Bot endpoint whenever the public tunnel URL changes, and use stable ingress for production.
+### Publish the bot endpoint from a private deployment
 
-Azure Bot Private Endpoint is not a substitute for this Teams ingress. Microsoft's [network isolation instructions](https://learn.microsoft.com/en-us/azure/bot-service/dl-network-isolation-how-to?view=azure-bot-service-4.0) describe Direct Line isolation and state that disabling public network access unconfigures Teams channels.
+1. Point public DNS for your OneUptime hostname to an internet-facing reverse proxy or load balancer. Allow inbound TCP 443 and serve a publicly trusted TLS certificate with its complete chain.
+2. Connect the gateway to the private OneUptime ingress, directly or through your own site-to-site VPN/private link, and permit its upstream service port. A Kubernetes `ClusterIP` service needs a reachable ingress or another route from the gateway. Keep databases and other internal services private.
+3. Publish `/api/microsoft-bot/messages` through that gateway and set the Azure Bot **Messaging endpoint** in Step 4 to the full public HTTPS URL. Preserve the method, `/api` prefix, query string, body, and `Authorization` header. Preserve the public `Host` and set trusted forwarding headers for the public host and HTTPS scheme. Do not add redirects, browser SSO, CAPTCHA, or proxy login to this route; OneUptime's Bot Framework adapter must receive and authenticate the request.
+4. Keep other routes private if needed. With split DNS, employees can resolve the same hostname to the private ingress over the corporate network or VPN. That ingress must also serve HTTPS with a certificate valid for the hostname, and allow the browser redirects in the table above. Limit origin access to the gateway and authorized internal clients.
+5. Set `HOST=oneuptime.example.com` and `HTTP_PROTOCOL=https` in Docker Compose's `config.env`, or `host: oneuptime.example.com` and `httpProtocol: https` in Helm values. Replace the example with your domain, apply the deployment update, and wait for the application to restart. These values generate URLs; they do not provision DNS, TLS, or network access. If the hostname changes, update the Azure Bot endpoint and app registration redirects, then download and upload the Teams manifest again.
+
+OneUptime's [Private Network Access settings](/docs/self-hosted/private-network-access) govern outbound requests to internal services. Enabling `ALLOW_PRIVATE_NETWORK_WEBHOOKS` does not make the bot endpoint reachable by Microsoft.
+
+### Outbound access and IP restrictions
+
+Allow DNS resolution and outbound HTTPS from the OneUptime application. It uses `graph.microsoft.com`, `login.microsoftonline.com`, Bot Framework authentication/channel endpoints, and the connector service URL supplied for a conversation. The commercial-cloud fallback connector is `https://smba.trafficmanager.net/teams/`; conversation service URLs can differ. Apply [Microsoft's firewall guidance](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) and inspect blocked traffic during testing; this is not an exhaustive hostname list.
+
+Microsoft does not support fixed inbound Bot Framework IP allowlists because its source addresses change. Teams client media IP ranges do not describe bot webhook sources. Keep Bot Framework authentication enabled instead of treating a source IP as proof of identity.
+
+### Testing and deployments with no inbound access
+
+Use Step 4 to verify public DNS, TLS, and routing from outside your network and VPN. Then connect Teams, send a test notification, message the bot, and press a card button. Confirm the action in OneUptime and correlate Microsoft delivery diagnostics with gateway and application logs. A reachable GET route or a delivered notification alone does not verify an authenticated inbound bot POST.
+
+For development, Microsoft's [local Teams bot testing guide](https://learn.microsoft.com/en-us/microsoftteams/platform/bots/how-to/authentication/add-authentication#testing-the-bot-locally-in-teams) describes exposing a local service with a tunnel. Forward to a proxy permitting the bot endpoint and use `/api/microsoft-bot/messages`, replacing Microsoft's sample `/api/messages` path. Update the configured hostname and Azure Bot endpoint whenever the public tunnel URL changes, stop the tunnel after testing, and use stable ingress for production. A tunnel still exposes inbound access.
+
+If policy forbids inbound connectivity, the complete Teams bot integration cannot work: commands, card actions, and conversation discovery depend on Microsoft reaching OneUptime. Azure Bot Private Endpoint does not resolve this requirement. Microsoft's [network isolation instructions](https://learn.microsoft.com/en-us/azure/bot-service/dl-network-isolation-how-to?view=azure-bot-service-4.0) describe Direct Line isolation and state that disabling public network access unconfigures Teams channels. A fully disconnected installation cannot use Teams.
 
 ## Setup Instructions
 
@@ -176,7 +200,7 @@ If you encounter issues:
 
 ### Card buttons say "Unable to reach app", and chats never appear
 
-These are one failure, not two: **Azure Bot Service cannot reach your messaging endpoint.**
+These symptoms often mean **Azure Bot Service cannot deliver authenticated activities to your messaging endpoint**. Check routing, bot authentication, and project configuration.
 
 The confusing part is that alert cards keep arriving in Teams, which makes the integration look mostly healthy. It is not — the two directions are independent, and only one of them is working:
 
@@ -187,9 +211,9 @@ The confusing part is that alert cards keep arriving in Teams, which makes the i
 | You type `help` to the bot | Azure Bot Service POSTs to `/api/microsoft-bot/messages` | **Yes** |
 | A chat registers under **Chats** | Azure Bot Service POSTs a bot activity to `/api/microsoft-bot/messages` | **Yes** |
 
-So a working alert tells you your client secret and Graph permissions are fine, and tells you nothing at all about the bot endpoint. Everything interactive depends on inbound traffic that never arrives.
+So a working alert verifies that particular outbound send; it does not verify every Graph permission or the inbound bot endpoint. Interactive features require successful inbound bot activity processing.
 
-The empty **Chats** list is the clearest confirmation. Microsoft does not let an app list chats with application permissions, so OneUptime can only record a chat when the bot hears from it — the app being installed, the bot being added to the conversation, or simply any message sent to the bot in that chat. All three arrive over the same inbound endpoint, so "No chats connected yet" after adding the app to a chat *and* messaging the bot in it means no bot activity has ever been received at all. Clicking **Refresh Chats** re-reads what OneUptime already stored; it cannot go and fetch them.
+OneUptime records chats from bot activities, such as the app being installed, the bot being added to the conversation, or a message sent to the bot in that chat. All arrive over the same inbound endpoint. An empty **Chats** list after adding the app and messaging it means no chat has been recorded for that project; check incoming requests, authentication errors, and tenant/project mapping. Clicking **Refresh Chats** re-reads OneUptime's stored chats.
 
 **Diagnose it in this order:**
 
@@ -199,7 +223,7 @@ The empty **Chats** list is the clearest confirmation. Microsoft does not let an
    grep 'POST /api/microsoft-bot/messages' <your access log>
    ```
 
-   If there are no POST lines at all, Azure never got through, and nothing inside OneUptime is at fault. `GET` lines returning 404 are a different thing entirely — see the note below.
+   If there are no POST lines, confirm that the correct access log is recording requests, then check the configured Azure endpoint and the network path. If POSTs arrive, inspect their responses and OneUptime's authentication or project-mapping errors. `GET` lines returning 404 are a separate check — see the note below.
 
 2. **Call the endpoint from outside your network,** as in Step 4, with `curl -i` so you can see the body. A `405` proves the route is live and reachable from wherever you ran the command. A TLS error, timeout or refused connection is your answer.
 

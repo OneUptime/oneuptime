@@ -103,3 +103,14 @@ Eso cubre la larga cola — Zendesk, AWS CloudWatch (vía SNS), New Relic, Splun
 - [Variables](/docs/workflows/variables) — secretos y paso de datos entre bloques.
 - [Monitor de Incoming Request](/docs/monitor/incoming-request-monitor) — el camino entrante sin workflows para herramientas de alertado.
 - [Zabbix](/docs/integrations/zabbix), [Jira](/docs/integrations/jira) y [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — ejemplos completos y detallados.
+
+## Acceso a la red para despliegues autoalojados
+
+Los requisitos de red se documentan ahora en la guía de configuración de cada integración. Seleccione su integración:
+
+- [Integración con GitHub](/docs/self-hosted/github-integration)
+- [Integración de correo electrónico entrante con SendGrid](/docs/self-hosted/sendgrid-inbound-email)
+- [Integración con Slack](/docs/self-hosted/slack-integration)
+- [Integración con Microsoft Teams](/docs/self-hosted/microsoft-teams-integration)
+- [Integración de Twilio para SMS y llamadas de voz](/docs/self-hosted/twilio-integration)
+- [Notificaciones push](/docs/self-hosted/push-notifications)

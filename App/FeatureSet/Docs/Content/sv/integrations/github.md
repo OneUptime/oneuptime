@@ -74,3 +74,9 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [Integrationsöversikt](/docs/integrations/index) — mönster och autentiseringsfuskbladet.
 - [GitLab](/docs/integrations/gitlab) — samma idé för GitLab.
 - [GitHub Integration (egenhostad)](/docs/self-hosted/github-integration) — den inbyggda GitHub App-anslutningen.
+
+## Nätverksåtkomst för egenhostade installationer
+
+Arbetsflödet på den här sidan för att skapa ärenden kräver DNS-uppslagning och utgående HTTPS (TCP 443) från OneUptime till `api.github.com`. Det kräver inga inkommande återanrop från GitHub. [GitHub REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue).
+
+Läs avsnittet om nätverksåtkomst i [GitHub-integration](/docs/self-hosted/github-integration) för information om utgående anslutningar, inkommande återanrop och privata installationer.

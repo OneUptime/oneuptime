@@ -19,3 +19,7 @@
 
 4. **Configurare le Notifiche di Avvisi e Manutenzioni Programmate**
    - Regole simili possono essere applicate agli Avvisi e alle Manutenzioni Programmate navigando alle rispettive pagine e configurando le regole desiderate.
+
+## Accesso alla rete per le installazioni self-hosted
+
+Per le connessioni in uscita, i callback in ingresso e le installazioni private, consultare la sezione sull’accesso alla rete della [Integrazione Slack](/docs/self-hosted/slack-integration).

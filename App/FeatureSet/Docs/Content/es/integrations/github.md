@@ -74,3 +74,9 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [Resumen de Integraciones](/docs/integrations/index) — patrones y la guía de autenticación.
 - [GitLab](/docs/integrations/gitlab) — la misma idea para GitLab.
 - [Integración con GitHub (autohospedado)](/docs/self-hosted/github-integration) — la conexión nativa de GitHub App.
+
+## Acceso a la red para despliegues autoalojados
+
+El flujo de creación de issues de esta página necesita resolución DNS y HTTPS saliente (TCP 443) desde OneUptime a `api.github.com`. No requiere llamadas de retorno entrantes de GitHub. [GitHub REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue).
+
+Para las conexiones salientes, las llamadas de retorno entrantes y los despliegues privados, consulte la sección de acceso a la red de la [Integración con GitHub](/docs/self-hosted/github-integration).

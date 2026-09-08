@@ -197,7 +197,6 @@
     "Slack Integration": "Интеграция со Slack",
     "Microsoft Teams Integration": "Интеграция с Microsoft Teams",
     "Twilio Integration": "Интеграция с Twilio",
-    "Integration Access from Private Networks": "Доступ интеграций из закрытых сетей",
     "GitHub Integration": "Интеграция с GitHub",
     "Push Notifications": "Push-уведомления",
     "SendGrid Inbound Email": "Входящие письма SendGrid",

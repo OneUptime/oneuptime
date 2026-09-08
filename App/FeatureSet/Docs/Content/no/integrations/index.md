@@ -103,3 +103,14 @@ Det dekker den lange halen — Zendesk, AWS CloudWatch (via SNS), New Relic, Spl
 - [Variabler](/docs/workflows/variables) — hemmeligheter og å sende data mellom blokker.
 - [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) — den arbeidsflytfrie innkommende veien for varslingsverktøy.
 - [Zabbix](/docs/integrations/zabbix), [Jira](/docs/integrations/jira) og [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — fullstendige utarbeidede eksempler.
+
+## Nettverkstilgang for selvhostede installasjoner
+
+Nettverkskravene er nå beskrevet i oppsettsveiledningen for hver integrasjon. Velg integrasjonen din:
+
+- [GitHub-integrasjon](/docs/self-hosted/github-integration)
+- [SendGrid innkommende e-postintegrasjon](/docs/self-hosted/sendgrid-inbound-email)
+- [Slack-integrasjon](/docs/self-hosted/slack-integration)
+- [Microsoft Teams-integrasjon](/docs/self-hosted/microsoft-teams-integration)
+- [Twilio-integrasjon for SMS og tale](/docs/self-hosted/twilio-integration)
+- [Push-varsler](/docs/self-hosted/push-notifications)

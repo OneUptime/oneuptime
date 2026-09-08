@@ -24,6 +24,7 @@
    - **Callback URL:** `https://your-oneuptime-domain.com/api/github/auth/callback`
    - **Setup URL:** `https://your-oneuptime-domain.com/api/github/auth/callback` — **Важно: на этот URL GitHub перенаправляет пользователей после установки приложения. Он должен быть задан для работы перенаправления.**
    - **Redirect on update:** установите этот флажок для перенаправления пользователей после обновления установки приложения
+   - **Request user authorization (OAuth) during installation:** **Включите этот обязательный параметр.** OneUptime использует OAuth для проверки владения установкой и отклоняет подключение без этой настройки.
    - **Webhook URL:** `https://your-oneuptime-domain.com/api/github/webhook`
    - **Webhook secret:** сгенерируйте случайную строку (сохраните на потом)
 
@@ -56,11 +57,7 @@
 
 ### Шаг 3: Подписка на события вебхука
 
-События для получения OneUptime обновлений в реальном времени — подпишитесь на следующие события вебхука:
-
-- **Pull request** — получение уведомлений при открытии, закрытии или слиянии PR
-- **Push** — получение уведомлений при отправке кода
-- **Workflow run** — получение обновлений статуса CI/CD
+OneUptime синхронизирует установку и доступ к репозиториям через `installation` и `installation_repositories`, автоматически получаемые GitHub Apps. Другие события, включая **Pull request**, **Push** и **Workflow run**, только подтверждаются; подписка не включает уведомления или CI/CD-автоматизацию.
 
 ### Шаг 4: Установка доступа для установки
 
@@ -152,7 +149,35 @@ gitHubApp:
 | `GITHUB_APP_CLIENT_ID`      | Client ID из настроек GitHub App                       | Да                  |
 | `GITHUB_APP_CLIENT_SECRET`  | Сгенерированный секрет клиента                         | Да                  |
 | `GITHUB_APP_PRIVATE_KEY`    | Содержимое файла закрытого ключа (.pem)                | Да                  |
-| `GITHUB_APP_WEBHOOK_SECRET` | Секрет вебхука для верификации полезных нагрузок       | Нет (рекомендуется) |
+| `GITHUB_APP_WEBHOOK_SECRET` | Секрет вебхука для верификации полезных нагрузок       | Да, для вебхуков |
+
+## Сетевой доступ для самостоятельного размещения
+
+### Направления трафика и конечные точки
+
+| Трафик | Необходимый доступ |
+| --- | --- |
+| OneUptime → GitHub | DNS и исходящий HTTPS по TCP 443 к `api.github.com` для токенов приложения и API репозиториев, а также `github.com` для обмена OAuth и Git-операций по HTTPS |
+| GitHub → OneUptime | Общедоступный HTTPS по TCP 443 к `POST /api/github/webhook` для синхронизации установки и доступа к репозиториям |
+| Браузер пользователя → OneUptime | Панель и `GET /api/github/auth/callback` для перенаправлений установки/авторизации; могут оставаться доступны через VPN пользователя |
+
+Callback/Setup URL предназначены для [перенаправления браузера](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/about-the-user-authorization-callback-url), а вебхук вызывают серверы GitHub. VPN пользователя не даёт GitHub доступа к вебхуку. Домены покрывают основные запросы; инструменты, загрузки, LFS или пакеты могут требовать других адресатов. Настройки относятся к GitHub.com; изменение межсетевого экрана не настраивает поддержку имени хоста GitHub Enterprise Server.
+
+### Частные установки и безопасность обратных вызовов
+
+Используйте публичный DNS и шлюз с общедоверенным HTTPS-сертификатом, полной цепочкой и частным маршрутом к ingress OneUptime. Разрешите входящий TCP 443 и публикуйте только указанные POST-вызовы поставщика. Частный `ClusterIP`, внутренний DNS или VPN сотрудника не дают поставщику доступа. Раздельный DNS позволяет оставить панель и браузерные OAuth-маршруты частными под одним именем хоста.
+
+Задайте `HOST=oneuptime.example.com` и `HTTP_PROTOCOL=https` в `config.env` либо `host: oneuptime.example.com` и `httpProtocol: https` в Helm. Примените конфигурацию и дождитесь перезапуска. Эти значения формируют URL, но не настраивают DNS, TLS или межсетевой экран. После смены имени хоста обновите Webhook, Callback, Setup и Homepage URL приложения GitHub.
+
+Сохраняйте метод, исходный путь, строку запроса, тело, `Content-Type`, `X-Hub-Signature-256`, `X-GitHub-Event` и `X-GitHub-Delivery`. Передавайте публичный хост и HTTPS через доверенные заголовки прокси. Исключите вебхук из браузерного SSO, CAPTCHA и входа на прокси. Оставьте SSL-проверку GitHub включённой и задайте одинаковый `GITHUB_APP_WEBHOOK_SECRET` в обеих системах: OneUptime отклоняет неподписанные запросы и не проверяет вебхуки без секрета. См. [проверку GitHub](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries).
+
+Если ограничиваете также IP источников, используйте и регулярно обновляйте диапазоны `hooks` из GitHub Meta API. Не подменяйте их диапазонами исполнителей GitHub Actions и не отключайте проверку подписи. GitHub предупреждает, что [адреса меняются, а список неполон](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-githubs-ip-addresses).
+
+### Проверка доступа и ограничения
+
+Завершите установку из OneUptime и откройте **Advanced > Recent Deliveries** приложения GitHub. Отправьте или повторите тестовую доставку и проверьте передачу и приём. Добавьте или удалите тестовый репозиторий из установки и проверьте обновление списка подключений. GitHub описывает [диагностику доставок](https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/viewing-webhook-deliveries) и требует [подтверждение 2xx за десять секунд](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks). GET браузера не тестирует подписанный POST.
+
+Без входящего доступа браузерная авторизация и исходящие API/Git-операции могут работать, но удаления установок и изменения доступа к репозиториям не синхронизируются вебхуками. Сейчас OneUptime обрабатывает `installation` и `installation_repositories`; приём других событий не означает дополнительную автоматизацию. [Настройка доступа к частным сетям](/docs/self-hosted/private-network-access) управляет исходящими запросами к частным адресатам и не делает вебхук доступным.
 
 ## Устранение неполадок
 

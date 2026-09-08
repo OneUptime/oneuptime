@@ -24,6 +24,7 @@ For å integrere GitHub med din selvhostede OneUptime-instans må du opprette en
    - **Callback URL:** `https://your-oneuptime-domain.com/api/github/auth/callback`
    - **Setup URL:** `https://your-oneuptime-domain.com/api/github/auth/callback` – **Viktig: Dette er URL-en GitHub omdirigerer brukere til etter at de har installert appen. Den må settes for at omdirigeringen skal fungere.**
    - **Redirect on update:** Merk av dette alternativet for å omdirigere brukere etter at de oppdaterer appinstallasjonen
+   - **Request user authorization (OAuth) during installation:** **Kryss av for dette obligatoriske alternativet.** OneUptime bruker OAuth til å bekrefte eierskapet til installasjonen og avviser forbindelsen uten denne innstillingen.
    - **Webhook URL:** `https://your-oneuptime-domain.com/api/github/webhook`
    - **Webhook secret:** Generer en sikker tilfeldig streng (lagre denne til senere)
 
@@ -56,11 +57,7 @@ I seksjonen "Permissions & events", konfigurer følgende tillatelser:
 
 ### Trinn 3: Abonner på webhook-hendelser
 
-Hendelser for OneUptime å motta sanntidsoppdateringer – abonner på disse webhook-hendelsene:
-
-- **Pull request** – Motta varsler når PR-er åpnes, lukkes eller slås sammen
-- **Push** – Motta varsler når kode pushes
-- **Workflow run** – Motta CI/CD-statusoppdateringer
+OneUptime synkroniserer installasjon og repository-tilgang gjennom `installation` og `installation_repositories`, som GitHub Apps mottar automatisk. Andre hendelser, inkludert **Pull request**, **Push** og **Workflow run**, blir bare bekreftet; abonnement aktiverer ikke varsler eller CI/CD-automatisering.
 
 ### Trinn 4: Angi installasjonstilgang
 
@@ -152,7 +149,35 @@ gitHubApp:
 | `GITHUB_APP_CLIENT_ID`      | Klient-ID-en fra GitHub App-innstillingene dine                             | Ja                 |
 | `GITHUB_APP_CLIENT_SECRET`  | Klienthemmeligheten du genererte                                            | Ja                 |
 | `GITHUB_APP_PRIVATE_KEY`    | Innholdet i den private nøkkelen (.pem-fil)                                 | Ja                 |
-| `GITHUB_APP_WEBHOOK_SECRET` | Webhook-hemmeligheten for verifisering av webhook-nyttelaster               | Nei (men anbefalt) |
+| `GITHUB_APP_WEBHOOK_SECRET` | Webhook-hemmeligheten for verifisering av webhook-nyttelaster               | Ja, for webhooks |
+
+## Nettverkstilgang for selvhostede installasjoner
+
+### Trafikkretning og endepunkter
+
+| Trafikk | Nødvendig tilgang |
+| --- | --- |
+| OneUptime → GitHub | DNS og utgående HTTPS på TCP 443 til `api.github.com` for app-tokens og repository-API-er, samt `github.com` for OAuth-utveksling og HTTPS-Git-operasjoner |
+| GitHub → OneUptime | Offentlig HTTPS på TCP 443 til `POST /api/github/webhook` for synkronisering av installasjon og repository-tilgang |
+| Brukerens nettleser → OneUptime | Dashbord og `GET /api/github/auth/callback` for installasjons-/godkjenningsomdirigeringer; kan være tilgjengelige via brukerens VPN |
+
+Callback-/setup-URL-er brukes til en [nettleseromdirigering](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/about-the-user-authorization-callback-url); GitHubs servere kaller webhooken. Brukerens VPN gir ikke GitHub webhooktilgang. Domenene dekker kjerneforespørsler; verktøy, nedlastinger, LFS eller pakker kan kreve flere mål. Dette gjelder GitHub.com; brannmurendringer konfigurerer ikke støtte for et GitHub Enterprise Server-vertsnavn.
+
+### Private installasjoner og sikkerhet for callbacks
+
+Bruk offentlig DNS og en gateway med offentlig betrodd HTTPS-sertifikat, komplett sertifikatkjede og privat rute til OneUptime-ingress. Tillat innkommende TCP 443 og publiser bare leverandørens POST-callbacks ovenfor. Privat `ClusterIP`, intern DNS eller ansatt-VPN gir ikke leverandøren tilgang. Delt DNS kan holde dashbord og nettleserens OAuth-ruter private under samme vertsnavn.
+
+Sett `HOST=oneuptime.example.com` og `HTTP_PROTOCOL=https` i `config.env`, eller `host: oneuptime.example.com` og `httpProtocol: https` i Helm. Bruk konfigurasjonen og vent på omstart. Verdiene genererer URL-er; de oppretter ikke DNS, TLS eller brannmurregler. Oppdater GitHub-appens webhook-, callback-, setup- og homepage-URL-er etter endring av vertsnavn.
+
+Bevar metode, opprinnelig sti, spørringsstreng, body, `Content-Type`, `X-Hub-Signature-256`, `X-GitHub-Event` og `X-GitHub-Delivery`. Bevar offentlig vert og HTTPS gjennom betrodde proxy-headere. Unnta webhooken fra nettleser-SSO, CAPTCHA og proxyinnlogging. Behold GitHubs SSL-verifisering og samme `GITHUB_APP_WEBHOOK_SECRET` i begge systemer: OneUptime avviser usignerte forespørsler og kan ikke validere webhooks uten hemmeligheten. Se [GitHubs validering](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries).
+
+Hvis du også begrenser kilde-IP-er, bruk og oppdater jevnlig `hooks`-områdene fra GitHubs Meta API. Ikke bruk GitHub Actions-runnerområder eller fjern signaturkontrollen. GitHub advarer om at [adresser endres og listen er ufullstendig](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-githubs-ip-addresses).
+
+### Kontroller tilgang og forstå begrensninger
+
+Fullfør installasjonen fra OneUptime og se **Advanced > Recent Deliveries** i GitHub-appen. Send eller gjenta en testlevering og kontroller videresending og aksept. Legg til eller fjern et test-repository fra installasjonen og kontroller den tilkoblede listen. GitHub beskriver [leveringsdiagnostikk](https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/viewing-webhook-deliveries) og krever [2xx-bekreftelse innen ti sekunder](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks). En nettleser-GET tester ikke en signert POST.
+
+Uten innkommende tilgang kan nettlesergodkjenning og utgående API-/Git-operasjoner virke, men slettede installasjoner og endret repository-tilgang synkroniseres ikke via webhooks. OneUptime behandler nå `installation` og `installation_repositories`; aksept av andre hendelser betyr ikke ytterligere automatisering. [Innstillingen for privat nettverkstilgang](/docs/self-hosted/private-network-access) styrer utgående forespørsler til private mål og gjør ikke webhooken tilgjengelig.
 
 ## Feilsøking
 

@@ -840,10 +840,6 @@ DocsNav.push({
       url: "/docs/self-hosted/twilio-integration",
     },
     {
-      title: "Integration Access from Private Networks",
-      url: "/docs/self-hosted/integration-network-access",
-    },
-    {
       title: "GitHub Integration",
       url: "/docs/self-hosted/github-integration",
     },

@@ -74,3 +74,9 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [Integrations Overview](/docs/integrations/index) — 模式與驗證速查表。
 - [GitLab](/docs/integrations/gitlab) — 適用於 GitLab 的相同概念。
 - [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) — 原生的 GitHub App 連線。
+
+## 自架部署的網路存取
+
+本頁的 Issue 建立工作流程需要 DNS 解析，以及從 OneUptime 到 `api.github.com` 的輸出 HTTPS（TCP 443）。它不需要來自 GitHub 的輸入回呼。 [GitHub REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue).
+
+有關輸出連線、輸入回呼和私有部署的說明，請參閱[GitHub 整合](/docs/self-hosted/github-integration)中的網路存取章節。
