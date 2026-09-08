@@ -103,3 +103,14 @@ That covers the long tail — Zendesk, AWS CloudWatch (via SNS), New Relic, Splu
 - [Variables](/docs/workflows/variables) — secrets and passing data between blocks.
 - [Incoming Request Monitor](/docs/monitor/incoming-request-monitor) — the workflow-free inbound path for alerting tools.
 - [Zabbix](/docs/integrations/zabbix), [Jira](/docs/integrations/jira) and [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — full worked examples.
+
+## Network access for self-hosted deployments
+
+Network requirements are now documented in each integration setup guide. Choose your integration:
+
+- [GitHub Integration](/docs/self-hosted/github-integration)
+- [SendGrid Inbound Email Integration](/docs/self-hosted/sendgrid-inbound-email)
+- [Slack Integration](/docs/self-hosted/slack-integration)
+- [Microsoft Teams Integration](/docs/self-hosted/microsoft-teams-integration)
+- [Twilio SMS and Voice Integration](/docs/self-hosted/twilio-integration)
+- [Push Notifications](/docs/self-hosted/push-notifications)

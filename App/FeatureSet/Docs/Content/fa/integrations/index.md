@@ -103,3 +103,14 @@ printf '%s' 'you@example.com:your_api_token' | base64
 - [متغیرها](/docs/workflows/variables) — اسرار و انتقال داده میان بلوک‌ها.
 - [مانیتور درخواست ورودی](/docs/monitor/incoming-request-monitor) — مسیر ورودی بدون گردش کاری برای ابزارهای هشداردهی.
 - [Zabbix](/docs/integrations/zabbix)، [Jira](/docs/integrations/jira) و [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — نمونه‌های عملی کامل.
+
+## دسترسی شبکه برای استقرارهای خودمیزبان
+
+الزامات شبکه اکنون در راهنمای راه‌اندازی هر یکپارچه‌سازی آمده است. یکپارچه‌سازی خود را انتخاب کنید:
+
+- [یکپارچه‌سازی GitHub](/docs/self-hosted/github-integration)
+- [یکپارچه‌سازی ایمیل ورودی SendGrid](/docs/self-hosted/sendgrid-inbound-email)
+- [یکپارچه‌سازی Slack](/docs/self-hosted/slack-integration)
+- [یکپارچگی Microsoft Teams](/docs/self-hosted/microsoft-teams-integration)
+- [یکپارچه‌سازی پیامک و صوت Twilio](/docs/self-hosted/twilio-integration)
+- [اعلان‌های پوش](/docs/self-hosted/push-notifications)

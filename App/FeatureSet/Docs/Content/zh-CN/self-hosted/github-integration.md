@@ -24,6 +24,7 @@
    - **回调 URL：** `https://your-oneuptime-domain.com/api/github/auth/callback`
    - **设置 URL：** `https://your-oneuptime-domain.com/api/github/auth/callback` - **重要提示：这是 GitHub 在用户安装应用后重定向用户的 URL。必须设置此 URL，重定向才能正常工作。**
    - **更新时重定向：** 选中此选项，以在用户更新应用安装后重定向用户
+   - **Request user authorization (OAuth) during installation:** **必须勾选此选项。** OneUptime 使用 OAuth 验证安装所有权，未启用时会拒绝连接。
    - **Webhook URL：** `https://your-oneuptime-domain.com/api/github/webhook`
    - **Webhook 密钥：** 生成一个安全的随机字符串（稍后保存）
 
@@ -56,11 +57,7 @@
 
 ### 第三步：订阅 Webhook 事件
 
-OneUptime 接收实时更新的事件，订阅以下 Webhook 事件：
-
-- **Pull request** - 当 PR 被打开、关闭或合并时接收通知
-- **Push** - 当代码被推送时接收通知
-- **Workflow run** - 接收 CI/CD 状态更新
+OneUptime 使用 GitHub Apps 自动接收的 `installation` 和 `installation_repositories` 同步安装与仓库访问。当前仅确认 **Pull request**、**Push**、**Workflow run** 等其他事件，订阅它们不会启用通知或 CI/CD 自动化。
 
 ### 第四步：设置安装访问权限
 
@@ -152,7 +149,35 @@ gitHubApp:
 | `GITHUB_APP_CLIENT_ID`      | 来自您 GitHub App 设置的 Client ID         | 是           |
 | `GITHUB_APP_CLIENT_SECRET`  | 您生成的客户端密钥                         | 是           |
 | `GITHUB_APP_PRIVATE_KEY`    | 私钥（.pem 文件）的内容                    | 是           |
-| `GITHUB_APP_WEBHOOK_SECRET` | 用于验证 Webhook 负载的 Webhook 密钥       | 否（但推荐） |
+| `GITHUB_APP_WEBHOOK_SECRET` | 用于验证 Webhook 负载的 Webhook 密钥       | Webhook 必需 |
+
+## 自托管部署的网络访问
+
+### 流量方向与端点
+
+| 流量 | 所需访问 |
+| --- | --- |
+| OneUptime → GitHub | DNS 和 TCP 443 出站 HTTPS：应用令牌与仓库 API 使用 `api.github.com`，OAuth 交换与 HTTPS Git 操作使用 `github.com` |
+| GitHub → OneUptime | 通过 TCP 443 公网 HTTPS 访问 `POST /api/github/webhook`，用于同步安装和仓库访问权限 |
+| 用户浏览器 → OneUptime | 仪表板和安装/授权重定向 `GET /api/github/auth/callback`；可保持通过用户 VPN 访问 |
+
+Callback/Setup URL 是[浏览器重定向地址](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/about-the-user-authorization-callback-url)，而 Webhook 请求来自 GitHub 服务器。用户 VPN 不会让 GitHub 访问 Webhook。这些域名覆盖核心请求；仓库工具、下载、LFS 或软件包可能需要其他目标。上述设置适用于 GitHub.com，修改防火墙不会配置对 GitHub Enterprise Server 主机名的支持。
+
+### 私有部署与回调安全
+
+使用公共 DNS，以及具有公信 HTTPS 证书、完整证书链和到 OneUptime ingress 私有路由的网关。允许入站 TCP 443，只公开上述供应商 POST 回调。私有 `ClusterIP`、内部 DNS 或员工 VPN 本身无法让供应商访问。使用分离 DNS，可在同一主机名下保持仪表板和浏览器 OAuth 路由私有。
+
+在 `config.env` 设置 `HOST=oneuptime.example.com` 和 `HTTP_PROTOCOL=https`，或在 Helm 设置 `host: oneuptime.example.com` 和 `httpProtocol: https`。应用配置并等待重启。这些值生成 URL，不会自动配置 DNS、TLS 或防火墙。 更改主机名后，更新 GitHub App 的 Webhook、Callback、Setup 和 Homepage URL。
+
+保留方法、原始路径、查询字符串、请求体、`Content-Type`、`X-Hub-Signature-256`、`X-GitHub-Event` 和 `X-GitHub-Delivery`。通过可信代理头保留公网主机和 HTTPS。Webhook 应豁免浏览器 SSO、CAPTCHA 和代理登录页。保持 GitHub SSL 验证启用，并在两端配置相同的 `GITHUB_APP_WEBHOOK_SECRET`：OneUptime 拒绝未签名请求，没有该密钥无法验证 Webhook。参见 [GitHub 验证指南](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries)。
+
+如果还限制来源 IP，请使用 GitHub Meta API 的最新 `hooks` 网段并定期更新。不要替换为 GitHub Actions 运行器网段，也不要取消签名验证。GitHub 指出[地址会变动且列表并不完整](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-githubs-ip-addresses)。
+
+### 验证访问与了解限制
+
+从 OneUptime 完成安装，然后查看 GitHub App 的 **Advanced > Recent Deliveries**。发送或重新投递测试请求，确认网关转发且 OneUptime 接受。向安装添加或移除测试仓库，确认已连接仓库列表更新。参见 GitHub 的[投递诊断](https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/viewing-webhook-deliveries)及[十秒内返回 2xx 的要求](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks)。浏览器 GET 不能测试签名 POST。
+
+没有入站访问时，浏览器授权和出站 API/Git 操作可能仍可工作，但安装删除及仓库访问变化无法通过 Webhook 同步。OneUptime 当前处理 `installation` 和 `installation_repositories`；接受其他事件不代表具有额外自动化。[私有网络访问设置](/docs/self-hosted/private-network-access)控制发往私有目标的出站请求，不会使 Webhook 可被 GitHub 访问。
 
 ## 故障排查
 

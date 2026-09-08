@@ -103,3 +103,14 @@ printf '%s' 'you@example.com:your_api_token' | base64
 - [Variables](/docs/workflows/variables) —— 祕密資訊以及在區塊之間傳遞資料。
 - [Incoming Request 監控](/docs/monitor/incoming-request-monitor) —— 面向警示工具、不需工作流程的入站路徑。
 - [Zabbix](/docs/integrations/zabbix)、[Jira](/docs/integrations/jira) 與 [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) —— 完整的實作範例。
+
+## 自架部署的網路存取
+
+網路需求現已記錄在各整合的設定指南中。請選擇您的整合：
+
+- [GitHub 整合](/docs/self-hosted/github-integration)
+- [SendGrid 收件電子郵件整合](/docs/self-hosted/sendgrid-inbound-email)
+- [Slack 整合](/docs/self-hosted/slack-integration)
+- [Microsoft Teams 整合](/docs/self-hosted/microsoft-teams-integration)
+- [Twilio 簡訊與語音整合](/docs/self-hosted/twilio-integration)
+- [推播通知](/docs/self-hosted/push-notifications)

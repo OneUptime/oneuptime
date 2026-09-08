@@ -19,3 +19,7 @@
 
 4. **Meldingen en notificaties voor gepland onderhoud configureren**
    - Vergelijkbare regels kunnen worden toegepast op Meldingen en Gepland onderhoud door naar de respectievelijke pagina's te navigeren en de gewenste regels te configureren.
+
+## Netwerktoegang voor zelfgehoste implementaties
+
+Raadpleeg het gedeelte over netwerktoegang in de [Slack-integratie](/docs/self-hosted/slack-integration) voor uitgaande verbindingen, inkomende callbacks en privé-implementaties.

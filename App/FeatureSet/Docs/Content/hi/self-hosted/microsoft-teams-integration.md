@@ -7,15 +7,70 @@
 - Azure Account - [https://azure.com](https://azure.com) पर जाकर बना सकते हैं
 - आपके OneUptime server configuration तक पहुंच
 
-### निजी नेटवर्क पर डिप्लॉयमेंट
+## नेटवर्क एक्सेस
 
 OneUptime अपने Teams इंटीग्रेशन के लिए Azure Bot उपयोग करता है। Incoming Webhook या Teams Workflow URL इस बॉट के मैसेजिंग एंडपॉइंट की जगह नहीं लेता। Microsoft स्वयं होस्ट किए गए बॉट के लिए [सार्वजनिक रूप से पहुंच योग्य HTTPS एंडपॉइंट](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) आवश्यक बताता है। निजी IP पता, आंतरिक DNS नाम या किसी कर्मचारी का VPN कनेक्शन Azure Bot Service को OneUptime तक पहुंच नहीं देता।
 
-सेटअप जारी रखने से पहले [इंटीग्रेशन के लिए निजी नेटवर्क एक्सेस](/docs/self-hosted/integration-network-access) के निर्देश अपनाएं। उस गाइड में सार्वजनिक DNS, विश्वसनीय TLS, निजी डिप्लॉयमेंट तक फ़ॉरवर्ड करने वाली रिवर्स प्रॉक्सी, फ़ायरवॉल नियम और सत्यापन शामिल हैं। Teams के लिए `/api/microsoft-bot/messages` प्रकाशित करें और चरण 4 में Azure Bot का **Messaging endpoint** उस पूरे सार्वजनिक HTTPS URL पर सेट करें। `/api` प्रीफ़िक्स, अनुरोध की बॉडी और `Authorization` हेडर बनाए रखें। अनुरोधों को बॉट के प्रमाणीकरण से सत्यापित होने दें; इंटरैक्टिव प्रॉक्सी लॉगिन या ब्राउज़र चैलेंज Microsoft की डिलीवरी रोकता है।
+| सुविधा | OneUptime से प्रदाता तक | प्रदाता से OneUptime तक |
+| --- | --- | --- |
+| Teams सूचनाएं | Microsoft API तक HTTPS | बातचीत की खोज सहित पूरे बॉट इंटीग्रेशन के लिए आवश्यक |
+| Teams कमांड, कार्ड बटन, चैट इंस्टॉलेशन इवेंट | HTTPS | `POST /api/microsoft-bot/messages` |
 
 App registration के रीडायरेक्ट `/api/microsoft-teams/auth` और `/api/microsoft-teams/admin-consent/callback` उपयोगकर्ता के ब्राउज़र के माध्यम से वापस आते हैं। उस ब्राउज़र को OneUptime तक पहुंच चाहिए, जैसे कॉर्पोरेट नेटवर्क या VPN से। बॉट संदेश और कार्ड क्रियाएं Microsoft के सर्वर से आती हैं और उनके लिए अलग से पहुंच योग्य ingress आवश्यक है। केवल आउटबाउंड अलर्ट डिलीवरी से इनबाउंड कनेक्टिविटी सत्यापित नहीं होती।
 
-डेवलपमेंट के लिए Microsoft की [Teams परीक्षण गाइड](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/debug) स्थानीय सेवा को टनल से उपलब्ध कराने का तरीका बताती है। OneUptime ingress पर फ़ॉरवर्ड करें और Microsoft के उदाहरण पथ `/api/messages` के बजाय `/api/microsoft-bot/messages` उपयोग करें। सार्वजनिक टनल URL बदलने पर Azure Bot एंडपॉइंट अपडेट करें, और प्रोडक्शन में स्थिर ingress उपयोग करें।
+### प्रोडक्शन: निजी डिप्लॉयमेंट के लिए गेटवे प्रकाशित करें
+
+1. **होस्टनेम चुनें**, जैसे `oneuptime.example.com`। इंटरनेट से उपलब्ध गेटवे की ओर इंगित करने वाले सार्वजनिक DNS रिकॉर्ड प्रकाशित करें। प्रदाता निजी IP पते और केवल आंतरिक DNS नामों तक नहीं पहुंच सकते। split DNS के साथ कर्मचारी उसी होस्टनेम को निजी ingress पर रिज़ॉल्व कर सकते हैं और VPN पर डैशबोर्ड उपयोग करना जारी रख सकते हैं। निजी ingress को भी उस होस्टनेम के लिए मान्य प्रमाणपत्र के साथ HTTPS प्रदान करना चाहिए।
+
+2. **गेटवे को OneUptime से जोड़ें।** उसे निजी ingress तक रूट वाले DMZ में रखें, या अपने site-to-site VPN/private link से जुड़े सार्वजनिक गेटवे का उपयोग करें। अपस्ट्रीम सेवा पोर्ट पर गेटवे से ingress तक ट्रैफ़िक की अनुमति दें। Kubernetes/Portainer में केवल निजी `ClusterIP` सेवा पर्याप्त नहीं है: गेटवे के लिए ingress/controller या कोई अन्य पहुंच योग्य अपस्ट्रीम आवश्यक है। डेटाबेस और अन्य आंतरिक सेवाएं निजी रखें।
+
+3. **पोर्ट 443 पर HTTPS टर्मिनेट करें**, और सार्वजनिक रूप से विश्वसनीय प्रमाणपत्र तथा पूरी इंटरमीडिएट प्रमाणपत्र श्रृंखला उपयोग करें। गेटवे पर इनबाउंड TCP 443 की अनुमति दें। केवल प्रमाणपत्र लगाने या DNS बदलने से निजी अपस्ट्रीम तक रूट नहीं बनता।
+
+4. केवल `/api/microsoft-bot/messages` प्रकाशित करें और चरण 4 में इस पूरे सार्वजनिक HTTPS URL को Azure Bot का मैसेजिंग एंडपॉइंट बनाएं। OneUptime के Bot Framework एडाप्टर को अनुरोध प्राप्त करके उनका प्रमाणीकरण करना चाहिए। मेथड, पथ, क्वेरी स्ट्रिंग, बॉडी और प्रमाणीकरण हेडर (`Authorization`) बनाए रखें। सार्वजनिक `Host` सुरक्षित रखें और विश्वसनीय `X-Forwarded-Host` तथा `X-Forwarded-Proto: https` हेडर सेट करें। रीडायरेक्ट न जोड़ें।
+
+5. इन पथों को ब्राउज़र SSO, CAPTCHA और प्रॉक्सी लॉगिन पेजों से छूट दें। OneUptime का प्रमाणीकरण चालू रखें। मूल सर्वर तक पहुंच केवल गेटवे और अधिकृत आंतरिक क्लाइंट को दें; लॉग में टोकन छिपाएं।
+
+6. **OneUptime का कैनोनिकल URL सेट करें**:
+
+   Docker Compose में, `config.env` के अंदर:
+
+   ```dotenv
+   HOST=oneuptime.example.com
+   HTTP_PROTOCOL=https
+   ```
+
+   Helm/Portainer मान:
+
+   ```yaml
+   host: oneuptime.example.com
+   httpProtocol: https
+   ```
+
+   उदाहरण की जगह अपना डोमेन रखें। ये सेटिंग URL बनाती हैं; DNS, TLS या फ़ायरवॉल नियम नहीं बनातीं। Compose कॉन्फ़िगरेशन या Helm अपडेट लागू करें और एप्लिकेशन के पुनः आरंभ होने की प्रतीक्षा करें। होस्टनाम बदलने पर Azure Bot एंडपॉइंट और ऐप पंजीकरण के रीडायरेक्ट URI अपडेट करें, फिर Teams मैनिफ़ेस्ट दोबारा डाउनलोड और अपलोड करें।
+
+[निजी नेटवर्क एक्सेस सेटिंग](/docs/self-hosted/private-network-access) आंतरिक सेवाओं को भेजे जाने वाले OneUptime के आउटबाउंड अनुरोध नियंत्रित करती हैं। `ALLOW_PRIVATE_NETWORK_WEBHOOKS` चालू करने से Teams की OneUptime तक पहुंच नहीं बनती।
+
+### आउटबाउंड एक्सेस और IP प्रतिबंध
+
+OneUptime एप्लिकेशन से DNS रिज़ॉल्यूशन और आउटबाउंड HTTPS (TCP 443) की अनुमति दें। Teams `graph.microsoft.com`, `login.microsoftonline.com`, Bot Framework प्रमाणीकरण/चैनल एंडपॉइंट और बातचीत के connector service URL उपयोग करता है। [Microsoft का फ़ायरवॉल मार्गदर्शन](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) अपनाएं और परीक्षण के दौरान अवरुद्ध ट्रैफ़िक जांचें; ये उदाहरण डोमेन की पूरी सूची नहीं हैं। कमर्शियल क्लाउड का फ़ॉलबैक कनेक्टर `https://smba.trafficmanager.net/teams/` है; किसी बातचीत का सर्विस URL अलग हो सकता है।
+
+Microsoft स्थिर इनबाउंड Bot Framework IP अनुमति-सूचियों का समर्थन नहीं करता, क्योंकि पते बदलते हैं। Teams क्लाइंट की मीडिया रेंज बॉट वेबहुक के स्रोत पते नहीं हैं। Bot Framework प्रमाणीकरण चालू रखें।
+
+### परीक्षण और इनबाउंड एक्सेस के बिना डिप्लॉयमेंट
+
+अपने VPN से बाहर के नेटवर्क पर सार्वजनिक DNS और TLS सत्यापित करें, फिर Teams रूट जांचें:
+
+```bash
+curl -sS -i https://oneuptime.example.com/api/microsoft-bot/messages
+```
+
+OneUptime के वर्तमान संस्करणों में `Allow: POST` के साथ `405 Method Not Allowed` मिलना चाहिए। इससे पुष्टि होती है कि GET रूट तक पहुंचा, लेकिन यह प्रमाण नहीं है कि प्रमाणित बॉट POST काम करेगा। पुराने संस्करण OneUptime का JSON 404 लौटा सकते हैं; प्रतिक्रिया की बॉडी और प्रॉक्सी लॉग जांचें। TLS त्रुटियां, टाइमआउट या प्रॉक्सी का HTML त्रुटि पेज प्रमाणपत्र या रूटिंग की समस्या बताते हैं।
+
+Teams कनेक्ट करें, परीक्षण सूचना भेजें, बॉट को संदेश दें और कार्ड बटन दबाएं। OneUptime में कार्रवाई की पुष्टि करें और Microsoft डायग्नोस्टिक्स की तुलना गेटवे व एप्लिकेशन लॉग से करें। सूचना की डिलीवरी प्रमाणित इनबाउंड POST की पुष्टि नहीं करती।
+
+डेवलपमेंट के लिए Microsoft की [Teams परीक्षण गाइड](https://learn.microsoft.com/en-us/microsoftteams/platform/bots/how-to/authentication/add-authentication#testing-the-bot-locally-in-teams) स्थानीय सेवा को टनल से उपलब्ध कराने का तरीका बताती है। OneUptime ingress पर फ़ॉरवर्ड करें और Microsoft के उदाहरण पथ `/api/messages` के बजाय `/api/microsoft-bot/messages` उपयोग करें। सार्वजनिक टनल URL बदलने पर Azure Bot एंडपॉइंट अपडेट करें, और प्रोडक्शन में स्थिर ingress उपयोग करें। OneUptime में संबंधित होस्टनाम भी सेट करें। परीक्षण के बाद टनल बंद करें; वह भी इनबाउंड एक्सेस देता है।
+
+यदि सभी इनबाउंड कनेक्शन प्रतिबंधित हैं, तो पूरा Teams एकीकरण काम नहीं करेगा: कमांड, कार्ड कार्रवाइयां और बातचीत की खोज इन पर निर्भर हैं। पूरी तरह डिस्कनेक्ट इंस्टॉलेशन Teams इस्तेमाल नहीं कर सकता।
 
 Azure Bot Private Endpoint इस Teams ingress का विकल्प नहीं है। Microsoft के [नेटवर्क आइसोलेशन निर्देश](https://learn.microsoft.com/en-us/azure/bot-service/dl-network-isolation-how-to?view=azure-bot-service-4.0) Direct Line आइसोलेशन का वर्णन करते हैं और बताते हैं कि सार्वजनिक नेटवर्क एक्सेस बंद करने से Teams चैनल की कॉन्फ़िगरेशन हट जाती है।
 

@@ -197,7 +197,6 @@
     "Slack Integration": "Slack 통합",
     "Microsoft Teams Integration": "Microsoft Teams 통합",
     "Twilio Integration": "Twilio 통합",
-    "Integration Access from Private Networks": "사설 네트워크에서의 통합 액세스",
     "GitHub Integration": "GitHub 통합",
     "Push Notifications": "푸시 알림",
     "SendGrid Inbound Email": "SendGrid 수신 이메일",

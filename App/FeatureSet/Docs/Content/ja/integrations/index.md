@@ -103,3 +103,14 @@ printf '%s' 'you@example.com:your_api_token' | base64
 - [変数](/docs/workflows/variables) — シークレットとブロック間のデータの受け渡し。
 - [受信リクエストモニター](/docs/monitor/incoming-request-monitor) — アラートツール向けの、ワークフロー不要なインバウンド経路。
 - [Zabbix](/docs/integrations/zabbix)、[Jira](/docs/integrations/jira)、[Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — 完全なハンズオン例。
+
+## セルフホスト環境のネットワークアクセス
+
+ネットワーク要件は、各連携のセットアップガイドに記載されています。連携を選択してください。
+
+- [GitHub統合](/docs/self-hosted/github-integration)
+- [SendGridインバウンドメール統合](/docs/self-hosted/sendgrid-inbound-email)
+- [Slack統合](/docs/self-hosted/slack-integration)
+- [Microsoft Teams統合](/docs/self-hosted/microsoft-teams-integration)
+- [Twilio SMS・音声通話の統合](/docs/self-hosted/twilio-integration)
+- [プッシュ通知](/docs/self-hosted/push-notifications)

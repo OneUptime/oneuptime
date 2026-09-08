@@ -103,3 +103,14 @@ printf '%s' 'you@example.com:your_api_token' | base64
 - [Переменные](/docs/workflows/variables) — секреты и передача данных между блоками.
 - [Монитор Incoming Request](/docs/monitor/incoming-request-monitor) — входящий путь для инструментов оповещения без рабочих процессов.
 - [Zabbix](/docs/integrations/zabbix), [Jira](/docs/integrations/jira) и [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — полные рабочие примеры.
+
+## Сетевой доступ для самостоятельных развертываний
+
+Требования к сети теперь описаны в руководстве по настройке каждой интеграции. Выберите интеграцию:
+
+- [Интеграция с GitHub](/docs/self-hosted/github-integration)
+- [Интеграция входящей электронной почты SendGrid](/docs/self-hosted/sendgrid-inbound-email)
+- [Интеграция со Slack](/docs/self-hosted/slack-integration)
+- [Интеграция с Microsoft Teams](/docs/self-hosted/microsoft-teams-integration)
+- [Интеграция SMS и голосовых звонков Twilio](/docs/self-hosted/twilio-integration)
+- [Push-уведомления](/docs/self-hosted/push-notifications)

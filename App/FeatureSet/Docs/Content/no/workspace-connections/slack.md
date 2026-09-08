@@ -19,3 +19,7 @@
 
 4. **Konfigurer varsler og planlagte vedlikeholdsvarsler**
    - Tilsvarende regler kan brukes på varsler og planlagt vedlikehold ved å navigere til de respektive sidene og konfigurere ønskede regler.
+
+## Nettverkstilgang for selvhostede installasjoner
+
+Se delen om nettverkstilgang i [Slack-integrasjon](/docs/self-hosted/slack-integration) for informasjon om utgående forbindelser, innkommende tilbakekall og private installasjoner.

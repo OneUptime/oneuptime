@@ -144,6 +144,34 @@ const DocsFeatureSet: FeatureSet = {
     );
 
     /*
+     * The former network guide now lives in each integration's setup page.
+     * Send old HTML and markdown URLs to the catalog that links those guides.
+     */
+    for (const prefix of ["/docs/as-markdown", "/docs"]) {
+      app.get(
+        `${prefix}/:lang/self-hosted/integration-network-access`,
+        (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+          const lang: string = req.params["lang"] || "";
+          if (!isSupportedDocsLanguage(lang)) {
+            return next();
+          }
+          return res.redirect(301, `${prefix}/${lang}/integrations/index`);
+        },
+      );
+      app.get(
+        `${prefix}/self-hosted/integration-network-access`,
+        (req: ExpressRequest, res: ExpressResponse) => {
+          if (prefix === "/docs") {
+            res.vary("Accept-Language");
+          }
+          const lang: string =
+            prefix === "/docs" ? pickLanguage(req) : DEFAULT_DOCS_LANGUAGE;
+          return res.redirect(301, `${prefix}/${lang}/integrations/index`);
+        },
+      );
+    }
+
+    /*
      * Backward-compat: the AI SRE page shipped on 2026-07-10 at
      * /docs/ai/sentinel, under the old "Sentinel" codename. The codename is
      * retired and the page now lives at /docs/ai/ai-sre — permanently redirect

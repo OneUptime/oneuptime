@@ -6,9 +6,29 @@ OneUptime 的 **收件電子郵件監控器（Incoming Email Monitor）** 可讓
 
 ## 先決條件
 
-- 一個 SendGrid 帳戶（免費方案即可）
+- 具有 Inbound Parse 存取權的 SendGrid 帳戶
 - 一個您所掌控且可存取 DNS 設定的網域
-- 您的 OneUptime 執行個體必須可公開存取（以便 SendGrid 傳送 webhook）
+- 可將 SendGrid webhook 轉送至 OneUptime 的公開 HTTPS 端點
+
+## 網路存取
+
+Inbound Parse 需要由 SendGrid 主動連線至 OneUptime。僅允許 OneUptime 連出至網際網路並不足夠。
+
+| 方向 | 目的地 | 協定 / 連接埠 | 用途 |
+| --- | --- | --- | --- |
+| SendGrid → OneUptime | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` | HTTPS / TCP 443 | 透過 multipart POST 傳送解析後的郵件。 |
+| 寄件郵件伺服器 → SendGrid | 接收網域公開 MX 記錄指定的 `mx.sendgrid.net` | SMTP / TCP 25 | 在 SendGrid 接收郵件，不連線至 OneUptime 伺服器。 |
+| OneUptime → SendGrid，僅限另行設定郵件寄送時 | `api.sendgrid.com` | HTTPS / TCP 443 | 透過 Mail Send API 寄送通知郵件。 |
+
+為 webhook 主機名稱發布公開 DNS，並使用公開信任的憑證。私有部署可以透過能在內部存取 OneUptime 的公開反向代理或閘道，僅公開 webhook 路徑。保留路徑、密鑰、內容類型和 multipart 請求本文；允許 POST 通過，不得要求互動式登入或瀏覽器驗證。OneUptime 不需要接聽連入 SMTP 連線。請參閱 [SendGrid 設定指南](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook)。
+
+將 `INBOUND_EMAIL_WEBHOOK_SECRET` 設為高強度隨機值，並用它取代 `YOUR_SECRET`。路由要求最後一個路徑區段存在。OneUptime 會將其與設定的密鑰比較；變數留空會停用此檢查。完整 URL 與監控器郵件地址應保密，包括代理記錄。OneUptime 目前不驗證 SendGrid 的 Inbound Parse 簽署標頭或 OAuth 權杖。如需這些機制，請依 [SendGrid 安全文獻](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks)在閘道驗證後再轉送。
+
+SendGrid 不提供可靠的 Inbound Parse 來源靜態 IP 清單。郵件寄送 IP 及 `mx.sendgrid.net` 的 DNS 解析地址都不能當作 webhook 來源允許清單。請遵循 [SendGrid 防火牆指南](https://support.sendgrid.com/hc/en-us/articles/44375457225371-How-to-Configure-Firewall-Settings-for-SendGrid-Webhook-and-Inbound-Parse-IPs)。
+
+Inbound Parse 與寄送郵件相互獨立。接收監控郵件不需要 OneUptime 呼叫 SendGrid API。若也使用 SendGrid 寄送通知，請允許 DNS 解析和到 `api.sendgrid.com` 的連出 HTTPS；[Mail Send](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send)提交郵件不需要連入回呼。若使用 SMTP，請允許 OneUptime 中設定的伺服器和連接埠。
+
+驗證公開 MX 記錄、寄送郵件至測試監控器，確認 webhook 到達 OneUptime 並建立或解除符合條件的警示。空白 POST 或寄件測試成功，都不能驗證 Inbound Parse 的完整流程。
 
 ## 運作方式
 
@@ -45,9 +65,9 @@ inbound.example.com.  IN  MX  10  mx.sendgrid.net.
 
 **注意：** DNS 變更最多可能需要 48 小時才能完成傳播，但通常會在數小時內完成。
 
-### 步驟 3：在 SendGrid 中驗證網域（選用，但建議執行）
+### 步驟 3：在 SendGrid 中驗證網域
 
-為了提升送達率並避免電子郵件被標記為垃圾郵件：
+接收網域必須屬於您其中一個 [SendGrid 已驗證網域](https://www.twilio.com/docs/sendgrid/ui/account-and-settings/inbound-parse)：
 
 1. 登入您的 [SendGrid Dashboard](https://app.sendgrid.com)
 2. 前往 **Settings** > **Sender Authentication**
@@ -81,7 +101,7 @@ inbound.example.com.  IN  MX  10  mx.sendgrid.net.
 # Inbound Email Configuration
 INBOUND_EMAIL_PROVIDER=SendGrid
 INBOUND_EMAIL_DOMAIN=inbound.yourdomain.com
-# INBOUND_EMAIL_WEBHOOK_SECRET=your-optional-secret  # Optional: for additional security
+INBOUND_EMAIL_WEBHOOK_SECRET=replace-with-a-strong-random-secret
 ```
 
 #### 搭配 Helm 的 Kubernetes
@@ -92,10 +112,10 @@ INBOUND_EMAIL_DOMAIN=inbound.yourdomain.com
 inboundEmail:
   provider: "SendGrid"
   domain: "inbound.yourdomain.com"
-  # webhookSecret: "your-optional-secret"  # Optional
+  webhookSecret: "replace-with-a-strong-random-secret"
 ```
 
-**重要：** 在新增這些環境變數後，請重新啟動您的 OneUptime 伺服器。
+使用與步驟 4 目標 URL 相同的密鑰，並在修改設定後重新啟動 OneUptime。
 
 ### 步驟 6：建立收件電子郵件監控器
 
@@ -127,7 +147,7 @@ inboundEmail:
 | ------------------------------ | --------------------------------------------------------------------------------------------------------- | -------- | ------ |
 | `INBOUND_EMAIL_PROVIDER`       | 要使用的收件電子郵件供應商                                                                                | 是       | -      |
 | `INBOUND_EMAIL_DOMAIN`         | 為收件電子郵件所設定的子網域                                                                              | 是       | -      |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | 用於驗證 webhook 請求的密鑰。設定後，請將此密鑰附加到 webhook URL：`/incoming-email/sendgrid/YOUR_SECRET` | 否       | -      |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | 與 `/incoming-email/sendgrid/YOUR_SECRET` 的最後一個路徑區段比較。公開端點應設定此值；留空會停用驗證。 | 建議 | - |
 
 ## 支援的電子郵件條件
 
@@ -184,23 +204,14 @@ inboundEmail:
    - 確認您的網域與 webhook URL 正確無誤
 
 3. **檢查 OneUptime 記錄：**
-   - 在 ProbeIngest 服務記錄中尋找 webhook 請求
+   - 在 OneUptime 應用程式記錄（Telemetry / ProbeIngest）中尋找收件電子郵件 webhook。
    - 檢查是否有任何錯誤訊息
 
 ### Webhook 失敗
 
-1. **確保 OneUptime 可公開存取：**
-
-   - webhook URL 必須能從網際網路存取
-   - 使用以下指令測試：`curl -X POST https://your-oneuptime-domain.com/incoming-email/sendgrid`
-
-2. **檢查防火牆規則：**
-
-   - 允許來自 SendGrid IP 範圍的收件 HTTPS 流量
-
-3. **驗證 SSL 憑證：**
-   - SendGrid 需要有效的 SSL 憑證
-   - 自簽憑證可能會造成問題
+- 包含密鑰的完整 HTTPS URL 必須可從網際網路存取。缺少最後一個區段時，URL 無法符合路由。
+- 允許 POST 通過，不得要求登入重新導向或瀏覽器驗證。SendGrid 的郵件寄送 IP 並非 webhook 來源允許清單。
+- 使用公開信任的憑證和完整憑證鏈，並按照「網路存取」一節驗證傳送。
 
 ### 監控器未建立警示
 

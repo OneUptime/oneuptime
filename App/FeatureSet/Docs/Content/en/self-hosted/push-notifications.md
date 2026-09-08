@@ -1,16 +1,35 @@
 # Push Notifications
 
-Native push notifications (iOS/Android) are powered by **Expo Push** and require **no server-side configuration** for self-hosted instances.
+Native push notifications (iOS/Android) are powered by **Expo Push**. Self-hosted instances use OneUptime's push relay by default and need outbound network access to it.
 
 ## How It Works
 
-The OneUptime mobile app registers an Expo Push Token with the backend. When the backend needs to send a notification it POSTs to the public Expo Push API, which routes the message to Apple APNs or Google FCM on behalf of the app.
+The OneUptime mobile app registers an Expo Push Token with the backend. The backend sends notifications through OneUptime's push relay, or directly to Expo when `EXPO_ACCESS_TOKEN` is configured. Expo forwards messages to Apple APNs or Google FCM for delivery to the device.
 
 Web push notifications continue to use VAPID keys and the Web Push protocol.
 
 ## Self-Hosted Setup
 
-No push notification configuration is required. The mobile app binary handles all platform registration automatically via Expo's push infrastructure.
+No Expo credentials are required on the server when using the official mobile app and the default relay. For direct Expo delivery, configure `EXPO_ACCESS_TOKEN` with credentials appropriate for your app's Expo project. Web push requires `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT`.
+
+## Network Access
+
+| Direction | Destination | Protocol / port | When required |
+| --- | --- | --- | --- |
+| OneUptime → default push relay | `https://oneuptime.com/api/notification/push-relay/send` | HTTPS / TCP 443 | Mobile push when `EXPO_ACCESS_TOKEN` is unset. |
+| OneUptime → Expo | `https://exp.host/--/api/v2/push/send` | HTTPS / TCP 443 | Direct mobile push when `EXPO_ACCESS_TOKEN` is set. |
+| OneUptime → browser push service | The HTTPS endpoint stored in the browser's push subscription | HTTPS / normally TCP 443 | Web push. |
+| Mobile app or browser → OneUptime | Your OneUptime hostname | HTTPS / TCP 443 | Sign in, register the device and open notification links. |
+
+If you change `PUSH_NOTIFICATION_RELAY_URL`, allow its destination hostname and configured port. A custom relay must implement OneUptime's relay API. These defaults and the switch between relay and direct delivery are defined in [OneUptime's configuration](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) and [push service](https://github.com/OneUptime/oneuptime/blob/master/Common/Server/Services/PushNotificationService.ts). Direct Expo requests use the endpoint documented in [Expo's sending guide](https://docs.expo.dev/push-notifications/sending-notifications/).
+
+For web push, allow the actual subscription endpoint hosts for the browsers your team uses. OneUptime accepts `fcm.googleapis.com`, `android.googleapis.com`, `push.services.mozilla.com`, `notify.windows.com` and `push.apple.com`, including their subdomains. Typical examples include `updates.push.services.mozilla.com` and `web.push.apple.com`. The [browser's push subscription](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) supplies the destination; allowing only Expo or OneUptime's relay does not enable web push.
+
+Permit DNS resolution and outbound TLS from the OneUptime process that sends notifications. Its trust store must validate the destination's certificate, and proxies must pass API requests without interactive authentication. Push providers do not call a webhook on your OneUptime server, so the server can stay private when user devices can access it through a VPN or other private connection. A server with no access to its relay or external push services cannot deliver these notifications.
+
+Device connectivity is a separate requirement. iOS devices need APNs access, typically TCP 5223 with TCP 443 fallback; consult [Apple's current network requirements](https://support.apple.com/en-us/102266) for destination ranges. Android devices need FCM access on TCP 5228–5230 and 443; use [Google's current host and firewall guidance](https://firebase.google.com/docs/cloud-messaging/network-configuration). These device ports do not need to be opened inbound on OneUptime, and the mobile server flow uses the relay or Expo rather than directly connecting to APNs/FCM.
+
+Verify DNS and HTTPS connectivity from the notification sender's container or pod to the destination for the selected delivery mode. Then send a test from **User Settings > Notification Methods > Push** and confirm it arrives on a registered device. Test each browser separately for web push. Check relay, Expo or web-push errors in OneUptime logs; successful API submission alone does not confirm device delivery.
 
 ## Critical On-Call Alerts (Overriding Silent Mode)
 

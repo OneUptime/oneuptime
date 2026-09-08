@@ -19,3 +19,7 @@
 
 4. **Benachrichtigungen für Alerts und geplante Wartungen konfigurieren**
    - Ähnliche Regeln können für Alerts und Geplante Wartungen angewendet werden, indem Sie zu den jeweiligen Seiten navigieren und die gewünschten Regeln konfigurieren.
+
+## Netzwerkzugriff bei selbst gehosteten Bereitstellungen
+
+Informationen zu ausgehenden Verbindungen, eingehenden Rückrufen und privaten Bereitstellungen finden Sie im Abschnitt zum Netzwerkzugriff in der [Slack-Integration](/docs/self-hosted/slack-integration).

@@ -6,9 +6,29 @@ Deze handleiding legt uit hoe u SendGrid Inbound Parse instelt om inkomende e-ma
 
 ## Vereisten
 
-- Een SendGrid-account (gratis laag werkt)
+- Een SendGrid-account met toegang tot Inbound Parse
 - Een domein dat u beheert met toegang tot DNS-instellingen
-- Uw OneUptime-instantie moet openbaar toegankelijk zijn (zodat SendGrid webhooks kan sturen)
+- Een openbaar HTTPS-endpoint dat SendGrid-webhooks naar OneUptime doorstuurt
+
+## Netwerktoegang
+
+Inbound Parse vereist dat SendGrid een verbinding met OneUptime begint. Alleen uitgaande internettoegang is onvoldoende.
+
+| Richting | Bestemming | Protocol / poort | Doel |
+| --- | --- | --- | --- |
+| SendGrid → OneUptime | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` | HTTPS / TCP 443 | Verwerkte e-mail bezorgen via multipart POST. |
+| Verzendende mailservers → SendGrid | `mx.sendgrid.net`, via het openbare MX-record van het ontvangende domein | SMTP / TCP 25 | E-mail ontvangen bij SendGrid, niet op OneUptime. |
+| OneUptime → SendGrid, alleen bij apart ingestelde e-mailverzending | `api.sendgrid.com` | HTTPS / TCP 443 | Meldingen versturen via Mail Send API. |
+
+Publiceer DNS voor de webhookhostnaam en gebruik een openbaar vertrouwd certificaat. Een privé-installatie kan alleen het webhookpad beschikbaar maken via een openbare reverse proxy of gateway die OneUptime intern bereikt. Behoud pad, geheim, inhoudstype en multipart-inhoud; sta POST toe zonder interactieve aanmelding of browsercontrole. OneUptime hoeft niet te luisteren naar inkomende SMTP-verbindingen. Zie de [SendGrid-configuratie](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook).
+
+Geef `INBOUND_EMAIL_WEBHOOK_SECRET` een sterke willekeurige waarde en vervang `YOUR_SECRET` daarmee. Het laatste padsegment is verplicht. OneUptime vergelijkt dit met het ingestelde geheim; een lege variabele schakelt de controle uit. Houd de volledige URL en monitoradressen privé, ook in proxylogboeken. OneUptime valideert momenteel geen ondertekende Inbound Parse-headers of OAuth-tokens van SendGrid. Laat een gateway deze zo nodig vóór doorsturen valideren volgens de [SendGrid-beveiligingsdocumentatie](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks).
+
+SendGrid biedt geen betrouwbare statische lijst van Inbound Parse-bron-IP-adressen. Verzend-IP-adressen en DNS-resultaten voor `mx.sendgrid.net` zijn geen webhooktoelatingslijst. Volg de [firewallrichtlijnen van SendGrid](https://support.sendgrid.com/hc/en-us/articles/44375457225371-How-to-Configure-Firewall-Settings-for-SendGrid-Webhook-and-Inbound-Parse-IPs).
+
+Inbound Parse staat los van e-mailverzending. Ontvangst vereist geen SendGrid-API-aanroepen vanuit OneUptime. Sta voor SendGrid-meldingen DNS en uitgaand HTTPS naar `api.sendgrid.com` toe; [Mail Send](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send) vereist geen inkomende callback voor het indienen. Gebruik je SMTP, sta dan de in OneUptime ingestelde server en poort toe.
+
+Controleer het openbare MX-record, mail een testmonitor en bevestig ontvangst van de webhook en het aanmaken of oplossen van de waarschuwing. Een lege POST of een verzendtest controleert de Inbound Parse-keten niet.
 
 ## Hoe het werkt
 
@@ -45,9 +65,9 @@ inbound.example.com.  IN  MX  10  mx.sendgrid.net.
 
 **Opmerking:** DNS-wijzigingen kunnen tot 48 uur duren om door te werken, maar zijn doorgaans binnen een paar uur voltooid.
 
-### Stap 3: Domein verifiëren in SendGrid (optioneel maar aanbevolen)
+### Stap 3: Je domein authenticeren in SendGrid
 
-Voor betere bezorgbaarheid en om te voorkomen dat e-mails als spam worden gemarkeerd:
+Het ontvangende domein moet bij een van je [geauthenticeerde domeinen in SendGrid](https://www.twilio.com/docs/sendgrid/ui/account-and-settings/inbound-parse) horen:
 
 1. Log in op uw [SendGrid Dashboard](https://app.sendgrid.com)
 2. Ga naar **Instellingen** > **Afzenderauthenticatie**
@@ -81,7 +101,7 @@ Voeg deze omgevingsvariabelen toe aan uw `config.env`-bestand:
 # Inbound e-mailconfiguratie
 INBOUND_EMAIL_PROVIDER=SendGrid
 INBOUND_EMAIL_DOMAIN=inbound.yourdomain.com
-# INBOUND_EMAIL_WEBHOOK_SECRET=your-optional-secret  # Optioneel: voor extra beveiliging
+INBOUND_EMAIL_WEBHOOK_SECRET=replace-with-a-strong-random-secret
 ```
 
 #### Kubernetes met Helm
@@ -92,10 +112,10 @@ Voeg deze toe aan uw `values.yaml`-bestand:
 inboundEmail:
   provider: "SendGrid"
   domain: "inbound.yourdomain.com"
-  # webhookSecret: "your-optional-secret"  # Optioneel
+  webhookSecret: "replace-with-a-strong-random-secret"
 ```
 
-**Belangrijk:** Herstart uw OneUptime-server na het toevoegen van deze omgevingsvariabelen.
+Gebruik hetzelfde geheim in de bestemmings-URL van stap 4 en herstart OneUptime na de configuratiewijziging.
 
 ### Stap 6: Een Inkomend e-mail-monitor aanmaken
 
@@ -127,7 +147,7 @@ Na aanmaak ziet u het unieke e-mailadres voor deze monitor (bijv. `monitor-abc12
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------- |
 | `INBOUND_EMAIL_PROVIDER`       | De te gebruiken inbound e-mailprovider                                                                                                        | Ja      | -         |
 | `INBOUND_EMAIL_DOMAIN`         | Het subdomein geconfigureerd voor inkomende e-mails                                                                                           | Ja      | -         |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | Geheim voor het valideren van webhookverzoeken. Als ingesteld, voeg dit geheim toe aan de webhook-URL: `/incoming-email/sendgrid/YOUR_SECRET` | Nee     | -         |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | Wordt vergeleken met het laatste segment van `/incoming-email/sendgrid/YOUR_SECRET`. Configureer dit voor openbare endpoints; een lege waarde schakelt de controle uit. | Aanbevolen | - |
 
 ## Ondersteunde e-mailcriteria
 
@@ -184,23 +204,14 @@ Gebruik "E-mail ontvangen"-criteria om te zorgen dat u periodieke e-mails ontvan
    - Verifieer dat uw domein en webhook-URL correct zijn
 
 3. **Controleer OneUptime-logboeken:**
-   - Zoek naar webhookverzoeken in de ProbeIngest-dienstlogboeken
+   - Zoek inkomende e-mailwebhooks in de toepassingslogboeken van OneUptime (Telemetry / ProbeIngest).
    - Controleer op foutmeldingen
 
 ### Webhooks mislukken
 
-1. **Zorg dat OneUptime openbaar toegankelijk is:**
-
-   - De webhook-URL moet bereikbaar zijn vanaf het internet
-   - Test met: `curl -X POST https://your-oneuptime-domain.com/incoming-email/sendgrid`
-
-2. **Controleer firewallregels:**
-
-   - Sta inkomend HTTPS-verkeer toe van de IP-reeksen van SendGrid
-
-3. **Verifieer SSL-certificaat:**
-   - SendGrid vereist een geldig SSL-certificaat
-   - Zelfondertekende certificaten kunnen problemen veroorzaken
+- De volledige HTTPS-URL inclusief het geheim moet via internet bereikbaar zijn. Zonder het laatste segment komt deze niet overeen met de route.
+- Sta POST toe zonder aanmeldomleiding of browsercontrole. De IP-adressen waarmee SendGrid e-mail verzendt, vormen geen lijst van webhookbronnen.
+- Gebruik een openbaar vertrouwd certificaat met de volledige certificaatketen. Controleer de bezorging zoals beschreven bij Netwerktoegang.
 
 ### Monitor maakt geen meldingen aan
 

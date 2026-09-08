@@ -103,3 +103,14 @@ Das deckt den langen Schwanz ab – Zendesk, AWS CloudWatch (über SNS), New Rel
 - [Variablen](/docs/workflows/variables) — Geheimnisse und Datenweitergabe zwischen Blöcken.
 - [Incoming Request-Monitor](/docs/monitor/incoming-request-monitor) — der workflowfreie eingehende Weg für Alarmierungs-Tools.
 - [Zabbix](/docs/integrations/zabbix), [Jira](/docs/integrations/jira) und [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — vollständige Praxisbeispiele.
+
+## Netzwerkzugriff bei selbst gehosteten Bereitstellungen
+
+Die Netzwerkanforderungen stehen jetzt in der jeweiligen Einrichtungsanleitung. Wählen Sie Ihre Integration:
+
+- [GitHub-Integration](/docs/self-hosted/github-integration)
+- [SendGrid Inbound Email-Integration](/docs/self-hosted/sendgrid-inbound-email)
+- [Slack-Integration](/docs/self-hosted/slack-integration)
+- [Microsoft Teams-Integration](/docs/self-hosted/microsoft-teams-integration)
+- [Twilio-Integration für SMS und Sprachanrufe](/docs/self-hosted/twilio-integration)
+- [Push-Benachrichtigungen](/docs/self-hosted/push-notifications)

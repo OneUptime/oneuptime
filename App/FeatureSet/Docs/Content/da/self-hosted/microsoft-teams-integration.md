@@ -7,15 +7,70 @@ For at integrere Microsoft Teams med din selvhostede OneUptime-instans skal du k
 - Azure-konto – Du kan oprette en ved at gå til [https://azure.com](https://azure.com)
 - Adgang til din OneUptime-serverkonfiguration
 
-### Installationer på private netværk
+## Netværksadgang
 
 OneUptime bruger en Azure Bot til Teams-integrationen. En Incoming Webhook- eller Teams Workflow-URL erstatter ikke bottens meddelelsesendepunkt. Microsoft kræver et [offentligt tilgængeligt HTTPS-endepunkt for en selvhostet bot](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0). En privat IP-adresse, et internt DNS-navn eller en medarbejders VPN-forbindelse giver ikke Azure Bot Service adgang til OneUptime.
 
-Følg [Integrationsadgang fra private netværk](/docs/self-hosted/integration-network-access), før du fortsætter opsætningen. Vejledningen dækker offentlig DNS, betroet TLS, en reverse proxy, som videresender til din private installation, firewallregler og verificering. For Teams skal du offentliggøre `/api/microsoft-bot/messages` og angive Azure Bots **Messaging endpoint** i trin 4 til denne komplette offentlige HTTPS-URL. Bevar præfikset `/api`, anmodningens indhold og `Authorization`-headeren. Lad bottens godkendelse validere anmodninger; interaktivt proxylogin eller browserkontrol forhindrer Microsoft i at levere dem.
+| Funktion | OneUptime til udbyder | Udbyder til OneUptime |
+| --- | --- | --- |
+| Teams-notifikationer | HTTPS til Microsoft-API'er | Påkrævet til den fulde botintegration, herunder registrering af samtaler |
+| Teams-kommandoer, kortknapper, installationshændelser i chats | HTTPS | `POST /api/microsoft-bot/messages` |
 
 Appregistreringens omdirigeringer `/api/microsoft-teams/auth` og `/api/microsoft-teams/admin-consent/callback` returnerer gennem brugerens browser. Browseren skal kunne nå OneUptime, for eksempel via virksomhedens netværk eller VPN. Botbeskeder og korthandlinger kommer fra Microsofts servere og kræver deres egen tilgængelige ingress. Udgående alarmlevering alene verificerer ikke indgående forbindelse.
 
-Til udvikling beskriver Microsofts [Teams-testvejledning](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/debug), hvordan en lokal tjeneste eksponeres med en tunnel. Videresend til OneUptimes ingress, og brug `/api/microsoft-bot/messages` i stedet for Microsofts eksempelsti `/api/messages`. Opdater Azure Bot-endepunktet, når den offentlige tunnel-URL ændres, og brug en stabil ingress til produktion.
+### Produktion: offentliggør en gateway til den private installation
+
+1. **Vælg et værtsnavn**, for eksempel `oneuptime.example.com`. Offentliggør DNS-poster, der peger på en gateway mod internettet. Private IP-adresser og interne DNS-navne er ikke tilgængelige for udbyderne. Med split-DNS kan medarbejdere lade samme værtsnavn pege på den private ingress og fortsætte med at bruge dashboardet via VPN. Den private ingress skal også tilbyde HTTPS med et certifikat, der er gyldigt for dette værtsnavn.
+
+2. **Forbind gatewayen til OneUptime.** Placer den i en DMZ med en rute til den private ingress, eller brug en offentlig gateway forbundet via din egen site-to-site-VPN/private forbindelse. Tillad trafik fra gateway til ingress på den bagvedliggende tjenestes port. For Kubernetes/Portainer er en privat `ClusterIP`-tjeneste alene utilstrækkelig: gatewayen kræver en ingress/controller eller en anden tilgængelig bagvedliggende tjeneste. Hold databaser og andre interne tjenester private.
+
+3. **Terminér HTTPS på port 443** med et offentligt betroet certifikat og en komplet kæde af mellemliggende certifikater. Tillad indgående TCP 443 til gatewayen. Installation af et certifikat eller ændring af DNS opretter ikke i sig selv en rute til den private bagvedliggende tjeneste.
+
+4. Offentliggør kun `/api/microsoft-bot/messages`, og angiv hele denne offentlige HTTPS-URL som Azure Bots messaging-endepunkt i trin 4. OneUptimes Bot Framework-adapter skal modtage og godkende anmodningerne. Bevar metode, sti, query-streng, indhold og godkendelsesheadere (`Authorization`). Bevar den offentlige `Host`, og angiv betroede headere `X-Forwarded-Host` og `X-Forwarded-Proto: https`. Tilføj ikke omdirigeringer.
+
+5. Undtag disse stier fra browser-SSO, CAPTCHA og proxyens login-sider. Hold OneUptimes godkendelse aktiveret. Begræns adgang til oprindelsesserveren til gatewayen og autoriserede interne klienter; skjul tokens i logfiler.
+
+6. **Indstil OneUptimes kanoniske URL**:
+
+   Docker Compose, i `config.env`:
+
+   ```dotenv
+   HOST=oneuptime.example.com
+   HTTP_PROTOCOL=https
+   ```
+
+   Helm-/Portainer-værdier:
+
+   ```yaml
+   host: oneuptime.example.com
+   httpProtocol: https
+   ```
+
+   Erstat eksemplet med dit domæne. Disse indstillinger genererer URL'er; de opretter ikke DNS, TLS eller firewallregler. Anvend Compose-konfigurationen eller Helm-opdateringen, og vent på, at applikationen genstarter. Hvis værtsnavnet ændres, skal du opdatere Azure Bot-endepunktet og appregistreringens redirect-URI'er og derefter hente og uploade Teams-manifestet igen.
+
+[Indstillingerne for adgang til private netværk](/docs/self-hosted/private-network-access) styrer OneUptimes udgående anmodninger til interne tjenester. Aktivering af `ALLOW_PRIVATE_NETWORK_WEBHOOKS` gør ikke OneUptime tilgængelig for Teams.
+
+### Udgående adgang og IP-begrænsninger
+
+Tillad DNS-opslag og udgående HTTPS (TCP 443) fra OneUptime-applikationen. Teams bruger `graph.microsoft.com`, `login.microsoftonline.com`, Bot Frameworks godkendelses-/kanalendepunkter og samtalens connector-service-URL. Brug [Microsofts firewallvejledning](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0), og undersøg blokeret trafik under test; disse eksempler er ikke en udtømmende domæneliste. Reserveconnectoren i den kommercielle cloud er `https://smba.trafficmanager.net/teams/`; en samtales service-URL kan være en anden.
+
+Microsoft understøtter ikke faste indgående IP-tilladelseslister for Bot Framework, da adresserne ændres. Teams-klienternes medieområder er ikke bot-webhooks' kildeadresser. Hold Bot Framework-godkendelsen aktiveret.
+
+### Test og installationer uden indgående adgang
+
+Kontroller offentlig DNS og TLS fra et netværk uden for din VPN, og kontroller derefter Teams-ruten:
+
+```bash
+curl -sS -i https://oneuptime.example.com/api/microsoft-bot/messages
+```
+
+På aktuelle OneUptime-versioner skal du forvente `405 Method Not Allowed` med `Allow: POST`. Det bekræfter, at GET-anmodningen nåede ruten, men ikke at en godkendt POST-anmodning fra botten vil fungere. Ældre versioner kan returnere OneUptimes JSON-404; undersøg svarets indhold og proxylogfilerne. TLS-fejl, timeouts eller en proxys HTML-fejlside tyder på certifikat- eller routingproblemer.
+
+Forbind Teams, send en testmeddelelse, skriv til botten, og tryk på en kortknap. Bekræft handlingen i OneUptime, og sammenhold Microsofts diagnostik med gatewayens og applikationens logfiler. En leveret meddelelse bekræfter ikke en godkendt indgående POST.
+
+Til udvikling beskriver Microsofts [Teams-testvejledning](https://learn.microsoft.com/en-us/microsoftteams/platform/bots/how-to/authentication/add-authentication#testing-the-bot-locally-in-teams), hvordan en lokal tjeneste eksponeres med en tunnel. Videresend til OneUptimes ingress, og brug `/api/microsoft-bot/messages` i stedet for Microsofts eksempelsti `/api/messages`. Opdater Azure Bot-endepunktet, når den offentlige tunnel-URL ændres, og brug en stabil ingress til produktion. Konfigurér også det tilsvarende OneUptime-værtsnavn. Stop tunnelen efter test; den giver stadig indgående adgang.
+
+Hvis al indgående trafik er forbudt, virker den fulde Teams-integration ikke: kommandoer, korthandlinger og registrering af samtaler afhænger af den. En helt frakoblet installation kan ikke bruge Teams.
 
 Azure Bot Private Endpoint er ikke en erstatning for denne Teams-ingress. Microsofts [instruktioner om netværksisolering](https://learn.microsoft.com/en-us/azure/bot-service/dl-network-isolation-how-to?view=azure-bot-service-4.0) beskriver Direct Line-isolering og angiver, at deaktivering af offentlig netværksadgang fjerner konfigurationen af Teams-kanaler.
 
@@ -114,7 +169,7 @@ Hvis du bruger Kubernetes med Helm, skal du tilføje disse til din `values.yaml`
 microsoftTeamsApp:
   clientId: YOUR_TEAMS_APP_CLIENT_ID
   clientSecret: YOUR_TEAMS_APP_CLIENT_SECRET
-   tenantId: YOUR_MICROSOFT_TENANT_ID
+  tenantId: YOUR_MICROSOFT_TENANT_ID
 ```
 
 **Vigtigt:** Genstart din OneUptime-server efter tilføjelse af disse miljøvariabler, så de træder i kraft.

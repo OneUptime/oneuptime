@@ -103,3 +103,14 @@ printf '%s' 'you@example.com:your_api_token' | base64
 - [वेरिएबल](/docs/workflows/variables) — सीक्रेट और ब्लॉक्स के बीच डेटा पास करना।
 - [Incoming Request मॉनिटर](/docs/monitor/incoming-request-monitor) — alerting टूल्स के लिए वर्कफ़्लो-रहित inbound रास्ता।
 - [Zabbix](/docs/integrations/zabbix), [Jira](/docs/integrations/jira) और [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — पूरे काम के उदाहरण।
+
+## सेल्फ़-होस्टेड डिप्लॉयमेंट के लिए नेटवर्क एक्सेस
+
+नेटवर्क आवश्यकताएँ अब हर इंटीग्रेशन की सेटअप गाइड में दी गई हैं। अपना इंटीग्रेशन चुनें:
+
+- [GitHub Integration](/docs/self-hosted/github-integration)
+- [SendGrid Inbound Email Integration](/docs/self-hosted/sendgrid-inbound-email)
+- [Slack Integration](/docs/self-hosted/slack-integration)
+- [Microsoft Teams Integration](/docs/self-hosted/microsoft-teams-integration)
+- [Twilio SMS और वॉइस इंटीग्रेशन](/docs/self-hosted/twilio-integration)
+- [Push Notifications](/docs/self-hosted/push-notifications)

@@ -19,3 +19,7 @@
 
 4. **Konfigurer advarsels- og planlagt vedligeholdelsesnotifikationer**
    - Lignende regler kan anvendes på Advarsler og Planlagt vedligeholdelse ved at navigere til deres respektive sider og konfigurere de ønskede regler.
+
+## Netværksadgang for selvhostede installationer
+
+Læs afsnittet om netværksadgang i [Slack-integration](/docs/self-hosted/slack-integration) for oplysninger om udgående forbindelser, indgående callbacks og private installationer.
