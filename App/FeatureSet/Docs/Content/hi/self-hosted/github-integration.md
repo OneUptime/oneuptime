@@ -24,6 +24,7 @@
    - **Callback URL:** `https://your-oneuptime-domain.com/api/github/auth/callback`
    - **Setup URL:** `https://your-oneuptime-domain.com/api/github/auth/callback` - **महत्वपूर्ण: यह वह URL है जहाँ GitHub users को app install करने के बाद redirect करता है। Redirect काम करने के लिए इसे set होना चाहिए।**
    - **Redirect on update:** app installation update करने के बाद users को redirect करने के लिए इस option को check करें
+   - **Request user authorization (OAuth) during installation:** **यह अनिवार्य विकल्प चुनें।** OneUptime इंस्टॉलेशन का स्वामित्व सत्यापित करने के लिए OAuth उपयोग करता है और इस सेटिंग के बिना कनेक्शन अस्वीकार करता है।
    - **Webhook URL:** `https://your-oneuptime-domain.com/api/github/webhook`
    - **Webhook secret:** एक secure random string generate करें (बाद के लिए save करें)
 
@@ -56,11 +57,7 @@
 
 ### चरण 3: Webhook Events Subscribe करें
 
-OneUptime को real-time updates receive करने के लिए, इन webhook events subscribe करें:
-
-- **Pull request** - PRs खुलने, बंद होने या merge होने पर notifications receive करें
-- **Push** - code push होने पर notifications receive करें
-- **Workflow run** - CI/CD status updates receive करें
+OneUptime इंस्टॉलेशन और रिपॉज़िटरी एक्सेस को `installation` तथा `installation_repositories` से सिंक्रोनाइज़ करता है, जो GitHub Apps को अपने आप मिलते हैं। **Pull request**, **Push** और **Workflow run** समेत अन्य इवेंट की केवल प्राप्ति स्वीकार होती है; सब्सक्रिप्शन नोटिफिकेशन या CI/CD ऑटोमेशन चालू नहीं करता।
 
 ### चरण 4: Installation Access सेट करें
 
@@ -152,7 +149,35 @@ gitHubApp:
 | `GITHUB_APP_CLIENT_ID`      | आपके GitHub App settings से Client ID                                      | हाँ                   |
 | `GITHUB_APP_CLIENT_SECRET`  | आपने जो client secret generate किया                                        | हाँ                   |
 | `GITHUB_APP_PRIVATE_KEY`    | private key (.pem फ़ाइल) का content                                        | हाँ                   |
-| `GITHUB_APP_WEBHOOK_SECRET` | webhook payloads verify करने के लिए webhook secret                         | नहीं (लेकिन अनुशंसित) |
+| `GITHUB_APP_WEBHOOK_SECRET` | webhook payloads verify करने के लिए webhook secret                         | हाँ, वेबहुक के लिए |
+
+## सेल्फ-होस्टेड डिप्लॉयमेंट के लिए नेटवर्क एक्सेस
+
+### ट्रैफ़िक की दिशा और एंडपॉइंट
+
+| ट्रैफ़िक | आवश्यक एक्सेस |
+| --- | --- |
+| OneUptime → GitHub | DNS और TCP 443 पर आउटबाउंड HTTPS: ऐप टोकन और रिपॉज़िटरी API के लिए `api.github.com`, OAuth एक्सचेंज और HTTPS Git कार्रवाइयों के लिए `github.com` |
+| GitHub → OneUptime | इंस्टॉलेशन और रिपॉज़िटरी एक्सेस सिंक्रोनाइज़ करने के लिए `POST /api/github/webhook` पर TCP 443 का सार्वजनिक HTTPS |
+| उपयोगकर्ता का ब्राउज़र → OneUptime | डैशबोर्ड और इंस्टॉलेशन/अनुमति रीडायरेक्ट `GET /api/github/auth/callback`; उपयोगकर्ता VPN से उपलब्ध रह सकते हैं |
+
+Callback/Setup URL [ब्राउज़र रीडायरेक्ट](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/about-the-user-authorization-callback-url) हैं, जबकि वेबहुक GitHub सर्वर से आता है। उपयोगकर्ता VPN GitHub को वेबहुक एक्सेस नहीं देता। बताए डोमेन मुख्य अनुरोधों के हैं; टूल, डाउनलोड, LFS या पैकेज के लिए अन्य गंतव्य चाहिए हो सकते हैं। ये सेटिंग GitHub.com की हैं; फ़ायरवॉल बदलने से GitHub Enterprise Server होस्टनाम का समर्थन कॉन्फ़िगर नहीं होता।
+
+### निजी डिप्लॉयमेंट और कॉलबैक सुरक्षा
+
+सार्वजनिक DNS और ऐसा गेटवे उपयोग करें जिसमें सार्वजनिक रूप से विश्वसनीय HTTPS प्रमाणपत्र, पूरी प्रमाणपत्र श्रृंखला और OneUptime ingress तक निजी रूट हो। इनबाउंड TCP 443 की अनुमति दें और केवल ऊपर दिए प्रोवाइडर POST कॉलबैक प्रकाशित करें। निजी `ClusterIP`, आंतरिक DNS या कर्मचारी VPN अपने आप प्रोवाइडर को एक्सेस नहीं देते। स्प्लिट DNS से उसी होस्टनाम पर डैशबोर्ड और ब्राउज़र OAuth रूट निजी रखे जा सकते हैं।
+
+`config.env` में `HOST=oneuptime.example.com` और `HTTP_PROTOCOL=https`, या Helm में `host: oneuptime.example.com` और `httpProtocol: https` सेट करें। बदलाव लागू करके रीस्टार्ट का इंतज़ार करें। ये मान URL बनाते हैं; DNS, TLS या फ़ायरवॉल नियम अपने आप नहीं बनाते। होस्टनाम बदलने पर GitHub App के Webhook, Callback, Setup और Homepage URL अपडेट करें।
+
+मेथड, मूल पाथ, क्वेरी स्ट्रिंग, बॉडी, `Content-Type`, `X-Hub-Signature-256`, `X-GitHub-Event` और `X-GitHub-Delivery` बनाए रखें। विश्वसनीय प्रॉक्सी हेडर से सार्वजनिक होस्ट और HTTPS सुरक्षित रखें। वेबहुक को ब्राउज़र SSO, CAPTCHA और प्रॉक्सी लॉगिन से छूट दें। GitHub SSL सत्यापन चालू रखें और दोनों सिस्टम में समान `GITHUB_APP_WEBHOOK_SECRET` सेट करें: OneUptime बिना हस्ताक्षर के अनुरोध अस्वीकार करता है और इस सीक्रेट के बिना वेबहुक सत्यापित नहीं कर सकता। [GitHub सत्यापन गाइड](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries) देखें।
+
+सोर्स IP भी सीमित करें तो GitHub Meta API की वर्तमान `hooks` रेंज उपयोग करें और नियमित अपडेट करें। GitHub Actions रनर रेंज की जगह इसका उपयोग करें और हस्ताक्षर जाँच न हटाएँ। GitHub चेताता है कि [पते बदलते हैं और सूची पूरी नहीं है](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-githubs-ip-addresses)।
+
+### एक्सेस की जाँच और सीमाएँ
+
+OneUptime से इंस्टॉलेशन पूरा करके GitHub App में **Advanced > Recent Deliveries** देखें। परीक्षण डिलीवरी भेजें या दोबारा भेजकर फ़ॉरवर्डिंग और स्वीकृति जाँचें। इंस्टॉलेशन में परीक्षण रिपॉज़िटरी जोड़ें या हटाएँ और जुड़ी हुई सूची का अपडेट देखें। GitHub की [डिलीवरी जाँच गाइड](https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/viewing-webhook-deliveries) और [दस सेकंड में 2xx पुष्टि की आवश्यकता](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks) देखें। ब्राउज़र GET हस्ताक्षरित POST का परीक्षण नहीं है।
+
+इनबाउंड एक्सेस के बिना ब्राउज़र अनुमति और आउटबाउंड API/Git कार्य चल सकते हैं, लेकिन इंस्टॉलेशन हटना और रिपॉज़िटरी एक्सेस बदलना वेबहुक से सिंक्रोनाइज़ नहीं होता। OneUptime वर्तमान में `installation` और `installation_repositories` संभालता है; अन्य इवेंट स्वीकार होना अतिरिक्त ऑटोमेशन नहीं है। [निजी नेटवर्क एक्सेस सेटिंग](/docs/self-hosted/private-network-access) निजी गंतव्यों के आउटबाउंड अनुरोध नियंत्रित करती है, वेबहुक को सुलभ नहीं बनाती।
 
 ## समस्या निवारण
 

@@ -63,11 +63,7 @@
 
 ### گام ۳: اشتراک در رویدادهای وب‌هوک
 
-برای اینکه OneUptime به‌روزرسانی‌های بی‌درنگ بگیرد، در این رویدادهای وب‌هوک مشترک شوید:
-
-- **Pull request** — دریافت اعلان وقتی PRها باز، بسته یا ادغام می‌شوند
-- **Push** — دریافت اعلان وقتی کدی فرستاده می‌شود
-- **Workflow run** — دریافت به‌روزرسانی‌های وضعیت CI/CD
+OneUptime نصب و دسترسی مخزن را با `installation` و `installation_repositories` همگام می‌کند که GitHub Apps خودکار دریافت می‌کنند. رویدادهای دیگر از جمله **Pull request**، **Push** و **Workflow run** فقط تأیید دریافت می‌شوند؛ اشتراک آن‌ها اعلان یا خودکارسازی CI/CD را فعال نمی‌کند.
 
 ### گام ۴: تنظیم دسترسی نصب
 
@@ -159,7 +155,35 @@ gitHubApp:
 | `GITHUB_APP_CLIENT_ID` | شناسه کلاینت از تنظیمات GitHub App شما | بله |
 | `GITHUB_APP_CLIENT_SECRET` | راز کلاینتی که تولید کردید | بله |
 | `GITHUB_APP_PRIVATE_KEY` | محتوای کلید خصوصی (فایل ‎.pem) | بله |
-| `GITHUB_APP_WEBHOOK_SECRET` | راز وب‌هوک برای تأیید محموله‌های وب‌هوک | خیر (اما توصیه‌شده) |
+| `GITHUB_APP_WEBHOOK_SECRET` | راز وب‌هوک برای تأیید محموله‌های وب‌هوک | بله، برای وب‌هوک‌ها |
+
+## دسترسی شبکه برای استقرارهای خودمیزبان
+
+### جهت ترافیک و نقطه‌های پایانی
+
+| ترافیک | دسترسی لازم |
+| --- | --- |
+| OneUptime → GitHub | DNS و HTTPS خروجی روی TCP 443 به `api.github.com` برای توکن برنامه و API مخزن، و `github.com` برای تبادل OAuth و عملیات Git روی HTTPS |
+| GitHub → OneUptime | HTTPS عمومی روی TCP 443 به `POST /api/github/webhook` برای همگام‌سازی نصب و دسترسی مخزن |
+| مرورگر کاربر → OneUptime | داشبورد و `GET /api/github/auth/callback` برای تغییرمسیر نصب/مجوزدهی؛ می‌توانند از طریق VPN کاربر در دسترس بمانند |
+
+نشانی‌های Callback/Setup برای [تغییرمسیر مرورگر](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/about-the-user-authorization-callback-url) هستند؛ سرورهای GitHub وب‌هوک را فراخوانی می‌کنند. VPN کاربر به GitHub دسترسی وب‌هوک نمی‌دهد. دامنه‌ها درخواست‌های اصلی را پوشش می‌دهند؛ ابزارها، دانلودها، LFS یا بسته‌ها ممکن است مقصدهای دیگری بخواهند. این تنظیمات مربوط به GitHub.com هستند؛ تغییر دیوار آتش پشتیبانی از نام میزبان GitHub Enterprise Server را پیکربندی نمی‌کند.
+
+### استقرار خصوصی و امنیت کال‌بک‌ها
+
+از DNS عمومی و دروازه‌ای با گواهی HTTPS مورد اعتماد عمومی، زنجیره کامل گواهی و مسیر خصوصی به ingress در OneUptime استفاده کنید. TCP 443 ورودی را مجاز کنید و فقط کال‌بک‌های POST ارائه‌دهنده در بالا را منتشر کنید. `ClusterIP` خصوصی، DNS داخلی یا VPN کارمند به‌تنهایی به ارائه‌دهنده دسترسی نمی‌دهد. DNS تفکیک‌شده می‌تواند داشبورد و مسیرهای OAuth مرورگر را با همان نام میزبان خصوصی نگه دارد.
+
+در `config.env` مقادیر `HOST=oneuptime.example.com` و `HTTP_PROTOCOL=https`، یا در Helm مقادیر `host: oneuptime.example.com` و `httpProtocol: https` را تنظیم کنید. تنظیمات را اعمال کنید و منتظر راه‌اندازی مجدد بمانید. این مقادیر URL تولید می‌کنند و DNS، TLS یا قواعد دیوار آتش را ایجاد نمی‌کنند. پس از تغییر نام میزبان، URLهای Webhook، Callback، Setup و Homepage برنامه GitHub را به‌روزرسانی کنید.
+
+روش، مسیر اصلی، رشته پرس‌وجو، بدنه، `Content-Type`، `X-Hub-Signature-256`، `X-GitHub-Event` و `X-GitHub-Delivery` را حفظ کنید. میزبان عمومی و HTTPS را با هدرهای پراکسی قابل اعتماد نگه دارید. وب‌هوک را از SSO مرورگر، CAPTCHA و ورود پراکسی معاف کنید. تأیید SSL در GitHub را روشن نگه دارید و در هر دو سیستم `GITHUB_APP_WEBHOOK_SECRET` یکسان قرار دهید: OneUptime درخواست بی‌امضا را رد می‌کند و بدون این راز نمی‌تواند وب‌هوک را تأیید کند. [راهنمای تأیید GitHub](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries) را ببینید.
+
+اگر IP مبدأ را هم محدود می‌کنید، محدوده‌های فعلی `hooks` از GitHub Meta API را به‌کار برید و مرتب به‌روز کنید. محدوده اجراکننده‌های GitHub Actions را جایگزین نکنید و بررسی امضا را حذف نکنید. GitHub هشدار می‌دهد که [نشانی‌ها تغییر می‌کنند و فهرست کامل نیست](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-githubs-ip-addresses).
+
+### بررسی دسترسی و محدودیت‌ها
+
+نصب را از OneUptime کامل کنید و **Advanced > Recent Deliveries** برنامه GitHub را ببینید. یک تحویل آزمایشی ارسال یا تکرار کنید و هدایت و پذیرش آن را بررسی کنید. مخزن آزمایشی را از نصب اضافه یا حذف کنید و به‌روزرسانی فهرست متصل را ببینید. GitHub [عیب‌یابی تحویل](https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/viewing-webhook-deliveries) را توضیح می‌دهد و [تأیید 2xx ظرف ده ثانیه](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks) می‌خواهد. GET مرورگر، POST امضاشده را آزمایش نمی‌کند.
+
+بدون دسترسی ورودی، مجوزدهی مرورگر و عملیات خروجی API/Git ممکن است کار کنند، اما حذف نصب و تغییر دسترسی مخزن با وب‌هوک همگام نمی‌شوند. OneUptime اکنون `installation` و `installation_repositories` را پردازش می‌کند؛ پذیرش رویداد دیگر به معنی خودکارسازی بیشتر نیست. [تنظیم دسترسی شبکه خصوصی](/docs/self-hosted/private-network-access) درخواست خروجی به مقصد خصوصی را کنترل می‌کند و وب‌هوک را دسترس‌پذیر نمی‌کند.
 
 ## رفع اشکال
 

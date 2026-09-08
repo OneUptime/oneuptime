@@ -24,6 +24,7 @@ Om GitHub te integreren met uw zelf-gehoste OneUptime-instantie, moet u een GitH
    - **Callback-URL:** `https://your-oneuptime-domain.com/api/github/auth/callback`
    - **Installatie-URL:** `https://your-oneuptime-domain.com/api/github/auth/callback` - **Belangrijk: Dit is de URL waarnaar GitHub gebruikers omleidt nadat ze de app hebben geïnstalleerd. Deze moet worden ingesteld voor de omleiding om te werken.**
    - **Omleiden bij update:** Vink deze optie aan om gebruikers om te leiden nadat ze de app-installatie hebben bijgewerkt
+   - **Request user authorization (OAuth) during installation:** **Vink deze verplichte optie aan.** OneUptime gebruikt OAuth om het eigendom van de installatie te verifiëren en weigert de verbinding zonder deze instelling.
    - **Webhook-URL:** `https://your-oneuptime-domain.com/api/github/webhook`
    - **Webhookgeheim:** Genereer een veilige willekeurige tekenreeks (sla dit op voor later)
 
@@ -56,11 +57,7 @@ Configureer in de sectie "Machtigingen en gebeurtenissen" de volgende machtiging
 
 ### Stap 3: Abonneren op webhookgebeurtenissen
 
-Abonneer u op deze webhookgebeurtenissen om realtime updates te ontvangen:
-
-- **Pull request** - Meldingen ontvangen wanneer PR's worden geopend, gesloten of samengevoegd
-- **Push** - Meldingen ontvangen wanneer code wordt gepusht
-- **Workflow run** - CI/CD-statusupdates ontvangen
+OneUptime synchroniseert installatie en repositorytoegang met `installation` en `installation_repositories`, die GitHub Apps automatisch ontvangen. Andere gebeurtenissen, waaronder **Pull request**, **Push** en **Workflow run**, worden alleen bevestigd; een abonnement activeert geen meldingen of CI/CD-automatisering.
 
 ### Stap 4: Installatietoegang instellen
 
@@ -152,7 +149,35 @@ gitHubApp:
 | `GITHUB_APP_CLIENT_ID`      | Het Client-ID van uw GitHub App-instellingen                       | Ja                    |
 | `GITHUB_APP_CLIENT_SECRET`  | Het clientgeheim dat u hebt gegenereerd                            | Ja                    |
 | `GITHUB_APP_PRIVATE_KEY`    | De inhoud van het privésleutelbestand (.pem)                       | Ja                    |
-| `GITHUB_APP_WEBHOOK_SECRET` | Het webhookgeheim voor het verifiëren van webhook-payloads         | Nee (maar aanbevolen) |
+| `GITHUB_APP_WEBHOOK_SECRET` | Het webhookgeheim voor het verifiëren van webhook-payloads         | Ja, voor webhooks |
+
+## Netwerktoegang voor zelfgehoste installaties
+
+### Verkeersrichting en endpoints
+
+| Verkeer | Vereiste toegang |
+| --- | --- |
+| OneUptime → GitHub | DNS en uitgaand HTTPS via TCP 443 naar `api.github.com` voor app-tokens en repository-API’s, en `github.com` voor OAuth-uitwisseling en HTTPS-Git-bewerkingen |
+| GitHub → OneUptime | Openbaar HTTPS via TCP 443 naar `POST /api/github/webhook` voor synchronisatie van installatie en repositorytoegang |
+| Browser van gebruiker → OneUptime | Dashboard en `GET /api/github/auth/callback` voor installatie-/autorisatieomleidingen; mogen via gebruikers-VPN bereikbaar blijven |
+
+Callback-/setup-URL’s zijn voor een [browseromleiding](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/about-the-user-authorization-callback-url); GitHub-servers roepen de webhook aan. De gebruikers-VPN geeft GitHub geen webhooktoegang. De domeinen dekken kernverzoeken; repositorytools, downloads, LFS of packages kunnen meer bestemmingen vereisen. Dit betreft GitHub.com: firewallwijzigingen configureren geen ondersteuning voor een GitHub Enterprise Server-hostnaam.
+
+### Privé-installaties en beveiliging van callbacks
+
+Gebruik openbare DNS en een gateway met publiek vertrouwd HTTPS-certificaat, volledige certificaatketen en privéroute naar de OneUptime-ingress. Sta inkomend TCP 443 toe en publiceer alleen de genoemde POST-callbacks van de provider. Een privé-`ClusterIP`, interne DNS of medewerkers-VPN geeft de provider geen toegang. Met gesplitste DNS kunnen dashboard en browser-OAuth-routes privé blijven onder dezelfde hostnaam.
+
+Stel `HOST=oneuptime.example.com` en `HTTP_PROTOCOL=https` in `config.env` in, of `host: oneuptime.example.com` en `httpProtocol: https` in Helm. Pas de configuratie toe en wacht op de herstart. Deze waarden genereren URL’s; ze regelen geen DNS, TLS of firewalltoegang. Werk na een hostnaamwijziging de webhook-, callback-, setup- en homepage-URL’s van de GitHub App bij.
+
+Behoud methode, oorspronkelijk pad, querystring, body, `Content-Type`, `X-Hub-Signature-256`, `X-GitHub-Event` en `X-GitHub-Delivery`. Behoud publieke host en HTTPS via vertrouwde proxyheaders. Zonder de webhook uit van browser-SSO, CAPTCHA en proxylogin. Laat GitHubs SSL-verificatie aan en configureer hetzelfde `GITHUB_APP_WEBHOOK_SECRET` in beide systemen: OneUptime weigert niet-ondertekende verzoeken en kan zonder dit geheim geen webhooks valideren. Zie [GitHub-validatie](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries).
+
+Als u ook bron-IP’s beperkt, gebruik en ververs dan regelmatig de `hooks`-bereiken uit de GitHub Meta API. Gebruik geen GitHub Actions-runnerbereiken en behoud handtekeningverificatie. GitHub waarschuwt dat [adressen wijzigen en de lijst niet volledig is](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-githubs-ip-addresses).
+
+### Toegang controleren en beperkingen begrijpen
+
+Voltooi installatie vanuit OneUptime en bekijk **Advanced > Recent Deliveries** in de GitHub App. Verstuur of herhaal een testlevering en controleer doorsturen en acceptatie. Voeg een testrepository aan de installatie toe of verwijder deze en controleer de gekoppelde lijst. GitHub beschrijft [leveringsdiagnostiek](https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/viewing-webhook-deliveries) en vereist [2xx-bevestiging binnen tien seconden](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks). Een browser-GET test geen ondertekende POST.
+
+Zonder inkomende toegang kunnen browserautorisatie en uitgaande API-/Git-bewerkingen werken, maar verwijderde installaties en wijzigingen in repositorytoegang synchroniseren niet via webhooks. OneUptime verwerkt momenteel `installation` en `installation_repositories`; acceptatie van andere gebeurtenissen betekent geen extra automatisering. De [instelling voor privé-netwerktoegang](/docs/self-hosted/private-network-access) regelt uitgaande verzoeken naar privébestemmingen en maakt de webhook niet bereikbaar.
 
 ## Probleemoplossing
 

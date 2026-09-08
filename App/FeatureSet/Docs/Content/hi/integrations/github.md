@@ -74,3 +74,9 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [इंटीग्रेशन अवलोकन](/docs/integrations/index) — patterns और auth cheat sheet।
 - [GitLab](/docs/integrations/gitlab) — GitLab के लिए वही विचार।
 - [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) — native GitHub App connection।
+
+## सेल्फ़-होस्टेड डिप्लॉयमेंट के लिए नेटवर्क एक्सेस
+
+इस पेज पर दिया गया इश्यू बनाने का वर्कफ़्लो DNS रिज़ॉल्यूशन और OneUptime से `api.github.com` तक आउटबाउंड HTTPS (TCP 443) चाहता है। इसके लिए GitHub से इनबाउंड कॉलबैक की ज़रूरत नहीं है। [GitHub REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue).
+
+आउटबाउंड कनेक्शन, इनबाउंड कॉलबैक और निजी डिप्लॉयमेंट के लिए [GitHub Integration](/docs/self-hosted/github-integration) में नेटवर्क एक्सेस वाला अनुभाग देखें।

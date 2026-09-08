@@ -7,15 +7,70 @@ Para integrar o Microsoft Teams com sua instância auto-hospedada do OneUptime, 
 - Conta Azure - Você pode criar uma em [https://azure.com](https://azure.com)
 - Acesso à configuração do seu servidor do OneUptime
 
-### Implantações em redes privadas
+## Acesso de rede
 
 O OneUptime usa um Azure Bot para sua integração com o Teams. Uma URL de Incoming Webhook ou Teams Workflow não substitui o endpoint de mensagens desse bot. A Microsoft exige um [endpoint HTTPS acessível publicamente para um bot auto-hospedado](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0). Um endereço IP privado, nome DNS interno ou a conexão VPN de um funcionário não dão ao Azure Bot Service acesso ao OneUptime.
 
-Siga o guia de [acesso a redes privadas para integrações](/docs/self-hosted/integration-network-access) antes de continuar a configuração. Ele aborda DNS público, TLS confiável, um proxy reverso que encaminha para sua implantação privada, regras de firewall e verificação. Para o Teams, publique `/api/microsoft-bot/messages` e defina o **endpoint de mensagens** do Azure Bot na etapa 4 como essa URL HTTPS pública completa. Mantenha intactos o prefixo `/api`, o corpo da solicitação e o cabeçalho `Authorization`. Deixe a autenticação do bot validar as solicitações; um login interativo no proxy ou uma verificação de navegador impede a Microsoft de entregá-las.
+| Recurso | Do OneUptime ao fornecedor | Do fornecedor ao OneUptime |
+| --- | --- | --- |
+| Notificações do Teams | HTTPS para APIs da Microsoft | Necessário para a integração completa do bot, incluindo a descoberta de conversas |
+| Comandos do Teams, botões de cartões, eventos de instalação em chats | HTTPS | `POST /api/microsoft-bot/messages` |
 
 Os redirecionamentos do registro do aplicativo `/api/microsoft-teams/auth` e `/api/microsoft-teams/admin-consent/callback` retornam pelo navegador do usuário. Esse navegador precisa acessar o OneUptime, por exemplo pela rede corporativa ou VPN. As mensagens do bot e ações dos cartões chegam dos servidores da Microsoft e precisam de seu próprio ingress acessível. A entrega de alertas de saída, por si só, não verifica a conectividade de entrada.
 
-Para desenvolvimento, o [guia de testes do Teams da Microsoft](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/debug) descreve como expor um serviço local por um túnel. Encaminhe para o ingress do OneUptime e use `/api/microsoft-bot/messages`, substituindo o caminho de exemplo da Microsoft `/api/messages`. Atualize o endpoint do Azure Bot sempre que a URL pública do túnel mudar e use ingress estável em produção.
+### Produção: publique um gateway para a implantação privada
+
+1. **Escolha um nome de host**, por exemplo `oneuptime.example.com`. Publique registros DNS públicos apontando para um gateway acessível pela Internet. Os fornecedores não conseguem acessar endereços IP privados nem nomes DNS exclusivamente internos. Com DNS dividido, os funcionários podem resolver o mesmo nome de host para o ingress privado e continuar usando o painel pela VPN. O ingress privado também precisa oferecer HTTPS com um certificado válido para esse nome de host.
+
+2. **Conecte o gateway ao OneUptime.** Coloque-o em uma DMZ com uma rota para o ingress privado ou use um gateway público conectado pela sua própria VPN de site a site ou conexão privada. Permita tráfego do gateway ao ingress na porta do serviço de destino. Para Kubernetes/Portainer, um serviço privado `ClusterIP` por si só não basta: o gateway precisa de um ingress/controlador ou outro destino acessível. Mantenha bancos de dados e outros serviços internos privados.
+
+3. **Termine HTTPS na porta 443** com um certificado de confiança pública e uma cadeia intermediária completa. Permita TCP de entrada na porta 443 do gateway. Instalar um certificado ou alterar o DNS, por si só, não cria a rota para o destino privado.
+
+4. Publique apenas `/api/microsoft-bot/messages` e defina essa URL HTTPS pública completa como endpoint de mensagens do Azure Bot na etapa 4. O adaptador Bot Framework do OneUptime deve receber e autenticar as solicitações. Preserve método, caminho, query string, corpo e cabeçalhos de autenticação (`Authorization`). Mantenha o `Host` público e defina cabeçalhos confiáveis `X-Forwarded-Host` e `X-Forwarded-Proto: https`. Não adicione redirecionamentos.
+
+5. Isente essas rotas de SSO do navegador, CAPTCHA e páginas de login do proxy. Mantenha a autenticação do OneUptime ativa. Restrinja o acesso à origem ao gateway e aos clientes internos autorizados; oculte tokens nos logs.
+
+6. **Defina a URL canônica do OneUptime**:
+
+   Docker Compose, em `config.env`:
+
+   ```dotenv
+   HOST=oneuptime.example.com
+   HTTP_PROTOCOL=https
+   ```
+
+   Valores de Helm/Portainer:
+
+   ```yaml
+   host: oneuptime.example.com
+   httpProtocol: https
+   ```
+
+   Substitua o exemplo pelo seu domínio. Esses ajustes geram URLs; não criam DNS, TLS nem regras de firewall. Aplique a configuração do Compose ou a atualização do Helm e aguarde a aplicação reiniciar. Se o hostname mudar, atualize o endpoint do Azure Bot e as URIs de redirecionamento do registro do aplicativo; depois baixe e envie o manifesto do Teams novamente.
+
+As [configurações de acesso à rede privada](/docs/self-hosted/private-network-access) controlam solicitações de saída do OneUptime para serviços internos. Ativar `ALLOW_PRIVATE_NETWORK_WEBHOOKS` não torna o OneUptime acessível ao Teams.
+
+### Acesso de saída e restrições de IP
+
+Permita resolução DNS e HTTPS (TCP 443) de saída da aplicação OneUptime. Teams usa `graph.microsoft.com`, `login.microsoftonline.com`, endpoints de autenticação/canais do Bot Framework e a URL do serviço conector da conversa. Use as [orientações de firewall da Microsoft](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) e inspecione o tráfego bloqueado nos testes; esses exemplos não são uma lista completa de domínios. O conector de fallback da nuvem comercial é `https://smba.trafficmanager.net/teams/`; a URL de serviço de uma conversa pode ser diferente.
+
+A Microsoft não oferece suporte a listas fixas de IPs de entrada do Bot Framework, pois os endereços mudam. Os intervalos de mídia dos clientes Teams não são as origens dos webhooks do bot. Mantenha a autenticação do Bot Framework ativa.
+
+### Testes e implantações sem acesso de entrada
+
+Em uma rede fora da sua VPN, verifique DNS público e TLS e depois confira a rota do Teams:
+
+```bash
+curl -sS -i https://oneuptime.example.com/api/microsoft-bot/messages
+```
+
+Nas versões atuais do OneUptime, espere `405 Method Not Allowed` com `Allow: POST`. Isso confirma que a solicitação GET chegou à rota, não que uma solicitação POST autenticada do bot funcionará. Versões anteriores podem retornar o erro JSON 404 do OneUptime; inspecione o corpo da resposta e os logs do proxy. Erros de TLS, tempos limite ou uma página de erro HTML do proxy indicam problemas de certificado ou roteamento.
+
+Conecte o Teams, envie uma notificação de teste, escreva para o bot e pressione um botão de cartão. Confirme a ação no OneUptime e compare os diagnósticos da Microsoft com os logs do gateway e da aplicação. Uma notificação entregue não verifica um POST de entrada autenticado.
+
+Para desenvolvimento, o [guia de testes do Teams da Microsoft](https://learn.microsoft.com/en-us/microsoftteams/platform/bots/how-to/authentication/add-authentication#testing-the-bot-locally-in-teams) descreve como expor um serviço local por um túnel. Encaminhe para o ingress do OneUptime e use `/api/microsoft-bot/messages`, substituindo o caminho de exemplo da Microsoft `/api/messages`. Atualize o endpoint do Azure Bot sempre que a URL pública do túnel mudar e use ingress estável em produção. Configure também o hostname correspondente no OneUptime. Pare o túnel após os testes; ele continua expondo acesso de entrada.
+
+Se toda conectividade de entrada for proibida, a integração completa do Teams não funciona: comandos, ações de cartões e descoberta de conversas dependem dela. Uma instalação totalmente desconectada não pode usar o Teams.
 
 Azure Bot Private Endpoint não substitui esse ingress do Teams. As [instruções de isolamento de rede da Microsoft](https://learn.microsoft.com/en-us/azure/bot-service/dl-network-isolation-how-to?view=azure-bot-service-4.0) descrevem o isolamento do Direct Line e informam que desativar o acesso à rede pública remove a configuração dos canais do Teams.
 
@@ -114,7 +169,7 @@ Se você estiver usando Kubernetes com Helm, adicione estes ao seu arquivo `valu
 microsoftTeamsApp:
   clientId: YOUR_TEAMS_APP_CLIENT_ID
   clientSecret: YOUR_TEAMS_APP_CLIENT_SECRET
-   tenantId: YOUR_MICROSOFT_TENANT_ID
+  tenantId: YOUR_MICROSOFT_TENANT_ID
 ```
 
 **Importante:** Reinicie seu servidor do OneUptime após adicionar estas variáveis de ambiente para que elas tenham efeito.

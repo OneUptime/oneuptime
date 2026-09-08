@@ -103,3 +103,14 @@ printf '%s' 'you@example.com:your_api_token' | base64
 - [变量](/docs/workflows/variables)——机密，以及在方块之间传递数据。
 - [Incoming Request 监视器](/docs/monitor/incoming-request-monitor)——面向告警工具、不用搭工作流的入站路径。
 - [Zabbix](/docs/integrations/zabbix)、[Jira](/docs/integrations/jira) 和 [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)——完整的实操示例。
+
+## 自托管部署的网络访问
+
+网络要求现已记录在各集成的设置指南中。请选择您的集成：
+
+- [GitHub 集成](/docs/self-hosted/github-integration)
+- [SendGrid 入站邮件集成](/docs/self-hosted/sendgrid-inbound-email)
+- [Slack 集成](/docs/self-hosted/slack-integration)
+- [Microsoft Teams 集成](/docs/self-hosted/microsoft-teams-integration)
+- [Twilio 短信和语音集成](/docs/self-hosted/twilio-integration)
+- [推送通知](/docs/self-hosted/push-notifications)

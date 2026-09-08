@@ -74,3 +74,9 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [نمای کلی یکپارچه‌سازی‌ها](/docs/integrations/index) — الگوها و راهنمای سریع احراز هویت.
 - [GitLab](/docs/integrations/gitlab) — همین ایده برای GitLab.
 - [یکپارچه‌سازی GitHub (خودمیزبان)](/docs/self-hosted/github-integration) — اتصال بومی GitHub App.
+
+## دسترسی شبکه برای استقرارهای خودمیزبان
+
+گردش کار ایجاد مسئله در این صفحه به تفکیک نام DNS و HTTPS خروجی (TCP 443) از OneUptime به `api.github.com` نیاز دارد. این گردش کار به فراخوانی ورودی از GitHub نیاز ندارد. [GitHub REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue).
+
+برای اطلاعات دربارهٔ اتصال‌های خروجی، فراخوانی‌های ورودی و استقرارهای خصوصی، بخش دسترسی شبکه در [یکپارچه‌سازی GitHub](/docs/self-hosted/github-integration) را ببینید.

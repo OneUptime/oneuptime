@@ -6,9 +6,29 @@ Den här guiden förklarar hur du konfigurerar SendGrid Inbound Parse för att v
 
 ## Förutsättningar
 
-- Ett SendGrid-konto (gratistjänsten fungerar)
+- Ett SendGrid-konto med åtkomst till Inbound Parse
 - En domän du kontrollerar med åtkomst till DNS-inställningar
-- Din OneUptime-instans måste vara offentligt tillgänglig (för att SendGrid ska kunna skicka webhooks)
+- En offentlig HTTPS-endpoint som vidarebefordrar SendGrid-webhooks till OneUptime
+
+## Nätverksåtkomst
+
+Inbound Parse kräver att SendGrid upprättar en anslutning till OneUptime. Enbart utgående internetåtkomst räcker inte.
+
+| Riktning | Destination | Protokoll / port | Syfte |
+| --- | --- | --- | --- |
+| SendGrid → OneUptime | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` | HTTPS / TCP 443 | Leverera tolkad e-post som multipart POST. |
+| Avsändande e-postservrar → SendGrid | `mx.sendgrid.net`, via mottagardomänens offentliga MX-post | SMTP / TCP 25 | Ta emot e-post hos SendGrid, inte på OneUptime. |
+| OneUptime → SendGrid, endast med separat konfigurerade e-postutskick | `api.sendgrid.com` | HTTPS / TCP 443 | Skicka aviseringar med Mail Send API. |
+
+Publicera DNS för webhookens värdnamn och använd ett offentligt betrott certifikat. En privat installation kan exponera endast webhook-sökvägen via en offentlig omvänd proxy eller gateway som når OneUptime internt. Bevara sökväg, hemlighet, innehållstyp och multipart-innehåll; tillåt POST utan interaktiv inloggning eller webbläsarkontroll. OneUptime behöver ingen inkommande SMTP-tjänst. Se [SendGrid-konfiguration](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook).
+
+Sätt `INBOUND_EMAIL_WEBHOOK_SECRET` till ett starkt slumpmässigt värde och ersätt `YOUR_SECRET` med det. Sista sökvägssegmentet krävs. OneUptime jämför det med den konfigurerade hemligheten; en tom variabel inaktiverar kontrollen. Håll hela URL:en och monitorernas e-postadresser privata, även i proxyloggar. OneUptime validerar för närvarande varken signerade Inbound Parse-headers eller SendGrid OAuth-token. Om det krävs måste en gateway validera före vidarebefordran enligt [SendGrids säkerhetsdokumentation](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks).
+
+SendGrid tillhandahåller ingen tillförlitlig statisk lista över Inbound Parse-käll-IP-adresser. Utskicks-IP-adresser och DNS-svar för `mx.sendgrid.net` är ingen tillåtelselista för webhooks. Följ [SendGrids brandväggsvägledning](https://support.sendgrid.com/hc/en-us/articles/44375457225371-How-to-Configure-Firewall-Settings-for-SendGrid-Webhook-and-Inbound-Parse-IPs).
+
+Inbound Parse är separat från e-postutskick. Mottagning kräver inga SendGrid-API-anrop från OneUptime. För utskick tillåter du DNS och utgående HTTPS till `api.sendgrid.com`; [Mail Send](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send) kräver ingen inkommande callback för inskickandet. Använder du SMTP, tillåt servern och porten som konfigurerats i OneUptime.
+
+Kontrollera offentlig MX, skicka e-post till en testmonitor och bekräfta webhook-mottagning samt att rätt larm skapas eller löses. En tom POST eller ett utskickstest verifierar inte Inbound Parse.
 
 ## Hur det fungerar
 
@@ -45,9 +65,9 @@ inbound.example.com.  IN  MX  10  mx.sendgrid.net.
 
 **Observera:** DNS-ändringar kan ta upp till 48 timmar att spridas, men slutförs vanligtvis inom några timmar.
 
-### Steg 3: Verifiera domän i SendGrid (valfritt men rekommenderas)
+### Steg 3: Autentisera domänen i SendGrid
 
-För bättre leveransbarhet och för att undvika att e-postmeddelanden markeras som skräppost:
+Mottagardomänen måste tillhöra en av dina [autentiserade domäner i SendGrid](https://www.twilio.com/docs/sendgrid/ui/account-and-settings/inbound-parse):
 
 1. Logga in på din [SendGrid-instrumentpanel](https://app.sendgrid.com)
 2. Gå till **Settings** > **Sender Authentication**
@@ -81,7 +101,7 @@ Lägg till dessa miljövariabler i din `config.env`-fil:
 # Konfiguration för inkommande e-post
 INBOUND_EMAIL_PROVIDER=SendGrid
 INBOUND_EMAIL_DOMAIN=inbound.yourdomain.com
-# INBOUND_EMAIL_WEBHOOK_SECRET=your-optional-secret  # Valfritt: för ytterligare säkerhet
+INBOUND_EMAIL_WEBHOOK_SECRET=replace-with-a-strong-random-secret
 ```
 
 #### Kubernetes med Helm
@@ -92,10 +112,10 @@ Lägg till dessa i din `values.yaml`-fil:
 inboundEmail:
   provider: "SendGrid"
   domain: "inbound.yourdomain.com"
-  # webhookSecret: "your-optional-secret"  # Valfritt
+  webhookSecret: "replace-with-a-strong-random-secret"
 ```
 
-**Viktigt:** Starta om din OneUptime-server efter att du har lagt till dessa miljövariabler.
+Använd samma hemlighet i destinations-URL:en från steg 4 och starta om OneUptime efter ändringen.
 
 ### Steg 6: Skapa en Monitor för inkommande e-post
 
@@ -125,7 +145,7 @@ inboundEmail:
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | -------- |
 | `INBOUND_EMAIL_PROVIDER`       | Den inkommande e-postleverantören att använda                                                                                                        | Ja           | –        |
 | `INBOUND_EMAIL_DOMAIN`         | Underdomänen konfigurerad för inkommande e-postmeddelanden                                                                                           | Ja           | –        |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | Hemlighet för att validera webhook-förfrågningar. När angiven, lägg till denna hemlighet till webhook-URL:en: `/incoming-email/sendgrid/YOUR_SECRET` | Nej          | –        |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | Jämförs med sista segmentet i `/incoming-email/sendgrid/YOUR_SECRET`. Konfigurera för offentliga endpoints; tomt värde inaktiverar kontrollen. | Rekommenderas | - |
 
 ## Felsökning
 
@@ -146,21 +166,13 @@ inboundEmail:
    - Verifiera att din domän och webhook-URL är korrekta
 
 3. **Kontrollera OneUptime-loggar:**
-   - Leta efter webhook-förfrågningar i ProbeIngest-tjänstens loggar
+   - Leta efter inkommande e-post-webhooks i OneUptimes applikationsloggar (Telemetry / ProbeIngest).
 
 ### Webhooks misslyckas
 
-1. **Se till att OneUptime är offentligt tillgängligt:**
-
-   - Webhook-URL:en måste vara nåbar från internet
-   - Testa med: `curl -X POST https://your-oneuptime-domain.com/incoming-email/sendgrid`
-
-2. **Kontrollera brandväggsregler:**
-
-   - Tillåt inkommande HTTPS-trafik från SendGrids IP-intervall
-
-3. **Verifiera SSL-certifikatet:**
-   - SendGrid kräver ett giltigt SSL-certifikat
+- Hela HTTPS-URL:en inklusive hemligheten måste nås från internet. Utan sista segmentet matchar den inte rutten.
+- Tillåt POST utan inloggningsomdirigering eller webbläsarkontroll. SendGrids IP-adresser för e-postutskick är ingen lista över webhook-källor.
+- Använd ett offentligt betrott certifikat med fullständig certifikatkedja. Kontrollera leveransen enligt Nätverksåtkomst.
 
 ## Säkerhetsbästa praxis
 

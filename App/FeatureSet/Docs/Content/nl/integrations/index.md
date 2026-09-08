@@ -103,3 +103,14 @@ Dat dekt de lange staart — Zendesk, AWS CloudWatch (via SNS), New Relic, Splun
 - [Variabelen](/docs/workflows/variables) — geheimen en data doorgeven tussen blokken.
 - [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) — het workflow-vrije inbound-pad voor alerting-tools.
 - [Zabbix](/docs/integrations/zabbix), [Jira](/docs/integrations/jira) en [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — uitgewerkte voorbeelden.
+
+## Netwerktoegang voor zelfgehoste implementaties
+
+De netwerkvereisten staan nu in de installatiehandleiding van elke integratie. Kies uw integratie:
+
+- [GitHub-integratie](/docs/self-hosted/github-integration)
+- [SendGrid Inbound E-mail-integratie](/docs/self-hosted/sendgrid-inbound-email)
+- [Slack-integratie](/docs/self-hosted/slack-integration)
+- [Microsoft Teams-integratie](/docs/self-hosted/microsoft-teams-integration)
+- [Twilio-integratie voor sms en spraak](/docs/self-hosted/twilio-integration)
+- [Push-meldingen](/docs/self-hosted/push-notifications)

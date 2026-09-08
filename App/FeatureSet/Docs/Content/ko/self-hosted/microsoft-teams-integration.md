@@ -7,15 +7,70 @@
 - Azure 계정 - [https://azure.com](https://azure.com)에서 생성할 수 있습니다
 - OneUptime 서버 구성에 대한 액세스
 
-### 사설 네트워크에 배포
+## 네트워크 액세스
 
 OneUptime은 Teams 통합에 Azure Bot을 사용합니다. Incoming Webhook이나 Teams Workflow URL은 이 봇의 메시징 엔드포인트를 대체하지 않습니다. Microsoft는 [자체 호스팅 봇에 공개적으로 접근 가능한 HTTPS 엔드포인트](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0)를 요구합니다. 사설 IP 주소, 내부 DNS 이름, 직원의 VPN 연결은 Azure Bot Service에 OneUptime 액세스를 제공하지 않습니다.
 
-설정을 계속하기 전에 [통합을 위한 사설 네트워크 액세스](/docs/self-hosted/integration-network-access)를 따르세요. 이 가이드는 공개 DNS, 신뢰할 수 있는 TLS, 비공개 배포로 전달하는 역방향 프록시, 방화벽 규칙, 검증을 설명합니다. Teams의 경우 `/api/microsoft-bot/messages`를 공개하고 4단계의 Azure Bot **메시징 엔드포인트**를 해당 전체 공개 HTTPS URL로 설정하세요. `/api` 접두사, 요청 본문, `Authorization` 헤더를 보존합니다. 봇의 인증이 요청을 검증하도록 하세요. 대화형 프록시 로그인이나 브라우저 확인 절차가 있으면 Microsoft가 요청을 전달할 수 없습니다.
+| 기능 | OneUptime에서 공급자로 | 공급자에서 OneUptime으로 |
+| --- | --- | --- |
+| Teams 알림 | Microsoft API로의 HTTPS | 대화 검색을 포함한 전체 봇 통합에 필요 |
+| Teams 명령, 카드 버튼, 채팅 설치 이벤트 | HTTPS | `POST /api/microsoft-bot/messages` |
 
 앱 등록 리디렉션 `/api/microsoft-teams/auth`와 `/api/microsoft-teams/admin-consent/callback`은 사용자 브라우저를 통해 돌아옵니다. 이 브라우저는 회사 네트워크나 VPN 등을 통해 OneUptime에 접근할 수 있어야 합니다. 봇 메시지와 카드 동작은 Microsoft 서버에서 도착하므로 별도로 접근 가능한 인그레스가 필요합니다. 아웃바운드 알림 전달만으로는 인바운드 연결을 검증할 수 없습니다.
 
-개발 환경을 위해 Microsoft의 [Teams 테스트 가이드](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/debug)는 터널로 로컬 서비스를 공개하는 방법을 설명합니다. OneUptime 인그레스로 전달하고 Microsoft 예시의 `/api/messages` 경로 대신 `/api/microsoft-bot/messages`를 사용하세요. 공개 터널 URL이 바뀔 때마다 Azure Bot 엔드포인트를 업데이트하고 프로덕션에서는 안정적인 인그레스를 사용합니다.
+### 프로덕션: 비공개 배포로 연결하는 게이트웨이 공개
+
+1. **호스트 이름을 선택합니다.** 예: `oneuptime.example.com`. 인터넷에 연결된 게이트웨이를 가리키는 공개 DNS 레코드를 게시합니다. 공급자는 사설 IP 주소와 내부 전용 DNS 이름에 접근할 수 없습니다. 분할 DNS를 사용하면 직원은 같은 호스트 이름을 비공개 인그레스로 확인하고 VPN을 통해 대시보드를 계속 사용할 수 있습니다. 비공개 인그레스도 해당 호스트 이름에 유효한 인증서로 HTTPS를 제공해야 합니다.
+
+2. **게이트웨이를 OneUptime에 연결합니다.** 비공개 인그레스로의 경로가 있는 DMZ에 배치하거나, 자체 사이트 간 VPN/사설 링크로 연결된 공개 게이트웨이를 사용합니다. 업스트림 서비스 포트에서 게이트웨이와 인그레스 간 트래픽을 허용하세요. Kubernetes/Portainer에서는 비공개 `ClusterIP` 서비스만으로는 충분하지 않습니다. 게이트웨이에 인그레스/컨트롤러 또는 다른 접근 가능한 업스트림이 필요합니다. 데이터베이스와 다른 내부 서비스는 비공개로 유지하세요.
+
+3. **포트 443에서 HTTPS를 종료합니다.** 공개적으로 신뢰되는 인증서와 전체 중간 인증서 체인을 사용합니다. 게이트웨이로의 인바운드 TCP 443을 허용하세요. 인증서를 설치하거나 DNS만 변경한다고 사설 업스트림 경로가 생기지는 않습니다.
+
+4. `/api/microsoft-bot/messages`만 공개하고 4단계의 Azure Bot 메시징 엔드포인트를 이 전체 공개 HTTPS URL로 설정합니다. OneUptime Bot Framework 어댑터가 요청을 수신하고 인증할 수 있어야 합니다. 메서드, 경로, 쿼리 문자열, 본문, 인증 헤더(`Authorization`)를 유지합니다. 공개 `Host`를 보존하고 신뢰할 수 있는 `X-Forwarded-Host` 및 `X-Forwarded-Proto: https` 헤더를 설정하세요. 리디렉션을 추가하지 마세요.
+
+5. 이 경로를 브라우저 SSO, CAPTCHA, 프록시 로그인 페이지에서 제외합니다. OneUptime 인증은 활성화 상태로 유지합니다. 원본 서버 접근은 게이트웨이와 승인된 내부 클라이언트로 제한하고 로그의 토큰을 가리세요.
+
+6. **OneUptime의 표준 URL을 설정하세요**:
+
+   Docker Compose의 `config.env`:
+
+   ```dotenv
+   HOST=oneuptime.example.com
+   HTTP_PROTOCOL=https
+   ```
+
+   Helm/Portainer values:
+
+   ```yaml
+   host: oneuptime.example.com
+   httpProtocol: https
+   ```
+
+   예시를 실제 도메인으로 바꾸세요. 이 설정은 URL을 생성하며 DNS, TLS 또는 방화벽 규칙을 만들지는 않습니다. Compose 설정 또는 Helm 업데이트를 적용하고 애플리케이션이 다시 시작될 때까지 기다리세요. 호스트 이름이 바뀌면 Azure Bot 엔드포인트와 앱 등록의 리디렉션 URI를 업데이트한 다음 Teams 매니페스트를 다시 다운로드하고 업로드하세요.
+
+[사설 네트워크 액세스 설정](/docs/self-hosted/private-network-access)은 OneUptime에서 내부 서비스로 보내는 아웃바운드 요청을 제어합니다. `ALLOW_PRIVATE_NETWORK_WEBHOOKS`를 켜도 Teams에서 OneUptime에 접근할 수 있게 되지는 않습니다.
+
+### 아웃바운드 액세스 및 IP 제한
+
+OneUptime 애플리케이션의 DNS 확인과 아웃바운드 HTTPS (TCP 443)를 허용합니다. Teams는 `graph.microsoft.com`, `login.microsoftonline.com`, Bot Framework 인증/채널 엔드포인트, 대화의 커넥터 서비스 URL을 사용합니다. [Microsoft 방화벽 안내](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0)를 참고하고 테스트 중 차단된 트래픽을 점검하세요. 이 예시는 전체 도메인 목록이 아닙니다. 상용 클라우드의 대체 커넥터는 `https://smba.trafficmanager.net/teams/`이며 대화의 서비스 URL은 다를 수 있습니다.
+
+Microsoft는 주소가 변경되므로 고정된 인바운드 Bot Framework IP 허용 목록을 지원하지 않습니다. Teams 클라이언트 미디어 범위는 봇 웹훅의 원본 주소가 아닙니다. Bot Framework 인증을 활성화 상태로 유지하세요.
+
+### 테스트 및 인바운드 액세스가 없는 배포
+
+VPN 외부 네트워크에서 공개 DNS와 TLS를 확인한 다음 Teams 경로를 확인합니다.
+
+```bash
+curl -sS -i https://oneuptime.example.com/api/microsoft-bot/messages
+```
+
+현재 OneUptime 버전에서는 `Allow: POST`와 함께 `405 Method Not Allowed`가 반환되어야 합니다. 이는 GET이 해당 경로에 도달했음을 확인할 뿐, 인증된 봇 POST가 작동한다는 의미는 아닙니다. 이전 버전은 OneUptime의 JSON 404를 반환할 수 있으므로 응답 본문과 프록시 로그를 확인하세요. TLS 오류, 시간 초과, 프록시의 HTML 오류 페이지는 인증서 또는 라우팅 문제를 나타냅니다.
+
+Teams를 연결하고 테스트 알림을 보낸 뒤 봇에 메시지를 보내고 카드 버튼을 누릅니다. OneUptime에서 동작을 확인하고 Microsoft 진단을 게이트웨이 및 애플리케이션 로그와 대조하세요. 알림 배달만으로 인증된 인바운드 POST를 검증할 수 없습니다.
+
+개발 환경을 위해 Microsoft의 [Teams 테스트 가이드](https://learn.microsoft.com/en-us/microsoftteams/platform/bots/how-to/authentication/add-authentication#testing-the-bot-locally-in-teams)는 터널로 로컬 서비스를 공개하는 방법을 설명합니다. OneUptime 인그레스로 전달하고 Microsoft 예시의 `/api/messages` 경로 대신 `/api/microsoft-bot/messages`를 사용하세요. 공개 터널 URL이 바뀔 때마다 Azure Bot 엔드포인트를 업데이트하고 프로덕션에서는 안정적인 인그레스를 사용합니다. 해당 OneUptime 호스트 이름도 설정하세요. 터널 역시 인바운드 접근을 공개하므로 테스트 후 중지하세요.
+
+모든 인바운드 연결이 금지되면 전체 Teams 통합은 작동하지 않습니다. 명령, 카드 동작, 대화 검색은 인바운드 연결에 의존합니다. 완전히 연결이 끊긴 설치에서는 Teams를 사용할 수 없습니다.
 
 Azure Bot Private Endpoint는 이 Teams 인그레스를 대체하지 않습니다. Microsoft의 [네트워크 격리 지침](https://learn.microsoft.com/en-us/azure/bot-service/dl-network-isolation-how-to?view=azure-bot-service-4.0)은 Direct Line 격리를 설명하며, 공개 네트워크 액세스를 끄면 Teams 채널 설정이 해제된다고 명시합니다.
 
@@ -114,7 +169,7 @@ Kubernetes + Helm을 사용하는 경우 `values.yaml` 파일에 다음을 추�
 microsoftTeamsApp:
   clientId: YOUR_TEAMS_APP_CLIENT_ID
   clientSecret: YOUR_TEAMS_APP_CLIENT_SECRET
-   tenantId: YOUR_MICROSOFT_TENANT_ID
+  tenantId: YOUR_MICROSOFT_TENANT_ID
 ```
 
 **중요:** 이러한 환경 변수를 추가한 후 OneUptime 서버를 재시작하여 적용합니다.

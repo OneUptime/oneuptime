@@ -7,15 +7,70 @@
 - Azure 帳戶 - 您可以前往 [https://azure.com](https://azure.com) 建立一個
 - 具有您 OneUptime 伺服器設定的存取權限
 
-### 私有網路部署
+## 網路存取
 
 OneUptime 的 Teams 整合使用 Azure Bot。Incoming Webhook 或 Teams Workflow URL 不能取代此機器人的訊息端點。Microsoft 要求[自架機器人提供可公開存取的 HTTPS 端點](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0)。私有 IP 位址、內部 DNS 名稱或員工的 VPN 連線都不會讓 Azure Bot Service 能夠存取 OneUptime。
 
-繼續設定之前，請遵循[整合的私有網路存取指南](/docs/self-hosted/integration-network-access)。該指南涵蓋公開 DNS、受信任的 TLS、轉送至私有部署的反向 Proxy、防火牆規則和驗證。對於 Teams，請公開 `/api/microsoft-bot/messages`，並將步驟 4 中的 Azure Bot **訊息端點**設為此完整的公開 HTTPS URL。保留 `/api` 前置詞、要求本文和 `Authorization` 標頭。由機器人驗證機制驗證要求；互動式 Proxy 登入或瀏覽器驗證會阻止 Microsoft 傳送要求。
+| 功能 | OneUptime 到提供者 | 提供者到 OneUptime |
+| --- | --- | --- |
+| Teams 通知 | 連至 Microsoft API 的 HTTPS | 完整的機器人整合需要輸入存取，包括交談探索 |
+| Teams 命令、卡片按鈕、聊天安裝事件 | HTTPS | `POST /api/microsoft-bot/messages` |
 
 應用程式註冊重新導向 `/api/microsoft-teams/auth` 和 `/api/microsoft-teams/admin-consent/callback` 透過使用者瀏覽器返回。該瀏覽器必須能夠存取 OneUptime，例如透過公司網路或 VPN。機器人訊息和卡片操作來自 Microsoft 伺服器，需要另外提供可存取的入口。僅輸出警示傳送成功不能驗證輸入連線。
 
-對於開發環境，Microsoft 的 [Teams 測試指南](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/debug)介紹了透過通道公開本機服務的方法。請轉送至 OneUptime 入口，並使用 `/api/microsoft-bot/messages` 取代 Microsoft 範例中的 `/api/messages` 路徑。公開通道 URL 變更時應更新 Azure Bot 端點，正式環境請使用穩定的入口。
+### 正式環境：公開通往私有部署的閘道
+
+1. **選擇主機名稱**，例如 `oneuptime.example.com`。發佈指向面向網際網路閘道的公開 DNS 記錄。提供者無法存取私有 IP 位址和僅供內部使用的 DNS 名稱。使用分割 DNS 時，員工可以將相同主機名稱解析到私有入口，並繼續透過 VPN 使用儀表板。私有入口也必須提供 HTTPS，並使用對該主機名稱有效的憑證。
+
+2. **將閘道連接到 OneUptime。** 將閘道放在能夠路由到私有入口的 DMZ 中，或使用透過您自己的站台對站台 VPN/私人連結連線的公開閘道。允許閘道透過上游服務連接埠存取入口。對於 Kubernetes/Portainer，僅有私有 `ClusterIP` 服務還不夠：閘道需要入口/控制器或其他可存取的上游。資料庫和其他內部服務應保持私有。
+
+3. **在連接埠 443 終止 HTTPS**，使用公開信任的憑證和完整的中繼憑證鏈。允許輸入 TCP 443 存取閘道。僅安裝憑證或變更 DNS 不會建立通往私有上游的路由。
+
+4. 僅公開 `/api/microsoft-bot/messages`，並在步驟 4 中將 Azure Bot 訊息端點設為此完整的公用 HTTPS URL。OneUptime 的 Bot Framework 配接器必須能夠接收要求並驗證身分。 保留方法、路徑、查詢字串、本文及驗證標頭（`Authorization`）。保留公用 `Host`，設定受信任的 `X-Forwarded-Host` 和 `X-Forwarded-Proto: https` 標頭。不要新增重新導向。
+
+5. 將這些路徑排除在瀏覽器 SSO、CAPTCHA 和 Proxy 登入頁面之外。保持 OneUptime 驗證啟用。僅允許閘道和獲准的內部用戶端存取來源伺服器，並在日誌中隱藏權杖。
+
+6. **設定 OneUptime 的標準 URL**:
+
+   Docker Compose，在 `config.env` 中：
+
+   ```dotenv
+   HOST=oneuptime.example.com
+   HTTP_PROTOCOL=https
+   ```
+
+   Helm/Portainer values：
+
+   ```yaml
+   host: oneuptime.example.com
+   httpProtocol: https
+   ```
+
+   將範例替換為您的網域。這些設定用於產生 URL，不會建立 DNS、TLS 或防火牆規則。套用 Compose 設定或 Helm 更新，然後等待應用程式重新啟動。 如果主機名稱變更，請更新 Azure Bot 端點和應用程式註冊的重新導向 URI，然後重新下載並上傳 Teams 資訊清單。
+
+[私有網路存取設定](/docs/self-hosted/private-network-access)控制 OneUptime 向內部服務發出的要求。啟用 `ALLOW_PRIVATE_NETWORK_WEBHOOKS` 不會使 Teams 能夠存取 OneUptime。
+
+### 輸出存取和 IP 限制
+
+允許 OneUptime 應用程式進行 DNS 解析和輸出 HTTPS (TCP 443) 存取。 Teams 使用 `graph.microsoft.com`、`login.microsoftonline.com`、Bot Framework 驗證/頻道端點，以及交談的連接器服務 URL。請參考 [Microsoft 防火牆指南](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0)，並在測試時檢查遭封鎖的流量；這些範例不是完整的網域清單。 商業雲端的備用連接器為 `https://smba.trafficmanager.net/teams/`；各交談的服務 URL 可能不同。
+
+Microsoft 不支援固定的 Bot Framework 輸入 IP 允許清單，因為位址會變更。Teams 用戶端媒體位址範圍不是機器人 Webhook 的來源位址。請保持 Bot Framework 驗證啟用。
+
+### 測試與不允許輸入存取的部署
+
+從 VPN 以外的網路驗證公開 DNS 和 TLS，然後檢查 Teams 路由：
+
+```bash
+curl -sS -i https://oneuptime.example.com/api/microsoft-bot/messages
+```
+
+在目前的 OneUptime 版本中，預期傳回 `405 Method Not Allowed`，並包含 `Allow: POST`。這只能確認 GET 要求已到達該路由，不能證明經過驗證的機器人 POST 要求能夠正常運作。舊版本可能傳回 OneUptime 的 JSON 404；請檢查回應本文和 Proxy 記錄。TLS 錯誤、逾時或 Proxy 的 HTML 錯誤頁面表示存在憑證或路由問題。
+
+連接 Teams、傳送測試通知、向機器人傳送訊息並按下卡片按鈕。在 OneUptime 中確認操作，並將 Microsoft 診斷資訊與閘道及應用程式日誌對照檢查。通知送達不能驗證經過身分驗證的輸入 POST。
+
+對於開發環境，Microsoft 的 [Teams 測試指南](https://learn.microsoft.com/en-us/microsoftteams/platform/bots/how-to/authentication/add-authentication#testing-the-bot-locally-in-teams)介紹了透過通道公開本機服務的方法。請轉送至 OneUptime 入口，並使用 `/api/microsoft-bot/messages` 取代 Microsoft 範例中的 `/api/messages` 路徑。公開通道 URL 變更時應更新 Azure Bot 端點，正式環境請使用穩定的入口。 還需設定對應的 OneUptime 主機名稱。測試後停止通道，因為它仍會公開輸入存取。
+
+如果禁止所有輸入連線，完整的 Teams 整合將無法運作：命令、卡片操作和交談探索都依賴輸入連線。完全斷網的安裝無法使用 Teams。
 
 Azure Bot Private Endpoint 不能取代這個 Teams 入口。Microsoft 的[網路隔離說明](https://learn.microsoft.com/en-us/azure/bot-service/dl-network-isolation-how-to?view=azure-bot-service-4.0)描述的是 Direct Line 隔離，並指出停用公開網路存取會取消 Teams 頻道設定。
 
@@ -114,7 +169,7 @@ MICROSOFT_TEAMS_APP_TENANT_ID=YOUR_MICROSOFT_TENANT_ID
 microsoftTeamsApp:
   clientId: YOUR_TEAMS_APP_CLIENT_ID
   clientSecret: YOUR_TEAMS_APP_CLIENT_SECRET
-   tenantId: YOUR_MICROSOFT_TENANT_ID
+  tenantId: YOUR_MICROSOFT_TENANT_ID
 ```
 
 **重要：** 在新增這些環境變數後，請重新啟動您的 OneUptime 伺服器，使其生效。

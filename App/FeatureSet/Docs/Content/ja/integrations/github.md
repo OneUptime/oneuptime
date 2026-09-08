@@ -74,3 +74,9 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [連携 概要](/docs/integrations/index) — パターンと認証クイックリファレンス。
 - [GitLab](/docs/integrations/gitlab) — GitLab に対する同じ考え方。
 - [GitHub 連携 (セルフホスト)](/docs/self-hosted/github-integration) — ネイティブ GitHub App 接続。
+
+## セルフホスト環境のネットワークアクセス
+
+このページのIssue作成ワークフローには、DNS名前解決とOneUptimeから`api.github.com`への送信HTTPS（TCP 443）が必要です。GitHubからの受信コールバックは不要です。 [GitHub REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue).
+
+送信接続、受信コールバック、プライベート環境については、[GitHub統合](/docs/self-hosted/github-integration)のネットワークアクセスのセクションを参照してください。

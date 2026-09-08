@@ -6,9 +6,29 @@
 
 ## پیش‌نیازها
 
-- حسابی در SendGrid (رده رایگان کار می‌کند)
+- حساب SendGrid با دسترسی به Inbound Parse
 - دامنه‌ای که کنترلش می‌کنید و به تنظیمات DNS آن دسترسی دارید
-- نمونه OneUptime شما باید عمومی دست‌یافتنی باشد (تا SendGrid بتواند وب‌هوک بفرستد)
+- یک نقطه پایانی عمومی HTTPS که وب‌هوک‌های SendGrid را به OneUptime هدایت کند
+
+## دسترسی شبکه
+
+Inbound Parse نیاز دارد که SendGrid اتصال به OneUptime را آغاز کند. صرفاً مجاز بودن دسترسی خروجی OneUptime به اینترنت کافی نیست.
+
+| جهت | مقصد | پروتکل / درگاه | کاربرد |
+| --- | --- | --- | --- |
+| SendGrid → OneUptime | `https://your-oneuptime-domain.com/incoming-email/sendgrid/YOUR_SECRET` | HTTPS / TCP 443 | تحویل ایمیل تجزیه‌شده با POST چندبخشی. |
+| سرورهای ایمیل فرستنده → SendGrid | `mx.sendgrid.net` که رکورد عمومی MX دامنه دریافت مشخص می‌کند | SMTP / TCP 25 | دریافت ایمیل در SendGrid؛ این اتصال به سرور OneUptime نمی‌رود. |
+| OneUptime → SendGrid، فقط با پیکربندی جداگانه ارسال ایمیل | `api.sendgrid.com` | HTTPS / TCP 443 | ارسال ایمیل اعلان با Mail Send API. |
+
+برای نام میزبان وب‌هوک DNS عمومی منتشر کنید و گواهی دارای اعتماد عمومی به کار ببرید. استقرار خصوصی می‌تواند فقط مسیر وب‌هوک را از طریق پراکسی معکوس یا دروازه عمومی که از داخل به OneUptime دسترسی دارد، در معرض دسترسی بگذارد. مسیر، راز، نوع محتوا و بدنه چندبخشی را حفظ کنید؛ POST باید بدون ورود تعاملی یا چالش مرورگر عبور کند. OneUptime به شنونده SMTP ورودی نیاز ندارد. [راهنمای راه‌اندازی SendGrid](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook) را ببینید.
+
+مقدار `INBOUND_EMAIL_WEBHOOK_SECRET` را یک مقدار تصادفی قوی قرار دهید و `YOUR_SECRET` را با آن جایگزین کنید. بخش پایانی مسیر الزامی است. OneUptime آن را با راز پیکربندی‌شده مقایسه می‌کند؛ خالی گذاشتن متغیر این بررسی را غیرفعال می‌کند. نشانی کامل و آدرس‌های ایمیل مانیتورها را حتی در گزارش‌های پراکسی محرمانه نگه دارید. OneUptime در حال حاضر سرآیندهای امضاشده Inbound Parse یا توکن‌های OAuth متعلق به SendGrid را بررسی نمی‌کند. اگر لازم‌اند، دروازه باید مطابق [مستندات امنیت SendGrid](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks) پیش از هدایت، آن‌ها را اعتبارسنجی کند.
+
+SendGrid فهرست ثابت و قابل‌اتکایی از IPهای مبدأ Inbound Parse ارائه نمی‌دهد. IPهای ارسال ایمیل و نشانی‌های حاصل از DNS برای `mx.sendgrid.net` فهرست مجاز وب‌هوک نیستند. [راهنمای دیواره آتش SendGrid](https://support.sendgrid.com/hc/en-us/articles/44375457225371-How-to-Configure-Firewall-Settings-for-SendGrid-Webhook-and-Inbound-Parse-IPs) را دنبال کنید.
+
+Inbound Parse از ارسال ایمیل مستقل است. دریافت ایمیل مانیتورها به فراخوانی API ‏SendGrid از OneUptime نیاز ندارد. اگر اعلان‌ها را نیز با SendGrid می‌فرستید، DNS و HTTPS خروجی به `api.sendgrid.com` را مجاز کنید؛ [Mail Send](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send) برای ثبت ارسال به فراخوان بازگشتی ورودی نیاز ندارد. در صورت استفاده از SMTP، سرور و درگاه پیکربندی‌شده در OneUptime را مجاز کنید.
+
+رکورد عمومی MX را بررسی کنید، به مانیتور آزمایشی ایمیل بفرستید و دریافت وب‌هوک و ایجاد یا رفع هشدار مطابق معیار را تأیید کنید. POST خالی یا موفقیت آزمون ارسال ایمیل خروجی، جریان کامل Inbound Parse را تأیید نمی‌کند.
 
 ## چگونه کار می‌کند
 
@@ -45,9 +65,9 @@ inbound.example.com.  IN  MX  10  mx.sendgrid.net.
 
 **توجه:** تغییرات DNS می‌توانند تا ۴۸ ساعت طول بکشند تا منتشر شوند، اما معمولاً ظرف چند ساعت کامل می‌شوند.
 
-### گام ۳: تأیید دامنه در SendGrid (اختیاری اما توصیه‌شده)
+### گام ۳: احراز دامنه در SendGrid
 
-برای تحویل‌پذیری بهتر و پرهیز از علامت خوردن ایمیل‌ها به‌عنوان هرزنامه:
+دامنه دریافت باید متعلق به یکی از [دامنه‌های احرازشده شما در SendGrid](https://www.twilio.com/docs/sendgrid/ui/account-and-settings/inbound-parse) باشد:
 
 1. به [داشبورد SendGrid](https://app.sendgrid.com) وارد شوید
 2. به **Settings** > **Sender Authentication** بروید
@@ -81,7 +101,7 @@ inbound.example.com.  IN  MX  10  mx.sendgrid.net.
 # Inbound Email Configuration
 INBOUND_EMAIL_PROVIDER=SendGrid
 INBOUND_EMAIL_DOMAIN=inbound.yourdomain.com
-# INBOUND_EMAIL_WEBHOOK_SECRET=your-optional-secret  # Optional: for additional security
+INBOUND_EMAIL_WEBHOOK_SECRET=replace-with-a-strong-random-secret
 ```
 
 #### Kubernetes با Helm
@@ -92,10 +112,10 @@ INBOUND_EMAIL_DOMAIN=inbound.yourdomain.com
 inboundEmail:
   provider: "SendGrid"
   domain: "inbound.yourdomain.com"
-  # webhookSecret: "your-optional-secret"  # Optional
+  webhookSecret: "replace-with-a-strong-random-secret"
 ```
 
-**مهم:** پس از افزودن این متغیرهای محیطی، کارساز OneUptime خود را بازراه‌اندازی کنید.
+در نشانی مقصد گام ۴ نیز همین راز را قرار دهید و پس از تغییر پیکربندی OneUptime را دوباره راه‌اندازی کنید.
 
 ### گام ۶: ساخت یک مانیتور ایمیل ورودی
 
@@ -127,7 +147,7 @@ inboundEmail:
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
 | `INBOUND_EMAIL_PROVIDER` | ارائه‌دهنده ایمیل ورودی‌ای که به کار می‌رود | بله | - |
 | `INBOUND_EMAIL_DOMAIN` | زیردامنه پیکربندی‌شده برای ایمیل‌های ورودی | بله | - |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | راز اعتبارسنجی درخواست‌های وب‌هوک. وقتی تنظیم شود، این راز را به نشانی وب‌هوک بیفزایید: `/incoming-email/sendgrid/YOUR_SECRET` | خیر | - |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | با بخش پایانی مسیر `/incoming-email/sendgrid/YOUR_SECRET` مقایسه می‌شود. برای نقاط پایانی عمومی تنظیم کنید؛ مقدار خالی بررسی را غیرفعال می‌کند. | توصیه‌شده | - |
 
 ## معیارهای پشتیبانی‌شده ایمیل
 
@@ -184,23 +204,14 @@ inboundEmail:
    - تأیید کنید دامنه و نشانی وب‌هوکتان درست‌اند
 
 3. **گزارش‌های OneUptime را بررسی کنید:**
-   - در گزارش‌های سرویس ProbeIngest دنبال درخواست‌های وب‌هوک بگردید
+   - در گزارش‌های برنامه OneUptime ‏(Telemetry / ProbeIngest) درخواست‌های وب‌هوک ایمیل ورودی را بررسی کنید.
    - هر پیام خطایی را بررسی کنید
 
 ### وب‌هوک‌ها شکست می‌خورند
 
-1. **مطمئن شوید OneUptime عمومی دست‌یافتنی است:**
-
-   - نشانی وب‌هوک باید از اینترنت دست‌یافتنی باشد
-   - با این آزمایش کنید: `curl -X POST https://your-oneuptime-domain.com/incoming-email/sendgrid`
-
-2. **قواعد دیوار آتش را بررسی کنید:**
-
-   - ترافیک HTTPS ورودی از محدوده‌های IP در SendGrid را مجاز کنید
-
-3. **گواهی SSL را تأیید کنید:**
-   - ‏SendGrid به گواهی SSL معتبر نیاز دارد
-   - گواهی‌های خودامضا ممکن است مشکل بسازند
+- نشانی کامل HTTPS شامل راز باید از اینترنت در دسترس باشد. بدون بخش پایانی مسیر، نشانی با مسیر برنامه مطابقت ندارد.
+- درخواست POST را بدون انتقال به صفحه ورود یا چالش مرورگر مجاز کنید. IPهای ارسال ایمیل SendGrid فهرست مجاز مبدأ وب‌هوک نیستند.
+- از گواهی دارای اعتماد عمومی با زنجیره کامل استفاده کنید و تحویل را مطابق بخش دسترسی شبکه بررسی کنید.
 
 ### مانیتور هشدار نمی‌سازد
 

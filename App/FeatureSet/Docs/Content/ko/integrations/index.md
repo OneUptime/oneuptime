@@ -103,3 +103,14 @@ printf '%s' 'you@example.com:your_api_token' | base64
 - [변수](/docs/workflows/variables) — 시크릿과 블록 간 데이터 전달.
 - [Incoming Request 모니터](/docs/monitor/incoming-request-monitor) — 알림 도구를 위한 워크플로 없는 인바운드 경로.
 - [Zabbix](/docs/integrations/zabbix), [Jira](/docs/integrations/jira) 및 [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) — 완성된 예시.
+
+## 자체 호스팅 배포의 네트워크 액세스
+
+네트워크 요구 사항은 이제 각 통합의 설정 가이드에 설명되어 있습니다. 통합을 선택하세요:
+
+- [GitHub 통합](/docs/self-hosted/github-integration)
+- [SendGrid 인바운드 이메일 통합](/docs/self-hosted/sendgrid-inbound-email)
+- [Slack 통합](/docs/self-hosted/slack-integration)
+- [Microsoft Teams 통합](/docs/self-hosted/microsoft-teams-integration)
+- [Twilio SMS 및 음성 통화 통합](/docs/self-hosted/twilio-integration)
+- [푸시 알림](/docs/self-hosted/push-notifications)

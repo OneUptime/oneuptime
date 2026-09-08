@@ -19,3 +19,7 @@
 
 4. **Configurer les notifications d'alertes et de maintenance planifiée**
    - Des règles similaires peuvent être appliquées aux alertes et à la maintenance planifiée en accédant à leurs pages respectives et en configurant les règles souhaitées.
+
+## Accès réseau pour les déploiements auto-hébergés
+
+Pour les connexions sortantes, les rappels entrants et les déploiements privés, consultez la section sur l’accès réseau du [Intégration Slack](/docs/self-hosted/slack-integration).
