@@ -26,6 +26,7 @@ import DashboardVariableSelector from "./DashboardVariableSelector";
 import DashboardVariablesModal from "./DashboardVariablesModal";
 import Icon from "Common/UI/Components/Icon/Icon";
 import AddWidgetModal from "./AddWidgetModal";
+import DashboardStackingLayers from "Common/UI/Utils/DashboardStackingLayers";
 
 export interface ComponentProps {
   onEditClick: () => void;
@@ -256,7 +257,16 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none py-1">
+        <div
+          className="absolute right-0 mt-2 w-56 origin-top-right rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none py-1"
+          /*
+           * Issue #3660: this used to be `z-10`, which lost to a clicked
+           * widget's raise and left the picker opening behind the board. The
+           * canvas can no longer compete for the page's layers at all, and
+           * this puts the menu on the same layer as every other toolbar menu.
+           */
+          style={{ zIndex: DashboardStackingLayers.toolbarPopup }}
+        >
           {Object.values(AutoRefreshInterval).map(
             (interval: AutoRefreshInterval) => {
               const isSelected: boolean =

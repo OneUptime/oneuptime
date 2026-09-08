@@ -1,4 +1,5 @@
 import GridLayoutUtil, { GridRect } from "../../Utils/Dashboard/GridLayout";
+import DashboardStackingLayers from "./DashboardStackingLayers";
 import React, {
   useCallback,
   useEffect,
@@ -537,7 +538,9 @@ const useDashboardGridDnd: UseDashboardGridDndFunction = (
     if (element) {
       element.style.transition = "none";
       element.style.willChange = "transform, width, height";
-      element.style.zIndex = "60";
+      element.style.zIndex = String(
+        DashboardStackingLayers.canvasDraggingComponent,
+      );
     }
 
     document.body.style.userSelect = "none";

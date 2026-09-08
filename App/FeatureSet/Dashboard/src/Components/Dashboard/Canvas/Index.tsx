@@ -24,6 +24,9 @@ import useDashboardGridDnd, {
   GRID_ITEM_TRANSITION,
   ResizeDirection,
 } from "Common/UI/Utils/UseDashboardGridDnd";
+import DashboardStackingLayers, {
+  DASHBOARD_CANVAS_ISOLATION,
+} from "Common/UI/Utils/DashboardStackingLayers";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
@@ -251,7 +254,10 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
             rect.top * cellSizeInPx
           }px)`,
           transition: isActive ? "none" : GRID_ITEM_TRANSITION,
-          zIndex: isSelected && !isActive ? 20 : undefined,
+          zIndex:
+            isSelected && !isActive
+              ? DashboardStackingLayers.canvasSelectedComponent
+              : undefined,
         }}
       >
         <DashboardBaseComponentElement
@@ -328,7 +334,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
             borderRadius: "12px",
             border: "2px dashed rgba(59, 130, 246, 0.55)",
             background: "rgba(59, 130, 246, 0.08)",
-            zIndex: 5,
+            zIndex: DashboardStackingLayers.canvasPlaceholder,
             pointerEvents: "none",
           }}
         >
@@ -376,6 +382,14 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           }}
           style={{
             position: "relative",
+            /*
+             * Widgets live in their own layer stack. Without this the raise a
+             * selected or dragged tile asks for is measured against the whole
+             * page, and it wins - that is issue #3660, where a clicked tile
+             * covered the toolbar's auto-refresh menu. See
+             * Common/UI/Utils/DashboardStackingLayers.
+             */
+            isolation: DASHBOARD_CANVAS_ISOLATION,
             width: "100%",
             height: `${containerHeightInPx}px`,
             borderRadius: "12px",
