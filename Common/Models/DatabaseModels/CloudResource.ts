@@ -201,8 +201,9 @@ export default class CloudResource extends BaseModel {
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Name",
-    description: "Friendly name for this cloud resource",
-    example: "checkout-service",
+    description:
+      "Friendly name for this cloud environment. Ingest names a discovered environment after its platform, region and account.",
+    example: "AWS ECS · us-east-1 · 123456789012",
   })
   @Column({
     nullable: false,
@@ -317,7 +318,7 @@ export default class CloudResource extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Resource Identifier",
     description:
-      "Stable identifier for this managed-compute workload (service.name, falling back to host.name). Identity key for this resource.",
+      "Environment key: the cloud.platform, cloud.account.id and cloud.region OpenTelemetry resource attributes joined with '|' (e.g. aws_ecs|123456789012|us-east-1; missing parts stay as empty segments). Built by buildCloudEnvironmentKey in Common/Types/Cloud/CloudPlatform. An environment created by hand must carry the same key for ingest to find it instead of creating a duplicate.",
   })
   /* Case-insensitive uniqueness; see RumApplication.appIdentifier. */
   @UniqueColumnBy("projectId")
@@ -328,8 +329,24 @@ export default class CloudResource extends BaseModel {
   })
   public resourceIdentifier?: string = undefined;
 
+  /*
+   * cloudPlatform / cloudProvider / cloudRegion / cloudAccountId are
+   * creatable so a person can register an environment before its first
+   * telemetry arrives (the create form derives the key above from them),
+   * but never updatable: after creation they are ingest-owned — the
+   * heartbeat (CloudResourceService.updateLastSeen) backfills and refreshes
+   * them from the cloud.* resource attributes, and a hand edit would only
+   * drift from what the collector actually reports.
+   */
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateCloudResource,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -358,7 +375,14 @@ export default class CloudResource extends BaseModel {
   public cloudPlatform?: string = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateCloudResource,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -387,7 +411,14 @@ export default class CloudResource extends BaseModel {
   public cloudProvider?: string = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateCloudResource,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -416,7 +447,14 @@ export default class CloudResource extends BaseModel {
   public cloudRegion?: string = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateCloudResource,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

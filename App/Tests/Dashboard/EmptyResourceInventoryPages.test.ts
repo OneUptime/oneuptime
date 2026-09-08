@@ -113,7 +113,7 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     modelType: "CloudResource",
     countState: "count",
     countSetter: "setCount",
-    documentationCard: "ResourceDocumentationCard",
+    documentationCard: "CloudDocumentationCard",
   },
   {
     label: "serverless functions",

@@ -30,6 +30,10 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
+import {
+  getCloudProviderLabel,
+  getManagedCloudPlatformLabel,
+} from "Common/Types/Cloud/CloudPlatform";
 import ResourceOverview, {
   ResourceOverviewChip,
   ResourceOverviewDetailRow,
@@ -45,10 +49,18 @@ import {
   fetchSpanMetrics,
   formatBytes,
   formatCompact,
+  formatDurationMs,
   formatPercent,
   SpanMetrics,
   TimePoint,
 } from "../../../Components/TelemetryResource/telemetryMetrics";
+import CloudResourceConnectBanner from "../../../Components/Cloud/CloudResourceConnectBanner";
+import {
+  CLOUD_INSTANCE_LIVE_WINDOW_MINUTES,
+  getCloudResourceAttributeFilters,
+  isCloudInstanceLive,
+  isCloudResourceScoped,
+} from "../Utils/CloudResourceTelemetryScope";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -107,7 +119,7 @@ const CloudResourceOverview: FunctionComponent<
 
       if (!item?.resourceIdentifier) {
         if (showLoader) {
-          setError("Cloud resource not found.");
+          setError("Cloud environment not found.");
         }
         setIsLoading(false);
         setIsRefreshing(false);
@@ -164,16 +176,21 @@ const CloudResourceOverview: FunctionComponent<
     if (!item?.resourceIdentifier) {
       return;
     }
-    const attributes: Record<string, string> = {};
-    if (item.cloudPlatform) {
-      attributes["resource.cloud.platform"] = String(item.cloudPlatform);
+
+    /*
+     * An environment with no cloud.platform has no attribute scope, and an
+     * unscoped span / metric query would sum the whole project into this
+     * one environment's tiles. Leave them empty until telemetry arrives.
+     */
+    if (!isCloudResourceScoped(item)) {
+      setMetrics(null);
+      setMemorySeries([]);
+      setMetricsLoading(false);
+      return;
     }
-    if (item.cloudAccountId) {
-      attributes["resource.cloud.account.id"] = String(item.cloudAccountId);
-    }
-    if (item.cloudRegion) {
-      attributes["resource.cloud.region"] = String(item.cloudRegion);
-    }
+
+    const attributes: Record<string, string> =
+      getCloudResourceAttributeFilters(item);
 
     setMetricsLoading(true);
     const range: InBetween<Date> =
@@ -234,13 +251,32 @@ const CloudResourceOverview: FunctionComponent<
   }
 
   if (!cloudResource) {
-    return <ErrorMessage message="Cloud resource not found." />;
+    return <ErrorMessage message="Cloud environment not found." />;
   }
 
   const r: CloudResource = cloudResource;
   const m: SpanMetrics | null = metrics;
+  const isScoped: boolean = isCloudResourceScoped(r);
 
-  const cpuValues: Array<number> = instances
+  /*
+   * One clock reading for the whole list so an instance cannot flip between
+   * live and stale halfway through the map.
+   */
+  const now: Date = OneUptimeDate.getCurrentDate();
+  const liveInstances: Array<CloudResourceInstance> = instances.filter(
+    (i: CloudResourceInstance): boolean => {
+      return isCloudInstanceLive(i.lastSeenAt, now);
+    },
+  );
+
+  /*
+   * CPU, memory and the top-instances list are computed over LIVE instances
+   * only: a task that stopped reporting ten minutes ago still has its last
+   * CPU / memory values on its row until the sweeper removes it, and
+   * summing those into "total across instances" would overstate what the
+   * environment is using right now. The Instances tile counts the same set.
+   */
+  const cpuValues: Array<number> = liveInstances
     .map((i: CloudResourceInstance): number | undefined => {
       return i.latestCpuPercent;
     })
@@ -253,16 +289,19 @@ const CloudResourceOverview: FunctionComponent<
           return a + b;
         }, 0) / cpuValues.length
       : null;
-  const totalMem: number = instances.reduce(
+  const totalMem: number = liveInstances.reduce(
     (sum: number, i: CloudResourceInstance): number => {
       return sum + (i.latestMemoryBytes || 0);
     },
     0,
   );
 
+  const platformLabel: string = getManagedCloudPlatformLabel(r.cloudPlatform);
+  const providerLabel: string = getCloudProviderLabel(r.cloudProvider);
+
   const chips: Array<ResourceOverviewChip> = [];
-  if (r.cloudProvider) {
-    chips.push({ icon: IconProp.Cloud, label: String(r.cloudProvider) });
+  if (providerLabel) {
+    chips.push({ icon: IconProp.Cloud, label: providerLabel });
   }
   if (r.cloudRegion) {
     chips.push({ icon: IconProp.Globe, label: String(r.cloudRegion) });
@@ -282,7 +321,7 @@ const CloudResourceOverview: FunctionComponent<
       icon: IconProp.ChartBar,
       iconColor: "blue",
       loading: !instancesLoaded,
-      sublabel: "avg across instances",
+      sublabel: "avg across live instances",
       percent: avgCpu,
     },
     {
@@ -291,15 +330,15 @@ const CloudResourceOverview: FunctionComponent<
       icon: IconProp.SquareStack,
       iconColor: "violet",
       loading: !instancesLoaded,
-      sublabel: "total across instances",
+      sublabel: "total across live instances",
     },
     {
       title: "Instances",
-      value: instancesLoaded ? formatCompact(instances.length) : "—",
+      value: instancesLoaded ? formatCompact(liveInstances.length) : "—",
       icon: IconProp.Cube,
       iconColor: "amber",
       loading: !instancesLoaded,
-      sublabel: "running tasks",
+      sublabel: `live in the last ${CLOUD_INSTANCE_LIVE_WINDOW_MINUTES} min`,
       to: populate(PageMap.CLOUD_RESOURCE_VIEW_INSTANCES),
     },
     {
@@ -309,6 +348,25 @@ const CloudResourceOverview: FunctionComponent<
       iconColor: "sky",
       loading: metricsLoading,
       sublabel: "spans, selected range",
+    },
+    {
+      title: "Error rate",
+      value: m ? formatPercent(m.errorRatePercent) : "—",
+      icon: IconProp.Alert,
+      iconColor: "rose",
+      loading: metricsLoading,
+      sublabel: m ? `${formatCompact(m.errors)} errored` : undefined,
+      percent: m ? m.errorRatePercent : null,
+      higherIsBetter: false,
+      thresholds: { warn: 1, danger: 5 },
+    },
+    {
+      title: "p95 latency",
+      value: m ? formatDurationMs(m.p95DurationMs) : "—",
+      icon: IconProp.Clock,
+      iconColor: "emerald",
+      loading: metricsLoading,
+      sublabel: "selected range",
     },
   ];
 
@@ -368,25 +426,46 @@ const CloudResourceOverview: FunctionComponent<
       to: populate(PageMap.CLOUD_RESOURCE_VIEW_METRICS),
       icon: IconProp.ChartBar,
     },
+    {
+      title: "Instances",
+      description: "Running tasks and replicas, with live CPU and memory",
+      to: populate(PageMap.CLOUD_RESOURCE_VIEW_INSTANCES),
+      icon: IconProp.Cube,
+    },
+    {
+      title: "Owners",
+      description: "Who is responsible for this environment",
+      to: populate(PageMap.CLOUD_RESOURCE_VIEW_OWNERS),
+      icon: IconProp.Team,
+    },
   ];
 
   const detailRows: Array<ResourceOverviewDetailRow> = [
-    { label: "Cloud Platform", value: r.cloudPlatform },
+    { label: "Cloud Platform (cloud.platform)", value: r.cloudPlatform },
     { label: "Cloud Provider", value: r.cloudProvider },
     { label: "Cloud Region", value: r.cloudRegion },
     { label: "Cloud Account ID", value: r.cloudAccountId },
-    { label: "Environment Key", value: r.resourceIdentifier },
+    { label: "Environment Key", value: r.resourceIdentifier, mono: true },
   ];
 
-  const topInstances: Array<CloudResourceInstance> = instances.slice(0, 5);
+  const topInstances: Array<CloudResourceInstance> = liveInstances.slice(0, 5);
 
   return (
     <Fragment>
+      {!isScoped ? (
+        <CloudResourceConnectBanner
+          modelId={modelId}
+          environmentKey={r.resourceIdentifier}
+        />
+      ) : (
+        <></>
+      )}
+
       <ResourceOverview
         icon={IconProp.Cloud}
         title={(r.name as string) || "Cloud Environment"}
-        identifier={(r.cloudPlatform as string) || ""}
-        identifierLabel="cloud.platform"
+        identifier={platformLabel}
+        identifierLabel="platform"
         status={r.otelCollectorStatus}
         lastSeenAt={r.lastSeenAt}
         description={r.description as string}
@@ -462,7 +541,7 @@ const CloudResourceOverview: FunctionComponent<
       <ArchiveResourceCard<CloudResource>
         modelType={CloudResource}
         modelId={modelId}
-        singularName="cloud resource"
+        singularName="cloud environment"
         listRoute={RouteUtil.populateRouteParams(
           RouteMap[PageMap.CLOUD_RESOURCES] as Route,
         )}

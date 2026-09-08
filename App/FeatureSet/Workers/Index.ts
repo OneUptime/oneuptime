@@ -239,6 +239,12 @@ import "./Jobs/DockerSwarm/CleanupStaleResources";
 // IoT fleet disconnection sweeper + inventory cleanup.
 import "./Jobs/IoT/CleanupStaleResources";
 
+// Cloud environment disconnection sweeper + instance inventory cleanup.
+import "./Jobs/Cloud/CleanupStaleResources";
+
+// Serverless function disconnection sweeper + instance inventory cleanup.
+import "./Jobs/Serverless/CleanupStaleResources";
+
 // Telemetry entity registry: TTL prune + span-derived service map edges.
 import "./Jobs/TelemetryEntity/PruneStaleEntities";
 import "./Jobs/TelemetryEntity/ComputeServiceDependencies";

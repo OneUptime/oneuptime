@@ -382,6 +382,13 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
               "attributes"
             ] as JSONArray) || [];
 
+          /*
+           * Canonicalise cloud.platform on the wire shape before the
+           * auto-discovery gates read it and before it is flattened onto
+           * every row — see OtelIngestBaseService.normalizeCloudPlatformAttribute.
+           */
+          this.normalizeCloudPlatformAttribute(resourceAttributes_raw);
+
           // Producer-declared entities (authoritative when present).
           const resourceEntityRefs: Array<ResourceEntityRef> =
             OtelPayloadDecoder.getEntityRefsFromResource(

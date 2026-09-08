@@ -63,6 +63,7 @@ import DockerSwarmResourceService, {
   DockerSwarmResourceLatestMetric,
 } from "Common/Server/Services/DockerSwarmResourceService";
 import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
+import { resolveCloudInstanceName } from "Common/Utils/Telemetry/CloudInstanceIdentity";
 import ProxmoxResourceService, {
   ParsedProxmoxResource,
   ProxmoxResourceLatestMetric,
@@ -204,16 +205,87 @@ const DOCKER_SWARM_TASK_METRIC_NAMES: ReadonlySet<string> = new Set([
 ]);
 
 /*
- * Cloud managed-compute snapshot metrics — ECS/Fargate, Cloud Run, etc.
- * emit container.cpu.utilization / container.memory.usage with
- * service.instance.id identifying the running task / instance. The latest
- * point is mirrored onto the matching CloudResourceInstance row.
+ * How one cloud managed-compute snapshot metric turns into the CPU percent
+ * / memory bytes mirrored onto a CloudResourceInstance row.
+ *
+ *   cpuPercent      — already a percentage, whatever the unit string says
+ *                     (the awsecscontainermetrics receiver's *.cpu.utilized).
+ *   cpuRatio        — a [0, 1] ratio unless the unit is "%" (docker_stats
+ *                     style container.cpu.utilization; see cpuValueToPercent).
+ *   memoryMegabytes — megabytes (awsecscontainermetrics *.memory.utilized).
+ *   memoryBytes     — bytes.
  */
-const CLOUD_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
-  "container.cpu.utilization",
-  "container.memory.usage",
-  "container.memory.usage.total",
-]);
+type CloudSnapshotMetricKind =
+  | "cpuPercent"
+  | "cpuRatio"
+  | "memoryMegabytes"
+  | "memoryBytes";
+
+interface CloudSnapshotMetricSpec {
+  kind: CloudSnapshotMetricKind;
+  /*
+   * Precedence when several points in one batch describe the same instance.
+   * An ECS task has several containers, and the awsecscontainermetrics
+   * receiver emits a point per container AND a point for the task; since
+   * every one of them resolves to the same instance (the task id — see
+   * CloudInstanceIdentity), the task-level point is the one the Instances
+   * tab must show, whichever order the collector put them in. Higher wins.
+   */
+  rank: number;
+}
+
+const CLOUD_SNAPSHOT_RANK_CONTAINER: number = 0;
+const CLOUD_SNAPSHOT_RANK_TASK: number = 1;
+
+/*
+ * Cloud managed-compute snapshot metrics. ECS tasks report through the
+ * awsecscontainermetrics receiver (ecs.task.* and container.*, the
+ * task-level series duplicating the container ones at a coarser grain);
+ * Cloud Run, Container Apps and docker_stats-style sidecars report
+ * container.cpu.utilization / container.memory.usage.total. The instance
+ * is whichever identity attribute the resource carries first
+ * (CloudInstanceIdentity), and the latest point per instance is mirrored
+ * onto the matching CloudResourceInstance row.
+ */
+const CLOUD_SNAPSHOT_METRICS: ReadonlyMap<string, CloudSnapshotMetricSpec> =
+  new Map<string, CloudSnapshotMetricSpec>([
+    [
+      "ecs.task.cpu.utilized",
+      { kind: "cpuPercent", rank: CLOUD_SNAPSHOT_RANK_TASK },
+    ],
+    [
+      "ecs.task.memory.utilized",
+      { kind: "memoryMegabytes", rank: CLOUD_SNAPSHOT_RANK_TASK },
+    ],
+    [
+      "ecs.task.memory.usage",
+      { kind: "memoryBytes", rank: CLOUD_SNAPSHOT_RANK_TASK },
+    ],
+    [
+      "container.cpu.utilized",
+      { kind: "cpuPercent", rank: CLOUD_SNAPSHOT_RANK_CONTAINER },
+    ],
+    [
+      "container.memory.utilized",
+      { kind: "memoryMegabytes", rank: CLOUD_SNAPSHOT_RANK_CONTAINER },
+    ],
+    [
+      "container.memory.usage",
+      { kind: "memoryBytes", rank: CLOUD_SNAPSHOT_RANK_CONTAINER },
+    ],
+    [
+      "container.cpu.utilization",
+      { kind: "cpuRatio", rank: CLOUD_SNAPSHOT_RANK_CONTAINER },
+    ],
+    [
+      "container.memory.usage.total",
+      { kind: "memoryBytes", rank: CLOUD_SNAPSHOT_RANK_CONTAINER },
+    ],
+  ]);
+
+const CLOUD_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set(
+  CLOUD_SNAPSHOT_METRICS.keys(),
+);
 
 /*
  * The Proxmox / Ceph snapshot scan (metric-name allow-lists, buffer
@@ -271,11 +343,23 @@ interface PodmanContainerMetricBufferEntry {
   observedAt: Date;
 }
 
+/*
+ * One folded value for one instance, with what it takes to decide whether
+ * the next point for the same instance replaces it: a higher-ranked point
+ * always wins (task over container), a same-ranked point wins when it is
+ * not older. Tracked per field, so a task-level CPU point never vetoes the
+ * only memory point the batch carried.
+ */
+interface CloudSnapshotSample {
+  value: number;
+  rank: number;
+  observedAt: Date;
+}
+
 interface CloudResourceInstanceMetricBufferEntry {
   instanceName: string;
-  cpuPercent: number | null;
-  memoryBytes: number | null;
-  observedAt: Date;
+  cpu: CloudSnapshotSample | null;
+  memory: CloudSnapshotSample | null;
 }
 
 class MetricStorageFlushError extends Error {
@@ -802,6 +886,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             ((resourceMetric["resource"] as JSONObject)?.[
               "attributes"
             ] as JSONArray) || [];
+
+          /*
+           * Canonicalise cloud.platform on the wire shape before the
+           * auto-discovery gates read it and before it is flattened onto
+           * every row — see OtelIngestBaseService.normalizeCloudPlatformAttribute.
+           */
+          this.normalizeCloudPlatformAttribute(resourceAttributes_raw);
 
           // Producer-declared entities (authoritative when present).
           const resourceEntityRefs: Array<ResourceEntityRef> =
@@ -2668,10 +2759,34 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
   }
 
   /*
-   * Buffer the latest CPU / memory point for a managed-compute instance
-   * (service.instance.id) so multiple datapoints across a batch collapse
-   * into a single CloudResourceInstance upsert. Best-effort — anything
-   * unparseable is skipped without affecting ClickHouse ingest.
+   * Whether `incoming` should replace `existing` for one field of one
+   * instance. Rank first (task-level beats container-level, whichever
+   * arrived first), then the newer-or-equal timestamp among equals — the
+   * `>=` keeps the last point of a same-timestamp run, exactly as before
+   * ranks existed.
+   */
+  private static shouldReplaceCloudSnapshotSample(
+    existing: CloudSnapshotSample | null,
+    incoming: CloudSnapshotSample,
+  ): boolean {
+    if (!existing) {
+      return true;
+    }
+    if (incoming.rank !== existing.rank) {
+      return incoming.rank > existing.rank;
+    }
+    return incoming.observedAt >= existing.observedAt;
+  }
+
+  /*
+   * Buffer the latest CPU / memory point for a managed-compute instance so
+   * multiple datapoints across a batch collapse into a single
+   * CloudResourceInstance upsert. The instance name is resolved through
+   * the same fallback chain the resource-attribute walk in
+   * OtelIngestBaseService uses (with the `resource.` prefix this merged
+   * attribute map carries), so the point lands on the row that walk
+   * created rather than on a second row nobody links to. Best-effort —
+   * anything unparseable is skipped without affecting ClickHouse ingest.
    */
   private static bufferCloudResourceSnapshotMetric(data: {
     cloudResourceIdStr: string;
@@ -2681,6 +2796,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     metricAttributes: Dictionary<AttributeType | Array<AttributeType>>;
     buffer: Map<string, Map<string, CloudResourceInstanceMetricBufferEntry>>;
   }): void {
+    const spec: CloudSnapshotMetricSpec | undefined =
+      CLOUD_SNAPSHOT_METRICS.get(data.metricName);
+    if (!spec) {
+      return;
+    }
+
     const valueFromInt: number | null = this.toNumberOrNull(
       data.datapoint["asInt"],
     );
@@ -2692,23 +2813,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       return;
     }
 
-    const ts: MetricTimestamp = this.safeParseUnixNano(
-      data.datapoint["timeUnixNano"] as string | number | undefined,
-      "cloud snapshot timeUnixNano",
-    );
-
-    const instanceName: string = this.readSnapshotAttr(
-      data.metricAttributes,
-      "resource.service.instance.id",
+    const instanceName: string | null = resolveCloudInstanceName(
+      (key: string): string | null => {
+        return this.readSnapshotAttr(data.metricAttributes, `resource.${key}`);
+      },
     );
     if (!instanceName) {
       return;
     }
 
-    const isCpu: boolean = data.metricName === "container.cpu.utilization";
-    const isMem: boolean =
-      data.metricName === "container.memory.usage" ||
-      data.metricName === "container.memory.usage.total";
+    const ts: MetricTimestamp = this.safeParseUnixNano(
+      data.datapoint["timeUnixNano"] as string | number | undefined,
+      "cloud snapshot timeUnixNano",
+    );
 
     let perResource:
       | Map<string, CloudResourceInstanceMetricBufferEntry>
@@ -2718,32 +2835,67 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       data.buffer.set(data.cloudResourceIdStr, perResource);
     }
 
-    const cpuPercent: number | null = isCpu
-      ? this.cpuValueToPercent(rawValue, data.metricUnit)
-      : null;
-    const memoryBytes: number | null = isMem
-      ? Math.max(0, Math.trunc(rawValue))
-      : null;
-
-    const existing: CloudResourceInstanceMetricBufferEntry | undefined =
+    let entry: CloudResourceInstanceMetricBufferEntry | undefined =
       perResource.get(instanceName);
-    if (!existing) {
-      perResource.set(instanceName, {
-        instanceName,
-        cpuPercent,
-        memoryBytes,
-        observedAt: ts.date,
-      });
-      return;
+    if (!entry) {
+      entry = { instanceName, cpu: null, memory: null };
+      perResource.set(instanceName, entry);
     }
-    if (cpuPercent !== null && ts.date >= existing.observedAt) {
-      existing.cpuPercent = cpuPercent;
-    }
-    if (memoryBytes !== null && ts.date >= existing.observedAt) {
-      existing.memoryBytes = memoryBytes;
-    }
-    if (ts.date > existing.observedAt) {
-      existing.observedAt = ts.date;
+
+    /*
+     * *.cpu.utilized is a percentage already — the awsecscontainermetrics
+     * receiver labels it "Percent", but the unit is deliberately NOT
+     * consulted, because a collector-side unit rewrite must never turn a
+     * 37 % task into a 3700 % one. *.memory.utilized is megabytes; the
+     * CloudResourceInstance column is bytes, so scale (truncated —
+     * fractional bytes do not exist). Negatives are clamped: a gauge
+     * cannot be below zero, and the column is unsigned in spirit.
+     */
+    switch (spec.kind) {
+      case "cpuPercent": {
+        const sample: CloudSnapshotSample = {
+          value: rawValue,
+          rank: spec.rank,
+          observedAt: ts.date,
+        };
+        if (this.shouldReplaceCloudSnapshotSample(entry.cpu, sample)) {
+          entry.cpu = sample;
+        }
+        return;
+      }
+      case "cpuRatio": {
+        const sample: CloudSnapshotSample = {
+          value: this.cpuValueToPercent(rawValue, data.metricUnit),
+          rank: spec.rank,
+          observedAt: ts.date,
+        };
+        if (this.shouldReplaceCloudSnapshotSample(entry.cpu, sample)) {
+          entry.cpu = sample;
+        }
+        return;
+      }
+      case "memoryMegabytes": {
+        const sample: CloudSnapshotSample = {
+          value: Math.max(0, Math.trunc(rawValue * 1024 * 1024)),
+          rank: spec.rank,
+          observedAt: ts.date,
+        };
+        if (this.shouldReplaceCloudSnapshotSample(entry.memory, sample)) {
+          entry.memory = sample;
+        }
+        return;
+      }
+      case "memoryBytes": {
+        const sample: CloudSnapshotSample = {
+          value: Math.max(0, Math.trunc(rawValue)),
+          rank: spec.rank,
+          observedAt: ts.date,
+        };
+        if (this.shouldReplaceCloudSnapshotSample(entry.memory, sample)) {
+          entry.memory = sample;
+        }
+        return;
+      }
     }
   }
 
@@ -2765,8 +2917,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             projectId: data.projectId,
             cloudResourceId,
             instanceName: e.instanceName,
-            cpuPercent: e.cpuPercent ?? undefined,
-            memoryBytes: e.memoryBytes ?? undefined,
+            cpuPercent: e.cpu ? e.cpu.value : undefined,
+            memoryBytes: e.memory ? e.memory.value : undefined,
           });
         }
       } catch (err) {

@@ -751,6 +751,32 @@ const DocsNav: NavGroup[] = [
         title: "Cloud Environments",
         url: "/docs/telemetry/cloud-environments",
       },
+      /*
+       * One page per managed platform, right under the hub, so the sidebar
+       * mirrors the platform picker on the in-app guide. The order is the
+       * hub page's order: the three container platforms with their own
+       * pages, then the rest, then the shared troubleshooting page.
+       */
+      {
+        title: "AWS ECS / Fargate",
+        url: "/docs/telemetry/cloud-aws-ecs",
+      },
+      {
+        title: "Google Cloud Run",
+        url: "/docs/telemetry/cloud-gcp-cloud-run",
+      },
+      {
+        title: "Azure Container Apps",
+        url: "/docs/telemetry/cloud-azure-container-apps",
+      },
+      {
+        title: "Other Cloud Platforms",
+        url: "/docs/telemetry/cloud-other-platforms",
+      },
+      {
+        title: "Cloud Troubleshooting",
+        url: "/docs/telemetry/cloud-troubleshooting",
+      },
     ],
   },
   /*

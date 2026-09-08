@@ -14,8 +14,7 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ResourceDocumentationCard from "../../../Components/TelemetryResource/ResourceDocumentationCard";
-import { getCloudDocMarkdown } from "../../../Components/TelemetryResource/documentationMarkdown";
+import CloudDocumentationCard from "../../../Components/Cloud/CloudDocumentationCard";
 
 const CloudResourceDocumentation: FunctionComponent<
   PageComponentProps
@@ -36,6 +35,12 @@ const CloudResourceDocumentation: FunctionComponent<
         id: modelId,
         select: {
           name: true,
+          /*
+           * Pre-selects the guide's platform picker with the platform this
+           * environment was discovered on, so the reader lands on the ECS
+           * steps for an ECS environment rather than on the default.
+           */
+          cloudPlatform: true,
         },
       });
       setCloudResource(item);
@@ -65,10 +70,10 @@ const CloudResourceDocumentation: FunctionComponent<
 
   return (
     <Fragment>
-      <ResourceDocumentationCard
+      <CloudDocumentationCard
         title="Connect a cloud environment"
-        description="Configure your OpenTelemetry Collector or SDK to report managed cloud compute to OneUptime."
-        buildMarkdown={getCloudDocMarkdown}
+        description="Where the OpenTelemetry settings go on this platform — console steps, the collector or SDK configuration, the IAM and networking that has to be in place, and how to verify."
+        initialPlatform={cloudResource.cloudPlatform}
       />
     </Fragment>
   );

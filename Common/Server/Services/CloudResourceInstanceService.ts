@@ -2,6 +2,8 @@ import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/CloudResourceInstance";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
 
@@ -70,6 +72,74 @@ export class Service extends DatabaseService<Model> {
         }`,
       );
     }
+  }
+
+  /**
+   * Hard-delete every instance / task of one cloud environment whose
+   * lastSeenAt is older than olderThan. Returns the number of rows
+   * removed.
+   *
+   * The instance table is a projection of what is actively reporting:
+   * ECS tasks, Cloud Run instances and App Service workers churn on
+   * every deploy and scale event, and nothing ever tells us a task is
+   * gone — it simply stops sending. Without this sweep the Instances
+   * tab and the overview's "running tasks" count grow forever. Called
+   * only by the Cloud:CleanupStaleResources worker, which anchors
+   * olderThan to the parent environment's own lastSeenAt (see the job
+   * header for why wall-clock now is the wrong anchor).
+   */
+  @CaptureSpan()
+  public async deleteStaleForResource(data: {
+    cloudResourceId: ObjectID;
+    olderThan: Date;
+  }): Promise<number> {
+    return await this.deleteBy({
+      query: {
+        cloudResourceId: data.cloudResourceId,
+        lastSeenAt: QueryHelper.lessThan(data.olderThan),
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: { isRoot: true },
+    });
+  }
+
+  /**
+   * Helper for the cleanup worker: ingest-cadence aware cutoff.
+   * 3x the 5-minute OTel ingest maintenance fence by default. Tune via
+   * CLOUD_INSTANCE_STALE_MINUTES (min 10).
+   */
+  public getStaleThresholdDate(nowOverride?: Date): Date {
+    const minutes: number = this.getStaleThresholdMinutes();
+    return OneUptimeDate.addRemoveMinutes(
+      nowOverride || OneUptimeDate.getCurrentDate(),
+      -minutes,
+    );
+  }
+
+  /*
+   * Threshold must stay well above the 5-minute OTel ingest maintenance
+   * fence (MAINTENANCE_FENCE_TTL_SECONDS in OtelIngestBaseService).
+   * recordInstance sits behind that fence per (environment, instance),
+   * so a live task's lastSeenAt is legitimately up to ~5 minutes stale
+   * during continuous telemetry; a threshold at or below the fence
+   * would prune live tasks between refreshes. 15 minutes gives 3x
+   * headroom and matches CloudResourceService.markDisconnectedResources.
+   * The floor is 10 minutes, not the fence's nominal 5: the fence key is
+   * armed with jitter (300-375 s) behind a 30-second negative memo, so a
+   * live row's lastSeenAt can legitimately be close to 7 minutes old. A
+   * floor at the nominal TTL would let an override prune live rows.
+   * Anything unparseable falls back to the default.
+   */
+  public getStaleThresholdMinutes(): number {
+    const raw: string | undefined = process.env["CLOUD_INSTANCE_STALE_MINUTES"];
+    if (raw) {
+      const parsed: number = parseInt(raw, 10);
+      if (!isNaN(parsed) && parsed >= 10) {
+        return parsed;
+      }
+    }
+    return 15;
   }
 }
 
