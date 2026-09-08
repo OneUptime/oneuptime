@@ -384,6 +384,28 @@ class User extends UserModel {
   })
   public resetPasswordExpires?: Date = undefined;
 
+  /*
+   * TWO challenge slots, not one, and the split is the whole point.
+   *
+   * A WebAuthn challenge is a one-shot value: the server issues it, the
+   * authenticator signs it, and the server compares what came back against
+   * what it stored. Registration and signing in are separate flows that each
+   * need one, and they used to share a single `webauthnChallenge` column --
+   * so whichever flow wrote last silently destroyed the other's.
+   *
+   * That is not a theoretical race. Registration is keyed by the session's
+   * user and signing in is keyed by an email address, so both land on the
+   * SAME row: a user adding a second key in one tab while a stale sign-in page
+   * in another asks for a fresh challenge loses the registration they were
+   * halfway through, and gets "No pending WebAuthn challenge found" for a key
+   * they are holding and touching. The anonymous
+   * /generate-authentication-options route made it reachable by strangers as
+   * well as by the user's own second tab.
+   *
+   * Named for their purposes rather than one being left as the bare
+   * `webauthnChallenge`, because a slot whose name does not say which flow
+   * owns it is exactly how the two came to share one.
+   */
   @ColumnAccessControl({
     create: [],
     read: [],
@@ -396,7 +418,7 @@ class User extends UserModel {
     nullable: true,
     unique: false,
   })
-  public webauthnChallenge?: string = undefined;
+  public webauthnRegistrationChallenge?: string = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -409,7 +431,34 @@ class User extends UserModel {
     nullable: true,
     unique: false,
   })
-  public webauthnChallengeExpiresAt?: Date = undefined;
+  public webauthnRegistrationChallengeExpiresAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({ type: TableColumnType.ShortText })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: false,
+  })
+  public webauthnAuthenticationChallenge?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({ type: TableColumnType.Date })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+    unique: false,
+  })
+  public webauthnAuthenticationChallengeExpiresAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [],

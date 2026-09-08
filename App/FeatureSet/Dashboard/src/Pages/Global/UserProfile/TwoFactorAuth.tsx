@@ -444,6 +444,27 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         clientDataJSON: Base64.uint8ArrayToBase64Url(
                           new Uint8Array(attestationResponse.clientDataJSON),
                         ),
+
+                        /*
+                         * How this key can be reached -- "usb", "nfc", "ble",
+                         * "internal", "hybrid". The server cannot work this
+                         * out for itself: @simplewebauthn reads it straight
+                         * off this field, so a registration that omits it
+                         * stores no transports and every later sign-in prompt
+                         * has to offer every way a credential might be
+                         * reachable.
+                         *
+                         * Called defensively. getTransports() is not in the
+                         * original Level 1 API and older Safari and Firefox
+                         * builds do not have it; a missing hint is a worse
+                         * prompt, and a TypeError here would be a failed
+                         * registration.
+                         */
+                        transports:
+                          typeof attestationResponse.getTransports ===
+                          "function"
+                            ? attestationResponse.getTransports()
+                            : [],
                       },
                       type: credential.type,
                     },

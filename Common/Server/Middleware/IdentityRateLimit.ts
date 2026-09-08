@@ -124,6 +124,13 @@ export enum IdentityRateLimitBucket {
    * the recovery route already spent. See BACKUP_CODE_BUCKET.
    */
   BackupCode = "backup-code",
+
+  /*
+   * POST /user-webauthn/generate-authentication-options -- the step that hands
+   * out the challenge a security key is about to sign. Its own counter for the
+   * same reason the recovery step has one; see WEBAUTHN_CHALLENGE_BUCKET.
+   */
+  WebAuthnChallenge = "webauthn-challenge",
 }
 
 export enum IdentityRateLimitScope {
@@ -291,6 +298,71 @@ const BACKUP_CODE_BUCKET: BucketConfig = {
   ),
 };
 
+/*
+ * Challenge-issuing budget.
+ *
+ * POST /user-webauthn/generate-authentication-options is the odd one out on
+ * this list: it accepts no credential and can refuse nobody, so it is not a
+ * guessing oracle and a limit here is not what stops an attacker signing in.
+ * It needed one anyway, because of what it DOES rather than what it checks.
+ *
+ * It is anonymous -- the challenge has to exist before the assertion that
+ * proves anything does, so there is nothing to authenticate it with -- and it
+ * takes an email address and WRITES to that user's row. Unlimited, one
+ * request is one free database write against any address the caller cares to
+ * name, and a flood of them is a flood of writes nobody asked for.
+ *
+ * And the write is not junk. It is the challenge that user's key is about to
+ * sign, in the single slot that holds it, so an overwrite landing between
+ * somebody's generate and their verify makes the library reject an assertion
+ * that was perfectly correct -- a targeted refusal of security-key sign-in
+ * against any address a caller can name, rather than a resource cost.
+ *
+ * WHAT THIS COUNTER THEREFORE BOUNDS BUT DOES NOT CLOSE. The account counter
+ * is keyed on the address the request came FROM, as it must be -- see the note
+ * at the top of this file: a bare per-account counter is itself a lockout
+ * weapon -- so an attacker with several source addresses gets this budget from
+ * each one. Splitting the registration and authentication challenge slots
+ * (Common/Models/DatabaseModels/User.ts) stopped the two FLOWS destroying each
+ * other; it does not stop two authentication requests for one account, which
+ * still land on one slot, last write wins.
+ *
+ * Closing that properly means the challenge ceasing to be a single
+ * overwritable row -- one row per attempt, or a short-lived per-ceremony key
+ * -- which is a larger change than this one and is not attempted here. What
+ * this bucket buys is that the cheap version of the attack now costs an
+ * address per thirty attempts instead of nothing at all.
+ *
+ * A SEPARATE counter from the two-factor one, for exactly the reason the
+ * recovery bucket is separate. This route is the step immediately BEFORE
+ * /verify-webauthn-auth in the same sign-in. Sharing a pool would mean every
+ * challenge a user asked for spent an attempt they had not yet made, halving
+ * a ten-attempt allowance to five real tries -- and, worse, a user who had
+ * just used up the shared budget failing at the key could not obtain a fresh
+ * challenge to try again with. The step that exists to enable an attempt must
+ * not be spendable by the attempts it enables.
+ *
+ * More generous than its siblings on the account counter, because nothing is
+ * being guessed and abandoning a prompt is ordinary: a user who touches the
+ * wrong key, closes the dialog, or reloads the page asks for another
+ * challenge each time, and none of that is suspicious. The per-address
+ * ceiling is what actually bounds the writes.
+ */
+const WEBAUTHN_CHALLENGE_BUCKET: BucketConfig = {
+  windowSeconds: parsePositiveIntFromEnv(
+    "IDENTITY_WEBAUTHN_CHALLENGE_RATE_LIMIT_WINDOW_SECONDS",
+    15 * 60,
+  ),
+  perAccountLimit: parsePositiveIntFromEnv(
+    "IDENTITY_WEBAUTHN_CHALLENGE_RATE_LIMIT_PER_ACCOUNT_PER_WINDOW",
+    30,
+  ),
+  perIpLimit: parsePositiveIntFromEnv(
+    "IDENTITY_WEBAUTHN_CHALLENGE_RATE_LIMIT_PER_IP_PER_WINDOW",
+    150,
+  ),
+};
+
 const KEY_PREFIX: string = "identity:rl:";
 
 /*
@@ -438,6 +510,10 @@ export default class IdentityRateLimit {
 
     if (bucket === IdentityRateLimitBucket.BackupCode) {
       return BACKUP_CODE_BUCKET;
+    }
+
+    if (bucket === IdentityRateLimitBucket.WebAuthnChallenge) {
+      return WEBAUTHN_CHALLENGE_BUCKET;
     }
 
     return LOGIN_BUCKET;
