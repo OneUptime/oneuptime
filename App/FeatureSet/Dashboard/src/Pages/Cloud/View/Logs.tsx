@@ -18,6 +18,11 @@ import Card from "Common/UI/Components/Card/Card";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
+import CloudResourceConnectBanner from "../../../Components/Cloud/CloudResourceConnectBanner";
+import {
+  getCloudResourceAttributeFilters,
+  isCloudResourceScoped,
+} from "../Utils/CloudResourceTelemetryScope";
 
 const CloudResourceLogs: FunctionComponent<
   PageComponentProps
@@ -47,7 +52,7 @@ const CloudResourceLogs: FunctionComponent<
       });
 
       if (!item?.resourceIdentifier) {
-        setError("Cloud resource not found.");
+        setError("Cloud environment not found.");
         setIsLoading(false);
         return;
       }
@@ -68,17 +73,7 @@ const CloudResourceLogs: FunctionComponent<
   const logQuery: Query<Log> = useMemo(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const q: any = {
-      attributes: {
-        ...(cloudResource?.cloudPlatform
-          ? { "resource.cloud.platform": cloudResource.cloudPlatform }
-          : {}),
-        ...(cloudResource?.cloudAccountId
-          ? { "resource.cloud.account.id": cloudResource.cloudAccountId }
-          : {}),
-        ...(cloudResource?.cloudRegion
-          ? { "resource.cloud.region": cloudResource.cloudRegion }
-          : {}),
-      },
+      attributes: getCloudResourceAttributeFilters(cloudResource),
     };
     return q as Query<Log>;
   }, [
@@ -96,20 +91,33 @@ const CloudResourceLogs: FunctionComponent<
   }
 
   if (!cloudResource) {
-    return <ErrorMessage message="Cloud resource not found." />;
+    return <ErrorMessage message="Cloud environment not found." />;
+  }
+
+  /*
+   * No platform means no attribute filter, and the viewer would fall back
+   * to every log in the project. Show what is actually true instead.
+   */
+  if (!isCloudResourceScoped(cloudResource)) {
+    return (
+      <CloudResourceConnectBanner
+        modelId={modelId}
+        environmentKey={cloudResource.resourceIdentifier}
+      />
+    );
   }
 
   return (
     <Card
-      title="Cloud Resource Logs"
-      description="Live OpenTelemetry logs from this cloud resource. Use the filter bar to scope by severity, trace id, or any resource attribute."
+      title="Cloud Environment Logs"
+      description="Live OpenTelemetry logs from workloads on this cloud environment. Use the filter bar to scope by severity, trace id, or any resource attribute."
     >
       <DashboardLogsViewer
         id={`cloud-resource-logs-${modelId.toString()}`}
         logQuery={logQuery}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="No logs found for this cloud resource."
+        noLogsMessage="No logs found for this cloud environment."
       />
     </Card>
   );

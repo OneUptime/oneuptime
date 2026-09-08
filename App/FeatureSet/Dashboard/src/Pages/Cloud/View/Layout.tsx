@@ -18,7 +18,7 @@ const CloudResourceViewLayout: FunctionComponent<
 
   return (
     <ModelPage
-      title="Cloud Resource"
+      title="Cloud Environment"
       modelType={CloudResource}
       modelId={modelId}
       modelNameField="name"

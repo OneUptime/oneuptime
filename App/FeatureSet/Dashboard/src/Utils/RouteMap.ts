@@ -384,6 +384,7 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_RESOURCE_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.CLOUD_RESOURCE_VIEW_INSTANCES]: `${RouteParams.ModelID}/instances`,
   [PageMap.CLOUD_RESOURCE_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
+  [PageMap.CLOUD_RESOURCE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.CLOUD_RESOURCE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.CLOUD_SETTINGS_LABEL_RULES]: `settings/label-rules`,
@@ -4071,6 +4072,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_RESOURCE_VIEW_FEED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_FEED]
+    }`,
+  ),
+
+  [PageMap.CLOUD_RESOURCE_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_OWNERS]
     }`,
   ),
 

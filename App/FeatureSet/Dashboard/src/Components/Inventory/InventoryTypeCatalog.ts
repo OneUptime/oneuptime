@@ -263,7 +263,8 @@ const CATALOG: Record<EntityType, CatalogEntry> = {
     pluralLabel: "Cloud Resources",
     category: InventoryCategory.Cloud,
     icon: IconProp.Cloud,
-    description: "A resource discovered in a connected cloud account.",
+    description:
+      "A managed cloud compute environment (ECS / Fargate, Cloud Run, Container Apps, App Runner, Beanstalk, App Engine, App Service) discovered from OpenTelemetry cloud.* resource attributes.",
   },
 
   [EntityType.ExternalService]: {
