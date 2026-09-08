@@ -36,7 +36,7 @@
 }
 ```
 
-این کار Gemini CLI را به جمع‌کننده‌ای محلی از OpenTelemetry نشانه می‌گیرد، که راهی است که پیشنهادش می‌کنیم — برای چرایی‌اش [رساندن توکن به مقصد](#getting-the-token-in) را ببینید.
+این کار Gemini CLI را به جمع‌کننده‌ای محلی از OpenTelemetry نشانه می‌گیرد، که راهی است که پیشنهادش می‌کنیم — برای چرایی‌اش [رساندن توکن به مقصد](#رساندن-توکن-به-مقصد) را ببینید.
 
 هر کلید این بلوک، همراه با متغیر محیطی‌ای که بر آن می‌چربد:
 
@@ -191,7 +191,7 @@ export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform_Engineering,cost
 | ‏Copilot روی github.com | مستند نشده که منتشر کند |
 | بازبینی کد Copilot | مستند نشده که منتشر کند |
 
-انتظارها را درون سازمانتان بر همین اساس تنظیم کنید. تیمی که در تکمیل‌های درون‌خطی زندگی می‌کند، هر طور که صادرات پیکربندی شده باشد در OneUptime بیکار به نظر می‌رسد، چون GitHub برای آن سطح هیچ OTelی مستند نکرده است. پوشش Copilot از آن سطح‌ها به‌جایش در APIهای REST است — [صندلی‌ها و صورت‌حساب فقط از راه API](#seats-and-billing-are-api-only) را ببینید.
+انتظارها را درون سازمانتان بر همین اساس تنظیم کنید. تیمی که در تکمیل‌های درون‌خطی زندگی می‌کند، هر طور که صادرات پیکربندی شده باشد در OneUptime بیکار به نظر می‌رسد، چون GitHub برای آن سطح هیچ OTelی مستند نکرده است. پوشش Copilot از آن سطح‌ها به‌جایش در APIهای REST است — [صندلی‌ها و صورت‌حساب فقط از راه API](#صندلیها-و-صورتحساب-فقط-از-راه-api) را ببینید.
 
 تنظیمات OTel افزونه JetBrains وجود دارند، اما تغییرنامه GitHub نام کلیدهای تنظیم را منتشر نمی‌کند، پس **نمی‌توانیم تأیید کنیم که با کلیدهای VS Code یکی باشند**. به‌جای فرض کردن اینکه کلیدهای پایین منتقل می‌شوند، آن را از رابط کاربری افزونه پیکربندی کنید و تأیید کنید که داده می‌رسد. مسیر تنظیمات مدیریت‌شده آنجا تأییداً کار می‌کند — ماتریس پشتیبانی GitHub‏ `telemetry` را برای IDEهای JetBrains پشتیبانی‌شده علامت می‌زند — هرچند نام کلیدهای محلی منتشر نشده‌اند.
 
@@ -219,7 +219,7 @@ export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform_Engineering,cost
 export OTEL_EXPORTER_OTLP_HEADERS="x-oneuptime-token=YOUR_INGESTION_TOKEN"
 ```
 
-…یا از تنظیمات مدیریت‌شده سازمانی پایین استفاده کنید، یا کلید `headers` میزبان عامل را به کار ببرید، یا `otlpEndpoint` را به جمع‌کننده‌ای محلی از OpenTelemetry نشانه بگیرید که هدر را می‌چسباند (همان پیکربندی جمع‌کننده در [بخش Gemini CLI](#getting-the-token-in) کار می‌کند).
+…یا از تنظیمات مدیریت‌شده سازمانی پایین استفاده کنید، یا کلید `headers` میزبان عامل را به کار ببرید، یا `otlpEndpoint` را به جمع‌کننده‌ای محلی از OpenTelemetry نشانه بگیرید که هدر را می‌چسباند (همان پیکربندی جمع‌کننده در [بخش Gemini CLI](#رساندن-توکن-به-مقصد) کار می‌کند).
 
 متغیرهای محیطی‌ای که Copilot می‌خواند شامل `COPILOT_OTEL_ENABLED`، `COPILOT_OTEL_ENDPOINT`، `OTEL_EXPORTER_OTLP_ENDPOINT`، `OTEL_EXPORTER_OTLP_PROTOCOL` / `COPILOT_OTEL_PROTOCOL`، `OTEL_SERVICE_NAME`، `OTEL_RESOURCE_ATTRIBUTES`، `OTEL_EXPORTER_OTLP_HEADERS`، `COPILOT_OTEL_MAX_ATTRIBUTE_SIZE_CHARS`، `COPILOT_OTEL_LOG_LEVEL`، `COPILOT_OTEL_FILE_EXPORTER_PATH` و `COPILOT_OTEL_HTTP_INSTRUMENTATION` هستند — به‌علاوه، برای ثبت محتوا، `COPILOT_OTEL_CAPTURE_CONTENT` در VS Code یا `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` در Copilot CLI.
 
