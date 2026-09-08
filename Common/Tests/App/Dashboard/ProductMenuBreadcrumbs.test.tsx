@@ -77,8 +77,6 @@ interface Product {
   landingRoute: string;
   aiPages: Array<[string, string]>;
   rulePages: Array<[string, string]>;
-  // Configuration pages that have never carried a trail, as "<section> / <title>".
-  knownMissingTrails: Array<string>;
 }
 
 const PRODUCTS: Array<Product> = [
@@ -101,7 +99,6 @@ const PRODUCTS: Array<Product> = [
       [PageMap.ALERTS_SETTINGS_LABEL_RULES, "Label Rules"],
       [PageMap.ALERTS_SETTINGS_REMINDER_RULES, "Reminder Rules"],
     ],
-    knownMissingTrails: ["Settings / More Settings"],
   },
   {
     name: "Incidents",
@@ -122,10 +119,6 @@ const PRODUCTS: Array<Product> = [
       [PageMap.INCIDENTS_SETTINGS_LABEL_RULES, "Label Rules"],
       [PageMap.INCIDENTS_SETTINGS_SLA_RULES, "SLA Rules"],
       [PageMap.INCIDENTS_SETTINGS_REMINDER_RULES, "Reminder Rules"],
-    ],
-    knownMissingTrails: [
-      "Settings / Incident Roles",
-      "Settings / More Settings",
     ],
   },
   {
@@ -153,7 +146,6 @@ const PRODUCTS: Array<Product> = [
         "Reminder Rules",
       ],
     ],
-    knownMissingTrails: ["Settings / More Settings"],
   },
 ];
 
@@ -305,7 +297,7 @@ describe.each(
       });
     });
 
-    test("what is left in Settings still has a Settings trail, or none at all", async () => {
+    test("every Settings entry has a Settings trail", async () => {
       const entries: Array<MenuEntry> = await renderMenuEntries(product);
 
       const settingsEntries: Array<MenuEntry> = entries.filter(
@@ -316,31 +308,19 @@ describe.each(
 
       expect(settingsEntries.length).toBeGreaterThan(0);
 
-      const withoutTrails: Array<string> = [];
-
       settingsEntries.forEach((entry: MenuEntry) => {
         const titles: Array<string> | undefined = trailTitlesFor(
           product,
           entry.pageMapKey,
         );
 
-        if (!titles) {
-          withoutTrails.push(`${entry.section} / ${entry.title}`);
-          return;
-        }
-
-        expect(titles.slice(0, 3)).toEqual([
+        expect(titles).toBeDefined();
+        expect(titles?.slice(0, 3)).toEqual([
           "Project",
           product.productCrumb,
           "Settings",
         ]);
       });
-
-      /*
-       * Listed explicitly so that any *other* page losing its trail fails here
-       * rather than being silently tolerated.
-       */
-      expect(withoutTrails).toEqual(product.knownMissingTrails);
     });
 
     test("every crumb resolves to a concrete route with no unfilled params", () => {

@@ -16,8 +16,8 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
 }: ComponentProps): ReactElement => {
   const { translateString } = useTranslateValue();
   return (
-    <nav className="flex hidden md:block" aria-label="Breadcrumb">
-      <ol role="list" className="flex items-center space-x-1">
+    <nav className="block" aria-label="Breadcrumb">
+      <ol role="list" className="flex flex-wrap items-center gap-x-1 gap-y-2">
         {links &&
           links.length > 0 &&
           links.map((link: Link, i: number) => {
