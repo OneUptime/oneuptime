@@ -1275,6 +1275,31 @@ describe("WebAuthn user verification (issue #3652)", () => {
       expect(knownAccountWithoutAKey).toBeInstanceOf(BadDataException);
     });
 
+    it("hands back the ceremony and nothing else on success", async () => {
+      /*
+       * Unifying the two refusals stops a caller learning whether an account
+       * exists; a SUCCESS that carries the account's internal row id tells
+       * them rather more than that, so the two halves have to move together.
+       *
+       * The id was also simply dead weight. The browser posts the assertion to
+       * /verify-webauthn-auth with the email and password again, and that
+       * route takes the user from the password it has just verified -- never
+       * from the body -- so nothing ever read this.
+       *
+       * Asserted on the WHOLE key set rather than on `userId` alone, because
+       * the next field somebody adds here reaches anonymous callers too.
+       */
+      seedRegisteredKey(makeKey(false));
+
+      const result: Record<string, unknown> =
+        (await UserWebAuthnService.generateAuthenticationOptions({
+          email: USER_EMAIL.toString(),
+        })) as unknown as Record<string, unknown>;
+
+      expect(Object.keys(result).sort()).toEqual(["challenge", "options"]);
+      expect(JSON.stringify(result)).not.toContain(USER_ID.toString());
+    });
+
     it("does not name the account in what it says", async () => {
       UserService.findOneBy = jest.fn().mockResolvedValue(null) as never;
 

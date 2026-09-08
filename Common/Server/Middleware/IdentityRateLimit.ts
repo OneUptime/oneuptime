@@ -312,6 +312,27 @@ const BACKUP_CODE_BUCKET: BucketConfig = {
  * request is one free database write against any address the caller cares to
  * name, and a flood of them is a flood of writes nobody asked for.
  *
+ * And the write is not junk. It is the challenge that user's key is about to
+ * sign, in the single slot that holds it, so an overwrite landing between
+ * somebody's generate and their verify makes the library reject an assertion
+ * that was perfectly correct -- a targeted refusal of security-key sign-in
+ * against any address a caller can name, rather than a resource cost.
+ *
+ * WHAT THIS COUNTER THEREFORE BOUNDS BUT DOES NOT CLOSE. The account counter
+ * is keyed on the address the request came FROM, as it must be -- see the note
+ * at the top of this file: a bare per-account counter is itself a lockout
+ * weapon -- so an attacker with several source addresses gets this budget from
+ * each one. Splitting the registration and authentication challenge slots
+ * (Common/Models/DatabaseModels/User.ts) stopped the two FLOWS destroying each
+ * other; it does not stop two authentication requests for one account, which
+ * still land on one slot, last write wins.
+ *
+ * Closing that properly means the challenge ceasing to be a single
+ * overwritable row -- one row per attempt, or a short-lived per-ceremony key
+ * -- which is a larger change than this one and is not attempted here. What
+ * this bucket buys is that the cheap version of the attack now costs an
+ * address per thirty attempts instead of nothing at all.
+ *
  * A SEPARATE counter from the two-factor one, for exactly the reason the
  * recovery bucket is separate. This route is the step immediately BEFORE
  * /verify-webauthn-auth in the same sign-in. Sharing a pool would mean every

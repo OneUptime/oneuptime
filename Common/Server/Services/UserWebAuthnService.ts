@@ -471,7 +471,7 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async generateAuthenticationOptions(data: {
     email: string;
-  }): Promise<{ options: any; challenge: string; userId: string }> {
+  }): Promise<{ options: any; challenge: string }> {
     const user: User | null = await UserService.findOneBy({
       query: { email: data.email },
       select: {
@@ -548,10 +548,25 @@ export class Service extends DatabaseService<Model> {
       challenge: options.challenge,
     });
 
+    /*
+     * The anonymous caller gets the ceremony and nothing else.
+     *
+     * This used to hand back `userId` too -- the account's real row id, to
+     * anybody who could name an email address with a key on it. Nothing ever
+     * read it: the browser posts the assertion to /verify-webauthn-auth along
+     * with the email and password again, and that route takes the user from
+     * the password it has just verified
+     * (App/FeatureSet/Identity/API/Authentication.ts), never from the body.
+     *
+     * So it was an identifier handed to strangers for free, on the one route
+     * that has just been made careful about what it tells them -- and it would
+     * have undone half of that: unifying the two refusals stops a caller
+     * learning whether an account exists, while a success that carries its
+     * internal id tells them rather more than that.
+     */
     return {
       options: options as any,
       challenge: options.challenge,
-      userId: user.id!.toString(),
     };
   }
 
