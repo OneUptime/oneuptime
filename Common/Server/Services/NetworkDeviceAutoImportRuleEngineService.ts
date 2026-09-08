@@ -52,13 +52,18 @@ import logger, { LogAttributes } from "../Utils/Logger";
  * then apply themselves through NetworkDeviceService.onCreateSuccess's
  * existing rule chain, exactly as they do for a manual import.
  *
- * Two entry points, mirroring the label-rule engine:
+ * Three entry points, the first two mirroring the label-rule engine:
  *
  *   - processCompletedScan: the automatic path, called by the
  *     NetworkDeviceDiscovery worker for each Completed scan whose
  *     autoImportProcessedAt marker is NULL.
  *   - applyRuleToCompletedScans: the manual "Run Now" (and its dry run),
  *     applying ONE rule to the project's existing completed scans.
+ *   - rearmRecentScansForRuleChange: called when a rule is written, it
+ *     imports nothing itself — it clears the marker on the project's recent
+ *     results so the automatic path above evaluates them against the rule
+ *     that just changed, instead of the operator having to press Run Now
+ *     (issue #3487).
  *
  * Everything here is idempotent by construction: a device exists per
  * (project, address), recurring scans re-report the same hosts every
@@ -119,6 +124,15 @@ export const MAX_MONITORS_PER_AUTO_IMPORT_RUN: number = 500;
 
 // Scans one manual "Run Now" will read, oldest results last.
 export const MAX_SCANS_PER_AUTO_IMPORT_RULE_RUN: number = 100;
+
+/*
+ * Scans one rule write re-arms — see rearmRecentScansForRuleChange. The same
+ * ceiling as a manual run's, because it feeds the same work: a project whose
+ * subnets are swept by more fresh scans than this has its newest results
+ * re-armed and the rest left to "Run Now", rather than a rule save turning
+ * into an unbounded burst of writes.
+ */
+export const MAX_SCANS_REARMED_PER_RULE_WRITE: number = 100;
 
 /*
  * How many monitor creates may fail IDENTICALLY, back to back with no success
@@ -427,6 +441,123 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     });
 
     return result;
+  }
+
+  /*
+   * The third way stored results become importable, alongside a new upload
+   * and a manual "Run Now": the RULES changed.
+   *
+   * The sweep is driven entirely by the marker — it looks only at scans whose
+   * autoImportProcessedAt is NULL — so results the engine has already
+   * evaluated are, as far as the worker is concerned, finished with. That is
+   * right for results evaluated against the rules the project HAS, and wrong
+   * the moment somebody writes a new one: the rule an operator just authored
+   * has nothing left to apply to until a scan reports again. In a project
+   * whose scans are one-shot, that is never — so a brand-new rule appears to
+   * do nothing at all and the operator is left pressing Run Now by hand,
+   * which is what OneUptime issue #3487 reported as "auto import rules have
+   * no schedule".
+   *
+   * Clearing the marker on the project's recent results hands them back to
+   * the sweep, which applies the FULL rule set to them within a minute —
+   * same pass, same lock, same idempotency as any other tick. Nothing is
+   * imported here: this method writes one column and no devices, so a rule
+   * save stays a rule save and the minutes of paced import work stay in the
+   * worker where a crash is resumable.
+   *
+   * Bounded to results still inside the engine's own freshness horizon
+   * (MAX_RESULT_AGE_IN_HOURS), which preserves exactly the guarantee that
+   * stamping rule-less projects exists to give: a first rule can never
+   * mass-import an estate discovered months ago. Older results remain Run
+   * Now's business, where "import these old hosts" is a deliberate click.
+   *
+   * Returns how many scans were re-armed. It may throw — the callers are rule
+   * writes, and they catch and log rather than fail an operator's save over a
+   * re-arm that can be had again from the next scan result or from Run Now.
+   */
+  @CaptureSpan()
+  public async rearmRecentScansForRuleChange(data: {
+    projectId: ObjectID;
+  }): Promise<number> {
+    const scanStubs: Array<NetworkDeviceDiscoveryScan> =
+      await NetworkDeviceDiscoveryScanService.findBy({
+        query: {
+          projectId: data.projectId,
+          /*
+           * A scan that is still sweeping counts, for the reason its partial
+           * results are importable at all: those hosts have been found.
+           */
+          status: QueryHelper.any(DISCOVERY_SCAN_IMPORTABLE_STATUSES),
+          /*
+           * Only STAMPED scans need re-arming. One whose marker is already
+           * NULL is queued for the next tick as it stands, and clearing it
+           * again would be a write that changes nothing.
+           */
+          autoImportProcessedAt: QueryHelper.notNull(),
+          /*
+           * Fresh results only — the horizon processCompletedScan enforces
+           * anyway, applied here so a rule save does not re-arm scans the
+           * sweep would only retire again (one pointless write per scan, and
+           * a "too old to auto-import" warning per scan in the log).
+           * completedAt is NULL while a scan is still sweeping, and those
+           * results are the freshest the project has.
+           */
+          completedAt: QueryHelper.greaterThanEqualToOrNull(
+            OneUptimeDate.getSomeHoursAgo(MAX_RESULT_AGE_IN_HOURS),
+          ),
+        },
+        select: {
+          _id: true,
+        },
+        // Newest results first, so a capped re-arm keeps the ones that matter.
+        sort: {
+          completedAt: SortOrder.Descending,
+        },
+        limit: MAX_SCANS_REARMED_PER_RULE_WRITE,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    for (const scanStub of scanStubs) {
+      /*
+       * The same hook-free single statement the ingest endpoint clears this
+       * marker with, and for the same reasons (see stampScan) — but
+       * deliberately WITHOUT refreshing updatedAt. On an In Progress scan
+       * that column is the "has this probe gone silent" clock the stale-scan
+       * reaper reads (Workers/Jobs/NetworkDeviceDiscovery/
+       * RequeueRecurringScans.ts); a rule save is not the probe saying
+       * something, and bumping it would postpone the rescue of a scan whose
+       * probe had already died.
+       *
+       * No compare-and-set, because the query above already excludes the row
+       * every racing writer is interested in: the sweep only ever reads scans
+       * whose marker is NULL, and these are the ones whose marker is set. The
+       * one interleaving left is ingest clearing the marker between the read
+       * and this write and a sweep consuming those new results — and that
+       * sweep loads its rules after the rule write that brought us here, so
+       * it applies them. Re-clearing behind it costs one more pass over
+       * results whose devices already exist.
+       */
+      await NetworkDeviceDiscoveryScanService.updateColumnsByIdWithoutHooks({
+        id: scanStub.id!,
+        // Cast: the model's JSON column makes DeepPartial recursion blow up.
+        data: {
+          autoImportProcessedAt: null,
+        } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
+        skipUpdateDateColumn: true,
+      });
+    }
+
+    if (scanStubs.length > 0) {
+      logger.info(
+        `Auto-import: rules changed, so ${scanStubs.length} recent discovery scan result(s) were re-armed; the next sweep will apply the project's rules to them.`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+    }
+
+    return scanStubs.length;
   }
 
   /*

@@ -1,6 +1,7 @@
 import DatabaseService from "./DatabaseService";
 import MonitorTemplateService from "./MonitorTemplateService";
 import NetworkAlertPolicyService from "./NetworkAlertPolicyService";
+import NetworkDeviceAutoImportRuleEngineService from "./NetworkDeviceAutoImportRuleEngineService";
 import NetworkDeviceOidTemplateService from "./NetworkDeviceOidTemplateService";
 import Model from "../../Models/DatabaseModels/NetworkDeviceAutoImportRule";
 import Monitor from "../../Models/DatabaseModels/Monitor";
@@ -22,6 +23,8 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import TablePermission from "../Types/Database/Permissions/TablePermission";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
+import QueryHelper from "../Types/Database/QueryHelper";
+import logger, { LogAttributes } from "../Utils/Logger";
 
 /*
  * Write-time validation for auto-import rules, following the
@@ -58,6 +61,20 @@ function readOidTemplateId(data: Record<string, unknown>): ObjectID | null {
     OID_TEMPLATE_KEYS,
     "OID Collection Template",
   );
+}
+
+/*
+ * What onUpdateSuccess needs to know about an update it did not see the
+ * payload of: did this save change anything about WHICH hosts the rule
+ * claims, or what it does with them?
+ *
+ * Only the answer travels — not the rule's resulting state, which is read
+ * back from the row instead. A payload's `isEnabled` may arrive as the string
+ * "false" from a form post, and a rule mis-read as enabled would re-arm the
+ * project's scans on the very save that switched the rule off.
+ */
+interface AutoImportRuleUpdatePlan {
+  isRuleReachChanged: boolean;
 }
 
 export class Service extends DatabaseService<Model> {
@@ -134,6 +151,28 @@ export class Service extends DatabaseService<Model> {
     );
 
     /*
+     * Everything that can change what this rule imports, or what it creates
+     * for what it imports — the trigger for re-arming the project's recent
+     * scan results in onUpdateSuccess.
+     *
+     * `includePingOnlyHosts` is here even though it is not a "criteria
+     * change" above: it decides whether a whole class of discovered host is
+     * claimed, which is precisely reach. A rename or a description edit is
+     * not, and must not cost the project a sweep.
+     *
+     * The OID template is deliberately absent: it is copied onto devices as
+     * they are created and is not reconciled onto devices that already
+     * exist, so pointing a rule at a different one changes nothing about
+     * results already evaluated.
+     */
+    const plan: AutoImportRuleUpdatePlan = {
+      isRuleReachChanged:
+        isCriteriaChange ||
+        isMonitorProvisioningChange ||
+        dataKeys.includes("includePingOnlyHosts"),
+    };
+
+    /*
      * Validated before the early return and independently of the rest: an OID
      * Collection Template is the collect half of the rule, so pointing at one
      * is legitimate on its own and must not need a criteria or monitor change
@@ -154,7 +193,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (!isCriteriaChange && !isMonitorProvisioningChange) {
-      return { updateBy, carryForward: null };
+      return { updateBy, carryForward: plan };
     }
 
     /*
@@ -253,7 +292,142 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    return { updateBy, carryForward: null };
+    return { updateBy, carryForward: plan };
+  }
+
+  /*
+   * A rule that can import must not have to wait for the next scan to prove
+   * it — see rearmRecentScansForRuleChange on the engine, and issue #3487.
+   *
+   * The sweep only ever looks at results nothing has evaluated yet, so
+   * without this a rule written after a scan finished reaches nothing at all
+   * until that scan runs again — never, for the one-shot scans most projects
+   * start with — and the operator is left pressing "Run Now" by hand for
+   * work the product describes as automatic.
+   */
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    this.rearmRecentScansForRules([
+      /*
+       * projectId off the saved row, falling back to the tenant the write
+       * ran under: a create that named the project through the relation
+       * alone still has to reach the right scans.
+       */
+      {
+        projectId: createdItem.projectId || onCreate.createBy.props.tenantId,
+        isEnabled: createdItem.isEnabled,
+        isExclusion: createdItem.isExclusion,
+      },
+    ]);
+
+    return createdItem;
+  }
+
+  /*
+   * The same re-arm for an EDIT that changes what the rule claims: enabling a
+   * rule, widening its criteria, or attaching a monitor template to it all
+   * make the project's recent results answer differently than they did when
+   * the sweep last read them.
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    const plan: AutoImportRuleUpdatePlan | null =
+      (onUpdate.carryForward as AutoImportRuleUpdatePlan | null) || null;
+
+    if (!plan?.isRuleReachChanged || updatedItemIds.length === 0) {
+      return onUpdate;
+    }
+
+    /*
+     * The rules as they stand now that the update has landed, read back
+     * rather than predicted from the payload — one update payload is shared
+     * by every row its query matched, and the toggles that decide whether a
+     * re-arm is worth anything arrive from a form as strings. See
+     * AutoImportRuleUpdatePlan.
+     */
+    const updatedRules: Array<Model> = await this.findBy({
+      query: {
+        _id: QueryHelper.any(updatedItemIds),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        isEnabled: true,
+        isExclusion: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    this.rearmRecentScansForRules(updatedRules);
+
+    return onUpdate;
+  }
+
+  /*
+   * Hand every affected project's recent scan results back to the auto-import
+   * sweep, once per project however many of its rules one write touched.
+   *
+   * Detached on purpose, in the shape NetworkDeviceService.onCreateSuccess
+   * uses for its own rule chain: the caller is a rule save, the operator is
+   * waiting on its response, and this is a query plus up to a hundred small
+   * writes. It must also never fail that save — a re-arm that could not run
+   * costs a delay until the next scan result (or one press of Run Now),
+   * which is not worth failing an otherwise valid edit over.
+   */
+  private rearmRecentScansForRules(
+    rules: Array<{
+      projectId?: ObjectID | undefined;
+      isEnabled?: boolean | undefined;
+      isExclusion?: boolean | undefined;
+    }>,
+  ): void {
+    const projectIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (const rule of rules) {
+      /*
+       * A disabled rule imports nothing, and an exclusion rule only vetoes
+       * what other rules claim — neither can newly take a host, so neither
+       * is worth a sweep of the project's results. isEnabled is checked
+       * against `false` rather than for truth because the column defaults to
+       * true: a create that never mentioned it is enabled.
+       *
+       * The mirror case — an exclusion rule switched off or deleted, which
+       * lifts a veto and so widens what the OTHER rules claim — is left to
+       * the next scan result or to Run Now. Re-arming needs a write that says
+       * "this now claims hosts", and lifting a veto says it only about rules
+       * this write never mentioned.
+       */
+      if (rule.isEnabled === false || rule.isExclusion) {
+        continue;
+      }
+
+      if (!rule.projectId) {
+        continue;
+      }
+
+      projectIds.set(rule.projectId.toString(), rule.projectId);
+    }
+
+    for (const projectId of projectIds.values()) {
+      NetworkDeviceAutoImportRuleEngineService.rearmRecentScansForRuleChange({
+        projectId: projectId,
+      }).catch((error: Error) => {
+        logger.error(
+          `Error re-arming discovery scan results after an auto-import rule was written: ${error}`,
+          { projectId: projectId.toString() } as LogAttributes,
+        );
+      });
+    }
   }
 
   /*

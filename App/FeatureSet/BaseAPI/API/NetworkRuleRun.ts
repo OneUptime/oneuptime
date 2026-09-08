@@ -55,10 +55,13 @@ import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/Da
  * reaches any of it, and short of deleting and rediscovering every
  * device there was no way to close that gap — OneUptime/oneuptime#3191.
  * These endpoints apply one rule to the devices that already exist.
- * Auto-import rules have the same gap in time instead of space: the
- * worker only processes NEW scan results, so their Run Now applies one
- * rule to the completed scans already sitting in the project — and its
- * dryRun flag is the answer to "what would this rule import" BEFORE
+ * Auto-import rules have a narrower version of the same gap, in time
+ * instead of space: the worker only processes NEW scan results. Writing
+ * a rule now re-arms the project's results from the last 24 hours so
+ * the sweep applies it to them (issue #3487), which leaves this Run Now
+ * for what that deliberately will not touch — results older than that
+ * horizon, and a re-run over the whole project on demand. Its dryRun
+ * flag remains the answer to "what would this rule import" BEFORE
  * enabling it against live scans.
  *
  * All of these mutate network devices, so all demand the permission to

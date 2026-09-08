@@ -38,9 +38,21 @@ import {
 const networkDeviceAutoImportDocumentation: string = `
 ### How Auto Import Rules Work
 
-Auto Import Rules turn discovery scan results into Network Devices automatically — matching hosts are imported the moment a scan completes, with no manual "Review Results → Import" step. Site assignment, owner, and label rules then apply to the imported devices automatically.
+Auto Import Rules turn discovery scan results into Network Devices automatically — matching hosts are imported as a scan reports them, with no manual "Review Results → Import" step. Site assignment, owner, and label rules then apply to the imported devices automatically.
 
 An import rule can also select a **Network Device Monitor Template**. That opt-in completes the alerting pipeline: OneUptime creates an active monitor for each matching SNMP device, copies the template's criteria, interval, minimum probe agreement, custom fields and monitor labels, and then applies the normal Monitor Label and Owner Rules. Existing rules with no template remain inventory-only.
+
+### When Rules Run
+
+Rules have no schedule of their own because they do not need one — they run off scan results, and OneUptime checks for results to import every minute. A rule runs:
+
+- **As a scan reports hosts.** Every result a probe uploads is evaluated against the project's rules within about a minute, including the partial results a long sweep uploads while it is still running. A discovery scan with **Repeat this scan** turned on therefore imports newly discovered hosts on every rescan, with nobody pressing anything.
+- **When you create or change a rule.** Saving a rule re-offers the project's recent scan results to it, so a rule you write today applies to hosts discovered today — you do not have to run the scan again to see what the rule does.
+- **When you press Run Now**, described below.
+
+Results older than 24 hours are not imported automatically: an hours-old host list is the wrong thing to act on by surprise, so old results stay Run Now's job.
+
+Every host is checked against the project's inventory by IP address before anything is created. A host whose address already has a Network Device is skipped — repeating a scan, running a rule twice, and editing a rule all reconcile rather than duplicate.
 
 ### Match Criteria
 
@@ -70,7 +82,7 @@ An exclusion rule inverts the match: hosts it matches are **never** auto-importe
 
 ### Dry Run and Run Now
 
-Rules fire automatically when a discovery scan completes. **Run Now** applies a rule to completed scans already in the project, including backfilling a selected template monitor for an already-registered matching device. **Dry Run** performs the same reconciliation but writes nothing — it answers what would be imported and which monitors would be created before you trust the rule. It also works on a **disabled** rule. Device and monitor creation are idempotent, so running a rule more than once is safe.
+Rules run by themselves (see **When Rules Run** above); these two buttons are for doing it deliberately. **Run Now** applies a rule to every scan already in the project — including results older than the 24-hour horizon automatic imports stop at, and including backfilling a selected template monitor for an already-registered matching device. **Dry Run** performs the same reconciliation but writes nothing — it answers what would be imported and which monitors would be created before you trust the rule. It also works on a **disabled** rule. Device and monitor creation are idempotent, so running a rule more than once is safe.
 `;
 
 const NetworkDeviceAutoImportRulesPage: FunctionComponent<
