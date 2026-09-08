@@ -410,13 +410,22 @@ Template](#oid-collection-templates) the devices it imports are given. A rule
 marked as an **exclusion** claims nothing and vetoes the others, which is how
 printers and phones are carved out of a broad subnet rule.
 
-Enabled rules run by themselves against each scan's results as they arrive —
-including the partial results a long sweep uploads while it is still running,
-so hosts are importable within a minute of being found rather than at the end
-of the range.
+Rules have no schedule of their own, and do not need one. Enabled rules run by
+themselves against each scan's results as they arrive — including the partial
+results a long sweep uploads while it is still running, so hosts are
+importable within a minute of being found rather than at the end of the range.
+Turn on **Repeat this scan** on a discovery scan and the pair becomes a
+standing arrangement: the scan re-sweeps its range on your interval, and every
+new host it finds is imported without anyone pressing anything.
 
-Two buttons on a rule reach the scans that are *already* in the project, which
-is what you want after writing or editing a rule:
+Saving a rule also applies it to the results the project *already* has. A rule
+you write or enable today reaches hosts discovered in the last 24 hours within
+about a minute, so a rule written after a one-shot scan is not left waiting for
+a scan that will never run again. Results older than that are left alone —
+importing an estate discovered last month is a decision, not a side effect of
+saving a rule — and the buttons below are how you make it.
+
+Two buttons on a rule reach *every* scan in the project, however old:
 
 - **Dry Run** evaluates every completed scan and reports what the rule would
   import and monitor. Nothing is written, so it is the safe way to answer "what

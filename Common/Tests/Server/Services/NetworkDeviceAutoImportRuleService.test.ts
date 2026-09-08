@@ -1,3 +1,25 @@
+/*
+ * The service's create/update SUCCESS hooks hand the project's recent scan
+ * results back to the auto-import sweep through the engine (issue #3487).
+ * This suite is about the write-time validation that runs BEFORE those, so
+ * the engine is stubbed at the MODULE level: loading the real one would drag
+ * the whole device/monitor write path — and the Redis client its sweep lock
+ * reaches for — into a suite that never leaves memory. The re-arm itself is
+ * covered by AutoImportRuleWriteRearmsScans.test.ts and
+ * AutoImportRuleRearmRecentScans.test.ts.
+ */
+jest.mock(
+  "../../../Server/Services/NetworkDeviceAutoImportRuleEngineService",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        rearmRecentScansForRuleChange: jest.fn(),
+      },
+    };
+  },
+);
+
 import NetworkDeviceAutoImportRuleService from "../../../Server/Services/NetworkDeviceAutoImportRuleService";
 import MonitorTemplateService from "../../../Server/Services/MonitorTemplateService";
 import NetworkAlertPolicyService from "../../../Server/Services/NetworkAlertPolicyService";
