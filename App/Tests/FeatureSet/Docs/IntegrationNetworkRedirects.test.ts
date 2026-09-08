@@ -15,7 +15,7 @@ import type * as FileSystem from "fs";
  * database-backed application. Only infrastructure outside docs is replaced.
  */
 jest.mock("../../../FeatureSet/Docs/Utils/Config", () => {
-  const path: typeof Path = jest.requireActual<typeof Path>("path");
+  const path: typeof Path = jest.requireActual("path") as typeof Path;
   const root: string = path.resolve(__dirname, "../../../FeatureSet/Docs");
   return {
     ContentPath: path.join(root, "Content"),
@@ -24,7 +24,7 @@ jest.mock("../../../FeatureSet/Docs/Utils/Config", () => {
   };
 });
 jest.mock("Common/Server/Utils/LocalFile", () => {
-  const fs: typeof FileSystem = jest.requireActual<typeof FileSystem>("fs");
+  const fs: typeof FileSystem = jest.requireActual("fs") as typeof FileSystem;
   return {
     __esModule: true,
     default: {
