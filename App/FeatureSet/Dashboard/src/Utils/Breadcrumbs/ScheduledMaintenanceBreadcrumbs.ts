@@ -100,7 +100,50 @@ export function getScheduleMaintenanceBreadcrumbs(
       ],
     ),
 
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      [
+        "Project",
+        "Scheduled Maintenance Events",
+        "Microsoft Teams Workspace Connection",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_VIEW_NOTIFICATION_LOGS,
+      [
+        "Project",
+        "Scheduled Maintenance Events",
+        "View Scheduled Maintenance Event",
+        "Notification Logs",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SCHEDULED_MAINTENANCE_VIEW_AI_LOGS, [
+      "Project",
+      "Scheduled Maintenance Events",
+      "View Scheduled Maintenance Event",
+      "AI Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SCHEDULED_MAINTENANCE_VIEW_RUNBOOKS, [
+      "Project",
+      "Scheduled Maintenance Events",
+      "View Scheduled Maintenance Event",
+      "Runbooks",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_VIEW_AUDIT_LOGS,
+      [
+        "Project",
+        "Scheduled Maintenance Events",
+        "View Scheduled Maintenance Event",
+        "Audit Logs",
+      ],
+    ),
+
     // Scheduled Maintenance Settings (Product-level)
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MORE,
+      ["Project", "Scheduled Maintenance", "Settings", "More Settings"],
+    ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_STATE,
       ["Project", "Scheduled Maintenance", "Settings", "State"],

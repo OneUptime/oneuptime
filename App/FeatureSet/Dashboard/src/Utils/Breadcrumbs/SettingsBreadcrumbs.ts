@@ -9,6 +9,30 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Project Settings",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_MOBILE_APPS, [
+      "Project",
+      "Settings",
+      "Mobile Apps",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS, [
+      "Project",
+      "Settings",
+      "Telemetry Ingestion Keys",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW,
+      ["Project", "Settings", "Telemetry Ingestion Keys", "View Key"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_TELEMETRY_SETTINGS, [
+      "Project",
+      "Settings",
+      "Telemetry Settings",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_SCIM, [
+      "Project",
+      "Settings",
+      "SCIM",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_LABELS, [
       "Project",
       "Settings",
