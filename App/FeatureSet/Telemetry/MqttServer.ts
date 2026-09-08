@@ -15,6 +15,8 @@ import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
+import PayAsYouGoBillingService from "Common/Server/Services/PayAsYouGoBillingService";
+import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
 import TelemetryIngestionKeyGuard, {
   TelemetryIngestionKeyRefusal,
 } from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyGuard";
@@ -183,6 +185,10 @@ async function resolveAuthContext(
         return null;
       }
 
+      await PayAsYouGoBillingService.requirePayAsYouGo(
+        new ObjectID(context.projectId),
+      );
+
       return {
         projectId: new ObjectID(context.projectId),
         device: {
@@ -326,6 +332,12 @@ async function handleAuthorizePublish(
     return;
   }
 
+  /*
+   * A connected session can outlive its project's payment setup, including
+   * device credentials that do not use a project ingestion key.
+   */
+  await PayAsYouGoBillingService.requirePayAsYouGo(projectId);
+
   const payload: Buffer = Buffer.isBuffer(packet.payload)
     ? packet.payload
     : Buffer.from(packet.payload || "", "utf8");
@@ -455,6 +467,18 @@ function createMqttBroker(): Aedes {
         done(null, true);
       })
       .catch((err: unknown) => {
+        if (err instanceof PaymentRequiredException) {
+          logger.warn(err.message, { service: "telemetry" });
+          done(
+            makeAuthenticateError(
+              err.message,
+              CONNACK_BAD_USERNAME_OR_PASSWORD,
+            ),
+            false,
+          );
+          return;
+        }
+
         logger.error("MQTT: error while authenticating client:", {
           service: "telemetry",
         });

@@ -26,6 +26,7 @@ import ObjectID from "../../Types/ObjectID";
 import Sleep from "../../Types/Sleep";
 import Stripe from "stripe";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import PayAsYouGoBillingService from "./PayAsYouGoBillingService";
 
 export type SubscriptionItem = Stripe.SubscriptionItem;
 
@@ -44,6 +45,9 @@ export interface PaymentMethod {
  * instead of a raw payment-provider failure.
  */
 export const MAX_TRIAL_LENGTH_IN_DAYS: number = 730;
+
+export const METERED_BILLING_START_METADATA_KEY: string =
+  "oneuptime_pay_as_you_go_started_at";
 
 /*
  * How long to wait before trying a cancel again, per retry.
@@ -574,6 +578,12 @@ export class BillingService extends BaseService {
     }
 
     // check if this pricing exists
+
+    if (quantity > 0) {
+      await PayAsYouGoBillingService.requireMeteredSubscriptionPayment(
+        subscription,
+      );
+    }
 
     const pricingExists: boolean = subscription.items.data.some(
       (item: SubscriptionItem) => {
@@ -1272,6 +1282,43 @@ export class BillingService extends BaseService {
     }
 
     return false;
+  }
+
+  /**
+   * Old usage must not become a debt when a customer adds their first card.
+   * Establish a durable boundary at the first authorized billing pass. For
+   * existing customers without the marker this deliberately forgives older
+   * unreported telemetry. Never derive consent from subscription creation:
+   * signup creates a subscription even when no payment method exists.
+   */
+  public async getMeteredBillingStartDate(customerId: string): Promise<Date> {
+    if (!this.isBillingEnabled()) {
+      throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
+    }
+
+    const customer: Stripe.Customer | Stripe.DeletedCustomer =
+      await this.stripe.customers.retrieve(customerId);
+    if (customer.deleted) {
+      throw new BadDataException(Errors.BillingService.CUSTOMER_NOT_FOUND);
+    }
+
+    const storedValue: string | undefined =
+      customer.metadata[METERED_BILLING_START_METADATA_KEY];
+    const storedDate: Date | undefined = storedValue
+      ? new Date(storedValue)
+      : undefined;
+
+    if (storedDate && Number.isFinite(storedDate.getTime())) {
+      return storedDate;
+    }
+
+    const startsAt: Date = OneUptimeDate.getCurrentDate();
+    await this.stripe.customers.update(customerId, {
+      metadata: {
+        [METERED_BILLING_START_METADATA_KEY]: startsAt.toISOString(),
+      },
+    });
+    return startsAt;
   }
 
   @CaptureSpan()

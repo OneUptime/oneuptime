@@ -4,6 +4,8 @@ import Query from "../Types/Database/Query";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
+import PayAsYouGoBillingService from "./PayAsYouGoBillingService";
+import { IsBillingEnabled } from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import Model from "../../Models/DatabaseModels/TelemetryIngestionKey";
@@ -189,6 +191,19 @@ export class Service extends DatabaseService<Model> {
       data["expiresAt"] = this.validateExpiresAt(data["expiresAt"]);
     }
 
+    if (IsBillingEnabled) {
+      const projectId: ObjectID | undefined =
+        createBy.props.tenantId || createBy.data.projectId;
+
+      if (!projectId) {
+        throw new BadDataException(
+          "ProjectId required to create a telemetry ingestion key.",
+        );
+      }
+
+      await PayAsYouGoBillingService.requirePayAsYouGo(projectId);
+    }
+
     return { createBy, carryForward: null };
   }
 
@@ -252,9 +267,8 @@ export class Service extends DatabaseService<Model> {
       /*
        * Only an EMPTY new list needs to know what kind of keys are being
        * updated, so the extra read is paid for only then. A non-empty list is
-       * valid on both key types, and the overwhelmingly common update (rename,
-       * toggle isEnabled, set an expiry) does not touch allowedOrigins at all
-       * and therefore reads nothing extra.
+       * valid on both key types. Renaming, disabling, or setting an expiry
+       * does not need this lookup; re-enabling has a separate billing check.
        */
       if (allowedOrigins.length === 0) {
         await this.assertNoBrowserKeyIsBeingUpdated(updateBy);
@@ -279,6 +293,33 @@ export class Service extends DatabaseService<Model> {
       data["expiresAt"] = this.validateExpiresAt(data["expiresAt"]);
     }
 
+    if (IsBillingEnabled && data["isEnabled"] === true) {
+      const keys: Array<Model> = await this.findBy({
+        query:
+          !updateBy.props.isRoot && updateBy.props.tenantId
+            ? { ...updateBy.query, projectId: updateBy.props.tenantId }
+            : updateBy.query,
+        select: { projectId: true },
+        limit: updateBy.limit,
+        skip: updateBy.skip,
+        props: { isRoot: true, ignoreHooks: true },
+      });
+      const checkedProjects: Set<string> = new Set<string>();
+
+      for (const key of keys) {
+        if (!key.projectId) {
+          throw new BadDataException(
+            "ProjectId required to enable a telemetry ingestion key.",
+          );
+        }
+
+        if (!checkedProjects.has(key.projectId.toString())) {
+          await PayAsYouGoBillingService.requirePayAsYouGo(key.projectId);
+          checkedProjects.add(key.projectId.toString());
+        }
+      }
+    }
+
     /*
      * Same reasoning as onBeforeDelete. The cached policy now carries the kill
      * switch, the expiry, the origin allowlist and the rate limit, so almost
@@ -296,9 +337,9 @@ export class Service extends DatabaseService<Model> {
    * Postgres. Returns null for unknown or malformed tokens (also cached, for a
    * shorter TTL).
    *
-   * A returned policy is NOT a decision: a disabled or expired key still
-   * resolves. Enforcement belongs to the caller, which knows which ingest
-   * surface it is and can therefore say *why* a request was refused.
+   * A disabled or expired key still resolves so the caller can explain that
+   * refusal. An otherwise usable key requires payment setup here, so every
+   * transport and validation endpoint shares the same billing admission rule.
    */
   @CaptureSpan()
   public async getPolicyFromSecretKey(
@@ -316,7 +357,9 @@ export class Service extends DatabaseService<Model> {
     const cached: CachedIngestionKeyPolicy | null | undefined =
       this.policyCache.get(cacheKey);
     if (cached !== undefined) {
-      return cached === null ? null : this.hydratePolicy(cached);
+      return cached === null
+        ? null
+        : this.requireBillingForPolicy(this.hydratePolicy(cached));
     }
 
     let secretKeyObjectId: ObjectID;
@@ -358,14 +401,30 @@ export class Service extends DatabaseService<Model> {
     );
 
     this.policyCache.set(cacheKey, snapshot, POSITIVE_TTL_MS);
-    return this.hydratePolicy(snapshot);
+    return this.requireBillingForPolicy(this.hydratePolicy(snapshot));
+  }
+
+  private async requireBillingForPolicy(
+    policy: TelemetryIngestionKeyPolicy,
+  ): Promise<TelemetryIngestionKeyPolicy> {
+    if (
+      policy.isEnabled &&
+      (!policy.expiresAt || policy.expiresAt.getTime() > Date.now())
+    ) {
+      /*
+       * Check even on key-cache hits. Billing eligibility has its own bounded
+       * cache, and must not remain enabled for the lifetime of a live key.
+       */
+      await PayAsYouGoBillingService.requirePayAsYouGo(policy.projectId);
+    }
+
+    return policy;
   }
 
   /**
    * Resolve an ingestion token to its projectId.
    *
-   * Unchanged in signature and in meaning: it is a LOOKUP, and it answers
-   * "which project owns this token" for any token that exists. It deliberately
+   * Shares billing admission with getPolicyFromSecretKey. It deliberately
    * does NOT enforce the kill switch or the expiry.
    *
    * That restraint is the point. Several callers (gRPC, MQTT, session replay,

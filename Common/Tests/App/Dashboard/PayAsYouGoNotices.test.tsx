@@ -1,3 +1,6 @@
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import BaseAPI from "../../../UI/Utils/API/API";
+import ObjectID from "../../../Types/ObjectID";
 import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -13,6 +16,24 @@ import { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import ProjectUtil from "../../../UI/Utils/Project";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
+import {
+  ACTIVE_MONITOR_PRICE_TEXT,
+  MONITOR_CONSENT_ERROR,
+  MONITOR_CONSENT_FIELD_KEY,
+  MonitorBatchPayAsYouGoConsent,
+  MonitorPayAsYouGoCard,
+  SESSION_REPLAY_PRICE_PER_GB_TEXT,
+  TELEMETRY_CONSENT_ERROR,
+  TELEMETRY_CONSENT_FIELD_KEY,
+  TELEMETRY_PRICE_PER_GB_TEXT,
+  TelemetryPayAsYouGoCard,
+  getMonitorBatchPriceSentence,
+  getMonitorPayAsYouGoFormFields,
+  getTelemetryPayAsYouGoFormFields,
+  isMonitorBatchConsentRequired,
+  validateMonitorConsent,
+  validateTelemetryConsent,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo";
 
 /*
  * The pay-as-you-go notices are the only warning a Free plan user gets before
@@ -50,26 +71,6 @@ jest.mock("../../../UI/Config", () => {
   return mocked;
 });
 
-// Imported after the mock so the components read the switchable flag.
-import {
-  ACTIVE_MONITOR_PRICE_TEXT,
-  MONITOR_CONSENT_ERROR,
-  MONITOR_CONSENT_FIELD_KEY,
-  MonitorBatchPayAsYouGoConsent,
-  MonitorPayAsYouGoCard,
-  SESSION_REPLAY_PRICE_PER_GB_TEXT,
-  TELEMETRY_CONSENT_ERROR,
-  TELEMETRY_CONSENT_FIELD_KEY,
-  TELEMETRY_PRICE_PER_GB_TEXT,
-  TelemetryPayAsYouGoCard,
-  getMonitorBatchPriceSentence,
-  getMonitorPayAsYouGoFormFields,
-  getTelemetryPayAsYouGoFormFields,
-  isMonitorBatchConsentRequired,
-  validateMonitorConsent,
-  validateTelemetryConsent,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo";
-
 type SetPlanFunction = (plan: PlanType | null) => void;
 
 const setPlan: SetPlanFunction = (plan: PlanType | null): void => {
@@ -79,6 +80,13 @@ const setPlan: SetPlanFunction = (plan: PlanType | null): void => {
 describe("Pay as you go notices", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(ObjectID.generate());
+    jest.spyOn(ModelAPI, "getCommonHeaders").mockReturnValue({});
+    jest
+      .spyOn(BaseAPI, "get")
+      .mockResolvedValue({ data: { isAllowed: true } } as any);
     config.billingEnabled = true;
     setPlan(PlanType.Free);
   });
@@ -267,7 +275,7 @@ describe("Pay as you go notices", () => {
 
       expect(fields).toHaveLength(2);
       expect(fields[0]?.fieldType).toBe(FormFieldSchemaType.CustomComponent);
-      expect(fields[1]?.fieldType).toBe(FormFieldSchemaType.Checkbox);
+      expect(fields[1]?.fieldType).toBe(FormFieldSchemaType.CustomComponent);
     });
 
     it("renders the modal notice with the rate and a pricing link", () => {
@@ -382,7 +390,7 @@ describe("Pay as you go notices", () => {
       );
 
       expect(fields).toHaveLength(1);
-      expect(fields[0]?.fieldType).toBe(FormFieldSchemaType.Checkbox);
+      expect(fields[0]?.fieldType).toBe(FormFieldSchemaType.CustomComponent);
       expect(fields[0]?.stepId).toBe("monitor-info");
       expect(fields[0]?.overrideField).toEqual({
         [MONITOR_CONSENT_FIELD_KEY]: true,

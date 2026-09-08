@@ -31,6 +31,7 @@ import ServerException from "../../Types/Exception/ServerException";
 import Sleep from "../../Types/Sleep";
 import ProbeService from "./ProbeService";
 import ProjectService, { CurrentPlan } from "./ProjectService";
+import PayAsYouGoBillingService from "./PayAsYouGoBillingService";
 import TeamMemberService from "./TeamMemberService";
 import URL from "../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -763,6 +764,46 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
+    if (
+      IsBillingEnabled &&
+      ((updateBy.data.monitorType &&
+        updateBy.data.monitorType !== MonitorType.Manual) ||
+        updateBy.data.disableActiveMonitoring === false)
+    ) {
+      const monitors: Array<Model> = await this.findBy({
+        query:
+          !updateBy.props.isRoot && updateBy.props.tenantId
+            ? { ...updateBy.query, projectId: updateBy.props.tenantId }
+            : updateBy.query,
+        select: { projectId: true, monitorType: true },
+        limit: updateBy.limit,
+        skip: updateBy.skip,
+        props: { isRoot: true, ignoreHooks: true },
+      });
+      const checkedProjects: Set<string> = new Set<string>();
+
+      for (const monitor of monitors) {
+        const monitorType: MonitorType | undefined =
+          (updateBy.data.monitorType as MonitorType | undefined) ||
+          monitor.monitorType;
+
+        if (monitorType === MonitorType.Manual) {
+          continue;
+        }
+
+        if (!monitor.projectId) {
+          throw new BadDataException(
+            "ProjectId required to enable monitoring.",
+          );
+        }
+
+        if (!checkedProjects.has(monitor.projectId.toString())) {
+          await PayAsYouGoBillingService.requirePayAsYouGo(monitor.projectId);
+          checkedProjects.add(monitor.projectId.toString());
+        }
+      }
+    }
+
     return { updateBy, carryForward: null };
   }
 
@@ -1340,11 +1381,20 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (IsBillingEnabled && createBy.props.tenantId) {
+      if (createBy.data.monitorType !== MonitorType.Manual) {
+        await PayAsYouGoBillingService.requirePayAsYouGo(
+          createBy.props.tenantId,
+        );
+      }
+
       const currentPlan: CurrentPlan = await ProjectService.getCurrentPlan(
         createBy.props.tenantId,
       );
 
-      if (currentPlan.isSubscriptionUnpaid) {
+      if (
+        currentPlan.isSubscriptionUnpaid &&
+        createBy.data.monitorType !== MonitorType.Manual
+      ) {
         throw new BadDataException(
           "Your subscription is unpaid. Please update your payment method and pay all the outstanding invoices to add more monitors.",
         );

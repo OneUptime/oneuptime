@@ -1,3 +1,5 @@
+import BaseAPI from "../../../UI/Utils/API/API";
+import ObjectID from "../../../Types/ObjectID";
 import "@testing-library/jest-dom";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -12,6 +14,15 @@ import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSch
 import ProjectUtil from "../../../UI/Utils/Project";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
+import ModelForm, { FormType } from "../../../UI/Components/Forms/ModelForm";
+import {
+  MONITOR_CONSENT_ERROR,
+  MONITOR_CONSENT_FIELD_KEY,
+  TELEMETRY_CONSENT_ERROR,
+  TELEMETRY_CONSENT_FIELD_KEY,
+  getMonitorPayAsYouGoFormFields,
+  getTelemetryPayAsYouGoFormFields,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo";
 
 /*
  * The consent checkbox is the whole point of the change: on the Free plan a
@@ -32,6 +43,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     default: {
       getItem: (...args: Array<any>) => {
         return getItemMock(...args);
+      },
+      getCommonHeaders: () => {
+        return {};
       },
       createOrUpdate: (...args: Array<any>) => {
         return createOrUpdateMock(...args);
@@ -113,17 +127,6 @@ jest.mock("../../../UI/Config", () => {
   return mocked;
 });
 
-// Imported after the mocks above.
-import ModelForm, { FormType } from "../../../UI/Components/Forms/ModelForm";
-import {
-  MONITOR_CONSENT_ERROR,
-  MONITOR_CONSENT_FIELD_KEY,
-  TELEMETRY_CONSENT_ERROR,
-  TELEMETRY_CONSENT_FIELD_KEY,
-  getMonitorPayAsYouGoFormFields,
-  getTelemetryPayAsYouGoFormFields,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo";
-
 /*
  * These render real forms that validate on every keystroke, so give the waits
  * room to survive a loaded CI box.
@@ -186,6 +189,12 @@ const renderMonitorForm: RenderMonitorFormFunction = (
 describe("Pay as you go consent gate", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(ObjectID.generate());
+    jest
+      .spyOn(BaseAPI, "get")
+      .mockResolvedValue({ data: { isAllowed: true } } as any);
     config.billingEnabled = true;
     createOrUpdateMock.mockReset();
     getItemMock.mockReset();
