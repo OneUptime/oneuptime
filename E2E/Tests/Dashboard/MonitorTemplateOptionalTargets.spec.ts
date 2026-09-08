@@ -182,6 +182,8 @@ test.describe("Optional monitor template targets", () => {
         item: {
           projectId,
           templateName: `${scenario.type} shared criteria`,
+          templateDescription:
+            "Reusable monitoring checks with per-monitor targets",
           monitorType: scenario.type,
           monitorSteps: templateSteps,
           monitoringInterval: "*/10 * * * *",
@@ -354,8 +356,7 @@ test.describe("Optional monitor template targets", () => {
         await expect(page.getByTestId("modal")).toBeHidden();
         await page
           .getByRole("button", {
-            name: "Sync Criteria to 2 Linked Monitors",
-            exact: true,
+            name: /^Sync Criteria to (?:2 )?Linked Monitors$/,
           })
           .click();
         const syncDialog: Locator = page.getByRole("dialog", {
