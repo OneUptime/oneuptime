@@ -67,11 +67,11 @@ describe("VMware monitor setup", () => {
     jest.clearAllMocks();
     jest.mocked(ModelAPI.getList).mockResolvedValue({
       data: [
-        {
+        Object.assign(new VMwareSource(), {
           _id: "source-db-id",
           name: "Production",
           sourceIdentifier: "prod",
-        } as VMwareSource,
+        }),
       ],
       count: 1,
       skip: 0,
@@ -166,20 +166,24 @@ describe("VMware monitor setup", () => {
     });
     expect(
       changed.metricViewConfig.queryConfigs[0]?.metricQueryData.filterData
-        .attributes[VMWARE_RESOURCE_ATTRIBUTE],
-    ).toBe("vm-42");
+        .attributes,
+    ).toEqual(
+      expect.objectContaining({ [VMWARE_RESOURCE_ATTRIBUTE]: "vm-42" }),
+    );
     expect(changed.metricViewConfig.queryConfigs).toHaveLength(2);
     expect(
       changed.metricViewConfig.queryConfigs.map(
-        (query: MetricQueryConfigData): string => {
-          return query.metricAliasData.metricVariable;
+        (query: MetricQueryConfigData): string | undefined => {
+          return query.metricAliasData?.metricVariable;
         },
       ),
     ).toEqual(["A", "B"]);
     expect(
       changed.metricViewConfig.queryConfigs[1]?.metricQueryData.filterData
-        .attributes[VMWARE_RESOURCE_ATTRIBUTE],
-    ).toBe("vm-42");
+        .attributes,
+    ).toEqual(
+      expect.objectContaining({ [VMWARE_RESOURCE_ATTRIBUTE]: "vm-42" }),
+    );
     expect(
       changed.metricViewConfig.queryConfigs[0]?.metricQueryData.filterData
         .aggegationType,
@@ -246,5 +250,113 @@ describe("VMware monitor setup", () => {
         resourceFilters: { resourceType: VmwareResourceType.VM },
       }),
     );
+  });
+  test("an existing monitor configuration takes precedence over a resource link", async () => {
+    jest
+      .mocked(Navigation.getQueryStringByName)
+      .mockReturnValue("other-source");
+    const onChange: MockFunction = getJestMockFunction();
+    render(
+      <VmwareMonitorStepForm
+        {...templateDefaults}
+        monitorStepVmwareMonitor={{
+          ...MonitorStepVmwareMonitorUtil.getDefault(),
+          sourceIdentifier: "prod",
+          resourceFilters: {
+            resourceType: VmwareResourceType.VM,
+            resourceIdentifier: "vm-42",
+          },
+        }}
+        onChange={onChange}
+      />,
+    );
+    await screen.findByRole("option", { name: "Production (prod)" });
+    expect(screen.getByLabelText("VMware source")).toHaveValue("prod");
+    expect(onChange).not.toHaveBeenCalled();
+  });
+  test("an invalid linked resource type does not become a monitor filter", async () => {
+    jest
+      .mocked(Navigation.getQueryStringByName)
+      .mockImplementation((key: string) => {
+        return key === "vmwareSource" ? "prod" : "invalid-resource-type";
+      });
+    const onChange: MockFunction = getJestMockFunction();
+    render(
+      <VmwareMonitorStepForm
+        {...templateDefaults}
+        monitorStepVmwareMonitor={MonitorStepVmwareMonitorUtil.getDefault()}
+        onChange={onChange}
+      />,
+    );
+    await screen.findByRole("option", { name: "Production (prod)" });
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceIdentifier: "prod",
+        resourceFilters: {
+          resourceIdentifier: "invalid-resource-type",
+          resourceType: undefined,
+        },
+      }),
+    );
+  });
+  test("templates wait for project status and severity defaults", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+    const onCriteria: MockFunction = getJestMockFunction();
+    render(
+      <VmwareMonitorStepForm
+        monitorStepVmwareMonitor={{
+          ...MonitorStepVmwareMonitorUtil.getDefault(),
+          sourceIdentifier: "prod",
+        }}
+        onChange={onChange}
+        onMonitorCriteriaChange={onCriteria}
+      />,
+    );
+    await screen.findByRole("option", { name: "Production (prod)" });
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Waiting for project status and severity settings",
+    );
+    const templates: Array<HTMLElement> = screen
+      .getAllByRole("button")
+      .filter((button: HTMLElement): boolean => {
+        return button.hasAttribute("aria-pressed");
+      });
+    expect(templates).toHaveLength(getVmwareAlertTemplates().length);
+    for (const template of templates) {
+      expect(template).toBeDisabled();
+      fireEvent.click(template);
+    }
+    expect(onChange).not.toHaveBeenCalled();
+    expect(onCriteria).not.toHaveBeenCalled();
+  });
+  test("a host template clears an incompatible VM identity from every query", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+    render(
+      <VmwareMonitorStepForm
+        {...templateDefaults}
+        monitorStepVmwareMonitor={{
+          ...MonitorStepVmwareMonitorUtil.getDefault(),
+          sourceIdentifier: "prod",
+          resourceFilters: {
+            resourceType: VmwareResourceType.VM,
+            resourceIdentifier: "vm-42",
+          },
+        }}
+        onChange={onChange}
+      />,
+    );
+    await screen.findByRole("option", { name: "Production (prod)" });
+    fireEvent.click(
+      screen.getByRole("button", { name: /ESXi host unavailable/ }),
+    );
+    const changed: MonitorStepVmwareMonitor = onChange.mock.calls[0]![0];
+    expect(changed.resourceFilters.resourceType).toBe(VmwareResourceType.Host);
+    expect(changed.resourceFilters.resourceIdentifier).toBeUndefined();
+    expect(changed.metricViewConfig.queryConfigs.length).toBeGreaterThan(0);
+    for (const query of changed.metricViewConfig.queryConfigs) {
+      expect(query.metricQueryData.filterData.attributes).not.toEqual(
+        expect.objectContaining({ [VMWARE_RESOURCE_ATTRIBUTE]: "vm-42" }),
+      );
+    }
   });
 });

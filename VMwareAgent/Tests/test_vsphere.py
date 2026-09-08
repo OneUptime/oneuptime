@@ -96,6 +96,41 @@ class VSphereTests(unittest.TestCase):
         self.assertFalse(snapshot.complete)
         self.assertFalse(snapshot.records[0].complete)
 
+    def test_template_flag_and_all_inventory_types_are_preserved(self):
+        self.collector.RetrievePropertiesEx.return_value = SimpleNamespace(
+            objects=[
+                sdk_object(vim.VirtualMachine("vm-1"), {"config.template": True}),
+                sdk_object(vim.Datastore("datastore-1"), {"summary.accessible": False}),
+                sdk_object(
+                    vim.ClusterComputeResource("cluster-1"), {"name": "cluster"}
+                ),
+            ],
+            token=None,
+        )
+        snapshot = self.client.collect()
+        self.assertEqual(
+            [record.kind for record in snapshot.records], ["vm", "datastore", "cluster"]
+        )
+        self.assertTrue(snapshot.records[0].properties["is_template"])
+        self.assertFalse(snapshot.records[1].properties["summary.accessible"])
+
+    def test_unrecognized_entity_makes_inventory_incomplete(self):
+        self.collector.RetrievePropertiesEx.return_value = SimpleNamespace(
+            objects=[sdk_object(vim.Folder("group-1"), {"name": "folder"})],
+            token=None,
+        )
+        snapshot = self.client.collect()
+        self.assertFalse(snapshot.complete)
+        self.assertEqual(snapshot.records, [])
+
+    def test_empty_collection_is_complete_and_destroys_view(self):
+        self.collector.RetrievePropertiesEx.return_value = None
+        snapshot = self.client.collect()
+        self.assertTrue(snapshot.complete)
+        self.assertEqual(snapshot.records, [])
+        self.collector.CancelRetrievePropertiesEx.assert_not_called()
+        self.assertTrue(self.stub.InvokeMethod.called)
+
     def test_standalone_esxi_is_distinguished(self):
         self.content.about.apiType = "HostAgent"
         self.collector.RetrievePropertiesEx.return_value = SimpleNamespace(
@@ -132,6 +167,45 @@ class VSphereTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             self.client.collect()
         self.assertTrue(self.stub.InvokeMethod.called)
+
+    def test_continuation_fault_cancels_pending_page_even_if_cleanup_fails(self):
+        self.collector.RetrievePropertiesEx.return_value = SimpleNamespace(
+            objects=[], token="pending"
+        )
+        failure = PermissionError("pagination fault")
+        self.collector.ContinueRetrievePropertiesEx.side_effect = failure
+        self.collector.CancelRetrievePropertiesEx.side_effect = RuntimeError()
+        self.stub.InvokeMethod.side_effect = RuntimeError()
+        with self.assertRaises(PermissionError) as caught:
+            self.client.collect()
+        self.assertIs(caught.exception, failure)
+        self.collector.CancelRetrievePropertiesEx.assert_called_once_with(
+            token="pending"
+        )
+        self.assertTrue(self.stub.InvokeMethod.called)
+
+    def test_traversal_deadline_stops_before_another_page(self):
+        self.collector.RetrievePropertiesEx.return_value = SimpleNamespace(
+            objects=[], token="pending"
+        )
+        with patch("VMwareAgent.vsphere.time.monotonic", side_effect=[0, 61]):
+            with self.assertRaises(TimeoutError):
+                self.client.collect()
+        self.collector.ContinueRetrievePropertiesEx.assert_not_called()
+        self.collector.CancelRetrievePropertiesEx.assert_called_once_with(
+            token="pending"
+        )
+        self.assertTrue(self.stub.InvokeMethod.called)
+
+    def test_close_disconnects_once_and_clears_a_failed_session(self):
+        with patch(
+            "VMwareAgent.vsphere.Disconnect", side_effect=RuntimeError()
+        ) as close:
+            with self.assertRaises(RuntimeError):
+                self.client.close()
+            self.assertIsNone(self.client.connection)
+            self.client.close()
+        close.assert_called_once_with(self.connection)
 
     def test_tls_verification_and_bounded_connection(self):
         self.assertEqual(self.client.context.verify_mode, ssl.CERT_REQUIRED)

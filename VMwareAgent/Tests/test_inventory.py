@@ -107,7 +107,7 @@ class InventoryTests(unittest.TestCase):
         record = vm(**{"runtime.powerState": "poweredOff"})
         values = normalize(Snapshot([host(), record]), set())["vm/uuid-1"]
         self.assertEqual(values.metrics["resource.state"][0], 1)
-        self.assertNotIn("vm.unexpected_power_off", values.metrics)
+        self.assertEqual(values.metrics["vm.unexpected_power_off"], (0, "1"))
         self.assertNotIn("vm.cpu.utilization", values.metrics)
         values = normalize(Snapshot([host(), record]), {"uuid-1"})["vm/uuid-1"]
         self.assertEqual(values.metrics["resource.state"][0], 1)
@@ -117,15 +117,48 @@ class InventoryTests(unittest.TestCase):
         # must not leave a second critical-health incident behind.
         deselected = normalize(Snapshot([host(), record]), set())["vm/uuid-1"]
         self.assertEqual(deselected.metrics["resource.state"][0], 1)
-        self.assertNotIn("vm.unexpected_power_off", deselected.metrics)
+        self.assertEqual(deselected.metrics["vm.unexpected_power_off"], (0, "1"))
+
+    def test_expected_power_policy_known_state_matrix(self):
+        for power in ("poweredOn", "poweredOff", "suspended", "standBy"):
+            for expected in (False, True):
+                for template in (False, True):
+                    with self.subTest(
+                        power=power, expected=expected, template=template
+                    ):
+                        resource = normalize(
+                            Snapshot(
+                                [
+                                    vm(**{
+                                        "runtime.powerState": power,
+                                        "is_template": template,
+                                    })
+                                ]
+                            ),
+                            {"uuid-1"} if expected else set(),
+                        )["vm/uuid-1"]
+                        expecting = expected and not template
+                        self.assertEqual(
+                            resource.attributes["vm.expected_running"], expecting
+                        )
+                        self.assertEqual(
+                            resource.metrics["vm.expected_running"],
+                            (int(expecting), "1"),
+                        )
+                        self.assertEqual(
+                            resource.metrics["vm.unexpected_power_off"],
+                            (int(expecting and power != "poweredOn"), "1"),
+                        )
 
     def test_unknown_power_is_not_unexpected_off(self):
-        for bad in (None, "invalid", [], {}):
-            snapshot = Snapshot([vm(**{"runtime.powerState": bad})])
-            resource = normalize(snapshot, {"uuid-1"})["vm/uuid-1"]
-            self.assertFalse(snapshot.complete)
-            self.assertEqual(resource.metrics["resource.state"][0], 0)
-            self.assertNotIn("vm.unexpected_power_off", resource.metrics)
+        for bad in (None, "unknown", "invalid", [], {}):
+            for expected in (set(), {"uuid-1"}):
+                with self.subTest(power=bad, expected=expected):
+                    snapshot = Snapshot([vm(**{"runtime.powerState": bad})])
+                    resource = normalize(snapshot, expected)["vm/uuid-1"]
+                    self.assertFalse(snapshot.complete)
+                    self.assertEqual(resource.metrics["resource.state"][0], 0)
+                    self.assertNotIn("vm.unexpected_power_off", resource.metrics)
 
     def test_template_never_expected_running(self):
         resource = normalize(
@@ -133,7 +166,7 @@ class InventoryTests(unittest.TestCase):
             {"uuid-1"},
         )["vm/uuid-1"]
         self.assertFalse(resource.attributes["vm.expected_running"])
-        self.assertNotIn("vm.unexpected_power_off", resource.metrics)
+        self.assertEqual(resource.metrics["vm.unexpected_power_off"], (0, "1"))
 
     def test_maintenance_suppresses_host_unavailable(self):
         for maintenance, expected in ((True, 0), (False, 1), (None, None)):

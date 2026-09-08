@@ -60,7 +60,7 @@ jest.mock(
 
 const sourceId: string = "12345678-1234-1234-1234-123456789abc";
 const resourceId: string = "22345678-1234-1234-1234-123456789abc";
-const source: VMwareSource = {
+const source: VMwareSource = Object.assign(new VMwareSource(), {
   _id: sourceId,
   name: "Production vCenter",
   sourceIdentifier: "prod",
@@ -71,8 +71,8 @@ const source: VMwareSource = {
     "oneuptime.vmware.source.up": 1,
     "oneuptime.vmware.source.inventory.complete": 1,
   },
-} as VMwareSource;
-const resource: VMwareResource = {
+});
+const resource: VMwareResource = Object.assign(new VMwareResource(), {
   _id: resourceId,
   sourceId: new ObjectID(sourceId),
   name: "payments-db",
@@ -80,7 +80,7 @@ const resource: VMwareResource = {
   resourceType: "vm",
   lastSeenAt: new Date(),
   metadata: { "oneuptime.vmware.resource.power_state": "poweredOff" },
-} as VMwareResource;
+});
 
 function renderPage(): void {
   render(
@@ -171,12 +171,12 @@ describe("VMware resource page", () => {
           return (
             args.modelType === VMwareSource
               ? source
-              : ({
+              : Object.assign(new VMwareResource(), {
                   ...resource,
                   sourceId: new ObjectID(
                     "32345678-1234-1234-1234-123456789abc",
                   ),
-                } as VMwareResource)
+                })
           ) as never;
         },
       );

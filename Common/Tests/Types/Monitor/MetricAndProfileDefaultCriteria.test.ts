@@ -76,6 +76,7 @@ const MONITOR_NAME: string = "Acme Prod";
 const METRIC_BACKED_MONITOR_TYPES: Array<MonitorType> = [
   MonitorType.Metrics,
   MonitorType.Kubernetes,
+  MonitorType.VMware,
   MonitorType.Docker,
   MonitorType.Host,
   MonitorType.Podman,

@@ -26,6 +26,8 @@ Source collection failure and absent resources are different conditions. A missi
 
 Use a dedicated collection monitor alongside resource alerts. Resource availability alerts observe expected-running and maintenance settings configured on the resource. When editing expectations, choose **Use collector policy** to remove the OneUptime override.
 
+Maintenance suppresses resource alerts while preserving existing incidents until recovery can be confirmed. To alert on entering or leaving ESXi maintenance itself, create a separate custom monitor whose queries use only `oneuptime.vmware.host.maintenance`. That monitor continues evaluating maintenance state; queries that combine maintenance with other resource metrics remain suppressed.
+
 ## Metric units
 
 Native metric names begin with `oneuptime.vmware.`. CPU, memory, and datastore utilization are percentages, normally from 0 to 100; datastore capacity, used space, and free space are bytes. Power and connection states are enumerations, not utilization percentages. The metric picker explains their numeric meanings.

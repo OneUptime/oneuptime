@@ -3,6 +3,12 @@ import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
 import VMwareRecoveryPolicy from "../../../../Server/Utils/Monitor/VMwareRecoveryPolicy";
+import VmwareMonitorSeries, {
+  VmwareSeriesResult,
+} from "../../../../Server/Utils/Monitor/VmwareMonitorSeries";
+import VMwareResource from "../../../../Models/DatabaseModels/VMwareResource";
+import VMwareSource from "../../../../Models/DatabaseModels/VMwareSource";
+import MetricSeriesFingerprint from "../../../../Utils/Metrics/MetricSeriesFingerprint";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import AggregateModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
@@ -67,6 +73,7 @@ async function evaluate(input: {
   disableHealthy?: boolean;
   monitorType?: MonitorType;
   quietNonOperational?: boolean;
+  resources?: Array<VMwareResource>;
 }): Promise<Evaluation> {
   const id: ObjectID = ObjectID.generate();
   const operationalStatus: MonitorStatus = new MonitorStatus();
@@ -110,7 +117,8 @@ async function evaluate(input: {
     seriesBreakdown: input.series.map((series: SeriesInput) => {
       const labels: JSONObject = {
         "resource.oneuptime.vmware.source.id": "vc-a",
-        "resource.oneuptime.vmware.resource.type": "datastore",
+        "resource.oneuptime.vmware.resource.type":
+          step.data!.vmwareMonitor!.resourceFilters.resourceType || "datastore",
         "resource.oneuptime.vmware.resource.id": series.id,
       };
       const aggregatedResults: Array<AggregatedResult> =
@@ -131,9 +139,42 @@ async function evaluate(input: {
             };
           },
         );
-      return { fingerprint: series.id, labels, aggregatedResults };
+      return {
+        fingerprint: input.resources
+          ? MetricSeriesFingerprint.computeFingerprint(labels)
+          : series.id,
+        labels,
+        aggregatedResults,
+      };
     }),
   };
+  if (input.resources) {
+    const now: Date = new Date();
+    const source: VMwareSource = Object.assign(new VMwareSource(), {
+      sourceIdentifier: "vc-a",
+      lastCollectionAt: now,
+      collectionIntervalSeconds: 120,
+      metrics: {
+        "oneuptime.vmware.source.up": 1,
+        "oneuptime.vmware.source.inventory.complete": 1,
+      },
+    });
+    const policy: VmwareSeriesResult = VmwareMonitorSeries.apply({
+      config: step.data!.vmwareMonitor!,
+      source,
+      resources: input.resources,
+      series: data.seriesBreakdown!,
+      now,
+    });
+    data.unavailableSeriesFingerprints = policy.unavailableSeriesFingerprints;
+    data.seriesBreakdown = policy.series.filter(
+      (series: MetricSeriesResult) => {
+        return series.aggregatedResults.some((result: AggregatedResult) => {
+          return result.data.length > 0;
+        });
+      },
+    );
+  }
   data.metricResult = metricViewConfig.queryConfigs.map(
     (_query: MetricQueryConfigData, index: number): AggregatedResult => {
       return {
@@ -157,6 +198,155 @@ async function evaluate(input: {
     });
   return { data, response, step };
 }
+
+function vmResource(data: {
+  id: string;
+  expectedRunning: boolean;
+  power: number;
+}): VMwareResource {
+  const now: Date = new Date();
+  const metrics: JSONObject = {
+    "oneuptime.vmware.resource.observed": 1,
+    "oneuptime.vmware.resource.power_state": data.power,
+    "oneuptime.vmware.vm.expected_running": Number(data.expectedRunning),
+  };
+  if (data.power !== 0) {
+    metrics["oneuptime.vmware.vm.unexpected_power_off"] = Number(
+      data.expectedRunning && data.power !== 1,
+    );
+  }
+  return Object.assign(new VMwareResource(), {
+    resourceIdentifier: data.id,
+    resourceType: "vm",
+    lastSeenAt: now,
+    lastReportedAt: now,
+    metadata: {
+      "oneuptime.vmware.vm.expected_running": data.expectedRunning,
+    },
+    metrics,
+  });
+}
+
+function vmFingerprint(resource: VMwareResource): string {
+  return MetricSeriesFingerprint.computeFingerprint(
+    VmwareMonitorSeries.labels("vc-a", resource),
+  );
+}
+
+describe("VMware expected-running policy through inventory and criteria evaluation", () => {
+  test("a mixed fleet alerts only for the expected VM and recovers when that VM starts", async () => {
+    const expected: VMwareResource = vmResource({
+      id: "expected",
+      expectedRunning: true,
+      power: 2,
+    });
+    const optional: VMwareResource = vmResource({
+      id: "optional",
+      expectedRunning: false,
+      power: 2,
+    });
+    const failing: Evaluation = await evaluate({
+      template: "vmware-vm-unexpected-off",
+      resources: [expected, optional],
+      series: [
+        { id: "expected", values: [1, 1] },
+        { id: "optional", values: [0, 0] },
+      ],
+    });
+    expect(failing.data.unavailableSeriesFingerprints).toEqual([]);
+    expect(failing.data.recoveredSeriesFingerprints).toEqual([
+      vmFingerprint(optional),
+    ]);
+    expect(
+      failing.response.matchedCriteria![0]!.perSeriesMatches.map(
+        (match: PerSeriesCriteriaMatch): string => {
+          return match.fingerprint;
+        },
+      ),
+    ).toEqual([vmFingerprint(expected)]);
+    expect(shouldChangeStatus(failing)).toBe(true);
+
+    const running: VMwareResource = vmResource({
+      id: "expected",
+      expectedRunning: true,
+      power: 1,
+    });
+    const recovered: Evaluation = await evaluate({
+      template: "vmware-vm-unexpected-off",
+      resources: [running, optional],
+      series: [
+        { id: "expected", values: [0, 0] },
+        { id: "optional", values: [0, 0] },
+      ],
+    });
+    expect(recovered.data.unavailableSeriesFingerprints).toEqual([]);
+    expect(recovered.data.recoveredSeriesFingerprints).toEqual([
+      vmFingerprint(running),
+      vmFingerprint(optional),
+    ]);
+    expect(recovered.response.matchedCriteria).toHaveLength(1);
+    expect(shouldChangeStatus(recovered)).toBe(true);
+  });
+  test("removing an agent expectation explicitly recovers a VM that stays powered off", async () => {
+    const resource: VMwareResource = vmResource({
+      id: "policy-removed",
+      expectedRunning: false,
+      power: 2,
+    });
+    const recovered: Evaluation = await evaluate({
+      template: "vmware-vm-unexpected-off",
+      resources: [resource],
+      series: [{ id: "policy-removed", values: [0, 0] }],
+    });
+    expect(recovered.data.unavailableSeriesFingerprints).toEqual([]);
+    expect(recovered.data.recoveredSeriesFingerprints).toEqual([
+      vmFingerprint(resource),
+    ]);
+    expect(shouldChangeStatus(recovered)).toBe(true);
+  });
+  test("an explicit no-expectation policy still waits for the unhealthy history to leave the recovery window", async () => {
+    const resource: VMwareResource = vmResource({
+      id: "policy-removed",
+      expectedRunning: false,
+      power: 2,
+    });
+    const recovering: Evaluation = await evaluate({
+      template: "vmware-vm-unexpected-off",
+      resources: [resource],
+      series: [{ id: "policy-removed", values: [0], recoveryValues: [1] }],
+    });
+    expect(recovering.data.unavailableSeriesFingerprints).toEqual([]);
+    expect(recovering.data.recoveredSeriesFingerprints).toEqual([]);
+    expect(shouldChangeStatus(recovering)).toBe(false);
+  });
+  test("a VM with unknown power still blocks recovery even when it is not expected to run", async () => {
+    const expected: VMwareResource = vmResource({
+      id: "expected",
+      expectedRunning: true,
+      power: 1,
+    });
+    const unknown: VMwareResource = vmResource({
+      id: "unknown",
+      expectedRunning: false,
+      power: 0,
+    });
+    const result: Evaluation = await evaluate({
+      template: "vmware-vm-unexpected-off",
+      resources: [expected, unknown],
+      series: [
+        { id: "expected", values: [0, 0] },
+        { id: "unknown", values: [0, 0] },
+      ],
+    });
+    expect(result.data.unavailableSeriesFingerprints).toEqual([
+      vmFingerprint(unknown),
+    ]);
+    expect(result.data.recoveredSeriesFingerprints).toEqual([
+      vmFingerprint(expected),
+    ]);
+    expect(shouldChangeStatus(result)).toBe(false);
+  });
+});
 
 describe("VMware affirmative recovery through the actual criteria evaluator", () => {
   test("a healthy datastore cannot recover a different datastore in the dead band", async () => {

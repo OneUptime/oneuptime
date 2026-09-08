@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddVMwareInventory1788794906144 implements MigrationInterface {
-  public name: string = "AddVMwareInventory1788794906144";
+export class AddVMwareInventory1791800000001 implements MigrationInterface {
+  public name: string = "AddVMwareInventory1791800000001";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

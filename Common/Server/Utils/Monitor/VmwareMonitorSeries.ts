@@ -99,6 +99,16 @@ export default class VmwareMonitorSeries {
       input.source.metrics?.["oneuptime.vmware.source.up"] === 1 &&
       input.source.metrics?.["oneuptime.vmware.source.inventory.complete"] ===
         1;
+    const isMaintenanceMonitor: boolean =
+      input.config.metricViewConfig.queryConfigs.length > 0 &&
+      input.config.metricViewConfig.queryConfigs.every(
+        (query: MetricQueryConfigData): boolean => {
+          return (
+            query.metricQueryData.filterData.metricName ===
+            "oneuptime.vmware.host.maintenance"
+          );
+        },
+      );
     const interval: number = Math.max(
       30,
       input.source.collectionIntervalSeconds || 120,
@@ -176,8 +186,14 @@ export default class VmwareMonitorSeries {
       const inMaintenance: boolean =
         resource.maintenanceMode ??
         metrics["oneuptime.vmware.host.maintenance"] === 1;
+      /*
+       * Maintenance itself remains observable. Mixed queries stay suppressed so
+       * a health criterion using NoDataPolicy.Trigger cannot fire in maintenance.
+       */
+      const suppressForMaintenance: boolean =
+        inMaintenance && !isMaintenanceMonitor;
       const current: MetricSeriesResult | undefined = existing.get(fingerprint);
-      let unavailable: boolean = !sourceHealthy || inMaintenance;
+      let unavailable: boolean = !sourceHealthy || suppressForMaintenance;
       const series: MetricSeriesResult = {
         labels,
         fingerprint,
@@ -189,7 +205,7 @@ export default class VmwareMonitorSeries {
             const rows: AggregatedResult = current?.aggregatedResults[
               index
             ] || { data: [] };
-            if (!sourceHealthy || inMaintenance) {
+            if (!sourceHealthy || suppressForMaintenance) {
               return { data: [] };
             }
             /*
@@ -285,7 +301,7 @@ export default class VmwareMonitorSeries {
        * including custom NoDataPolicy.Trigger, to prevent a fleet-wide incident
        * storm. Its existing incidents remain open through the explicit guard.
        */
-      if (sourceHealthy && !inMaintenance) {
+      if (sourceHealthy && !suppressForMaintenance) {
         result.series.push(series);
       }
     }

@@ -248,6 +248,126 @@ describe("VMware snapshot policy and identity", () => {
     });
     expect(result.series[0]!.aggregatedResults[0]!.data[0]!.value).toBe(1);
   });
+  test("maintenance monitors observe entering and leaving maintenance", () => {
+    const host: VMwareResource = resource("host-1");
+    host.resourceType = "host";
+    for (const maintenance of [0, 1, 0]) {
+      host.metrics![prefix + "host.maintenance"] = maintenance;
+      const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
+        config: config("host.maintenance"),
+        source: source(),
+        resources: [host],
+        series: [series(host, maintenance)],
+        now,
+      });
+      expect(result.series).toHaveLength(1);
+      expect(result.series[0]!.aggregatedResults[0]!.data[0]!.value).toBe(
+        maintenance,
+      );
+      expect(result.unavailableSeriesFingerprints).toEqual([]);
+    }
+  });
+  test.each([true, false, null])(
+    "maintenance queries retain the reported metric with override %s",
+    (override: boolean | null) => {
+      const host: VMwareResource = resource("host-1");
+      host.resourceType = "host";
+      Object.assign(host, { maintenanceMode: override });
+      host.metrics![prefix + "host.maintenance"] = 1;
+      const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
+        config: config("host.maintenance"),
+        source: source(),
+        resources: [host],
+        series: [series(host, 1)],
+        now,
+      });
+      expect(result.series[0]!.aggregatedResults[0]!.data[0]!.value).toBe(1);
+      expect(result.unavailableSeriesFingerprints).toEqual([]);
+    },
+  );
+  test.each(["failed source", "stale report", "missing metric"])(
+    "maintenance queries still require current evidence with %s",
+    (condition: string) => {
+      const host: VMwareResource = resource("host-1");
+      host.resourceType = "host";
+      host.maintenanceMode = true;
+      host.metrics![prefix + "host.maintenance"] = 1;
+      const currentSource: VMwareSource = source();
+      if (condition === "failed source") {
+        currentSource.metrics![prefix + "source.up"] = 0;
+      } else if (condition === "stale report") {
+        host.lastReportedAt = new Date(now.getTime() - 361000);
+      } else {
+        delete host.metrics![prefix + "host.maintenance"];
+      }
+      const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
+        config: config("host.maintenance"),
+        source: currentSource,
+        resources: [host],
+        series: [series(host, 1)],
+        now,
+      });
+      expect(
+        result.series.flatMap((item: MetricSeriesResult) => {
+          return item.aggregatedResults[0]!.data;
+        }),
+      ).toEqual([]);
+      expect(result.unavailableSeriesFingerprints).toEqual([
+        series(host, 1).fingerprint,
+      ]);
+    },
+  );
+  test.each([false, true])(
+    "availability stays suppressed during maintenance with maintenance query %s",
+    (includeMaintenance: boolean) => {
+      const host: VMwareResource = resource("host-1");
+      host.resourceType = "host";
+      host.metrics![prefix + "host.maintenance"] = 1;
+      host.metrics![prefix + "host.unavailable"] = 0;
+      const monitorConfig: MonitorStepVmwareMonitor =
+        config("host.unavailable");
+      const hostSeries: MetricSeriesResult = series(host, 0);
+      if (includeMaintenance) {
+        monitorConfig.metricViewConfig.queryConfigs.push(
+          ...config("host.maintenance").metricViewConfig.queryConfigs,
+        );
+        hostSeries.aggregatedResults.push(...series(host, 1).aggregatedResults);
+      }
+      const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
+        config: monitorConfig,
+        source: source(),
+        resources: [host],
+        series: [hostSeries],
+        now,
+      });
+      expect(result.series).toEqual([]);
+      expect(result.unavailableSeriesFingerprints).toEqual([
+        hostSeries.fingerprint,
+      ]);
+    },
+  );
+  test("a VM allowed to stay off supplies explicit healthy evidence beside an expected VM", () => {
+    const expected: VMwareResource = resource("expected");
+    expected.metrics![prefix + "vm.expected_running"] = 1;
+    expected.metrics![prefix + "vm.unexpected_power_off"] = 0;
+    const optional: VMwareResource = resource("optional");
+    optional.metrics![prefix + "resource.power_state"] = 2;
+    optional.metrics![prefix + "vm.expected_running"] = 0;
+    optional.metrics![prefix + "vm.unexpected_power_off"] = 0;
+    const result: VmwareSeriesResult = VmwareMonitorSeries.apply({
+      config: config("vm.unexpected_power_off"),
+      source: source(),
+      resources: [expected, optional],
+      series: [series(expected, 0), series(optional, 0)],
+      now,
+    });
+    expect(result.unavailableSeriesFingerprints).toEqual([]);
+    expect(
+      result.series.map((item: MetricSeriesResult) => {
+        return item.aggregatedResults[0]!.data[0]!.value;
+      }),
+    ).toEqual([0, 0]);
+  });
   test("retired and out-of-scope resources do not reappear as missing", () => {
     const a: VMwareResource = resource("a");
     a.isArchived = true;

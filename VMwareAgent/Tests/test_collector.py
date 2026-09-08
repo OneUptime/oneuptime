@@ -7,11 +7,52 @@ import time
 import unittest
 import uuid
 from pathlib import Path
+from unittest.mock import Mock, patch
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
 from VMwareAgent.inventory import Snapshot, encode_otlp, normalize
 from VMwareAgent.Tests.test_inventory import vm
+
+
+def wait_for_output(read_logs, required, timeout=30):
+    # HTTP acceptance precedes asynchronous export/log delivery. Wait for the
+    # actual exported content, with a deadline and diagnostics if it never comes.
+    deadline = time.monotonic() + timeout
+    while True:
+        output = read_logs()
+        if all(value in output for value in required):
+            return output
+        if time.monotonic() >= deadline:
+            raise AssertionError(
+                "Collector did not export expected metrics:\n" + output
+            )
+        time.sleep(0.25)
+
+
+class CollectorOutputTests(unittest.TestCase):
+    def test_ready_output_does_not_wait(self):
+        logs = Mock(return_value="source resource metric")
+        with patch.object(time, "sleep") as sleep:
+            self.assertEqual(
+                wait_for_output(logs, ["source", "metric"]), "source resource metric"
+            )
+        logs.assert_called_once_with()
+        sleep.assert_not_called()
+
+    def test_http_acceptance_can_precede_export_output(self):
+        logs = Mock(side_effect=["Starting HTTP server", "metric", "metric source"])
+        with patch.object(time, "sleep") as sleep:
+            self.assertEqual(
+                wait_for_output(logs, ["metric", "source"]), "metric source"
+            )
+        self.assertEqual(logs.call_count, 3)
+        self.assertEqual(sleep.call_count, 2)
+
+    def test_missing_export_fails_at_deadline_with_collector_logs(self):
+        with patch.object(time, "monotonic", side_effect=[0, 30]):
+            with self.assertRaisesRegex(AssertionError, "exporter failed"):
+                wait_for_output(lambda: "exporter failed", ["metric"])
 
 
 @unittest.skipUnless(
@@ -75,11 +116,16 @@ class CollectorInteropTests(unittest.TestCase):
                             + command("logs", name)
                         )
                     time.sleep(0.25)
-            output = command("logs", name)
-            self.assertIn("oneuptime.vmware.vm.cpu.utilization", output)
-            self.assertIn("oneuptime.vmware.source.id", output)
-            self.assertIn("wire-test", output)
-            self.assertIn("uuid-1", output)
+            wait_for_output(
+                lambda: command("logs", name),
+                [
+                    "oneuptime.vmware.vm.cpu.utilization",
+                    "oneuptime.vmware.vm.unexpected_power_off",
+                    "oneuptime.vmware.source.id",
+                    "wire-test",
+                    "uuid-1",
+                ],
+            )
         finally:
             try:
                 command("rm", "--force", name)

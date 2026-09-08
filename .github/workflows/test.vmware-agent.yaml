@@ -38,7 +38,18 @@ jobs:
       - name: Validate Compose configuration
         run: docker compose --env-file VMwareAgent/.env.example -f VMwareAgent/docker-compose.yml config --quiet
       - name: Pull the pinned OpenTelemetry collector
-        run: docker pull otel/opentelemetry-collector-contrib:0.160.0
+        run: |
+          # Docker Hub can return transient 502/503 responses before any test
+          # starts. Retry the same pinned image while keeping failures bounded.
+          for attempt in 1 2 3; do
+            if docker pull otel/opentelemetry-collector-contrib:0.160.0; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              sleep "$((attempt * 5))"
+            fi
+          done
+          exit 1
       - name: Validate the shipped collector configuration
         run: >-
           docker run --rm --network none --read-only

@@ -111,7 +111,7 @@ from resource state:
 | `host.maintenance` | 0/1 when VMware supplied maintenance state; omitted if unknown |
 | `host.unavailable` | 1 for a known connection problem outside maintenance; 0 otherwise; omitted if connection/maintenance is unknown |
 | `vm.expected_running` | 0/1 operator intent |
-| `vm.unexpected_power_off` | 0/1 for selected VMs with known power state; omitted otherwise |
+| `vm.unexpected_power_off` | 1 for selected VMs with known non-running power state; 0 for other VMs with known power state, including when expected-running intent is removed; omitted when power state is unknown |
 | `datastore.accessible` | 0/1 when VMware supplied datastore accessibility |
 | `host.cpu.utilization`, `host.memory.utilization` | Host utilization, percent (0–100 in normal operation) |
 | `vm.cpu.utilization`, `vm.memory.utilization` | VM utilization, percent; VM memory uses VMware guest-memory quick stats |

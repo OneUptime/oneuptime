@@ -92,6 +92,53 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(self.server.payloads[0], self.server.payloads[1])
         stop.wait.assert_called_once_with(1)
 
+    def test_policy_removal_exports_recovery_and_survives_restart(self):
+        policy = Path(self.directory.name) / "policy.json"
+        policy.write_text(json.dumps({"expected_running_vm_ids": ["uuid-1"]}))
+        cfg = config(
+            self.cfg.state_file,
+            otlp_endpoint=self.cfg.otlp_endpoint,
+            policy_file=policy,
+        )
+        client = Mock()
+        client.collect.return_value = Snapshot(
+            [vm(**{"runtime.powerState": "poweredOff"})], instance_uuid="server"
+        )
+        agent = Agent(cfg, client, self.exporter, self.stop)
+
+        def poll(current, expected, observed=True, up=1):
+            self.assertTrue(current.poll())
+            source, resource = flatten(self.server.payloads[-1])
+            self.assertEqual(source[1]["source.up"], up)
+            self.assertEqual(resource[0]["resource.id"], "uuid-1")
+            self.assertEqual(resource[0]["resource.observed"], observed)
+            if expected is None:
+                self.assertNotIn("vm.unexpected_power_off", resource[1])
+            else:
+                self.assertEqual(resource[1]["vm.unexpected_power_off"], expected)
+
+        poll(agent, 1)
+        # Invalid policy is unknown, never positive recovery evidence.
+        policy.write_text("invalid")
+        with self.assertLogs(level="ERROR"):
+            poll(agent, None, observed=False, up=0)
+        policy.write_text(json.dumps({"expected_running_vm_ids": []}))
+        poll(agent, 0)
+        restarted = Agent(cfg, client, self.exporter, self.stop)
+        poll(restarted, 0)
+        # Re-applying the intent reports a new failure on the same stable series.
+        policy.write_text(json.dumps({"expected_running_vm_ids": ["uuid-1"]}))
+        poll(restarted, 1)
+        client.collect.return_value = Snapshot([], instance_uuid="server")
+        poll(restarted, None, observed=False)
+        # A subsequently observed template explicitly clears the old intent.
+        client.collect.return_value = Snapshot(
+            [vm(**{"runtime.powerState": "poweredOff", "is_template": True})],
+            instance_uuid="server",
+        )
+        poll(restarted, 0)
+        self.assertEqual(len(self.server.payloads), 7)
+
     def test_large_inventory_is_split_without_losing_resources(self):
         resources = [
             {

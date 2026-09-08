@@ -14,7 +14,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils";
 
 const now: number = new Date("2026-09-07T12:00:00Z").getTime();
-const source: VMwareSource = {
+const source: VMwareSource = Object.assign(new VMwareSource(), {
   lastSeenAt: new Date(now),
   lastCollectionAt: new Date(now),
   lastSuccessfulCollectionAt: new Date(now),
@@ -22,8 +22,8 @@ const source: VMwareSource = {
     "oneuptime.vmware.source.up": 1,
     "oneuptime.vmware.source.inventory.complete": 1,
   },
-} as VMwareSource;
-const resource: VMwareResource = {
+});
+const resource: VMwareResource = Object.assign(new VMwareResource(), {
   resourceType: "vm",
   lastSeenAt: new Date(now),
   metadata: {
@@ -31,43 +31,46 @@ const resource: VMwareResource = {
     "oneuptime.vmware.resource.power_state": "poweredOn",
   },
   metrics: { "oneuptime.vmware.vm.cpu.utilization": 0 },
-} as VMwareResource;
+});
 
 describe("VMware current state presentation", () => {
   test("performance telemetry cannot keep a stopped inventory companion healthy", () => {
     expect(
       sourceStatus(
-        {
+        Object.assign(new VMwareSource(), {
           ...source,
           lastSeenAt: new Date(now),
           lastCollectionAt: new Date(now - VMWARE_STALE_MS - 1),
-        } as VMwareSource,
+        }),
         now,
       ),
     ).toBe("Collection stale");
-    expect(sourceStatus({ ...source, metrics: {} } as VMwareSource, now)).toBe(
-      "Waiting for collection status",
-    );
+    expect(
+      sourceStatus(
+        Object.assign(new VMwareSource(), { ...source, metrics: {} }),
+        now,
+      ),
+    ).toBe("Waiting for collection status");
   });
   test("freshness follows the configured collection interval", () => {
     const lastCollectionAt: Date = new Date(now - 120000);
     expect(
       sourceStatus(
-        {
+        Object.assign(new VMwareSource(), {
           ...source,
           lastCollectionAt,
           collectionIntervalSeconds: 10,
-        } as VMwareSource,
+        }),
         now,
       ),
     ).toBe("Collection stale");
     expect(
       sourceStatus(
-        {
+        Object.assign(new VMwareSource(), {
           ...source,
           lastCollectionAt,
           collectionIntervalSeconds: 600,
-        } as VMwareSource,
+        }),
         now,
       ),
     ).toBe("Connected");
@@ -76,25 +79,28 @@ describe("VMware current state presentation", () => {
     expect(sourceStatus(source, now)).toBe("Connected");
     expect(
       sourceStatus(
-        { ...source, lastSuccessfulCollectionAt: undefined } as VMwareSource,
+        Object.assign(new VMwareSource(), {
+          ...source,
+          lastSuccessfulCollectionAt: undefined,
+        }),
         now,
       ),
     ).toBe("Waiting for successful collection");
     expect(
       sourceStatus(
-        {
+        Object.assign(new VMwareSource(), {
           ...source,
           metrics: { "oneuptime.vmware.source.up": 0 },
-        } as VMwareSource,
+        }),
         now,
       ),
     ).toBe("Collection failed");
     expect(
       sourceStatus(
-        {
+        Object.assign(new VMwareSource(), {
           ...source,
           metrics: { "oneuptime.vmware.source.inventory.complete": 0 },
-        } as VMwareSource,
+        }),
         now,
       ),
     ).toBe("Partial inventory");
@@ -107,10 +113,10 @@ describe("VMware current state presentation", () => {
     expect(isFresh(new Date(now - VMWARE_STALE_MS), now)).toBe(true);
   });
   test("source silence makes even a previously running VM unknown", () => {
-    const stale: VMwareSource = {
+    const stale: VMwareSource = Object.assign(new VMwareSource(), {
       ...source,
       lastCollectionAt: new Date(now - VMWARE_STALE_MS - 1),
-    } as VMwareSource;
+    });
     expect(resourceStatus(resource, stale, now)).toBe("Unknown · stale data");
     expect(
       metricValue(resource, "oneuptime.vmware.vm.cpu.utilization", stale, now),
@@ -123,7 +129,10 @@ describe("VMware current state presentation", () => {
     expect(metricValue(resource, "missing", source, now)).toBeNull();
     expect(
       metricValue(
-        { ...resource, metrics: { value: "0" } } as VMwareResource,
+        Object.assign(new VMwareResource(), {
+          ...resource,
+          metrics: { value: "0" },
+        }),
         "value",
         source,
         now,
@@ -131,7 +140,10 @@ describe("VMware current state presentation", () => {
     ).toBeNull();
     expect(
       metricValue(
-        { ...resource, metrics: { value: NaN } } as VMwareResource,
+        Object.assign(new VMwareResource(), {
+          ...resource,
+          metrics: { value: NaN },
+        }),
         "value",
         source,
         now,
@@ -139,71 +151,77 @@ describe("VMware current state presentation", () => {
     ).toBeNull();
   });
   test("power-off only violates an explicit or inherited expected-running policy", () => {
-    const off: VMwareResource = {
+    const off: VMwareResource = Object.assign(new VMwareResource(), {
       ...resource,
       metadata: {
         "oneuptime.vmware.resource.power_state": "poweredOff",
         "oneuptime.vmware.vm.expected_running": true,
       },
-    } as VMwareResource;
+    });
     expect(resourceStatus(off, source, now)).toBe(
       "Expected running · powered off",
     );
     expect(
       resourceStatus(
-        { ...off, expectedRunning: false } as VMwareResource,
+        Object.assign(new VMwareResource(), { ...off, expectedRunning: false }),
         source,
         now,
       ),
     ).toBe("Powered off");
     expect(
       resourceStatus(
-        { ...off, expectedRunning: true } as VMwareResource,
+        Object.assign(new VMwareResource(), { ...off, expectedRunning: true }),
         source,
         now,
       ),
     ).toBe("Expected running · powered off");
   });
   test("maintenance can inherit the collector and false overrides inherited maintenance", () => {
-    const maintained: VMwareResource = {
+    const maintained: VMwareResource = Object.assign(new VMwareResource(), {
       ...resource,
       metadata: {
         ...resource.metadata,
         "oneuptime.vmware.host.maintenance": true,
       },
-    } as VMwareResource;
+    });
     expect(resourceStatus(maintained, source, now)).toBe("Maintenance");
     expect(
       resourceStatus(
-        { ...maintained, maintenanceMode: false } as VMwareResource,
+        Object.assign(new VMwareResource(), {
+          ...maintained,
+          maintenanceMode: false,
+        }),
         source,
         now,
       ),
     ).toBe("Running");
     expect(
       resourceStatus(
-        { ...resource, maintenanceMode: true } as VMwareResource,
+        Object.assign(new VMwareResource(), {
+          ...resource,
+          maintenanceMode: true,
+        }),
         source,
         now,
       ),
     ).toBe("Maintenance");
   });
   test("explicit absence and retirement never show a healthy or zero-utilization resource", () => {
-    const absent: VMwareResource = {
+    const absent: VMwareResource = Object.assign(new VMwareResource(), {
       ...resource,
       lastSeenAt: new Date(now - VMWARE_STALE_MS - 1),
       metadata: { "oneuptime.vmware.resource.observed": false },
-    } as VMwareResource;
+    });
     expect(resourceStatus(absent, source, now)).toBe("Not observed");
     expect(
       metricValue(absent, "oneuptime.vmware.vm.cpu.utilization", source, now),
     ).toBeNull();
     expect(
       resourceStatus(
-        {
+        Object.assign(new VMwareResource(), {
           ...absent,
           metadata: { "oneuptime.vmware.resource.retired": true },
-        } as VMwareResource,
+        }),
         source,
         now,
       ),
@@ -212,13 +230,13 @@ describe("VMware current state presentation", () => {
   test("critical reported health remains visible for a running VM", () => {
     expect(
       resourceStatus(
-        {
+        Object.assign(new VMwareResource(), {
           ...resource,
           metadata: {
             ...resource.metadata,
             "oneuptime.vmware.resource.state": "critical",
           },
-        } as VMwareResource,
+        }),
         source,
         now,
       ),

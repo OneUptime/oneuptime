@@ -178,8 +178,13 @@ def normalize(snapshot, expected, known=None):
             attributes["vm.template"] = props.get("is_template") is True
             attributes["vm.expected_running"] = expecting
             metrics["vm.expected_running"] = (int(expecting), "1")
-            if expecting and power:
-                metrics["vm.unexpected_power_off"] = (int(power != 1), "1")
+            if power:
+                # Emit explicit recovery when policy is removed or the VM becomes
+                # a template. An absent metric means unknown to the server and
+                # cannot clear a previously reported unexpected-power incident.
+                metrics["vm.unexpected_power_off"] = (
+                    int(expecting and power != 1), "1"
+                )
                 # Desired power policy is separate from reported health. The
                 # server may override this expectation without changing vSphere.
             if connection and connection != 1:
