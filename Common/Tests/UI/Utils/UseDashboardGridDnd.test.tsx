@@ -10,6 +10,7 @@ import useDashboardGridDnd, {
   ResizeDirection,
 } from "../../../UI/Utils/UseDashboardGridDnd";
 import { GridRect } from "../../../Utils/Dashboard/GridLayout";
+import DashboardStackingLayers from "../../../UI/Utils/DashboardStackingLayers";
 
 /*
  * Grid used throughout: 50px units with a 10px gap, so one grid cell pitch
@@ -480,7 +481,9 @@ describe("useDashboardGridDnd — moving widgets", () => {
     // Raw pixel tracking: exactly one cell right of the origin.
     expect(element.style.transform).toBe(`translate(${CELL}px, 0px)`);
     expect(element.style.transition).toBe("none");
-    expect(element.style.zIndex).toBe("60");
+    expect(element.style.zIndex).toBe(
+      String(DashboardStackingLayers.canvasDraggingComponent),
+    );
 
     release({ x: 10 + CELL, y: 10 });
 
@@ -491,7 +494,9 @@ describe("useDashboardGridDnd — moving widgets", () => {
     expect(element.style.transform).toBe(`translate(${CELL}px, 0px)`);
     expect(element.style.transition).toContain("transform");
     expect(element.style.transition).not.toBe("none");
-    expect(element.style.zIndex).toBe("60");
+    expect(element.style.zIndex).toBe(
+      String(DashboardStackingLayers.canvasDraggingComponent),
+    );
 
     // ...and the elevation clears once the settle finishes.
     act(() => {
