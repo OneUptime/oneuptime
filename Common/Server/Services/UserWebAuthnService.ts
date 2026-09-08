@@ -4,6 +4,7 @@ import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/UserWebAuthn";
 import UserService from "./UserService";
 import BadDataException from "../../Types/Exception/BadDataException";
+import Exception from "../../Types/Exception/Exception";
 import User from "../../Models/DatabaseModels/User";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -19,6 +20,115 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import OneUptimeDate from "../../Types/Date";
 
 const WEBAUTHN_CHALLENGE_TTL_MINUTES: number = 5;
+
+/*
+ * How much a security key is asked to prove about the person holding it.
+ *
+ * "preferred" means: verify the user -- a fingerprint, a face, a PIN, a system
+ * password -- IF you can, and go ahead without it if you cannot. That second
+ * clause is the entire reason to choose the value over "required", and it is
+ * exercised constantly by ordinary hardware:
+ *
+ *   - a MacBook running folded shut on an external display ("clamshell") has
+ *     no reachable Touch ID sensor;
+ *   - a plain USB security key with no PIN set has nothing to verify with;
+ *   - Windows Hello is unavailable on a desktop with no camera or reader.
+ *
+ * In each case the browser returns a perfectly good credential with the UV bit
+ * in the authenticator data left CLEAR, exactly as we asked it to.
+ */
+type WebAuthnUserVerification = "required" | "preferred" | "discouraged";
+
+const WEBAUTHN_USER_VERIFICATION: WebAuthnUserVerification = "preferred";
+
+/*
+ * The other half of that policy, and the half that was missing.
+ *
+ * `verifyRegistrationResponse` and `verifyAuthenticationResponse` both default
+ * `requireUserVerification` to TRUE. Left unset, they therefore REJECT the
+ * very responses the options above told the authenticator were acceptable --
+ * so a user in clamshell mode got "User verification was required, but user
+ * could not be verified" thrown out of the library and rendered as an
+ * unexplained "Server Error" (issue #3652). Registration was where it was
+ * reported, but the identical default sits on the authentication call, so a
+ * key enrolled at a desk also failed to SIGN IN from the same laptop later.
+ *
+ * DERIVED from the requested policy rather than written as a bare `false` in
+ * two places, because the drift between what we asked for and what we then
+ * demanded IS the bug. Tying both to one constant means raising the policy to
+ * "required" cannot leave verification behind, and relaxing it cannot leave
+ * verification ahead. The comparison goes through a function taking the union
+ * type because TypeScript narrows a `const` to the literal it was initialised
+ * with and then rejects the comparison outright -- which would push this back
+ * to a hand-written `false` and reopen the drift.
+ *
+ * Relaxing this does not weaken the account. A security key is OneUptime's
+ * SECOND factor: the password has already been proven by the time any of this
+ * runs (see the verifyWebAuthn branch in
+ * App/FeatureSet/Identity/API/Authentication.ts), so user verification would
+ * be buying a second proof of the same person rather than a second factor.
+ * What it would cost is real -- every authenticator that cannot verify becomes
+ * unusable, and the user is locked out by hardware rather than by policy.
+ */
+type RequiresUserVerificationFunction = (
+  policy: WebAuthnUserVerification,
+) => boolean;
+
+const requiresUserVerification: RequiresUserVerificationFunction = (
+  policy: WebAuthnUserVerification,
+): boolean => {
+  return policy === "required";
+};
+
+const WEBAUTHN_REQUIRE_USER_VERIFICATION: boolean = requiresUserVerification(
+  WEBAUTHN_USER_VERIFICATION,
+);
+
+/*
+ * Everything @simplewebauthn/server refuses, it refuses by throwing a plain
+ * `Error` rather than one of our `Exception`s -- and the last-resort handler
+ * in Common/Server/Utils/StartServer.ts has no branch for a plain Error. It
+ * falls through to `res.status(500).send({ error: "Server Error" })`, which
+ * DISCARDS the message.
+ *
+ * That is the other half of what issue #3652 reported. The user saw an
+ * unexplained "Server Error"; the sentence that actually says what went wrong
+ * ("User verification was required, but user could not be verified") only ever
+ * reached the server log, which a hosted user cannot read at all and a
+ * self-hoster has to go looking for. Every WebAuthn failure looked identical
+ * from the browser: a misconfigured reverse proxy serving a different origin
+ * than HOST claims, a challenge that timed out while the user hunted for their
+ * key, and a genuinely bad credential were one indistinguishable 500.
+ *
+ * The messages are safe to show. They name the origin, the relying party id or
+ * the challenge THIS SERVER expected -- all of which the browser making the
+ * request already knows -- and for a self-hoster the origin mismatch is the
+ * single most useful thing the product can say.
+ *
+ * Exceptions we raised ourselves pass straight through, so the specific
+ * wording of the challenge errors below is not flattened into the generic one.
+ */
+type VerifyWebAuthnResponseFunction = (
+  verify: () => Promise<any>,
+) => Promise<any>;
+
+const explainVerificationFailure: VerifyWebAuthnResponseFunction = async (
+  verify: () => Promise<any>,
+): Promise<any> => {
+  try {
+    return await verify();
+  } catch (err) {
+    if (err instanceof Exception) {
+      throw err;
+    }
+
+    throw new BadDataException(
+      err instanceof Error && err.message
+        ? err.message
+        : "Could not verify this security key.",
+    );
+  }
+};
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -82,7 +192,7 @@ export class Service extends DatabaseService<Model> {
         }),
       authenticatorSelection: {
         residentKey: "discouraged",
-        userVerification: "preferred",
+        userVerification: WEBAUTHN_USER_VERIFICATION,
       },
     });
 
@@ -140,11 +250,14 @@ export class Service extends DatabaseService<Model> {
 
     const expectedOrigin: string = `${HttpProtocol}${Host.toString()}`;
 
-    const verification: any = await verifyRegistrationResponse({
-      response: data.credential,
-      expectedChallenge: storedChallenge,
-      expectedOrigin: expectedOrigin,
-      expectedRPID: Host.toString(),
+    const verification: any = await explainVerificationFailure(() => {
+      return verifyRegistrationResponse({
+        response: data.credential,
+        expectedChallenge: storedChallenge,
+        expectedOrigin: expectedOrigin,
+        expectedRPID: Host.toString(),
+        requireUserVerification: WEBAUTHN_REQUIRE_USER_VERIFICATION,
+      });
     });
 
     if (!verification.verified) {
@@ -225,7 +338,7 @@ export class Service extends DatabaseService<Model> {
           type: "public-key",
         };
       }),
-      userVerification: "preferred",
+      userVerification: WEBAUTHN_USER_VERIFICATION,
     });
 
     // Convert to JSON serializable format
@@ -303,16 +416,19 @@ export class Service extends DatabaseService<Model> {
 
     const expectedOrigin: string = `${HttpProtocol}${Host.toString()}`;
 
-    const verification: any = await verifyAuthenticationResponse({
-      response: data.credential,
-      expectedChallenge: storedChallenge,
-      expectedOrigin: expectedOrigin,
-      expectedRPID: Host.toString(),
-      credential: {
-        id: dbCredential.credentialId!,
-        publicKey: Buffer.from(dbCredential.publicKey!, "base64"),
-        counter: parseInt(dbCredential.counter!),
-      } as any,
+    const verification: any = await explainVerificationFailure(() => {
+      return verifyAuthenticationResponse({
+        response: data.credential,
+        expectedChallenge: storedChallenge,
+        expectedOrigin: expectedOrigin,
+        expectedRPID: Host.toString(),
+        credential: {
+          id: dbCredential.credentialId!,
+          publicKey: Buffer.from(dbCredential.publicKey!, "base64"),
+          counter: parseInt(dbCredential.counter!),
+        } as any,
+        requireUserVerification: WEBAUTHN_REQUIRE_USER_VERIFICATION,
+      });
     });
 
     if (!verification.verified) {
