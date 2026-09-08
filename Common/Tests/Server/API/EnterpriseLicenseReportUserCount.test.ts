@@ -1503,6 +1503,17 @@ describe("EnterpriseLicenseAPI POST /enterprise-license/validate", () => {
           return [];
         },
       );
+    /*
+     * Relative to now, like every other date in this file: the legacy usage
+     * fallback only trusts userCountUpdatedAt while it is inside the
+     * InstanceUsageFreshnessInDays window, so a fixed date silently stops
+     * being fresh and the echoed count collapses to 0.
+     */
+    const userCountUpdatedAt: Date = OneUptimeDate.addRemoveDays(
+      OneUptimeDate.getCurrentDate(),
+      -1,
+    );
+
     EnterpriseLicenseService.findOneById = jest
       .fn()
       .mockImplementation(async (): Promise<EnterpriseLicense> => {
@@ -1510,7 +1521,7 @@ describe("EnterpriseLicenseAPI POST /enterprise-license/validate", () => {
         events.push("license");
         return makeLicense({
           currentUserCount: 17,
-          userCountUpdatedAt: new Date("2026-09-01T12:00:00.000Z"),
+          userCountUpdatedAt,
         });
       });
 
@@ -1523,7 +1534,7 @@ describe("EnterpriseLicenseAPI POST /enterprise-license/validate", () => {
     expect(getResponseBody()).toEqual(
       expect.objectContaining({
         currentUserCount: 17,
-        userCountUpdatedAt: "2026-09-01T12:00:00.000Z",
+        userCountUpdatedAt: userCountUpdatedAt.toISOString(),
       }),
     );
     expect(
