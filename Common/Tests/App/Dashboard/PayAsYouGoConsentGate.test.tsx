@@ -1,3 +1,5 @@
+import BaseAPI from "../../../UI/Utils/API/API";
+import ObjectID from "../../../Types/ObjectID";
 import "@testing-library/jest-dom";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -33,6 +35,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getItem: (...args: Array<any>) => {
         return getItemMock(...args);
       },
+      getCommonHeaders: () => { return {}; },
       createOrUpdate: (...args: Array<any>) => {
         return createOrUpdateMock(...args);
       },
@@ -186,6 +189,8 @@ const renderMonitorForm: RenderMonitorFormFunction = (
 describe("Pay as you go consent gate", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(ObjectID.generate());
+    jest.spyOn(BaseAPI, "get").mockResolvedValue({ data: { isAllowed: true } } as any);
     config.billingEnabled = true;
     createOrUpdateMock.mockReset();
     getItemMock.mockReset();

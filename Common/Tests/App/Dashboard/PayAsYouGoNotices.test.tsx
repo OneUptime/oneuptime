@@ -1,3 +1,6 @@
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import BaseAPI from "../../../UI/Utils/API/API";
+import ObjectID from "../../../Types/ObjectID";
 import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -79,6 +82,9 @@ const setPlan: SetPlanFunction = (plan: PlanType | null): void => {
 describe("Pay as you go notices", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(ObjectID.generate());
+    jest.spyOn(ModelAPI, "getCommonHeaders").mockReturnValue({});
+    jest.spyOn(BaseAPI, "get").mockResolvedValue({ data: { isAllowed: true } } as any);
     config.billingEnabled = true;
     setPlan(PlanType.Free);
   });
@@ -267,7 +273,7 @@ describe("Pay as you go notices", () => {
 
       expect(fields).toHaveLength(2);
       expect(fields[0]?.fieldType).toBe(FormFieldSchemaType.CustomComponent);
-      expect(fields[1]?.fieldType).toBe(FormFieldSchemaType.Checkbox);
+      expect(fields[1]?.fieldType).toBe(FormFieldSchemaType.CustomComponent);
     });
 
     it("renders the modal notice with the rate and a pricing link", () => {
@@ -382,7 +388,7 @@ describe("Pay as you go notices", () => {
       );
 
       expect(fields).toHaveLength(1);
-      expect(fields[0]?.fieldType).toBe(FormFieldSchemaType.Checkbox);
+      expect(fields[0]?.fieldType).toBe(FormFieldSchemaType.CustomComponent);
       expect(fields[0]?.stepId).toBe("monitor-info");
       expect(fields[0]?.overrideField).toEqual({
         [MONITOR_CONSENT_FIELD_KEY]: true,

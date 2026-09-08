@@ -52,6 +52,8 @@ import {
   IsBillingEnabled,
 } from "../EnvironmentConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import QueryHelper from "../Types/Database/QueryHelper";
+import PayAsYouGoBillingService from "./PayAsYouGoBillingService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -71,6 +73,7 @@ export class Service extends DatabaseService<Model> {
         projectId: data.projectId,
         productType: data.productType,
         isReportedToBillingProvider: false,
+        totalCostInUSD: QueryHelper.greaterThan(0),
       },
       skip: 0,
       limit: LIMIT_MAX, /// because a project can have MANY telemetry services.
@@ -84,6 +87,31 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  public async waiveUnreportedUsageBilling(data: {
+    projectId: ObjectID;
+    productType: ProductType;
+    before?: Date;
+  }): Promise<void> {
+    let updated: number;
+    do {
+      updated = await this.updateBy({
+        query: {
+          projectId: data.projectId,
+          productType: data.productType,
+          isReportedToBillingProvider: false,
+          totalCostInUSD: QueryHelper.greaterThan(0),
+          ...(data.before
+            ? { createdAt: QueryHelper.lessThan(data.before) }
+            : {}),
+        },
+        data: { totalCostInUSD: new Decimal(0) },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: { isRoot: true, ignoreHooks: true },
+      });
+    } while (updated === LIMIT_MAX);
+  }
+
   @CaptureSpan()
   public async stageTelemetryUsageForProject(data: {
     projectId: ObjectID;
@@ -94,9 +122,30 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
+    if (
+      !(await PayAsYouGoBillingService.canUsePayAsYouGo(data.projectId, {
+        useCache: false,
+      }))
+    ) {
+      await this.waiveUnreportedUsageBilling(data);
+      return;
+    }
+
     const usageDate: Date = data.usageDate
       ? OneUptimeDate.fromString(data.usageDate)
       : OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -1);
+
+    const billingStartsAt: Date | undefined =
+      await PayAsYouGoBillingService.getTelemetryBillingStartDate(
+        data.projectId,
+      );
+    if (
+      billingStartsAt &&
+      OneUptimeDate.getStartOfDay(usageDate, "UTC").getTime() <
+        billingStartsAt.getTime()
+    ) {
+      return;
+    }
 
     const averageRowSizeInBytes: number = this.getAverageRowSizeForProduct(
       data.productType,
@@ -138,9 +187,9 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const usageDayString: string = OneUptimeDate.getDateString(usageDate);
-    const startOfDay: Date = OneUptimeDate.getStartOfDay(usageDate);
-    const endOfDay: Date = OneUptimeDate.getEndOfDay(usageDate);
+    const usageDayString: string = this.getUsageDayString(usageDate);
+    const startOfDay: Date = OneUptimeDate.getStartOfDay(usageDate, "UTC");
+    const endOfDay: Date = OneUptimeDate.getEndOfDay(usageDate, "UTC");
 
     /*
      * Enumerate usage from ClickHouse by (primaryEntityId, primaryEntityType) in a
@@ -580,7 +629,7 @@ export class Service extends DatabaseService<Model> {
       ? OneUptimeDate.fromString(data.usageDate)
       : OneUptimeDate.getCurrentDate();
 
-    const usageDayString: string = OneUptimeDate.getDateString(usageDate);
+    const usageDayString: string = this.getUsageDayString(usageDate);
 
     const totalCostOfThisOperationInUSD: number =
       serverMeteredPlan.getTotalCostInUSD({
@@ -660,6 +709,14 @@ export class Service extends DatabaseService<Model> {
         },
       });
     }
+  }
+
+  private getUsageDayString(usageDate: Date): string {
+    return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+      date: usageDate,
+      timezone: "UTC",
+      format: "MMM DD, YYYY",
+    });
   }
 
   private getAverageRowSizeForProduct(productType: ProductType): number {

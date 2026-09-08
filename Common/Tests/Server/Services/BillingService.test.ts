@@ -747,6 +747,15 @@ describe("BillingService", () => {
     describe("addOrUpdateMeteredPricingOnSubscription", () => {
       const quantity: number = 10;
 
+      beforeEach(async () => {
+        const { default: paymentAuthorization } = await import(
+          "../../../Server/Services/PayAsYouGoBillingService"
+        );
+        jest
+          .spyOn(paymentAuthorization, "requireMeteredSubscriptionPayment")
+          .mockResolvedValue(undefined);
+      });
+
       it("should throw if billing is not enabled", async () => {
         billingService = await mockIsBillingEnabled(false);
 

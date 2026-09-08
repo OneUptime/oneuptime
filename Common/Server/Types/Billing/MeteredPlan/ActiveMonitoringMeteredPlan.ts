@@ -9,6 +9,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import Project from "../../../../Models/DatabaseModels/Project";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+import PayAsYouGoBillingService from "../../../Services/PayAsYouGoBillingService";
 
 export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
   @CaptureSpan()
@@ -43,6 +44,14 @@ export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
         isRoot: true,
       },
     });
+
+    if (
+      !(await PayAsYouGoBillingService.canUsePayAsYouGo(projectId, {
+        useCache: false,
+      }))
+    ) {
+      return;
+    }
 
     // update this count in project as well.
     const project: Project | null = await ProjectService.findOneById({

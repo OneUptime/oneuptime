@@ -13,6 +13,14 @@ import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngesti
 import logger from "Common/Server/Utils/Logger";
 import { authenticateRequest } from "../../FeatureSet/Telemetry/GrpcServer";
 
+// Payment eligibility is covered by the billing admission suites.
+jest.mock("Common/Server/Services/PayAsYouGoBillingService", () => {
+  return {
+    __esModule: true,
+    default: { requirePayAsYouGo: jest.fn().mockResolvedValue(undefined) },
+  };
+});
+
 /*
  * This suite proves the END-TO-END property behind the gRPC auth change:
  * repeated authenticateRequest calls for the same token reach the

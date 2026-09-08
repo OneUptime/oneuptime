@@ -17,6 +17,18 @@ import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngesti
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
+// Payment eligibility is covered by the billing admission suites.
+jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
+  return {
+    __esModule: true,
+    default: {
+      requirePayAsYouGo: jest
+        .fn<() => Promise<void>>()
+        .mockResolvedValue(undefined),
+    },
+  };
+});
+
 /*
  * WHAT THIS FILE IS DEFENDING
  *
@@ -51,8 +63,9 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
  *      "you may not empty this list" guard.
  *   3. COST. The guard that refuses an empty allowlist has to read the rows
  *      the update matches. That read must happen ONLY when the patch actually
- *      empties the list - the common update (rename, toggle isEnabled, set an
- *      expiry) must not start paying a query for a rule it cannot break.
+ *      empties the list. Renaming, disabling, or setting an expiry must not
+ *      start paying a query for a rule they cannot break. Re-enabling has its
+ *      own billing check, covered by TelemetryPayAsYouGoBilling.test.ts.
  *
  * Nothing here touches Postgres or Redis: the hooks are invoked directly on a
  * fresh service instance whose findBy/findOneBy are stubbed.
@@ -130,7 +143,7 @@ function buildService(): Harness {
 function createByModel(payload: Record<string, unknown>): CreateBy<Model> {
   return {
     data: Object.assign(new Model(), payload) as Model,
-    props: { isRoot: true },
+    props: { isRoot: true, tenantId: PROJECT_ID },
   };
 }
 
@@ -141,7 +154,7 @@ function createByModel(payload: Record<string, unknown>): CreateBy<Model> {
 function createByBag(payload: Record<string, unknown>): CreateBy<Model> {
   return {
     data: payload as unknown as Model,
-    props: { isRoot: true },
+    props: { isRoot: true, tenantId: PROJECT_ID },
   };
 }
 

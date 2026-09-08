@@ -5,6 +5,14 @@ import TelemetryIngestionKeyPolicy from "../../../Types/Telemetry/TelemetryInges
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
 import TelemetryIngestionKeyService from "../../../Server/Services/TelemetryIngestionKeyService";
 
+// Payment eligibility is covered by the billing admission suites.
+jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
+  return {
+    __esModule: true,
+    default: { requirePayAsYouGo: jest.fn().mockResolvedValue(undefined) },
+  };
+});
+
 /*
  * Every TelemetryIngestionKey in every installation that exists today was
  * written before this feature's seven columns did, so it reads back with all

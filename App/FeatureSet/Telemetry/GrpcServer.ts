@@ -3,6 +3,7 @@ import * as protoLoader from "@grpc/proto-loader";
 import path from "path";
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
+import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
 import TelemetryIngestionKeyGuard, {
@@ -168,7 +169,7 @@ export function buildTelemetryRequest(
   return req as TelemetryRequest;
 }
 
-async function handleExport(
+export async function handleExport(
   call: GrpcCall,
   callback: GrpcCallback,
   productType: ProductType,
@@ -205,6 +206,17 @@ async function handleExport(
 
     callback(null, {});
   } catch (err) {
+    if (err instanceof PaymentRequiredException) {
+      callback({
+        name: "PaymentRequiredException",
+        message: err.message,
+        code: grpc.status.PERMISSION_DENIED,
+        details: err.message,
+        metadata: new grpc.Metadata(),
+      });
+      return;
+    }
+
     logger.error(`gRPC ${productType} export error:`, { service: "telemetry" });
     logger.error(err, { service: "telemetry" });
     // Return success to avoid OTel SDK retries

@@ -2,6 +2,7 @@ import { BillingWebhookSecret, IsBillingEnabled } from "../EnvironmentConfig";
 import Stripe from "stripe";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import BillingService from "../Services/BillingService";
+import PayAsYouGoBillingService from "../Services/PayAsYouGoBillingService";
 import ProjectService from "../Services/ProjectService";
 import Express, {
   ExpressRequest,
@@ -117,6 +118,35 @@ export default class BillingAPI {
             `[Invoice Email] Stripe webhook error: ${err}`,
             getLogAttributesFromRequest(req as OneUptimeRequest),
           );
+          next(err);
+        }
+      },
+    );
+
+    this.router.get(
+      `/billing/pay-as-you-go-status`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const projectId: ObjectID | null = this.getTenantId(req);
+          if (!projectId) {
+            throw new BadDataException("Project ID is required");
+          }
+
+          // Members need the feature gate, but never card or invoice details.
+          const permissions: Array<UserPermission> =
+            await this.getPermissionsForTenant(req);
+          if (
+            permissions.length === 0 &&
+            !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin
+          ) {
+            throw new BadDataException("You do not have access to this project");
+          }
+
+          return Response.sendJsonObjectResponse(req, res, {
+            isAllowed: await PayAsYouGoBillingService.canUsePayAsYouGo(projectId),
+          });
+        } catch (err) {
           next(err);
         }
       },

@@ -19,7 +19,8 @@ import AlertBanner, {
 } from "Common/UI/Components/AlertBanner/AlertBanner";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
+import PaidUsageConsent from "./PaidUsageConsent";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -32,9 +33,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  *
  * Telemetry ingest and active monitors are metered: nothing about them is
  * included in the Free plan, so a user who creates an ingestion key or a
- * non-Manual monitor starts a charge. The server bills for it either way -
- * these components exist so the first the user hears of it is not the
- * invoice. Everything here renders only when billing is on AND the project is
+ * non-Manual monitor requires billing setup. The server enforces payment
+ * eligibility, and these components explain prices and require acknowledgement
+ * before a user can start paid usage. Everything here renders only when billing is on AND the project is
  * on Free (see isProjectOnFreePlan, which fails closed).
  */
 
@@ -251,7 +252,7 @@ export const TelemetryPayAsYouGoCard: FunctionComponent = (): ReactElement => {
       priceCaption={`per GB ingested (${TELEMETRY_PRICE_RETENTION_IN_DAYS} day retention)`}
       summary={`Telemetry is available on the Free plan, but it is not bundled into it. Data you send with an ingestion key is billed as you use it. ${TELEMETRY_RATES_SENTENCE}`}
       points={[
-        "No commitment - you are only charged for what you ingest.",
+        "A payment method is required before you can send paid telemetry.",
         "Stop sending data, or delete the key, and the charge stops.",
         "Longer retention costs proportionally more per GB.",
       ]}
@@ -281,6 +282,7 @@ export const MonitorPayAsYouGoCard: FunctionComponent = (): ReactElement => {
       summary={`Your project is on the Free plan. Every monitor type except ${MonitorType.Manual} is an active monitor and is billed at ${ACTIVE_MONITOR_PRICE_SENTENCE}.`}
       points={[
         `${MonitorType.Manual} monitors are always free, and unlimited.`,
+        "Add a payment method before creating an active monitor.",
         "No commitment - delete a monitor and the charge stops.",
         "Telemetry based monitors are billed as active monitors on top of the telemetry they read.",
       ]}
@@ -300,7 +302,7 @@ const TelemetryPayAsYouGoModalNotice: FunctionComponent = (): ReactElement => {
     >
       <p className="text-sm text-gray-700">
         Your project is on the Free plan, which does not bundle any telemetry.
-        Data sent with this ingestion key is billed as you use it.{" "}
+        A payment method is required before you can create a key or send paid telemetry. Data sent with this ingestion key is billed as you use it.{" "}
         {TELEMETRY_RATES_SENTENCE}{" "}
         <Link
           className="underline"
@@ -353,7 +355,17 @@ export function getTelemetryPayAsYouGoFormFields(): Array<
       showEvenIfPermissionDoesNotExist: true,
       doNotShowWhenEditing: true,
       spanFullRow: true,
-      fieldType: FormFieldSchemaType.Checkbox,
+      fieldType: FormFieldSchemaType.CustomComponent,
+      getCustomElement: (values: FormValues<TelemetryIngestionKey>, props: CustomElementProps): ReactElement => {
+        return <PaidUsageConsent
+          title="I agree to these usage charges"
+          description={TELEMETRY_RATES_SENTENCE}
+          value={(values as Record<string, unknown>)[TELEMETRY_CONSENT_FIELD_KEY] === true}
+          onChange={props.onChange}
+          error={props.error}
+          dataTestId="telemetry-pay-as-you-go-consent"
+        />;
+      },
       title: "I understand telemetry sent with this key is billed as I use it",
       description: TELEMETRY_RATES_SENTENCE,
       dataTestId: "telemetry-pay-as-you-go-consent",
@@ -439,7 +451,7 @@ export const MonitorBatchPayAsYouGoConsent: FunctionComponent<
       className="rounded-lg border border-amber-200 bg-amber-50 p-4"
       data-testid="monitor-batch-pay-as-you-go-notice"
     >
-      <CheckboxElement
+      <PaidUsageConsent
         title={`I understand these monitors are billed at ${ACTIVE_MONITOR_PRICE_TEXT} per month each`}
         description={
           <span>
@@ -485,7 +497,17 @@ export function getMonitorPayAsYouGoFormFields(data: {
       showEvenIfPermissionDoesNotExist: true,
       stepId: data.stepId,
       spanFullRow: true,
-      fieldType: FormFieldSchemaType.Checkbox,
+      fieldType: FormFieldSchemaType.CustomComponent,
+      getCustomElement: (values: FormValues<Monitor>, props: CustomElementProps): ReactElement => {
+        return <PaidUsageConsent
+          title="I agree to these usage charges"
+          description={`${ACTIVE_MONITOR_PRICE_SENTENCE}. Manual monitors remain free.`}
+          value={(values as Record<string, unknown>)[MONITOR_CONSENT_FIELD_KEY] === true}
+          onChange={props.onChange}
+          error={props.error}
+          dataTestId="monitor-pay-as-you-go-consent"
+        />;
+      },
       title: `I understand this monitor is billed at ${ACTIVE_MONITOR_PRICE_TEXT} per month`,
       description: `Your project is on the Free plan. Every monitor type except ${MonitorType.Manual} is an active monitor, billed at ${ACTIVE_MONITOR_PRICE_SENTENCE}. Pick ${MonitorType.Manual} if you do not want to be billed for this monitor.`,
       dataTestId: "monitor-pay-as-you-go-consent",

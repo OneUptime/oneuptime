@@ -8,6 +8,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import Project from "../../../../Models/DatabaseModels/Project";
 import TelemetryUsageBilling from "../../../../Models/DatabaseModels/TelemetryUsageBilling";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+import PayAsYouGoBillingService from "../../../Services/PayAsYouGoBillingService";
 
 export default class TelemetryMeteredPlan extends ServerMeteredPlan {
   private _productType!: ProductType;
@@ -54,7 +55,27 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
       meteredPlanSubscriptionId?: string | undefined;
     },
   ): Promise<void> {
-    // get all unreported logs
+    if (
+      !(await PayAsYouGoBillingService.canUsePayAsYouGo(projectId, {
+        useCache: false,
+      }))
+    ) {
+      await TelemetryUsageBillingService.waiveUnreportedUsageBilling({
+        projectId: projectId,
+        productType: this.productType,
+      });
+      return;
+    }
+
+    const billingStartsAt: Date | undefined =
+      await PayAsYouGoBillingService.getTelemetryBillingStartDate(projectId);
+    if (billingStartsAt) {
+      await TelemetryUsageBillingService.waiveUnreportedUsageBilling({
+        projectId: projectId,
+        productType: this.productType,
+        before: billingStartsAt,
+      });
+    }
 
     await TelemetryUsageBillingService.stageTelemetryUsageForProject({
       projectId: projectId,

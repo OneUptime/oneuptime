@@ -16,6 +16,14 @@ import logger from "Common/Server/Utils/Logger";
 import { authenticateRequest } from "../../FeatureSet/Telemetry/GrpcServer";
 import { startMqttServer } from "../../FeatureSet/Telemetry/MqttServer";
 
+// Billing admission is exercised independently by TelemetryPayAsYouGoBilling.
+jest.mock("Common/Server/Services/PayAsYouGoBillingService", () => {
+  return {
+    __esModule: true,
+    default: { requirePayAsYouGo: jest.fn().mockResolvedValue(undefined) },
+  };
+});
+
 /*
  * THE INVARIANT
  * =============
