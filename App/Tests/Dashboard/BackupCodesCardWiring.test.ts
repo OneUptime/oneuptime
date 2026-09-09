@@ -5,6 +5,7 @@ import API from "Common/Utils/API";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
+import ts from "typescript";
 
 /*
  * ---------------------------------------------------------------------------
@@ -362,51 +363,56 @@ const componentPropsBlock: string = blockAfter(
   "export interface ComponentProps",
 );
 
-type RegionBetweenFunction = (data: {
-  source: string;
-  startMarker: string;
-  endMarker: string;
-}) => string;
-
 /*
- * One submit handler on the profile page, bounded by the route it posts to and
- * the start of the next one. Bounding matters here for the same reason it does
- * for the two modals above: the page holds two enrolment flows that read the
- * same helper, and an unbounded assertion would be satisfied by either -- so
- * deleting the read from ONE of them, which is the regression that leaves half
- * of all enrolments holding unseen codes, would still pass.
+ * Find the function that actually sends each enrolment request. Passkey setup
+ * moved registration into a named callback above the TOTP modal, so delimiting
+ * handlers by the next route's position no longer works. Walking syntax parents
+ * keeps each assertion inside its own handler regardless of declaration order;
+ * another enrolment flow cannot satisfy a missing recovery-code read.
  */
-const regionBetween: RegionBetweenFunction = (data: {
-  source: string;
-  startMarker: string;
-  endMarker: string;
-}): string => {
-  const startIndex: number = data.source.indexOf(data.startMarker);
-  const endIndex: number = data.source.indexOf(
-    data.endMarker,
-    startIndex + data.startMarker.length,
-  );
+const profileSyntax: ts.SourceFile = ts.createSourceFile(
+  "TwoFactorAuth.tsx",
+  twoFactorPageSource,
+  ts.ScriptTarget.Latest,
+  true,
+  ts.ScriptKind.TSX,
+);
 
-  if (startIndex === -1 || endIndex === -1) {
+const handlerForRoute: (route: string) => string = (route: string): string => {
+  const handlers: Array<string> = [];
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (ts.isStringLiteralLike(node) && node.text === route) {
+      let parent: ts.Node | undefined = node.parent;
+      while (parent) {
+        if (
+          ts.isArrowFunction(parent) ||
+          ts.isFunctionExpression(parent) ||
+          ts.isFunctionDeclaration(parent)
+        ) {
+          if (parent.body && ts.isBlock(parent.body)) {
+            handlers.push(parent.body.getText(profileSyntax));
+          }
+          break;
+        }
+        parent = parent.parent;
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(profileSyntax);
+  if (handlers.length !== 1) {
     throw new Error(
-      `Region not found: ${data.startMarker} .. ${data.endMarker}`,
+      `Expected one enrolment handler for ${route}, found ${handlers.length}`,
     );
   }
-
-  return data.source.slice(startIndex, endIndex);
+  return handlers[0]!;
 };
 
-const totpValidateHandler: string = regionBetween({
-  source: twoFactorPageSource,
-  startMarker: "/user-totp-auth/validate",
-  endMarker: "/user-webauthn/generate-registration-options",
-});
+const totpValidateHandler: string = handlerForRoute("/user-totp-auth/validate");
 
-const webAuthnVerifyHandler: string = regionBetween({
-  source: twoFactorPageSource,
-  startMarker: "/user-webauthn/verify-registration",
-  endMarker: "<CardModelDetail",
-});
+const webAuthnVerifyHandler: string = handlerForRoute(
+  "/user-webauthn/verify-registration",
+);
 
 const readBackupCodesBody: string = blockAfter(
   twoFactorPageSource,
@@ -1214,6 +1220,10 @@ describe("the profile page reads the codes out of BOTH enrolment responses", () 
      * Guard against a vacuous pass: if either region collapsed onto the other,
      * "both routes read the response" would be one route asserted twice.
      */
+    expect(webAuthnVerifyHandler).toContain(
+      "/user-webauthn/verify-registration",
+    );
+    expect(totpValidateHandler).toContain("/user-totp-auth/validate");
     expect(webAuthnVerifyHandler).not.toContain("/user-totp-auth/validate");
     expect(totpValidateHandler).not.toContain(
       "/user-webauthn/verify-registration",

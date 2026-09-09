@@ -122,14 +122,11 @@ export async function exchangePasskeyCode(data: {
     string,
     unknown
   >;
-  const user: Record<string, unknown> = (body["data"] || {}) as Record<
-    string,
-    unknown
-  >;
   const accessToken: unknown = misc["accessToken"];
   const refreshToken: unknown = misc["refreshToken"];
   const refreshTokenExpiresAt: unknown = misc["refreshTokenExpiresAt"];
-  const userId: string = serializedString(user["_id"]);
+  // sendEntityResponse serializes User fields at the response root.
+  const userId: string = serializedString(body["_id"]);
 
   if (
     typeof accessToken !== "string" ||
@@ -151,9 +148,9 @@ export async function exchangePasskeyCode(data: {
     refreshTokenExpiresAt,
     user: {
       _id: userId,
-      email: serializedString(user["email"]),
-      name: serializedString(user["name"]),
-      isMasterAdmin: user["isMasterAdmin"] === true,
+      email: serializedString(body["email"]),
+      name: serializedString(body["name"]),
+      isMasterAdmin: body["isMasterAdmin"] === true,
     },
   };
 }

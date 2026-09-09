@@ -16,8 +16,10 @@ import {
   waitFor,
 } from "@testing-library/react";
 import React from "react";
+import { SpyInstance } from "jest-mock";
 import { JSONObject } from "../../../Types/JSON";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import API from "../../../UI/Utils/API/API";
 import LoginUtil from "../../../UI/Utils/Login";
 import WebAuthnTestUtil, {
@@ -42,6 +44,43 @@ const callback: string =
   "oneuptime://passkey?" +
   new URLSearchParams({ code, state, serverOrigin: origin }).toString();
 const originalLocation: Location = window.location;
+
+interface Deferred<T> {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+  reject: (error: Error) => void;
+}
+
+function deferred<T>(): Deferred<T> {
+  let resolve: (value: T) => void = () => {};
+  let reject: (error: Error) => void = () => {};
+  const promise: Promise<T> = new Promise<T>(
+    (
+      onResolve: (value: T | PromiseLike<T>) => void,
+      onReject: (error: Error) => void,
+    ): void => {
+      resolve = onResolve;
+      reject = onReject;
+    },
+  );
+  return { promise, resolve, reject };
+}
+
+const optionsResponse: () => HTTPResponse<JSONObject> = () => {
+  return new HTTPResponse<JSONObject>(
+    200,
+    { options: authenticationOptions },
+    {},
+  );
+};
+
+const callbackResponse: () => HTTPResponse<JSONObject> = () => {
+  return new HTTPResponse<JSONObject>(
+    200,
+    { mobileAuth: { callbackUrl: callback } },
+    {},
+  );
+};
 
 const configureLocation: (search?: string, server?: string) => void = (
   search: string = query,
@@ -350,6 +389,224 @@ describe("Mobile passkey browser page", () => {
       );
     });
     expect(MobilePasskey.returnToApp).not.toHaveBeenCalled();
+    expect(LoginUtil.login).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    { phase: "options", failure: "HTTP refusal" },
+    { phase: "options", failure: "network rejection" },
+    { phase: "verification", failure: "HTTP refusal" },
+    { phase: "verification", failure: "network rejection" },
+  ])(
+    "recovers from $failure during $phase with a fresh ceremony",
+    async ({ phase, failure }: { phase: string; failure: string }) => {
+      const credential: SpyInstance<typeof navigator.credentials.get> =
+        jest.spyOn(navigator.credentials, "get");
+      if (phase === "verification") {
+        jest.mocked(API.post).mockResolvedValueOnce(optionsResponse());
+      }
+      const message: string = "Passkey service temporarily unavailable";
+      if (failure === "HTTP refusal") {
+        jest
+          .mocked(API.post)
+          .mockResolvedValueOnce(new HTTPErrorResponse(503, { message }, {}));
+      } else {
+        jest.mocked(API.post).mockRejectedValueOnce(new Error(message));
+      }
+      render(<MobilePasskeyPage />);
+      fireEvent.click(screen.getByTestId("mobile-passkey-sign-in"));
+      await waitFor(() => {
+        expect(screen.getByRole("alert")).toHaveTextContent(message);
+      });
+      expect(screen.getByTestId("mobile-passkey-sign-in")).toBeEnabled();
+      await waitFor(() => {
+        expect(screen.getByTestId("mobile-passkey-sign-in")).toHaveFocus();
+      });
+      expect(credential).toHaveBeenCalledTimes(phase === "options" ? 0 : 1);
+      expect(MobilePasskey.returnToApp).not.toHaveBeenCalled();
+      expect(LoginUtil.login).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByTestId("mobile-passkey-sign-in"));
+      await waitFor(() => {
+        expect(MobilePasskey.returnToApp).toHaveBeenCalledWith(callback);
+      });
+      expect(API.post).toHaveBeenCalledTimes(phase === "options" ? 3 : 4);
+      expect(credential).toHaveBeenCalledTimes(phase === "options" ? 1 : 2);
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      expect(LoginUtil.login).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each<JSONObject>([{}, { mobileAuth: null }, { mobileAuth: {} }])(
+    "an incomplete verification response cannot return to the app: %j",
+    async (data: JSONObject) => {
+      jest
+        .mocked(API.post)
+        .mockResolvedValueOnce(optionsResponse())
+        .mockResolvedValueOnce(new HTTPResponse<JSONObject>(200, data, {}));
+      render(<MobilePasskeyPage />);
+      fireEvent.click(screen.getByTestId("mobile-passkey-sign-in"));
+      await waitFor(() => {
+        expect(screen.getByRole("alert")).toHaveTextContent(
+          /Sign-in could not be completed/,
+        );
+      });
+      expect(screen.getByTestId("mobile-passkey-sign-in")).toBeEnabled();
+      expect(
+        screen.queryByRole("link", { name: "Return to app" }),
+      ).not.toBeInTheDocument();
+      expect(MobilePasskey.returnToApp).not.toHaveBeenCalled();
+      expect(LoginUtil.login).not.toHaveBeenCalled();
+    },
+  );
+
+  test("canceling preparation aborts the request and never opens a late device prompt", async () => {
+    const pending: Deferred<HTTPResponse<JSONObject>> = deferred();
+    const credential: SpyInstance<typeof navigator.credentials.get> =
+      jest.spyOn(navigator.credentials, "get");
+    jest.mocked(API.post).mockReturnValueOnce(pending.promise);
+    render(<MobilePasskeyPage />);
+    fireEvent.click(screen.getByTestId("mobile-passkey-sign-in"));
+    expect(screen.getByTestId("mobile-passkey-sign-in")).toBeDisabled();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Cancel and return to app" }),
+    );
+    expect(
+      jest.mocked(API.post).mock.calls[0]?.[0].options?.signal?.aborted,
+    ).toBe(true);
+    await act(async () => {
+      pending.resolve(optionsResponse());
+    });
+    expect(credential).not.toHaveBeenCalled();
+    expect(API.post).toHaveBeenCalledTimes(1);
+    expect(MobilePasskey.returnToApp).toHaveBeenCalledTimes(1);
+    expect(MobilePasskey.returnToApp).toHaveBeenCalledWith(
+      MobilePasskey.cancelCallback(request, origin),
+    );
+    expect(LoginUtil.login).not.toHaveBeenCalled();
+  });
+
+  test("canceling verification discards its late code and leaves browser sign-in untouched", async () => {
+    const pending: Deferred<HTTPResponse<JSONObject>> = deferred();
+    jest
+      .mocked(API.post)
+      .mockResolvedValueOnce(optionsResponse())
+      .mockReturnValueOnce(pending.promise);
+    render(<MobilePasskeyPage />);
+    fireEvent.click(screen.getByTestId("mobile-passkey-sign-in"));
+    await waitFor(() => {
+      expect(API.post).toHaveBeenCalledTimes(2);
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Cancel and return to app" }),
+    );
+    expect(
+      jest.mocked(API.post).mock.calls[1]?.[0].options?.signal?.aborted,
+    ).toBe(true);
+    await act(async () => {
+      pending.resolve(callbackResponse());
+    });
+    expect(MobilePasskey.returnToApp).toHaveBeenCalledTimes(1);
+    expect(MobilePasskey.returnToApp).toHaveBeenCalledWith(
+      MobilePasskey.cancelCallback(request, origin),
+    );
+    expect(
+      screen.queryByRole("link", { name: "Return to app" }),
+    ).not.toBeInTheDocument();
+    expect(LoginUtil.login).not.toHaveBeenCalled();
+  });
+
+  test("a canceled options request cannot unlock or complete a newer pending attempt", async () => {
+    const oldOptions: Deferred<HTTPResponse<JSONObject>> = deferred();
+    const newOptions: Deferred<HTTPResponse<JSONObject>> = deferred();
+    const credential: SpyInstance<typeof navigator.credentials.get> =
+      jest.spyOn(navigator.credentials, "get");
+    jest
+      .mocked(API.post)
+      .mockReturnValueOnce(oldOptions.promise)
+      .mockReturnValueOnce(newOptions.promise);
+    render(<MobilePasskeyPage />);
+    fireEvent.click(screen.getByTestId("mobile-passkey-sign-in"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Cancel and return to app" }),
+    );
+    fireEvent.click(screen.getByTestId("mobile-passkey-sign-in"));
+    await act(async () => {
+      oldOptions.resolve(optionsResponse());
+    });
+    expect(screen.getByTestId("mobile-passkey-sign-in")).toBeDisabled();
+    expect(credential).not.toHaveBeenCalled();
+    expect(API.post).toHaveBeenCalledTimes(2);
+    await act(async () => {
+      newOptions.resolve(optionsResponse());
+    });
+    await waitFor(() => {
+      expect(MobilePasskey.returnToApp).toHaveBeenLastCalledWith(callback);
+    });
+    expect(MobilePasskey.returnToApp).toHaveBeenCalledTimes(2);
+    expect(credential).toHaveBeenCalledTimes(1);
+    expect(API.post).toHaveBeenCalledTimes(3);
+  });
+
+  test("a canceled request rejecting late does not replace the cancellation message with an error", async () => {
+    const pending: Deferred<HTTPResponse<JSONObject>> = deferred();
+    jest.mocked(API.post).mockReturnValueOnce(pending.promise);
+    render(<MobilePasskeyPage />);
+    fireEvent.click(screen.getByTestId("mobile-passkey-sign-in"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Cancel and return to app" }),
+    );
+    await act(async () => {
+      pending.reject(new Error("Aborted connection"));
+    });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByText(/Passkey sign-in canceled/)).toBeVisible();
+    expect(screen.getByTestId("mobile-passkey-sign-in")).toBeEnabled();
+    expect(MobilePasskey.returnToApp).toHaveBeenCalledTimes(1);
+  });
+
+  test("unmounting during preparation aborts network work without opening a device prompt", async () => {
+    const pending: Deferred<HTTPResponse<JSONObject>> = deferred();
+    const credential: SpyInstance<typeof navigator.credentials.get> =
+      jest.spyOn(navigator.credentials, "get");
+    jest.mocked(API.post).mockReturnValueOnce(pending.promise);
+    const view: ReturnType<typeof render> = render(<MobilePasskeyPage />);
+    fireEvent.click(screen.getByTestId("mobile-passkey-sign-in"));
+    view.unmount();
+    expect(
+      jest.mocked(API.post).mock.calls[0]?.[0].options?.signal?.aborted,
+    ).toBe(true);
+    await act(async () => {
+      pending.resolve(optionsResponse());
+    });
+    expect(credential).not.toHaveBeenCalled();
+    expect(MobilePasskey.returnToApp).not.toHaveBeenCalled();
+    expect(LoginUtil.login).not.toHaveBeenCalled();
+  });
+
+  test("a blocked automatic app return preserves a safe manual return without repeating authentication", async () => {
+    jest.mocked(MobilePasskey.returnToApp).mockImplementationOnce(() => {
+      throw new Error("The browser blocked the app launch");
+    });
+    render(<MobilePasskeyPage />);
+    fireEvent.click(screen.getByTestId("mobile-passkey-sign-in"));
+    await waitFor(() => {
+      expect(
+        screen.getByRole("link", { name: "Return to app" }),
+      ).toHaveAttribute("href", callback);
+    });
+    expect(screen.getByRole("link", { name: "Return to app" })).toHaveAttribute(
+      "referrerpolicy",
+      "no-referrer",
+    );
+    expect(
+      screen.queryByTestId("mobile-passkey-sign-in"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Cancel and return to app" }),
+    ).not.toBeInTheDocument();
+    expect(API.post).toHaveBeenCalledTimes(2);
+    expect(MobilePasskey.returnToApp).toHaveBeenCalledTimes(1);
     expect(LoginUtil.login).not.toHaveBeenCalled();
   });
 });

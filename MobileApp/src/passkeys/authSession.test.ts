@@ -36,7 +36,9 @@ beforeEach(() => {
       ): ReturnType<typeof Linking.addEventListener> => {
         onLink = handler;
         // The native subscription is represented only by its cleanup method here.
-        return { remove } as unknown as ReturnType<typeof Linking.addEventListener>;
+        return { remove } as unknown as ReturnType<
+          typeof Linking.addEventListener
+        >;
       },
     );
 });

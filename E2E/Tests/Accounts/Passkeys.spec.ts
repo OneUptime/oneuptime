@@ -524,7 +524,7 @@ test.describe("Passkey account lifecycle", () => {
         expect(exchanged.ok()).toBe(true);
         expect(exchanged.headers()["cache-control"]).toContain("no-store");
         const session: {
-          data: { _id: string | { value: string } };
+          _id: string | { value: string };
           _miscData: {
             accessToken: string;
             refreshToken: string;
@@ -533,9 +533,7 @@ test.describe("Passkey account lifecycle", () => {
         } = await exchanged.json();
         nativeRefreshToken = session._miscData.refreshToken;
         expect(
-          typeof session.data._id === "string"
-            ? session.data._id
-            : session.data._id.value,
+          typeof session._id === "string" ? session._id : session._id.value,
         ).toBe(userId);
         expect(session._miscData.accessToken).toEqual(expect.any(String));
         expect(session._miscData.accessToken.length).toBeGreaterThan(0);

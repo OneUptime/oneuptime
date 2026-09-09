@@ -2,6 +2,7 @@ import axios from "axios";
 import { exchangePasskeyCode, LoginResponse } from "./auth";
 import apiClient from "./client";
 import { storeTokens } from "../storage/keychain";
+import serializedPasskeyUser from "../../../Common/Tests/Fixtures/MobilePasskeyUser.json";
 
 jest.mock("./client", () => {
   return { __esModule: true, default: { post: jest.fn() } };
@@ -19,12 +20,7 @@ const params: Parameters<typeof exchangePasskeyCode>[0] = {
 };
 function body(): Record<string, unknown> {
   return {
-    data: {
-      _id: { _type: "ObjectID", value: "user-id" },
-      email: { _type: "Email", value: "user@example.com" },
-      name: "Responder",
-      isMasterAdmin: false,
-    },
+    ...serializedPasskeyUser,
     _miscData: {
       accessToken: "access",
       refreshToken: "refresh",
@@ -65,9 +61,9 @@ test("normalizes the User response and returns all session fields for guarded pe
     refreshToken: "refresh",
     refreshTokenExpiresAt: "2027-01-01T00:00:00.000Z",
     user: {
-      _id: "user-id",
-      email: "user@example.com",
-      name: "Responder",
+      _id: "11111111-1111-4111-8111-111111111111",
+      email: "passkey@example.com",
+      name: "Passkey Tester",
       isMasterAdmin: false,
     },
   });
@@ -97,7 +93,7 @@ test.each([
     },
   },
   {
-    data: { _id: "u" },
+    _id: "u",
     _miscData: {
       accessToken: {},
       refreshToken: "r",
@@ -107,6 +103,17 @@ test.each([
 ])("refuses malformed success payload %#", async (data: unknown) => {
   jest.mocked(axios.post).mockResolvedValue({ data });
   await expect(exchangePasskeyCode(params)).rejects.toThrow(/did not complete/);
+});
+
+test("rejects a wrapped user object that does not match the server entity contract", async () => {
+  jest.mocked(axios.post).mockResolvedValue({
+    data: {
+      data: serializedPasskeyUser,
+      _miscData: body()["_miscData"],
+    },
+  });
+  await expect(exchangePasskeyCode(params)).rejects.toThrow(/did not complete/);
+  expect(storeTokens).not.toHaveBeenCalled();
 });
 
 test("does not conceal a server refusal or automatically replay a spent code", async () => {
