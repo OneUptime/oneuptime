@@ -168,10 +168,15 @@ describe("scanWithDeadline — a sweep that finishes", () => {
     );
   });
 
-  test("passes the config straight through to the scanner", async () => {
+  test("preserves the sweep config and adds cancellation and guarded progress", async () => {
     await scanWithDeadline(scanConfig, "scan-1", 5000);
 
-    expect(scanSpy).toHaveBeenCalledWith(scanConfig);
+    expect(scanSpy).toHaveBeenCalledWith({
+      ...scanConfig,
+      signal: expect.any(AbortSignal),
+      onProgress: expect.any(Function),
+    });
+    expect(scanSpy.mock.calls[0]![0].signal?.aborted).toBe(false);
   });
 
   /*

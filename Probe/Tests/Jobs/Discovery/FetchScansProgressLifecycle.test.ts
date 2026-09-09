@@ -1,5 +1,6 @@
 import "../../TestingUtils/DiscoveryEnvironment";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { stubReverseDnsAsResolvingNothing } from "../../TestingUtils/StubReverseDns";
 import {
   ScanProgressReporter,
   scanWithDeadline,
@@ -30,6 +31,8 @@ function reporter(intervalInMs: number): ScanProgressReporter {
     intervalInMs,
   });
 }
+
+stubReverseDnsAsResolvingNothing();
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -137,11 +140,12 @@ describe("discovery progress lifecycle (#3672)", () => {
 });
 
 describe("live phase descriptions", () => {
-  test.each([
+  const phaseCases: Array<[SubnetScanProgress["phase"], string]> = [
     ["icmp", "Checking ping reachability"],
     ["snmp", "Checking SNMP credentials"],
     ["snmp-fallback", "Checking SNMP on addresses that did not answer ping"],
-  ] as const)(
+  ];
+  test.each(phaseCases)(
     "describes %s work even when no new host has responded",
     (phase: SubnetScanProgress["phase"], label: string) => {
       const message: string = buildScanProgressMessage({

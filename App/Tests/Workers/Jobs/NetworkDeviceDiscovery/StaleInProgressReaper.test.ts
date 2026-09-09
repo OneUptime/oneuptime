@@ -99,11 +99,11 @@ const probeService: { findOneById: jest.Mock } = ProbeService as unknown as {
   findOneById: jest.Mock;
 };
 const staleQuery: {
-  update: jest.Mock;
-  set: jest.Mock;
-  where: jest.Mock;
-  andWhere: jest.Mock;
-  execute: jest.Mock;
+  update: ReturnType<typeof jest.fn>;
+  set: ReturnType<typeof jest.fn>;
+  where: ReturnType<typeof jest.fn>;
+  andWhere: ReturnType<typeof jest.fn>;
+  execute: ReturnType<typeof jest.fn>;
 } = {
   update: jest.fn().mockReturnThis(),
   set: jest.fn().mockReturnThis(),

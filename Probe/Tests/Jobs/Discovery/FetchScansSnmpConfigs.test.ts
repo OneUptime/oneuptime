@@ -958,6 +958,7 @@ describe("runScan — the resolved credentials reach the sweep and come back on 
        * sweep.
        */
       onProgress: expect.any(Function),
+      signal: expect.any(AbortSignal),
       maxConcurrency: undefined,
       cidr: "10.0.0.0/24",
       /*
@@ -1075,6 +1076,7 @@ describe("runScan — the resolved credentials reach the sweep and come back on 
        * sweep.
        */
       onProgress: expect.any(Function),
+      signal: expect.any(AbortSignal),
       maxConcurrency: undefined,
       cidr: "10.0.0.0/24",
       isSnmpEnabled: true,
@@ -1113,6 +1115,7 @@ describe("runScan — the resolved credentials reach the sweep and come back on 
        * sweep.
        */
       onProgress: expect.any(Function),
+      signal: expect.any(AbortSignal),
       maxConcurrency: undefined,
       cidr: "10.0.0.0/24",
       isSnmpEnabled: true,

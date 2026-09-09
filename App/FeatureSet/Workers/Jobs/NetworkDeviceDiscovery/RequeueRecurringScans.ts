@@ -16,7 +16,6 @@ import {
   buildUnclaimedScanDiagnosis,
 } from "Common/Utils/NetworkDiscovery/UnclaimedScanDiagnosis";
 import logger from "Common/Server/Utils/Logger";
-import { UpdateResult } from "typeorm";
 
 /*
  * The server's half of keeping a subnet discovery scan honest. Three passes,
@@ -123,7 +122,7 @@ RunCron(
        * progress write; no sweep settings or schedule settings are changed.
        */
       const completedAt: Date = OneUptimeDate.getCurrentDate();
-      const result: UpdateResult =
+      const result: { affected?: number | undefined } =
         await NetworkDeviceDiscoveryScanService.getRepository()
           .createQueryBuilder()
           .update(NetworkDeviceDiscoveryScan)

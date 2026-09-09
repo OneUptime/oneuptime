@@ -209,6 +209,7 @@ describe("runScan — an ICMP-only scan is swept as one", () => {
        * sweep.
        */
       onProgress: expect.any(Function),
+      signal: expect.any(AbortSignal),
       maxConcurrency: undefined,
       cidr: "10.0.0.0/24",
       isSnmpEnabled: false,

@@ -1892,8 +1892,8 @@ const NetworkDeviceDiscovery: FunctionComponent<
             });
           }}
         >
-          {(scanToReview.status === DiscoveryScanStatus.InProgress ||
-            scanToReview.status === DiscoveryScanStatus.Failed) && (
+          {scanToReview.status === DiscoveryScanStatus.InProgress ||
+          scanToReview.status === DiscoveryScanStatus.Failed ? (
             <Alert
               type={AlertType.INFO}
               strongTitle={
@@ -1907,6 +1907,8 @@ const NetworkDeviceDiscovery: FunctionComponent<
                   : "The scan stopped before it finished, but the hosts it already found are available to import."
               }
             />
+          ) : (
+            <></>
           )}
 
           <div>
