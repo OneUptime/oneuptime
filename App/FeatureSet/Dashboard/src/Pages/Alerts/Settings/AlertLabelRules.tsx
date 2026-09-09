@@ -1,7 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import LabelRuleTable from "Common/UI/Components/LabelRule/LabelRuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -60,7 +60,7 @@ When a rule matches, every label listed under \`Labels to Add\` is attached to t
 
 const AlertRulesTable: FunctionComponent = (): ReactElement => {
   return (
-    <ModelTable<AlertLabelRule>
+    <LabelRuleTable<AlertLabelRule>
       modelType={AlertLabelRule}
       id="alert-label-rules-table"
       name="Settings > Alert Label Rules"
@@ -316,7 +316,7 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
 
 const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
   return (
-    <ModelTable<AlertEpisodeLabelRule>
+    <LabelRuleTable<AlertEpisodeLabelRule>
       modelType={AlertEpisodeLabelRule}
       id="alert-episode-label-rules-table"
       name="Settings > Alert Episode Label Rules"

@@ -7,7 +7,7 @@ import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import LabelRuleTable from "Common/UI/Components/LabelRule/LabelRuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -54,7 +54,7 @@ const NetworkDeviceLabelRulesPage: FunctionComponent<
 
   return (
     <Fragment>
-      <ModelTable<NetworkDeviceLabelRule>
+      <LabelRuleTable<NetworkDeviceLabelRule>
         modelType={NetworkDeviceLabelRule}
         id="networkDevice-label-rules-table"
         name="Settings > Network Device Label Rules"

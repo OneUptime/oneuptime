@@ -1,9 +1,16 @@
-import { afterEach, describe, expect, test } from "@jest/globals";
-import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import ModelAPI, {
+  ListResult,
+  RequestOptions,
+} from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import Project from "../../../Models/DatabaseModels/Project";
+import MonitorLabelRule from "../../../Models/DatabaseModels/MonitorLabelRule";
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import { JSONArray } from "../../../Types/JSON";
+import API from "../../../UI/Utils/API/API";
 
 /*
  * getCommonHeaders runs on EVERY model request (create/update/getList/count/
@@ -118,5 +125,105 @@ describe("ModelAPI.getCommonHeaders tenant id resolution", () => {
     // a multi-tenant request should not read the project at all.
     expect(getCurrentProjectId).not.toHaveBeenCalled();
     expect(getCurrentProject).not.toHaveBeenCalled();
+  });
+});
+
+describe("ModelAPI.getList explicit request headers", () => {
+  beforeEach(() => {
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(new ObjectID(PROJECT_ID));
+    jest
+      .spyOn(API, "fetch")
+      .mockResolvedValue(
+        new HTTPResponse<JSONArray>(
+          200,
+          { data: [], count: 0, skip: 0, limit: 500 },
+          {},
+        ),
+      );
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const getList: (
+    requestOptions?: RequestOptions,
+  ) => Promise<ListResult<MonitorLabelRule>> = async (
+    requestOptions?: RequestOptions,
+  ): Promise<ListResult<MonitorLabelRule>> => {
+    return ModelAPI.getList({
+      modelType: MonitorLabelRule,
+      query: {},
+      limit: 500,
+      skip: 0,
+      select: { name: true },
+      sort: {},
+      requestOptions,
+    });
+  };
+
+  test("keeps the transfer's pinned tenant when the selected project differs", async () => {
+    await getList({
+      requestHeaders: {
+        tenantid: FALLBACK_PROJECT_ID,
+        "x-transfer-id": "label-rule-export",
+      },
+    });
+
+    expect(API.fetch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: {
+          tenantid: FALLBACK_PROJECT_ID,
+          "x-transfer-id": "label-rule-export",
+        },
+      }),
+    );
+  });
+
+  test("retains common headers when adding caller-supplied headers", async () => {
+    jest.spyOn(ModelAPI, "getCommonHeaders").mockReturnValue({
+      tenantid: PROJECT_ID,
+      "x-common-header": "preserved",
+    });
+    await getList({
+      requestHeaders: { tenantid: FALLBACK_PROJECT_ID, "x-custom": "added" },
+    });
+
+    expect(API.fetch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: {
+          tenantid: FALLBACK_PROJECT_ID,
+          "x-common-header": "preserved",
+          "x-custom": "added",
+        },
+      }),
+    );
+  });
+
+  test("uses the selected project for ordinary list requests", async () => {
+    await getList();
+
+    expect(API.fetch).toHaveBeenCalledWith(
+      expect.objectContaining({ headers: { tenantid: PROJECT_ID } }),
+    );
+  });
+
+  test("preserves multi-tenant flags alongside custom request headers", async () => {
+    await getList({
+      isMultiTenantRequest: true,
+      requestHeaders: { "x-custom": "added" },
+    });
+
+    expect(API.fetch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: {
+          "is-multi-tenant-query": "true",
+          isMultiTenantRequest: "true",
+          "x-custom": "added",
+        },
+      }),
+    );
   });
 });
