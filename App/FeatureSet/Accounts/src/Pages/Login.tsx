@@ -1,5 +1,7 @@
 import {
   LOGIN_API_URL,
+  PASSKEY_LOGIN_API_URL,
+  PASSKEY_LOGIN_OPTIONS_API_URL,
   VERIFY_TOTP_AUTH_API_URL,
   VERIFY_TOTP_ENROLMENT_API_URL,
   VERIFY_BACKUP_CODE_API_URL,
@@ -42,7 +44,8 @@ import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import API from "Common/UI/Utils/API/API";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import Base64 from "Common/Utils/Base64";
+import WebAuthn from "Common/UI/Utils/WebAuthn";
+import IconProp from "Common/Types/Icon/IconProp";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import QRCodeElement from "Common/UI/Components/QR/QR";
@@ -79,6 +82,13 @@ const LoginPage: () => JSX.Element = () => {
   }
 
   const [initialValues, setInitialValues] = React.useState<JSONObject>({});
+  const [isPasskeyLoading, setIsPasskeyLoading] =
+    React.useState<boolean>(false);
+  const [isPasswordLoading, setIsPasswordLoading] =
+    React.useState<boolean>(false);
+  const [passkeyError, setPasskeyError] = React.useState<string>("");
+  const passkeyInProgress: React.MutableRefObject<boolean> =
+    React.useRef<boolean>(false);
 
   const [showTwoFactorAuth, setShowTwoFactorAuth] =
     React.useState<boolean>(false);
@@ -314,26 +324,9 @@ const LoginPage: () => JSX.Element = () => {
           throw result;
         }
 
-        const data: any = result.data as any;
-
-        // Convert base64url strings back to Uint8Array
-        data.options.challenge = Base64.base64UrlToUint8Array(
-          data.options.challenge,
+        const credential: JSONObject = await WebAuthn.authenticate(
+          result.data["options"] as JSONObject,
         );
-        if (data.options.allowCredentials) {
-          data.options.allowCredentials.forEach((cred: any) => {
-            cred.id = Base64.base64UrlToUint8Array(cred.id);
-          });
-        }
-
-        // Use WebAuthn API
-        const credential: PublicKeyCredential =
-          (await navigator.credentials.get({
-            publicKey: data.options,
-          })) as PublicKeyCredential;
-
-        const assertionResponse: AuthenticatorAssertionResponse =
-          credential.response as AuthenticatorAssertionResponse;
 
         // Verify
         const verifyResult: HTTPResponse<JSONObject> = await API.post({
@@ -341,29 +334,7 @@ const LoginPage: () => JSX.Element = () => {
           data: {
             data: {
               ...initialValues,
-              credential: {
-                id: credential.id,
-                rawId: Base64.uint8ArrayToBase64Url(
-                  new Uint8Array(credential.rawId),
-                ),
-                response: {
-                  authenticatorData: Base64.uint8ArrayToBase64Url(
-                    new Uint8Array(assertionResponse.authenticatorData),
-                  ),
-                  clientDataJSON: Base64.uint8ArrayToBase64Url(
-                    new Uint8Array(assertionResponse.clientDataJSON),
-                  ),
-                  signature: Base64.uint8ArrayToBase64Url(
-                    new Uint8Array(assertionResponse.signature),
-                  ),
-                  userHandle: assertionResponse.userHandle
-                    ? Base64.uint8ArrayToBase64Url(
-                        new Uint8Array(assertionResponse.userHandle),
-                      )
-                    : null,
-                },
-                type: credential.type,
-              },
+              credential: credential,
             },
           },
         });
@@ -403,6 +374,55 @@ const LoginPage: () => JSX.Element = () => {
       token: miscData ? miscData["token"] : undefined,
     });
   };
+
+  type SignInWithPasskeyFunction = () => Promise<void>;
+
+  const signInWithPasskey: SignInWithPasskeyFunction =
+    async (): Promise<void> => {
+      if (passkeyInProgress.current || isPasswordLoading) {
+        return;
+      }
+
+      passkeyInProgress.current = true;
+      setIsPasskeyLoading(true);
+      setPasskeyError("");
+
+      try {
+        WebAuthn.ensureSupported();
+        const optionsResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: PASSKEY_LOGIN_OPTIONS_API_URL,
+            data: {},
+          });
+
+        if (optionsResponse instanceof HTTPErrorResponse) {
+          throw optionsResponse;
+        }
+
+        const credential: JSONObject = await WebAuthn.authenticate(
+          optionsResponse.data["options"] as JSONObject,
+        );
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: PASSKEY_LOGIN_API_URL,
+            data: { credential: credential },
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        login(
+          User.fromJSON(response.data, User) as User,
+          getMiscData(response),
+        );
+      } catch (error) {
+        setPasskeyError(WebAuthn.getErrorMessage(error, "sign-in"));
+      } finally {
+        passkeyInProgress.current = false;
+        setIsPasskeyLoading(false);
+      }
+    };
 
   type ReadBackupCodesFunction = (miscData: JSONObject) => Array<string>;
 
@@ -864,115 +884,155 @@ const LoginPage: () => JSX.Element = () => {
           )}
 
           {!pendingLogin && !showTwoFactorAuth && !totpEnrolment && (
-            <ModelForm<User>
-              modelType={User}
-              id="login-form"
-              name="Login"
-              fields={loginFields}
-              createOrUpdateApiUrl={apiUrl}
-              formType={FormType.Create}
-              submitButtonText={t("login.submitButton")}
-              onBeforeCreate={(data: User, miscDataProps: JSONObject) => {
-                if (isCaptchaEnabled) {
-                  const captchaToken: string | undefined = (
-                    miscDataProps["captchaToken"] as string | undefined
-                  )
-                    ?.toString()
-                    .trim();
-
-                  if (!captchaToken) {
-                    throw new Error(t("captcha.errorOnSignIn"));
-                  }
-
-                  miscDataProps["captchaToken"] = captchaToken;
-                  setShouldResetCaptcha(true);
-                }
-
-                setInitialValues(User.toJSON(data, User));
-                return Promise.resolve(data);
-              }}
-              onLoadingChange={(loading: boolean) => {
-                if (!isCaptchaEnabled) {
-                  return;
-                }
-
-                if (!loading && shouldResetCaptcha) {
-                  setShouldResetCaptcha(false);
-                  handleCaptchaReset();
-                }
-              }}
-              onSuccess={(
-                value: User | JSONObject,
-                miscData: JSONObject | undefined,
-              ) => {
-                /*
-                 * Checked BEFORE the two-factor-method lists below, and the
-                 * order is load-bearing rather than stylistic. A user being
-                 * forced to enrol has ZERO methods set up, so that condition
-                 * is false for them -- putting this second would let control
-                 * fall straight through to login() and a redirect into a
-                 * dashboard the server never authorised, with no session
-                 * behind it.
-                 */
-                if (miscData && miscData["twoFactorEnrolmentRequired"]) {
-                  setTotpEnrolment({
-                    twoFactorAuthId: miscData["twoFactorAuthId"] as string,
-                    twoFactorOtpUrl: miscData["twoFactorOtpUrl"] as string,
-                  });
-                  return;
-                }
-
-                if (
-                  miscData &&
-                  ((((miscData as JSONObject)["totpAuthList"] as JSONArray)
-                    ?.length || 0) > 0 ||
-                    (((miscData as JSONObject)["webAuthnList"] as JSONArray)
-                      ?.length || 0) > 0)
-                ) {
-                  const totpAuthList: Array<UserTotpAuth> =
-                    UserTotpAuth.fromJSONArray(
-                      (miscData as JSONObject)["totpAuthList"] as JSONArray,
-                      UserTotpAuth,
-                    );
-                  const webAuthnList: Array<UserWebAuthn> =
-                    UserWebAuthn.fromJSONArray(
-                      (miscData as JSONObject)["webAuthnList"] as JSONArray,
-                      UserWebAuthn,
-                    );
-                  setTotpAuthList(totpAuthList);
-                  setWebAuthnList(webAuthnList);
-                  /*
-                   * Absent means "the server could not count them", which is
-                   * not the same as zero -- see `isKnownToHaveNoBackupCodes`.
-                   */
-                  const reportedBackupCodeCount: unknown = (
-                    miscData as JSONObject
-                  )["backupCodeCount"];
-
-                  setBackupCodeCount(
-                    typeof reportedBackupCodeCount === "number"
-                      ? reportedBackupCodeCount
-                      : null,
-                  );
-                  setShowTwoFactorAuth(true);
-                  return;
-                }
-
-                login(value as User, miscData as JSONObject);
-              }}
-              maxPrimaryButtonWidth={true}
-              footer={
-                <div className="actions text-center mt-4 hover:underline fw-semibold">
-                  <div>
-                    <Link to={new Route("/accounts/sso")}>
-                      <div className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm">
-                        {t("login.useSso")}
-                      </div>
-                    </Link>
-                  </div>
+            <>
+              <div className="mb-6 space-y-3">
+                <Button
+                  title={t("login.passkey.signIn")}
+                  buttonStyle={ButtonStyleType.PRIMARY}
+                  icon={IconProp.ShieldCheck}
+                  className="w-full justify-center"
+                  dataTestId="passkey-login"
+                  isLoading={isPasskeyLoading}
+                  disabled={isPasskeyLoading || isPasswordLoading}
+                  onClick={() => {
+                    void signInWithPasskey();
+                  }}
+                />
+                <p className="text-center text-xs text-gray-500">
+                  {t("login.passkey.description")}
+                </p>
+                {passkeyError && <ErrorMessage message={passkeyError} />}
+              </div>
+              <div className="relative mb-6">
+                <div
+                  className="absolute inset-0 flex items-center"
+                  aria-hidden="true"
+                >
+                  <div className="w-full border-t border-gray-200" />
                 </div>
-              }
-            />
+                <div className="relative flex justify-center">
+                  <span className="bg-white px-3 text-sm text-gray-500">
+                    {t("login.passkey.passwordAlternative")}
+                  </span>
+                </div>
+              </div>
+              <fieldset disabled={isPasskeyLoading}>
+                <ModelForm<User>
+                  modelType={User}
+                  id="login-form"
+                  name="Login"
+                  fields={loginFields}
+                  createOrUpdateApiUrl={apiUrl}
+                  formType={FormType.Create}
+                  submitButtonText={t("login.submitButton")}
+                  onBeforeCreate={(data: User, miscDataProps: JSONObject) => {
+                    if (passkeyInProgress.current) {
+                      throw new Error(t("login.passkey.inProgress"));
+                    }
+                    setPasskeyError("");
+                    if (isCaptchaEnabled) {
+                      const captchaToken: string | undefined = (
+                        miscDataProps["captchaToken"] as string | undefined
+                      )
+                        ?.toString()
+                        .trim();
+
+                      if (!captchaToken) {
+                        throw new Error(t("captcha.errorOnSignIn"));
+                      }
+
+                      miscDataProps["captchaToken"] = captchaToken;
+                      setShouldResetCaptcha(true);
+                    }
+
+                    setInitialValues(User.toJSON(data, User));
+                    return Promise.resolve(data);
+                  }}
+                  onLoadingChange={(loading: boolean) => {
+                    setIsPasswordLoading(loading);
+                    if (!isCaptchaEnabled) {
+                      return;
+                    }
+
+                    if (!loading && shouldResetCaptcha) {
+                      setShouldResetCaptcha(false);
+                      handleCaptchaReset();
+                    }
+                  }}
+                  onSuccess={(
+                    value: User | JSONObject,
+                    miscData: JSONObject | undefined,
+                  ) => {
+                    /*
+                     * Checked BEFORE the two-factor-method lists below, and the
+                     * order is load-bearing rather than stylistic. A user being
+                     * forced to enrol has ZERO methods set up, so that condition
+                     * is false for them -- putting this second would let control
+                     * fall straight through to login() and a redirect into a
+                     * dashboard the server never authorised, with no session
+                     * behind it.
+                     */
+                    if (miscData && miscData["twoFactorEnrolmentRequired"]) {
+                      setTotpEnrolment({
+                        twoFactorAuthId: miscData["twoFactorAuthId"] as string,
+                        twoFactorOtpUrl: miscData["twoFactorOtpUrl"] as string,
+                      });
+                      return;
+                    }
+
+                    if (
+                      miscData &&
+                      ((((miscData as JSONObject)["totpAuthList"] as JSONArray)
+                        ?.length || 0) > 0 ||
+                        (((miscData as JSONObject)["webAuthnList"] as JSONArray)
+                          ?.length || 0) > 0)
+                    ) {
+                      const totpAuthList: Array<UserTotpAuth> =
+                        UserTotpAuth.fromJSONArray(
+                          (miscData as JSONObject)["totpAuthList"] as JSONArray,
+                          UserTotpAuth,
+                        );
+                      const webAuthnList: Array<UserWebAuthn> =
+                        UserWebAuthn.fromJSONArray(
+                          (miscData as JSONObject)["webAuthnList"] as JSONArray,
+                          UserWebAuthn,
+                        );
+                      setTotpAuthList(totpAuthList);
+                      setWebAuthnList(webAuthnList);
+                      /*
+                       * Absent means "the server could not count them", which is
+                       * not the same as zero -- see `isKnownToHaveNoBackupCodes`.
+                       */
+                      const reportedBackupCodeCount: unknown = (
+                        miscData as JSONObject
+                      )["backupCodeCount"];
+
+                      setBackupCodeCount(
+                        typeof reportedBackupCodeCount === "number"
+                          ? reportedBackupCodeCount
+                          : null,
+                      );
+                      setShowTwoFactorAuth(true);
+                      return;
+                    }
+
+                    login(value as User, miscData as JSONObject);
+                  }}
+                  maxPrimaryButtonWidth={true}
+                  footer={
+                    <div className="actions text-center mt-4 hover:underline fw-semibold">
+                      <div>
+                        <Link to={new Route("/accounts/sso")}>
+                          <div className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm">
+                            {t("login.useSso")}
+                          </div>
+                        </Link>
+                      </div>
+                    </div>
+                  }
+                />
+              </fieldset>
+            </>
           )}
 
           {!pendingLogin &&

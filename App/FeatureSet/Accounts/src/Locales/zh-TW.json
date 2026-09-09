@@ -31,6 +31,12 @@
     "errorOnSignUp": "註冊前請完成人機驗證挑戰。"
   },
   "login": {
+    "passkey": {
+      "signIn": "使用通行密鑰登入",
+      "description": "使用指紋、臉部辨識、螢幕鎖定或安全金鑰。",
+      "passwordAlternative": "或使用密碼登入",
+      "inProgress": "使用密碼前，請完成或取消通行密鑰登入。"
+    },
     "title": "登入您的帳號",
     "subtitle": "加入數千家使用 OneUptime 保持隨時在線的企業。",
     "submitButton": "登入",

@@ -131,6 +131,9 @@ export enum IdentityRateLimitBucket {
    * same reason the recovery step has one; see WEBAUTHN_CHALLENGE_BUCKET.
    */
   WebAuthnChallenge = "webauthn-challenge",
+
+  // Discoverable passkey requests have no account identifier until verified.
+  Passkey = "passkey",
 }
 
 export enum IdentityRateLimitScope {
@@ -363,6 +366,24 @@ const WEBAUTHN_CHALLENGE_BUCKET: BucketConfig = {
   ),
 };
 
+/*
+ * Both counters use the IP budget because passkeys do not submit an email.
+ * Keep this independent of password attempts so a canceled passkey prompt
+ * cannot consume the user's password fallback allowance.
+ */
+const PASSKEY_RATE_LIMIT: number = parsePositiveIntFromEnv(
+  "IDENTITY_PASSKEY_RATE_LIMIT_PER_IP_PER_WINDOW",
+  300,
+);
+const PASSKEY_BUCKET: BucketConfig = {
+  windowSeconds: parsePositiveIntFromEnv(
+    "IDENTITY_PASSKEY_RATE_LIMIT_WINDOW_SECONDS",
+    15 * 60,
+  ),
+  perAccountLimit: PASSKEY_RATE_LIMIT,
+  perIpLimit: PASSKEY_RATE_LIMIT,
+};
+
 const KEY_PREFIX: string = "identity:rl:";
 
 /*
@@ -504,6 +525,10 @@ export default class IdentityRateLimit {
   }
 
   public static getBucketConfig(bucket: IdentityRateLimitBucket): BucketConfig {
+    if (bucket === IdentityRateLimitBucket.Passkey) {
+      return PASSKEY_BUCKET;
+    }
+
     if (bucket === IdentityRateLimitBucket.TwoFactor) {
       return TWO_FACTOR_BUCKET;
     }

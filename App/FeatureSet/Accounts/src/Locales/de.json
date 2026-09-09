@@ -31,6 +31,12 @@
     "errorOnSignUp": "Bitte vervollständigen Sie das Captcha, bevor Sie sich registrieren."
   },
   "login": {
+    "passkey": {
+      "signIn": "Mit einem Passkey anmelden",
+      "description": "Nutzen Sie Ihren Fingerabdruck, Ihr Gesicht, Ihre Bildschirmsperre oder einen Sicherheitsschlüssel.",
+      "passwordAlternative": "oder mit einem Passwort anmelden",
+      "inProgress": "Beenden oder brechen Sie die Passkey-Anmeldung ab, bevor Sie Ihr Passwort verwenden."
+    },
     "title": "Melden Sie sich bei Ihrem Konto an",
     "subtitle": "Schließen Sie sich Tausenden von Unternehmen an, die OneUptime nutzen, um stets online zu bleiben.",
     "submitButton": "Anmelden",

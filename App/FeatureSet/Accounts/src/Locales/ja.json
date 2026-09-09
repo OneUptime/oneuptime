@@ -31,6 +31,12 @@
     "errorOnSignUp": "登録する前にcaptchaチャレンジを完了してください。"
   },
   "login": {
+    "passkey": {
+      "signIn": "パスキーでサインイン",
+      "description": "指紋、顔認証、画面ロック、またはセキュリティキーを使用します。",
+      "passwordAlternative": "またはパスワードでサインイン",
+      "inProgress": "パスワードを使用する前に、パスキーでのサインインを完了またはキャンセルしてください。"
+    },
     "title": "アカウントにサインインする",
     "subtitle": "OneUptimeを使って常時オンラインを維持している何千ものビジネスに参加しましょう。",
     "submitButton": "ログイン",

@@ -31,6 +31,12 @@
     "errorOnSignUp": "Complete el desafío captcha antes de registrarse."
   },
   "login": {
+    "passkey": {
+      "signIn": "Iniciar sesión con una clave de acceso",
+      "description": "Usa tu huella, tu rostro, el bloqueo de pantalla o una llave de seguridad.",
+      "passwordAlternative": "o inicia sesión con una contraseña",
+      "inProgress": "Completa o cancela el inicio de sesión con clave de acceso antes de usar tu contraseña."
+    },
     "title": "Inicie sesión en su cuenta",
     "subtitle": "Únase a miles de empresas que utilizan OneUptime para mantenerse en línea todo el tiempo.",
     "submitButton": "Iniciar sesión",

@@ -31,6 +31,12 @@
     "errorOnSignUp": "注册前请完成人机验证挑战。"
   },
   "login": {
+    "passkey": {
+      "signIn": "使用通行密钥登录",
+      "description": "使用指纹、面容、屏幕锁定或安全密钥。",
+      "passwordAlternative": "或使用密码登录",
+      "inProgress": "使用密码前，请完成或取消通行密钥登录。"
+    },
     "title": "登录您的账户",
     "subtitle": "加入数千家使用 OneUptime 保持随时在线的企业。",
     "submitButton": "登录",

@@ -31,6 +31,12 @@
     "errorOnSignUp": "Fullfør captcha-utfordringen før du registrerer deg."
   },
   "login": {
+    "passkey": {
+      "signIn": "Logg inn med en passnøkkel",
+      "description": "Bruk fingeravtrykk, ansikt, skjermlås eller en sikkerhetsnøkkel.",
+      "passwordAlternative": "eller logg inn med et passord",
+      "inProgress": "Fullfør eller avbryt innloggingen med passnøkkel før du bruker passordet."
+    },
     "title": "Logg inn på kontoen din",
     "subtitle": "Bli med tusenvis av bedrifter som bruker OneUptime for å holde dem online hele tiden.",
     "submitButton": "Logg inn",

@@ -31,6 +31,12 @@
     "errorOnSignUp": "Complete o desafio captcha antes de se cadastrar."
   },
   "login": {
+    "passkey": {
+      "signIn": "Entrar com uma chave de acesso",
+      "description": "Use a impressão digital, o rosto, o bloqueio de tela ou uma chave de segurança.",
+      "passwordAlternative": "ou entre com uma senha",
+      "inProgress": "Conclua ou cancele o acesso com a chave de acesso antes de usar sua senha."
+    },
     "title": "Faça login na sua conta",
     "subtitle": "Junte-se a milhares de empresas que usam o OneUptime para mantê-las online o tempo todo.",
     "submitButton": "Entrar",

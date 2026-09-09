@@ -1,5 +1,8 @@
+import "Common/Tests/Server/TestingUtils/WebAuthnServiceMocks";
 import UserWebAuthnService from "Common/Server/Services/UserWebAuthnService";
 import UserService from "Common/Server/Services/UserService";
+import Redis from "Common/Server/Infrastructure/Redis";
+import { getJestSpyOn } from "Common/Tests/Spy";
 import Base64 from "Common/Utils/Base64";
 import User from "Common/Models/DatabaseModels/User";
 import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
@@ -57,7 +60,7 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * the browser code uses to turn the challenge the server issued back into the
  * bytes the authenticator signs.
  *
- * Stubbed: Postgres only. `UserService` and the four `DatabaseService` methods
+ * Stubbed: Postgres and Redis persistence only. `UserService` and the four `DatabaseService` methods
  * the service reaches for are replaced; nothing else is.
  *
  * The credentials come from Common/Tests/Server/TestingUtils/SecurityKey,
@@ -99,15 +102,10 @@ const USER_EMAIL: Email = new Email("clamshell.user@example.com");
 const KEY_NAME: string = "MacBook Touch ID";
 
 /*
- * The User row's two challenge slots, modelled as the columns actually are:
- * one for registering a key and a SEPARATE one for signing in with it. They
- * used to be a single pair, and this harness used to have a single pair of
- * variables to match -- which is exactly why a test could not have caught the
- * two flows overwriting each other.
- *
- * This is the seam that carries a challenge from the generate half of a flow
- * to the verify half, so keeping the two apart here is what lets the
- * independence tests below mean anything.
+ * The two Redis namespaces carry independent expiring challenges. Keep both
+ * observable here so generating or consuming one ceremony cannot silently
+ * overwrite the other. Redis SET applies expiry atomically and GET+DEL is
+ * represented by the single eval operation below.
  */
 type ChallengeSlot = {
   challenge: string | null;
@@ -127,6 +125,7 @@ const emptySlots: () => ChallengeSlots = (): ChallengeSlots => {
 };
 
 let slots: ChallengeSlots = emptySlots();
+let challengeValues: Map<string, string> = new Map();
 
 /* Rows the stubbed database will answer with. */
 let existingCredentials: Array<UserWebAuthn> = [];
@@ -140,25 +139,58 @@ const buildUser: BuildUserFunction = (): User => {
   user.id = USER_ID;
   user.email = USER_EMAIL;
 
-  /*
-   * `findOneById` is used for two different reads — the profile lookup when
-   * options are generated, and the challenge lookup when a response is
-   * verified — so the same object has to answer both, for both slots.
-   */
-  user.webauthnRegistrationChallenge = slots.registration
-    .challenge as unknown as string;
-  user.webauthnRegistrationChallengeExpiresAt = slots.registration
-    .expiresAt as unknown as Date;
-  user.webauthnAuthenticationChallenge = slots.authentication
-    .challenge as unknown as string;
-  user.webauthnAuthenticationChallengeExpiresAt = slots.authentication
-    .expiresAt as unknown as Date;
-
   return user;
 };
 
 beforeEach(() => {
   slots = emptySlots();
+  challengeValues = new Map();
+  getJestSpyOn(Redis, "isConnected").mockReturnValue(true);
+  getJestSpyOn(Redis, "getClient").mockReturnValue({
+    set: async (
+      key: string,
+      value: string,
+      _expiryMode: string,
+      ttl: number,
+    ): Promise<string> => {
+      const isRegistration: boolean =
+        key === `webauthn-registration-${USER_ID.toString()}`;
+      const slot: ChallengeSlot = {
+        challenge: isRegistration ? JSON.parse(value).challenge : value,
+        expiresAt: new Date(Date.now() + ttl * 1000),
+      };
+      if (isRegistration) {
+        slots.registration = slot;
+      } else {
+        expect(key).toBe(`webauthn-security-key-login-${USER_ID.toString()}`);
+        slots.authentication = slot;
+      }
+      challengeValues.set(key, value);
+      return "OK";
+    },
+    eval: async (
+      _script: string,
+      _keyCount: number,
+      key: string,
+    ): Promise<string | null> => {
+      const isRegistration: boolean =
+        key === `webauthn-registration-${USER_ID.toString()}`;
+      const slot: ChallengeSlot = isRegistration
+        ? slots.registration
+        : slots.authentication;
+      const value: string | null = challengeValues.get(key) || null;
+      challengeValues.delete(key);
+      if (isRegistration) {
+        slots.registration = { challenge: null, expiresAt: null };
+      } else {
+        expect(key).toBe(`webauthn-security-key-login-${USER_ID.toString()}`);
+        slots.authentication = { challenge: null, expiresAt: null };
+      }
+      return slot.expiresAt && slot.expiresAt.getTime() > Date.now()
+        ? value
+        : null;
+    },
+  });
   existingCredentials = [];
   createdCredential = null;
   counterUpdates = [];
@@ -171,37 +203,7 @@ beforeEach(() => {
     return buildUser();
   }) as never;
 
-  UserService.updateOneById = jest
-    .fn()
-    .mockImplementation(async (data: { data: Record<string, unknown> }) => {
-      /*
-       * Each write names exactly one slot, which is the property under test:
-       * a write that touched both would be the bug this split removed.
-       */
-      if ("webauthnRegistrationChallenge" in data.data) {
-        slots.registration = {
-          challenge: data.data["webauthnRegistrationChallenge"] as
-            | string
-            | null,
-          expiresAt: data.data[
-            "webauthnRegistrationChallengeExpiresAt"
-          ] as Date | null,
-        };
-      }
-
-      if ("webauthnAuthenticationChallenge" in data.data) {
-        slots.authentication = {
-          challenge: data.data["webauthnAuthenticationChallenge"] as
-            | string
-            | null,
-          expiresAt: data.data[
-            "webauthnAuthenticationChallengeExpiresAt"
-          ] as Date | null,
-        };
-      }
-
-      return undefined;
-    }) as never;
+  UserService.updateOneById = jest.fn().mockResolvedValue(1) as never;
 
   UserWebAuthnService.findBy = jest.fn().mockImplementation(async () => {
     return existingCredentials;
@@ -608,7 +610,7 @@ describe("WebAuthn user verification (issue #3652)", () => {
           name: KEY_NAME,
           props: { userId: USER_ID },
         }),
-      ).rejects.toThrow(/no pending webauthn challenge/i);
+      ).rejects.toThrow(/expired or was already used/i);
     });
   });
 
@@ -813,7 +815,7 @@ describe("WebAuthn user verification (issue #3652)", () => {
       });
 
       expect(thrown).toBeInstanceOf(BadDataException);
-      expect((thrown as Exception).message).toMatch(/challenge has expired/i);
+      expect((thrown as Exception).message).toMatch(/challenge expired/i);
     });
   });
 
@@ -947,7 +949,7 @@ describe("WebAuthn user verification (issue #3652)", () => {
           name: KEY_NAME,
           props: { userId: USER_ID },
         }),
-      ).rejects.toThrow(/no pending webauthn challenge/i);
+      ).rejects.toThrow(/expired or was already used/i);
     });
   });
 

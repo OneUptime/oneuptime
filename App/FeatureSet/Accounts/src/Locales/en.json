@@ -34,6 +34,12 @@
     "title": "Sign in to your account",
     "subtitle": "Join thousands of business that use OneUptime to help them stay online all the time.",
     "submitButton": "Login",
+    "passkey": {
+      "signIn": "Sign in with a passkey",
+      "description": "Use your fingerprint, face, screen lock, or security key.",
+      "passwordAlternative": "or sign in with a password",
+      "inProgress": "Finish or cancel passkey sign-in before using your password."
+    },
     "forgotPassword": "Forgot password?",
     "useSso": "Use single sign-on (SSO) instead",
     "noAccountPrompt": "Don't have an account?",

@@ -31,6 +31,12 @@
     "errorOnSignUp": "가입하기 전에 captcha 챌린지를 완료해 주세요."
   },
   "login": {
+    "passkey": {
+      "signIn": "패스키로 로그인",
+      "description": "지문, 얼굴 인식, 화면 잠금 또는 보안 키를 사용하세요.",
+      "passwordAlternative": "또는 비밀번호로 로그인",
+      "inProgress": "비밀번호를 사용하기 전에 패스키 로그인을 완료하거나 취소하세요."
+    },
     "title": "계정에 로그인",
     "subtitle": "OneUptime을 사용하여 항상 온라인 상태를 유지하는 수천 개의 비즈니스에 참여하세요.",
     "submitButton": "로그인",

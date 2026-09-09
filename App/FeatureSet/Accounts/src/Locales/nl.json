@@ -31,6 +31,12 @@
     "errorOnSignUp": "Voltooi de captcha-uitdaging voordat u zich registreert."
   },
   "login": {
+    "passkey": {
+      "signIn": "Inloggen met een passkey",
+      "description": "Gebruik je vingerafdruk, gezicht, schermvergrendeling of beveiligingssleutel.",
+      "passwordAlternative": "of log in met een wachtwoord",
+      "inProgress": "Voltooi of annuleer het inloggen met een passkey voordat je je wachtwoord gebruikt."
+    },
     "title": "Meld u aan bij uw account",
     "subtitle": "Sluit u aan bij duizenden bedrijven die OneUptime gebruiken om de hele tijd online te blijven.",
     "submitButton": "Inloggen",

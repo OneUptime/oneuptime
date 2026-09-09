@@ -31,6 +31,12 @@
     "errorOnSignUp": "Completa il captcha prima di registrarti."
   },
   "login": {
+    "passkey": {
+      "signIn": "Accedi con una passkey",
+      "description": "Usa l’impronta digitale, il volto, il blocco schermo o una chiave di sicurezza.",
+      "passwordAlternative": "oppure accedi con una password",
+      "inProgress": "Completa o annulla l’accesso con passkey prima di usare la password."
+    },
     "title": "Accedi al tuo account",
     "subtitle": "Unisciti a migliaia di aziende che usano OneUptime per rimanere sempre online.",
     "submitButton": "Accedi",

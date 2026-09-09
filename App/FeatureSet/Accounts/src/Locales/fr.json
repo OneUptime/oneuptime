@@ -31,6 +31,12 @@
     "errorOnSignUp": "Veuillez compléter le captcha avant de vous inscrire."
   },
   "login": {
+    "passkey": {
+      "signIn": "Se connecter avec une clé d’accès",
+      "description": "Utilisez votre empreinte digitale, votre visage, le verrouillage de l’écran ou une clé de sécurité.",
+      "passwordAlternative": "ou se connecter avec un mot de passe",
+      "inProgress": "Terminez ou annulez la connexion par clé d’accès avant d’utiliser votre mot de passe."
+    },
     "title": "Connectez-vous à votre compte",
     "subtitle": "Rejoignez des milliers d'entreprises qui utilisent OneUptime pour rester en ligne en permanence.",
     "submitButton": "Connexion",
