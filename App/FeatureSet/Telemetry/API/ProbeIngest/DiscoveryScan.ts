@@ -401,10 +401,6 @@ router.post(
       }
 
       const success: boolean = req.body["success"] !== false;
-      const clearedClaimMessage: JSONObject =
-        scan.statusMessage === DISCOVERY_SCAN_STARTED_MESSAGE
-          ? { statusMessage: null }
-          : {};
 
       /*
        * Whether this report SAYS anything about hosts.
@@ -422,13 +418,12 @@ router.post(
        * report erase the hundreds of hosts it had already sent — exactly the
        * loss incremental results exist to prevent (OneUptime issue #3598).
        *
-       * So a failure report states hosts only when it actually carries a
-       * list. The current probe omits the key entirely and the stored hosts
-       * are left alone; an older probe still sends `[]` and still gets the
-       * behaviour it has always had.
+       * A failure or partial report states hosts only when it carries a list.
+       * A count-only heartbeat must preserve hosts already reported by this
+       * run. An explicit `[]` still replaces them with an empty result.
        */
       const hasHostReport: boolean =
-        success || Array.isArray(req.body["discoveredDevices"]);
+        (!isPartial && success) || Array.isArray(req.body["discoveredDevices"]);
 
       const discoveredDevices: Array<JSONObject> =
         (req.body["discoveredDevices"] as Array<JSONObject>) || [];
@@ -496,6 +491,32 @@ router.post(
         ? snmpResponderCount
         : discoveredDevices.length;
 
+      if (scan.statusMessage === DISCOVERY_SCAN_STARTED_MESSAGE) {
+        /*
+         * Until its first report, a recurring scan retains the preceding
+         * run's inventory. Retire it even when this run's first report is a
+         * failure or a heartbeat carrying only counts. Otherwise replacing
+         * the claim marker would present old hosts as this run's findings.
+         *
+         * Guard the reset in its own statement: another first report may
+         * have stored real partial results while the lookup above ran. Once
+         * it removes the marker, those results must never be cleared here.
+         */
+        await NetworkDeviceDiscoveryScanService.updateColumnsByIdWithoutHooks({
+          id: scan.id!,
+          data: {
+            statusMessage: null,
+            discoveredDevices: null,
+            scannedHostCount: null,
+            respondedHostCount: null,
+          } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
+          expectedData: {
+            status: "In Progress",
+            statusMessage: DISCOVERY_SCAN_STARTED_MESSAGE,
+          } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
+        });
+      }
+
       if (isPartial) {
         /*
          * Results ONLY. The run state — status, completedAt, the recurrence
@@ -511,7 +532,6 @@ router.post(
          */
         const partial: JSONObject = {
           autoImportProcessedAt: null,
-          ...clearedClaimMessage,
         };
 
         if (hasHostReport) {
@@ -557,10 +577,12 @@ router.post(
         });
 
         logger.debug(
-          `Discovery scan ${scanId} progress: ${discoveredDevices.length} alive host(s) so far` +
-            (ScanModeUtil.isSnmpEnabled(scan)
-              ? `, ${snmpResponderCount} answered SNMP.`
-              : " (ICMP-only scan)."),
+          hasHostReport
+            ? `Discovery scan ${scanId} progress: ${discoveredDevices.length} alive host(s) so far` +
+                (ScanModeUtil.isSnmpEnabled(scan)
+                  ? `, ${snmpResponderCount} answered SNMP.`
+                  : " (ICMP-only scan).")
+            : `Discovery scan ${scanId} progress received without a host list.`,
         );
 
         return Response.sendJsonObjectResponse(req, res, {
@@ -576,7 +598,6 @@ router.post(
        */
       const completed: JSONObject = {
         status: success ? "Completed" : "Failed",
-        ...clearedClaimMessage,
         completedAt: OneUptimeDate.getCurrentDate(),
         /*
          * New results, so the auto-import worker's bookkeeping starts over:

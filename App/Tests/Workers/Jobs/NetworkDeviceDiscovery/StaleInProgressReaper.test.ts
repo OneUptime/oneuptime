@@ -5,6 +5,7 @@ import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import logger from "Common/Server/Utils/Logger";
+import { DISCOVERY_SCAN_STARTED_MESSAGE } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -276,7 +277,7 @@ describe("NetworkDeviceDiscovery reaper — a scan stranded In Progress", () => 
     expect(message.length).toBeLessThanOrEqual(500);
   });
 
-  test("does not touch the results columns, so an abandoned run keeps its hosts", async () => {
+  test("preserves real partial results after an abandoned run has reported progress", async () => {
     scanService.findAllBy.mockImplementation(
       async (
         findBy: JSONObject,
@@ -288,6 +289,10 @@ describe("NetworkDeviceDiscovery reaper — a scan stranded In Progress", () => 
             {
               id: ObjectID.generate(),
               cidr: "10.0.0.0/24",
+              statusMessage: null,
+              discoveredDevices: [{ ipAddress: "10.0.0.9" }],
+              scannedHostCount: 128,
+              respondedHostCount: 1,
             } as unknown as NetworkDeviceDiscoveryScan,
           ];
         }
@@ -303,6 +308,39 @@ describe("NetworkDeviceDiscovery reaper — a scan stranded In Progress", () => 
     expect(Object.keys(data)).not.toContain("discoveredDevices");
     expect(Object.keys(data)).not.toContain("respondedHostCount");
     expect(Object.keys(data)).not.toContain("scannedHostCount");
+  });
+
+  test("clears retained results from a preceding run when this run never reported", async () => {
+    scanService.findAllBy.mockResolvedValueOnce([
+      {
+        id: ObjectID.generate(),
+        cidr: "10.0.0.0/24",
+        statusMessage: DISCOVERY_SCAN_STARTED_MESSAGE,
+        discoveredDevices: [{ ipAddress: "10.0.0.9" }],
+        scannedHostCount: 254,
+        respondedHostCount: 1,
+      } as unknown as NetworkDeviceDiscoveryScan,
+    ] as never);
+
+    await runTick();
+
+    expect(scanService.findAllBy.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({
+        select: expect.objectContaining({ statusMessage: true }),
+      }),
+    );
+    const data: Record<string, unknown> = staleQuery.set.mock
+      .calls[0]![0] as Record<string, unknown>;
+
+    expect(data["status"]).toBe("Failed");
+    for (const column of [
+      "discoveredDevices",
+      "scannedHostCount",
+      "respondedHostCount",
+    ]) {
+      // SQL NULL avoids retaining the previous run's inventory or counts.
+      expect((data[column] as () => string)()).toBe("NULL");
+    }
   });
 
   test("rechecks the run state and silence in the atomic write", async () => {
@@ -324,16 +362,29 @@ describe("NetworkDeviceDiscovery reaper — a scan stranded In Progress", () => 
     expect(scanService.updateOneById).not.toHaveBeenCalled();
   });
 
-  test("does not announce a failed scan when a newer report wins the race", async () => {
-    scanService.findAllBy.mockResolvedValueOnce([
-      new NetworkDeviceDiscoveryScan(ObjectID.generate()),
-    ] as never);
-    staleQuery.execute.mockResolvedValueOnce({ affected: 0 } as never);
+  test.each([null, DISCOVERY_SCAN_STARTED_MESSAGE])(
+    "does not fail or clear results when a newer report wins the race (selected message: %s)",
+    async (statusMessage: string | null) => {
+      scanService.findAllBy.mockResolvedValueOnce([
+        {
+          id: ObjectID.generate(),
+          statusMessage: statusMessage,
+        } as unknown as NetworkDeviceDiscoveryScan,
+      ] as never);
+      staleQuery.execute.mockResolvedValueOnce({ affected: 0 } as never);
 
-    await runTick();
+      await runTick();
 
-    expect(staleQuery.execute).toHaveBeenCalledTimes(1);
-    expect(logger.warn).not.toHaveBeenCalled();
-    expect(scanService.updateOneById).not.toHaveBeenCalled();
-  });
+      expect(staleQuery.execute).toHaveBeenCalledTimes(1);
+      expect(staleQuery.andWhere).toHaveBeenCalledWith('"status" = :status', {
+        status: "In Progress",
+      });
+      expect(staleQuery.andWhere).toHaveBeenCalledWith(
+        '"startedAt" < :staleBefore AND "updatedAt" < :staleBefore',
+        { staleBefore: cutOffOf(staleScanQuery()["updatedAt"]) },
+      );
+      expect(logger.warn).not.toHaveBeenCalled();
+      expect(scanService.updateOneById).not.toHaveBeenCalled();
+    },
+  );
 });

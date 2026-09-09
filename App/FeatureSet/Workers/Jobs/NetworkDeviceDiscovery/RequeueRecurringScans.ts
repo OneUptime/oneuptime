@@ -5,6 +5,7 @@ import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import NetworkDeviceDiscoveryScanService from "Common/Server/Services/NetworkDeviceDiscoveryScanService";
 import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
+import { DISCOVERY_SCAN_STARTED_MESSAGE } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
 import Probe, {
   ProbeConnectionStatus,
 } from "Common/Models/DatabaseModels/Probe";
@@ -104,6 +105,7 @@ RunCron(
           _id: true,
           name: true,
           cidr: true,
+          statusMessage: true,
         },
         props: {
           isRoot: true,
@@ -132,6 +134,25 @@ RunCron(
             completedAt: completedAt,
             // Recurring scans become due immediately; ignored for one-shots.
             nextScanAt: completedAt,
+            /*
+             * Until the first report, a recurring scan retains its previous
+             * run's inventory under the claim message. Retire that inventory
+             * before exposing this failed run. If new progress arrived after
+             * the read, the updatedAt guard below skips this entire write.
+             */
+            ...(scan.statusMessage === DISCOVERY_SCAN_STARTED_MESSAGE
+              ? {
+                  discoveredDevices: (): string => {
+                    return "NULL";
+                  },
+                  scannedHostCount: (): string => {
+                    return "NULL";
+                  },
+                  respondedHostCount: (): string => {
+                    return "NULL";
+                  },
+                }
+              : {}),
           })
           .where('"_id" = :scanId', { scanId: scan.id!.toString() })
           .andWhere('"status" = :status', { status: "In Progress" })

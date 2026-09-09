@@ -518,6 +518,13 @@ describe("POST /probe/discovery-scan/result — a failure report and the hosts a
 describe("POST /probe/discovery-scan/result — live progress across a run", () => {
   let storedScan: NetworkDeviceDiscoveryScan;
 
+  function retainPreviousRun(): void {
+    storedScan.statusMessage = DISCOVERY_SCAN_STARTED_MESSAGE;
+    storedScan.scannedHostCount = 254;
+    storedScan.respondedHostCount = 1;
+    storedScan.discoveredDevices = [{ ipAddress: "10.0.0.9" }];
+  }
+
   beforeEach(() => {
     jest.resetAllMocks();
     storedScan = makeFoundScan();
@@ -642,6 +649,137 @@ describe("POST /probe/discovery-scan/result — live progress across a run", () 
       expect(storedScan.status).toBe(isPartial ? "In Progress" : "Completed");
     },
   );
+
+  test.each([false, true])(
+    "retires previous-run results on the first terminal failure (prior upload rejected: %s)",
+    async (rejectFirstProgress: boolean) => {
+      retainPreviousRun();
+
+      if (rejectFirstProgress) {
+        deviceService.getRegisteredHostnames.mockRejectedValueOnce(
+          new Error("Temporary database error") as never,
+        );
+        const { next } = await callResultEndpoint(partialBody());
+        expect(next).toHaveBeenCalled();
+        expect(storedScan.statusMessage).toBe(DISCOVERY_SCAN_STARTED_MESSAGE);
+        expect(storedScan.scannedHostCount).toBe(254);
+      }
+
+      await callResultEndpoint({
+        scanId: scanId.toString(),
+        success: false,
+        statusMessage: "The probe could not start this sweep.",
+      });
+
+      expect(storedScan.status).toBe("Failed");
+      expect(storedScan.statusMessage).toBe(
+        "The probe could not start this sweep.",
+      );
+      expect(storedScan.discoveredDevices).toBeNull();
+      expect(storedScan.scannedHostCount).toBeNull();
+      expect(storedScan.respondedHostCount).toBeNull();
+    },
+  );
+
+  test("a first count-only heartbeat retires old hosts without inventing a responder count", async () => {
+    retainPreviousRun();
+    await callResultEndpoint({
+      scanId: scanId.toString(),
+      isPartial: true,
+      scannedHostCount: 32,
+    });
+
+    expect(storedScan.status).toBe("In Progress");
+    expect(storedScan.statusMessage).toBeNull();
+    expect(storedScan.scannedHostCount).toBe(32);
+    expect(storedScan.respondedHostCount).toBeNull();
+    expect(storedScan.discoveredDevices).toBeNull();
+  });
+
+  test("a first host report does not inherit the preceding run's scanned count", async () => {
+    retainPreviousRun();
+    await callResultEndpoint(
+      partialBody({
+        scannedHostCount: undefined,
+        discoveredDevices: [{ ipAddress: "10.0.0.5", snmpReachable: true }],
+      }),
+    );
+
+    expect(storedScan.scannedHostCount).toBeNull();
+    expect(storedScan.respondedHostCount).toBe(1);
+    expect(storedScan.discoveredDevices?.[0]?.ipAddress).toBe("10.0.0.5");
+  });
+
+  test("later count-only heartbeats and failure preserve this run's actual partial results", async () => {
+    retainPreviousRun();
+    await callResultEndpoint(
+      partialBody({
+        scannedHostCount: 64,
+        discoveredDevices: [{ ipAddress: "10.0.0.5", snmpReachable: true }],
+      }),
+    );
+    await callResultEndpoint({
+      scanId: scanId.toString(),
+      isPartial: true,
+      scannedHostCount: 128,
+    });
+    await callResultEndpoint({
+      scanId: scanId.toString(),
+      success: false,
+      statusMessage: "The scan stopped early.",
+    });
+
+    expect(storedScan.status).toBe("Failed");
+    expect(storedScan.scannedHostCount).toBe(128);
+    expect(storedScan.respondedHostCount).toBe(1);
+    expect(storedScan.discoveredDevices).toEqual([
+      {
+        ipAddress: "10.0.0.5",
+        snmpReachable: true,
+        isAlreadyRegistered: false,
+      },
+    ]);
+  });
+
+  test("a first failure waiting on its lookup cannot erase a newer accepted partial", async () => {
+    retainPreviousRun();
+    let finishLookup: (hosts: Set<string>) => void = (): void => {};
+    let reportLookupStarted: () => void = (): void => {};
+    const lookupStarted: Promise<void> = new Promise<void>(
+      (resolve: () => void) => {
+        reportLookupStarted = resolve;
+      },
+    );
+    deviceService.getRegisteredHostnames.mockImplementationOnce(() => {
+      reportLookupStarted();
+      return new Promise<Set<string>>(
+        (resolve: (hosts: Set<string>) => void) => {
+          finishLookup = resolve;
+        },
+      );
+    });
+
+    const pendingFailure: ReturnType<typeof callResultEndpoint> =
+      callResultEndpoint({
+        scanId: scanId.toString(),
+        success: false,
+        statusMessage: "The scan stopped early.",
+      });
+    await lookupStarted;
+    await callResultEndpoint(
+      partialBody({
+        scannedHostCount: 128,
+        discoveredDevices: [{ ipAddress: "10.0.0.5", snmpReachable: true }],
+      }),
+    );
+    finishLookup(new Set<string>());
+    await pendingFailure;
+
+    expect(storedScan.status).toBe("Failed");
+    expect(storedScan.scannedHostCount).toBe(128);
+    expect(storedScan.respondedHostCount).toBe(1);
+    expect(storedScan.discoveredDevices?.[0]?.ipAddress).toBe("10.0.0.5");
+  });
 
   test("replaces cumulative snapshots without duplicating previously found hosts", async () => {
     const firstHost: JSONObject = {
