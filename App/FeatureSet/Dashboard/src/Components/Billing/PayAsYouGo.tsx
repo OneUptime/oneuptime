@@ -12,7 +12,6 @@ import MonitorType, {
 } from "Common/Types/Monitor/MonitorType";
 import IconProp from "Common/Types/Icon/IconProp";
 import URL from "Common/Types/API/URL";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import AlertBanner, {
   AlertBannerType,
@@ -34,9 +33,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * Telemetry ingest and active monitors are metered: nothing about them is
  * included in the Free plan, so a user who creates an ingestion key or a
  * non-Manual monitor requires billing setup. The server enforces payment
- * eligibility, and these components explain prices and require acknowledgement
- * before a user can start paid usage. Everything here renders only when billing is on AND the project is
- * on Free (see isProjectOnFreePlan, which fails closed).
+ * eligibility. These components explain prices, with acknowledgement required
+ * for telemetry and bulk monitor creation. Everything here renders only when
+ * billing is on AND the project is on Free (see isProjectOnFreePlan, which fails
+ * closed).
  */
 
 export const TELEMETRY_PRICE_PER_GB_TEXT: string = formatPriceInUSD(
@@ -66,16 +66,13 @@ export const TELEMETRY_RATES_SENTENCE: string = `Logs, traces, metrics, profiles
 export const ACTIVE_MONITOR_PRICE_SENTENCE: string = `${ACTIVE_MONITOR_PRICE_TEXT} per monitor per month`;
 
 /*
- * The form keys the consent checkboxes are stored under. They are declared
- * with overrideField and no overrideFieldKey, which keeps them out of both the
+ * The form key the telemetry consent checkbox is stored under. It is declared
+ * with overrideField and no overrideFieldKey, which keeps it out of both the
  * model payload and miscDataProps - the acknowledgement never leaves the
  * browser, it only gates the submit.
  */
 export const TELEMETRY_CONSENT_FIELD_KEY: string =
   "telemetryPayAsYouGoAcknowledged";
-
-export const MONITOR_CONSENT_FIELD_KEY: string =
-  "monitorPayAsYouGoAcknowledged";
 
 export const TELEMETRY_CONSENT_ERROR: string =
   "Please confirm you understand telemetry sent with this key is billed as you use it before creating an ingestion key.";
@@ -94,13 +91,8 @@ type ConsentValidator = (values: FormValues<unknown>) => string | null;
 function buildConsentValidator(data: {
   fieldKey: string;
   message: string;
-  isApplicable?: ((values: FormValues<unknown>) => boolean) | undefined;
 }): ConsentValidator {
   return (values: FormValues<unknown>): string | null => {
-    if (data.isApplicable && !data.isApplicable(values)) {
-      return null;
-    }
-
     if ((values as Record<string, unknown>)[data.fieldKey] === true) {
       return null;
     }
@@ -115,21 +107,6 @@ export const validateTelemetryConsent: ConsentValidator = buildConsentValidator(
     message: TELEMETRY_CONSENT_ERROR,
   },
 );
-
-export const validateMonitorConsent: ConsentValidator = buildConsentValidator({
-  fieldKey: MONITOR_CONSENT_FIELD_KEY,
-  message: MONITOR_CONSENT_ERROR,
-  /*
-   * Manual monitors are free and unlimited, so there is nothing to
-   * acknowledge. showIf already hides the box for them; this keeps the
-   * validator honest on its own terms too.
-   */
-  isApplicable: (values: FormValues<unknown>): boolean => {
-    return MonitorTypeHelper.isBilledAsActiveMonitor(
-      (values as Record<string, unknown>)["monitorType"] as MonitorType,
-    );
-  },
-});
 
 interface PayAsYouGoCardProps {
   cardTitle: string;
@@ -400,10 +377,8 @@ export function getTelemetryPayAsYouGoFormFields(): Array<
  * Whether a batch of monitors about to be created needs a pay-as-you-go
  * acknowledgement: Free plan, and at least one of them is billed.
  *
- * Bulk creation (monitor recommendations) does not go through a ModelForm, so
- * it cannot use the field factory below - but a "create 18 monitors" button is
- * the largest single charge a Free plan user can start in one click, which is
- * exactly where the notice matters most.
+ * Bulk creation (monitor recommendations) can start charges for many monitors
+ * in one click, so it keeps an explicit acknowledgement of the batch total.
  */
 export function isMonitorBatchConsentRequired(
   monitorTypes: Array<MonitorType>,
@@ -445,8 +420,8 @@ export interface MonitorBatchConsentProps {
 }
 
 /**
- * The bulk-create counterpart to the create-monitor consent field. Renders
- * nothing when nothing in the batch is billed, or off the Free plan; callers
+ * The consent checkbox for bulk monitor creation. Renders nothing when
+ * nothing in the batch is billed, or off the Free plan; callers
  * pair it with isMonitorBatchConsentRequired to disable their submit button.
  */
 export const MonitorBatchPayAsYouGoConsent: FunctionComponent<
@@ -483,64 +458,3 @@ export const MonitorBatchPayAsYouGoConsent: FunctionComponent<
     </div>
   );
 };
-
-/**
- * The consent checkbox for the create monitor form, as a ModelForm field.
- * Empty unless the project is on the Free plan; hidden (and not validated) for
- * Manual monitors, which are free.
- *
- * `stepId` has to be the step the checkbox lives on: the form only validates
- * fields belonging to the step being submitted.
- */
-export function getMonitorPayAsYouGoFormFields(data: {
-  stepId: string;
-}): Array<ModelField<Monitor>> {
-  if (!isProjectOnFreePlan()) {
-    return [];
-  }
-
-  return [
-    {
-      overrideField: {
-        [MONITOR_CONSENT_FIELD_KEY]: true,
-      },
-      showEvenIfPermissionDoesNotExist: true,
-      stepId: data.stepId,
-      spanFullRow: true,
-      fieldType: FormFieldSchemaType.CustomComponent,
-      getCustomElement: (
-        values: FormValues<Monitor>,
-        props: CustomElementProps,
-      ): ReactElement => {
-        return (
-          <PaidUsageConsent
-            title="I agree to these usage charges"
-            description={`${ACTIVE_MONITOR_PRICE_SENTENCE}. Manual monitors remain free.`}
-            value={
-              (values as Record<string, unknown>)[MONITOR_CONSENT_FIELD_KEY] ===
-              true
-            }
-            onChange={props.onChange}
-            error={props.error}
-            dataTestId="monitor-pay-as-you-go-consent"
-          />
-        );
-      },
-      title: `I understand this monitor is billed at ${ACTIVE_MONITOR_PRICE_TEXT} per month`,
-      description: `Your project is on the Free plan. Every monitor type except ${MonitorType.Manual} is an active monitor, billed at ${ACTIVE_MONITOR_PRICE_SENTENCE}. Pick ${MonitorType.Manual} if you do not want to be billed for this monitor.`,
-      dataTestId: "monitor-pay-as-you-go-consent",
-      getDefaultValue: (): boolean => {
-        return false;
-      },
-      required: true,
-      showIf: (values: FormValues<Monitor>): boolean => {
-        return MonitorTypeHelper.isBilledAsActiveMonitor(
-          values.monitorType as MonitorType,
-        );
-      },
-      customValidation: validateMonitorConsent as (
-        values: FormValues<Monitor>,
-      ) => string | null,
-    },
-  ];
-}

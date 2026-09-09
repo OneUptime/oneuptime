@@ -8,7 +8,6 @@ import * as React from "react";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import MonitorType from "../../../Types/Monitor/MonitorType";
-import Monitor from "../../../Models/DatabaseModels/Monitor";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
@@ -19,7 +18,6 @@ import { getJestSpyOn } from "../../Spy";
 import {
   ACTIVE_MONITOR_PRICE_TEXT,
   MONITOR_CONSENT_ERROR,
-  MONITOR_CONSENT_FIELD_KEY,
   MonitorBatchPayAsYouGoConsent,
   MonitorPayAsYouGoCard,
   SESSION_REPLAY_PRICE_PER_GB_TEXT,
@@ -28,10 +26,8 @@ import {
   TELEMETRY_PRICE_PER_GB_TEXT,
   TelemetryPayAsYouGoCard,
   getMonitorBatchPriceSentence,
-  getMonitorPayAsYouGoFormFields,
   getTelemetryPayAsYouGoFormFields,
   isMonitorBatchConsentRequired,
-  validateMonitorConsent,
   validateTelemetryConsent,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo";
 
@@ -383,62 +379,6 @@ describe("Pay as you go notices", () => {
     });
   });
 
-  describe("getMonitorPayAsYouGoFormFields", () => {
-    it("adds one consent checkbox, on the step it was asked for", () => {
-      const fields: Array<ModelField<Monitor>> = getMonitorPayAsYouGoFormFields(
-        { stepId: "monitor-info" },
-      );
-
-      expect(fields).toHaveLength(1);
-      expect(fields[0]?.fieldType).toBe(FormFieldSchemaType.CustomComponent);
-      expect(fields[0]?.stepId).toBe("monitor-info");
-      expect(fields[0]?.overrideField).toEqual({
-        [MONITOR_CONSENT_FIELD_KEY]: true,
-      });
-      expect(fields[0]?.overrideFieldKey).toBeUndefined();
-    });
-
-    it("is shown for billed monitor types and hidden for Manual", () => {
-      const showIf: (values: FormValues<Monitor>) => boolean =
-        getMonitorPayAsYouGoFormFields({ stepId: "monitor-info" })[0]!.showIf!;
-
-      expect(
-        showIf({ monitorType: MonitorType.Manual } as FormValues<Monitor>),
-      ).toBe(false);
-
-      for (const monitorType of [
-        MonitorType.Website,
-        MonitorType.API,
-        MonitorType.Logs,
-        MonitorType.IncomingRequest,
-        MonitorType.NetworkDevice,
-      ]) {
-        expect(
-          showIf({ monitorType: monitorType } as FormValues<Monitor>),
-        ).toBe(true);
-      }
-    });
-
-    it.each([PlanType.Growth, PlanType.Scale, PlanType.Enterprise])(
-      "adds nothing on the %s plan",
-      (plan: PlanType) => {
-        setPlan(plan);
-
-        expect(
-          getMonitorPayAsYouGoFormFields({ stepId: "monitor-info" }),
-        ).toEqual([]);
-      },
-    );
-
-    it("adds nothing on a self-hosted install", () => {
-      config.billingEnabled = false;
-
-      expect(
-        getMonitorPayAsYouGoFormFields({ stepId: "monitor-info" }),
-      ).toEqual([]);
-    });
-  });
-
   describe("bulk monitor creation (recommendations)", () => {
     it("needs consent when any monitor in the batch is billed", () => {
       expect(
@@ -594,44 +534,6 @@ describe("Pay as you go notices", () => {
       expect(
         validateTelemetryConsent({ [TELEMETRY_CONSENT_FIELD_KEY]: 1 }),
       ).toBe(TELEMETRY_CONSENT_ERROR);
-    });
-
-    it("blocks a billed monitor until it is acknowledged", () => {
-      expect(validateMonitorConsent({ monitorType: MonitorType.Website })).toBe(
-        MONITOR_CONSENT_ERROR,
-      );
-      expect(
-        validateMonitorConsent({
-          monitorType: MonitorType.Website,
-          [MONITOR_CONSENT_FIELD_KEY]: false,
-        }),
-      ).toBe(MONITOR_CONSENT_ERROR);
-      expect(
-        validateMonitorConsent({
-          monitorType: MonitorType.Website,
-          [MONITOR_CONSENT_FIELD_KEY]: true,
-        }),
-      ).toBeNull();
-    });
-
-    it("never blocks a Manual monitor - there is nothing to acknowledge", () => {
-      expect(validateMonitorConsent({ monitorType: MonitorType.Manual })).toBe(
-        null,
-      );
-      expect(
-        validateMonitorConsent({
-          monitorType: MonitorType.Manual,
-          [MONITOR_CONSENT_FIELD_KEY]: false,
-        }),
-      ).toBeNull();
-    });
-
-    it("blocks when no monitor type has been picked yet", () => {
-      /*
-       * An unset type is not Manual, so it is treated as billed. Failing this
-       * way round means the box can never be skipped by submitting early.
-       */
-      expect(validateMonitorConsent({})).toBe(MONITOR_CONSENT_ERROR);
     });
   });
 });

@@ -4,12 +4,12 @@ import path from "path";
 
 /*
  * Telemetry ingest and every non-Manual monitor are metered, and nothing about
- * either is included in the Free plan. The dashboard now says so before the
- * charge starts, and makes the user acknowledge it.
+ * either is included in the Free plan. The dashboard says so before the
+ * charge starts. Telemetry and bulk monitor creation also require consent.
  *
  * The behaviour itself is exercised against the real form in
  * Common/Tests/App/Dashboard/PayAsYouGoConsentGate.test.tsx. What is pinned
- * here is the wiring: both notices and both sets of form fields are one-line
+ * here is the wiring: the notices and telemetry form fields are one-line
  * call sites that can be dropped in a refactor without breaking a type or a
  * render, which would silently take the warning away and leave Free plan users
  * billed with no notice.
@@ -156,33 +156,17 @@ describe("Pay as you go wiring", () => {
       expect(source).toContain("<MonitorPayAsYouGoCard />");
     });
 
-    test("puts the consent field on the step that holds the monitor type picker", () => {
-      /*
-       * The step id matters: the form only validates fields belonging to the
-       * step being submitted, so a consent box parked on a step the user never
-       * submits would never block anything.
-       */
-      expect(source).toContain(
-        'getMonitorPayAsYouGoFormFields({ stepId: "monitor-info" })',
-      );
-
-      // The call site, not the import at the top of the file.
-      const consentIndex: number = source.indexOf(
-        'getMonitorPayAsYouGoFormFields({ stepId: "monitor-info" })',
-      );
-      const monitorTypeIndex: number = source.indexOf(
-        "monitorTypesAsCategorizedCardSelectOptions",
-      );
-
-      expect(monitorTypeIndex).toBeGreaterThan(-1);
-      expect(consentIndex).toBeGreaterThan(monitorTypeIndex);
+    test("does not add a duplicate billing acknowledgement to the form", () => {
+      expect(source).not.toContain("getMonitorPayAsYouGoFormFields");
+      expect(source).not.toContain("monitorPayAsYouGoAcknowledged");
+      expect(source).not.toContain("validateMonitorConsent");
     });
 
-    test("declares a monitor-info step for that field to be validated on", () => {
+    test("keeps the monitor-info step for the monitor details and type picker", () => {
       expect(source).toContain('id: "monitor-info"');
     });
 
-    test("imports both from the billing component", () => {
+    test("imports the warning card from the billing component", () => {
       expect(source).toContain('from "../../Components/Billing/PayAsYouGo"');
     });
   });
@@ -220,13 +204,13 @@ describe("Pay as you go wiring", () => {
     });
   });
 
-  describe("every surface that creates a monitor is gated", () => {
+  describe("every surface that creates a monitor shows billing information", () => {
     test("no create path for Monitor exists without a PayAsYouGo reference", () => {
       /*
        * The telemetry half of this change had an invariant like this from the
        * start; the monitor half did not, which is how the recommendations
        * bulk-create path was missed. Any file that creates a Monitor has to
-       * reference the pay-as-you-go gate.
+       * reference the pay-as-you-go notice or consent component.
        */
       const creatingFiles: Array<string> = collectSourceFiles(
         DASHBOARD_SRC,
@@ -246,8 +230,10 @@ describe("Pay as you go wiring", () => {
 
         expect({
           file: relative,
-          gated: fs.readFileSync(file, "utf8").includes("PayAsYouGo"),
-        }).toEqual({ file: relative, gated: true });
+          hasBillingNotice: fs
+            .readFileSync(file, "utf8")
+            .includes("PayAsYouGo"),
+        }).toEqual({ file: relative, hasBillingNotice: true });
       }
     });
   });
@@ -266,7 +252,6 @@ describe("Pay as you go wiring", () => {
       "TelemetryPayAsYouGoCard",
       "MonitorPayAsYouGoCard",
       "getTelemetryPayAsYouGoFormFields",
-      "getMonitorPayAsYouGoFormFields",
       "isMonitorBatchConsentRequired",
     ];
 

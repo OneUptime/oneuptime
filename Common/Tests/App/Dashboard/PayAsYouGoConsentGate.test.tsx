@@ -4,34 +4,31 @@ import "@testing-library/jest-dom";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as React from "react";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import MonitorType from "../../../Types/Monitor/MonitorType";
+import Route from "../../../Types/API/Route";
+import Project from "../../../Models/DatabaseModels/Project";
 import Permission, { UserPermission } from "../../../Types/Permission";
-import Monitor from "../../../Models/DatabaseModels/Monitor";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import ProjectUtil from "../../../UI/Utils/Project";
+import Navigation from "../../../UI/Utils/Navigation";
+import MonitorCreate from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Create";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 import ModelForm, { FormType } from "../../../UI/Components/Forms/ModelForm";
 import {
-  MONITOR_CONSENT_ERROR,
-  MONITOR_CONSENT_FIELD_KEY,
   TELEMETRY_CONSENT_ERROR,
   TELEMETRY_CONSENT_FIELD_KEY,
-  getMonitorPayAsYouGoFormFields,
   getTelemetryPayAsYouGoFormFields,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo";
 
 /*
- * The consent checkbox is the whole point of the change: on the Free plan a
- * user must not be able to start a metered charge without saying they
- * understand it. This suite drives the real ModelForm rather than the field
- * definitions, because the mechanism is subtle - the form's own `required`
- * check stringifies values, so an unticked box reads as the non-empty string
- * "false" and sails straight through it. The gate is a customValidation, and
- * it only runs at all because getDefaultValue seeds the key.
+ * Telemetry creation still requires explicit consent. Single-monitor creation
+ * instead relies on the page's pricing warning, and must allow the user to
+ * advance from Monitor Info without an additional acknowledgement.
  */
 
 const createOrUpdateMock: MockFunction = getJestMockFunction();
@@ -44,6 +41,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getItem: (...args: Array<any>) => {
         return getItemMock(...args);
       },
+      getList: (): Promise<unknown> => {
+        return Promise.resolve({ data: [], count: 0, skip: 0, limit: 0 });
+      },
       getCommonHeaders: () => {
         return {};
       },
@@ -53,6 +53,29 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     },
   };
 });
+
+jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/Probe", () => {
+  return {
+    __esModule: true,
+    default: {
+      getAllProbes: (): Promise<Array<unknown>> => {
+        return Promise.resolve([]);
+      },
+    },
+  };
+});
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorSteps",
+  () => {
+    return {
+      __esModule: true,
+      default: (): React.ReactElement => {
+        return <div data-testid="monitor-steps" />;
+      },
+    };
+  },
+);
 
 const OWNER_PERMISSIONS: Array<Permission> = [
   Permission.Public,
@@ -157,34 +180,43 @@ const renderIngestionKeyForm: RenderIngestionKeyFormFunction = (): void => {
   );
 };
 
-type RenderMonitorFormFunction = (monitorType: MonitorType) => void;
+function renderMonitorPage(monitorType: MonitorType): void {
+  const project: Project = new Project();
+  project.id = new ObjectID("11111111-1111-4111-8111-111111111111");
 
-const renderMonitorForm: RenderMonitorFormFunction = (
-  monitorType: MonitorType,
-): void => {
-  render(
-    <ModelForm<Monitor>
-      modelType={Monitor}
-      id="create-monitor-form"
-      name="Create New Monitor"
-      formType={FormType.Create}
-      submitButtonText="Create Monitor"
-      initialValues={{ monitorType: monitorType } as any}
-      steps={[{ title: "Monitor Info", id: "monitor-info" }]}
-      fields={[
-        {
-          field: { name: true },
-          stepId: "monitor-info",
-          title: "Name",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          dataTestId: "monitor-name",
-        },
-        ...getMonitorPayAsYouGoFormFields({ stepId: "monitor-info" }),
-      ]}
-    />,
+  getJestSpyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(project.id);
+  getJestSpyOn(Navigation, "getQueryStringByName").mockImplementation(
+    (paramName: string): string | null => {
+      return paramName === "monitorType" ? monitorType : null;
+    },
   );
-};
+
+  render(
+    <MemoryRouter>
+      <MonitorCreate
+        pageRoute={new Route("/dashboard/monitors/create")}
+        currentProject={project}
+        hasPaymentMethod={false}
+      />
+    </MemoryRouter>,
+  );
+}
+
+async function advanceMonitorInfo(): Promise<void> {
+  await userEvent.type(
+    await screen.findByPlaceholderText(
+      "Monitor Name",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    ),
+    "Marketing site",
+  );
+  await userEvent.click(screen.getByRole("button", { name: "Next" }));
+
+  expect(
+    await screen.findByTestId("monitor-steps", {}, { timeout: WAIT_TIMEOUT }),
+  ).toBeInTheDocument();
+}
 
 describe("Pay as you go consent gate", () => {
   beforeEach(() => {
@@ -402,151 +434,68 @@ describe("Pay as you go consent gate", () => {
   });
 
   describe("creating a monitor on the Free plan", () => {
-    it("refuses to create a billed monitor until the charge is acknowledged", async () => {
-      renderMonitorForm(MonitorType.Website);
-
-      await userEvent.type(
-        await screen.findByTestId(
-          "monitor-name",
-          {},
-          { timeout: WAIT_TIMEOUT },
-        ),
-        "Marketing site",
-      );
-
-      expect(
-        screen.getByTestId("monitor-pay-as-you-go-consent"),
-      ).toBeInTheDocument();
-
-      await userEvent.click(screen.getByText("Create Monitor"));
-
-      await waitFor(
-        () => {
-          expect(screen.getByText(MONITOR_CONSENT_ERROR)).toBeInTheDocument();
-        },
-        { timeout: WAIT_TIMEOUT },
-      );
-
-      expect(createOrUpdateMock).not.toHaveBeenCalled();
-    });
-
-    it("creates the billed monitor once the box is ticked", async () => {
-      renderMonitorForm(MonitorType.Website);
-
-      await userEvent.type(
-        await screen.findByTestId(
-          "monitor-name",
-          {},
-          { timeout: WAIT_TIMEOUT },
-        ),
-        "Marketing site",
-      );
-      await userEvent.click(
-        screen.getByTestId("monitor-pay-as-you-go-consent"),
-      );
-      await userEvent.click(screen.getByText("Create Monitor"));
-
-      await waitFor(
-        () => {
-          expect(createOrUpdateMock).toHaveBeenCalled();
-        },
-        { timeout: WAIT_TIMEOUT },
-      );
-
-      const call: any = createOrUpdateMock.mock.calls[0]?.[0];
-
-      expect(call?.miscDataProps ?? {}).not.toHaveProperty(
-        MONITOR_CONSENT_FIELD_KEY,
-      );
-    });
-
-    it("asks nothing of a Manual monitor - those are free", async () => {
-      renderMonitorForm(MonitorType.Manual);
-
-      await userEvent.type(
-        await screen.findByTestId(
-          "monitor-name",
-          {},
-          { timeout: WAIT_TIMEOUT },
-        ),
-        "Runbook step",
-      );
-
-      expect(
-        screen.queryByTestId("monitor-pay-as-you-go-consent"),
-      ).not.toBeInTheDocument();
-
-      await userEvent.click(screen.getByText("Create Monitor"));
-
-      await waitFor(
-        () => {
-          expect(createOrUpdateMock).toHaveBeenCalled();
-        },
-        { timeout: WAIT_TIMEOUT },
-      );
-    });
-
     it.each([
+      MonitorType.Website,
       MonitorType.API,
       MonitorType.Logs,
       MonitorType.IncomingRequest,
       MonitorType.SSLCertificate,
     ])(
-      "blocks %s too - every non-Manual type is billed",
+      "shows the page warning and advances %s without billing acknowledgement",
       async (monitorType: MonitorType) => {
-        renderMonitorForm(monitorType);
+        renderMonitorPage(monitorType);
 
-        await userEvent.type(
-          await screen.findByTestId(
-            "monitor-name",
-            {},
-            { timeout: WAIT_TIMEOUT },
-          ),
-          "Something",
+        const pricingNotice: HTMLElement = await screen.findByTestId(
+          "monitor-pay-as-you-go-card",
         );
-        await userEvent.click(screen.getByText("Create Monitor"));
+        expect(pricingNotice).toHaveTextContent("$1");
+        expect(pricingNotice).toHaveTextContent("per monitor per month");
+        await screen.findByPlaceholderText("Monitor Name");
 
-        await waitFor(
-          () => {
-            expect(screen.getByText(MONITOR_CONSENT_ERROR)).toBeInTheDocument();
-          },
-          { timeout: WAIT_TIMEOUT },
-        );
+        expect(
+          screen.queryByTestId("monitor-pay-as-you-go-consent"),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByText(/I understand this monitor is billed/i),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByText("I agree to these usage charges"),
+        ).not.toBeInTheDocument();
 
-        expect(createOrUpdateMock).not.toHaveBeenCalled();
+        await advanceMonitorInfo();
       },
     );
   });
 
   describe("creating a monitor off the Free plan", () => {
-    it("asks for nothing extra on a paid plan", async () => {
+    it("advances without a warning or acknowledgement on a paid plan", async () => {
       getJestSpyOn(ProjectUtil, "getCurrentPlan").mockReturnValue(
         PlanType.Growth,
       );
+      renderMonitorPage(MonitorType.Website);
 
-      renderMonitorForm(MonitorType.Website);
+      await advanceMonitorInfo();
 
-      await userEvent.type(
-        await screen.findByTestId(
-          "monitor-name",
-          {},
-          { timeout: WAIT_TIMEOUT },
-        ),
-        "Marketing site",
-      );
-
+      expect(
+        screen.queryByTestId("monitor-pay-as-you-go-card"),
+      ).not.toBeInTheDocument();
       expect(
         screen.queryByTestId("monitor-pay-as-you-go-consent"),
       ).not.toBeInTheDocument();
+    });
 
-      await userEvent.click(screen.getByText("Create Monitor"));
+    it("advances without a warning or acknowledgement on a self-hosted install", async () => {
+      config.billingEnabled = false;
+      renderMonitorPage(MonitorType.Website);
 
-      await waitFor(
-        () => {
-          expect(createOrUpdateMock).toHaveBeenCalled();
-        },
-        { timeout: WAIT_TIMEOUT },
-      );
+      await advanceMonitorInfo();
+
+      expect(
+        screen.queryByTestId("monitor-pay-as-you-go-card"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("monitor-pay-as-you-go-consent"),
+      ).not.toBeInTheDocument();
     });
   });
 });
