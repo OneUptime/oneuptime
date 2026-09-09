@@ -2,6 +2,10 @@
 
 Expo + React Native mobile app for OneUptime on-call management.
 
+For store updates, follow the [mobile publishing guide](RELEASING.md). It includes
+the existing app identifiers, EAS builds, store review steps, and release handoff
+instructions for maintainers and AI agents.
+
 ## Prerequisites
 
 - Node.js 18+
@@ -10,6 +14,7 @@ Expo + React Native mobile app for OneUptime on-call management.
 - A running OneUptime instance (or use `https://oneuptime.com`)
 
 For native builds:
+
 - **iOS**: macOS with Xcode 15+
 - **Android**: Android Studio with SDK 34+
 
@@ -29,6 +34,7 @@ npm start
 ```
 
 This starts the Expo dev server. You'll see a QR code in the terminal:
+
 - **iOS**: Scan the QR code with your iPhone camera
 - **Android**: Scan the QR code from the Expo Go app
 
@@ -158,7 +164,7 @@ there does not degrade the on-call screens, it inverts them.
 
 Native push notifications (iOS/Android) are powered by Expo Push and require no server-side configuration. The mobile app registers an Expo Push Token with the backend on login. The backend sends notifications via the public Expo Push API.
 
-Web push uses VAPID keys (configured separately). See the [Push Notifications docs](../Docs/Content/self-hosted/push-notifications.md) for details.
+Web push uses VAPID keys (configured separately). See the [Push Notifications docs](../App/FeatureSet/Docs/Content/en/self-hosted/push-notifications.md) for details.
 
 ### Critical on-call alerts
 
