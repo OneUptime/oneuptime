@@ -49,8 +49,10 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
         onBeforeCreate={async (
           item: MonitorTemplate,
         ): Promise<MonitorTemplate> => {
-          // Manual monitors skip the criteria step, so its type-change cleanup
-          // never mounts when a user returns to Defaults and chooses Manual.
+          /*
+           * Manual monitors skip the criteria step, so its type-change cleanup
+           * never mounts when a user returns to Defaults and chooses Manual.
+           */
           if (item.monitorType === MonitorType.Manual && item.monitorSteps) {
             const steps: MonitorStepsType = MonitorStepsType.clone(
               item.monitorSteps,

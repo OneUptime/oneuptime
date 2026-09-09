@@ -88,8 +88,10 @@ const MonitorTemplateSyncFields: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    // The create wizard can remount a step after the monitor type changes.
-    // Keep compatible choices and clear fields the new type cannot configure.
+    /*
+     * The create wizard can remount a step after the monitor type changes.
+     * Keep compatible choices and clear fields the new type cannot configure.
+     */
     const allowedFields: Set<string> = new Set(
       MonitorTemplateSyncFieldUtil.getFields(props.monitorType).map(
         (field: MonitorTemplateSyncField) => {
