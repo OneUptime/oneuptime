@@ -232,9 +232,10 @@ export default class ModelAPI {
       );
     }
 
-    const headers: Dictionary<string> = this.getCommonHeaders(
-      data.requestOptions,
-    );
+    const headers: Dictionary<string> = {
+      ...this.getCommonHeaders(data.requestOptions),
+      ...(data.requestOptions?.requestHeaders || {}),
+    };
     if (data.requestOptions && data.requestOptions.isMultiTenantRequest) {
       headers["isMultiTenantRequest"] = "true";
     }

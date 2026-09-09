@@ -14,7 +14,8 @@
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
     "compile": "tsc",
     "debug-tests": "playwright test --debug",
-    "test-topology-ui": "playwright test --config playwright.topology.config.ts"
+    "test-topology-ui": "playwright test --config playwright.topology.config.ts",
+    "test-label-rule-transfer": "playwright test --config playwright.label-rules.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
