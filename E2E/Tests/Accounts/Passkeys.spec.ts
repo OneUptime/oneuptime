@@ -1,4 +1,4 @@
-import { BASE_URL } from "../../Config";
+import { BASE_URL, IS_BILLING_ENABLED } from "../../Config";
 import { registerAndCreateProject } from "../Dashboard/Helpers/ProductOnboarding";
 import {
   APIResponse,
@@ -30,6 +30,10 @@ import { randomUUID } from "node:crypto";
  */
 test.describe("Passkey account lifecycle", () => {
   test.describe.configure({ mode: "serial" });
+  test.skip(
+    IS_BILLING_ENABLED && !process.env["E2E_PASSKEY_EMAIL"],
+    "Billing-enabled environments require E2E_PASSKEY_EMAIL and a test mailbox that verifies the fixture's email after registration.",
+  );
 
   const origin: string = BASE_URL.toString().replace(/\/$/, "");
   /*
