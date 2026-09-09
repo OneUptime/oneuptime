@@ -1,13 +1,9 @@
 import "@testing-library/jest-dom";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React, { ReactElement, ReactNode } from "react";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import Billing from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/Billing";
-import {
-  PAYMENT_METHOD_CONSENT_ERROR,
-  PAYMENT_METHOD_CONSENT_LABEL,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/BillingPaymentMethodForm";
 import ProjectUtil from "../../../UI/Utils/Project";
 import Navigation from "../../../UI/Utils/Navigation";
 import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
@@ -259,7 +255,7 @@ describe("Billing page paid usage flow", () => {
     expect(getListMock).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps the form visible after missing consent and refreshes both status and card list after saving", async () => {
+  it("saves without an extra pricing acknowledgement and refreshes status and the card list", async () => {
     getListMock
       .mockResolvedValueOnce({ data: [], count: 0 })
       .mockResolvedValueOnce({ data: [], count: 1 });
@@ -273,17 +269,18 @@ describe("Billing page paid usage flow", () => {
     await waitFor(() => {
       expect(save).not.toBeDisabled();
     });
-    await userEvent.click(save);
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      PAYMENT_METHOD_CONSENT_ERROR,
-    );
+    const dialog: HTMLElement = screen.getByRole("dialog");
+    expect(within(dialog).getByText("Payment details")).toBeInTheDocument();
+    expect(within(dialog).queryByRole("checkbox")).not.toBeInTheDocument();
     expect(
-      screen.getByRole("checkbox", { name: PAYMENT_METHOD_CONSENT_LABEL }),
-    ).toBeInTheDocument();
-    expect(confirmSetupMock).not.toHaveBeenCalled();
-    await userEvent.click(
-      screen.getByRole("checkbox", { name: PAYMENT_METHOD_CONSENT_LABEL }),
-    );
+      within(dialog).queryByText(
+        /Adding a payment method enables paid usage for this project/,
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog).queryByText(/Active monitors:/),
+    ).not.toBeInTheDocument();
+    expect(within(dialog).queryByText("full pricing")).not.toBeInTheDocument();
     await userEvent.click(save);
     await screen.findByRole("heading", { name: "Free plan + pay as you go" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -292,9 +289,49 @@ describe("Billing page paid usage flow", () => {
       "1",
     );
     expect(confirmSetupMock).toHaveBeenCalledTimes(1);
+    expect(confirmSetupMock).toHaveBeenCalledWith({
+      elements: expect.anything(),
+      confirmParams: {
+        return_url: "https://example.com/dashboard/project/settings/billing",
+      },
+    });
+    expect(getListMock).toHaveBeenCalledTimes(2);
   });
 
-  it("clears a prior setup error and requests new consent when the payment modal is reopened", async () => {
+  it("keeps failed card setup retryable and refreshes eligibility only after success", async () => {
+    getListMock
+      .mockResolvedValueOnce({ data: [], count: 0 })
+      .mockResolvedValueOnce({ data: [], count: 1 });
+    confirmSetupMock
+      .mockResolvedValueOnce({ error: { message: "Card setup failed" } })
+      .mockResolvedValueOnce({});
+    renderBilling();
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Enable paid usage" }),
+    );
+    const save: HTMLElement = await screen.findByRole("button", {
+      name: "Save payment method and enable paid usage",
+    });
+    await waitFor(() => {
+      expect(save).not.toBeDisabled();
+    });
+    await userEvent.click(save);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Card setup failed",
+    );
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(getListMock).toHaveBeenCalledTimes(1);
+    expect(save).not.toBeDisabled();
+
+    await userEvent.click(save);
+    await screen.findByRole("heading", { name: "Free plan + pay as you go" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(confirmSetupMock).toHaveBeenCalledTimes(2);
+    expect(getListMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("clears a prior setup error and loads payment details when the modal is reopened", async () => {
     postMock
       .mockRejectedValueOnce(new Error("Payment provider unavailable"))
       .mockResolvedValueOnce({ data: { setupIntent: "second-secret" } });
@@ -311,11 +348,10 @@ describe("Billing page paid usage flow", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "Enable paid usage" }),
     );
+    expect(await screen.findByText("Payment details")).toBeInTheDocument();
     expect(
-      await screen.findByRole("checkbox", {
-        name: PAYMENT_METHOD_CONSENT_LABEL,
-      }),
-    ).not.toBeChecked();
+      within(screen.getByRole("dialog")).queryByRole("checkbox"),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(postMock).toHaveBeenCalledTimes(2);
   });

@@ -17,7 +17,7 @@ type ProjectBillingFunction = (data: {
 /*
  * A subscription (including a paid-plan trial) does not authorize metered
  * usage. Give feature-test projects a real Stripe test payment method through
- * the billing UI, including its usage consent, before creating paid resources.
+ * the billing UI before creating paid resources.
  * This must never submit payment details to a live Stripe account.
  */
 export const addTestPaymentMethod: ProjectBillingFunction = async (data: {
@@ -62,9 +62,6 @@ export const addTestPaymentMethod: ProjectBillingFunction = async (data: {
 
   const modal: Locator = page.getByTestId("modal");
   await expect(modal).toBeVisible();
-  await modal
-    .getByTestId("payment-method-usage-consent")
-    .check({ timeout: 60000 });
 
   // Stripe's bank-search helper shares the title, even for a card-only form.
   const paymentFrame: FrameLocator = modal.frameLocator(
