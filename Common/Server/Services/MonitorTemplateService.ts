@@ -16,6 +16,7 @@ import Includes from "../../Types/BaseDatabase/Includes";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import { JSONObject } from "../../Types/JSON";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
+import MonitorTemplateSyncFieldUtil from "../../Types/Monitor/MonitorTemplateSyncField";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -24,6 +25,7 @@ import Monitor from "../../Models/DatabaseModels/Monitor";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import MonitorTemplateCustomFieldUtil from "../../Utils/Monitor/MonitorTemplateCustomFieldUtil";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
+import MonitorTemplateSyncUtil from "../../Utils/Monitor/MonitorTemplateSyncUtil";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import Query from "../Types/Database/Query";
@@ -78,6 +80,29 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  private validateSyncFields(
+    steps: MonitorSteps | JSONObject | undefined,
+    monitorType: MonitorType | undefined,
+  ): void {
+    if (!steps) {
+      return;
+    }
+
+    for (const step of MonitorSteps.fromJSON(steps).data
+      ?.monitorStepsInstanceArray || []) {
+      const fields: Array<string> | undefined =
+        MonitorTemplateSyncFieldUtil.parse(
+          step.data?.doNotSyncFields,
+          monitorType,
+        );
+      if (fields?.length && !monitorType) {
+        throw new BadDataException(
+          "Monitor type is required to configure template sync fields",
+        );
+      }
+    }
+  }
+
   /*
    * A template's monitorSteps embeds the same reference ids a monitor's does,
    * and every one of them reaches a real monitor eventually — through "create
@@ -91,6 +116,10 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    this.validateSyncFields(
+      createBy.data.monitorSteps,
+      createBy.data.monitorType,
+    );
     await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
       monitorSteps: createBy.data.monitorSteps,
       projectId: createBy.props.tenantId || createBy.data.projectId,
@@ -103,7 +132,7 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    if (!updateBy.data.monitorSteps) {
+    if (!updateBy.data.monitorSteps && !updateBy.data.monitorType) {
       return { updateBy, carryForward: null };
     }
 
@@ -117,6 +146,7 @@ export class Service extends DatabaseService<Model> {
       select: {
         projectId: true,
         monitorSteps: true,
+        monitorType: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -127,6 +157,16 @@ export class Service extends DatabaseService<Model> {
     });
 
     for (const template of templates) {
+      this.validateSyncFields(
+        updateBy.data.monitorSteps === undefined
+          ? template.monitorSteps
+          : (updateBy.data.monitorSteps as MonitorSteps | JSONObject),
+        (updateBy.data.monitorType as MonitorType | undefined) ||
+          template.monitorType,
+      );
+      if (!updateBy.data.monitorSteps) {
+        continue;
+      }
       await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
         monitorSteps: updateBy.data.monitorSteps as MonitorSteps | JSONObject,
         projectId: updateBy.props.tenantId || template.projectId,
@@ -412,6 +452,45 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /** Merge protected fields before applying the device ownership binding. */
+  private buildMonitorStepsUpdate(
+    template: Model,
+    monitor: Monitor,
+  ): MonitorSteps {
+    let monitorSteps: MonitorSteps | undefined = template.monitorSteps;
+
+    if (MonitorTemplateSyncUtil.hasExcludedFields(monitorSteps)) {
+      if (!template.monitorType) {
+        throw new BadDataException("Monitor template is missing monitorType");
+      }
+      monitorSteps = MonitorTemplateSyncUtil.buildSyncedMonitorSteps({
+        templateMonitorSteps: monitorSteps,
+        currentMonitorSteps: monitor.monitorSteps,
+        monitorType: template.monitorType,
+      });
+    }
+
+    if (template.monitorType === MonitorType.NetworkDevice) {
+      monitorSteps = monitor.autoProvisionedNetworkDeviceId
+        ? NetworkDeviceMonitorTemplateUtil.rebindMonitorSteps({
+            monitorSteps,
+            networkDeviceId: monitor.autoProvisionedNetworkDeviceId,
+          })
+        : NetworkDeviceMonitorTemplateUtil.buildSyncedMonitorSteps({
+            templateMonitorSteps: monitorSteps,
+            currentMonitorSteps: monitor.monitorSteps,
+          });
+    }
+
+    if (!monitorSteps) {
+      throw new BadDataException(
+        "Monitor template steps are required to sync criteria.",
+      );
+    }
+
+    return monitorSteps;
+  }
+
   /**
    * Push the template's current configuration onto every monitor that was
    * created from it. Sync is intentionally explicit (button-triggered) so a
@@ -491,18 +570,20 @@ export class Service extends DatabaseService<Model> {
      * while each linked monitor has its own device. A bulk JSON assignment
      * would retarget the entire fleet to the template editor's device. Sync
      * those rows individually and rebind cloned template steps to each
-     * monitor's current (or provenance-backed) device instead.
+     * monitor's current (or provenance-backed) device instead. Field exclusions
+     * also require one merge per monitor so each keeps its own protected values.
      */
-    const rebindMonitorSteps: boolean =
-      template.monitorType === MonitorType.NetworkDevice &&
-      fields.includes("monitorSteps");
+    const mergeMonitorSteps: boolean =
+      fields.includes("monitorSteps") &&
+      (template.monitorType === MonitorType.NetworkDevice ||
+        MonitorTemplateSyncUtil.hasExcludedFields(template.monitorSteps));
 
     /*
      * Custom field defaults take the same row-at-a-time path for their own
      * reason: they are overlaid on the monitor's existing bag, so the payload
      * is read from the row being written and cannot be shared.
      */
-    if (rebindMonitorSteps || syncCustomFields) {
+    if (mergeMonitorSteps || syncCustomFields) {
       let syncedMonitors: number = 0;
       const linkedMonitorQuery: Query<Monitor> = {
         monitorTemplateId: template.id!,
@@ -564,17 +645,9 @@ export class Service extends DatabaseService<Model> {
           monitor,
           data: {
             ...updateData,
-            ...(rebindMonitorSteps
+            ...(mergeMonitorSteps
               ? {
-                  monitorSteps: monitor.autoProvisionedNetworkDeviceId
-                    ? NetworkDeviceMonitorTemplateUtil.rebindMonitorSteps({
-                        monitorSteps: template.monitorSteps,
-                        networkDeviceId: monitor.autoProvisionedNetworkDeviceId,
-                      })
-                    : NetworkDeviceMonitorTemplateUtil.buildSyncedMonitorSteps({
-                        templateMonitorSteps: template.monitorSteps,
-                        currentMonitorSteps: monitor.monitorSteps,
-                      }),
+                  monitorSteps: this.buildMonitorStepsUpdate(template, monitor),
                 }
               : {}),
             ...(syncCustomFields
@@ -801,19 +874,8 @@ export class Service extends DatabaseService<Model> {
 
     const updateData: Partial<Monitor> = this.buildUpdateData(template, fields);
 
-    if (
-      template.monitorType === MonitorType.NetworkDevice &&
-      fields.includes("monitorSteps")
-    ) {
-      updateData.monitorSteps = monitor.autoProvisionedNetworkDeviceId
-        ? NetworkDeviceMonitorTemplateUtil.rebindMonitorSteps({
-            monitorSteps: template.monitorSteps,
-            networkDeviceId: monitor.autoProvisionedNetworkDeviceId,
-          })
-        : NetworkDeviceMonitorTemplateUtil.buildSyncedMonitorSteps({
-            templateMonitorSteps: template.monitorSteps,
-            currentMonitorSteps: monitor.monitorSteps,
-          });
+    if (updateData.monitorSteps !== undefined) {
+      updateData.monitorSteps = this.buildMonitorStepsUpdate(template, monitor);
     }
 
     /*

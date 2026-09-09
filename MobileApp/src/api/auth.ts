@@ -45,10 +45,10 @@ export interface LoginResponse {
   totpAuthList?: Array<TwoFactorMethod>;
 
   /*
-   * The security keys it can be challenged on. Listed so the app can SAY they
-   * exist -- WebAuthn needs platform APIs this client does not have, so a key
-   * is shown as unavailable here rather than silently omitted, which would
-   * look to its owner like the key had been deleted.
+   * Security keys used as a password's second factor. That challenge flow is
+   * separate from the saved-passkey browser sign-in on the main login screen.
+   * List these keys so the challenge screen can explain the available routes
+   * instead of making an existing enrollment look as though it was deleted.
    */
   webAuthnList?: Array<TwoFactorMethod>;
 
@@ -95,6 +95,79 @@ export async function validateServerUrl(url: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/** Exchange a one-time, PKCE-bound code without forwarding another session's headers. */
+export async function exchangePasskeyCode(data: {
+  serverOrigin: string;
+  code: string;
+  codeVerifier: string;
+  state: string;
+  signal: AbortSignal;
+}): Promise<LoginResponse> {
+  const response: AxiosResponse = await axios.post(
+    `${data.serverOrigin}/identity/mobile-passkey-exchange`,
+    { code: data.code, codeVerifier: data.codeVerifier, state: data.state },
+    {
+      timeout: 30000,
+      signal: data.signal,
+      headers: { "Content-Type": "application/json" },
+    },
+  );
+  const body: Record<string, unknown> = (response.data || {}) as Record<
+    string,
+    unknown
+  >;
+  const misc: Record<string, unknown> = (body["_miscData"] || {}) as Record<
+    string,
+    unknown
+  >;
+  const accessToken: unknown = misc["accessToken"];
+  const refreshToken: unknown = misc["refreshToken"];
+  const refreshTokenExpiresAt: unknown = misc["refreshTokenExpiresAt"];
+  // sendEntityResponse serializes User fields at the response root.
+  const userId: string = serializedString(body["_id"]);
+
+  if (
+    typeof accessToken !== "string" ||
+    !accessToken ||
+    typeof refreshToken !== "string" ||
+    !refreshToken ||
+    typeof refreshTokenExpiresAt !== "string" ||
+    !Number.isFinite(Date.parse(refreshTokenExpiresAt)) ||
+    !userId
+  ) {
+    throw new Error(
+      "The server did not complete passkey sign-in. Please try again.",
+    );
+  }
+
+  return {
+    accessToken,
+    refreshToken,
+    refreshTokenExpiresAt,
+    user: {
+      _id: userId,
+      email: serializedString(body["email"]),
+      name: serializedString(body["name"]),
+      isMasterAdmin: body["isMasterAdmin"] === true,
+    },
+  };
+}
+
+function serializedString(value: unknown): string {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (
+    value &&
+    typeof value === "object" &&
+    "value" in value &&
+    typeof value.value === "string"
+  ) {
+    return value.value;
+  }
+  return "";
 }
 
 /*

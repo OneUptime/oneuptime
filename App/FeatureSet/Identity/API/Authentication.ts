@@ -20,6 +20,8 @@ import DatabaseConfig from "Common/Server/DatabaseConfig";
 import {
   AppVersion,
   EncryptionSecret,
+  Host,
+  HttpProtocol,
   IsBillingEnabled,
 } from "Common/Server/EnvironmentConfig";
 import API from "Common/Utils/API";
@@ -59,12 +61,16 @@ import UserSession from "Common/Models/DatabaseModels/UserSession";
 import UserTotpAuth from "Common/Models/DatabaseModels/UserTotpAuth";
 import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import UserWebAuthnService from "Common/Server/Services/UserWebAuthnService";
+import MobilePasskeyLoginService, {
+  MobilePasskeyContext,
+} from "Common/Server/Services/MobilePasskeyLoginService";
 import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import IdentityRateLimit, {
   IdentityRateLimitBucket,
 } from "Common/Server/Middleware/IdentityRateLimit";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import { URL as NodeURL } from "url";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -146,6 +152,7 @@ type FinalizeUserLoginInput = {
   res: ExpressResponse;
   user: User;
   isGlobalLogin: boolean;
+  setCookie?: boolean;
 };
 
 const finalizeUserLogin: (
@@ -164,15 +171,17 @@ const finalizeUserLogin: (
       ...extractDeviceInfo(req),
     });
 
-  CookieUtil.setUserCookie({
-    expressResponse: res,
-    user,
-    isGlobalLogin,
-    sessionId: sessionMetadata.session.id!,
-    refreshToken: sessionMetadata.refreshToken,
-    refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
-    accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
-  });
+  if (data.setCookie !== false) {
+    CookieUtil.setUserCookie({
+      expressResponse: res,
+      user,
+      isGlobalLogin,
+      sessionId: sessionMetadata.session.id!,
+      refreshToken: sessionMetadata.refreshToken,
+      refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
+      accessTokenExpiresInSeconds: ACCESS_TOKEN_EXPIRY_SECONDS,
+    });
+  }
 
   // Generate access token for response body (used by mobile clients)
   const accessToken: string = JSONWebToken.signUserLoginToken({
@@ -190,6 +199,261 @@ const finalizeUserLogin: (
 
   return { sessionMetadata, accessToken };
 };
+
+const PASSKEY_LOGIN_COOKIE: string = "oneuptime-passkey-login";
+const passkeyRateLimit: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void> = IdentityRateLimit.getMiddleware(
+  IdentityRateLimitBucket.Passkey,
+);
+const PASSKEY_LOGIN_ERROR: string =
+  "Unable to sign in with this passkey. Please try again or use your password.";
+
+/*
+ * Bind the anonymous challenge to the browser that started this sign-in.
+ * A challenge ID supplied in the request body must never replace this cookie.
+ */
+const assertPasskeyOrigin: (req: ExpressRequest) => void = (
+  req: ExpressRequest,
+): void => {
+  if (
+    req.headers.origin !==
+    new NodeURL(`${HttpProtocol}${Host.toString()}`).origin
+  ) {
+    throw new BadDataException(PASSKEY_LOGIN_ERROR);
+  }
+};
+
+router.post(
+  "/passkey-login-options",
+  passkeyRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      assertPasskeyOrigin(req);
+      const mobileContext: MobilePasskeyContext | null =
+        req.body?.mobileAuth === undefined
+          ? null
+          : MobilePasskeyLoginService.validateRequest(req.body.mobileAuth);
+      const result: Awaited<
+        ReturnType<
+          typeof UserWebAuthnService.generatePasskeyAuthenticationOptions
+        >
+      > = await UserWebAuthnService.generatePasskeyAuthenticationOptions();
+
+      if (mobileContext) {
+        await MobilePasskeyLoginService.storeChallengeContext(
+          result.challengeId,
+          mobileContext,
+        );
+      }
+
+      res.cookie(
+        PASSKEY_LOGIN_COOKIE,
+        mobileContext ? `mobile.${result.challengeId}` : result.challengeId,
+        {
+          httpOnly: true,
+          secure: HttpProtocol.toString() === "https://",
+          sameSite: "strict",
+          path: "/",
+          maxAge: 5 * 60 * 1000,
+        },
+      );
+
+      /*
+       * Discoverable credentials let the authenticator select the account.
+       * Options do not disclose whether any particular email has an account.
+       */
+      return Response.sendJsonObjectResponse(req, res, {
+        options: result.options as unknown as JSONObject,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.post(
+  "/passkey-login",
+  passkeyRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      assertPasskeyOrigin(req);
+      const challengeCookie: unknown = req.cookies?.[PASSKEY_LOGIN_COOKIE];
+      const isMobileLogin: boolean =
+        typeof challengeCookie === "string" &&
+        challengeCookie.startsWith("mobile.");
+      const challengeId: unknown = isMobileLogin
+        ? (challengeCookie as string).slice("mobile.".length)
+        : challengeCookie;
+      res.clearCookie(PASSKEY_LOGIN_COOKIE, {
+        httpOnly: true,
+        secure: HttpProtocol.toString() === "https://",
+        sameSite: "strict",
+        path: "/",
+      });
+
+      if (
+        typeof challengeId !== "string" ||
+        !challengeId.match(/^[A-Za-z0-9_-]{32,128}$/)
+      ) {
+        throw new BadDataException(PASSKEY_LOGIN_ERROR);
+      }
+
+      let verifiedUser: User;
+      try {
+        verifiedUser = await UserWebAuthnService.verifyPasskeyAuthentication({
+          challengeId,
+          credential: req.body?.credential,
+        });
+      } catch {
+        // Do not expose credential ownership or verification internals.
+        throw new BadDataException(PASSKEY_LOGIN_ERROR);
+      }
+
+      if (!verifiedUser.id) {
+        throw new BadDataException(PASSKEY_LOGIN_ERROR);
+      }
+
+      const mobileContext: MobilePasskeyContext | null =
+        await MobilePasskeyLoginService.consumeChallengeContext(challengeId);
+      if (isMobileLogin !== Boolean(mobileContext)) {
+        throw new BadDataException(PASSKEY_LOGIN_ERROR);
+      }
+
+      const user: User | null = await UserService.findOneById({
+        id: verifiedUser.id,
+        select: {
+          _id: true,
+          name: true,
+          email: true,
+          isMasterAdmin: true,
+          isEmailVerified: true,
+          isBlocked: true,
+          profilePictureId: true,
+          timezone: true,
+        },
+        props: { isRoot: true },
+      });
+
+      if (!user?.id || !user.email || !user.isEmailVerified || user.isBlocked) {
+        throw new BadDataException(PASSKEY_LOGIN_ERROR);
+      }
+
+      if (mobileContext) {
+        const callbackUrl: string =
+          await MobilePasskeyLoginService.createAuthorizationCode({
+            userId: user.id,
+            context: mobileContext,
+          });
+        Response.setNoCacheHeaders(res);
+        return Response.sendJsonObjectResponse(req, res, {
+          mobileAuth: { callbackUrl },
+        });
+      }
+
+      /*
+       * Verified passkeys prove possession and device PIN/biometrics together.
+       * Project and global SSO requirements still apply to this ordinary login
+       * through UserAuthorization, just as they do after a password login.
+       */
+      await AccessTokenService.refreshUserAllPermissions(user.id);
+      const loginResult: FinalizeUserLoginResult = await finalizeUserLogin({
+        req,
+        res,
+        user,
+        isGlobalLogin: true,
+      });
+
+      logger.info(
+        "User logged in with a passkey: " + user.email.toString(),
+        getLogAttributesFromRequest(req as RequestLike),
+      );
+
+      return Response.sendEntityResponse(req, res, user, User, {
+        miscData: {
+          accessToken: loginResult.accessToken,
+          refreshToken: loginResult.sessionMetadata.refreshToken,
+          refreshTokenExpiresAt:
+            loginResult.sessionMetadata.refreshTokenExpiresAt.toISOString(),
+        },
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.post(
+  "/mobile-passkey-exchange",
+  passkeyRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    Response.setNoCacheHeaders(res);
+    try {
+      // Native clients have no Origin header. A browser must remain same-origin.
+      if (req.headers.origin !== undefined) {
+        assertPasskeyOrigin(req);
+      }
+      const userId: ObjectID =
+        await MobilePasskeyLoginService.exchangeAuthorizationCode(req.body);
+      const user: User | null = await UserService.findOneById({
+        id: userId,
+        select: {
+          _id: true,
+          name: true,
+          email: true,
+          isMasterAdmin: true,
+          isEmailVerified: true,
+          isBlocked: true,
+          profilePictureId: true,
+          timezone: true,
+        },
+        props: { isRoot: true },
+      });
+
+      // The account may have been removed or disabled after the browser step.
+      if (!user?.id || !user.email || !user.isEmailVerified || user.isBlocked) {
+        throw new BadDataException(PASSKEY_LOGIN_ERROR);
+      }
+      await AccessTokenService.refreshUserAllPermissions(user.id);
+      const loginResult: FinalizeUserLoginResult = await finalizeUserLogin({
+        req,
+        res,
+        user,
+        isGlobalLogin: true,
+        setCookie: false,
+      });
+      logger.info(
+        "User logged in to the mobile app with a passkey: " +
+          user.email.toString(),
+        getLogAttributesFromRequest(req as RequestLike),
+      );
+      return Response.sendEntityResponse(req, res, user, User, {
+        miscData: {
+          accessToken: loginResult.accessToken,
+          refreshToken: loginResult.sessionMetadata.refreshToken,
+          refreshTokenExpiresAt:
+            loginResult.sessionMetadata.refreshTokenExpiresAt.toISOString(),
+        },
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
 
 router.post(
   "/signup",

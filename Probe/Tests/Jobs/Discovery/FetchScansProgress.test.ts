@@ -274,7 +274,7 @@ describe("ScanProgressReporter", () => {
   });
 
   describe("throttling", () => {
-    test("does not upload before the interval has passed", async () => {
+    test("uploads the first snapshot immediately and throttles following updates", async () => {
       // A one-minute interval, and no time passes inside this test.
       const reporter: ScanProgressReporter = makeReporter(60_000);
 
@@ -282,7 +282,7 @@ describe("ScanProgressReporter", () => {
       reporter.report(makeProgress({ sweptHostCount: 1024 }));
       await reporter.settle();
 
-      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
     });
 
     test("uploads again once the interval has passed", async () => {
@@ -292,20 +292,20 @@ describe("ScanProgressReporter", () => {
 
       const reporter: ScanProgressReporter = makeReporter(30_000);
 
-      // Same instant as construction: too soon.
+      // First snapshot is sent immediately so the operator sees activity.
       reporter.report(makeProgress());
       await reporter.settle();
-      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
 
       nowSpy.mockReturnValue(1_000_000 + 30_000);
       reporter.report(makeProgress({ sweptHostCount: 1024 }));
       await reporter.settle();
-      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
 
       // And immediately after, it is throttled again.
       reporter.report(makeProgress({ sweptHostCount: 1536 }));
       await reporter.settle();
-      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
     });
 
     /*

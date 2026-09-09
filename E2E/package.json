@@ -8,13 +8,17 @@
   },
   "main": "index.js",
   "scripts": {
+    "test-status-page-search-ui": "playwright test --config playwright.status-page-search.config.ts",
     "preinstall": "npx playwright install-deps && npx playwright install",
     "test": "playwright test || (curl $E2E_TESTS_FAILED_WEBHOOK_URL && exit 1)",
     "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
     "compile": "tsc",
     "debug-tests": "playwright test --debug",
-    "test-topology-ui": "playwright test --config playwright.topology.config.ts"
+    "test-topology-ui": "playwright test --config playwright.topology.config.ts",
+    "test-discovery-ui": "playwright test --config playwright.discovery.config.ts",
+    "test-label-rule-transfer": "playwright test --config playwright.label-rules.config.ts",
+    "test-label-rule-transfer-ui": "playwright test --config playwright.label-rules-ui.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

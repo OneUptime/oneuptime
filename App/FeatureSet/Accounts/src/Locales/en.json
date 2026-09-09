@@ -32,8 +32,26 @@
   },
   "login": {
     "title": "Sign in to your account",
-    "subtitle": "Join thousands of business that use OneUptime to help them stay online all the time.",
+    "subtitle": "Use a passkey, password, or your organization’s SSO.",
     "submitButton": "Login",
+    "passkey": {
+      "signIn": "Sign in with a passkey",
+      "description": "Use your fingerprint, face, or device PIN.",
+      "passwordAlternative": "or sign in with a password",
+      "inProgress": "Finish or cancel passkey sign-in before using your password.",
+      "title": "Use a saved passkey",
+      "helpTitle": "New to passkeys?",
+      "help": "Sign in with your password or SSO, then open User Profile → Passkeys & Two Factor Auth to create your first passkey.",
+      "preparing": "Getting your passkey ready…",
+      "waiting": "Check your device",
+      "waitingDescription": "Follow the prompt from your browser or password manager.",
+      "verifying": "Signing you in…",
+      "cancelled": "Passkey sign-in canceled. You can try again or use your password.",
+      "notCompleted": "Passkey sign-in was canceled or timed out. Try again, or sign in with your password.",
+      "unsupported": "Passkeys aren’t available in this browser. You can still sign in with your password or SSO.",
+      "insecure": "Passkeys need a secure connection (HTTPS). You can still sign in with your password or SSO.",
+      "tryAgain": "Try passkey again"
+    },
     "forgotPassword": "Forgot password?",
     "useSso": "Use single sign-on (SSO) instead",
     "noAccountPrompt": "Don't have an account?",
@@ -146,5 +164,17 @@
     }
   },
   "Acme, Inc.": "Acme, Inc.",
-  "Jeff Smith": "Jeff Smith"
+  "Jeff Smith": "Jeff Smith",
+  "mobilePasskey": {
+    "title": "Sign in to OneUptime On-Call",
+    "description": "Use a passkey saved for this OneUptime server.",
+    "returnDescription": "After you approve, you’ll return to the mobile app.",
+    "invalid": "Start sign-in from the OneUptime mobile app. This request is missing or invalid.",
+    "insecure": "Passkeys require HTTPS. Return to the app and check your server address.",
+    "failed": "Sign-in could not be completed. Return to the app and try again.",
+    "complete": "Your passkey was verified. Return to the app to finish signing in.",
+    "returnToApp": "Return to app",
+    "cancel": "Cancel and return to app",
+    "setup": "Create a passkey in User Profile → Passkeys & Two Factor Auth in the web dashboard."
+  }
 }

@@ -139,6 +139,22 @@ const Settings: FunctionComponent<ComponentProps> = (
       }
     };
 
+  const countSyncedPaymentMethods: PromiseVoidFunction =
+    async (): Promise<void> => {
+      try {
+        // Listing again would replace the row IDs already held by the table.
+        const count: number = await ModelAPI.count<BillingPaymentMethod>({
+          modelType: BillingPaymentMethod,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+          },
+        });
+        setPaymentMethodsCount(count);
+      } catch {
+        setPaymentMethodsCount(null);
+      }
+    };
+
   useAsyncEffect(async () => {
     /*
      * Nothing on this page can talk to Stripe when billing is off, so there is
@@ -657,9 +673,9 @@ const Settings: FunctionComponent<ComponentProps> = (
             isCreateable={false}
             isViewable={false}
             refreshToggle={paymentMethodsRefresh.toString()}
-            onItemDeleted={fetchPaymentMethodsCount}
+            onItemDeleted={countSyncedPaymentMethods}
             // Table filters can hide saved methods; plan controls need the unfiltered count.
-            onFetchSuccess={fetchPaymentMethodsCount}
+            onFetchSuccess={countSyncedPaymentMethods}
             name="Settings > Billing > Add Payment Method"
             cardProps={{
               buttons: [

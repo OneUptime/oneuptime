@@ -48,6 +48,10 @@ stale snapshot by the time you read it. Every row carries the time of its latest
 that absorbed several says how many, so the counts in the sections and the summary card always add
 up to the same total.
 
+Alert and incident cards also show the severity and state from their latest notification,
+including custom names. Older queued notifications without these details still appear, with
+the unavailable labels omitted. Cards are spaced apart to make each update easier to scan.
+
 Times are shown in UTC, and the date is shown as well whenever a rollup happens to span more than
 one day.
 

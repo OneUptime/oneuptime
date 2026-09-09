@@ -6,7 +6,6 @@ import OTelIngestService, {
 } from "../../../../Server/Services/OpenTelemetryIngestService";
 import SecurityEventService from "../../../../Server/Services/SecurityEventService";
 import logger from "../../../../Server/Utils/Logger";
-import { MAX_CONNECTOR_ERROR_MESSAGE_LENGTH } from "../../../../Server/Utils/SecurityEvent/ConnectorErrorMessage";
 import GoogleSecOpsClient, {
   FetchLike,
   FetchResponseLike,
@@ -467,10 +466,8 @@ function recordedLastError(run: PollRun): string {
   const lastError: unknown = run.updates[0]!.data["lastError"];
   expect(typeof lastError).toBe("string");
 
-  // Whatever it says, it must still fit the column the clamp exists for.
-  expect((lastError as string).length).toBeLessThanOrEqual(
-    MAX_CONNECTOR_ERROR_MESSAGE_LENGTH,
-  );
+  // Google SecOps stores the full redacted diagnostic in its unbounded column.
+  expect((lastError as string).trim().length).toBeGreaterThan(0);
 
   return lastError as string;
 }

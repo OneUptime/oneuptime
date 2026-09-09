@@ -12,6 +12,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -65,7 +66,12 @@ export interface ComponentProps {
 const DayUptimeGraph: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [days, setDays] = useState<number>(0);
+  const days: number = useMemo(() => {
+    return OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+      props.startDate,
+      props.endDate,
+    );
+  }, [props.startDate, props.endDate]);
 
   /*
    * The strip is one tab stop with a roving tabindex inside it - see
@@ -99,15 +105,6 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
 
     barRefs.current[focusedBarIndex]?.focus();
   }, [focusedBarIndex]);
-
-  useEffect(() => {
-    setDays(
-      OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
-        props.startDate,
-        props.endDate,
-      ),
-    );
-  }, [props.startDate, props.endDate]);
 
   const activeBarIndex: number = DayUptimeGraphUtil.getActiveBarIndex({
     storedIndex: focusedBarIndex,
@@ -360,6 +357,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
     return (
       <Tooltip
         key={dayNumber}
+        lazy={true}
         richContent={
           <UptimeBarTooltip
             date={todaysDay}

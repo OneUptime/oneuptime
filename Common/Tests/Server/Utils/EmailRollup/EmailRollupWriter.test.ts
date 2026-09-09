@@ -14,6 +14,7 @@ import logger from "../../../../Server/Utils/Logger";
 import CreateBy from "../../../../Server/Types/Database/CreateBy";
 import UserNotificationEmailRollupItem from "../../../../Models/DatabaseModels/UserNotificationEmailRollupItem";
 import Dictionary from "../../../../Types/Dictionary";
+import ColumnLength from "../../../../Types/Database/ColumnLength";
 import Email from "../../../../Types/Email";
 import { EmailEnvelope } from "../../../../Types/Email/EmailMessage";
 import EmailTemplateType from "../../../../Types/Email/EmailTemplateType";
@@ -105,6 +106,11 @@ interface CapturedCountBy {
 interface CapturedPreferenceRead {
   userId: ObjectID;
   projectId: ObjectID;
+}
+
+interface SeveritySnapshotCase {
+  severityVar: string;
+  eventType: NotificationSettingEventType;
 }
 
 function buildEnvelope(overrides: Partial<EmailEnvelope> = {}): EmailEnvelope {
@@ -534,6 +540,185 @@ describe("EmailRollupWriter.sendOrRollup", () => {
    * (E) The stored subject.
    * -----------------------------------------------------------------------
    */
+
+  describe("severity and state snapshots", () => {
+    const families: Array<{
+      severityVar: string;
+      eventTypes: Array<NotificationSettingEventType>;
+    }> = [
+      {
+        severityVar: "alertSeverity",
+        eventTypes: [
+          NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
+          NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
+          NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION,
+          NotificationSettingEventType.SEND_ALERT_OWNER_ADDED_NOTIFICATION,
+          NotificationSettingEventType.SEND_ALERT_REMINDER_OWNER_NOTIFICATION,
+        ],
+      },
+      {
+        severityVar: "incidentSeverity",
+        eventTypes: [
+          NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
+          NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
+          NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
+          NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
+          NotificationSettingEventType.SEND_INCIDENT_MEMBER_ADDED_NOTIFICATION,
+          NotificationSettingEventType.SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION,
+        ],
+      },
+      {
+        severityVar: "episodeSeverity",
+        eventTypes: [
+          NotificationSettingEventType.SEND_ALERT_EPISODE_CREATED_OWNER_NOTIFICATION,
+          NotificationSettingEventType.SEND_ALERT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION,
+          NotificationSettingEventType.SEND_ALERT_EPISODE_NOTE_POSTED_OWNER_NOTIFICATION,
+          NotificationSettingEventType.SEND_ALERT_EPISODE_OWNER_ADDED_NOTIFICATION,
+          NotificationSettingEventType.SEND_ALERT_ADDED_TO_EPISODE_OWNER_NOTIFICATION,
+          NotificationSettingEventType.SEND_INCIDENT_EPISODE_CREATED_OWNER_NOTIFICATION,
+          NotificationSettingEventType.SEND_INCIDENT_EPISODE_STATE_CHANGED_OWNER_NOTIFICATION,
+          NotificationSettingEventType.SEND_INCIDENT_EPISODE_NOTE_POSTED_OWNER_NOTIFICATION,
+          NotificationSettingEventType.SEND_INCIDENT_EPISODE_OWNER_ADDED_NOTIFICATION,
+          NotificationSettingEventType.SEND_INCIDENT_ADDED_TO_EPISODE_OWNER_NOTIFICATION,
+        ],
+      },
+    ];
+
+    const snapshotCases: Array<SeveritySnapshotCase> = [];
+
+    for (const family of families) {
+      for (const eventType of family.eventTypes) {
+        snapshotCases.push({
+          severityVar: family.severityVar,
+          eventType: eventType,
+        });
+      }
+    }
+
+    test.each(snapshotCases)(
+      "snapshots the matching severity and state for $eventType",
+      async (snapshotCase: SeveritySnapshotCase) => {
+        recentCount(BURST_THRESHOLD);
+        const vars: Dictionary<string | JSONObject> = {
+          alertSeverity: "Alert severity",
+          incidentSeverity: "Incident severity",
+          episodeSeverity: "Episode severity",
+          currentState: " Awaiting review ",
+        };
+        vars[snapshotCase.severityVar] = " Customer-defined priority ";
+
+        await EmailRollupWriter.sendOrRollup(
+          sendData({
+            eventType: snapshotCase.eventType,
+            emailEnvelope: buildEnvelope({ vars: vars }),
+          }),
+        );
+
+        expect(writtenItem().severity).toBe("Customer-defined priority");
+        expect(writtenItem().currentState).toBe("Awaiting review");
+        expect(writtenItem().sentAt).toBeUndefined();
+        expect(sendMail).not.toHaveBeenCalled();
+      },
+    );
+
+    test.each([undefined, null, "", " \t\n ", 42, true, { name: "Critical" }])(
+      "ignores missing or non-text metadata %p without disrupting deferral",
+      async (value: unknown) => {
+        recentCount(BURST_THRESHOLD);
+        await EmailRollupWriter.sendOrRollup(
+          sendData({
+            emailEnvelope: buildEnvelope({
+              vars: {
+                incidentSeverity: value,
+                currentState: value,
+              } as Dictionary<string | JSONObject>,
+            }),
+          }),
+        );
+
+        expect(writtenItem().severity).toBeUndefined();
+        expect(writtenItem().currentState).toBeUndefined();
+        expect(sendMail).not.toHaveBeenCalled();
+        expect(loggerError).not.toHaveBeenCalled();
+      },
+    );
+
+    test.each(["incidentSeverity", "currentState"])(
+      "keeps %s even when the other label is absent",
+      async (name: string) => {
+        await EmailRollupWriter.sendOrRollup(
+          sendData({
+            emailEnvelope: buildEnvelope({ vars: { [name]: "Custom label" } }),
+          }),
+        );
+
+        expect(writtenItem().severity).toBe(
+          name === "incidentSeverity" ? "Custom label" : undefined,
+        );
+        expect(writtenItem().currentState).toBe(
+          name === "currentState" ? "Custom label" : undefined,
+        );
+      },
+    );
+
+    test("bounds both labels to their database column length", async () => {
+      recentCount(BURST_THRESHOLD);
+      await EmailRollupWriter.sendOrRollup(
+        sendData({
+          emailEnvelope: buildEnvelope({
+            vars: {
+              incidentSeverity: ` ${"S".repeat(5000)} `,
+              currentState: ` ${"T".repeat(5000)} `,
+            },
+          }),
+        }),
+      );
+
+      expect(writtenItem().severity).toBe("S".repeat(ColumnLength.ShortText));
+      expect(writtenItem().currentState).toBe(
+        "T".repeat(ColumnLength.ShortText),
+      );
+      expect(sendMail).not.toHaveBeenCalled();
+      expect(loggerError).not.toHaveBeenCalled();
+    });
+
+    test("leaves the original immediate email and its custom labels unchanged", async () => {
+      const vars: Dictionary<string | JSONObject> = {
+        incidentSeverity: " Critical <P1> & {{custom}} ",
+        currentState: " Awaiting review ",
+      };
+      const original: Dictionary<string | JSONObject> = { ...vars };
+      await EmailRollupWriter.sendOrRollup(
+        sendData({ emailEnvelope: buildEnvelope({ vars: vars }) }),
+      );
+
+      expect(vars).toEqual(original);
+      expect((sendMail.mock.calls[0]?.[0] as EmailEnvelope).vars).toEqual(
+        original,
+      );
+      expect(writtenItem().severity).toBe("Critical <P1> & {{custom}}");
+      expect(writtenItem().currentState).toBe("Awaiting review");
+    });
+
+    test("does not attach incidental alert metadata to other notification categories", async () => {
+      await EmailRollupWriter.sendOrRollup(
+        sendData({
+          eventType: MONITOR_EVENT,
+          emailEnvelope: buildEnvelope({
+            vars: {
+              alertSeverity: "Critical",
+              incidentSeverity: "Critical",
+              episodeSeverity: "Critical",
+              currentState: "Resolved",
+            },
+          }),
+        }),
+      );
+
+      expect(writtenItem().severity).toBeUndefined();
+      expect(writtenItem().currentState).toBeUndefined();
+    });
+  });
 
   describe("the stored subject", () => {
     test("a 5,000 character subject is truncated to the column length rather than throwing", async () => {

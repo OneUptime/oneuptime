@@ -636,6 +636,8 @@ export default class EmailRollupFlushRunner {
           eventType: true,
           rollupCategory: true,
           subject: true,
+          severity: true,
+          currentState: true,
           viewLink: true,
           createdAt: true,
         },

@@ -41,6 +41,14 @@ export const DiscoveryScanStatus: {
 };
 
 /*
+ * A recurring scan keeps its previous inventory until new results arrive.
+ * The claim marker lets the dashboard distinguish that inventory from current
+ * progress; the first partial or final report replaces it.
+ */
+export const DISCOVERY_SCAN_STARTED_MESSAGE: string =
+  "Scan started. Waiting for the first progress update.";
+
+/*
  * The statuses whose stored results are worth importing from automatically.
  *
  * "In Progress" belongs here because a discovery sweep is no longer atomic:

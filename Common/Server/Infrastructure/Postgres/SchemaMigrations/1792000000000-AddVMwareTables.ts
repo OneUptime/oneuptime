@@ -19,8 +19,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * ingest-time find-or-create has a DB-level guard against concurrent
  * registration of the same vCenter.
  */
-export class AddVMwareTables1791900000000 implements MigrationInterface {
-  public name: string = "AddVMwareTables1791900000000";
+export class AddVMwareTables1792000000000 implements MigrationInterface {
+  public name: string = "AddVMwareTables1792000000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

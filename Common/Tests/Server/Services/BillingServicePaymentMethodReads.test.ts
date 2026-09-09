@@ -272,13 +272,15 @@ describe("BillingService payment-method reads", () => {
       return;
     };
     const sepaPending: Promise<{ data: [] }> = new Promise(
-      (resolve: (value: { data: [] }) => void) => {
+      (resolve: (value: { data: [] } | PromiseLike<{ data: [] }>) => void) => {
         finishSepa = resolve;
       },
     );
-    const sepaStarted: Promise<void> = new Promise((resolve: () => void) => {
-      signalSepaStarted = resolve;
-    });
+    const sepaStarted: Promise<void> = new Promise(
+      (resolve: (value: void | PromiseLike<void>) => void) => {
+        signalSepaStarted = resolve;
+      },
+    );
     list.mockImplementation((params: Stripe.PaymentMethodListParams) => {
       if (params.type === "sepa_debit" && firstSepaRead) {
         firstSepaRead = false;

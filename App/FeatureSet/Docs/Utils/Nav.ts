@@ -103,6 +103,10 @@ const DocsNav: NavGroup[] = [
         title: "IP Addresses",
         url: "/docs/configuration/ip-addresses",
       },
+      {
+        title: "Import and Export Label Rules",
+        url: "/docs/configuration/label-rule-import-export",
+      },
     ],
   },
   {
@@ -225,6 +229,10 @@ const DocsNav: NavGroup[] = [
   {
     title: "Monitor",
     links: [
+      {
+        title: "Monitor Templates",
+        url: "/docs/monitor/monitor-templates",
+      },
       {
         title: "Website Monitor",
         url: "/docs/monitor/website-monitor",

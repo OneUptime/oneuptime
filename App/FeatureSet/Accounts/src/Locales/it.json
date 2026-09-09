@@ -31,8 +31,26 @@
     "errorOnSignUp": "Completa il captcha prima di registrarti."
   },
   "login": {
+    "passkey": {
+      "signIn": "Accedi con una passkey",
+      "description": "Usa l’impronta digitale, il riconoscimento del volto o il PIN del dispositivo.",
+      "passwordAlternative": "oppure accedi con una password",
+      "inProgress": "Completa o annulla l’accesso con passkey prima di usare la password.",
+      "title": "Usa una passkey salvata",
+      "helpTitle": "Non conosci le passkey?",
+      "help": "Accedi con la password o l’SSO, poi apri Profilo utente → Passkey e autenticazione a due fattori per creare la tua prima passkey.",
+      "preparing": "Preparazione della passkey…",
+      "waiting": "Controlla il dispositivo",
+      "waitingDescription": "Segui le indicazioni del browser o del gestore di password.",
+      "verifying": "Accesso in corso…",
+      "cancelled": "L’accesso con passkey è stato annullato. Puoi riprovare o usare la password.",
+      "notCompleted": "L’accesso con passkey è stato annullato o è scaduto. Riprova oppure accedi con la password.",
+      "unsupported": "Le passkey non sono disponibili in questo browser. Puoi comunque accedere con la password o l’SSO.",
+      "insecure": "Le passkey richiedono una connessione sicura (HTTPS). Puoi comunque accedere con la password o l’SSO.",
+      "tryAgain": "Riprova con la passkey"
+    },
     "title": "Accedi al tuo account",
-    "subtitle": "Unisciti a migliaia di aziende che usano OneUptime per rimanere sempre online.",
+    "subtitle": "Usa una passkey, una password o l’SSO della tua organizzazione.",
     "submitButton": "Accedi",
     "forgotPassword": "Password dimenticata?",
     "useSso": "Usa invece il Single Sign-On (SSO)",
@@ -146,5 +164,17 @@
     }
   },
   "Acme, Inc.": "Acme, Inc.",
-  "Jeff Smith": "Jeff Smith"
+  "Jeff Smith": "Jeff Smith",
+  "mobilePasskey": {
+    "title": "Accedi a OneUptime On-Call",
+    "description": "Usa una passkey salvata per questo server OneUptime.",
+    "returnDescription": "Dopo la conferma, tornerai all’app mobile.",
+    "invalid": "Avvia l’accesso dall’app mobile OneUptime. La richiesta è assente o non valida.",
+    "insecure": "Le passkey richiedono HTTPS. Torna all’app e controlla l’indirizzo del server.",
+    "failed": "Impossibile completare l’accesso. Torna all’app e riprova.",
+    "complete": "La tua passkey è stata verificata. Torna all’app per completare l’accesso.",
+    "returnToApp": "Torna all’app",
+    "cancel": "Annulla e torna all’app",
+    "setup": "Crea una passkey in Profilo utente → Passkey e autenticazione a due fattori nella dashboard web."
+  }
 }

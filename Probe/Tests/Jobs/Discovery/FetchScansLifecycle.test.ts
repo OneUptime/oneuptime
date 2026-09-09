@@ -193,6 +193,7 @@ describe("runScan — a successful sweep", () => {
        * sweep.
        */
       onProgress: expect.any(Function),
+      signal: expect.any(AbortSignal),
       maxConcurrency: undefined,
       cidr: "10.0.0.0/24",
       /*
@@ -524,6 +525,7 @@ describe("runScan — the sweep config carries the scan's mode and its credentia
        * sweep.
        */
       onProgress: expect.any(Function),
+      signal: expect.any(AbortSignal),
       maxConcurrency: undefined,
       cidr: "10.0.0.0/24",
       isSnmpEnabled: false,
@@ -642,6 +644,7 @@ describe("runScan — the sweep config carries the scan's mode and its credentia
        * sweep.
        */
       onProgress: expect.any(Function),
+      signal: expect.any(AbortSignal),
       maxConcurrency: undefined,
       cidr: "10.0.0.0/24",
       isSnmpEnabled: true,

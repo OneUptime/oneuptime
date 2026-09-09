@@ -1,7 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import LabelRuleTable from "Common/UI/Components/LabelRule/LabelRuleTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -67,7 +67,7 @@ When a rule matches, every label listed in \`Labels to Add\` is attached to the 
 
 const OnCallPolicyLabelRulesTable: FunctionComponent = (): ReactElement => {
   return (
-    <ModelTable<OnCallDutyPolicyLabelRule>
+    <LabelRuleTable<OnCallDutyPolicyLabelRule>
       modelType={OnCallDutyPolicyLabelRule}
       id="on-call-policy-label-rules-table"
       name="Settings > On-Call Policy Label Rules"
@@ -210,7 +210,7 @@ const OnCallPolicyLabelRulesTable: FunctionComponent = (): ReactElement => {
 
 const OnCallScheduleLabelRulesTable: FunctionComponent = (): ReactElement => {
   return (
-    <ModelTable<OnCallDutyPolicyScheduleLabelRule>
+    <LabelRuleTable<OnCallDutyPolicyScheduleLabelRule>
       modelType={OnCallDutyPolicyScheduleLabelRule}
       id="on-call-schedule-label-rules-table"
       name="Settings > On-Call Schedule Label Rules"
@@ -356,7 +356,7 @@ const OnCallScheduleLabelRulesTable: FunctionComponent = (): ReactElement => {
 const IncomingCallPolicyLabelRulesTable: FunctionComponent =
   (): ReactElement => {
     return (
-      <ModelTable<IncomingCallPolicyLabelRule>
+      <LabelRuleTable<IncomingCallPolicyLabelRule>
         modelType={IncomingCallPolicyLabelRule}
         id="incoming-call-policy-label-rules-table"
         name="Settings > Incoming Call Policy Label Rules"

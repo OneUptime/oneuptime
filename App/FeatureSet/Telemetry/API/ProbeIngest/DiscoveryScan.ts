@@ -11,6 +11,7 @@ import {
   clampRescanIntervalInMinutes,
 } from "Common/Utils/NetworkDiscovery/RescanIntervalUtil";
 import ScanModeUtil from "Common/Utils/NetworkDiscovery/ScanModeUtil";
+import { DISCOVERY_SCAN_STARTED_MESSAGE } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
@@ -179,14 +180,12 @@ router.post(
             status: "In Progress",
             startedAt: OneUptimeDate.getCurrentDate(),
             /*
-             * Clear the "nobody has picked this scan up" note the worker
-             * writes onto a long-unclaimed Pending scan
-             * (Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts).
-             * A probe claiming the scan is precisely the thing that note said
-             * was not happening, so leaving it would have the row explain, for
-             * the whole sweep, why it had not started.
+             * Replace a Pending diagnosis with a current-run marker. Recurring
+             * scans retain their previous inventory until new results arrive;
+             * the dashboard must not show those old counters as live progress.
+             * The first progress or final report replaces this message.
              */
-            statusMessage: null,
+            statusMessage: DISCOVERY_SCAN_STARTED_MESSAGE,
           } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
           /*
            * Claim ONLY IF everything just handed to the probe is still true.
@@ -319,6 +318,8 @@ router.post(
             projectId: true,
             // Needed to reject a result for a run that is no longer current.
             status: true,
+            // An older probe may report progress without its own message.
+            statusMessage: true,
             // Needed to schedule the next run of a recurring scan below.
             isRecurring: true,
             rescanIntervalInMinutes: true,
@@ -417,13 +418,12 @@ router.post(
        * report erase the hundreds of hosts it had already sent — exactly the
        * loss incremental results exist to prevent (OneUptime issue #3598).
        *
-       * So a failure report states hosts only when it actually carries a
-       * list. The current probe omits the key entirely and the stored hosts
-       * are left alone; an older probe still sends `[]` and still gets the
-       * behaviour it has always had.
+       * A failure or partial report states hosts only when it carries a list.
+       * A count-only heartbeat must preserve hosts already reported by this
+       * run. An explicit `[]` still replaces them with an empty result.
        */
       const hasHostReport: boolean =
-        success || Array.isArray(req.body["discoveredDevices"]);
+        (!isPartial && success) || Array.isArray(req.body["discoveredDevices"]);
 
       const discoveredDevices: Array<JSONObject> =
         (req.body["discoveredDevices"] as Array<JSONObject>) || [];
@@ -491,6 +491,32 @@ router.post(
         ? snmpResponderCount
         : discoveredDevices.length;
 
+      if (scan.statusMessage === DISCOVERY_SCAN_STARTED_MESSAGE) {
+        /*
+         * Until its first report, a recurring scan retains the preceding
+         * run's inventory. Retire it even when this run's first report is a
+         * failure or a heartbeat carrying only counts. Otherwise replacing
+         * the claim marker would present old hosts as this run's findings.
+         *
+         * Guard the reset in its own statement: another first report may
+         * have stored real partial results while the lookup above ran. Once
+         * it removes the marker, those results must never be cleared here.
+         */
+        await NetworkDeviceDiscoveryScanService.updateColumnsByIdWithoutHooks({
+          id: scan.id!,
+          data: {
+            statusMessage: null,
+            discoveredDevices: null,
+            scannedHostCount: null,
+            respondedHostCount: null,
+          } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
+          expectedData: {
+            status: "In Progress",
+            statusMessage: DISCOVERY_SCAN_STARTED_MESSAGE,
+          } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
+        });
+      }
+
       if (isPartial) {
         /*
          * Results ONLY. The run state — status, completedAt, the recurrence
@@ -551,10 +577,12 @@ router.post(
         });
 
         logger.debug(
-          `Discovery scan ${scanId} progress: ${discoveredDevices.length} alive host(s) so far` +
-            (ScanModeUtil.isSnmpEnabled(scan)
-              ? `, ${snmpResponderCount} answered SNMP.`
-              : " (ICMP-only scan)."),
+          hasHostReport
+            ? `Discovery scan ${scanId} progress: ${discoveredDevices.length} alive host(s) so far` +
+                (ScanModeUtil.isSnmpEnabled(scan)
+                  ? `, ${snmpResponderCount} answered SNMP.`
+                  : " (ICMP-only scan).")
+            : `Discovery scan ${scanId} progress received without a host list.`,
         );
 
         return Response.sendJsonObjectResponse(req, res, {

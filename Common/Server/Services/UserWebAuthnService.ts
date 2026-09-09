@@ -5,6 +5,7 @@ import Model from "../../Models/DatabaseModels/UserWebAuthn";
 import UserService from "./UserService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
+import Hostname from "../../Types/API/Hostname";
 import User from "../../Models/DatabaseModels/User";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -17,23 +18,19 @@ import {
 import { Host, HttpProtocol } from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import OneUptimeDate from "../../Types/Date";
-import Hostname from "../../Types/API/Hostname";
+import Redis, { ClientType } from "../Infrastructure/Redis";
+import DatabaseNotConnectedException from "../../Types/Exception/DatabaseNotConnectedException";
+import { randomBytes } from "crypto";
+import { URL } from "url";
 
 const WEBAUTHN_CHALLENGE_TTL_MINUTES: number = 5;
+const AUTHENTICATION_CHALLENGE_PREFIX: string = "webauthn-security-key-login-";
+const REGISTRATION_CHALLENGE_PREFIX: string = "webauthn-registration-";
+const PASSKEY_CHALLENGE_PREFIX: string = "webauthn-passkey-login-";
 
-/*
- * Which of the two flows a stored challenge belongs to.
- *
- * They used to share one slot on the User row, so whichever wrote last
- * destroyed the other's -- see the columns on
- * Common/Models/DatabaseModels/User.ts for what that cost a user with two tabs
- * open. Every read and write of a challenge now names its purpose, and a
- * challenge issued for one flow is simply invisible to the other.
- */
-enum WebAuthnChallengePurpose {
-  Registration = "registration",
-  Authentication = "authentication",
+interface RegistrationChallenge {
+  challenge: string;
+  requireUserVerification: boolean;
 }
 
 /*
@@ -283,6 +280,7 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async generateRegistrationOptions(data: {
     userId: ObjectID;
+    isPasskey?: boolean;
   }): Promise<{ options: any; challenge: string }> {
     const user: User | null = await UserService.findOneById({
       id: data.userId,
@@ -321,7 +319,7 @@ export class Service extends DatabaseService<Model> {
 
     const options: any = await generateRegistrationOptions({
       rpName: "OneUptime",
-      rpID: webAuthnRelyingPartyId(),
+      rpID: this.getRelyingParty().rpID,
       userID: new Uint8Array(Buffer.from(data.userId.toString())),
       userName: user.email.toString(),
       userDisplayName: user.name ? user.name.toString() : user.email.toString(),
@@ -334,41 +332,31 @@ export class Service extends DatabaseService<Model> {
           /* Same hint as allowCredentials carries; see the note there. */
           const transports: Array<WebAuthnTransport> | undefined =
             parseStoredTransports(cred.transports);
-
           return {
             id: cred.credentialId!,
             type: "public-key",
-            ...(transports ? { transports: transports } : {}),
+            ...(transports ? { transports } : {}),
           };
         }),
       authenticatorSelection: {
-        residentKey: "discouraged",
-        userVerification: WEBAUTHN_USER_VERIFICATION,
+        residentKey: data.isPasskey === true ? "required" : "discouraged",
+        userVerification:
+          data.isPasskey === true ? "required" : WEBAUTHN_USER_VERIFICATION,
       },
     });
 
-    // Convert to JSON serializable format
-    options.challenge = Buffer.from(options.challenge).toString("base64url");
-    if (options.excludeCredentials) {
-      options.excludeCredentials = options.excludeCredentials.map(
-        (cred: any) => {
-          return {
-            ...cred,
-            id:
-              typeof cred.id === "string"
-                ? cred.id
-                : Buffer.from(cred.id).toString("base64url"),
-          };
-        },
-      );
-    }
-
-    // Store the challenge server-side so verification uses a trusted value
-    await this.storeChallenge({
-      userId: data.userId,
-      purpose: WebAuthnChallengePurpose.Registration,
-      challenge: options.challenge,
-    });
+    /*
+     * SimpleWebAuthn already returns base64url JSON. Preserve the exact
+     * challenge, and bind the verification requirement to server-side state.
+     */
+    await this.storeChallenge(
+      `${REGISTRATION_CHALLENGE_PREFIX}${data.userId.toString()}`,
+      JSON.stringify({
+        challenge: options.challenge,
+        requireUserVerification:
+          data.isPasskey === true || WEBAUTHN_REQUIRE_USER_VERIFICATION,
+      }),
+    );
 
     return {
       options: options as any,
@@ -386,21 +374,26 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("User ID not found in request");
     }
 
-    // Retrieve the challenge from the server-side store
-    const storedChallenge: string = await this.getAndClearStoredChallenge({
-      userId: data.props.userId,
-      purpose: WebAuthnChallengePurpose.Registration,
-    });
+    const storedChallenge: RegistrationChallenge = JSON.parse(
+      await this.consumeChallenge(
+        `${REGISTRATION_CHALLENGE_PREFIX}${data.props.userId.toString()}`,
+      ),
+    ) as RegistrationChallenge;
 
-    const expectedOrigin: string = `${HttpProtocol}${Host.toString()}`;
+    if (
+      !storedChallenge.challenge ||
+      typeof storedChallenge.requireUserVerification !== "boolean"
+    ) {
+      throw new BadDataException("Invalid registration challenge");
+    }
 
     const verification: any = await explainVerificationFailure(() => {
       return verifyRegistrationResponse({
         response: data.credential,
-        expectedChallenge: storedChallenge,
-        expectedOrigin: expectedOrigin,
-        expectedRPID: webAuthnRelyingPartyId(),
-        requireUserVerification: WEBAUTHN_REQUIRE_USER_VERIFICATION,
+        expectedChallenge: storedChallenge.challenge,
+        expectedOrigin: this.getRelyingParty().origin,
+        expectedRPID: this.getRelyingParty().rpID,
+        requireUserVerification: storedChallenge.requireUserVerification,
       });
     });
 
@@ -412,6 +405,15 @@ export class Service extends DatabaseService<Model> {
 
     if (!registrationInfo) {
       throw new BadDataException("Registration info not found");
+    }
+
+    if (
+      storedChallenge.requireUserVerification &&
+      !registrationInfo.userVerified
+    ) {
+      throw new BadDataException(
+        "Passkey registration requires user verification",
+      );
     }
 
     // Save the credential
@@ -508,7 +510,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     const options: any = await generateAuthenticationOptions({
-      rpID: webAuthnRelyingPartyId(),
+      rpID: this.getRelyingParty().rpID,
       allowCredentials: credentials.map((cred: Model) => {
         /*
          * Recording transports at registration buys nothing unless they are
@@ -527,26 +529,19 @@ export class Service extends DatabaseService<Model> {
          */
         const transports: Array<WebAuthnTransport> | undefined =
           parseStoredTransports(cred.transports);
-
         return {
           id: cred.credentialId!,
           type: "public-key",
-          ...(transports ? { transports: transports } : {}),
+          ...(transports ? { transports } : {}),
         };
       }),
       userVerification: WEBAUTHN_USER_VERIFICATION,
     });
 
-    // Convert to JSON serializable format
-    options.challenge = Buffer.from(options.challenge).toString("base64url");
-    // allowCredentials id is already base64url string
-
-    // Store the challenge server-side so verification uses a trusted value
-    await this.storeChallenge({
-      userId: user.id!,
-      purpose: WebAuthnChallengePurpose.Authentication,
-      challenge: options.challenge,
-    });
+    await this.storeChallenge(
+      `${AUTHENTICATION_CHALLENGE_PREFIX}${user.id!.toString()}`,
+      options.challenge,
+    );
 
     /*
      * The anonymous caller gets the ceremony and nothing else.
@@ -576,10 +571,9 @@ export class Service extends DatabaseService<Model> {
     credential: any;
   }): Promise<User> {
     // Retrieve the challenge from the server-side store
-    const storedChallenge: string = await this.getAndClearStoredChallenge({
-      userId: new ObjectID(data.userId),
-      purpose: WebAuthnChallengePurpose.Authentication,
-    });
+    const storedChallenge: string = await this.consumeChallenge(
+      `${AUTHENTICATION_CHALLENGE_PREFIX}${new ObjectID(data.userId).toString()}`,
+    );
 
     const user: User | null = await UserService.findOneById({
       id: new ObjectID(data.userId),
@@ -618,20 +612,18 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Credential not found");
     }
 
-    const expectedOrigin: string = `${HttpProtocol}${Host.toString()}`;
-
     const verification: any = await explainVerificationFailure(() => {
       return verifyAuthenticationResponse({
         response: data.credential,
         expectedChallenge: storedChallenge,
-        expectedOrigin: expectedOrigin,
-        expectedRPID: webAuthnRelyingPartyId(),
+        requireUserVerification: WEBAUTHN_REQUIRE_USER_VERIFICATION,
+        expectedOrigin: this.getRelyingParty().origin,
+        expectedRPID: this.getRelyingParty().rpID,
         credential: {
           id: dbCredential.credentialId!,
           publicKey: Buffer.from(dbCredential.publicKey!, "base64"),
           counter: parseInt(dbCredential.counter!),
         } as any,
-        requireUserVerification: WEBAUTHN_REQUIRE_USER_VERIFICATION,
       });
     });
 
@@ -653,136 +645,205 @@ export class Service extends DatabaseService<Model> {
     return user;
   }
 
-  /**
-   * Writes a freshly issued challenge into the slot belonging to ONE flow.
-   *
-   * The purpose decides the columns, and the two sets never overlap, so a
-   * sign-in page asking for a challenge can no longer wipe out a registration
-   * the same user is halfway through in another tab.
-   *
-   * Written as two literal objects rather than computed column names: this is
-   * the code whose whole job is to keep the two flows apart, and a pair of
-   * string variables indexing into the row is precisely how they would find
-   * their way back together.
-   */
-  private async storeChallenge(data: {
-    userId: ObjectID;
-    purpose: WebAuthnChallengePurpose;
-    challenge: string;
-  }): Promise<void> {
-    const expiresAt: Date = OneUptimeDate.addRemoveMinutes(
-      OneUptimeDate.getCurrentDate(),
-      WEBAUTHN_CHALLENGE_TTL_MINUTES,
+  @CaptureSpan()
+  public async generatePasskeyAuthenticationOptions(): Promise<{
+    options: any;
+    challengeId: string;
+  }> {
+    /*
+     * No email or credential allow-list is needed: the authenticator offers
+     * the discoverable credentials registered for this relying party.
+     */
+    const options: any = await generateAuthenticationOptions({
+      rpID: this.getRelyingParty().rpID,
+      allowCredentials: [],
+      userVerification: "required",
+    });
+    const challengeId: string = randomBytes(32).toString("base64url");
+
+    await this.storeChallenge(
+      `${PASSKEY_CHALLENGE_PREFIX}${challengeId}`,
+      options.challenge,
     );
 
-    await UserService.updateOneById({
-      id: data.userId,
-      data:
-        data.purpose === WebAuthnChallengePurpose.Registration
-          ? {
-              webauthnRegistrationChallenge: data.challenge,
-              webauthnRegistrationChallengeExpiresAt: expiresAt,
-            }
-          : {
-              webauthnAuthenticationChallenge: data.challenge,
-              webauthnAuthenticationChallengeExpiresAt: expiresAt,
-            },
-      props: {
-        isRoot: true,
-      },
-    });
+    return { options, challengeId };
   }
 
-  /**
-   * Empties one flow's slot. Used both when a challenge is spent and when it
-   * is found expired -- and it touches only the named flow, so clearing a
-   * dead sign-in challenge leaves a live registration one alone.
-   */
-  private async clearChallenge(data: {
-    userId: ObjectID;
-    purpose: WebAuthnChallengePurpose;
-  }): Promise<void> {
-    await UserService.updateOneById({
-      id: data.userId,
-      data:
-        data.purpose === WebAuthnChallengePurpose.Registration
-          ? {
-              webauthnRegistrationChallenge: null as any,
-              webauthnRegistrationChallengeExpiresAt: null as any,
-            }
-          : {
-              webauthnAuthenticationChallenge: null as any,
-              webauthnAuthenticationChallengeExpiresAt: null as any,
-            },
-      props: {
-        isRoot: true,
+  @CaptureSpan()
+  public async verifyPasskeyAuthentication(data: {
+    challengeId: string;
+    credential: any;
+  }): Promise<User> {
+    if (
+      typeof data.challengeId !== "string" ||
+      !data.challengeId.match(/^[A-Za-z0-9_-]{43}$/)
+    ) {
+      throw new BadDataException("Invalid passkey challenge");
+    }
+
+    /*
+     * Consume before validation. Failed assertions cannot reuse a challenge,
+     * and concurrent requests can never both claim the same ceremony.
+     */
+    const challenge: string = await this.consumeChallenge(
+      `${PASSKEY_CHALLENGE_PREFIX}${data.challengeId}`,
+    );
+
+    if (
+      typeof data.credential?.id !== "string" ||
+      !data.credential.id ||
+      data.credential.type !== "public-key" ||
+      data.credential.rawId !== data.credential.id ||
+      typeof data.credential?.response?.userHandle !== "string" ||
+      !data.credential.response.userHandle ||
+      !["clientDataJSON", "authenticatorData", "signature"].every(
+        (field: string) => {
+          return (
+            typeof data.credential.response[field] === "string" &&
+            data.credential.response[field].length > 0
+          );
+        },
+      )
+    ) {
+      throw new BadDataException("Invalid passkey credential");
+    }
+
+    const dbCredential: Model | null = await this.findOneBy({
+      query: {
+        credentialId: data.credential.id,
+        isVerified: true,
+      },
+      select: {
+        _id: true,
+        userId: true,
+        credentialId: true,
+        publicKey: true,
+        counter: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (
+      !dbCredential?.userId ||
+      !dbCredential.id ||
+      !dbCredential.publicKey ||
+      !dbCredential.credentialId ||
+      data.credential.response.userHandle !==
+        Buffer.from(dbCredential.userId.toString()).toString("base64url")
+    ) {
+      throw new BadDataException("Passkey authentication failed");
+    }
+
+    const counter: number = Number(dbCredential.counter);
+
+    if (
+      !dbCredential.counter ||
+      !dbCredential.counter.match(/^\d+$/) ||
+      !Number.isSafeInteger(counter) ||
+      counter < 0
+    ) {
+      throw new BadDataException("Invalid passkey counter");
+    }
+
+    const verification: any = await verifyAuthenticationResponse({
+      response: data.credential,
+      expectedChallenge: challenge,
+      expectedOrigin: this.getRelyingParty().origin,
+      expectedRPID: this.getRelyingParty().rpID,
+      requireUserVerification: true,
+      credential: {
+        id: dbCredential.credentialId,
+        publicKey: new Uint8Array(
+          Buffer.from(dbCredential.publicKey, "base64"),
+        ),
+        counter,
       },
     });
-  }
 
-  /**
-   * Retrieves the stored WebAuthn challenge for the given user and flow,
-   * validates it has not expired, and clears it so it cannot be reused.
-   */
-  private async getAndClearStoredChallenge(data: {
-    userId: ObjectID;
-    purpose: WebAuthnChallengePurpose;
-  }): Promise<string> {
-    const isRegistration: boolean =
-      data.purpose === WebAuthnChallengePurpose.Registration;
+    if (
+      !verification.verified ||
+      !verification.authenticationInfo?.userVerified
+    ) {
+      throw new BadDataException("Passkey authentication failed");
+    }
+
+    const updated: number = await this.updateOneById({
+      id: dbCredential.id,
+      data: {
+        counter: verification.authenticationInfo.newCounter.toString(),
+      },
+      props: { isRoot: true },
+    });
+
+    if (updated !== 1) {
+      throw new BadDataException("Passkey authentication failed");
+    }
 
     const user: User | null = await UserService.findOneById({
-      id: data.userId,
-      select: isRegistration
-        ? {
-            webauthnRegistrationChallenge: true,
-            webauthnRegistrationChallengeExpiresAt: true,
-          }
-        : {
-            webauthnAuthenticationChallenge: true,
-            webauthnAuthenticationChallengeExpiresAt: true,
-          },
-      props: {
-        isRoot: true,
-      },
+      id: dbCredential.userId,
+      select: { _id: true, email: true },
+      props: { isRoot: true },
     });
 
     if (!user) {
-      throw new BadDataException("User not found");
+      throw new BadDataException("Passkey authentication failed");
     }
 
-    const challenge: string | undefined = isRegistration
-      ? user.webauthnRegistrationChallenge
-      : user.webauthnAuthenticationChallenge;
+    return user;
+  }
 
-    const expiresAt: Date | undefined = isRegistration
-      ? user.webauthnRegistrationChallengeExpiresAt
-      : user.webauthnAuthenticationChallengeExpiresAt;
+  private getRelyingParty(): { rpID: string; origin: string } {
+    const origin: URL = new URL(`${HttpProtocol}${Host.toString()}`);
 
-    if (!challenge || !expiresAt) {
-      throw new BadDataException(
-        "No pending WebAuthn challenge found. Please initiate the WebAuthn flow again.",
+    /*
+     * Relying party IDs exclude the port; origins include it for installations
+     * hosted on a non-default port.
+     */
+    return { rpID: webAuthnRelyingPartyId(), origin: origin.origin };
+  }
+
+  private getChallengeStore(): ClientType {
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      throw new DatabaseNotConnectedException(
+        "Passkey challenge store is unavailable",
       );
     }
 
-    // Check expiry
-    if (OneUptimeDate.isBefore(expiresAt, OneUptimeDate.getCurrentDate())) {
-      // Clear the expired challenge
-      await this.clearChallenge({
-        userId: data.userId,
-        purpose: data.purpose,
-      });
+    return client;
+  }
 
+  private async storeChallenge(key: string, value: string): Promise<void> {
+    const result: string | null = await this.getChallengeStore().set(
+      key,
+      value,
+      "EX",
+      WEBAUTHN_CHALLENGE_TTL_MINUTES * 60,
+    );
+
+    if (result !== "OK") {
+      throw new BadDataException("Unable to create a WebAuthn challenge");
+    }
+  }
+
+  private async consumeChallenge(key: string): Promise<string> {
+    /*
+     * A Lua GET+DEL works on Redis versions before GETDEL was introduced.
+     * Both operations execute atomically and the key remains subject to TTL.
+     */
+    const challenge: unknown = await this.getChallengeStore().eval(
+      "local value = redis.call('GET', KEYS[1]); " +
+        "if value then redis.call('DEL', KEYS[1]); end; return value",
+      1,
+      key,
+    );
+
+    if (typeof challenge !== "string" || !challenge) {
       throw new BadDataException(
-        "WebAuthn challenge has expired. Please initiate the WebAuthn flow again.",
+        "WebAuthn challenge expired or was already used. Please try again.",
       );
     }
-
-    // Clear the challenge immediately so it cannot be reused (one-time use)
-    await this.clearChallenge({
-      userId: data.userId,
-      purpose: data.purpose,
-    });
 
     return challenge;
   }

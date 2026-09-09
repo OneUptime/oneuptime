@@ -279,6 +279,7 @@ describe("GoogleSecOpsClient.fetchDetectionAlerts", () => {
 
     expect([...alertsUrl.searchParams.keys()].sort()).toEqual([
       "alertListOptions.maxReturnedAlerts",
+      "snapshotQuery",
       "timeRange.endTime",
       "timeRange.startTime",
     ]);

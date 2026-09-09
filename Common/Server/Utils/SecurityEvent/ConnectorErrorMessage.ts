@@ -27,10 +27,9 @@ import logger from "../Logger";
  * explain the outage are precisely the ones the outage prevented from
  * being written, so the failure is completely silent.
  *
- * Hence the two halves of this file: clamp the message to something a
- * column will always accept, and run the write inside its own try/catch
- * that logs and swallows. Whatever happens, the loop advances to the next
- * item.
+ * Messages are bounded by default; callers storing full diagnostics in a
+ * text column can explicitly disable truncation. The guarded write logs
+ * and swallows persistence failures so the loop advances to the next item.
  */
 
 export const MAX_CONNECTOR_ERROR_MESSAGE_LENGTH: number = 1000;
@@ -52,11 +51,14 @@ const UNKNOWN_ERROR_MESSAGE: string = "Unknown error.";
 
 export default class ConnectorErrorMessage {
   /*
-   * Anything thrown -> a message short enough that storing it cannot be
-   * what fails next. Errors contribute their .message; everything else is
-   * stringified.
+   * Errors contribute their .message; everything else is stringified.
+   * Truncation is the default for existing callers. Disable it only when
+   * the destination supports a complete error message.
    */
-  public static toMessage(error: unknown): string {
+  public static toMessage(
+    error: unknown,
+    options: { truncate?: boolean | undefined } = {},
+  ): string {
     let message: string = "";
 
     if (error instanceof Error) {
@@ -71,7 +73,10 @@ export default class ConnectorErrorMessage {
       return UNKNOWN_ERROR_MESSAGE;
     }
 
-    if (message.length <= MAX_CONNECTOR_ERROR_MESSAGE_LENGTH) {
+    if (
+      options.truncate === false ||
+      message.length <= MAX_CONNECTOR_ERROR_MESSAGE_LENGTH
+    ) {
       return message;
     }
 
