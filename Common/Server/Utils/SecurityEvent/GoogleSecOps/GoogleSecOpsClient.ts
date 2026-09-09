@@ -4,7 +4,7 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import APIException from "../../../../Types/Exception/ApiException";
 import { JSONArray, JSONObject, JSONValue } from "../../../../Types/JSON";
 import logger from "../../Logger";
-import { redactLogString } from "../../LogRedaction";
+import { redactLogString, redactLogValue } from "../../LogRedaction";
 
 /*
  * Minimal Google SecOps (Chronicle) API client for the detections poller.
@@ -339,7 +339,7 @@ export default class GoogleSecOpsClient {
 
     if (!response.ok) {
       throw new APIException(
-        `Google token exchange failed (HTTP ${response.status}): ${redactLogString(responseText)}`,
+        `Google token exchange failed (HTTP ${response.status}): ${GoogleSecOpsClient.redactErrorBody(responseText)}`,
       );
     }
 
@@ -429,7 +429,7 @@ export default class GoogleSecOpsClient {
 
     if (!response.ok) {
       throw new APIException(
-        `Google SecOps alerts fetch failed (HTTP ${response.status}): ${redactLogString(responseText)}` +
+        `Google SecOps alerts fetch failed (HTTP ${response.status}): ${GoogleSecOpsClient.redactErrorBody(responseText)}` +
           GoogleSecOpsClient.describeHttpFailure(response.status, responseText),
       );
     }
@@ -803,7 +803,7 @@ export default class GoogleSecOpsClient {
     }
 
     throw new APIException(
-      `Google SecOps alerts fetch returned an unexpected response root: ${redactLogString(text)}`,
+      `Google SecOps alerts fetch returned an unexpected response root: ${GoogleSecOpsClient.redactErrorBody(text)}`,
     );
   }
 
@@ -833,7 +833,7 @@ export default class GoogleSecOpsClient {
 
     if (recognized.length === 0) {
       throw new APIException(
-        `Google SecOps alerts fetch returned an unrecognized response shape: ${redactLogString(text)}`,
+        `Google SecOps alerts fetch returned an unrecognized response shape: ${GoogleSecOpsClient.redactErrorBody(text)}`,
       );
     }
   }
@@ -1056,12 +1056,12 @@ export default class GoogleSecOpsClient {
           delete details[key];
 
           return Object.keys(details).length > 0
-            ? `${value}; ${JSON.stringify(details)}`
+            ? `${value}; ${JSON.stringify(redactLogValue(details))}`
             : value;
         }
       }
 
-      return JSON.stringify(entry);
+      return JSON.stringify(redactLogValue(entry));
     }
 
     return String(entry);
@@ -1069,7 +1069,7 @@ export default class GoogleSecOpsClient {
 
   /*
    * Actionable operator guidance appended behind the echoed body. The
-   * prefix, the status and the body slice ahead of it are the contract the
+   * prefix, the status and the diagnostic body ahead of it are the contract the
    * integration doc and the in-product help are written against, so this
    * only ever adds to the tail.
    */
@@ -1134,8 +1134,10 @@ export default class GoogleSecOpsClient {
 
   private static hintForStatus(status: number, message: string): string {
     if (status === 400) {
-      // Specific field errors identify a request-contract problem. A
-      // generic INVALID_ARGUMENT does not identify the failing argument.
+      /*
+       * Specific field errors identify a request-contract problem. A
+       * generic INVALID_ARGUMENT does not identify the failing argument.
+       */
       if (UNKNOWN_FIELD_PATTERN.test(message)) {
         return "OneUptime sent a query parameter this endpoint does not accept. This is a OneUptime bug, not a credential or permission problem.";
       }
@@ -1255,7 +1257,20 @@ export default class GoogleSecOpsClient {
   }
 
   private static summarizeErrorObject(error: JSONObject): string {
-    return redactLogString(JSON.stringify(error));
+    return JSON.stringify(redactLogValue(error));
+  }
+
+  private static redactErrorBody(body: string): string {
+    try {
+      /*
+       * Decode the outer JSON before redacting its string values. A message
+       * can itself contain credential JSON; its escaped key quotes otherwise
+       * bypass the textual redactor, even when it runs again in the poller.
+       */
+      return JSON.stringify(redactLogValue(JSON.parse(body) as JSONValue));
+    } catch {
+      return redactLogString(body);
+    }
   }
 
   private static isJsonObject(

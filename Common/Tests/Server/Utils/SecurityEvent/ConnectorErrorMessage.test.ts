@@ -470,8 +470,10 @@ describe("ConnectorErrorMessage.toMessage on the real Google SecOps client error
 
     expect(rawMessage.startsWith(prefix)).toBe(true);
 
-    // The entire Google response precedes the operator hint. Applying the
-    // old 500-character slice here would make full persistence ineffective.
+    /*
+     * The entire Google response precedes the operator hint. Applying the
+     * old 500-character slice here would make full persistence ineffective.
+     */
     const guidance: string = GoogleSecOpsClient.describeHttpFailure(
       403,
       HUGE_ERROR_BODY,

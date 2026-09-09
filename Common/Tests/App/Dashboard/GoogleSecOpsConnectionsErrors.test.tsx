@@ -33,8 +33,10 @@ interface TableColumn {
 
 let mockConnections: Array<GoogleSecOpsConnection> = [];
 
-// Supply table rows while exercising the page's real cell, modal and copy
-// button. The table's API, pagination and editing controls are unrelated.
+/*
+ * Supply table rows while exercising the page's real cell, modal and copy
+ * button. The table's API, pagination and editing controls are unrelated.
+ */
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
     __esModule: true,

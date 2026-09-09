@@ -291,8 +291,10 @@ export default class GoogleSecOpsConnection extends BaseModel {
   @TableColumn({
     title: "Last Error",
     required: false,
-    // Keep complete diagnostic messages so customers can copy them for
-    // support. The poller redacts credentials before storing the error.
+    /*
+     * Keep complete diagnostic messages so customers can copy them for
+     * support. The poller redacts credentials before storing the error.
+     */
     type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
     description:

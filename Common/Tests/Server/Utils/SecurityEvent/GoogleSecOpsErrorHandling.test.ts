@@ -317,12 +317,53 @@ function hintForErrorInfo(data: {
 const IAM_RESOURCE: string =
   "projects/my-project/locations/us/instances/3f0a-instance";
 const IAM_PERMISSION: string = "chronicle.legacies.legacyFetchAlertsView";
+const NESTED_DIAGNOSTIC_SECRET: string = "ya29.nested-diagnostic-secret-12345";
+const NESTED_DIAGNOSTIC_TAIL: string = "NESTED-DIAGNOSTIC-TAIL";
+
+function nestedCredentialDiagnostic(): string {
+  return `${"diagnostic detail ".repeat(100)}Invalid value: ${JSON.stringify({
+    access_token: NESTED_DIAGNOSTIC_SECRET,
+    resource: INSTANCE,
+  })} ${NESTED_DIAGNOSTIC_TAIL}`;
+}
+
+function expectRedactedNestedDiagnostic(message: string): void {
+  expect(message.length).toBeGreaterThan(1000);
+  expect(message).toContain(NESTED_DIAGNOSTIC_TAIL);
+  expect(message).toContain(INSTANCE);
+  expect(message).toContain("[REDACTED]");
+  expect(message).not.toContain(NESTED_DIAGNOSTIC_SECRET);
+}
 
 afterEach(() => {
   jest.restoreAllMocks();
 });
 
 describe("GoogleSecOpsClient in-band validation errors on an HTTP 200", () => {
+  test.each(["queryValidationErrors", "runtimeErrors"])(
+    "redacts credential JSON inside %s details before serializing them",
+    (field: string): void => {
+      const entry: JSONObject = {
+        code: 400,
+        diagnostic: nestedCredentialDiagnostic(),
+      };
+      if (field === "queryValidationErrors") {
+        entry["message"] = "Invalid snapshot query.";
+      }
+      /*
+       * Cover both an entry with a recognized message field and the JSON
+       * fallback used when the server supplies only additional details.
+       */
+      const failure: Error = parseFailure(
+        JSON.stringify([{ [field]: [entry] }]),
+      );
+
+      expect(failure).toBeInstanceOf(APIException);
+      expect(failure.message).toContain('"code":400');
+      expectRedactedNestedDiagnostic(failure.message);
+    },
+  );
+
   test("preserves long validation messages and additional diagnostic fields", () => {
     const message: string = `${"query diagnostic ".repeat(150)}QUERY-ERROR-TAIL`;
     const failure: Error = parseFailure(
@@ -853,8 +894,10 @@ describe("GoogleSecOpsClient.describeHttpFailure", () => {
       expect(hint).not.toBe("");
     }
 
-    // Explicit field errors identify a client bug; an opaque 400 needs
-    // the instance configuration and deployed request checked as well.
+    /*
+     * Explicit field errors identify a client bug; an opaque 400 needs
+     * the instance configuration and deployed request checked as well.
+     */
     const distinct: Set<string> = new Set<string>([
       unknownField,
       missingRequired,
@@ -865,6 +908,53 @@ describe("GoogleSecOpsClient.describeHttpFailure", () => {
 });
 
 describe("GoogleSecOpsClient HTTP failures as the operator reads them", () => {
+  test.each(["OAuth", "Chronicle"])(
+    "redacts credential JSON embedded in a %s HTTP error message",
+    async (endpoint: string): Promise<void> => {
+      const diagnostic: string = nestedCredentialDiagnostic();
+      const body: string =
+        endpoint === "OAuth"
+          ? JSON.stringify({
+              error: "invalid_grant",
+              error_description: diagnostic,
+            })
+          : bareErrorBody(
+              googleError({
+                code: 400,
+                status: "INVALID_ARGUMENT",
+                message: diagnostic,
+              }),
+            );
+      const { client } = makeClient({
+        token: endpoint === "OAuth" ? { status: 400, body } : okTokenResponse(),
+        alerts: { status: 400, body },
+      });
+      const result: Promise<FetchAlertsResult> = client.fetchDetectionAlerts({
+        startTime: WINDOW_START,
+        endTime: WINDOW_END,
+      });
+
+      await expect(result).rejects.toThrow(APIException);
+      await expect(result).rejects.toThrow("HTTP 400");
+      await expect(result).rejects.toThrow(NESTED_DIAGNOSTIC_TAIL);
+      await expect(result).rejects.toThrow(INSTANCE);
+      await expect(result).rejects.toThrow("[REDACTED]");
+      await expect(result).rejects.not.toThrow(NESTED_DIAGNOSTIC_SECRET);
+      if (endpoint === "Chronicle") {
+        await expect(result).rejects.toThrow('"code":400');
+      }
+    },
+  );
+
+  test("redacts credentials in a non-JSON HTTP diagnostic without dropping its tail", async (): Promise<void> => {
+    const body: string = `Authorization: Bearer ${NESTED_DIAGNOSTIC_SECRET}\n${"diagnostic ".repeat(150)}${NESTED_DIAGNOSTIC_TAIL}`;
+    const failure: AlertsFailure = await alertsFailure({ status: 500, body });
+
+    expect(failure.error.message).toContain(NESTED_DIAGNOSTIC_TAIL);
+    expect(failure.error.message).toContain("[REDACTED]");
+    expect(failure.error.message).not.toContain(NESTED_DIAGNOSTIC_SECRET);
+  });
+
   test("preserves long OAuth errors while redacting an echoed assertion", async () => {
     const description: string = `${"diagnostic ".repeat(200)}OAUTH-ERROR-TAIL`;
     const { fetchImplementation } = makeFetch({
@@ -1070,6 +1160,21 @@ describe("GoogleSecOpsClient HTTP failures as the operator reads them", () => {
 
     expect(failure.message).toContain(JSON.stringify(error));
     expect(failure.message).toContain("STREAM-ERROR-TAIL");
+  });
+
+  test("redacts credential JSON in streamed error messages and details before serialization", (): void => {
+    const error: JSONObject = googleError({
+      code: 400,
+      status: "INVALID_ARGUMENT",
+      message: nestedCredentialDiagnostic(),
+      details: [{ diagnostic: nestedCredentialDiagnostic() }],
+    });
+    const failure: Error = parseFailure(streamErrorBody(error));
+
+    expect(failure).toBeInstanceOf(APIException);
+    expect(failure.message).toContain('"code":400');
+    expect(failure.message).toContain('"status":"INVALID_ARGUMENT"');
+    expectRedactedNestedDiagnostic(failure.message);
   });
 });
 

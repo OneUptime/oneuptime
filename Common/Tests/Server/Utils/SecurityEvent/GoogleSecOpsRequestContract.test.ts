@@ -414,8 +414,10 @@ describe("GoogleSecOpsClient alerts request parameters", () => {
     expect(params.has("pageSize")).toBe(false);
     expect(params.has("pageToken")).toBe(false);
 
-    // Google documents an empty snapshot query as matching the entire
-    // baseline. A CLOSED-status filter would silently lose detections.
+    /*
+     * Google documents an empty snapshot query as matching the entire
+     * baseline. A CLOSED-status filter would silently lose detections.
+     */
     expect(params.has("snapshotQuery")).toBe(true);
     expect(params.get("snapshotQuery")).toBe("");
     expect(rawQueryPairsOf(request).get("snapshotQuery")).toBe("");

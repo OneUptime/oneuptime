@@ -1188,7 +1188,9 @@ describe("Full-error guidance matches retention, redaction and copy controls", (
     expect(clientSource).not.toMatch(DIAGNOSTIC_SLICE_PATTERN);
 
     for (const template of clientHttpErrorTemplates) {
-      expect(template).toContain("${redactLogString(responseText)}");
+      expect(template).toContain(
+        "${GoogleSecOpsClient.redactErrorBody(responseText)}",
+      );
     }
   });
 
@@ -1199,8 +1201,10 @@ describe("Full-error guidance matches retention, redaction and copy controls", (
       "private static isJsonObject(",
     );
 
-    expect(streamErrorFormatter).toContain("JSON.stringify(error)");
-    expect(streamErrorFormatter).toContain("redactLogString(");
+    expect(streamErrorFormatter).toContain(
+      "JSON.stringify(redactLogValue(error))",
+    );
+    expect(streamErrorFormatter).toContain("redactLogValue(");
   });
 
   test("the SecOps poller bypasses the shared message clamp and redacts stored failures", () => {

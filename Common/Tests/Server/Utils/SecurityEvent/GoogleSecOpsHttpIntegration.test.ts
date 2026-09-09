@@ -82,6 +82,10 @@ const FULL_GOOGLE_ERROR_BODY: string = JSON.stringify({
       {
         "@type": "type.googleapis.com/google.rpc.ResourceInfo",
         resourceName: INSTANCE,
+        diagnostic: JSON.stringify({
+          access_token: "nested-http-diagnostic-token-123",
+          resource: INSTANCE,
+        }),
       },
       {
         "@type": "type.googleapis.com/google.rpc.BadRequest",
@@ -256,38 +260,43 @@ describe("Google SecOps alerts HTTP integration", () => {
     ) {
       return Promise.reject(new Error(`Unexpected outbound URL: ${url}`));
     }
-    return new Promise((resolve, reject): void => {
-      const request: http.ClientRequest = http.request(
-        {
-          hostname: "127.0.0.1",
-          port,
-          path: `${destination.pathname}${destination.search}`,
-          method: init.method,
-          headers: init.headers,
-          agent: false,
-        },
-        (response: IncomingMessage): void => {
-          let body: string = "";
-          response.setEncoding("utf8");
-          response.on("data", (chunk: string): void => {
-            body += chunk;
-          });
-          response.on("error", reject);
-          response.on("end", (): void => {
-            const status: number = response.statusCode || 500;
-            resolve({
-              status,
-              ok: status >= 200 && status < 300,
-              text: async (): Promise<string> => {
-                return body;
-              },
+    return new Promise<FetchResponseLike>(
+      (
+        resolve: (response: FetchResponseLike) => void,
+        reject: (error: Error) => void,
+      ): void => {
+        const request: http.ClientRequest = http.request(
+          {
+            hostname: "127.0.0.1",
+            port,
+            path: `${destination.pathname}${destination.search}`,
+            method: init.method,
+            headers: init.headers,
+            agent: false,
+          },
+          (response: IncomingMessage): void => {
+            let body: string = "";
+            response.setEncoding("utf8");
+            response.on("data", (chunk: string): void => {
+              body += chunk;
             });
-          });
-        },
-      );
-      request.on("error", reject);
-      request.end(init.body);
-    });
+            response.on("error", reject);
+            response.on("end", (): void => {
+              const status: number = response.statusCode || 500;
+              resolve({
+                status,
+                ok: status >= 200 && status < 300,
+                text: async (): Promise<string> => {
+                  return body;
+                },
+              });
+            });
+          },
+        );
+        request.on("error", reject);
+        request.end(init.body);
+      },
+    );
   };
 
   function makeClient(
@@ -303,7 +312,7 @@ describe("Google SecOps alerts HTTP integration", () => {
 
   beforeAll(async (): Promise<void> => {
     server = http.createServer(handleRequest);
-    await new Promise<void>((resolve): void => {
+    await new Promise<void>((resolve: () => void): void => {
       server.listen(0, "127.0.0.1", resolve);
     });
     port = (server.address() as AddressInfo).port;
@@ -320,15 +329,17 @@ describe("Google SecOps alerts HTTP integration", () => {
   });
 
   afterAll(async (): Promise<void> => {
-    await new Promise<void>((resolve, reject): void => {
-      server.close((error?: Error): void => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve();
-        }
-      });
-    });
+    await new Promise<void>(
+      (resolve: () => void, reject: (error: Error) => void): void => {
+        server.close((error?: Error): void => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve();
+          }
+        });
+      },
+    );
   });
 
   test.each([undefined, 23])(
@@ -465,8 +476,10 @@ describe("Google SecOps alerts HTTP integration", () => {
       expect(OTelIngestService.telemetryServiceFromName).not.toHaveBeenCalled();
       if (invalidRequest === "full Google diagnostic") {
         const lastError: string = updates[0]!["lastError"] as string;
-        // Both the old 500-character client slice and the 1,000-character
-        // persistence clamp would discard these Google troubleshooting details.
+        /*
+         * Both the old 500-character client slice and the 1,000-character
+         * persistence clamp would discard these Google troubleshooting details.
+         */
         expect(FULL_GOOGLE_ERROR_BODY.indexOf(FULL_ERROR_TAIL)).toBeGreaterThan(
           1000,
         );
@@ -484,6 +497,7 @@ describe("Google SecOps alerts HTTP integration", () => {
         expect(lastError).toContain('"private_key":"[REDACTED]"');
         expect(lastError).toContain('"client_secret":"[REDACTED]"');
         expect(lastError).not.toContain("local-verified-token");
+        expect(lastError).not.toContain("nested-http-diagnostic-token-123");
         expect(lastError).not.toContain(
           "http-integration-private-key-material",
         );
