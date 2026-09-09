@@ -316,6 +316,16 @@ describe("the derivation itself is sound", () => {
       "/server-monitor-ingest/server-monitor/queue/stats",
     );
     expect(paths).toContain("/workflow/model-schema/:tableName");
+
+    // Both static prefixes of the docs redirect loop must enter the guard.
+    expect(paths).toEqual(
+      expect.arrayContaining([
+        "/docs/as-markdown/:lang/self-hosted/integration-network-access",
+        "/docs/:lang/self-hosted/integration-network-access",
+        "/docs/as-markdown/self-hosted/integration-network-access",
+        "/docs/self-hosted/integration-network-access",
+      ]),
+    );
   });
 
   test("it read routers behind every mount idiom the repo uses", () => {

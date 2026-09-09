@@ -3,6 +3,7 @@ import { Page, expect, Response, Locator } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
 import selectProjectPlan from "../../Helpers/selectProjectPlan";
+import { addTestPaymentMethod } from "./Billing";
 
 const projectDashboardUrlRegex: RegExp =
   /\/dashboard\/([a-f0-9-]+)(?:\/home\/?)?$/;
@@ -22,6 +23,8 @@ type RegisterAndCreateProjectFunction = (data: {
    * Specs that touch plan-gated features need this.
    */
   preferredPlanName?: string | undefined;
+  // Billing regressions can opt out to exercise a project with no card.
+  enablePaidUsage?: boolean | undefined;
 }) => Promise<string>;
 
 export const registerAndCreateProject: RegisterAndCreateProjectFunction =
@@ -29,6 +32,7 @@ export const registerAndCreateProject: RegisterAndCreateProjectFunction =
     page: Page;
     projectNamePrefix: string;
     preferredPlanName?: string | undefined;
+    enablePaidUsage?: boolean | undefined;
   }): Promise<string> => {
     const page: Page = data.page;
 
@@ -118,7 +122,15 @@ export const registerAndCreateProject: RegisterAndCreateProjectFunction =
       projectDashboardUrlRegex,
     );
     expect(projectIdMatch).not.toBeNull();
-    return projectIdMatch![1]!;
+    const projectId: string = projectIdMatch![1]!;
+
+    if (IS_BILLING_ENABLED && data.enablePaidUsage !== false) {
+      await addTestPaymentMethod({ page, projectId });
+      await page.goto(projectUrl);
+      await expect(page).toHaveURL(projectDashboardUrlRegex);
+    }
+
+    return projectId;
   };
 
 /*

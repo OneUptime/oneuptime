@@ -19,8 +19,8 @@ import MicrosoftTeamsIntegrationDocumentation from "../../../../App/FeatureSet/D
  * cheapest check an admin runs next — opening the messaging endpoint in a
  * browser — used to return "Page not found". So the docs are what has to
  * carry the diagnosis: the two directions are independent, a working alert
- * tests only one of them, and an empty Chats list is the confirmation rather
- * than a second unrelated bug.
+ * tests only one of them, and an empty Chats list calls for checking inbound
+ * delivery, authentication, and project mapping.
  *
  * These assertions are on prose because the failure was prose.
  */
@@ -174,20 +174,30 @@ describe("Self-hosted docs: the unreachable-endpoint troubleshooting section", (
     );
   });
 
-  test("states the single root cause up front", () => {
-    expect(section).toContain(
-      "**Azure Bot Service cannot reach your messaging endpoint.**",
+  test("identifies inbound delivery as a likely cause and names the checks up front", () => {
+    const introduction: string = section.trim().split("\n\n")[0]!;
+
+    expect(introduction).toContain("These symptoms often mean");
+    expect(introduction).toContain(
+      "**Azure Bot Service cannot deliver authenticated activities to your messaging endpoint**",
     );
-    expect(section).toContain("These are one failure, not two");
+    expect(introduction).toContain(
+      "Check routing, bot authentication, and project configuration",
+    );
+    expect(introduction).not.toContain("These are one failure, not two");
   });
 
   test("explains that a working alert card tests the opposite direction", () => {
     const lowered: string = section.toLowerCase();
 
     expect(lowered).toContain("oneuptime calls microsoft");
-    expect(lowered).toMatch(
-      /tells you nothing at all about the bot endpoint|working alert/,
+    expect(lowered).toContain(
+      "a working alert verifies that particular outbound send",
     );
+    expect(lowered).toContain(
+      "it does not verify every graph permission or the inbound bot endpoint",
+    );
+    expect(lowered).not.toContain("graph permissions are fine");
   });
 
   test("tabulates which paths need inbound access and which do not", () => {
@@ -216,11 +226,17 @@ describe("Self-hosted docs: the unreachable-endpoint troubleshooting section", (
     ).toBeGreaterThanOrEqual(3);
   });
 
-  test("explains why the empty Chats list confirms the diagnosis", () => {
+  test("explains what an empty Chats list means and what Refresh Chats reads", () => {
     const lowered: string = section.toLowerCase();
 
-    expect(lowered).toContain("refresh chats");
-    expect(lowered).toContain("application permissions");
+    expect(lowered).toContain("no chat has been recorded for that project");
+    expect(lowered).toContain(
+      "check incoming requests, authentication errors, and tenant/project mapping",
+    );
+    expect(lowered).toContain(
+      "**refresh chats** re-reads oneuptime's stored chats",
+    );
+    expect(lowered).not.toContain("no bot activity has ever been received");
   });
 
   test("names all three activities that register a chat, not just the install event", () => {
@@ -238,7 +254,7 @@ describe("Self-hosted docs: the unreachable-endpoint troubleshooting section", (
 
     expect(lowered).toContain("installed");
     expect(lowered).toContain("added to the conversation");
-    expect(lowered).toContain("any message sent to the bot");
+    expect(lowered).toContain("a message sent to the bot in that chat");
   });
 
   test("the inbound table describes chat registration as an activity, not an install event", () => {
@@ -255,6 +271,21 @@ describe("Self-hosted docs: the unreachable-endpoint troubleshooting section", (
   test("tells the admin to grep for the POST rather than the 404", () => {
     expect(section).toContain("Look for the POST, not for 404s");
     expect(section).toContain("grep 'POST /api/microsoft-bot/messages'");
+  });
+
+  test("checks log coverage when POSTs are absent and processing errors when they arrive", () => {
+    const lowered: string = section.toLowerCase();
+
+    expect(lowered).toContain(
+      "if there are no post lines, confirm that the correct access log is recording requests",
+    );
+    expect(lowered).toContain(
+      "check the configured azure endpoint and the network path",
+    );
+    expect(lowered).toContain(
+      "if posts arrive, inspect their responses and oneuptime's authentication or project-mapping errors",
+    );
+    expect(lowered).not.toContain("nothing inside oneuptime is at fault");
   });
 
   test("covers the certificate chain, with a command that checks it", () => {

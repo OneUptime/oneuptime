@@ -92,16 +92,21 @@ afterEach(() => {
 });
 
 describe.each(products)("$name breadcrumb coverage", (product: Product) => {
-  // Use the router's inventory, not a second list of pages that can omit the
-  // same new page as the breadcrumb map.
+  /*
+   * Use the router's inventory, not a second list of pages that can omit the
+   * same new page as the breadcrumb map.
+   */
   test.each([product.landing, ...Object.keys(product.routes)])(
     "%s has a complete, navigable trail through the Page header",
     (page: string) => {
       const currentPath: string = visit(page);
-      const matchedPath: string = Navigation.getRoutePath(RouteUtil.getRoutes());
+      const matchedPath: string = Navigation.getRoutePath(
+        RouteUtil.getRoutes(),
+      );
       expect(matchedPath).toBe(RouteUtil.getRouteString(page));
 
-      const links: Array<Link> | undefined = product.getBreadcrumbs(matchedPath);
+      const links: Array<Link> | undefined =
+        product.getBreadcrumbs(matchedPath);
       expect(links).toBeDefined();
       expect(links!.length).toBeGreaterThanOrEqual(2);
       expect(links![0]?.title).toBe("Project");
@@ -122,12 +127,16 @@ describe.each(products)("$name breadcrumb coverage", (product: Product) => {
       const trail: HTMLElement = screen.getByRole("navigation", {
         name: "Breadcrumb",
       });
-      expect(within(trail).getAllByRole("listitem")).toHaveLength(links!.length);
+      expect(within(trail).getAllByRole("listitem")).toHaveLength(
+        links!.length,
+      );
       expect(trail).not.toHaveClass("hidden");
       expect(screen.getByText("Page content")).toBeInTheDocument();
-      within(trail).getAllByRole("link").forEach((anchor: HTMLElement) => {
-        expect(anchor.getAttribute("href")).not.toBe(currentPath);
-      });
+      within(trail)
+        .getAllByRole("link")
+        .forEach((anchor: HTMLElement) => {
+          expect(anchor.getAttribute("href")).not.toBe(currentPath);
+        });
     },
   );
 
@@ -172,7 +181,9 @@ describe("restored breadcrumb hierarchy", () => {
       parent: PageMap,
     ) => {
       visit(page);
-      const links: Array<Link> = getBreadcrumbs(RouteUtil.getRouteString(page))!;
+      const links: Array<Link> = getBreadcrumbs(
+        RouteUtil.getRouteString(page),
+      )!;
       expect(
         links.map((link: Link): string => {
           return link.title;
