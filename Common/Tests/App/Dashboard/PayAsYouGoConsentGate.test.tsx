@@ -1,7 +1,7 @@
 import BaseAPI from "../../../UI/Utils/API/API";
 import ObjectID from "../../../Types/ObjectID";
 import "@testing-library/jest-dom";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -237,12 +237,17 @@ describe("Pay as you go creation notices", () => {
     it("keeps the pricing notice without an acknowledgement section or checkbox", async () => {
       renderIngestionKeyForm();
 
+      const notice: HTMLElement = await screen.findByRole(
+        "region",
+        { name: "Telemetry pricing" },
+        { timeout: WAIT_TIMEOUT },
+      );
+
       expect(
-        await screen.findByText(
-          "Telemetry is a pay as you go feature",
-          {},
-          { timeout: WAIT_TIMEOUT },
-        ),
+        within(notice).getByRole("heading", {
+          name: "Telemetry pricing",
+          level: 3,
+        }),
       ).toBeInTheDocument();
       expect(
         screen.queryByTestId("telemetry-pay-as-you-go-consent"),
@@ -326,7 +331,7 @@ describe("Pay as you go creation notices", () => {
         screen.queryByTestId("telemetry-pay-as-you-go-consent"),
       ).not.toBeInTheDocument();
       expect(
-        screen.queryByText("Telemetry is a pay as you go feature"),
+        screen.queryByRole("region", { name: "Telemetry pricing" }),
       ).not.toBeInTheDocument();
 
       await userEvent.click(screen.getByText("Create Ingestion Key"));
@@ -355,6 +360,9 @@ describe("Pay as you go creation notices", () => {
 
       expect(
         screen.queryByTestId("telemetry-pay-as-you-go-consent"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("region", { name: "Telemetry pricing" }),
       ).not.toBeInTheDocument();
 
       await userEvent.click(screen.getByText("Create Ingestion Key"));
