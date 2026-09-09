@@ -453,7 +453,12 @@ export default class SnmpMonitor {
   public static async probeSystemInfo(
     config: MonitorStepSnmpMonitor,
     onError?: ((error: unknown) => void) | undefined,
+    scanSignal?: AbortSignal,
   ): Promise<SnmpSystemInfo | null> {
+    const signal: AbortSignal | undefined = scanSignal
+      ? AbortSignal.any([scanSignal])
+      : undefined;
+    signal?.throwIfAborted();
     let session: snmp.Session;
 
     try {
@@ -469,12 +474,49 @@ export default class SnmpMonitor {
       return null;
     }
 
+    /*
+     * SNMP v3 may exchange discovery/time-sync PDUs before the GET. A
+     * per-PDU timeout alone cannot bound a session repeatedly receiving
+     * Reports; give the whole operation room for those three exchanges.
+     */
+    const timeoutInMs: number =
+      (config.timeout || 5000) *
+        (config.snmpVersion === SnmpVersion.V3 ? 3 : 1) +
+      500;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let onAbort: (() => void) | undefined;
+    const deadline: Promise<never> = new Promise<never>(
+      (_resolve: (value: never) => void, reject: (error: unknown) => void) => {
+        timer = setTimeout(() => {
+          reject(new Error("SNMP discovery probe timed out"));
+        }, timeoutInMs);
+        onAbort = (): void => {
+          reject(signal?.reason || new Error("Discovery scan aborted"));
+        };
+        signal?.addEventListener("abort", onAbort, { once: true });
+        if (signal?.aborted) {
+          onAbort();
+        }
+      },
+    );
+
     try {
-      return await SnmpMonitor.readSystemInfo(session);
+      signal?.throwIfAborted();
+      return await Promise.race([
+        SnmpMonitor.readSystemInfo(session),
+        deadline,
+      ]);
     } catch (err) {
+      signal?.throwIfAborted();
       onError?.(err);
       return null;
     } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+      if (onAbort) {
+        signal?.removeEventListener("abort", onAbort);
+      }
       session.close();
     }
   }

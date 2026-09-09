@@ -4,6 +4,7 @@ import ProbeService from "Common/Server/Services/ProbeService";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import logger from "Common/Server/Utils/Logger";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -50,6 +51,7 @@ jest.mock("Common/Server/Services/NetworkDeviceDiscoveryScanService", () => {
     default: {
       findAllBy: jest.fn(),
       updateOneById: jest.fn(),
+      getRepository: jest.fn(),
     },
   };
 });
@@ -88,12 +90,26 @@ import "../../../../FeatureSet/Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurr
 type MockedScanService = {
   findAllBy: jest.Mock;
   updateOneById: jest.Mock;
+  getRepository: jest.Mock;
 };
 
 const scanService: MockedScanService =
   NetworkDeviceDiscoveryScanService as unknown as MockedScanService;
 const probeService: { findOneById: jest.Mock } = ProbeService as unknown as {
   findOneById: jest.Mock;
+};
+const staleQuery: {
+  update: jest.Mock;
+  set: jest.Mock;
+  where: jest.Mock;
+  andWhere: jest.Mock;
+  execute: jest.Mock;
+} = {
+  update: jest.fn().mockReturnThis(),
+  set: jest.fn().mockReturnThis(),
+  where: jest.fn().mockReturnThis(),
+  andWhere: jest.fn().mockReturnThis(),
+  execute: jest.fn(),
 };
 
 async function runTick(): Promise<void> {
@@ -138,6 +154,10 @@ describe("NetworkDeviceDiscovery reaper — a scan stranded In Progress", () => 
     scanService.findAllBy.mockResolvedValue([] as never);
     scanService.updateOneById.mockResolvedValue(undefined as never);
     probeService.findOneById.mockResolvedValue(null as never);
+    scanService.getRepository.mockReturnValue({
+      createQueryBuilder: jest.fn().mockReturnValue(staleQuery),
+    });
+    staleQuery.execute.mockResolvedValue({ affected: 1 } as never);
   });
 
   test("looks for scans that are In Progress", async () => {
@@ -208,11 +228,11 @@ describe("NetworkDeviceDiscovery reaper — a scan stranded In Progress", () => 
 
     await runTick();
 
-    const update: JSONObject = scanService.updateOneById.mock
-      .calls[0]![0] as JSONObject;
-    const data: JSONObject = update["data"] as JSONObject;
+    const data: JSONObject = staleQuery.set.mock.calls[0]![0] as JSONObject;
 
-    expect((update["id"] as ObjectID).toString()).toBe(scanId.toString());
+    expect(staleQuery.where).toHaveBeenCalledWith('"_id" = :scanId', {
+      scanId: scanId.toString(),
+    });
     expect(data["status"]).toBe("Failed");
     expect(data["completedAt"]).toBeInstanceOf(Date);
     // Recurring scans become due immediately; ignored for one-shots.
@@ -246,11 +266,9 @@ describe("NetworkDeviceDiscovery reaper — a scan stranded In Progress", () => 
 
     await runTick();
 
-    const message: string = (
-      (scanService.updateOneById.mock.calls[0]![0] as JSONObject)[
-        "data"
-      ] as JSONObject
-    )["statusMessage"] as string;
+    const message: string = (staleQuery.set.mock.calls[0]![0] as JSONObject)[
+      "statusMessage"
+    ] as string;
 
     expect(message).toContain("not even progress");
     expect(message).toContain("already found and sent");
@@ -280,12 +298,42 @@ describe("NetworkDeviceDiscovery reaper — a scan stranded In Progress", () => 
 
     await runTick();
 
-    const data: JSONObject = (
-      scanService.updateOneById.mock.calls[0]![0] as JSONObject
-    )["data"] as JSONObject;
+    const data: JSONObject = staleQuery.set.mock.calls[0]![0] as JSONObject;
 
     expect(Object.keys(data)).not.toContain("discoveredDevices");
     expect(Object.keys(data)).not.toContain("respondedHostCount");
     expect(Object.keys(data)).not.toContain("scannedHostCount");
+  });
+
+  test("rechecks the run state and silence in the atomic write", async () => {
+    scanService.findAllBy.mockResolvedValueOnce([
+      new NetworkDeviceDiscoveryScan(ObjectID.generate()),
+    ] as never);
+
+    await runTick();
+
+    const cutoff: Date = cutOffOf(staleScanQuery()["updatedAt"]);
+    expect(staleQuery.andWhere).toHaveBeenCalledWith('"status" = :status', {
+      status: "In Progress",
+    });
+    expect(staleQuery.andWhere).toHaveBeenCalledWith(
+      '"startedAt" < :staleBefore AND "updatedAt" < :staleBefore',
+      { staleBefore: cutoff },
+    );
+    expect(staleQuery.execute).toHaveBeenCalledTimes(1);
+    expect(scanService.updateOneById).not.toHaveBeenCalled();
+  });
+
+  test("does not announce a failed scan when a newer report wins the race", async () => {
+    scanService.findAllBy.mockResolvedValueOnce([
+      new NetworkDeviceDiscoveryScan(ObjectID.generate()),
+    ] as never);
+    staleQuery.execute.mockResolvedValueOnce({ affected: 0 } as never);
+
+    await runTick();
+
+    expect(staleQuery.execute).toHaveBeenCalledTimes(1);
+    expect(logger.warn).not.toHaveBeenCalled();
+    expect(scanService.updateOneById).not.toHaveBeenCalled();
   });
 });

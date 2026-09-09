@@ -94,7 +94,7 @@ interface FindScansArgs {
 
 interface ClaimArgs {
   id: ObjectID;
-  data: { status: string; startedAt: Date; statusMessage: null };
+  data: { status: string; startedAt: Date; statusMessage: string };
   expectedData: { status: string; probeId: ObjectID };
 }
 

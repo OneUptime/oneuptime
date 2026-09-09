@@ -11,6 +11,7 @@ import {
   clampRescanIntervalInMinutes,
 } from "Common/Utils/NetworkDiscovery/RescanIntervalUtil";
 import ScanModeUtil from "Common/Utils/NetworkDiscovery/ScanModeUtil";
+import { DISCOVERY_SCAN_STARTED_MESSAGE } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
@@ -179,14 +180,12 @@ router.post(
             status: "In Progress",
             startedAt: OneUptimeDate.getCurrentDate(),
             /*
-             * Clear the "nobody has picked this scan up" note the worker
-             * writes onto a long-unclaimed Pending scan
-             * (Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts).
-             * A probe claiming the scan is precisely the thing that note said
-             * was not happening, so leaving it would have the row explain, for
-             * the whole sweep, why it had not started.
+             * Replace a Pending diagnosis with a current-run marker. Recurring
+             * scans retain their previous inventory until new results arrive;
+             * the dashboard must not show those old counters as live progress.
+             * The first progress or final report replaces this message.
              */
-            statusMessage: null,
+            statusMessage: DISCOVERY_SCAN_STARTED_MESSAGE,
           } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
           /*
            * Claim ONLY IF everything just handed to the probe is still true.
@@ -319,6 +318,8 @@ router.post(
             projectId: true,
             // Needed to reject a result for a run that is no longer current.
             status: true,
+            // An older probe may report progress without its own message.
+            statusMessage: true,
             // Needed to schedule the next run of a recurring scan below.
             isRecurring: true,
             rescanIntervalInMinutes: true,
@@ -400,6 +401,10 @@ router.post(
       }
 
       const success: boolean = req.body["success"] !== false;
+      const clearedClaimMessage: JSONObject =
+        scan.statusMessage === DISCOVERY_SCAN_STARTED_MESSAGE
+          ? { statusMessage: null }
+          : {};
 
       /*
        * Whether this report SAYS anything about hosts.
@@ -506,6 +511,7 @@ router.post(
          */
         const partial: JSONObject = {
           autoImportProcessedAt: null,
+          ...clearedClaimMessage,
         };
 
         if (hasHostReport) {
@@ -570,6 +576,7 @@ router.post(
        */
       const completed: JSONObject = {
         status: success ? "Completed" : "Failed",
+        ...clearedClaimMessage,
         completedAt: OneUptimeDate.getCurrentDate(),
         /*
          * New results, so the auto-import worker's bookkeeping starts over:

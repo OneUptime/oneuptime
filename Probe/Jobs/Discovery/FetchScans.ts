@@ -435,28 +435,41 @@ export function buildScanStatusMessage(
 export function buildScanProgressMessage(progress: SubnetScanProgress): string {
   const swept: string = progress.sweptHostCount.toLocaleString("en-US");
   const total: string = progress.totalHostCount.toLocaleString("en-US");
+  const phaseLabel: string =
+    progress.phase === "icmp"
+      ? "Checking ping reachability"
+      : progress.phase === "snmp"
+        ? "Checking SNMP credentials"
+        : progress.phase === "snmp-fallback"
+          ? "Checking SNMP on addresses that did not answer ping"
+          : "";
+  const phaseCounts: string =
+    progress.phaseCompletedHostCount !== undefined &&
+    progress.phaseTotalHostCount !== undefined
+      ? ` (${progress.phaseCompletedHostCount.toLocaleString("en-US")} of ${progress.phaseTotalHostCount.toLocaleString("en-US")})`
+      : "";
+  const phaseMessage: string = phaseLabel
+    ? `${phaseLabel}${phaseCounts}. `
+    : "";
 
   if (progress.isIcmpOnlySweep) {
     return clipStatusMessage(
-      `Scan in progress: ${swept} of ${total} addresses swept so far, ` +
+      `Scan in progress: ${swept} of ${total} addresses swept so far. ` +
+        phaseMessage +
         `${progress.respondedToPingCount ?? 0} answered ICMP ping ` +
         `(Check SNMP is off for this scan). ` +
         `These results update as the sweep continues.`,
     );
   }
 
-  /*
-   * The ICMP tally is omitted rather than shown as zero once the pre-sweep has
-   * broken, for the same reason SubnetScanResult omits it: a count over an
-   * unknown subset of the range is not a count.
-   */
   const pingPart: string =
     progress.respondedToPingCount === undefined
       ? "the ICMP pre-sweep is unavailable on this probe, so every address is being probed over SNMP"
       : `${progress.respondedToPingCount} answered ICMP ping`;
 
   return clipStatusMessage(
-    `Scan in progress: ${swept} of ${total} addresses swept so far, ` +
+    `Scan in progress: ${swept} of ${total} addresses swept so far. ` +
+      phaseMessage +
       `${pingPart}, ${progress.snmpResponderCount} answered SNMP. ` +
       `These results update as the sweep continues.`,
   );
@@ -477,9 +490,10 @@ export function buildScanProgressMessage(progress: SubnetScanProgress): string {
  * Two rules make this safe to run inside the sweep:
  *
  *   - it NEVER blocks the sweep. `report` fires the upload and returns; the
- *     sweep's deadline race is not spent on the network. A second report
- *     arriving while one is in flight is dropped rather than queued, so a slow
- *     server cannot build a backlog of stale uploads.
+ *     sweep's deadline race is not spent on the network. Reports arriving during
+ *     an upload or throttle interval replace a single
+ *     pending snapshot, so a slow server cannot build a backlog. On failure,
+ *     the latest snapshot is flushed before the terminal report.
  *   - it NEVER fails the sweep. Every rejection is logged and swallowed: a
  *     partial result is a convenience, and the final upload is the one that
  *     has to land.
@@ -493,8 +507,10 @@ export class ScanProgressReporter {
   private readonly scanId: string;
   private readonly resultUrl: URL;
   private readonly intervalInMs: number;
-  private lastReportedAt: number = 0;
+  private lastReportedAt: number | null = null;
   private inFlight: Promise<void> | null = null;
+  private pending: SubnetScanProgress | null = null;
+  private isClosed: boolean = false;
 
   public constructor(data: {
     scanId: string;
@@ -505,30 +521,44 @@ export class ScanProgressReporter {
     this.resultUrl = data.resultUrl;
     this.intervalInMs =
       data.intervalInMs ?? PROBE_DISCOVERY_PROGRESS_INTERVAL_IN_MS;
-    /*
-     * The clock starts at construction, not at zero: the claim that put this
-     * scan In Progress has just written the row, and a partial upload one
-     * segment later would only rewrite the same emptiness.
-     */
-    this.lastReportedAt = Date.now();
   }
 
   public report(progress: SubnetScanProgress): void {
+    if (this.isClosed) {
+      return;
+    }
+
+    /*
+     * Keep only the newest cumulative snapshot. A failed sweep must not lose
+     * hosts just because its last update fell inside the upload interval.
+     */
+    this.pending = progress;
+
     if (this.inFlight) {
       return;
     }
 
     const now: number = Date.now();
 
-    if (now - this.lastReportedAt < this.intervalInMs) {
+    if (
+      this.lastReportedAt !== null &&
+      now - this.lastReportedAt < this.intervalInMs
+    ) {
       return;
     }
 
     this.lastReportedAt = now;
+    this.pending = null;
 
-    const upload: Promise<void> = this.upload(progress).finally(() => {
-      this.inFlight = null;
-    });
+    const upload: Promise<void> = this.upload(progress)
+      .then((accepted: boolean): void => {
+        if (!accepted && !this.pending) {
+          this.pending = progress;
+        }
+      })
+      .finally(() => {
+        this.inFlight = null;
+      });
 
     /*
      * Held so settle() can await it, and given its own catch so that an upload
@@ -551,7 +581,19 @@ export class ScanProgressReporter {
     }
   }
 
-  private async upload(progress: SubnetScanProgress): Promise<void> {
+  public async close(flushPending: boolean = false): Promise<void> {
+    this.isClosed = true;
+    await this.settle();
+
+    const pending: SubnetScanProgress | null = this.pending;
+    this.pending = null;
+
+    if (flushPending && pending) {
+      await this.upload(pending);
+    }
+  }
+
+  private async upload(progress: SubnetScanProgress): Promise<boolean> {
     try {
       const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
         await API.fetch<JSONArray>({
@@ -587,10 +629,12 @@ export class ScanProgressReporter {
           `The server did not accept a progress update for discovery scan ${this.scanId}: ${rejection}. The sweep continues and its final result is what counts.`,
         );
       }
+      return !rejection;
     } catch (err) {
       logger.debug(
         `Could not send a progress update for discovery scan ${this.scanId}: ${err}. The sweep continues and its final result is what counts.`,
       );
+      return false;
     }
   }
 }
@@ -665,8 +709,8 @@ export function getRejectionReason(
  * Mirrors probeMonitorWithDeadline in Jobs/Monitor/FetchList.ts, and exists
  * for the same reason: Promise.race subscribes to both promises, so a sweep
  * that settles late is still observed and can never surface as an unhandled
- * rejection, and nothing here can cancel the sweep — the scheduler stops
- * waiting on it and can reclaim the slot after the failure report. Rejecting
+ * rejection. The abort signal stops its workers and closes active host checks,
+ * letting the scheduler reclaim the slot after the failure report. Rejecting
  * on the deadline drops into runScan's existing catch, which reports the scan
  * Failed with this reason. Without a deadline, enough wedged sweeps could
  * occupy every slot permanently and leave later scans Pending.
@@ -677,10 +721,12 @@ export async function scanWithDeadline(
   deadlineInMs: number = PROBE_DISCOVERY_SCAN_TIMEOUT_IN_MS,
 ): Promise<SubnetScanResult> {
   let deadlineTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+  const controller: AbortController = new AbortController();
 
   const deadline: Promise<never> = new Promise<never>(
     (_resolve: (value: never) => void, reject: (err: Error) => void) => {
       deadlineTimer = setTimeout(() => {
+        controller.abort();
         /*
          * Logged here, at the moment the deadline is crossed, rather than in
          * the catch below: only this branch knows the sweep stopped settling
@@ -704,7 +750,15 @@ export async function scanWithDeadline(
 
   try {
     const result: SubnetScanResult = await Promise.race([
-      SubnetScanner.scan(config),
+      SubnetScanner.scan({
+        ...config,
+        signal: controller.signal,
+        onProgress: (progress: SubnetScanProgress): Promise<void> | void => {
+          if (!controller.signal.aborted) {
+            return config.onProgress?.(progress);
+          }
+        },
+      }),
       deadline,
     ]);
 
@@ -714,7 +768,7 @@ export async function scanWithDeadline(
      *
      * The race is winner-takes-all: if the sweep has not settled by the
      * deadline, this function rejects and runScan reports the scan Failed
-     * with no hosts at all. Naming hosts inside scan() would spend that same
+     * while preserving its last reported hosts. Naming hosts inside scan() would spend that same
      * budget, so a sweep that had already found every host on the subnet
      * could be discarded wholesale because looking up their names took the
      * run past the line. An enrichment must not be able to destroy the result
@@ -906,7 +960,7 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
      * simply dropped — which is safe, but loses whatever it carried; only
      * this side can stop the two writes racing in the first place.
      */
-    await progressReporter.settle();
+    await progressReporter.close(true);
 
     // Report the SWEEP failure so the scan doesn't sit In Progress forever.
     try {
@@ -1003,7 +1057,7 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
    * finished scan's results (reverse-DNS names and all) with the snapshot
    * that preceded them.
    */
-  await progressReporter.settle();
+  await progressReporter.close();
 
   try {
     const uploadResult: HTTPResponse<JSONArray> | HTTPErrorResponse =

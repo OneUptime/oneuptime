@@ -14,6 +14,7 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { DiscoveryScanSnmpConfig } from "Common/Utils/NetworkDiscovery/SnmpScanConfigUtil";
+import { DISCOVERY_SCAN_STARTED_MESSAGE } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -612,14 +613,11 @@ describe("POST /probe/discovery-scan/list", () => {
     expect(data["status"]).toBe("In Progress");
     expect(data["startedAt"]).toBeInstanceOf(Date);
     /*
-     * Cleared, not left behind: the worker writes a "nobody has picked this
-     * scan up" note onto a long-unclaimed Pending scan
-     * (Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts), and a
-     * probe claiming the scan is exactly the thing that note said was not
-     * happening. Leaving it would have the row explain, for the whole sweep,
-     * why it had not started.
+     * Replace any queued diagnosis with the claim marker. Until the first
+     * progress upload, a recurring scan's retained counters describe its
+     * previous run and must not be presented as current progress.
      */
-    expect(data["statusMessage"]).toBeNull();
+    expect(data["statusMessage"]).toBe(DISCOVERY_SCAN_STARTED_MESSAGE);
 
     // The scans are returned to the probe.
     expect(responseUtil.sendEntityArrayResponse).toHaveBeenCalledWith(
@@ -1781,6 +1779,7 @@ describe('POST /probe/discovery-scan/result — what "responded" counts, per sca
       "projectId",
       "rescanIntervalInMinutes",
       "status",
+      "statusMessage",
     ]);
 
     for (const column of Object.keys(select)) {
