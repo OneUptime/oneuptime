@@ -295,11 +295,148 @@ function stringConstant(
   return null;
 }
 
+function bindingContainsName(binding: ts.BindingName, name: string): boolean {
+  if (ts.isIdentifier(binding)) {
+    return binding.text === name;
+  }
+
+  return binding.elements.some(
+    (element: ts.BindingElement | ts.OmittedExpression): boolean => {
+      return (
+        ts.isBindingElement(element) && bindingContainsName(element.name, name)
+      );
+    },
+  );
+}
+
+function scopeShadowsName(scope: ts.Node, name: string): boolean {
+  if (ts.isBlock(scope) || ts.isCaseBlock(scope)) {
+    const statements: Array<ts.Statement> = [];
+
+    if (ts.isBlock(scope)) {
+      statements.push(...scope.statements);
+    } else {
+      // Every switch clause shares the case block's lexical scope.
+      for (const clause of scope.clauses) {
+        statements.push(...clause.statements);
+      }
+    }
+
+    return statements.some((statement: ts.Statement): boolean => {
+      if (ts.isVariableStatement(statement)) {
+        return statement.declarationList.declarations.some(
+          (declaration: ts.VariableDeclaration): boolean => {
+            return bindingContainsName(declaration.name, name);
+          },
+        );
+      }
+
+      return (
+        (ts.isFunctionDeclaration(statement) ||
+          ts.isClassDeclaration(statement)) &&
+        statement.name?.text === name
+      );
+    });
+  }
+
+  if (ts.isFunctionLike(scope)) {
+    if (ts.isFunctionExpression(scope) && scope.name?.text === name) {
+      return true;
+    }
+
+    return scope.parameters.some(
+      (parameter: ts.ParameterDeclaration): boolean => {
+        return bindingContainsName(parameter.name, name);
+      },
+    );
+  }
+
+  if (ts.isCatchClause(scope) && scope.variableDeclaration) {
+    return bindingContainsName(scope.variableDeclaration.name, name);
+  }
+
+  if (
+    (ts.isForStatement(scope) || ts.isForInStatement(scope)) &&
+    scope.initializer &&
+    ts.isVariableDeclarationList(scope.initializer)
+  ) {
+    return scope.initializer.declarations.some(
+      (declaration: ts.VariableDeclaration): boolean => {
+        return bindingContainsName(declaration.name, name);
+      },
+    );
+  }
+
+  return false;
+}
+
+/*
+ * A const for-of binding takes each literal value in its enclosing loop.
+ * Resolve it from ancestors, so separate loops using the same binding name
+ * do not borrow each other's prefixes. Unknown iterables remain unreadable.
+ * undefined means no loop binding; null means a binding we cannot resolve.
+ */
+function forOfStringValues(
+  identifier: ts.Identifier,
+): Array<string> | null | undefined {
+  let child: ts.Node = identifier;
+  let shadowed: boolean = false;
+
+  while (child.parent) {
+    const parent: ts.Node = child.parent;
+
+    if (
+      ts.isForOfStatement(parent) &&
+      parent.statement === child &&
+      ts.isVariableDeclarationList(parent.initializer) &&
+      parent.initializer.declarations.some(
+        (declaration: ts.VariableDeclaration): boolean => {
+          return bindingContainsName(declaration.name, identifier.text);
+        },
+      )
+    ) {
+      if (
+        shadowed ||
+        !(parent.initializer.flags & ts.NodeFlags.Const) ||
+        !parent.initializer.declarations.every(
+          (declaration: ts.VariableDeclaration): boolean => {
+            return ts.isIdentifier(declaration.name);
+          },
+        ) ||
+        !ts.isArrayLiteralExpression(parent.expression)
+      ) {
+        return null;
+      }
+
+      const values: Array<string> = [];
+
+      for (const element of parent.expression.elements) {
+        if (
+          !ts.isStringLiteral(element) &&
+          !ts.isNoSubstitutionTemplateLiteral(element)
+        ) {
+          return null;
+        }
+
+        values.push(element.text);
+      }
+
+      return values;
+    }
+
+    shadowed = shadowed || scopeShadowsName(parent, identifier.text);
+    child = parent;
+  }
+
+  return undefined;
+}
+
 /*
  * Resolve an expression used as a mount path to the concrete string(s) it
  * produces, or null when that cannot be known from this file alone.
  * Handles the forms this codebase actually uses: "/x", `/${CONST}`,
- * ["/a", "/b"], a named Array<string>, and spreads inside those.
+ * ["/a", "/b"], a named Array<string>, spreads inside those, and const
+ * for-of bindings over literal string arrays.
  */
 function staticMountPaths(
   sourceFile: ts.SourceFile,
@@ -310,26 +447,41 @@ function staticMountPaths(
   }
 
   if (ts.isTemplateExpression(node)) {
-    let text: string = node.head.text;
+    let paths: Array<string> = [node.head.text];
 
     for (const span of node.templateSpans) {
       if (!ts.isIdentifier(span.expression)) {
         return null;
       }
 
-      const value: string | null = stringConstant(
-        sourceFile,
-        span.expression.text,
+      let values: Array<string> | null | undefined = forOfStringValues(
+        span.expression,
       );
 
-      if (value === null) {
+      if (values === undefined) {
+        const value: string | null = stringConstant(
+          sourceFile,
+          span.expression.text,
+        );
+        values = value === null ? null : [value];
+      }
+
+      if (values === null) {
         return null;
       }
 
-      text += value + span.literal.text;
+      const expanded: Array<string> = [];
+
+      for (const prefix of paths) {
+        for (const value of values) {
+          expanded.push(prefix + value + span.literal.text);
+        }
+      }
+
+      paths = expanded;
     }
 
-    return [text];
+    return paths;
   }
 
   if (ts.isArrayLiteralExpression(node)) {
@@ -366,6 +518,13 @@ function staticMountPaths(
   }
 
   if (ts.isIdentifier(node)) {
+    const loopValues: Array<string> | null | undefined =
+      forOfStringValues(node);
+
+    if (loopValues !== undefined) {
+      return loopValues;
+    }
+
     const initializer: ts.Expression | null = findVariableInitializer(
       sourceFile,
       node.text,

@@ -117,18 +117,24 @@ export function getScheduleMaintenanceBreadcrumbs(
         "Notification Logs",
       ],
     ),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SCHEDULED_MAINTENANCE_VIEW_AI_LOGS, [
-      "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
-      "AI Logs",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SCHEDULED_MAINTENANCE_VIEW_RUNBOOKS, [
-      "Project",
-      "Scheduled Maintenance Events",
-      "View Scheduled Maintenance Event",
-      "Runbooks",
-    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_VIEW_AI_LOGS,
+      [
+        "Project",
+        "Scheduled Maintenance Events",
+        "View Scheduled Maintenance Event",
+        "AI Logs",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_VIEW_RUNBOOKS,
+      [
+        "Project",
+        "Scheduled Maintenance Events",
+        "View Scheduled Maintenance Event",
+        "Runbooks",
+      ],
+    ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_VIEW_AUDIT_LOGS,
       [

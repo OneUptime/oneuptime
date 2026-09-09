@@ -29,8 +29,10 @@ describe("Breadcrumbs", () => {
       const nav: ReactTestInstance = testInstance.findByType("nav");
       const list: ReactTestInstance = testInstance.findByType("ol");
 
-      // JSDOM does not apply Tailwind media queries. Assert the classes that
-      // control visibility and wrapping instead of a misleading visibility check.
+      /*
+       * JSDOM does not apply Tailwind media queries. Assert the classes that
+       * control visibility and wrapping instead of a misleading visibility check.
+       */
       expect(nav.props["className"].split(" ")).toContain("block");
       expect(nav.props["className"]).not.toContain("hidden");
       expect(list.props["className"].split(" ")).toContain("flex-wrap");

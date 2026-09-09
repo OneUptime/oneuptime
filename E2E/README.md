@@ -39,6 +39,13 @@ export HTTP_PROTOCOL=https
 export BILLING_ENABLED=true
 ```
 
+Billing-enabled feature tests require Stripe **test-mode** keys on the server.
+The shared project fixture adds Stripe's test Visa through the billing UI and
+confirms paid usage is enabled before creating monitors or telemetry keys.
+It refuses payment setup unless the dashboard's publishable key starts with
+`pk_test_`. Billing tests can pass `enablePaidUsage: false` to
+`registerAndCreateProject` to exercise the initial state without a card.
+
 ## Running Tests
 
 ### Run all tests

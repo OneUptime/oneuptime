@@ -208,13 +208,10 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "View Episode",
       "Owners",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENT_EPISODE_VIEW_STATE_TIMELINE, [
-      "Project",
-      "Incidents",
-      "Episodes",
-      "View Episode",
-      "State Timeline",
-    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENT_EPISODE_VIEW_STATE_TIMELINE,
+      ["Project", "Incidents", "Episodes", "View Episode", "State Timeline"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENT_EPISODE_VIEW_INCIDENTS, [
       "Project",
       "Incidents",
@@ -222,13 +219,10 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "View Episode",
       "Incidents",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENT_EPISODE_VIEW_INTERNAL_NOTE, [
-      "Project",
-      "Incidents",
-      "Episodes",
-      "View Episode",
-      "Private Notes",
-    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENT_EPISODE_VIEW_INTERNAL_NOTE,
+      ["Project", "Incidents", "Episodes", "View Episode", "Private Notes"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENT_EPISODE_VIEW_PUBLIC_NOTE, [
       "Project",
       "Incidents",
