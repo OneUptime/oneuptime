@@ -119,6 +119,26 @@ export const CephClusterNameLabelKeys: ReadonlyArray<string> = [
 ];
 
 /*
+ * vCenter identity rides the agent-stamped resource attribute
+ * (`vmware.vcenter.name` — one value per vCenter Server or standalone
+ * ESXi host the VMware Agent connects to) and its ClickHouse
+ * `resource.`-prefixed twin. Ingest keys vCenter rows by name only —
+ * there is no `oneuptime.*.id` stamp for vCenters — so only name keys
+ * exist. The name maps to the VMwareVCenter model's `name` column. The
+ * shipped VMware alert templates group by the vSphere object's own
+ * resource attribute (`resource.vcenter.host.name`,
+ * `resource.vcenter.vm.name`, `resource.vcenter.datastore.name`, ...),
+ * so their series labels do NOT carry these keys; the deterministic
+ * vCenter link for those monitors comes from the monitor step config
+ * instead (see MonitorResourceContext). These keys cover user-built
+ * monitors that group by the vCenter attribute.
+ */
+export const VMwareVCenterNameLabelKeys: ReadonlyArray<string> = [
+  "resource.vmware.vcenter.name",
+  "vmware.vcenter.name",
+];
+
+/*
  * IoT fleet identity rides the agent-stamped resource attribute
  * (`iot.fleet.name`) and its ClickHouse `resource.`-prefixed twin.
  * Ingest keys fleet rows by name only — there is no `oneuptime.*.id`
@@ -188,6 +208,7 @@ export const AllResourceIdentityLabelKeys: ReadonlyArray<string> = [
   ...KubernetesClusterIdLabelKeys,
   ...KubernetesClusterNameLabelKeys,
   ...ProxmoxClusterNameLabelKeys,
+  ...VMwareVCenterNameLabelKeys,
   ...CephClusterNameLabelKeys,
   ...IoTFleetNameLabelKeys,
   ...ServiceIdLabelKeys,
@@ -212,6 +233,7 @@ export interface SeriesResourceRefs {
   kubernetesClusterNames: Array<string>;
   dockerSwarmClusterNames: Array<string>;
   proxmoxClusterNames: Array<string>;
+  vmwareVCenterNames: Array<string>;
   cephClusterNames: Array<string>;
   iotFleetNames: Array<string>;
   serviceIds: Array<string>;
@@ -287,6 +309,10 @@ export default class SeriesResourceLabels {
       proxmoxClusterNames: this.collectLabelValues(
         seriesLabels,
         ProxmoxClusterNameLabelKeys,
+      ),
+      vmwareVCenterNames: this.collectLabelValues(
+        seriesLabels,
+        VMwareVCenterNameLabelKeys,
       ),
       cephClusterNames: this.collectLabelValues(
         seriesLabels,

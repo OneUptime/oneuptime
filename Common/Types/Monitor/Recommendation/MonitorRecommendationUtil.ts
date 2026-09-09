@@ -27,6 +27,7 @@ import {
  */
 interface RecommendationMonitorStepConfig {
   clusterIdentifier?: string | undefined;
+  vcenterIdentifier?: string | undefined;
   hostIdentifier?: string | undefined;
   fleetIdentifier?: string | undefined;
   telemetryServiceIds?: Array<ObjectID | string> | undefined;
@@ -382,6 +383,7 @@ export default class MonitorRecommendationUtil {
 
     const resourceIdentifier: string =
       config.clusterIdentifier ||
+      config.vcenterIdentifier ||
       config.hostIdentifier ||
       config.fleetIdentifier ||
       this.getTelemetryResourceIdentifier(config) ||
@@ -459,6 +461,7 @@ export default class MonitorRecommendationUtil {
       "dockerSwarmMonitor",
       "podmanMonitor",
       "proxmoxMonitor",
+      "vmwareMonitor",
       "cephMonitor",
       "iotMonitor",
       "metricMonitor",

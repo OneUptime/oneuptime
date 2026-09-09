@@ -62,6 +62,16 @@ describe("SeriesLabelDisplay", () => {
       ["service.name", "Service"],
       ["docker.swarm.service.name", "Swarm Service"],
       ["pve.type", "Object Type"],
+      ["resource.vcenter.vm.name", "Virtual Machine"],
+      ["vcenter.vm.name", "Virtual Machine"],
+      ["resource.vcenter.host.name", "ESXi Host"],
+      ["resource.vcenter.datastore.name", "Datastore"],
+      ["resource.vcenter.cluster.name", "vSphere Cluster"],
+      ["resource.vcenter.datacenter.name", "Datacenter"],
+      ["resource.vcenter.resource_pool.inventory_path", "Resource Pool Path"],
+      ["resource.vmware.vcenter.name", "vCenter"],
+      ["power_state", "Power State"],
+      ["effective", "Effective"],
     ])("%s renders as %s", (key: string, expected: string) => {
       expect(SeriesLabelDisplay.getFriendlyLabelName(key)).toBe(expected);
     });

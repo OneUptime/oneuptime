@@ -30,6 +30,11 @@ import MonitorStepProxmoxMonitor, {
   MonitorStepProxmoxMonitorUtil,
   ProxmoxResourceScope,
 } from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
+import MonitorStepVMwareMonitor, {
+  MonitorStepVMwareMonitorUtil,
+  VMwareResourceKind,
+  VMwareResourceScope,
+} from "../../../Types/Monitor/MonitorStepVMwareMonitor";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 
 /*
@@ -38,6 +43,10 @@ import RollingTime from "../../../Types/RollingTime/RollingTime";
  * view config, and fromJSON/toJSON are structural pass-throughs. This suite
  * locks in that contract for each of them so a future refactor cannot quietly
  * change a default or drop a field on the wire.
+ *
+ * VMware is the one deliberate exception to the 1-minute window: its agent
+ * collects every 2 minutes (VCENTER_COLLECTION_INTERVAL), so it defaults to
+ * Past5Minutes — see the VMware block below.
  */
 
 describe("Infrastructure MonitorStep utils", () => {
@@ -212,6 +221,94 @@ describe("Infrastructure MonitorStep utils", () => {
           MonitorStepProxmoxMonitorUtil.toJSON(monitor),
         ),
       ).toEqual(monitor);
+    });
+  });
+
+  describe("MonitorStepVMwareMonitorUtil", () => {
+    test("getDefault has no resource filters", () => {
+      const def: MonitorStepVMwareMonitor =
+        MonitorStepVMwareMonitorUtil.getDefault();
+
+      expect(def.vcenterIdentifier).toBe("");
+      expect(def.resourceFilters).toEqual({});
+    });
+
+    test("getDefault evaluates over a 5-minute window, not the 1-minute one", () => {
+      /*
+       * The VMware Agent's default VCENTER_COLLECTION_INTERVAL is 2 minutes
+       * and the vcenter receiver emits one sample per object per
+       * collection, so a 1-minute window (the Proxmox / Kubernetes default,
+       * whose agents scrape every 30 s) would be empty on roughly every
+       * other evaluation and a hand-built monitor would flap between "no
+       * criteria met" and firing. The default must cover at least two
+       * collections.
+       */
+      const def: MonitorStepVMwareMonitor =
+        MonitorStepVMwareMonitorUtil.getDefault();
+
+      expect(def.rollingTime).toBe(RollingTime.Past5Minutes);
+      expect(def.rollingTime).not.toBe(RollingTime.Past1Minute);
+    });
+
+    test("round-trips a VM-scoped monitor", () => {
+      const monitor: MonitorStepVMwareMonitor = {
+        vcenterIdentifier: "vcsa-prod",
+        resourceFilters: {
+          datacenterName: "DC1",
+          clusterName: "Compute-A",
+          hostName: "esx01.example.com",
+          vmName: "web-01",
+        },
+        metricViewConfig: { queryConfigs: [], formulaConfigs: [] },
+        rollingTime: RollingTime.Past1Minute,
+      };
+      expect(
+        MonitorStepVMwareMonitorUtil.fromJSON(
+          MonitorStepVMwareMonitorUtil.toJSON(monitor),
+        ),
+      ).toEqual(monitor);
+    });
+
+    test("round-trips a resource-pool-scoped monitor by inventory path", () => {
+      const monitor: MonitorStepVMwareMonitor = {
+        vcenterIdentifier: "vcsa-prod",
+        resourceFilters: {
+          resourcePoolPath: "/DC1/host/Compute-A/Resources/prod",
+          datastoreName: "vsanDatastore",
+        },
+        metricViewConfig: { queryConfigs: [], formulaConfigs: [] },
+        rollingTime: RollingTime.Past5Minutes,
+      };
+      expect(
+        MonitorStepVMwareMonitorUtil.fromJSON(
+          MonitorStepVMwareMonitorUtil.toJSON(monitor),
+        ),
+      ).toEqual(monitor);
+    });
+
+    test("scope and kind enums carry the spec'd literal values", () => {
+      /*
+       * The scope values are what the picker and the worker key on; the
+       * kind values are the literal strings stored in VMwareResource.kind
+       * and read back by the ingest scan and the dashboard.
+       */
+      expect(Object.values(VMwareResourceScope)).toEqual([
+        "vcenter",
+        "datacenter",
+        "cluster",
+        "host",
+        "vm",
+        "datastore",
+        "resource_pool",
+      ]);
+      expect(Object.values(VMwareResourceKind)).toEqual([
+        "Datacenter",
+        "Cluster",
+        "Host",
+        "VirtualMachine",
+        "Datastore",
+        "ResourcePool",
+      ]);
     });
   });
 

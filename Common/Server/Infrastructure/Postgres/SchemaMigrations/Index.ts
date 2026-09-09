@@ -579,6 +579,7 @@ import { WidenCustomFieldDropdownOptions1791500000000 } from "./1791500000000-Wi
 import { AddCustomFieldValueMapping1791600000000 } from "./1791600000000-AddCustomFieldValueMapping";
 import { AddMacAddressToNetworkDevice1791700000000 } from "./1791700000000-AddMacAddressToNetworkDevice";
 import { SplitWebAuthnChallengeByPurpose1791800000000 } from "./1791800000000-SplitWebAuthnChallengeByPurpose";
+import { AddVMwareTables1791900000000 } from "./1791900000000-AddVMwareTables";
 
 export default [
   InitialMigration,
@@ -1162,4 +1163,5 @@ export default [
   AddCustomFieldValueMapping1791600000000,
   AddMacAddressToNetworkDevice1791700000000,
   SplitWebAuthnChallengeByPurpose1791800000000,
+  AddVMwareTables1791900000000,
 ];

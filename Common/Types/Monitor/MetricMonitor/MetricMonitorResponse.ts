@@ -46,6 +46,41 @@ export interface ProxmoxResourceBreakdown {
   attributes: Dictionary<string>;
 }
 
+/**
+ * One vSphere object in a VMware monitor's per-series breakdown. Every
+ * field except `metricValue` is an OTel RESOURCE attribute the vcenter
+ * receiver stamps (stored `resource.`-prefixed in ClickHouse); which ones
+ * are present depends on the object kind the series describes.
+ */
+export interface VMwareAffectedResource {
+  /** `resource.vcenter.datacenter.name` — present on every series. */
+  datacenterName?: string | undefined;
+  /** `resource.vcenter.cluster.name` — only when the object is inside a cluster. */
+  clusterName?: string | undefined;
+  /** `resource.vcenter.host.name` — the ESXi host, or a VM's parent host. */
+  hostName?: string | undefined;
+  /** `resource.vcenter.vm.name` — virtual machine series only. */
+  vmName?: string | undefined;
+  /** `resource.vcenter.vm.id` — the VM's instance UUID (VM series only). */
+  vmId?: string | undefined;
+  /** `resource.vcenter.datastore.name` — datastore series only. */
+  datastoreName?: string | undefined;
+  /** `resource.vcenter.resource_pool.name` — resource pool (and pooled VM) series. */
+  resourcePoolName?: string | undefined;
+  /** `resource.vcenter.resource_pool.inventory_path` — the pool's unique path. */
+  resourcePoolPath?: string | undefined;
+  metricValue: number;
+}
+
+export interface VMwareResourceBreakdown {
+  /** The `vmware.vcenter.name` the agent stamps — one per vCenter. */
+  vcenterName: string;
+  metricName: string;
+  metricFriendlyName: string;
+  affectedResources: Array<VMwareAffectedResource>;
+  attributes: Dictionary<string>;
+}
+
 export interface CephAffectedResource {
   /** `ceph_daemon` datapoint label, e.g. "osd.3", "mon.a". */
   daemon?: string | undefined;
@@ -95,6 +130,7 @@ export default interface MetricMonitorResponse {
   evaluationSummary?: MonitorEvaluationSummary | undefined;
   kubernetesResourceBreakdown?: KubernetesResourceBreakdown | undefined;
   proxmoxResourceBreakdown?: ProxmoxResourceBreakdown | undefined;
+  vmwareResourceBreakdown?: VMwareResourceBreakdown | undefined;
   cephResourceBreakdown?: CephResourceBreakdown | undefined;
   dockerSwarmResourceBreakdown?: DockerSwarmResourceBreakdown | undefined;
   /**

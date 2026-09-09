@@ -194,6 +194,7 @@ Fügen Sie kopierfertige, **OpenTelemetry-basierte** Agenten ein, um alles zu ü
 - **Docker** — ein einzelner Agent entdeckt automatisch jeden Container und liefert Metriken und Logs. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
 - **Podman** — dieselbe Ein-Agent-Autoerkennung über Podmans Docker-kompatiblen Socket. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
 - **Proxmox** — Nodes, VMs, Container, Speicher, HA-Status, Backup-Abdeckung und Replikationszustand. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
+- **VMware** — vCenter, ESXi-Hosts, virtuelle Maschinen, Datastores, Cluster, Ressourcenpools und vSAN. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — Cluster-Zustand, Kapazitätsprognosen und Einblick in OSD/Pool/PG/Monitor. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
 
 ---

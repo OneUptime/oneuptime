@@ -50,6 +50,8 @@ import MetricMonitorResponse, {
   KubernetesAffectedResource,
   ProxmoxResourceBreakdown,
   ProxmoxAffectedResource,
+  VMwareResourceBreakdown,
+  VMwareAffectedResource,
   CephResourceBreakdown,
   CephAffectedResource,
   DockerSwarmResourceBreakdown,
@@ -103,6 +105,9 @@ import MonitorStepProxmoxMonitor, {
   ProxmoxResourceFilters,
   ProxmoxResourceScope,
 } from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
+import MonitorStepVMwareMonitor, {
+  VMwareResourceFilters,
+} from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import MonitorStepCephMonitor, {
   CephResourceFilters,
 } from "Common/Types/Monitor/MonitorStepCephMonitor";
@@ -120,6 +125,10 @@ import {
   getProxmoxMetricByMetricName,
   ProxmoxMetricDefinition,
 } from "Common/Types/Monitor/ProxmoxMetricCatalog";
+import {
+  getVMwareMetricByMetricName,
+  VMwareMetricDefinition,
+} from "Common/Types/Monitor/VMwareMetricCatalog";
 import {
   getCephMetricByMetricName,
   CephMetricDefinition,
@@ -167,6 +176,7 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: () => Promise<void> =
           MonitorType.Podman,
           MonitorType.DockerSwarm,
           MonitorType.Proxmox,
+          MonitorType.VMware,
           MonitorType.Ceph,
           MonitorType.IoTDevice,
         ]),
@@ -1072,6 +1082,14 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
 
   if (monitorType === MonitorType.Proxmox) {
     return monitorProxmox({
+      monitorStep,
+      monitorId,
+      projectId,
+    });
+  }
+
+  if (monitorType === MonitorType.VMware) {
+    return monitorVMware({
       monitorStep,
       monitorId,
       projectId,
@@ -2633,6 +2651,380 @@ const monitorProxmox: MonitorProxmoxFunction = async (data: {
     startAndEndDate: startAndEndDate,
     metricResult: resultsWithFormulas,
     proxmoxResourceBreakdown: proxmoxResourceBreakdown,
+    seriesBreakdown: seriesBreakdown,
+    monitorId: data.monitorId,
+  };
+};
+
+type MonitorVMwareFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<MetricMonitorResponse>;
+
+/*
+ * Map a VMware monitor step's resource filters onto the ClickHouse
+ * attribute equalities the query runs with. The OpenTelemetry Collector
+ * `vcenter` receiver stamps a vSphere object's identity as OTel RESOURCE
+ * attributes (one OTLP resource per datacenter / cluster / host / VM /
+ * datastore / resource pool), which OtelMetricsIngestService stores
+ * `resource.`-prefixed — so, unlike pve-exporter's bare datapoint
+ * labels, every key here carries the `resource.` prefix. The filters are
+ * independent equalities (a host filter narrows to that ESXi host's own
+ * series AND to the series of every VM it runs, because the receiver
+ * stamps the parent host on VM resources; add `vmName` to target one VM).
+ *
+ * Exported for the worker test; the step-config identity path
+ * (MonitorStepResourceIdentity) and the root-cause renderer
+ * (MonitorCriteriaEvaluator.buildVMwareRootCauseContext) surface the
+ * same fields, so the three cannot drift apart.
+ */
+export const VMwareResourceFilterAttributeKeys: Record<
+  keyof VMwareResourceFilters,
+  string
+> = {
+  datacenterName: "resource.vcenter.datacenter.name",
+  clusterName: "resource.vcenter.cluster.name",
+  hostName: "resource.vcenter.host.name",
+  vmName: "resource.vcenter.vm.name",
+  datastoreName: "resource.vcenter.datastore.name",
+  resourcePoolPath: "resource.vcenter.resource_pool.inventory_path",
+};
+
+export const applyVMwareResourceFilters: (input: {
+  attributes: Dictionary<string>;
+  resourceFilters: VMwareResourceFilters | undefined;
+}) => void = (input: {
+  attributes: Dictionary<string>;
+  resourceFilters: VMwareResourceFilters | undefined;
+}): void => {
+  if (!input.resourceFilters) {
+    return;
+  }
+
+  for (const filterKey of Object.keys(
+    VMwareResourceFilterAttributeKeys,
+  ) as Array<keyof VMwareResourceFilters>) {
+    const filterValue: unknown = input.resourceFilters[filterKey];
+
+    /*
+     * `typeof` rather than truthiness: step JSON is not schema-checked,
+     * so a filter written by the API or an import can be a number or an
+     * object, and neither is an attribute equality ClickHouse can run.
+     */
+    if (typeof filterValue !== "string") {
+      continue;
+    }
+
+    const trimmed: string = filterValue.trim();
+
+    if (trimmed.length === 0) {
+      continue;
+    }
+
+    input.attributes[VMwareResourceFilterAttributeKeys[filterKey]] = trimmed;
+  }
+};
+
+export const monitorVMware: MonitorVMwareFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}): Promise<MetricMonitorResponse> => {
+  const vmwareMonitorConfig: MonitorStepVMwareMonitor | undefined =
+    data.monitorStep.data?.vmwareMonitor;
+
+  if (!vmwareMonitorConfig) {
+    throw new BadDataException("VMware monitor config is missing");
+  }
+
+  const startAndEndDate: InBetween<Date> =
+    RollingTimeUtil.convertToStartAndEndDate(
+      vmwareMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    );
+
+  const finalResult: Array<AggregatedResult> = [];
+  let vmwareResourceBreakdown: VMwareResourceBreakdown | undefined = undefined;
+
+  const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
+    vmwareMonitorConfig.metricViewConfig.queryConfigs,
+  );
+
+  for (const queryConfig of vmwareMonitorConfig.metricViewConfig.queryConfigs) {
+    const metricName: string =
+      (queryConfig.metricQueryData.filterData.metricName as string) || "";
+
+    const query: Query<Metric> = {
+      projectId: data.projectId,
+      time: startAndEndDate,
+      name: metricName,
+    };
+
+    // Start with any user-defined attribute filters
+    const attributes: Dictionary<string> = {};
+
+    if (
+      queryConfig.metricQueryData &&
+      queryConfig.metricQueryData.filterData &&
+      queryConfig.metricQueryData.filterData.attributes &&
+      Object.keys(queryConfig.metricQueryData.filterData.attributes).length > 0
+    ) {
+      Object.assign(
+        attributes,
+        queryConfig.metricQueryData.filterData.attributes,
+      );
+    }
+
+    /*
+     * Always scope to the vCenter via the `vmware.vcenter.name` resource
+     * attribute the VMware Agent stamps on every batch (one value per
+     * vCenter Server or standalone ESXi host the agent connects to).
+     * This is what keeps two vCenters that both have a host called
+     * `esx-01` from bleeding into each other's monitors.
+     */
+    if (vmwareMonitorConfig.vcenterIdentifier) {
+      attributes["resource.vmware.vcenter.name"] =
+        vmwareMonitorConfig.vcenterIdentifier;
+    }
+
+    applyVMwareResourceFilters({
+      attributes: attributes,
+      resourceFilters: vmwareMonitorConfig.resourceFilters,
+    });
+
+    if (Object.keys(attributes).length > 0) {
+      query.attributes = attributes;
+    }
+
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Avg;
+
+    let aggregatedResults: AggregatedResult;
+
+    if (groupByAttributeKeys.length > 0) {
+      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+        query: query,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      aggregatedResults = aggregatePerSeriesFromRawMetrics({
+        rawMetrics: rawMetricsForAgg,
+        attributeKeys: groupByAttributeKeys,
+        aggregationType,
+      });
+    } else {
+      aggregatedResults = await MetricService.aggregateBy({
+        query: query,
+        aggregationType,
+        aggregateColumnName: "value",
+        aggregationTimestampColumnName: "time",
+        startTimestamp:
+          (startAndEndDate?.startValue as Date) ||
+          OneUptimeDate.getCurrentDate(),
+        endTimestamp:
+          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        groupBy: queryConfig.metricQueryData.groupBy,
+        // Alerting path: fail loud on timeout, never score partial buckets.
+        timeoutOverflowMode: "throw",
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    logger.debug("VMware monitor aggregated results", {
+      service: "workers",
+      projectId: data.projectId.toString(),
+    });
+
+    finalResult.push(aggregatedResults);
+
+    /*
+     * Fetch raw metrics to extract per-object vSphere context. Best
+     * effort: a failure here is logged and the evaluation carries on
+     * without the breakdown table — it must never fail the monitor.
+     */
+    try {
+      const rawMetrics: Array<Metric> = await MetricService.findBy({
+        query: query,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: 100,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (rawMetrics.length > 0) {
+        const affectedResourcesMap: Map<string, VMwareAffectedResource> =
+          new Map();
+
+        for (const metric of rawMetrics) {
+          const metricAttrs: JSONObject =
+            (metric.attributes as JSONObject) || {};
+
+          const readAttr: (key: string) => string | undefined = (
+            key: string,
+          ): string | undefined => {
+            const value: unknown = metricAttrs[key];
+            return typeof value === "string" && value.length > 0
+              ? value
+              : undefined;
+          };
+
+          /*
+           * Identity lives in the RESOURCE attributes the vcenter
+           * receiver stamps, stored `resource.`-prefixed. A VM template
+           * is a VM with `isTemplate` in the inventory, so its
+           * `vcenter.vm_template.*` identity folds into the VM fields.
+           */
+          const datacenterName: string | undefined = readAttr(
+            "resource.vcenter.datacenter.name",
+          );
+          const clusterName: string | undefined = readAttr(
+            "resource.vcenter.cluster.name",
+          );
+          const hostName: string | undefined = readAttr(
+            "resource.vcenter.host.name",
+          );
+          const vmName: string | undefined =
+            readAttr("resource.vcenter.vm.name") ||
+            readAttr("resource.vcenter.vm_template.name");
+          const vmId: string | undefined =
+            readAttr("resource.vcenter.vm.id") ||
+            readAttr("resource.vcenter.vm_template.id");
+          const datastoreName: string | undefined = readAttr(
+            "resource.vcenter.datastore.name",
+          );
+          const resourcePoolName: string | undefined = readAttr(
+            "resource.vcenter.resource_pool.name",
+          );
+          const resourcePoolPath: string | undefined = readAttr(
+            "resource.vcenter.resource_pool.inventory_path",
+          );
+
+          /*
+           * Dedupe on the full identity tuple: `vcenter.vm.id` alone
+           * identifies a VM, but hosts / datastores / clusters are only
+           * unique within their datacenter and pools within their path.
+           */
+          const resourceKey: string = [
+            datacenterName || "",
+            clusterName || "",
+            hostName || "",
+            vmId || "",
+            vmName || "",
+            datastoreName || "",
+            resourcePoolPath || resourcePoolName || "",
+          ].join("|");
+
+          const metricValue: number =
+            typeof metric.value === "number"
+              ? metric.value
+              : Number(metric.value) || 0;
+
+          // Keep the highest value per resource
+          const existing: VMwareAffectedResource | undefined =
+            affectedResourcesMap.get(resourceKey);
+          if (!existing || metricValue > existing.metricValue) {
+            affectedResourcesMap.set(resourceKey, {
+              datacenterName: datacenterName,
+              clusterName: clusterName,
+              hostName: hostName,
+              vmName: vmName,
+              vmId: vmId,
+              datastoreName: datastoreName,
+              resourcePoolName: resourcePoolName,
+              resourcePoolPath: resourcePoolPath,
+              metricValue: metricValue,
+            });
+          }
+        }
+
+        const metricDef: VMwareMetricDefinition | undefined =
+          getVMwareMetricByMetricName(metricName);
+
+        vmwareResourceBreakdown = {
+          vcenterName: vmwareMonitorConfig.vcenterIdentifier,
+          metricName: metricName,
+          metricFriendlyName: metricDef?.friendlyName || metricName,
+          affectedResources: Array.from(affectedResourcesMap.values()),
+          attributes: attributes,
+        };
+      }
+    } catch (err) {
+      logger.error("Failed to fetch VMware resource breakdown", {
+        service: "workers",
+        projectId: data.projectId.toString(),
+      });
+      logger.error(err, {
+        service: "workers",
+        projectId: data.projectId.toString(),
+      });
+    }
+  }
+
+  const nativeUnitsByMetricName: Map<string, string> =
+    await loadNativeUnitsByMetricName({
+      queryConfigs: vmwareMonitorConfig.metricViewConfig.queryConfigs,
+      projectId: data.projectId,
+    });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: vmwareMonitorConfig.metricViewConfig.queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
+  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
+    queryConfigs: vmwareMonitorConfig.metricViewConfig.queryConfigs,
+    formulaConfigs: vmwareMonitorConfig.metricViewConfig.formulaConfigs || [],
+    aggregatedResults: resultsInDisplayUnit,
+    projectId: data.projectId,
+  });
+
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    groupByAttributeKeys.length > 0
+      ? buildSeriesBreakdown({
+          queryConfigs: vmwareMonitorConfig.metricViewConfig.queryConfigs,
+          formulaConfigs:
+            vmwareMonitorConfig.metricViewConfig.formulaConfigs || [],
+          perQueryResults: resultsInDisplayUnit,
+          attributeKeys: groupByAttributeKeys,
+          projectId: data.projectId,
+        })
+      : undefined;
+
+  return {
+    projectId: data.projectId,
+    metricViewConfig: vmwareMonitorConfig.metricViewConfig,
+    startAndEndDate: startAndEndDate,
+    metricResult: resultsWithFormulas,
+    vmwareResourceBreakdown: vmwareResourceBreakdown,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
   };

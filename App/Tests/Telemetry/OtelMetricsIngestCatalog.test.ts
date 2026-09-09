@@ -31,6 +31,7 @@ const AUTO_DISCOVERY_METHODS: Array<string> = [
   "autoDiscoverDockerHost",
   "autoDiscoverPodmanHost",
   "autoDiscoverProxmoxCluster",
+  "autoDiscoverVMwareVCenter",
   "autoDiscoverCephCluster",
   "autoDiscoverDockerSwarmCluster",
   "autoDiscoverIoTFleet",

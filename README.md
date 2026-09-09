@@ -194,6 +194,7 @@ Drop in copy-paste, **OpenTelemetry-based** agents to watch everything your serv
 - **Docker** — a single agent auto-discovers every container and ships metrics & logs. [Docs →](/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
 - **Podman** — same one-agent auto-discovery via Podman's Docker-compatible socket. [Docs →](/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
 - **Proxmox** — nodes, VMs, containers, storage, HA state, backup coverage & replication health. [Docs →](/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
+- **VMware** — vCenter, ESXi hosts, virtual machines, datastores, clusters, resource pools & vSAN. [Docs →](/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — cluster health, capacity forecasts, and OSD/pool/PG/monitor visibility. [Docs →](/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
 
 ---

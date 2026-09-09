@@ -48,6 +48,8 @@ enum DashboardComponentType {
   HostList = `HostList`,
   ProxmoxNodeList = `ProxmoxNodeList`,
   ProxmoxGuestList = `ProxmoxGuestList`,
+  VMwareHostList = `VMwareHostList`,
+  VMwareVirtualMachineList = `VMwareVirtualMachineList`,
   DockerSwarmNodeList = `DockerSwarmNodeList`,
   DockerSwarmServiceList = `DockerSwarmServiceList`,
   CephOsdList = `CephOsdList`,

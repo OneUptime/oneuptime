@@ -7,6 +7,7 @@ import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster"
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import Service from "../../../Models/DatabaseModels/Service";
+import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { JSONObject } from "../../../Types/JSON";
@@ -21,6 +22,7 @@ import KubernetesClusterService from "../../Services/KubernetesClusterService";
 import PodmanHostService from "../../Services/PodmanHostService";
 import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
 import ServiceService from "../../Services/ServiceService";
+import VMwareVCenterService from "../../Services/VMwareVCenterService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import SeriesResourceLabels, {
   SeriesResourceRefs,
@@ -63,6 +65,7 @@ export interface SeriesLinkableModel {
   kubernetesClusters?: Array<KubernetesCluster> | undefined;
   services?: Array<Service> | undefined;
   proxmoxClusters?: Array<ProxmoxCluster> | undefined;
+  vmwareVCenters?: Array<VMwareVCenter> | undefined;
   cephClusters?: Array<CephCluster> | undefined;
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
   iotFleets?: Array<IoTFleet> | undefined;
@@ -79,6 +82,7 @@ export interface SeriesResolvedResourceIds {
   kubernetesClusterIds: Array<string>;
   serviceIds: Array<string>;
   proxmoxClusterIds: Array<string>;
+  vmwareVCenterIds: Array<string>;
   cephClusterIds: Array<string>;
   dockerSwarmClusterIds: Array<string>;
   iotFleetIds: Array<string>;
@@ -151,7 +155,7 @@ export default class SeriesResourceLinker {
   /*
    * The one place that turns identifiers into database ids, shared by
    * the series-label path and the monitor-step-config path
-   * (MonitorStepResourceIdentity). Keeping the nine-way lookup table,
+   * (MonitorStepResourceIdentity). Keeping the ten-way lookup table,
    * the project scoping and the `Includes` batching in a single
    * function is what stops the two paths from resolving the same
    * identifier to different rows.
@@ -164,9 +168,10 @@ export default class SeriesResourceLinker {
     const refs: SeriesResourceRefs = input.refs;
 
     /*
-     * Proxmox / Ceph / Docker Swarm / IoT carry no `oneuptime.*.id`
-     * stamp at ingest — they are addressable by name only — so their
-     * `ids` lists are empty by construction, not by omission.
+     * Proxmox / VMware / Ceph / Docker Swarm / IoT carry no
+     * `oneuptime.*.id` stamp at ingest — they are addressable by name
+     * only — so their `ids` lists are empty by construction, not by
+     * omission.
      */
     const specs: Array<ResourceResolutionSpec> = [
       {
@@ -207,6 +212,12 @@ export default class SeriesResourceLinker {
       },
       {
         ids: [],
+        names: refs.vmwareVCenterNames,
+        nameColumn: "name",
+        findBy: VMwareVCenterService.findBy.bind(VMwareVCenterService),
+      },
+      {
+        ids: [],
         names: refs.cephClusterNames,
         nameColumn: "name",
         findBy: CephClusterService.findBy.bind(CephClusterService),
@@ -234,6 +245,7 @@ export default class SeriesResourceLinker {
       kubernetesClusterIds,
       serviceIds,
       proxmoxClusterIds,
+      vmwareVCenterIds,
       cephClusterIds,
       dockerSwarmClusterIds,
       iotFleetIds,
@@ -257,6 +269,7 @@ export default class SeriesResourceLinker {
       kubernetesClusterIds: kubernetesClusterIds || [],
       serviceIds: serviceIds || [],
       proxmoxClusterIds: proxmoxClusterIds || [],
+      vmwareVCenterIds: vmwareVCenterIds || [],
       cephClusterIds: cephClusterIds || [],
       dockerSwarmClusterIds: dockerSwarmClusterIds || [],
       iotFleetIds: iotFleetIds || [],
@@ -385,6 +398,16 @@ export default class SeriesResourceLinker {
       );
     }
 
+    if (resolved.vmwareVCenterIds.length > 0) {
+      model.vmwareVCenters = this.mergeById(
+        model.vmwareVCenters,
+        resolved.vmwareVCenterIds,
+        (): VMwareVCenter => {
+          return new VMwareVCenter();
+        },
+      );
+    }
+
     if (resolved.cephClusterIds.length > 0) {
       model.cephClusters = this.mergeById(
         model.cephClusters,
@@ -452,7 +475,7 @@ export default class SeriesResourceLinker {
   /*
    * Turn one resource type's ids and names into deduped database ids.
    * Costs zero round-trips when the series carries neither, which is the
-   * common case for most of the nine types on any given series.
+   * common case for most of the ten types on any given series.
    *
    * `nameMatch: "exact"` is for series labels. Every identifier column
    * read here is written by ingest from the same attribute the series

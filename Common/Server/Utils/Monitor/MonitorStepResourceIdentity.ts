@@ -48,6 +48,7 @@ type NameRefKey = keyof Pick<
   | "podmanHostNames"
   | "kubernetesClusterNames"
   | "proxmoxClusterNames"
+  | "vmwareVCenterNames"
   | "cephClusterNames"
   | "dockerSwarmClusterNames"
   | "iotFleetNames"
@@ -182,6 +183,17 @@ export default class MonitorStepResourceIdentity {
         return {
           key: "proxmoxClusterNames",
           value: stepData.proxmoxMonitor?.clusterIdentifier,
+        };
+      case MonitorType.VMware:
+        /*
+         * The `vmware.vcenter.name` the VMware Agent stamps. Returned
+         * untrimmed and untyped on purpose: the caller's `typeof`
+         * guard is what keeps a numeric or object identifier written by
+         * the API from throwing out of alert/incident creation.
+         */
+        return {
+          key: "vmwareVCenterNames",
+          value: stepData.vmwareMonitor?.vcenterIdentifier,
         };
       case MonitorType.Ceph:
         return {
@@ -327,6 +339,7 @@ export default class MonitorStepResourceIdentity {
       stepData.dockerMonitor?.metricViewConfig,
       stepData.podmanMonitor?.metricViewConfig,
       stepData.proxmoxMonitor?.metricViewConfig,
+      stepData.vmwareMonitor?.metricViewConfig,
       stepData.cephMonitor?.metricViewConfig,
       stepData.dockerSwarmMonitor?.metricViewConfig,
       stepData.iotMonitor?.metricViewConfig,
@@ -421,6 +434,7 @@ export default class MonitorStepResourceIdentity {
       kubernetesClusterNames: [],
       dockerSwarmClusterNames: [],
       proxmoxClusterNames: [],
+      vmwareVCenterNames: [],
       cephClusterNames: [],
       iotFleetNames: [],
       serviceIds: [],

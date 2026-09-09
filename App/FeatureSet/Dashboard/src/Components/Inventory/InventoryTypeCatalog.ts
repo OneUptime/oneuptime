@@ -207,6 +207,42 @@ const CATALOG: Record<EntityType, CatalogEntry> = {
     icon: IconProp.ComputerDesktop,
     description: "A VM or container guest running on Proxmox.",
   },
+  [EntityType.VMwareVCenter]: {
+    label: "vCenter",
+    pluralLabel: "vCenters",
+    category: InventoryCategory.Clusters,
+    icon: IconProp.VMware,
+    description:
+      "A VMware vCenter Server (or standalone ESXi host) the VMware agent connects to.",
+  },
+  [EntityType.VMwareCluster]: {
+    label: "vSphere Cluster",
+    pluralLabel: "vSphere Clusters",
+    category: InventoryCategory.Clusters,
+    icon: IconProp.Squares,
+    description: "A vSphere cluster of ESXi hosts managed by a vCenter.",
+  },
+  [EntityType.VMwareHost]: {
+    label: "ESXi Host",
+    pluralLabel: "ESXi Hosts",
+    category: InventoryCategory.Clusters,
+    icon: IconProp.Server,
+    description: "An ESXi hypervisor host managed by a vCenter.",
+  },
+  [EntityType.VMwareVirtualMachine]: {
+    label: "VMware Virtual Machine",
+    pluralLabel: "VMware Virtual Machines",
+    category: InventoryCategory.Clusters,
+    icon: IconProp.ComputerDesktop,
+    description: "A virtual machine running on an ESXi host.",
+  },
+  [EntityType.VMwareDatastore]: {
+    label: "VMware Datastore",
+    pluralLabel: "VMware Datastores",
+    category: InventoryCategory.Clusters,
+    icon: IconProp.Database,
+    description: "A datastore (VMFS, NFS or vSAN) presented to ESXi hosts.",
+  },
   [EntityType.CephCluster]: {
     label: "Ceph Cluster",
     pluralLabel: "Ceph Clusters",

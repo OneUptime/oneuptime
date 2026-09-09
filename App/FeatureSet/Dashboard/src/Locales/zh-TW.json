@@ -87,6 +87,8 @@
       "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",
       "proxmoxDescription": "監測 Proxmox 叢集、節點與客體機。",
+      "vmwareTitle": "VMware",
+      "vmwareDescription": "監測 vCenter、ESXi 主機、虛擬機與資料存放區。",
       "cephTitle": "Ceph",
       "cephDescription": "監測 Ceph 叢集、OSD 與儲存池。",
       "hostsTitle": "主機",

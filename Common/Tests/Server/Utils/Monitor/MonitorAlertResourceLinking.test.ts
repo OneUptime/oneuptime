@@ -24,6 +24,7 @@ import NetworkDeviceOwnerUserService from "../../../../Server/Services/NetworkDe
 import PodmanHostService from "../../../../Server/Services/PodmanHostService";
 import ProxmoxClusterService from "../../../../Server/Services/ProxmoxClusterService";
 import ServiceService from "../../../../Server/Services/ServiceService";
+import VMwareVCenterService from "../../../../Server/Services/VMwareVCenterService";
 import ProjectScopedReferenceValidator from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import MonitorAlert from "../../../../Server/Utils/Monitor/MonitorAlert";
 import MonitorResourceContextUtil from "../../../../Server/Utils/Monitor/MonitorResourceContext";
@@ -135,7 +136,7 @@ function idsOn(
 }
 
 /*
- * The nine-relation shape MonitorResourceContext resolves from the
+ * The ten-relation shape MonitorResourceContext resolves from the
  * monitor's own step config. Tests stub the util and hand back one of
  * these, spreading over it to name only the relations under test.
  */
@@ -147,6 +148,7 @@ function emptyResourceContext(): SeriesResolvedResourceIds {
     kubernetesClusterIds: [],
     serviceIds: [],
     proxmoxClusterIds: [],
+    vmwareVCenterIds: [],
     cephClusterIds: [],
     dockerSwarmClusterIds: [],
     iotFleetIds: [],
@@ -167,6 +169,7 @@ describe("Alerts link the resources their series identifies", () => {
   let dockerHostRows: Array<{ _id: string }> = [];
   let podmanHostRows: Array<{ _id: string }> = [];
   let proxmoxClusterRows: Array<{ _id: string }> = [];
+  let vmwareVCenterRows: Array<{ _id: string }> = [];
   let cephClusterRows: Array<{ _id: string }> = [];
   let dockerSwarmClusterRows: Array<{ _id: string }> = [];
   let iotFleetRows: Array<{ _id: string }> = [];
@@ -183,6 +186,7 @@ describe("Alerts link the resources their series identifies", () => {
     dockerHostRows = [];
     podmanHostRows = [];
     proxmoxClusterRows = [];
+    vmwareVCenterRows = [];
     cephClusterRows = [];
     dockerSwarmClusterRows = [];
     iotFleetRows = [];
@@ -231,6 +235,9 @@ describe("Alerts link the resources their series identifies", () => {
     });
     jest.spyOn(ProxmoxClusterService, "findBy").mockImplementation(async () => {
       return proxmoxClusterRows as never;
+    });
+    jest.spyOn(VMwareVCenterService, "findBy").mockImplementation(async () => {
+      return vmwareVCenterRows as never;
     });
     jest.spyOn(CephClusterService, "findBy").mockImplementation(async () => {
       return cephClusterRows as never;
@@ -325,6 +332,7 @@ describe("Alerts link the resources their series identifies", () => {
     dockerHostRows = [{ _id: "docker-1" }];
     podmanHostRows = [{ _id: "podman-1" }];
     proxmoxClusterRows = [{ _id: "pve-1" }];
+    vmwareVCenterRows = [{ _id: "vcsa-1" }];
     cephClusterRows = [{ _id: "ceph-1" }];
     dockerSwarmClusterRows = [{ _id: "swarm-1" }];
     iotFleetRows = [{ _id: "fleet-1" }];
@@ -344,6 +352,7 @@ describe("Alerts link the resources their series identifies", () => {
             "oneuptime.docker.host.name": "docker-box",
             "oneuptime.podman.host.name": "podman-box",
             "proxmox.cluster.name": "pve",
+            "vmware.vcenter.name": "vcsa",
             "ceph.cluster.name": "ceph",
             "docker.swarm.cluster.name": "swarm",
             "iot.fleet.name": "fleet",
@@ -362,6 +371,7 @@ describe("Alerts link the resources their series identifies", () => {
     expect(idsOn(alert.dockerHosts)).toEqual(["docker-1"]);
     expect(idsOn(alert.podmanHosts)).toEqual(["podman-1"]);
     expect(idsOn(alert.proxmoxClusters)).toEqual(["pve-1"]);
+    expect(idsOn(alert.vmwareVCenters)).toEqual(["vcsa-1"]);
     expect(idsOn(alert.cephClusters)).toEqual(["ceph-1"]);
     expect(idsOn(alert.dockerSwarmClusters)).toEqual(["swarm-1"]);
     expect(idsOn(alert.iotFleets)).toEqual(["fleet-1"]);
@@ -584,6 +594,61 @@ describe("Alerts link the resources their series identifies", () => {
       "pve-from-label",
       "pve-from-step-config",
     ]);
+  });
+
+  it("merges the monitor's step-config vCenter with the one the series names", async () => {
+    /*
+     * VMware twin of the Proxmox merge above: a user-built monitor
+     * grouped by `vmware.vcenter.name` names one vCenter through its
+     * labels while the step's vcenterIdentifier resolves to another.
+     */
+    vmwareVCenterRows = [{ _id: "vcsa-from-label" }];
+    resourceContext = {
+      ...emptyResourceContext(),
+      vmwareVCenterIds: ["vcsa-from-step-config"],
+    };
+
+    await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
+      criteriaInstance: criteriaInstance(),
+      monitor: monitor(),
+      dataToProcess: dataToProcess,
+      rootCause: "Host CPU utilization is above 90%",
+      autoResolveCriteriaInstanceIdAlertIdsDictionary: NO_AUTO_RESOLVE,
+      matchesPerSeries: [
+        series({ "resource.vmware.vcenter.name": "vcsa" }, "fp-1"),
+      ],
+      props: {},
+    });
+
+    expect(idsOn(createdAlerts[0]!.vmwareVCenters).sort()).toEqual([
+      "vcsa-from-label",
+      "vcsa-from-step-config",
+    ]);
+  });
+
+  it("still attaches the step-config vCenter to an ungrouped alert", async () => {
+    /*
+     * The shipped VMware templates group by the vSphere object's own
+     * attribute (`resource.vcenter.host.name`), never by the vCenter,
+     * so the vCenter link on their alerts comes ONLY from the step
+     * config path. This is the path the vCenter Alerts tab depends on.
+     */
+    resourceContext = {
+      ...emptyResourceContext(),
+      vmwareVCenterIds: ["vcsa-1"],
+    };
+
+    await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
+      criteriaInstance: criteriaInstance(),
+      monitor: monitor(),
+      dataToProcess: dataToProcess,
+      rootCause: "Datastore capacity is above 90%",
+      autoResolveCriteriaInstanceIdAlertIdsDictionary: NO_AUTO_RESOLVE,
+      props: {},
+    });
+
+    expect(idsOn(createdAlerts[0]!.vmwareVCenters)).toEqual(["vcsa-1"]);
+    expect(VMwareVCenterService.findBy).not.toHaveBeenCalled();
   });
 
   it("still attaches the step-config cluster to an ungrouped alert", async () => {

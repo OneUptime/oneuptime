@@ -124,7 +124,8 @@ export function getStatusBadgeClass(status: string): string {
     s === "online" ||
     s === "connected" ||
     s === "healthy" ||
-    s === "ok"
+    s === "ok" ||
+    s === "powered on"
   ) {
     return "bg-green-50 text-green-700";
   }

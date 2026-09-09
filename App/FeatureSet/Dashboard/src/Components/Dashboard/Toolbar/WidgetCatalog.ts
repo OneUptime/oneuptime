@@ -600,6 +600,47 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
     ],
   },
   {
+    name: "VMware",
+    group: WidgetCategoryGroup.Infrastructure,
+    icon: IconProp.VMware,
+    description:
+      "Live inventory from any connected vCenter Server or standalone ESXi host — populated by the OneUptime VMware Agent's OpenTelemetry Collector vcenter receiver.",
+    items: [
+      {
+        type: DashboardComponentType.VMwareHostList,
+        label: "Hosts",
+        icon: IconProp.ServerStack,
+        description:
+          "ESXi hosts with CPU/memory utilization, cluster, and vCenter.",
+        keywords: [
+          "vmware",
+          "vsphere",
+          "vcenter",
+          "esxi",
+          "host",
+          "hypervisor",
+          "cluster",
+        ],
+      },
+      {
+        type: DashboardComponentType.VMwareVirtualMachineList,
+        label: "Virtual Machines",
+        icon: IconProp.Cube,
+        description:
+          "Virtual machines and templates with power state, CPU/memory, and ESXi host.",
+        keywords: [
+          "vmware",
+          "vsphere",
+          "vcenter",
+          "vm",
+          "virtual machine",
+          "template",
+          "power state",
+        ],
+      },
+    ],
+  },
+  {
     name: "Ceph",
     group: WidgetCategoryGroup.Infrastructure,
     icon: IconProp.Database,

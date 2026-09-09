@@ -51,6 +51,7 @@ import KubernetesClusterService from "Common/Server/Services/KubernetesClusterSe
 import LabelService from "Common/Server/Services/LabelService";
 import PodmanHostService from "Common/Server/Services/PodmanHostService";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
+import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
 import RumApplicationService from "Common/Server/Services/RumApplicationService";
 import RumApplicationClientService from "Common/Server/Services/RumApplicationClientService";
 import ServerlessFunctionService from "Common/Server/Services/ServerlessFunctionService";
@@ -138,6 +139,19 @@ const DISCOVER_CASES: Array<DiscoverCase> = [
       method: "findOrCreateByName",
     },
     maintenance: { service: ProxmoxClusterService, method: "updateLastSeen" },
+  },
+  {
+    name: "autoDiscoverVMwareVCenter",
+    method: "autoDiscoverVMwareVCenter",
+    namespace: "vmware-vcenter-id",
+    attributes: [
+      stringAttribute("vmware.vcenter.name", "vcsa-prod"),
+    ] as JSONArray,
+    findOrCreate: {
+      service: VMwareVCenterService,
+      method: "findOrCreateByName",
+    },
+    maintenance: { service: VMwareVCenterService, method: "updateLastSeen" },
   },
   {
     name: "autoDiscoverIoTFleet",

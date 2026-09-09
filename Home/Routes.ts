@@ -775,6 +775,17 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
+    app.get("/product/vmware", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/product/vmware",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/vmware`, {
+        enableGoogleTagManager: GoogleTagManagerEnabled,
+        seo,
+      });
+    });
+
     app.get(
       "/product/ai-observability",
       (_req: ExpressRequest, res: ExpressResponse) => {

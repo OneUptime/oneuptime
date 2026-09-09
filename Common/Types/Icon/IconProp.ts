@@ -328,6 +328,7 @@ enum IconProp {
   DockerSwarm = "DockerSwarm",
   Podman = "Podman",
   Proxmox = "Proxmox",
+  VMware = "VMware",
   IoT = "IoT",
   Ceph = "Ceph",
   Gauge = "Gauge",

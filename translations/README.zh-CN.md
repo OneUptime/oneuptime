@@ -194,6 +194,7 @@ helm install oneuptime oneuptime/oneuptime
 - **Docker** —— 单个代理自动发现每一个容器并交付指标与日志。[文档 →](/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
 - **Podman** —— 通过 Podman 兼容 Docker 的套接字，同样实现单代理自动发现。[文档 →](/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
 - **Proxmox** —— 节点、VM、容器、存储、HA 状态、备份覆盖率与复制健康状况。[文档 →](/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
+- **VMware** —— vCenter、ESXi 主机、虚拟机、数据存储、集群、资源池与 vSAN。[文档 →](/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** —— 集群健康、容量预测，以及 OSD/存储池/PG/监视器的可见性。[文档 →](/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
 
 ---

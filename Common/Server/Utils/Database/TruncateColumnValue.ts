@@ -6,7 +6,7 @@ import ColumnLength from "../../../Types/Database/ColumnLength";
  *
  * Per-value clamps for bounded varchar columns written by the bulk
  * inventory upsert paths (Kubernetes / Docker / Docker Swarm / Podman /
- * Proxmox / Ceph / IoT).
+ * Proxmox / VMware / Ceph / IoT).
  *
  * Those services hand-build `INSERT ... ON CONFLICT` statements and
  * flush them in chunks of 500 rows through

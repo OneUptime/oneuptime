@@ -1,0 +1,45 @@
+services:
+  oneuptime-vmware-agent:
+    # Upstream collector, pinned. There is no oneuptime/vmware-agent image —
+    # the agent is entirely defined by otel-collector-config.yaml, which
+    # install.sh downloads next to this file. The native `vcenter`
+    # receiver talks to vCenter directly, so no exporter sidecar is
+    # needed. This is the version Tests/Ops/validate-collector-configs.sh
+    # validates the config against; bump the two together.
+    image: otel/opentelemetry-collector-contrib:0.154.0
+    container_name: oneuptime-vmware-agent
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    # Uncomment (together with the syslog receivers and the logs pipeline
+    # in otel-collector-config.yaml) to accept syslog forwarded by ESXi
+    # hosts — Syslog.global.logHost = udp://<this-machine>:5514 or
+    # tcp://<this-machine>:5514. This powers the Logs tab of the vCenter
+    # dashboard.
+    # ports:
+    #   - "5514:5514/tcp"
+    #   - "5514:5514/udp"
+    environment:
+      - ONEUPTIME_URL=${ONEUPTIME_URL}
+      - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY}
+      # The name this vCenter registers under in OneUptime (stamped on
+      # every metric as the vmware.vcenter.name resource attribute). Keep
+      # it stable — changing it registers a brand-new vCenter.
+      - VMWARE_VCENTER_NAME=${VMWARE_VCENTER_NAME:-vmware-vcenter}
+      # Scheme + host of vCenter Server (or a standalone ESXi host), no
+      # /sdk suffix, e.g. https://vcsa.example.com
+      - VCENTER_ENDPOINT=${VCENTER_ENDPOINT}
+      # A vSphere user holding the Read-Only role (see README.md).
+      - VCENTER_USERNAME=${VCENTER_USERNAME}
+      - VCENTER_PASSWORD=${VCENTER_PASSWORD}
+      # vCenter ships a self-signed certificate by default. Verification
+      # stays ON unless you opt out with "true".
+      - VCENTER_INSECURE_SKIP_VERIFY=${VCENTER_INSECURE_SKIP_VERIFY:-false}
+      # Full-inventory poll interval. Raise to 5m/10m for very large
+      # vCenters (thousands of VMs).
+      - VCENTER_COLLECTION_INTERVAL=${VCENTER_COLLECTION_INTERVAL:-2m}
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

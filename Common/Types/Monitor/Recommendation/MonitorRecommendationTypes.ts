@@ -27,6 +27,7 @@ export enum MonitorRecommendationResourceType {
   DockerSwarm = "DockerSwarm",
   Podman = "Podman",
   Proxmox = "Proxmox",
+  VMware = "VMware",
   Ceph = "Ceph",
   IoTDevice = "IoTDevice",
   RumApplication = "RumApplication",
@@ -78,6 +79,7 @@ export type MonitorRecommendationSeverity = "Critical" | "Warning";
  * except for the name of the resource-identifier field:
  *
  *   clusterIdentifier -> Kubernetes, DockerSwarm, Proxmox, Ceph
+ *   vcenterIdentifier -> VMware
  *   hostIdentifier    -> Host, Docker, Podman
  *   fleetIdentifier   -> IoTDevice
  *   rumApplicationId  -> RUM application

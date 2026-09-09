@@ -23,7 +23,7 @@ import Select from "Common/Types/BaseDatabase/Select";
 
 /*
  * Every infrastructure and catalog resource feed - Kubernetes clusters, Docker
- * and Podman hosts, Docker Swarm / Proxmox / Ceph clusters, servers, cloud
+ * and Podman hosts, Docker Swarm / Proxmox / Ceph clusters, vCenters, servers, cloud
  * resources and catalog services - stores the same shape: markdown, a colour,
  * the acting user and a posted-at. Only the two column names differ (the
  * foreign key back to the resource, and the event type column), so the whole

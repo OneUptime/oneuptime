@@ -194,6 +194,7 @@ Lägg in kopiera-och-klistra-agenter **baserade på OpenTelemetry** för att bev
 - **Docker** — en enda agent upptäcker automatiskt varje container och levererar mätvärden och loggar. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
 - **Podman** — samma automatiska upptäckt med en agent via Podmans Docker-kompatibla socket. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
 - **Proxmox** — noder, VM:er, containrar, lagring, HA-status, backuptäckning och replikeringshälsa. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
+- **VMware** — vCenter, ESXi-värdar, virtuella maskiner, datastores, kluster, resurspooler och vSAN. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — klusterhälsa, kapacitetsprognoser och insyn i OSD/pool/PG/monitor. [Dokumentation →](/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
 
 ---

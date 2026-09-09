@@ -184,7 +184,7 @@ RE2, where a pattern that is linear in RE2 can still be exponential.
 
 Not part of `npm test`, because it needs docker and helm. It runs
 `otelcol validate` from the pinned `otel/opentelemetry-collector-contrib:0.154.0`
-image over the three agent configs and over both collector ConfigMaps rendered
+image over the four agent configs and over both collector ConfigMaps rendered
 out of the `kubernetes-agent` chart.
 
 That is not a YAML check. `validate` constructs every component and builds the

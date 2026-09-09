@@ -268,6 +268,8 @@ describe("MonitorType keywords", () => {
       ["javascript", MonitorType.CustomJavaScriptCode],
       ["rootless", MonitorType.Podman],
       ["lxc", MonitorType.Proxmox],
+      ["esxi", MonitorType.VMware],
+      ["vcenter", MonitorType.VMware],
       ["osd", MonitorType.Ceph],
       ["sensor", MonitorType.IoTDevice],
       ["imap", MonitorType.IncomingEmail],

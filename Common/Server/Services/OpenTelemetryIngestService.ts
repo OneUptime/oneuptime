@@ -23,6 +23,7 @@ import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenter from "../../Models/DatabaseModels/VMwareVCenter";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
 import DockerSwarmCluster from "../../Models/DatabaseModels/DockerSwarmCluster";
 import ServerlessFunction from "../../Models/DatabaseModels/ServerlessFunction";
@@ -34,6 +35,7 @@ import DockerHostService from "./DockerHostService";
 import PodmanHostService from "./PodmanHostService";
 import KubernetesClusterService from "./KubernetesClusterService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
+import VMwareVCenterService from "./VMwareVCenterService";
 import CephClusterService from "./CephClusterService";
 import DockerSwarmClusterService from "./DockerSwarmClusterService";
 import ServerlessFunctionService from "./ServerlessFunctionService";
@@ -1013,6 +1015,21 @@ export default class OTelIngestService {
       return {
         retainTelemetryDataForDays: cluster?.retainTelemetryDataForDays ?? null,
         telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+      };
+    }
+    if (primaryEntityType === ServiceType.VMwareVCenter) {
+      const vcenter: VMwareVCenter | null =
+        await VMwareVCenterService.findOneById({
+          id: resourceId,
+          select: {
+            retainTelemetryDataForDays: true,
+            telemetryRetentionConfig: true,
+          },
+          props: { isRoot: true },
+        });
+      return {
+        retainTelemetryDataForDays: vcenter?.retainTelemetryDataForDays ?? null,
+        telemetryRetentionConfig: vcenter?.telemetryRetentionConfig ?? null,
       };
     }
     if (primaryEntityType === ServiceType.IoTDevice) {

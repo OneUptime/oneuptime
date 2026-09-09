@@ -47,6 +47,8 @@ import DashboardPodmanVolumeListComponent from "./DashboardPodmanVolumeListCompo
 import DashboardHostListComponent from "./DashboardHostListComponent";
 import DashboardProxmoxNodeListComponent from "./DashboardProxmoxNodeListComponent";
 import DashboardProxmoxGuestListComponent from "./DashboardProxmoxGuestListComponent";
+import DashboardVMwareHostListComponent from "./DashboardVMwareHostListComponent";
+import DashboardVMwareVirtualMachineListComponent from "./DashboardVMwareVirtualMachineListComponent";
 import DashboardDockerSwarmNodeListComponent from "./DashboardDockerSwarmNodeListComponent";
 import DashboardDockerSwarmServiceListComponent from "./DashboardDockerSwarmServiceListComponent";
 import DashboardCephOsdListComponent from "./DashboardCephOsdListComponent";
@@ -187,6 +189,9 @@ const WIDGET_BY_TYPE: Partial<
   [DashboardComponentType.HostList]: DashboardHostListComponent,
   [DashboardComponentType.ProxmoxNodeList]: DashboardProxmoxNodeListComponent,
   [DashboardComponentType.ProxmoxGuestList]: DashboardProxmoxGuestListComponent,
+  [DashboardComponentType.VMwareHostList]: DashboardVMwareHostListComponent,
+  [DashboardComponentType.VMwareVirtualMachineList]:
+    DashboardVMwareVirtualMachineListComponent,
   [DashboardComponentType.DockerSwarmNodeList]:
     DashboardDockerSwarmNodeListComponent,
   [DashboardComponentType.DockerSwarmServiceList]:

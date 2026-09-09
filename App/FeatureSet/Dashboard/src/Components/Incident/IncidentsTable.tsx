@@ -668,6 +668,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             _id: true,
             projectId: true,
           },
+          vmwareVCenters: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
           cephClusters: {
             name: true,
             _id: true,
@@ -835,6 +840,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 _id: true,
                 projectId: true,
               },
+              vmwareVCenters: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
               cephClusters: {
                 name: true,
                 _id: true,
@@ -869,6 +879,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                   dockerHosts={item.dockerHosts || []}
                   podmanHosts={item.podmanHosts || []}
                   proxmoxClusters={item.proxmoxClusters || []}
+                  vmwareVCenters={item.vmwareVCenters || []}
                   cephClusters={item.cephClusters || []}
                   dockerSwarmClusters={item.dockerSwarmClusters || []}
                   iotFleets={item.iotFleets || []}

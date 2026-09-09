@@ -65,6 +65,7 @@ import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster"
 import Host from "Common/Models/DatabaseModels/Host";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Service from "Common/Models/DatabaseModels/Service";
 import AffectedResourcesPicker, {
@@ -914,6 +915,9 @@ const IncidentView: FunctionComponent<
                       proxmoxClusters={
                         values.proxmoxClusters as Array<ProxmoxCluster>
                       }
+                      vmwareVCenters={
+                        values.vmwareVCenters as Array<VMwareVCenter>
+                      }
                       cephClusters={values.cephClusters as Array<CephCluster>}
                       dockerSwarmClusters={
                         values.dockerSwarmClusters as Array<DockerSwarmCluster>
@@ -927,6 +931,7 @@ const IncidentView: FunctionComponent<
                         "DockerHost",
                         "PodmanHost",
                         "ProxmoxCluster",
+                        "VMwareVCenter",
                         "CephCluster",
                         "DockerSwarmCluster",
                         "IoTFleet",
@@ -954,6 +959,7 @@ const IncidentView: FunctionComponent<
                         dockerHosts: payload.dockerHosts,
                         podmanHosts: payload.podmanHosts,
                         proxmoxClusters: payload.proxmoxClusters,
+                        vmwareVCenters: payload.vmwareVCenters,
                         cephClusters: payload.cephClusters,
                         dockerSwarmClusters: payload.dockerSwarmClusters,
                         iotFleets: payload.iotFleets,
@@ -1005,6 +1011,15 @@ const IncidentView: FunctionComponent<
               },
               {
                 field: { proxmoxClusters: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { vmwareVCenters: true },
                 title: "",
                 fieldType: FormFieldSchemaType.Text,
                 required: false,
@@ -1096,6 +1111,10 @@ const IncidentView: FunctionComponent<
                       name: true,
                       _id: true,
                     },
+                    vmwareVCenters: {
+                      name: true,
+                      _id: true,
+                    },
                     cephClusters: {
                       name: true,
                       _id: true,
@@ -1125,6 +1144,7 @@ const IncidentView: FunctionComponent<
                         dockerHosts={item.dockerHosts || []}
                         podmanHosts={item.podmanHosts || []}
                         proxmoxClusters={item.proxmoxClusters || []}
+                        vmwareVCenters={item.vmwareVCenters || []}
                         cephClusters={item.cephClusters || []}
                         dockerSwarmClusters={item.dockerSwarmClusters || []}
                         iotFleets={item.iotFleets || []}

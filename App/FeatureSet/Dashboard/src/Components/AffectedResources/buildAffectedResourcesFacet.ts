@@ -4,6 +4,7 @@ import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -30,7 +31,7 @@ import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
  * Builds a unified "Affected Resources" facet that lets the user search and
  * filter Incidents / Alerts / Scheduled Maintenance by *any* attached
  * resource type — Monitor, Service, Host, Kubernetes Cluster, Docker Host,
- * Podman Host, Proxmox / Ceph / Docker Swarm cluster, IoT Fleet and — for
+ * Podman Host, Proxmox / Ceph / Docker Swarm cluster, vCenter, IoT Fleet and — for
  * Scheduled Maintenance only — Network Site.
  *
  * The chip's value encoding is `${type}:${id}` so multiple resource types
@@ -52,6 +53,7 @@ type AffectedResourceType =
   | "dockerHost"
   | "podmanHost"
   | "proxmoxCluster"
+  | "vmwareVCenter"
   | "cephCluster"
   | "dockerSwarmCluster"
   | "iotFleet"
@@ -107,6 +109,12 @@ const RESOURCE_TYPES: Record<AffectedResourceType, ResourceTypeConfig> = {
     icon: IconProp.Proxmox,
     modelType: ProxmoxCluster,
   },
+  vmwareVCenter: {
+    label: "vCenter",
+    pluralLabel: "vCenters",
+    icon: IconProp.VMware,
+    modelType: VMwareVCenter,
+  },
   cephCluster: {
     label: "Ceph Cluster",
     pluralLabel: "Ceph Clusters",
@@ -141,6 +149,7 @@ const RESOURCE_ORDER: Array<AffectedResourceType> = [
   "dockerHost",
   "podmanHost",
   "proxmoxCluster",
+  "vmwareVCenter",
   "cephCluster",
   "dockerSwarmCluster",
   "iotFleet",
@@ -169,6 +178,7 @@ const RESOURCE_QUERY_FIELD: Record<
   dockerHost: "dockerHosts",
   podmanHost: "podmanHosts",
   proxmoxCluster: "proxmoxClusters",
+  vmwareVCenter: "vmwareVCenters",
   cephCluster: "cephClusters",
   dockerSwarmCluster: "dockerSwarmClusters",
   iotFleet: "iotFleets",

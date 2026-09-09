@@ -84,6 +84,14 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     documentationCard: "ProxmoxDocumentationCard",
   },
   {
+    label: "vCenters",
+    relativePath: "VMware/VCenters.tsx",
+    modelType: "VMwareVCenter",
+    countState: "clusterCount",
+    countSetter: "setClusterCount",
+    documentationCard: "VMwareDocumentationCard",
+  },
+  {
     label: "Ceph clusters",
     relativePath: "Ceph/Clusters.tsx",
     modelType: "CephCluster",
@@ -190,7 +198,7 @@ describe("empty resource inventory page catalog", () => {
       },
     ).sort();
 
-    expect(RESOURCE_INVENTORY_PAGES).toHaveLength(11);
+    expect(RESOURCE_INVENTORY_PAGES).toHaveLength(12);
     expect(discoveredPages).toEqual(testedPages);
   });
 

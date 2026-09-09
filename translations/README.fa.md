@@ -194,6 +194,7 @@ helm install oneuptime oneuptime/oneuptime
 - **Docker** — یک عامل واحد هر کانتینر را به‌صورت خودکار کشف می‌کند و متریک‌ها و لاگ‌ها را می‌فرستد. [مستندات ←](/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
 - **Podman** — همان کشف خودکار با یک عامل، از طریق سوکت سازگار با Docker در Podman. [مستندات ←](/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
 - **Proxmox** — گره‌ها، ماشین‌های مجازی، کانتینرها، ذخیره‌سازی، وضعیت HA، پوشش پشتیبان‌گیری و سلامت همانندسازی. [مستندات ←](/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
+- **VMware** — vCenter، میزبان‌های ESXi، ماشین‌های مجازی، دیتااستورها، خوشه‌ها، استخرهای منابع و vSAN. [مستندات ←](/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — سلامت خوشه، پیش‌بینی ظرفیت و دید بر OSD/استخر/PG/مانیتور. [مستندات ←](/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
 
 ---

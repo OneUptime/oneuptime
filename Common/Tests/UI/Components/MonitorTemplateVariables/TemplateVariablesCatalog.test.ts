@@ -31,7 +31,7 @@ const ALWAYS_GROUP_TITLES: Array<string> = [
 ];
 
 /*
- * The eight infrastructure/telemetry monitor types that (a) get the single
+ * The nine infrastructure/telemetry monitor types that (a) get the single
  * "Metric" per-type group AND (b) additionally get the "Series Labels" group.
  * Both lists in the source are identical, so one constant covers both.
  */
@@ -43,6 +43,7 @@ const INFRA_TYPES: Array<MonitorType> = [
   MonitorType.Podman,
   MonitorType.DockerSwarm,
   MonitorType.Proxmox,
+  MonitorType.VMware,
   MonitorType.Ceph,
 ];
 

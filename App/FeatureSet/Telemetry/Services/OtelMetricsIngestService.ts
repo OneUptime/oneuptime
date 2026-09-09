@@ -73,6 +73,11 @@ import CephResourceService, {
   CephResourceLatestMetric,
 } from "Common/Server/Services/CephResourceService";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
+import VMwareResourceService, {
+  ParsedVMwareResource,
+  VMwareResourceLatestMetric,
+} from "Common/Server/Services/VMwareResourceService";
+import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
 import CephClusterService from "Common/Server/Services/CephClusterService";
 import IoTDeviceService, {
   ParsedIoTDevice,
@@ -100,6 +105,17 @@ import {
   deriveProxmoxClusterSnapshotExtras,
   deriveCephClusterSnapshotExtras,
 } from "Common/Server/Utils/Telemetry/ProxmoxCephSnapshotScan";
+import {
+  VMWARE_SNAPSHOT_METRIC_NAMES,
+  VMwareResourceBufferEntry,
+  VMwareVCenterSnapshotBufferEntry,
+  VMwareVCenterSnapshotExtras,
+  bufferVMwareSnapshotMetric,
+  computeVMwareIsPoweredOn,
+  deriveVMwareResourceLatestMetric,
+  deriveVMwareVCenterSnapshotExtras,
+  toVMwareResourceAttributeMap,
+} from "Common/Server/Utils/Telemetry/VMwareSnapshotScan";
 import {
   IOT_SNAPSHOT_METRIC_NAMES,
   IoTDeviceBufferEntry,
@@ -294,6 +310,12 @@ const CLOUD_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set(
  * Common/Server/Utils/Telemetry/ProxmoxCephSnapshotScan.ts — this
  * service only walks the OTLP payload and flushes the folded buffers
  * to the Proxmox/Ceph services below.
+ *
+ * The VMware snapshot scan (vcenter.* allow-list, resource-attribute
+ * identity resolution, the summed-count fold, powered-on inference and
+ * the vCenter-extras derive) is the sibling pure module
+ * Common/Server/Utils/Telemetry/VMwareSnapshotScan.ts, flushed to
+ * VMwareResourceService / VMwareVCenterService the same way.
  */
 
 interface ResourceMetricBufferEntry {
@@ -818,6 +840,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         string,
         ProxmoxClusterSnapshotBufferEntry
       > = new Map();
+      const vmwareResourceMetricsBuffer: Map<
+        string,
+        Map<string, VMwareResourceBufferEntry>
+      > = new Map();
+      const vmwareVCenterSnapshotBuffer: Map<
+        string,
+        VMwareVCenterSnapshotBufferEntry
+      > = new Map();
       const cephResourceMetricsBuffer: Map<
         string,
         Map<string, CephResourceBufferEntry>
@@ -902,21 +932,24 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
           /*
            * Auto-discover Kubernetes cluster, Docker host, Proxmox
-           * cluster and Ceph cluster from resource attributes. The
-           * lookups are independent — they read different attributes
-           * and don't share state — so issue them concurrently to
-           * collapse per-resource latency. autoDiscoverHost still has
-           * to wait below because it consumes the first two ids.
+           * cluster, VMware vCenter and Ceph cluster from resource
+           * attributes. The lookups are independent — they read
+           * different attributes and don't share state — so issue them
+           * concurrently to collapse per-resource latency.
+           * autoDiscoverHost still has to wait below because it
+           * consumes the first two ids.
            */
           const [
             kubernetesClusterId,
             dockerHostId,
             podmanHostId,
             proxmoxClusterId,
+            vmwareVCenterId,
             cephClusterId,
             dockerSwarmClusterId,
             iotFleetId,
           ]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
@@ -941,6 +974,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               projectId,
               attributes: resourceAttributes_raw,
             }),
+            this.autoDiscoverVMwareVCenter({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
             this.autoDiscoverCephCluster({
               projectId,
               attributes: resourceAttributes_raw,
@@ -954,6 +991,17 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             }),
           ]);
+
+          /*
+           * VMware identity lives in the RESOURCE attributes (one OTLP
+           * resource per vSphere object), so resolve the unprefixed
+           * attribute map once per resource block rather than once per
+           * datapoint. null when this block is not a vCenter batch.
+           */
+          const vmwareResourceAttributes: Record<string, unknown> | null =
+            vmwareVCenterId
+              ? toVMwareResourceAttributeMap(resourceAttributes_raw)
+              : null;
 
           /*
            * Generic Host auto-discovery. Pre-scan the resource's
@@ -1011,6 +1059,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               podmanHostId,
               kubernetesClusterId,
               proxmoxClusterId,
+              vmwareVCenterId,
               cephClusterId,
               dockerSwarmClusterId,
               serverlessFunctionId,
@@ -1448,6 +1497,36 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         }
 
                         /*
+                         * VMware identity lives in the RESOURCE
+                         * attributes (the vcenter receiver emits one
+                         * resource per vSphere object); the buffer
+                         * function takes the per-block attribute map
+                         * plus the datapoint for its fan-out dimensions.
+                         * Like Proxmox / Ceph this deliberately runs
+                         * BEFORE the pipeline rules: the inventory must
+                         * reflect actual vSphere state regardless of
+                         * long-term storage choices, and the powered-on
+                         * inference reads the complete set of VM series
+                         * in the collection — a Drop rule on
+                         * vcenter.vm.cpu.* would otherwise flip every
+                         * VM to "powered off".
+                         */
+                        if (
+                          vmwareVCenterId &&
+                          vmwareResourceAttributes &&
+                          VMWARE_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          bufferVMwareSnapshotMetric({
+                            vcenterIdStr: vmwareVCenterId.toString(),
+                            metricName,
+                            resourceAttributes: vmwareResourceAttributes,
+                            datapoint: datapoint as JSONObject,
+                            resourceBuffer: vmwareResourceMetricsBuffer,
+                            vcenterBuffer: vmwareVCenterSnapshotBuffer,
+                          });
+                        }
+
+                        /*
                          * Build ONLY the fields the pipeline rule engine can
                          * observe: `name`, `attributes`, `attributeKeys`.
                          * MetricPipelineRuleService provably reads and
@@ -1630,6 +1709,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         projectId,
         resourceBuffer: proxmoxResourceMetricsBuffer,
         clusterBuffer: proxmoxClusterSnapshotBuffer,
+      });
+
+      await this.flushVMwareSnapshotBuffers({
+        projectId,
+        resourceBuffer: vmwareResourceMetricsBuffer,
+        vcenterBuffer: vmwareVCenterSnapshotBuffer,
       });
 
       await this.flushCephSnapshotBuffers({
@@ -3033,6 +3118,100 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       } catch (err) {
         logger.warn(
           `Proxmox snapshot writeback (cluster) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
+  /*
+   * Drain the VMware buffers: inventory upsert + latest-metric mirror,
+   * then the VMwareVCenter snapshot columns. The count columns are
+   * computed from the SAME buffer the inventory rows were upserted
+   * from — single-source rule, so the vCenter list counts and the
+   * sidebar badges can never drift. Failures are logged and swallowed:
+   * snapshots are best-effort and must never affect ClickHouse ingest.
+   */
+  private static async flushVMwareSnapshotBuffers(data: {
+    projectId: ObjectID;
+    resourceBuffer: Map<string, Map<string, VMwareResourceBufferEntry>>;
+    vcenterBuffer: Map<string, VMwareVCenterSnapshotBufferEntry>;
+  }): Promise<void> {
+    const vcenterIdStrs: Set<string> = new Set<string>([
+      ...data.resourceBuffer.keys(),
+      ...data.vcenterBuffer.keys(),
+    ]);
+
+    for (const vcenterIdStr of vcenterIdStrs) {
+      const byKey: Map<string, VMwareResourceBufferEntry> | undefined =
+        data.resourceBuffer.get(vcenterIdStr);
+      const entries: Array<VMwareResourceBufferEntry> = byKey
+        ? Array.from(byKey.values())
+        : [];
+      const snap: VMwareVCenterSnapshotBufferEntry | undefined =
+        data.vcenterBuffer.get(vcenterIdStr);
+
+      if (entries.length > 0) {
+        try {
+          const resources: Array<ParsedVMwareResource> = entries.map(
+            (e: VMwareResourceBufferEntry) => {
+              return {
+                kind: e.kind,
+                externalId: e.externalId,
+                name: e.name,
+                datacenterName: e.datacenterName,
+                clusterName: e.clusterName,
+                hostName: e.hostName,
+                resourcePoolName: e.resourcePoolName,
+                resourcePoolPath: e.resourcePoolPath,
+                virtualAppName: e.virtualAppName,
+                vmInstanceUuid: e.vmInstanceUuid,
+                isTemplate: e.isTemplate,
+                isPoweredOn: computeVMwareIsPoweredOn(e),
+                lastSeenAt: e.observedAt,
+              };
+            },
+          );
+          await VMwareResourceService.bulkUpsert({
+            projectId: data.projectId,
+            vmwareVCenterId: new ObjectID(vcenterIdStr),
+            resources,
+          });
+
+          const metrics: Array<VMwareResourceLatestMetric> = entries.map(
+            (e: VMwareResourceBufferEntry) => {
+              return deriveVMwareResourceLatestMetric(e);
+            },
+          );
+          await VMwareResourceService.bulkUpdateLatestMetrics({
+            projectId: data.projectId,
+            vmwareVCenterId: new ObjectID(vcenterIdStr),
+            metrics,
+          });
+        } catch (err) {
+          logger.warn(
+            `VMware snapshot writeback (inventory) failed for vCenter ${vcenterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      try {
+        /*
+         * Counts are only written when the batch carried at least one
+         * resource of that kind — never zero a count on a partial batch
+         * (deriveVMwareVCenterSnapshotExtras owns that contract).
+         */
+        const extras: VMwareVCenterSnapshotExtras =
+          deriveVMwareVCenterSnapshotExtras(entries, snap);
+
+        if (Object.keys(extras).length > 0) {
+          await VMwareVCenterService.updateLastSeen(
+            new ObjectID(vcenterIdStr),
+            extras,
+          );
+        }
+      } catch (err) {
+        logger.warn(
+          `VMware snapshot writeback (vCenter) failed for vCenter ${vcenterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }

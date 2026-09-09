@@ -271,10 +271,12 @@ describe("BillingService payment-method reads", () => {
     let signalSepaStarted: () => void = () => {
       return;
     };
-    const sepaPending: Promise<{ data: [] }> = new Promise((resolve) => {
-      finishSepa = resolve;
-    });
-    const sepaStarted: Promise<void> = new Promise((resolve) => {
+    const sepaPending: Promise<{ data: [] }> = new Promise(
+      (resolve: (value: { data: [] }) => void) => {
+        finishSepa = resolve;
+      },
+    );
+    const sepaStarted: Promise<void> = new Promise((resolve: () => void) => {
       signalSepaStarted = resolve;
     });
     list.mockImplementation((params: Stripe.PaymentMethodListParams) => {

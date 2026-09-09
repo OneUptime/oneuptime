@@ -466,6 +466,161 @@ export default class SeriesDebugHints {
     return commands;
   }
 
+  /**
+   * govc (the vSphere CLI from the govmomi project) against the vCenter
+   * the agent scrapes. Every command below is an `info` / `usage` /
+   * `ls` read; govc takes its endpoint and read-only credentials from
+   * GOVC_URL / GOVC_USERNAME / GOVC_PASSWORD, so nothing here needs a
+   * host argument.
+   *
+   * Identity comes from the OTel `vcenter` receiver's RESOURCE
+   * attributes, which arrive `resource.`-prefixed; findLabelValue checks
+   * both spellings. Most specific object first, so the first command an
+   * engineer sees is about the thing that breached.
+   */
+  private static vmwareCommands(
+    seriesLabels: JSONObject,
+  ): Array<SeriesDebugCommand> {
+    const commands: Array<SeriesDebugCommand> = [];
+
+    const vm: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "vcenter.vm.name",
+    ]);
+    const vmTemplate: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "vcenter.vm_template.name",
+    ]);
+    const host: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "vcenter.host.name",
+    ]);
+    const datastore: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "vcenter.datastore.name",
+    ]);
+    const cluster: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "vcenter.cluster.name",
+    ]);
+    const datacenter: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "vcenter.datacenter.name",
+    ]);
+    const resourcePoolPath: string = SeriesLabelDisplay.findLabelValue(
+      seriesLabels,
+      ["vcenter.resource_pool.inventory_path"],
+    );
+    const vcenter: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      "vmware.vcenter.name",
+    ]);
+
+    if (vm) {
+      const quoted: string = SeriesDebugHints.quoteForShell(vm);
+
+      commands.push({
+        purpose:
+          "Power state, host, resource pool, datastores and networks of the VM",
+        command: `govc vm.info -r ${quoted}`,
+      });
+      commands.push({
+        purpose:
+          "The VM's virtual disks and NICs (for a per-object latency or drop)",
+        command: `govc device.info -vm ${quoted}`,
+      });
+    }
+
+    if (vmTemplate) {
+      commands.push({
+        purpose: "Datastore placement and size of the VM template",
+        command: `govc vm.info -r ${SeriesDebugHints.quoteForShell(
+          vmTemplate,
+        )}`,
+      });
+    }
+
+    if (host) {
+      const quoted: string = SeriesDebugHints.quoteForShell(host);
+
+      commands.push({
+        purpose:
+          "Connection state, CPU/memory usage, uptime and VM count of the ESXi host",
+        command: `govc host.info ${quoted}`,
+      });
+      /*
+       * esxtop is the host-local view: per-VM %RDY, ballooning, swapping
+       * and per-NIC/per-disk counters that vCenter only rolls up. Run over
+       * SSH on the host itself; it is interactive and read-only.
+       */
+      commands.push({
+        purpose:
+          "Live per-VM CPU ready, memory and disk/network counters on the host (over SSH; c/m/d/n switch views)",
+        command: `esxtop`,
+      });
+    }
+
+    if (datastore) {
+      commands.push({
+        purpose:
+          "Capacity, free space, type and the hosts mounting the datastore",
+        command: `govc datastore.info ${SeriesDebugHints.quoteForShell(
+          datastore,
+        )}`,
+      });
+    }
+
+    if (cluster) {
+      const quotedCluster: string = SeriesDebugHints.quoteForShell(cluster);
+
+      commands.push({
+        purpose: "Effective vs. total CPU and memory of the cluster",
+        command: `govc cluster.usage ${quotedCluster}`,
+      });
+
+      /*
+       * The host folder path needs the datacenter; without it govc's
+       * default datacenter applies and a multi-DC vCenter would list the
+       * wrong cluster, so the listing is only offered when both are known.
+       */
+      if (datacenter) {
+        commands.push({
+          purpose:
+            "The hosts in the cluster with their connection and power state",
+          command: `govc ls -l /${SeriesDebugHints.quoteForShell(
+            datacenter,
+          )}/host/${quotedCluster}`,
+        });
+      }
+    }
+
+    if (resourcePoolPath) {
+      commands.push({
+        purpose:
+          "Reservation, limit, shares and current usage of the resource pool",
+        command: `govc pool.info ${SeriesDebugHints.quoteForShell(
+          resourcePoolPath,
+        )}`,
+      });
+    }
+
+    if (datacenter) {
+      commands.push({
+        purpose: "Host, VM, cluster and datastore counts for the datacenter",
+        command: `govc datacenter.info ${SeriesDebugHints.quoteForShell(
+          datacenter,
+        )}`,
+      });
+    }
+
+    /*
+     * A series that names only the vCenter (an ungrouped monitor whose
+     * labels happen to carry the agent's identity attribute) still gets a
+     * first command: is the endpoint even answering, and as what?
+     */
+    if (commands.length === 0 && vcenter) {
+      commands.push({
+        purpose: "vCenter / ESXi version and whether the SDK endpoint answers",
+        command: `govc about`,
+      });
+    }
+
+    return commands;
+  }
+
   private static cephCommands(
     seriesLabels: JSONObject,
   ): Array<SeriesDebugCommand> {
@@ -547,6 +702,9 @@ export default class SeriesDebugHints {
 
       case MonitorType.Proxmox:
         return SeriesDebugHints.proxmoxCommands(seriesLabels);
+
+      case MonitorType.VMware:
+        return SeriesDebugHints.vmwareCommands(seriesLabels);
 
       case MonitorType.Ceph:
         return SeriesDebugHints.cephCommands(seriesLabels);

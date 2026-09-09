@@ -48,6 +48,7 @@ import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster"
 import Host from "Common/Models/DatabaseModels/Host";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
@@ -884,6 +885,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       proxmoxClusters={
                         values.proxmoxClusters as Array<ProxmoxCluster>
                       }
+                      vmwareVCenters={
+                        values.vmwareVCenters as Array<VMwareVCenter>
+                      }
                       cephClusters={values.cephClusters as Array<CephCluster>}
                       dockerSwarmClusters={
                         values.dockerSwarmClusters as Array<DockerSwarmCluster>
@@ -896,6 +900,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         "DockerHost",
                         "PodmanHost",
                         "ProxmoxCluster",
+                        "VMwareVCenter",
                         "CephCluster",
                         "DockerSwarmCluster",
                         "IoTFleet",
@@ -922,6 +927,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         dockerHosts: payload.dockerHosts,
                         podmanHosts: payload.podmanHosts,
                         proxmoxClusters: payload.proxmoxClusters,
+                        vmwareVCenters: payload.vmwareVCenters,
                         cephClusters: payload.cephClusters,
                         dockerSwarmClusters: payload.dockerSwarmClusters,
                         iotFleets: payload.iotFleets,
@@ -964,6 +970,15 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               {
                 field: { proxmoxClusters: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { vmwareVCenters: true },
                 title: "",
                 fieldType: FormFieldSchemaType.Text,
                 required: false,
@@ -1035,6 +1050,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       name: true,
                       _id: true,
                     },
+                    vmwareVCenters: {
+                      name: true,
+                      _id: true,
+                    },
                     cephClusters: {
                       name: true,
                       _id: true,
@@ -1063,6 +1082,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         dockerHosts={item.dockerHosts || []}
                         podmanHosts={item.podmanHosts || []}
                         proxmoxClusters={item.proxmoxClusters || []}
+                        vmwareVCenters={item.vmwareVCenters || []}
                         cephClusters={item.cephClusters || []}
                         dockerSwarmClusters={item.dockerSwarmClusters || []}
                         iotFleets={item.iotFleets || []}

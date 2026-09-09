@@ -163,6 +163,9 @@ const PodmanRoutes: LazyRoutes = lazy(() => {
 const ProxmoxRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/ProxmoxRoutes");
 });
+const VMwareRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/VMwareRoutes");
+});
 const IoTRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/IoTRoutes");
 });
@@ -634,6 +637,12 @@ const App: () => JSX.Element = () => {
             <PageRoute
               path={RouteMap[PageMap.PROXMOX_ROOT]?.toString() || ""}
               element={<ProxmoxRoutes {...commonPageProps} />}
+            />
+
+            {/* VMware */}
+            <PageRoute
+              path={RouteMap[PageMap.VMWARE_ROOT]?.toString() || ""}
+              element={<VMwareRoutes {...commonPageProps} />}
             />
 
             {/* IoT */}

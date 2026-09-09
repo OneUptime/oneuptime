@@ -72,6 +72,9 @@ import MonitorStepPodmanMonitor, {
 import MonitorStepProxmoxMonitor, {
   MonitorStepProxmoxMonitorUtil,
 } from "./MonitorStepProxmoxMonitor";
+import MonitorStepVMwareMonitor, {
+  MonitorStepVMwareMonitorUtil,
+} from "./MonitorStepVMwareMonitor";
 import MonitorStepDockerSwarmMonitor, {
   MonitorStepDockerSwarmMonitorUtil,
 } from "./MonitorStepDockerSwarmMonitor";
@@ -228,6 +231,9 @@ export interface MonitorStepType {
   // Proxmox monitor
   proxmoxMonitor?: MonitorStepProxmoxMonitor | undefined;
 
+  // VMware monitor
+  vmwareMonitor?: MonitorStepVMwareMonitor | undefined;
+
   // Docker Swarm monitor
   dockerSwarmMonitor?: MonitorStepDockerSwarmMonitor | undefined;
 
@@ -282,6 +288,7 @@ export default class MonitorStep extends DatabaseProperty {
       hostMonitor: undefined,
       podmanMonitor: undefined,
       proxmoxMonitor: undefined,
+      vmwareMonitor: undefined,
       dockerSwarmMonitor: undefined,
       cephMonitor: undefined,
       iotMonitor: undefined,
@@ -368,6 +375,7 @@ export default class MonitorStep extends DatabaseProperty {
       hostMonitor: undefined,
       podmanMonitor: undefined,
       proxmoxMonitor: undefined,
+      vmwareMonitor: undefined,
       dockerSwarmMonitor: undefined,
       cephMonitor: undefined,
       iotMonitor: undefined,
@@ -403,6 +411,7 @@ export default class MonitorStep extends DatabaseProperty {
       data.hostMonitor?.metricViewConfig ||
       data.podmanMonitor?.metricViewConfig ||
       data.proxmoxMonitor?.metricViewConfig ||
+      data.vmwareMonitor?.metricViewConfig ||
       data.cephMonitor?.metricViewConfig
     );
   }
@@ -684,6 +693,13 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setVMwareMonitor(
+    vmwareMonitor: MonitorStepVMwareMonitor,
+  ): MonitorStep {
+    this.data!.vmwareMonitor = vmwareMonitor;
+    return this;
+  }
+
   public setDockerSwarmMonitor(
     dockerSwarmMonitor: MonitorStepDockerSwarmMonitor,
   ): MonitorStep {
@@ -741,6 +757,7 @@ export default class MonitorStep extends DatabaseProperty {
         hostMonitor: undefined,
         podmanMonitor: undefined,
         proxmoxMonitor: undefined,
+        vmwareMonitor: undefined,
         dockerSwarmMonitor: undefined,
         cephMonitor: undefined,
         iotMonitor: undefined,
@@ -996,6 +1013,16 @@ export default class MonitorStep extends DatabaseProperty {
       }
     }
 
+    if (monitorType === MonitorType.VMware) {
+      if (!value.data.vmwareMonitor) {
+        return "VMware monitor configuration is required";
+      }
+
+      if (!value.data.vmwareMonitor.vcenterIdentifier) {
+        return "vCenter is required";
+      }
+    }
+
     if (monitorType === MonitorType.DockerSwarm) {
       if (!value.data.dockerSwarmMonitor) {
         return "Docker Swarm monitor configuration is required";
@@ -1133,6 +1160,9 @@ export default class MonitorStep extends DatabaseProperty {
             : undefined,
           proxmoxMonitor: this.data.proxmoxMonitor
             ? MonitorStepProxmoxMonitorUtil.toJSON(this.data.proxmoxMonitor)
+            : undefined,
+          vmwareMonitor: this.data.vmwareMonitor
+            ? MonitorStepVMwareMonitorUtil.toJSON(this.data.vmwareMonitor)
             : undefined,
           dockerSwarmMonitor: this.data.dockerSwarmMonitor
             ? MonitorStepDockerSwarmMonitorUtil.toJSON(
@@ -1343,6 +1373,9 @@ export default class MonitorStep extends DatabaseProperty {
       proxmoxMonitor: json["proxmoxMonitor"]
         ? (json["proxmoxMonitor"] as JSONObject)
         : undefined,
+      vmwareMonitor: json["vmwareMonitor"]
+        ? (json["vmwareMonitor"] as JSONObject)
+        : undefined,
       dockerSwarmMonitor: json["dockerSwarmMonitor"]
         ? (json["dockerSwarmMonitor"] as JSONObject)
         : undefined,
@@ -1397,6 +1430,7 @@ export default class MonitorStep extends DatabaseProperty {
         hostMonitor: Zod.any().optional(),
         podmanMonitor: Zod.any().optional(),
         proxmoxMonitor: Zod.any().optional(),
+        vmwareMonitor: Zod.any().optional(),
         dockerSwarmMonitor: Zod.any().optional(),
         cephMonitor: Zod.any().optional(),
         iotMonitor: Zod.any().optional(),

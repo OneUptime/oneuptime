@@ -250,6 +250,7 @@ export default class MonitorStepViewModel {
       data.hostMonitor?.rollingTime ||
       data.podmanMonitor?.rollingTime ||
       data.proxmoxMonitor?.rollingTime ||
+      data.vmwareMonitor?.rollingTime ||
       data.cephMonitor?.rollingTime
     );
   }
@@ -266,6 +267,7 @@ export default class MonitorStepViewModel {
       MonitorType.Host,
       MonitorType.Podman,
       MonitorType.Proxmox,
+      MonitorType.VMware,
       MonitorType.DockerSwarm,
       MonitorType.Ceph,
       MonitorType.IoTDevice,
@@ -430,6 +432,8 @@ export default class MonitorStepViewModel {
         return MonitorStepViewModel.getHostRows(data);
       case MonitorType.Proxmox:
         return MonitorStepViewModel.getProxmoxRows(data);
+      case MonitorType.VMware:
+        return MonitorStepViewModel.getVMwareRows(data);
       case MonitorType.DockerSwarm:
         return MonitorStepViewModel.getDockerSwarmRows(data);
       case MonitorType.Ceph:
@@ -1620,6 +1624,84 @@ export default class MonitorStepViewModel {
       ...MonitorStepViewModel.getMetricConfigRows(data, {
         metricViewConfig: proxmoxMonitor?.metricViewConfig,
         rollingTime: proxmoxMonitor?.rollingTime,
+      }),
+    ]);
+  }
+
+  private static getVMwareRows(
+    data: MonitorStepType,
+  ): Array<MonitorStepViewRow> {
+    const vmwareMonitor: MonitorStepType["vmwareMonitor"] = data.vmwareMonitor;
+
+    /*
+     * One row per VMwareResourceFilters key, in vSphere inventory order.
+     * There is no scope row: the vcenter receiver has no scope attribute
+     * (objects are told apart by metric name and resource attributes), so
+     * the filters below ARE the scope.
+     */
+    return compact([
+      {
+        key: "vcenterIdentifier",
+        title: "vCenter",
+        description:
+          "The vCenter Server (or standalone ESXi host) this monitor watches.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(vmwareMonitor?.vcenterIdentifier),
+        placeholder: "No vCenter selected",
+      },
+      optional({
+        key: "vmwareDatacenterName",
+        title: "Datacenter",
+        description: "Only objects in this vSphere datacenter are monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(vmwareMonitor?.resourceFilters?.datacenterName),
+        placeholder: "All datacenters",
+      }),
+      optional({
+        key: "vmwareClusterName",
+        title: "Cluster",
+        description: "Only objects in this vSphere cluster are monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(vmwareMonitor?.resourceFilters?.clusterName),
+        placeholder: "All clusters",
+      }),
+      optional({
+        key: "vmwareHostName",
+        title: "ESXi Host",
+        description:
+          "Only this ESXi host's own series, and the VMs running on it, are monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(vmwareMonitor?.resourceFilters?.hostName),
+        placeholder: "All hosts",
+      }),
+      optional({
+        key: "vmwareVmName",
+        title: "Virtual Machine",
+        description: "Only this virtual machine is monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(vmwareMonitor?.resourceFilters?.vmName),
+        placeholder: "All virtual machines",
+      }),
+      optional({
+        key: "vmwareDatastoreName",
+        title: "Datastore",
+        description: "Only this datastore is monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(vmwareMonitor?.resourceFilters?.datastoreName),
+        placeholder: "All datastores",
+      }),
+      optional({
+        key: "vmwareResourcePoolPath",
+        title: "Resource Pool",
+        description:
+          "Only the resource pool at this inventory path is monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(vmwareMonitor?.resourceFilters?.resourcePoolPath),
+        placeholder: "All resource pools",
+      }),
+      ...MonitorStepViewModel.getMetricConfigRows(data, {
+        metricViewConfig: vmwareMonitor?.metricViewConfig,
+        rollingTime: vmwareMonitor?.rollingTime,
       }),
     ]);
   }

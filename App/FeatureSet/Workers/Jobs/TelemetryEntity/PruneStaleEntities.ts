@@ -51,15 +51,26 @@ const ENTITY_TTL_HOURS: ReadonlyMap<EntityType, number> = new Map<
   [EntityType.Container, 24],
   [EntityType.Process, 24],
   [EntityType.ProxmoxGuest, 24],
+  /*
+   * A VM is the vSphere analog of a Proxmox guest: cloned, deleted and
+   * re-created daily, so it ages out on the same 24h clock. ESXi hosts,
+   * clusters and datastores are weekly like k8s nodes/namespaces; the
+   * vCenter itself is a long-lived identity like the other cluster roots.
+   */
+  [EntityType.VMwareVirtualMachine, 24],
   [EntityType.KubernetesNode, 7 * 24],
   [EntityType.KubernetesNamespace, 7 * 24],
   [EntityType.ProxmoxNode, 7 * 24],
+  [EntityType.VMwareHost, 7 * 24],
+  [EntityType.VMwareCluster, 7 * 24],
+  [EntityType.VMwareDatastore, 7 * 24],
   [EntityType.TelemetrySdk, 30 * 24],
   [EntityType.Service, 30 * 24],
   [EntityType.Host, 30 * 24],
   [EntityType.KubernetesCluster, 30 * 24],
   [EntityType.ProxmoxCluster, 30 * 24],
   [EntityType.CephCluster, 30 * 24],
+  [EntityType.VMwareVCenter, 30 * 24],
   /*
    * Discovered from `docker.swarm.cluster.name` on agent telemetry, so it is
    * bumped like any other discovered row and has to age out like one. It was

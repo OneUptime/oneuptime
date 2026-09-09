@@ -83,6 +83,8 @@ import MetricMonitorResponse, {
   KubernetesResourceBreakdown,
   ProxmoxAffectedResource,
   ProxmoxResourceBreakdown,
+  VMwareAffectedResource,
+  VMwareResourceBreakdown,
   CephAffectedResource,
   CephResourceBreakdown,
   DockerSwarmAffectedResource,
@@ -98,11 +100,13 @@ import MonitorStepDockerMonitor from "../../../Types/Monitor/MonitorStepDockerMo
 import MonitorStepHostMonitor from "../../../Types/Monitor/MonitorStepHostMonitor";
 import MonitorStepPodmanMonitor from "../../../Types/Monitor/MonitorStepPodmanMonitor";
 import MonitorStepProxmoxMonitor from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
+import MonitorStepVMwareMonitor from "../../../Types/Monitor/MonitorStepVMwareMonitor";
 import MonitorStepCephMonitor from "../../../Types/Monitor/MonitorStepCephMonitor";
 import MonitorStepDockerSwarmMonitor from "../../../Types/Monitor/MonitorStepDockerSwarmMonitor";
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
 import { getKubernetesMetricByMetricName } from "../../../Types/Monitor/KubernetesMetricCatalog";
 import { getProxmoxMetricByMetricName } from "../../../Types/Monitor/ProxmoxMetricCatalog";
+import { getVMwareMetricByMetricName } from "../../../Types/Monitor/VMwareMetricCatalog";
 import { getCephMetricByMetricName } from "../../../Types/Monitor/CephMetricCatalog";
 import { getDockerSwarmMetricByMetricName } from "../../../Types/Monitor/DockerSwarmMetricCatalog";
 
@@ -482,7 +486,7 @@ ${contextBlock}
   }
 
   /**
-   * For metric-backed monitors (Metrics/Kubernetes/Docker/Proxmox/Ceph)
+   * For metric-backed monitors (Metrics/Kubernetes/Docker/Proxmox/VMware/Ceph)
    * with per-series aggregated results, re-evaluate the matched criteria
    * once per series and return one entry per series that breached.
    * Returns an empty array when the monitor is not series-aware or
@@ -1103,6 +1107,7 @@ ${contextBlock}
       input.monitor.monitorType === MonitorType.Podman ||
       input.monitor.monitorType === MonitorType.DockerSwarm ||
       input.monitor.monitorType === MonitorType.Proxmox ||
+      input.monitor.monitorType === MonitorType.VMware ||
       input.monitor.monitorType === MonitorType.Ceph ||
       input.monitor.monitorType === MonitorType.IoTDevice
     ) {
@@ -1280,6 +1285,11 @@ ${contextBlock}
     // Handle Proxmox monitors with resource context
     if (input.monitor.monitorType === MonitorType.Proxmox) {
       return MonitorCriteriaEvaluator.buildProxmoxRootCauseContext(input);
+    }
+
+    // Handle VMware monitors with vCenter resource context
+    if (input.monitor.monitorType === MonitorType.VMware) {
+      return MonitorCriteriaEvaluator.buildVMwareRootCauseContext(input);
     }
 
     // Handle Docker Swarm monitors with resource context
@@ -2013,7 +2023,7 @@ ${contextBlock}
    * shown here can never disagree with the metric name shown beside it.
    */
   private static getPlatformMetricUnit(input: {
-    platform: "kubernetes" | "proxmox" | "dockerSwarm" | "ceph";
+    platform: "kubernetes" | "proxmox" | "vmware" | "dockerSwarm" | "ceph";
     metricName: string;
   }): string | undefined {
     switch (input.platform) {
@@ -2021,6 +2031,14 @@ ${contextBlock}
         return getKubernetesMetricByMetricName(input.metricName)?.unit;
       case "proxmox":
         return getProxmoxMetricByMetricName(input.metricName)?.unit;
+      case "vmware":
+        /*
+         * The vcenter receiver's utilization metrics are already 0–100
+         * percentages (unit "%"), never [0, 1] ratios — the catalog
+         * says "%" and the formatter renders it as-is, so 92.5 reads
+         * "92.50%" and never "9250.00%".
+         */
+        return getVMwareMetricByMetricName(input.metricName)?.unit;
       case "dockerSwarm":
         return getDockerSwarmMetricByMetricName(input.metricName)?.unit;
       case "ceph":
@@ -2037,7 +2055,7 @@ ${contextBlock}
    * it is the one number in the row a reader scans for.
    */
   private static formatPlatformResourceValue(input: {
-    platform: "kubernetes" | "proxmox" | "dockerSwarm" | "ceph";
+    platform: "kubernetes" | "proxmox" | "vmware" | "dockerSwarm" | "ceph";
     metricName: string;
     value: number;
   }): string {
@@ -2607,6 +2625,278 @@ ${contextBlock}
             `| ${resourceCell} | ${typeCell} | ${nodeCell} | ${MonitorCriteriaEvaluator.formatPlatformResourceValue(
               {
                 platform: "proxmox",
+                metricName: breakdown.metricName,
+                value: resource.metricValue,
+              },
+            )} |`,
+          );
+        }
+
+        if (sortedResources.length > 10) {
+          resourceLines.push(
+            `\n*... and ${sortedResources.length - 10} more affected resources*`,
+          );
+        }
+
+        sections.push(
+          `\n\n**Affected Resources** (${sortedResources.length} total)\n\n${resourceLines.join("\n")}`,
+        );
+        renderedBreakdownTable = true;
+      }
+    }
+
+    // Metric results summary (fallback context when no table rendered)
+    if (
+      !renderedBreakdownTable &&
+      metricResponse.metricResult &&
+      metricResponse.metricResult.length > 0
+    ) {
+      const resultDetails: Array<string> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            `- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+      }
+    }
+
+    return sections.length > 0 ? sections.join("\n") : null;
+  }
+
+  /*
+   * Which vSphere object one VMware breakdown row describes, resolved
+   * from the identity attributes the vcenter receiver stamped on it —
+   * most specific first, in the same order the ingest inventory scan
+   * uses, so the Kind column here and the inventory's `kind` never
+   * disagree about the same series. A VM row carries its parent host
+   * (and often a resource pool), so the VM check must run before the
+   * host and pool checks.
+   */
+  private static getVMwareAffectedResourceKind(
+    resource: VMwareAffectedResource,
+  ): string | undefined {
+    if (resource.vmName || resource.vmId) {
+      return "Virtual Machine";
+    }
+
+    if (resource.resourcePoolPath || resource.resourcePoolName) {
+      return "Resource Pool";
+    }
+
+    if (resource.hostName) {
+      return "Host";
+    }
+
+    if (resource.datastoreName) {
+      return "Datastore";
+    }
+
+    if (resource.clusterName) {
+      return "Cluster";
+    }
+
+    if (resource.datacenterName) {
+      return "Datacenter";
+    }
+
+    return undefined;
+  }
+
+  private static buildVMwareRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+  }): string | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    const breakdown: VMwareResourceBreakdown | undefined =
+      metricResponse.vmwareResourceBreakdown;
+
+    const sections: Array<string> = [];
+
+    // vCenter context
+    const vmwareMonitor: MonitorStepVMwareMonitor | undefined =
+      input.monitorStep.data?.vmwareMonitor;
+
+    if (vmwareMonitor || breakdown) {
+      const vcenterDetails: Array<string> = [];
+      vcenterDetails.push(
+        `- vCenter: ${breakdown?.vcenterName || vmwareMonitor?.vcenterIdentifier || "Unknown"}`,
+      );
+
+      if (breakdown) {
+        vcenterDetails.push(
+          `- Metric: ${breakdown.metricFriendlyName} (\`${breakdown.metricName}\`)`,
+        );
+      } else if (
+        vmwareMonitor &&
+        vmwareMonitor.metricViewConfig?.queryConfigs?.length > 0 &&
+        vmwareMonitor.metricViewConfig.queryConfigs[0]
+      ) {
+        const metricName: string = vmwareMonitor.metricViewConfig
+          .queryConfigs[0].metricQueryData?.filterData?.metricName as string;
+        if (metricName) {
+          vcenterDetails.push(`- Metric: \`${metricName}\``);
+        }
+      }
+
+      /*
+       * The worker maps each resource filter to an equality on the
+       * matching `resource.vcenter.*` attribute; surface the same
+       * filters so the incident shows WHAT was scoped.
+       */
+      if (vmwareMonitor?.resourceFilters?.datacenterName) {
+        vcenterDetails.push(
+          `- Datacenter Filter: ${vmwareMonitor.resourceFilters.datacenterName}`,
+        );
+      }
+
+      if (vmwareMonitor?.resourceFilters?.clusterName) {
+        vcenterDetails.push(
+          `- Cluster Filter: ${vmwareMonitor.resourceFilters.clusterName}`,
+        );
+      }
+
+      if (vmwareMonitor?.resourceFilters?.hostName) {
+        vcenterDetails.push(
+          `- Host Filter: ${vmwareMonitor.resourceFilters.hostName}`,
+        );
+      }
+
+      if (vmwareMonitor?.resourceFilters?.vmName) {
+        vcenterDetails.push(
+          `- Virtual Machine Filter: ${vmwareMonitor.resourceFilters.vmName}`,
+        );
+      }
+
+      if (vmwareMonitor?.resourceFilters?.datastoreName) {
+        vcenterDetails.push(
+          `- Datastore Filter: ${vmwareMonitor.resourceFilters.datastoreName}`,
+        );
+      }
+
+      if (vmwareMonitor?.resourceFilters?.resourcePoolPath) {
+        vcenterDetails.push(
+          `- Resource Pool Filter: ${vmwareMonitor.resourceFilters.resourcePoolPath}`,
+        );
+      }
+
+      sections.push(`**vCenter Details**\n${vcenterDetails.join("\n")}`);
+    }
+
+    // Affected resources (Resource / Kind / Host / Cluster / Value)
+    let renderedBreakdownTable: boolean = false;
+
+    if (breakdown && breakdown.affectedResources.length > 0) {
+      /*
+       * K8s/Proxmox-parity render: drop zero-value rows, worst (highest)
+       * first, top 10. For count metrics filtered to an unhealthy state
+       * (`vcenter.datacenter.host.count{status=red}`) the non-zero rows
+       * ARE the objects with a problem, so the table reads correctly;
+       * a zero row means "nothing in that state" and adds nothing. The
+       * per-series criteria evaluation is what actually alerts; this
+       * table is supplementary context only.
+       */
+      const sortedResources: Array<VMwareAffectedResource> = [
+        ...breakdown.affectedResources,
+      ]
+        .filter((r: VMwareAffectedResource) => {
+          return r.metricValue > 0;
+        })
+        .sort((a: VMwareAffectedResource, b: VMwareAffectedResource) => {
+          return b.metricValue - a.metricValue;
+        });
+
+      /*
+       * Skip the table when no row carries any identity attribute — it
+       * would add nothing. Every vcenter-receiver series carries at
+       * least `vcenter.datacenter.name`, so this only trips on a
+       * breakdown the worker could not attribute at all.
+       */
+      const hasIdentity: boolean = sortedResources.some(
+        (r: VMwareAffectedResource) => {
+          return Boolean(
+            MonitorCriteriaEvaluator.getVMwareAffectedResourceKind(r),
+          );
+        },
+      );
+
+      if (sortedResources.length > 0 && hasIdentity) {
+        const resourcesToShow: Array<VMwareAffectedResource> =
+          sortedResources.slice(0, 10);
+
+        const resourceLines: Array<string> = [];
+        resourceLines.push(`| Resource | Kind | Host | Cluster | Value |`);
+        resourceLines.push(`| --- | --- | --- | --- | --- |`);
+
+        for (const resource of resourcesToShow) {
+          const kind: string | undefined =
+            MonitorCriteriaEvaluator.getVMwareAffectedResourceKind(resource);
+
+          let resourceCell: string = "-";
+          let hostCell: string = "-";
+
+          switch (kind) {
+            case "Virtual Machine":
+              /*
+               * The VM's display name, falling back to its instance
+               * UUID (`vcenter.vm.id`) when the receiver stamped no
+               * name. The Host column carries the ESXi host the VM is
+               * running on.
+               */
+              resourceCell = resource.vmName
+                ? `\`${resource.vmName}\``
+                : `\`${resource.vmId}\``;
+              hostCell = resource.hostName ? `\`${resource.hostName}\`` : "-";
+              break;
+            case "Resource Pool":
+              /*
+               * Pool names are only unique within a parent, so the
+               * inventory path is shown next to the name. The Host
+               * column is the owner host for a pool on a standalone
+               * ESXi host (pools under a cluster show the cluster).
+               */
+              if (resource.resourcePoolName && resource.resourcePoolPath) {
+                resourceCell = `\`${resource.resourcePoolName}\` (\`${resource.resourcePoolPath}\`)`;
+              } else {
+                resourceCell = `\`${resource.resourcePoolPath || resource.resourcePoolName}\``;
+              }
+              hostCell = resource.hostName ? `\`${resource.hostName}\`` : "-";
+              break;
+            case "Host":
+              // The host IS the resource; repeating it in the Host column adds nothing.
+              resourceCell = `\`${resource.hostName}\``;
+              break;
+            case "Datastore":
+              resourceCell = `\`${resource.datastoreName}\``;
+              break;
+            case "Cluster":
+              resourceCell = `\`${resource.clusterName}\``;
+              break;
+            case "Datacenter":
+              resourceCell = `\`${resource.datacenterName}\``;
+              break;
+            default:
+              break;
+          }
+
+          const kindCell: string = kind || "-";
+          const clusterCell: string =
+            kind !== "Cluster" && resource.clusterName
+              ? `\`${resource.clusterName}\``
+              : "-";
+
+          resourceLines.push(
+            `| ${resourceCell} | ${kindCell} | ${hostCell} | ${clusterCell} | ${MonitorCriteriaEvaluator.formatPlatformResourceValue(
+              {
+                platform: "vmware",
                 metricName: breakdown.metricName,
                 value: resource.metricValue,
               },

@@ -87,6 +87,8 @@
       "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",
       "proxmoxDescription": "Övervaka Proxmox-kluster, -noder och -gäster.",
+      "vmwareTitle": "VMware",
+      "vmwareDescription": "Övervaka vCenter, ESXi-värdar, virtuella maskiner och datastores.",
       "cephTitle": "Ceph",
       "cephDescription": "Övervaka Ceph-kluster, OSD:er och pooler.",
       "hostsTitle": "Värdar",

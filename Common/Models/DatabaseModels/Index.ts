@@ -51,6 +51,10 @@ import CephCluster from "./CephCluster";
 import CephClusterOwnerTeam from "./CephClusterOwnerTeam";
 import CephClusterOwnerUser from "./CephClusterOwnerUser";
 import CephResource from "./CephResource";
+import VMwareVCenter from "./VMwareVCenter";
+import VMwareVCenterOwnerTeam from "./VMwareVCenterOwnerTeam";
+import VMwareVCenterOwnerUser from "./VMwareVCenterOwnerUser";
+import VMwareResource from "./VMwareResource";
 import Host from "./Host";
 import HostOwnerTeam from "./HostOwnerTeam";
 import HostOwnerUser from "./HostOwnerUser";
@@ -425,6 +429,8 @@ import IoTFleetOwnerRule from "./IoTFleetOwnerRule";
 import IoTFleetLabelRule from "./IoTFleetLabelRule";
 import CephClusterOwnerRule from "./CephClusterOwnerRule";
 import CephClusterLabelRule from "./CephClusterLabelRule";
+import VMwareVCenterOwnerRule from "./VMwareVCenterOwnerRule";
+import VMwareVCenterLabelRule from "./VMwareVCenterLabelRule";
 import RunbookOwnerRule from "./RunbookOwnerRule";
 import RunbookLabelRule from "./RunbookLabelRule";
 import WorkflowOwnerRule from "./WorkflowOwnerRule";
@@ -455,6 +461,7 @@ import DockerSwarmClusterFeed from "./DockerSwarmClusterFeed";
 import CephClusterFeed from "./CephClusterFeed";
 import PodmanHostFeed from "./PodmanHostFeed";
 import ProxmoxClusterFeed from "./ProxmoxClusterFeed";
+import VMwareVCenterFeed from "./VMwareVCenterFeed";
 import HostFeed from "./HostFeed";
 import CloudResourceFeed from "./CloudResourceFeed";
 import ServiceFeed from "./ServiceFeed";
@@ -633,6 +640,8 @@ const AllModelTypes: Array<{
   IoTFleetLabelRule,
   CephClusterOwnerRule,
   CephClusterLabelRule,
+  VMwareVCenterOwnerRule,
+  VMwareVCenterLabelRule,
   RunbookOwnerRule,
   RunbookLabelRule,
   WorkflowOwnerRule,
@@ -861,6 +870,7 @@ const AllModelTypes: Array<{
   CephClusterFeed,
   PodmanHostFeed,
   ProxmoxClusterFeed,
+  VMwareVCenterFeed,
   HostFeed,
   CloudResourceFeed,
   ServiceFeed,
@@ -924,6 +934,10 @@ const AllModelTypes: Array<{
   CephClusterOwnerTeam,
   CephClusterOwnerUser,
   CephResource,
+  VMwareVCenter,
+  VMwareVCenterOwnerTeam,
+  VMwareVCenterOwnerUser,
+  VMwareResource,
   Host,
   HostOwnerTeam,
   HostOwnerUser,

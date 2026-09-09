@@ -25,9 +25,10 @@ import SeriesResourceLinker, {
  *
  * The deterministic source is the monitor's own step config, which
  * always carries whatever the user picked when they built the monitor:
- * a hostIdentifier, a clusterIdentifier, a fleetIdentifier, a set of
- * telemetryServiceIds, or a metric attribute filter. This module reads
- * it once per evaluation and resolves it to real rows.
+ * a hostIdentifier, a clusterIdentifier, a vcenterIdentifier, a
+ * fleetIdentifier, a set of telemetryServiceIds, or a metric attribute
+ * filter. This module reads it once per evaluation and resolves it to
+ * real rows.
  *
  * This supersedes the old MonitorClusterContext, which did the same
  * thing for exactly four cluster types (Proxmox / Ceph / Docker Swarm /
@@ -99,6 +100,7 @@ export default class MonitorResourceContextUtil {
       kubernetesClusterIds: [],
       serviceIds: [],
       proxmoxClusterIds: [],
+      vmwareVCenterIds: [],
       cephClusterIds: [],
       dockerSwarmClusterIds: [],
       iotFleetIds: [],

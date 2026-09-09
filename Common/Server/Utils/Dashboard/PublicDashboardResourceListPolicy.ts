@@ -138,6 +138,29 @@ const PROXMOX_NODE_ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   "pve.id": "name",
 };
 
+/*
+ * The vcenter receiver stamps identity on RESOURCE attributes, so a
+ * dashboard variable may be keyed either as the bare attribute or as the
+ * `resource.`-prefixed form the metrics explorer exposes.
+ */
+const VMWARE_HOST_ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
+  "vcenter.host.name": "name",
+  "resource.vcenter.host.name": "name",
+  "vcenter.cluster.name": "clusterName",
+  "resource.vcenter.cluster.name": "clusterName",
+  "vcenter.datacenter.name": "datacenterName",
+  "resource.vcenter.datacenter.name": "datacenterName",
+};
+
+const VMWARE_VIRTUAL_MACHINE_ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
+  "vcenter.vm.name": "name",
+  "resource.vcenter.vm.name": "name",
+  "vcenter.host.name": "hostName",
+  "resource.vcenter.host.name": "hostName",
+  "vcenter.cluster.name": "clusterName",
+  "resource.vcenter.cluster.name": "clusterName",
+};
+
 const CEPH_OSD_ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   ceph_daemon: "externalId",
 };
@@ -414,6 +437,41 @@ export default class PublicDashboardResourceListPolicy {
           proxmoxClusterId: true,
           proxmoxCluster: { name: true },
         };
+      case DashboardComponentType.VMwareHostList:
+        return {
+          _id: true,
+          name: true,
+          externalId: true,
+          kind: true,
+          datacenterName: true,
+          clusterName: true,
+          latestCpuPercent: true,
+          latestMemoryPercent: true,
+          cpuCapacityMhz: true,
+          maxMemoryBytes: true,
+          metricsUpdatedAt: true,
+          vmwareVCenterId: true,
+          vmwareVCenter: { name: true },
+        };
+      case DashboardComponentType.VMwareVirtualMachineList:
+        return {
+          _id: true,
+          name: true,
+          externalId: true,
+          kind: true,
+          datacenterName: true,
+          clusterName: true,
+          hostName: true,
+          resourcePoolName: true,
+          isPoweredOn: true,
+          isTemplate: true,
+          latestCpuPercent: true,
+          latestMemoryPercent: true,
+          latestDiskPercent: true,
+          metricsUpdatedAt: true,
+          vmwareVCenterId: true,
+          vmwareVCenter: { name: true },
+        };
       case DashboardComponentType.CephOsdList:
         return {
           _id: true,
@@ -673,6 +731,14 @@ export default class PublicDashboardResourceListPolicy {
         );
       case DashboardComponentType.ProxmoxGuestList:
         return PublicDashboardResourceListPolicy.buildProxmoxGuestPolicy(
+          argumentsObject,
+        );
+      case DashboardComponentType.VMwareHostList:
+        return PublicDashboardResourceListPolicy.buildVMwareHostPolicy(
+          argumentsObject,
+        );
+      case DashboardComponentType.VMwareVirtualMachineList:
+        return PublicDashboardResourceListPolicy.buildVMwareVirtualMachinePolicy(
           argumentsObject,
         );
       case DashboardComponentType.CephOsdList:
@@ -1203,6 +1269,83 @@ export default class PublicDashboardResourceListPolicy {
       sort: { name: SortOrder.Ascending },
       argumentsObject,
     });
+  }
+
+  /*
+   * ESXi hosts. The vcenter receiver reports no per-host power or
+   * connection state, so the host widget takes only the shared arguments
+   * (vCenter scope, row cap): no status filter is accepted.
+   */
+  private static buildVMwareHostPolicy(
+    argumentsObject: Record<string, unknown>,
+  ): PolicyDraft {
+    const query: Record<string, unknown> = { kind: "Host" };
+    PublicDashboardResourceListPolicy.addIncludesFromArgument({
+      query,
+      queryKey: "vmwareVCenterId",
+      argumentsObject,
+      argumentKey: "vmwareVCenterIds",
+    });
+
+    return {
+      ...PublicDashboardResourceListPolicy.listDraft({
+        resourceType: "vmware-resource",
+        query,
+        sort: { name: SortOrder.Ascending },
+        argumentsObject,
+      }),
+      attributeToColumn: VMWARE_HOST_ATTRIBUTE_TO_COLUMN,
+    };
+  }
+
+  /*
+   * Virtual machines (kind VirtualMachine covers VMs and VM templates;
+   * templates carry isTemplate = true and a null power state).
+   */
+  private static buildVMwareVirtualMachinePolicy(
+    argumentsObject: Record<string, unknown>,
+  ): PolicyDraft {
+    const query: Record<string, unknown> = { kind: "VirtualMachine" };
+    PublicDashboardResourceListPolicy.addIncludesFromArgument({
+      query,
+      queryKey: "vmwareVCenterId",
+      argumentsObject,
+      argumentKey: "vmwareVCenterIds",
+    });
+
+    const powerStateFilter: string | undefined =
+      PublicDashboardResourceListPolicy.optionalEnum(
+        argumentsObject,
+        "powerStateFilter",
+        ["on", "off"],
+      );
+    if (powerStateFilter === "on") {
+      query["isPoweredOn"] = true;
+    } else if (powerStateFilter === "off") {
+      query["isPoweredOn"] = false;
+    }
+
+    const templateFilter: string | undefined =
+      PublicDashboardResourceListPolicy.optionalEnum(
+        argumentsObject,
+        "templateFilter",
+        ["exclude", "only"],
+      );
+    if (templateFilter === "exclude") {
+      query["isTemplate"] = false;
+    } else if (templateFilter === "only") {
+      query["isTemplate"] = true;
+    }
+
+    return {
+      ...PublicDashboardResourceListPolicy.listDraft({
+        resourceType: "vmware-resource",
+        query,
+        sort: { name: SortOrder.Ascending },
+        argumentsObject,
+      }),
+      attributeToColumn: VMWARE_VIRTUAL_MACHINE_ATTRIBUTE_TO_COLUMN,
+    };
   }
 
   private static buildCephOsdPolicy(

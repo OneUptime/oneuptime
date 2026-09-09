@@ -39,6 +39,27 @@ enum EntityType {
   ProxmoxGuest = "proxmox.guest",
   CephCluster = "ceph.cluster",
   /*
+   * VMware vSphere types are OneUptime-defined (no upstream semconv exists)
+   * and follow the same dotted naming convention. The root identity
+   * attribute `vmware.vcenter.name` is NOT emitted by vSphere: it is stamped
+   * by the OneUptime VMware agent's collector config (a `resource`
+   * processor), names the vCenter Server or standalone ESXi endpoint the
+   * agent connects to, and doubles as the typed VMwareVCenter row's
+   * project-unique `name`. Every other identifying attribute
+   * (`vcenter.datacenter.name`, `vcenter.cluster.name`, `vcenter.host.name`,
+   * `vcenter.vm.id` / `vcenter.vm_template.id`, `vcenter.datastore.name`)
+   * is a resource attribute the OpenTelemetry Collector `vcenter` receiver
+   * emits per vSphere object; each child identity folds the vCenter
+   * identity in so two vCenters with a cluster named "Prod" never collide.
+   * Datacenters and resource pools are inventory rows (VMwareResource) but
+   * deliberately not entities.
+   */
+  VMwareVCenter = "vmware.vcenter",
+  VMwareCluster = "vmware.cluster",
+  VMwareHost = "vmware.host",
+  VMwareVirtualMachine = "vmware.vm",
+  VMwareDatastore = "vmware.datastore",
+  /*
    * Docker Swarm types are OneUptime-defined (no upstream semconv
    * exists) but follow the same dotted naming convention. The
    * identifying attributes (`docker.swarm.cluster.name`,

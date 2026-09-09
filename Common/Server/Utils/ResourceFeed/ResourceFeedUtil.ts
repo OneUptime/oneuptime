@@ -5,13 +5,13 @@ import UserService from "../../Services/UserService";
 /*
  * Shared formatting for the infrastructure and catalog resource feeds
  * (Kubernetes clusters, Docker / Podman hosts, Docker Swarm / Proxmox / Ceph
- * clusters, servers, cloud resources and catalog services).
+ * clusters, VMware vCenters, servers, cloud resources and catalog services).
  *
  * These resources come into existence two very different ways - somebody adds
  * one by hand, or ingest registers one the first moment telemetry mentions it -
  * and the overview page cannot tell you which happened. That is exactly the
  * question the feed exists to answer, so the wording for it lives here once
- * rather than nine times over.
+ * rather than ten times over.
  */
 
 /*
@@ -20,7 +20,7 @@ import UserService from "../../Services/UserService";
  * Deliberately a whitelist. Every one of these resources is written on each
  * heartbeat (lastSeenAt, otelCollectorStatus, agentVersion, and the rollup
  * counters like nodeCount / containersRunning), so a blacklist would let the
- * next counter column added to any of the nine models silently start posting
+ * next counter column added to any of the ten models silently start posting
  * a feed item every 60 seconds per resource.
  */
 export const MEANINGFUL_UPDATE_COLUMNS: Array<string> = [

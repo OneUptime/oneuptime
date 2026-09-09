@@ -194,6 +194,7 @@ helm install oneuptime oneuptime/oneuptime
 - **Docker** — एक ही एजेंट हर कंटेनर को अपने आप खोजता है और मेट्रिक्स और लॉग्स भेजता है। [दस्तावेज़ →](/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
 - **Podman** — Podman के Docker-संगत सॉकेट के माध्यम से वही एक-एजेंट ऑटो-डिस्कवरी। [दस्तावेज़ →](/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
 - **Proxmox** — नोड्स, VMs, कंटेनर, स्टोरेज, HA स्थिति, बैकअप कवरेज और रेप्लिकेशन हेल्थ। [दस्तावेज़ →](/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
+- **VMware** — vCenter, ESXi होस्ट, वर्चुअल मशीनें, डेटास्टोर, क्लस्टर, रिसोर्स पूल और vSAN। [दस्तावेज़ →](/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — क्लस्टर हेल्थ, क्षमता पूर्वानुमान, और OSD/पूल/PG/मॉनिटर विज़िबिलिटी। [दस्तावेज़ →](/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
 
 ---

@@ -673,7 +673,7 @@ export default class MonitorAlert {
             /*
              * Attach every resource this series identifies — host, docker
              * host, podman host, k8s cluster, service, and the Proxmox /
-             * Ceph / Swarm / IoT clusters — resolved from the shared label
+             * VMware vCenter / Ceph / Swarm / IoT clusters — resolved from the shared label
              * key map. Same call the incident path makes, so the two can't
              * drift apart again.
              */

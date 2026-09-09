@@ -87,6 +87,8 @@
       "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",
       "proxmoxDescription": "Overvåk Proxmox-klynger, -noder og -gjester.",
+      "vmwareTitle": "VMware",
+      "vmwareDescription": "Overvåk vCenter, ESXi-verter, virtuelle maskiner og datastores.",
       "cephTitle": "Ceph",
       "cephDescription": "Overvåk Ceph-klynger, OSD-er og pooler.",
       "hostsTitle": "Verter",

@@ -87,6 +87,8 @@
       "podmanDescription": "میزبان‌ها و کانتینرهای Podman را پایش کنید.",
       "proxmoxTitle": "Proxmox",
       "proxmoxDescription": "خوشه‌ها، گره‌ها و مهمان‌های Proxmox را پایش کنید.",
+      "vmwareTitle": "VMware",
+      "vmwareDescription": "vCenter، میزبان‌های ESXi، ماشین‌های مجازی و دیتااستورها را پایش کنید.",
       "cephTitle": "Ceph",
       "cephDescription": "خوشه‌ها، OSDها و استخرهای Ceph را پایش کنید.",
       "hostsTitle": "میزبان‌ها",

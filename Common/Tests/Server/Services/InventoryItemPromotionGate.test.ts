@@ -168,6 +168,11 @@ describe("promoted entities still become rows", () => {
     EntityType.ProxmoxCluster,
     EntityType.CephCluster,
     EntityType.DockerSwarmCluster,
+    EntityType.VMwareVCenter,
+    EntityType.VMwareCluster,
+    EntityType.VMwareHost,
+    EntityType.VMwareVirtualMachine,
+    EntityType.VMwareDatastore,
   ])("%s is created as a discovered row", async (entityType: EntityType) => {
     await reconcile([entity(entityType)]);
 

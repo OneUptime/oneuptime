@@ -497,6 +497,7 @@ describe("Runner terminology", () => {
     ["Kubernetes", ["Pages", "Kubernetes", "View", "Index.tsx"]],
     ["Ceph", ["Pages", "Ceph", "View", "Index.tsx"]],
     ["Proxmox", ["Pages", "Proxmox", "View", "Index.tsx"]],
+    ["VMware", ["Pages", "VMware", "View", "Index.tsx"]],
     ["Serverless", ["Pages", "Serverless", "View", "Overview.tsx"]],
   ])(
     "the %s agent page was not caught by the rename",

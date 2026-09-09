@@ -338,6 +338,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/iot-device-monitor",
       },
       {
+        title: "VMware Monitor",
+        url: "/docs/monitor/vmware-monitor",
+      },
+      {
         title: "Logs Monitor",
         url: "/docs/monitor/logs-monitor",
       },
@@ -742,6 +746,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Docker Swarm Agent",
         url: "/docs/telemetry/docker-swarm",
+      },
+      {
+        title: "VMware Agent",
+        url: "/docs/telemetry/vmware",
       },
       {
         title: "Serverless Functions",

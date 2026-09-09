@@ -17,6 +17,7 @@ import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Probe from "./Probe";
 import Project from "./Project";
 import ProxmoxCluster from "./ProxmoxCluster";
+import VMwareVCenter from "./VMwareVCenter";
 import IoTFleet from "./IoTFleet";
 import DockerSwarmCluster from "./DockerSwarmCluster";
 import Service from "./Service";
@@ -967,6 +968,60 @@ export default class Incident extends BaseModel {
     },
   })
   public proxmoxClusters?: Array<ProxmoxCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: VMwareVCenter,
+    title: "vCenters",
+    description: "List of vCenters affected by this incident.",
+  })
+  @ManyToMany(
+    () => {
+      return VMwareVCenter;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentVMwareVCenter",
+    inverseJoinColumn: {
+      name: "vmwareVCenterId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentId",
+      referencedColumnName: "_id",
+    },
+  })
+  public vmwareVCenters?: Array<VMwareVCenter> = undefined;
 
   @ColumnAccessControl({
     create: [
