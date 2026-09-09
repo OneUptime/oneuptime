@@ -4,6 +4,7 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import APIException from "../../../../Types/Exception/ApiException";
 import { JSONArray, JSONObject, JSONValue } from "../../../../Types/JSON";
 import logger from "../../Logger";
+import { redactLogString } from "../../LogRedaction";
 
 /*
  * Minimal Google SecOps (Chronicle) API client for the detections poller.
@@ -93,14 +94,6 @@ const REQUEST_TIMEOUT_IN_SECONDS: number = 60;
 const REQUEST_TIMEOUT_IN_MS: number = REQUEST_TIMEOUT_IN_SECONDS * 1000;
 
 /*
- * How much of a body any diagnostic echoes. One bound for every echo site,
- * because the integration doc and the connections page both quote a single
- * figure — a second bound would make one of them wrong without anything
- * saying so.
- */
-const BODY_ECHO_LIMIT: number = 500;
-
-/*
  * The 22 documented {region}-chronicle.googleapis.com prefixes. An
  * allowlist rather than a shape regex because *.googleapis.com is a DNS
  * wildcard: a typo like "us-central1" resolves to a Google frontend and
@@ -141,8 +134,8 @@ const SUPPORTED_REGIONS: Array<string> = [
 const EU_REGION_ALIASES: Array<string> = ["eu", "europe"];
 
 /*
- * The token endpoint is customer-supplied, and the first 500 characters of
- * whatever answers it are echoed into lastError and rendered in the
+ * The token endpoint is customer-supplied, and its error response is
+ * echoed into lastError with credentials redacted and rendered in the
  * dashboard — a blind SSRF plus a read-back channel. Region and instance
  * were always guarded; this one was not, which reads as an oversight
  * rather than a decision.
@@ -346,7 +339,7 @@ export default class GoogleSecOpsClient {
 
     if (!response.ok) {
       throw new APIException(
-        `Google token exchange failed (HTTP ${response.status}): ${responseText.slice(0, BODY_ECHO_LIMIT)}`,
+        `Google token exchange failed (HTTP ${response.status}): ${redactLogString(responseText)}`,
       );
     }
 
@@ -436,7 +429,7 @@ export default class GoogleSecOpsClient {
 
     if (!response.ok) {
       throw new APIException(
-        `Google SecOps alerts fetch failed (HTTP ${response.status}): ${responseText.slice(0, BODY_ECHO_LIMIT)}` +
+        `Google SecOps alerts fetch failed (HTTP ${response.status}): ${redactLogString(responseText)}` +
           GoogleSecOpsClient.describeHttpFailure(response.status, responseText),
       );
     }
@@ -810,7 +803,7 @@ export default class GoogleSecOpsClient {
     }
 
     throw new APIException(
-      `Google SecOps alerts fetch returned an unexpected response root: ${text.slice(0, BODY_ECHO_LIMIT)}`,
+      `Google SecOps alerts fetch returned an unexpected response root: ${redactLogString(text)}`,
     );
   }
 
@@ -840,7 +833,7 @@ export default class GoogleSecOpsClient {
 
     if (recognized.length === 0) {
       throw new APIException(
-        `Google SecOps alerts fetch returned an unrecognized response shape: ${text.slice(0, BODY_ECHO_LIMIT)}`,
+        `Google SecOps alerts fetch returned an unrecognized response shape: ${redactLogString(text)}`,
       );
     }
   }
@@ -1011,7 +1004,7 @@ export default class GoogleSecOpsClient {
     }
 
     throw new APIException(
-      `Google SecOps alerts query was rejected by Chronicle on an HTTP 200: ${reasons.join("; ").slice(0, BODY_ECHO_LIMIT)}`,
+      `Google SecOps alerts query was rejected by Chronicle on an HTTP 200: ${redactLogString(reasons.join("; "))}`,
     );
   }
 
@@ -1059,7 +1052,12 @@ export default class GoogleSecOpsClient {
         const value: JSONValue | undefined = entry[key];
 
         if (typeof value === "string" && value) {
-          return value;
+          const details: JSONObject = { ...entry };
+          delete details[key];
+
+          return Object.keys(details).length > 0
+            ? `${value}; ${JSON.stringify(details)}`
+            : value;
         }
       }
 
@@ -1079,9 +1077,7 @@ export default class GoogleSecOpsClient {
     const error: JSONObject | null =
       GoogleSecOpsClient.findErrorObject(bodyText);
     const reason: string = GoogleSecOpsClient.errorInfoReason(error);
-    const message: string = error
-      ? String(error["message"] || "")
-      : bodyText.slice(0, BODY_ECHO_LIMIT);
+    const message: string = error ? String(error["message"] || "") : bodyText;
 
     const hint: string = reason
       ? GoogleSecOpsClient.hintForReason(reason, error)
@@ -1091,7 +1087,7 @@ export default class GoogleSecOpsClient {
       return "";
     }
 
-    return ` — ${hint}`;
+    return ` — ${redactLogString(hint)}`;
   }
 
   private static hintForReason(
@@ -1136,10 +1132,7 @@ export default class GoogleSecOpsClient {
     return `Google reported ${reason}.`;
   }
 
-  private static hintForStatus(
-    status: number,
-    message: string,
-  ): string {
+  private static hintForStatus(status: number, message: string): string {
     if (status === 400) {
       // Specific field errors identify a request-contract problem. A
       // generic INVALID_ARGUMENT does not identify the failing argument.
@@ -1262,13 +1255,7 @@ export default class GoogleSecOpsClient {
   }
 
   private static summarizeErrorObject(error: JSONObject): string {
-    const code: string = String(error["code"] || "");
-    const status: string = String(error["status"] || "");
-    const message: string = String(error["message"] || "");
-
-    return `${code ? `code ${code} ` : ""}${status ? `${status} ` : ""}${message}`
-      .trim()
-      .slice(0, BODY_ECHO_LIMIT);
+    return redactLogString(JSON.stringify(error));
   }
 
   private static isJsonObject(

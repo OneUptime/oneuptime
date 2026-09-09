@@ -72,6 +72,33 @@ const QUERY_FIELDS: Array<string> = [
   "timeRange.endTime",
   "timeRange.startTime",
 ];
+const FULL_ERROR_TAIL: string = "final-diagnostic-details-remain-copyable";
+const FULL_GOOGLE_ERROR_BODY: string = JSON.stringify({
+  error: {
+    code: 400,
+    status: "INVALID_ARGUMENT",
+    message: "Google request diagnostic. ".repeat(80),
+    details: [
+      {
+        "@type": "type.googleapis.com/google.rpc.ResourceInfo",
+        resourceName: INSTANCE,
+      },
+      {
+        "@type": "type.googleapis.com/google.rpc.BadRequest",
+        fieldViolations: [
+          {
+            field: "snapshotQuery",
+            description: "Required query field was not supplied.",
+          },
+        ],
+      },
+    ],
+    access_token: "local-verified-token",
+    private_key: "http-integration-private-key-material",
+    client_secret: "http-integration-client-secret-material",
+    supportReference: FULL_ERROR_TAIL,
+  },
+});
 
 /*
  * Exercise signing, HTTP serialization, streamed response parsing and the
@@ -86,6 +113,7 @@ describe("Google SecOps alerts HTTP integration", () => {
   let port: number;
   let alertsRequests: Array<URL>;
   let assertions: Array<JSONObject>;
+  let alertsErrorBody: string | null;
 
   function rejectRequest(response: ServerResponse, message: string): void {
     response.writeHead(400, { "Content-Type": "application/json" });
@@ -189,6 +217,11 @@ describe("Google SecOps alerts HTTP integration", () => {
         );
         return;
       }
+      if (alertsErrorBody !== null) {
+        response.writeHead(400, { "Content-Type": "application/json" });
+        response.end(alertsErrorBody);
+        return;
+      }
 
       // Match-all must return closed alerts too; a status filter loses them.
       const closedAlerts: Array<JSONObject> =
@@ -279,6 +312,7 @@ describe("Google SecOps alerts HTTP integration", () => {
   beforeEach((): void => {
     alertsRequests = [];
     assertions = [];
+    alertsErrorBody = null;
   });
 
   afterEach((): void => {
@@ -335,6 +369,7 @@ describe("Google SecOps alerts HTTP integration", () => {
   test.each([
     ["pageSize", "Unknown name"],
     ["missing snapshotQuery", "Missing required field: snapshotQuery"],
+    ["full Google diagnostic", "Google request diagnostic."],
   ])(
     "records %s rejection without advancing, then retries from the cursor and ingests",
     async (invalidRequest: string, expectedError: string): Promise<void> => {
@@ -394,13 +429,16 @@ describe("Google SecOps alerts HTTP integration", () => {
       );
 
       let injectInvalidRequest: boolean = true;
+      if (invalidRequest === "full Google diagnostic") {
+        alertsErrorBody = FULL_GOOGLE_ERROR_BODY;
+      }
       const client: GoogleSecOpsClient = makeClient(
         (url: string, init: FetchInitLike): Promise<FetchResponseLike> => {
           const outgoing: URL = new URL(url);
           if (injectInvalidRequest && outgoing.pathname === ALERTS_PATH) {
             if (invalidRequest === "pageSize") {
               outgoing.searchParams.set("pageSize", "1000");
-            } else {
+            } else if (invalidRequest === "missing snapshotQuery") {
               outgoing.searchParams.delete("snapshotQuery");
             }
           }
@@ -425,8 +463,39 @@ describe("Google SecOps alerts HTTP integration", () => {
       expect(connection.cursor).toBe(CURSOR);
       expect(rows).toEqual([]);
       expect(OTelIngestService.telemetryServiceFromName).not.toHaveBeenCalled();
+      if (invalidRequest === "full Google diagnostic") {
+        const lastError: string = updates[0]!["lastError"] as string;
+        // Both the old 500-character client slice and the 1,000-character
+        // persistence clamp would discard these Google troubleshooting details.
+        expect(FULL_GOOGLE_ERROR_BODY.indexOf(FULL_ERROR_TAIL)).toBeGreaterThan(
+          1000,
+        );
+        expect(lastError.length).toBeGreaterThan(1000);
+        expect(lastError).toContain(FULL_ERROR_TAIL);
+        expect(lastError).toContain(INSTANCE);
+        expect(lastError).toContain('"code":400');
+        expect(lastError).toContain('"status":"INVALID_ARGUMENT"');
+        expect(lastError).toContain(
+          "type.googleapis.com/google.rpc.BadRequest",
+        );
+        expect(lastError).toContain('"field":"snapshotQuery"');
+        expect(lastError).toContain("Required query field was not supplied.");
+        expect(lastError).toContain('"access_token":"[REDACTED]"');
+        expect(lastError).toContain('"private_key":"[REDACTED]"');
+        expect(lastError).toContain('"client_secret":"[REDACTED]"');
+        expect(lastError).not.toContain("local-verified-token");
+        expect(lastError).not.toContain(
+          "http-integration-private-key-material",
+        );
+        expect(lastError).not.toContain(
+          "http-integration-client-secret-material",
+        );
+        expect(lastError).not.toContain("(truncated)");
+        expect(connection.lastError).toBe(lastError);
+      }
 
       injectInvalidRequest = false;
+      alertsErrorBody = null;
       currentTime = new Date("2026-09-09T12:05:00.000Z");
       await GoogleSecOpsPoller.pollAllDueConnections();
 

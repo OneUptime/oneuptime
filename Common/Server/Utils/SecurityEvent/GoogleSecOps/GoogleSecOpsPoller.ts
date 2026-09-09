@@ -12,6 +12,7 @@ import OTelIngestService, {
 import SecurityEventService from "../../../Services/SecurityEventService";
 import { resolveTelemetryRetentionInDays } from "../../../../Types/Telemetry/TelemetryRetentionConfig";
 import logger from "../../Logger";
+import { redactLogString } from "../../LogRedaction";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import ConnectorErrorMessage from "../ConnectorErrorMessage";
 import { buildSecurityEventDbRow } from "../SecurityEventRow";
@@ -119,7 +120,9 @@ export default class GoogleSecOpsPoller {
                 id: connectionId,
                 data: {
                   lastPolledAt: OneUptimeDate.getCurrentDate(),
-                  lastError: ConnectorErrorMessage.toMessage(error),
+                  lastError: redactLogString(
+                    ConnectorErrorMessage.toMessage(error, { truncate: false }),
+                  ),
                 },
                 props: {
                   isRoot: true,

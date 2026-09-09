@@ -1,14 +1,18 @@
 import PageComponentProps from "../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import GoogleSecOpsConnection from "Common/Models/DatabaseModels/GoogleSecOpsConnection";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
+import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
@@ -25,6 +29,8 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+
+const ERROR_PREVIEW_LENGTH: number = 160;
 
 const documentationMarkdown: string = `
 ### How the Google SecOps Connector Works
@@ -44,7 +50,7 @@ The managed connector polls your Google SecOps (Chronicle) tenant's **detection 
 
 - **Last Polled: Never** means the poll job has not run for this connection yet. A connection created moments ago shows this until the next tick — but one that has sat at "Never" for longer than its poll interval is not being polled at all.
 - A recent **Last Polled** with an empty **Last Error** is a healthy connector.
-- **Last Error** holds the last poll failure as OneUptime recorded it — a prefix naming the step that failed, then at most the first 500 characters of the response body, clamped and marked \`... (truncated)\` if it is still too long. It is cleared on the next successful poll, so a value here describes the most recent attempt rather than a permanent state. Read the prefix first; only two prefixes carry an HTTP status, and a message without one is not evidence of a fault on OneUptime's side:
+- **Last Error** stores the complete error message with credentials redacted. Select **View Full Error** to read it or **Copy Error** to copy it for support. It is cleared on the next successful poll, so a value here describes the most recent attempt rather than a permanent state. Read the prefix first; only two prefixes carry an HTTP status, and a message without one is not evidence of a fault on OneUptime's side:
   - \`Google token exchange failed (HTTP ...)\` — the service-account credential was rejected at Google's OAuth endpoint, before Chronicle was reached. Usually a malformed, revoked, or wrong-project key.
   - \`Google token exchange returned ...\` — that same endpoint answered with something unusable (no access token, or a body that is not JSON), still before Chronicle. Usually a proxy or gateway in between.
   - \`Google SecOps alerts fetch failed (HTTP ...)\` — Chronicle itself rejected the request. \`403\` is usually a missing **Chronicle API Viewer** role; \`404\` is usually a wrong instance resource name or region.
@@ -55,6 +61,8 @@ The managed connector polls your Google SecOps (Chronicle) tenant's **detection 
   - One known case, already fixed: \`Google SecOps alerts fetch failed (HTTP 400)\` quoting \`Unknown name "pageSize": Cannot bind query parameter\` was a OneUptime request-shape bug, resolved in this release. Google authenticates a request before it transcodes the query string, so this \`400\` is proof the service account was accepted — do not regenerate the key over it.
 
 A disabled connection is skipped entirely, so neither field advances while it is off.
+
+Errors recorded before upgrading may already be truncated; a subsequent failed poll records the complete message.
 `;
 
 const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
@@ -69,6 +77,8 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
     useState<GoogleSecOpsConnection | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [currentlyViewingError, setCurrentlyViewingError] =
+    useState<string | null>(null);
 
   /*
    * Same reseller-telemetry gate as every other Security Events tab —
@@ -318,9 +328,69 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
             title: "Last Error",
             type: FieldType.LongText,
             noValueMessage: "-",
+            getElement: (item: GoogleSecOpsConnection): ReactElement => {
+              if (!item.lastError) {
+                return <span>-</span>;
+              }
+
+              const error: string = item.lastError;
+
+              return (
+                <div className="max-w-md space-y-2">
+                  <p className="whitespace-pre-wrap break-words text-sm">
+                    {error.length > ERROR_PREVIEW_LENGTH
+                      ? `${error.slice(0, ERROR_PREVIEW_LENGTH)}…`
+                      : error}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button
+                      title="View Full Error"
+                      buttonStyle={ButtonStyleType.LINK}
+                      buttonSize={ButtonSize.ExtraSmall}
+                      ariaHaspopup="dialog"
+                      onClick={(): void => {
+                        setCurrentlyViewingError(error);
+                      }}
+                    />
+                    <CopyTextButton
+                      textToBeCopied={error}
+                      label="Copy Error"
+                      size="sm"
+                    />
+                  </div>
+                </div>
+              );
+            },
           },
         ]}
       />
+
+      {currentlyViewingError && (
+        <Modal
+          title="Last Error"
+          description="Copy this message when contacting support."
+          modalWidth={ModalWidth.Large}
+          onClose={(): void => {
+            setCurrentlyViewingError(null);
+          }}
+          closeButtonText="Close"
+          leftFooterElement={
+            <CopyTextButton
+              textToBeCopied={currentlyViewingError}
+              label="Copy Error"
+              size="md"
+            />
+          }
+        >
+          <pre
+            aria-label="Full error message"
+            tabIndex={0}
+            className="whitespace-pre-wrap break-words rounded-md bg-gray-50 p-4 text-sm text-gray-800"
+          >
+            {currentlyViewingError}
+          </pre>
+        </Modal>
+      )}
 
       {currentlyEditingItem && (
         <BasicFormModal
