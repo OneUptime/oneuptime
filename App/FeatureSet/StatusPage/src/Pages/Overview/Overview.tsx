@@ -211,8 +211,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
     Math.max(statusPage?.showUptimeHistoryInDays || 90, 1),
     90,
   );
-  // The history window belongs to the fetched snapshot. Typing must not give
-  // every chart new dates or change an uptime reading without new status data.
+  /*
+   * The history window belongs to the fetched snapshot. Typing must not give
+   * every chart new dates or change an uptime reading without new status data.
+   */
   const endDate: Date = lastRefreshedAt;
   const startDate: Date = useMemo(() => {
     return OneUptimeDate.getSomeDaysAgoFromDate(endDate, uptimeHistoryDays);
@@ -785,8 +787,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
     );
   };
 
-  // Search only selects these elements; their timelines, incidents and charts
-  // are rebuilt when the payload, history window or language changes.
+  /*
+   * Search only selects these elements; their timelines, incidents and charts
+   * are rebuilt when the payload, history window or language changes.
+   */
   const monitorOverviews: Map<
     StatusPageResource,
     Array<ReactElement>

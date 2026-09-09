@@ -120,8 +120,10 @@ jest.mock(
  * factory that closes over module scope is a load-order trap.
  */
 jest.mock("react-i18next", () => {
-  // A real i18next translation function is stable between language changes.
-  // Keeping the same function here makes render-cache assertions realistic.
+  /*
+   * A real i18next translation function is stable between language changes.
+   * Keeping the same function here makes render-cache assertions realistic.
+   */
   const t: (
     key: string,
     opts?: { defaultValue?: string } & Record<string, unknown>,
@@ -295,8 +297,10 @@ function overviewPayload(
 }
 
 const SEARCH_SNAPSHOT_TIME: Date = new Date("2026-09-09T12:00:00.000Z");
-// Browser performance tests cover 90 days; seven days keeps these calculation-
-// count regressions fast while still rendering real history for 40 resources.
+/*
+ * Browser performance tests cover 90 days; seven days keeps these calculation-
+ * count regressions fast while still rendering real history for 40 resources.
+ */
 const SEARCH_HISTORY_DAYS: number = 7;
 const OFFLINE_STATUS_ID: string = "66666666-6666-4666-8666-666666666666";
 const MONITOR_GROUP_ID: string = "90000000-0000-4000-8000-000000000040";
@@ -363,8 +367,10 @@ function largeOverviewPayload(updated: boolean = false): JSONObject {
       showUptimePercent: true,
     };
 
-    // The final resource is a monitor group so the same search and refresh
-    // assertions exercise both kinds of status-page resource.
+    /*
+     * The final resource is a monitor group so the same search and refresh
+     * assertions exercise both kinds of status-page resource.
+     */
     if (index === 40) {
       delete resourceData["monitor"];
       delete resourceData["monitorId"];
@@ -760,8 +766,10 @@ describe("Status page overview - searching a large page with uptime history", ()
     const input: HTMLElement = searchInput();
     input.focus();
 
-    // The same 40 charts survive each query. Advancing time catches Date
-    // objects recreated on each input render even when their props look alike.
+    /*
+     * The same 40 charts survive each query. Advancing time catches Date
+     * objects recreated on each input render even when their props look alike.
+     */
     for (const query of ["s", "se", "ser", "serv", "servi", "service"]) {
       act(() => {
         jest.advanceTimersByTime(1000);
@@ -833,8 +841,10 @@ describe("Status page overview - searching a large page with uptime history", ()
     expect(screen.getAllByTestId("day-uptime-graph")).toHaveLength(40);
     expect(screen.getAllByTestId("day-uptime-graph")[0]).toBe(chart);
     expect(screen.getByText("Service 40")).toBeInTheDocument();
-    // Charts that return to the DOM mount again; the continuously visible
-    // chart and the data derived from the loaded payload stay reusable.
+    /*
+     * Charts that return to the DOM mount again; the continuously visible
+     * chart and the data derived from the loaded payload stay reusable.
+     */
     expect(monitorWorkCounts(work, monitorId)).toEqual(monitorCounts);
     expect(payloadWorkCounts(work)).toEqual(payloadCounts);
   });

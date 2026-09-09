@@ -18,7 +18,11 @@ import StatusPageHistoryChartBarColorRule from "../../../../Models/DatabaseModel
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
-      return { t: (key: string): string => key };
+      return {
+        t: (key: string): string => {
+          return key;
+        },
+      };
     },
   };
 });
@@ -79,9 +83,11 @@ function renderHistory(overrides: Partial<ComponentProps> = {}): {
   };
   const snapshots: Array<HistorySnapshot> = [];
 
-  // Observe actual committed bars, including the first paint. Checking only
-  // the settled DOM misses an empty or stale history followed by an effect
-  // that rebuilds every bar when a search reveals many resources at once.
+  /*
+   * Observe actual committed bars, including the first paint. Checking only
+   * the settled DOM misses an empty or stale history followed by an effect
+   * that rebuilds every bar when a search reveals many resources at once.
+   */
   const recordCommit: () => void = (): void => {
     const bars: Array<HTMLElement> = Array.from(
       document.querySelectorAll<HTMLElement>('[data-testid="uptime-bar"]'),

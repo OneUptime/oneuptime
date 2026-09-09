@@ -92,10 +92,12 @@ const Tooltip: FunctionComponent<ComponentProps> = (
     return <TooltipPopup {...props} />;
   }
 
-  // Keep the trigger in the same place before and after opening. Wrapping it
-  // in Tippy on first interaction would replace the DOM node and lose focus.
-  // Tippy attaches its normal hover, focus and interactive-hide handlers to
-  // this external reference once, when the visitor first uses the tooltip.
+  /*
+   * Keep the trigger in the same place before and after opening. Wrapping it
+   * in Tippy on first interaction would replace the DOM node and lose focus.
+   * Tippy attaches its normal hover, focus and interactive-hide handlers to
+   * this external reference once, when the visitor first uses the tooltip.
+   */
   const child: ReactElement<React.HTMLAttributes<HTMLElement>> = props.children;
 
   return (

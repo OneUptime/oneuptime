@@ -42,8 +42,10 @@ export interface ComponentProps {
 const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  // A search can reveal many histories at once. Derive their data before the
-  // first paint instead of painting empty bars and rebuilding them in effects.
+  /*
+   * A search can reveal many histories at once. Derive their data before the
+   * first paint instead of painting empty bars and rebuilding them in effects.
+   */
   const events: Array<Event> = useMemo(() => {
     return UptimeUtil.getNonOverlappingMonitorEvents(props.items);
   }, [props.items]);

@@ -77,8 +77,10 @@ describe("Tooltip - deferred history content", () => {
 
     expect(screen.getAllByRole("button")).toHaveLength(90);
     for (const trigger of screen.getAllByRole("button")) {
-      // Deferring only portal content still creates ninety Popper/Tippy
-      // instances when a search opens one resource's history.
+      /*
+       * Deferring only portal content still creates ninety Popper/Tippy
+       * instances when a search opens one resource's history.
+       */
       expect((trigger as ReferenceElement)._tippy).toBeUndefined();
     }
     expect(onRender).not.toHaveBeenCalled();
