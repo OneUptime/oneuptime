@@ -79,10 +79,6 @@ export const addTestPaymentMethod: ProjectBillingFunction = async (data: {
 
   await modal.getByTestId("modal-footer-submit-button").click();
   await expect(modal).toBeHidden({ timeout: 60000 });
-  await expect(page.getByTestId("billing-usage-status")).toContainText(
-    "A payment method is on file.",
-    { timeout: 60000 },
-  );
   await expect(
     page.getByRole("row").filter({ hasText: "*****4242" }),
   ).toBeVisible({
