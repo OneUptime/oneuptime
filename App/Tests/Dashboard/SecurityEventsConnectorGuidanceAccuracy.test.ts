@@ -1103,16 +1103,13 @@ describe("Every error prefix the guidance names is really produced", () => {
 });
 
 /*
- * The failure the customer actually hit, and the one claim in its
- * troubleshooting entry an operator will act on: that the 400 is proof the
- * credential worked. Google authenticates before it transcodes the query
- * string, so a request that reaches parameter binding has already been
- * authenticated — the same request without credentials never gets past 401.
- * Both halves are pinned here: the client really has stopped sending the
- * parameter, and the client's own hint for this 400 really does say it is
- * not a credential problem.
+ * An explicit pageSize rejection identifies a request-contract mismatch.
+ * The correction predates this change, so the next diagnostic step is to
+ * inspect deployed images. Credential acceptance must be established from
+ * a successful token exchange, without assuming authentication ordering
+ * from a parameter-binding error.
  */
-describe("the pageSize 400 is documented as a OneUptime bug, not a bad key", () => {
+describe("the pageSize 400 points to the deployed request parameters", () => {
   const PAGE_SIZE_ERROR_TEXT: string =
     'Unknown name "pageSize": Cannot bind query parameter';
 
@@ -1155,12 +1152,33 @@ describe("the pageSize 400 is documented as a OneUptime bug, not a bad key", () 
   });
 
   for (const guidance of guidanceTexts) {
-    test(`${guidance.name} quotes the error and says not to regenerate the key`, () => {
+    test(`${guidance.name} identifies the existing correction and checks deployed images`, () => {
       expect(guidance.whole).toContain(PAGE_SIZE_ERROR_TEXT);
-      expect(guidance.whole).toMatch(/regenerate/i);
+      expect(guidance.whole).toContain("Upstream **13.0.0** already replaced");
+      expect(guidance.whole).toContain("alertListOptions.maxReturnedAlerts");
+      expect(guidance.whole).toContain("actual app and worker images");
+      expect(guidance.whole).toContain(
+        "Rotating the service-account key does not correct an unsupported query parameter.",
+      );
+      expect(guidance.whole).not.toContain("fixed in this release");
+      expect(guidance.whole).not.toContain("resolved in this release");
+      expect(guidance.whole).not.toContain("Upgrade and the poll succeeds");
+    });
 
-      // The reason, not just the instruction: auth runs before transcoding.
-      expect(guidance.whole).toMatch(/authenticat/i);
+    test(`${guidance.name} distinguishes token acceptance from a parameter rejection`, () => {
+      expect(guidance.whole).toContain(
+        "A successful OAuth token exchange confirms credential acceptance",
+      );
+      expect(guidance.whole).toContain(
+        "the parameter rejection alone does not establish authentication or authorization",
+      );
+      expect(guidance.whole).not.toContain(
+        "Google authenticates a request before it transcodes",
+      );
+      expect(guidance.whole).not.toContain("proof the key was accepted");
+      expect(guidance.whole).not.toContain(
+        "proof the service account was accepted",
+      );
     });
   }
 });

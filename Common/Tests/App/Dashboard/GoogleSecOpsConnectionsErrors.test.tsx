@@ -63,7 +63,12 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 });
 
 jest.mock("../../../UI/Components/FormModal/BasicFormModal", () => {
-  return { __esModule: true, default: (): null => { return null; } };
+  return {
+    __esModule: true,
+    default: (): null => {
+      return null;
+    },
+  };
 });
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -71,6 +76,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 const LONG_ERROR: string =
   "Google SecOps alerts fetch failed (HTTP 400):\n" +
+  "Customer context: café / 日本語 / 🚨\n" +
   JSON.stringify(
     {
       error: {
@@ -91,9 +97,8 @@ const LONG_ERROR: string =
 
 const originalClipboard: PropertyDescriptor | undefined =
   Object.getOwnPropertyDescriptor(navigator, "clipboard");
-const writeText: jest.Mock<(text: string) => Promise<void>> = jest.fn<
-  (text: string) => Promise<void>
->();
+const writeText: jest.Mock<(text: string) => Promise<void>> =
+  jest.fn<(text: string) => Promise<void>>();
 
 function renderPage(error: string | null | undefined): void {
   const connection: GoogleSecOpsConnection = new GoogleSecOpsConnection();
@@ -165,8 +170,11 @@ describe("Google SecOps complete error messages", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "View Full Error" }));
 
-    const dialog: HTMLElement = screen.getByRole("dialog", { name: "Last Error" });
-    const fullError: HTMLElement = within(dialog).getByLabelText("Full error message");
+    const dialog: HTMLElement = screen.getByRole("dialog", {
+      name: "Last Error",
+    });
+    const fullError: HTMLElement =
+      within(dialog).getByLabelText("Full error message");
     expect(fullError.textContent).toBe(LONG_ERROR);
     expect(dialog.querySelector("script")).toBeNull();
     expect(fullError).toHaveAttribute("tabindex", "0");
@@ -176,16 +184,22 @@ describe("Google SecOps complete error messages", () => {
       expect(writeText).toHaveBeenCalledWith(LONG_ERROR);
     });
 
-    fireEvent.click(within(dialog).getAllByRole("button", { name: "Close" })[0]!);
+    fireEvent.click(
+      within(dialog).getAllByRole("button", { name: "Close" })[0]!,
+    );
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "View Full Error" })).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "View Full Error" }),
+    ).toBeVisible();
   });
 
   test.each(["Enter", " "])(
     "copies the full message with the %s key",
     async (key: string): Promise<void> => {
       renderPage(LONG_ERROR);
-      fireEvent.keyDown(screen.getByRole("button", { name: "Copy Error" }), { key });
+      fireEvent.keyDown(screen.getByRole("button", { name: "Copy Error" }), {
+        key,
+      });
       await waitFor((): void => {
         expect(writeText).toHaveBeenCalledTimes(1);
         expect(writeText).toHaveBeenCalledWith(LONG_ERROR);
@@ -194,7 +208,8 @@ describe("Google SecOps complete error messages", () => {
   );
 
   test("keeps a short error readable and copyable", async (): Promise<void> => {
-    const error: string = "Google SecOps alerts fetch failed (HTTP 403): permission denied";
+    const error: string =
+      "Google SecOps alerts fetch failed (HTTP 403): permission denied";
     renderPage(error);
     expect(screen.getByText(error)).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Copy Error" }));
@@ -208,8 +223,12 @@ describe("Google SecOps complete error messages", () => {
     (error: string | null | undefined): void => {
       renderPage(error);
       expect(screen.getByTestId("connection-error")).toHaveTextContent("-");
-      expect(screen.queryByRole("button", { name: "Copy Error" })).not.toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "View Full Error" })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Copy Error" }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "View Full Error" }),
+      ).not.toBeInTheDocument();
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
       expect(writeText).not.toHaveBeenCalled();
     },

@@ -58,7 +58,7 @@ The managed connector polls your Google SecOps (Chronicle) tenant's **detection 
   - \`Google SecOps alerts query was rejected by Chronicle on an HTTP 200\` — Chronicle ran the request and rejected the query inside the body it returned. Google's rejection, with no HTTP status anywhere in it.
   - \`timed out after 60 seconds with no response\` — nothing answered before the client gave up, so the message assigns no side. Check the worker's egress as well as the tenant.
   - A message matching none of the above is OneUptime's own failure: \`Google SecOps connection is missing id, projectId, region, instance, or credentials\` means this connection row is incomplete, and otherwise the alerts arrived and writing them to the telemetry store is what failed.
-  - One known case, already fixed: \`Google SecOps alerts fetch failed (HTTP 400)\` quoting \`Unknown name "pageSize": Cannot bind query parameter\` was a OneUptime request-shape bug, resolved in this release. Google authenticates a request before it transcodes the query string, so this \`400\` is proof the service account was accepted — do not regenerate the key over it.
+  - \`Google SecOps alerts fetch failed (HTTP 400)\` quoting \`Unknown name "pageSize": Cannot bind query parameter\` identifies an unsupported request parameter. Upstream **13.0.0** already replaced \`pageSize\` with \`alertListOptions.maxReturnedAlerts\`. Inspect the actual app and worker images, including custom builds and separately deployed workers, if this error still appears. Rotating the service-account key does not correct an unsupported query parameter. A successful OAuth token exchange confirms credential acceptance; the parameter rejection alone does not establish authentication or authorization.
 
 A disabled connection is skipped entirely, so neither field advances while it is off.
 
@@ -77,8 +77,9 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
     useState<GoogleSecOpsConnection | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [currentlyViewingError, setCurrentlyViewingError] =
-    useState<string | null>(null);
+  const [currentlyViewingError, setCurrentlyViewingError] = useState<
+    string | null
+  >(null);
 
   /*
    * Same reseller-telemetry gate as every other Security Events tab —
@@ -356,6 +357,7 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
                       textToBeCopied={error}
                       label="Copy Error"
                       size="sm"
+                      variant="soft"
                     />
                   </div>
                 </div>
@@ -379,6 +381,7 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
               textToBeCopied={currentlyViewingError}
               label="Copy Error"
               size="md"
+              variant="solid"
             />
           }
         >
