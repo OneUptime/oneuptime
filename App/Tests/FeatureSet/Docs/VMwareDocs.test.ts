@@ -29,6 +29,9 @@ import path from "path";
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
 const CONTENT_DIR: string = path.join(REPO_ROOT, "App/FeatureSet/Docs/Content");
 const AGENT_DIR: string = path.join(REPO_ROOT, "VMwareAgent");
+// Screenshots the pages embed live here, not under Content/<language>.
+const STATIC_DIR: string = path.join(REPO_ROOT, "App/FeatureSet/Docs/Static");
+const STATIC_PREFIX: string = "/docs/static/";
 
 const TELEMETRY_PAGE: string = "telemetry/vmware";
 const MONITOR_PAGE: string = "monitor/vmware-monitor";
@@ -196,14 +199,23 @@ describe("VMware docs", (): void => {
     /*
      * Anchors are dropped before the lookup: the file is what has to exist,
      * and the heading check belongs to Scripts/Docs/CheckAnchors.ts.
+     *
+     * `/docs/static/...` is an asset served out of Docs/Static, not a page
+     * under Content/<language>, so those links resolve against that
+     * directory instead — the screenshots the pages embed are covered by
+     * their own assertion below.
      */
     it("only link to /docs/ pages that exist", (): void => {
       for (const page of OWNED_PAGES) {
         const targets: Array<string> = Array.from(
           readPage(page).matchAll(/\]\((\/docs\/[^)#]+)(?:#[^)]*)?\)/g),
-        ).map((match: RegExpMatchArray): string => {
-          return match[1] as string;
-        });
+        )
+          .map((match: RegExpMatchArray): string => {
+            return match[1] as string;
+          })
+          .filter((target: string): boolean => {
+            return !target.startsWith(STATIC_PREFIX);
+          });
 
         expect(targets.length).toBeGreaterThan(0);
 
@@ -213,6 +225,36 @@ describe("VMware docs", (): void => {
             target,
             exists: fs.existsSync(pageFile("en", target.replace("/docs/", ""))),
           }).toEqual({ page, target, exists: true });
+        }
+      }
+    });
+
+    /*
+     * Every screenshot a page embeds must be a real file, in both languages:
+     * the Persian pages reuse the English assets, so a rename that misses
+     * one of them shows the reader a broken image rather than failing here.
+     */
+    it("embed screenshots that exist on disk, in every language", (): void => {
+      for (const language of ["en", "fa"]) {
+        for (const page of OWNED_PAGES) {
+          const images: Array<string> = Array.from(
+            readPage(page, language).matchAll(
+              /!\[[^\]]*\]\((\/docs\/static\/[^)]+)\)/g,
+            ),
+          ).map((match: RegExpMatchArray): string => {
+            return match[1] as string;
+          });
+
+          for (const image of images) {
+            expect({
+              language,
+              page,
+              image,
+              exists: fs.existsSync(
+                path.join(STATIC_DIR, image.replace(STATIC_PREFIX, "")),
+              ),
+            }).toEqual({ language, page, image, exists: true });
+          }
         }
       }
     });

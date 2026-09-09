@@ -109,6 +109,24 @@ Look for: `"Everything is ready. Begin running and processing data."`
 
 Nothing is exported until the first full inventory walk completes, so give it one collection interval (2 minutes by default); the vCenter then appears in the OneUptime dashboard with metrics flowing.
 
+![The vCenter overview showing datacenter, cluster, ESXi host, virtual machine and datastore counts alongside host CPU, host memory, datastore usage and VM CPU ready](/docs/static/images/VMwareVCenterOverview.png)
+
+The overview answers "is this vCenter healthy" first: effective hosts, capacity-weighted host CPU and memory, the fullest datastore, and the worst VM CPU ready time. When something is degraded it names the object responsible rather than making you go looking.
+
+### ESXi hosts
+
+![The Hosts page listing every ESXi host with its cluster, datacenter, CPU and memory utilization](/docs/static/images/VMwareHosts.png)
+
+### Virtual machines
+
+![The Virtual Machines page listing every VM with its host, power state, cluster, resource pool, CPU ready, CPU and memory](/docs/static/images/VMwareVirtualMachines.png)
+
+Powered-off virtual machines and templates are listed too. vCenter only reports CPU counters for powered-on VMs, so their CPU columns read N/A rather than a misleading zero.
+
+### Datastores
+
+![The Datastores page listing each datastore with used and total capacity and a utilization bar](/docs/static/images/VMwareDatastores.png)
+
 ## What Gets Collected
 
 Every `VCENTER_COLLECTION_INTERVAL` the receiver walks the full vSphere inventory and emits one OpenTelemetry resource per object. Identity lives in **resource attributes** — `vcenter.datacenter.name`, `vcenter.cluster.name`, `vcenter.host.name`, `vcenter.vm.name` / `vcenter.vm.id`, `vcenter.datastore.name`, `vcenter.resource_pool.name` / `vcenter.resource_pool.inventory_path` — and the agent adds `vmware.vcenter.name` on top so OneUptime can route everything to your vCenter:
