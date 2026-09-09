@@ -6,9 +6,10 @@ locally on port 4198. Only session and API responses use synthetic fixtures; no
 network addresses are scanned and no backend account is required.
 
 Coverage includes progress on the reported 15,360-address target, zero responding
-hosts, live row updates without loading flicker, polling stopping at completion,
-connection failure/retry, reviewing preserved results after failure, accessible
-progress values, desktop layout, and a narrow mobile viewport.
+hosts, live row updates without loading flicker, polling stopping at completion
+and resuming when a recurring scan is due, connection failure/retry, a stalled HTTP request timing out through the real
+browser transport, reviewing preserved results after failure, accessible progress
+values, desktop layout, and a narrow mobile viewport.
 
 Screenshots are written to `output/playwright/discovery/`. The screenshots in
 `E2E/Discovery/screenshots/` document the reviewed UI for issue #3672 and use the

@@ -15,12 +15,26 @@ import {
 } from "react";
 
 export const DISCOVERY_REFRESH_INTERVAL_MS: number = 10000;
+export const DISCOVERY_REFRESH_TIMEOUT_MS: number = 15000;
 
 function isActive(scan: NetworkDeviceDiscoveryScan): boolean {
   return (
     scan.status === DiscoveryScanStatus.Pending ||
     scan.status === DiscoveryScanStatus.InProgress
   );
+}
+
+function getScheduledScanTime(scan: NetworkDeviceDiscoveryScan): number | null {
+  if (
+    !scan.isRecurring ||
+    !scan.nextScanAt ||
+    (scan.status !== DiscoveryScanStatus.Completed &&
+      scan.status !== DiscoveryScanStatus.Failed)
+  ) {
+    return null;
+  }
+  const scheduledAt: number = new Date(scan.nextScanAt).getTime();
+  return Number.isFinite(scheduledAt) ? scheduledAt : null;
 }
 
 export interface DiscoveryScanLiveUpdates {
@@ -35,8 +49,8 @@ export interface DiscoveryScanLiveUpdates {
 }
 
 /**
- * Refresh only active scans on the visible page, without replacing table rows
- * with a loading spinner or changing the operator's filters and pagination.
+ * Refresh active scans and due recurring scans on the visible page, without
+ * replacing table rows or changing the operator's filters and pagination.
  */
 export default function useDiscoveryScanLiveUpdates(): DiscoveryScanLiveUpdates {
   const [rows, setRows] = useState<Array<NetworkDeviceDiscoveryScan>>([]);
@@ -56,6 +70,7 @@ export default function useDiscoveryScanLiveUpdates(): DiscoveryScanLiveUpdates 
       generationRef.current++;
       rowsRef.current = newRows;
       setRows(newRows);
+      setIsPaused(document.hidden);
       setError("");
       setLastRefreshedAt(new Date());
     },
@@ -64,14 +79,18 @@ export default function useDiscoveryScanLiveUpdates(): DiscoveryScanLiveUpdates 
 
   const refresh: DiscoveryScanLiveUpdates["refresh"] =
     useCallback(async (): Promise<void> => {
-      const activeRows: Array<NetworkDeviceDiscoveryScan> =
-        rowsRef.current.filter(isActive);
+      const now: number = Date.now();
+      const refreshableRows: Array<NetworkDeviceDiscoveryScan> =
+        rowsRef.current.filter((scan: NetworkDeviceDiscoveryScan): boolean => {
+          const scheduledAt: number | null = getScheduledScanTime(scan);
+          return isActive(scan) || (scheduledAt !== null && scheduledAt <= now);
+        });
       const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
       if (
         inFlightRef.current ||
         document.hidden ||
         !projectId ||
-        activeRows.length === 0
+        refreshableRows.length === 0
       ) {
         return;
       }
@@ -85,14 +104,22 @@ export default function useDiscoveryScanLiveUpdates(): DiscoveryScanLiveUpdates 
             query: {
               projectId,
               _id: new Includes(
-                activeRows.map((scan: NetworkDeviceDiscoveryScan): string => {
-                  return scan._id!;
-                }),
+                refreshableRows.map(
+                  (scan: NetworkDeviceDiscoveryScan): string => {
+                    return scan._id!;
+                  },
+                ),
               ),
             },
             skip: 0,
-            limit: activeRows.length,
+            limit: refreshableRows.length,
             sort: {},
+            requestOptions: {
+              apiRequestOptions: {
+                timeout: DISCOVERY_REFRESH_TIMEOUT_MS,
+                retries: 0,
+              },
+            },
             select: {
               _id: true,
               name: true,
@@ -150,7 +177,7 @@ export default function useDiscoveryScanLiveUpdates(): DiscoveryScanLiveUpdates 
         setRows(updatedRows);
         setLastRefreshedAt(new Date());
         setError(
-          activeRows.some((scan: NetworkDeviceDiscoveryScan): boolean => {
+          refreshableRows.some((scan: NetworkDeviceDiscoveryScan): boolean => {
             return !updates.has(scan._id!);
           })
             ? "Some scans are no longer available. Refresh the list to see the latest scans."
@@ -169,6 +196,15 @@ export default function useDiscoveryScanLiveUpdates(): DiscoveryScanLiveUpdates 
     }, []);
 
   const activeCount: number = rows.filter(isActive).length;
+  /*
+   * Scheduled runs need a local clock, but no request until nextScanAt is due.
+   * Keep them out of activeCount until the server actually queues the next run.
+   */
+  const hasScansToWatch: boolean = rows.some(
+    (scan: NetworkDeviceDiscoveryScan): boolean => {
+      return isActive(scan) || getScheduledScanTime(scan) !== null;
+    },
+  );
 
   useEffect(() => {
     mountedRef.current = true;
@@ -179,9 +215,7 @@ export default function useDiscoveryScanLiveUpdates(): DiscoveryScanLiveUpdates 
   }, []);
 
   useEffect(() => {
-    if (activeCount === 0) {
-      return;
-    }
+    setIsPaused(document.hidden);
     const onVisibilityChange: () => void = (): void => {
       setIsPaused(document.hidden);
       if (!document.hidden) {
@@ -189,14 +223,22 @@ export default function useDiscoveryScanLiveUpdates(): DiscoveryScanLiveUpdates 
       }
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [refresh]);
+
+  useEffect(() => {
+    if (!hasScansToWatch) {
+      return;
+    }
     const timer: ReturnType<typeof setInterval> = setInterval(() => {
       void refresh();
     }, DISCOVERY_REFRESH_INTERVAL_MS);
     return () => {
       clearInterval(timer);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [activeCount, refresh]);
+  }, [hasScansToWatch, refresh]);
 
   return {
     onRowsLoaded,

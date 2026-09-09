@@ -9,6 +9,8 @@ import { DISCOVERY_SCAN_STARTED_MESSAGE } from "Common/Utils/NetworkDiscovery/Di
 import Probe from "Common/Models/DatabaseModels/Probe";
 import Project from "Common/Models/DatabaseModels/Project";
 import ObjectID from "Common/Types/ObjectID";
+import HTTPMethod from "Common/Types/API/HTTPMethod";
+import URL from "Common/Types/API/URL";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -67,8 +69,12 @@ const scans = [
 window.__discoveryFixture = {
   requests: [],
   fail: false,
+  stall: false,
   startAgain() {
-    Object.assign(scans[0], { scannedHostCount: 15360, statusMessage: DISCOVERY_SCAN_STARTED_MESSAGE, startedAt: new Date() });
+    Object.assign(scans[0], { status: "In Progress", scannedHostCount: 15360, statusMessage: DISCOVERY_SCAN_STARTED_MESSAGE, startedAt: new Date() });
+  },
+  scheduleAgain() {
+    Object.assign(scans[0], { isRecurring: true, nextScanAt: new Date(Date.now() + 30000) });
   },
   advance() {
     Object.assign(scans[0], { scannedHostCount: 12288, statusMessage: "Scan in progress: 12,288 of 15,360 addresses swept so far. Checking SNMP credentials (200 of 256)." });
@@ -85,6 +91,15 @@ ModelAPI.getList = async ({ modelType, query, requestOptions }) => {
   window.__discoveryFixture.requests.push({ model: modelType.name, query });
   if (modelType === NetworkDeviceDiscoveryScan && window.__discoveryFixture.fail) {
     throw new Error("The connection was interrupted. Please try again.");
+  }
+  if (modelType === NetworkDeviceDiscoveryScan && window.__discoveryFixture.stall) {
+    // Playwright holds this local request open. Use the real shared transport so
+    // its configured timeout, rather than a fabricated rejection, drives recovery.
+    await API.fetch({
+      method: HTTPMethod.GET,
+      url: URL.fromString(`${window.location.origin}/discovery-stalled-poll`),
+      options: requestOptions?.apiRequestOptions,
+    });
   }
   const data = modelType === NetworkDeviceDiscoveryScan
     ? scans.map((item) => Object.assign(new NetworkDeviceDiscoveryScan(), item))

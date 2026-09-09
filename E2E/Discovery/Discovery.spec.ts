@@ -3,8 +3,10 @@ import path from "path";
 
 interface FixtureControl {
   fail: boolean;
+  stall: boolean;
   advance: () => void;
   startAgain: () => void;
+  scheduleAgain: () => void;
   complete: () => void;
   requests: Array<{ model: string }>;
 }
@@ -155,6 +157,49 @@ test("refresh errors preserve last known progress and recover through retry", as
   ).toHaveCount(0);
 });
 
+test("a stalled live request times out without losing progress and allows retry", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPage(page);
+  await page.clock.install();
+  await page.route("**/discovery-stalled-poll", (): void => {
+    // Leave the request pending to exercise the browser's actual HTTP timeout.
+  });
+  await page.evaluate((): void => {
+    (
+      window as unknown as { __discoveryFixture: FixtureControl }
+    ).__discoveryFixture.stall = true;
+  });
+  await page.clock.runFor(10001);
+  await expect(
+    page.getByText("Refreshing progress…", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Live updates interrupted", { exact: true }),
+  ).toBeVisible({ timeout: 25000 });
+  await expect(page.getByRole("progressbar").first()).toHaveAttribute(
+    "aria-valuenow",
+    "40",
+  );
+  await page.evaluate((): void => {
+    const fixture: FixtureControl = (
+      window as unknown as { __discoveryFixture: FixtureControl }
+    ).__discoveryFixture;
+    fixture.stall = false;
+    fixture.advance();
+  });
+  await page.getByRole("button", { name: /Retry/ }).click();
+  await expect(
+    page.getByText("Live updates interrupted", { exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByRole("progressbar").first()).toHaveAttribute(
+    "aria-valuenow",
+    "80",
+  );
+});
+
 test("progress remains readable on a narrow screen", async ({
   page,
 }: {
@@ -170,6 +215,53 @@ test("progress remains readable on a narrow screen", async ({
     path: path.join(screenshots, "discovery-progress-mobile.png"),
     fullPage: false,
   });
+});
+
+test("a finished recurring scan resumes live progress when its next run becomes due", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPage(page);
+  await page.clock.install();
+  await page.evaluate((): void => {
+    const fixture: FixtureControl = (
+      window as unknown as { __discoveryFixture: FixtureControl }
+    ).__discoveryFixture;
+    fixture.complete();
+    fixture.scheduleAgain();
+  });
+  await page.clock.runFor(10001);
+  await expect(
+    page.getByText("Scan results up to date", { exact: true }),
+  ).toBeVisible();
+  const requestsBeforeDue: number = await page.evaluate((): number => {
+    return (window as unknown as { __discoveryFixture: FixtureControl })
+      .__discoveryFixture.requests.length;
+  });
+  await page.clock.runFor(10000);
+  expect(
+    await page.evaluate((): number => {
+      return (window as unknown as { __discoveryFixture: FixtureControl })
+        .__discoveryFixture.requests.length;
+    }),
+  ).toBe(requestsBeforeDue);
+  await page.evaluate((): void => {
+    (
+      window as unknown as { __discoveryFixture: FixtureControl }
+    ).__discoveryFixture.startAgain();
+  });
+  await page.clock.runFor(10001);
+  const active: Locator = page
+    .getByRole("row")
+    .filter({ hasText: "Switch Discovery — WBHQ" });
+  await expect(active).toContainText("Waiting for the first progress update");
+  await expect(active.getByRole("progressbar")).not.toHaveAttribute(
+    "aria-valuenow",
+  );
+  await expect(
+    page.getByText("1 scan in progress or queued", { exact: true }),
+  ).toBeVisible();
 });
 
 test("a newly claimed recurring scan waits for current progress instead of displaying old completion", async ({
