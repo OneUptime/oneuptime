@@ -57,6 +57,8 @@ import {
 
 export interface ComponentProps {
   onClose: () => void;
+  /** Opens a selected starter from an integration's onboarding page. */
+  initialTemplateId?: string | undefined;
   /** Called with the created workflow so the page can navigate to it. */
   onCreated: (workflow: Workflow) => void;
 }
@@ -168,18 +170,25 @@ const TemplateCard: FunctionComponent<TemplateCardProps> = (
 const CreateWorkflowModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [step, setStep] = useState<WizardStep>(WizardStep.PickTemplate);
+  const initialTemplate: WorkflowTemplate | null = props.initialTemplateId
+    ? getWorkflowTemplate(props.initialTemplateId)
+    : null;
+  const [step, setStep] = useState<WizardStep>(
+    initialTemplate ? WizardStep.NameIt : WizardStep.PickTemplate,
+  );
   /*
    * null is a real choice here — it means "start from scratch" — so a separate
    * flag tracks whether a choice has been made at all. Without it, coming Back
    * to step one after choosing Blank shows nothing selected.
    */
-  const [hasChosen, setHasChosen] = useState<boolean>(false);
+  const [hasChosen, setHasChosen] = useState<boolean>(Boolean(initialTemplate));
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
-    null,
+    initialTemplate?.id || null,
   );
-  const [name, setName] = useState<string>("");
-  const [description, setDescription] = useState<string>("");
+  const [name, setName] = useState<string>(initialTemplate?.workflowName || "");
+  const [description, setDescription] = useState<string>(
+    initialTemplate?.workflowDescription || "",
+  );
   const [nameError, setNameError] = useState<string>("");
   const [variableValues, setVariableValues] =
     useState<WorkflowTemplateVariableValues>({});

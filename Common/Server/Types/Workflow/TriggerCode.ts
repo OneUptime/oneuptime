@@ -13,6 +13,8 @@ import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 export interface ExecuteWorkflowType {
   workflowId: ObjectID;
   returnValues: JSONObject;
+  /** Stable external delivery identity. Replays reuse the persisted run log. */
+  idempotencyKey?: string | undefined;
   /**
    * Chain of ancestor workflow IDs (oldest first). Set when one workflow
    * invokes another via the Execute Workflow component so downstream runs

@@ -119,14 +119,22 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * Imports all repositories accessible to a GitHub App installation into a
-   * project. Repositories that already exist for the project (matched on
-   * organizationName + repositoryName) are skipped. Never deletes anything.
+   * project. Reconnects retained GitHub rows after reinstall without replacing
+   * their IDs or settings. Already connected rows are skipped; other hosts
+   * are unaffected. Never deletes anything.
    */
   @CaptureSpan()
   public async importReposFromInstallation(data: {
     projectId: ObjectID;
     installationId: string;
+    /** Queue consumers must retry partial failures; interactive callbacks remain best effort. */
+    strictImportErrors?: boolean | undefined;
   }): Promise<ImportReposFromInstallationResult> {
+    await GitHubInstallationBinding.assertInstallationBoundToProject({
+      projectId: data.projectId,
+      installationId: data.installationId,
+    });
+
     const installationRepositories: Array<GitHubRepository> =
       await GitHubUtil.listRepositoriesForInstallation(data.installationId);
 
@@ -137,9 +145,12 @@ export class Service extends DatabaseService<Model> {
       },
       select: {
         _id: true,
+        projectId: true,
         name: true,
         organizationName: true,
         repositoryName: true,
+        repositoryHostedAt: true,
+        gitHubAppInstallationId: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -148,14 +159,24 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    const existingRepositoryKeys: Set<string> = new Set<string>(
-      existingRepositories.map((repository: Model) => {
-        return `${repository.organizationName?.toLowerCase()}/${repository.repositoryName?.toLowerCase()}`;
-      }),
+    const projectRepositories: Array<Model> = existingRepositories.filter(
+      (repository: Model): boolean => {
+        return repository.projectId?.toString() === data.projectId.toString();
+      },
     );
+    const existingRepositoryRows: Map<string, Array<Model>> = new Map();
+    for (const repository of projectRepositories) {
+      if (repository.repositoryHostedAt !== CodeRepositoryType.GitHub) {
+        continue;
+      }
+      const key: string = `${repository.organizationName?.toLowerCase()}/${repository.repositoryName?.toLowerCase()}`;
+      const rows: Array<Model> = existingRepositoryRows.get(key) || [];
+      rows.push(repository);
+      existingRepositoryRows.set(key, rows);
+    }
 
     const existingDisplayNames: Set<string> = new Set<string>(
-      existingRepositories
+      projectRepositories
         .map((repository: Model) => {
           return repository.name?.toLowerCase() || "";
         })
@@ -166,12 +187,60 @@ export class Service extends DatabaseService<Model> {
 
     let imported: number = 0;
     let skipped: number = 0;
+    let failed: number = 0;
 
     for (const repository of installationRepositories) {
       const repositoryKey: string = `${repository.ownerLogin.toLowerCase()}/${repository.name.toLowerCase()}`;
 
-      if (existingRepositoryKeys.has(repositoryKey)) {
-        skipped++;
+      const existingRows: Array<Model> | undefined =
+        existingRepositoryRows.get(repositoryKey);
+      if (existingRows) {
+        try {
+          let reconnected: boolean = false;
+          for (const existingRepository of existingRows) {
+            if (
+              existingRepository.gitHubAppInstallationId === data.installationId
+            ) {
+              continue;
+            }
+            if (!existingRepository.id) {
+              throw new BadDataException("Existing repository has no ID.");
+            }
+            /*
+             * The live listing proves this installation can access this repo.
+             * Update only its credentials, through the normal hook that checks
+             * the project's authoritative installation again before writing.
+             */
+            const updated: number = await this.updateOneBy({
+              query: {
+                _id: existingRepository.id.toString(),
+                projectId: data.projectId,
+                repositoryHostedAt: CodeRepositoryType.GitHub,
+              },
+              data: { gitHubAppInstallationId: data.installationId },
+              props: { isRoot: true },
+            });
+            if (updated !== 1) {
+              throw new BadDataException(
+                "Repository changed during reconnection. Retry repository synchronization.",
+              );
+            }
+            existingRepository.gitHubAppInstallationId = data.installationId;
+            reconnected = true;
+          }
+          if (reconnected) {
+            imported++;
+          } else {
+            skipped++;
+          }
+        } catch (error) {
+          logger.error(
+            `Failed to reconnect repository ${repository.fullName} from GitHub App installation ${data.installationId} into project ${data.projectId.toString()}:`,
+          );
+          logger.error(error);
+          skipped++;
+          failed++;
+        }
         continue;
       }
 
@@ -211,14 +280,14 @@ export class Service extends DatabaseService<Model> {
       }
 
       try {
-        await this.create({
+        const createdRepository: Model = await this.create({
           data: codeRepository,
           props: {
             isRoot: true,
           },
         });
 
-        existingRepositoryKeys.add(repositoryKey);
+        existingRepositoryRows.set(repositoryKey, [createdRepository]);
         existingDisplayNames.add(displayName.toLowerCase());
         imported++;
       } catch (error) {
@@ -228,9 +297,15 @@ export class Service extends DatabaseService<Model> {
         );
         logger.error(error);
         skipped++;
+        failed++;
       }
     }
 
+    if (data.strictImportErrors && failed > 0) {
+      throw new Error(
+        `${failed} GitHub repositories could not be imported. Retry repository synchronization.`,
+      );
+    }
     return { imported, skipped };
   }
 

@@ -1,5 +1,15 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import Exception from "Common/Types/Exception/Exception";
+import ComponentID from "Common/Types/Workflow/ComponentID";
+import GitHubMetadata from "Common/Types/Workflow/Components/GitHubActions";
+import { GitHubAction } from "Common/Server/Types/Workflow/Components/GitHub/Actions";
+import {
+  RunOptions,
+  RunReturnType,
+} from "Common/Server/Types/Workflow/ComponentCode";
+import GitHubWorkflowClient from "Common/Server/Utils/CodeRepository/GitHub/GitHubWorkflowClient";
 import ComponentMetadata, {
   Argument,
   ComponentInputType,
@@ -177,6 +187,148 @@ describe("getComponentArguments — substitution", () => {
 
     expect(args["message"]).toBeUndefined();
   });
+
+  test("preserves explicitly supplied false and zero", () => {
+    const runner: RunWorkflow = new RunWorkflow();
+    logsOf(runner);
+
+    const args: JSONObject = runner.getComponentArguments(
+      makeStorage({}),
+      makeNode(
+        [
+          makeArgument("enabled", ComponentInputType.Boolean),
+          makeArgument("temperature", ComponentInputType.Number),
+        ],
+        { enabled: false, temperature: 0 },
+      ),
+    );
+
+    expect(args).toEqual({ enabled: false, temperature: 0 });
+  });
+
+  test("keeps unrelated optional blank, null, and undefined arguments omitted", () => {
+    const runner: RunWorkflow = new RunWorkflow();
+    logsOf(runner);
+
+    const args: JSONObject = runner.getComponentArguments(
+      makeStorage({}),
+      makeNode(
+        [
+          makeArgument("body", ComponentInputType.Markdown),
+          makeArgument("json", ComponentInputType.JSON),
+          makeArgument("missing", ComponentInputType.Text),
+          makeArgument("null", ComponentInputType.Text),
+        ],
+        { body: "", json: "", missing: undefined, null: null },
+      ),
+    );
+
+    expect(args).toEqual({});
+  });
+});
+
+describe("getComponentArguments — native GitHub updates", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const options: RunOptions = {
+    projectId: new ObjectID("33333333-3333-4333-8333-333333333333"),
+    workflowId: new ObjectID("11111111-1111-4111-8111-111111111111"),
+    workflowLogId: new ObjectID("22222222-2222-4222-8222-222222222222"),
+    log: (): void => {},
+    onError: (error: Exception): Exception => {
+      return error;
+    },
+    executeWorkflow: async (): Promise<void> => {},
+  };
+
+  for (const id of [
+    ComponentID.GitHubUpdateIssue,
+    ComponentID.GitHubUpdatePullRequest,
+  ]) {
+    const metadata: ComponentMetadata = GitHubMetadata.find(
+      (candidate: ComponentMetadata): boolean => {
+        return candidate.id === id;
+      },
+    )!;
+
+    const parsedArguments: (values: JSONObject) => JSONObject = (
+      values: JSONObject,
+    ): JSONObject => {
+      const runner: RunWorkflow = new RunWorkflow();
+      logsOf(runner);
+      const node: NodeDataProp = makeNode(metadata.arguments, values);
+      node.metadata = metadata;
+      node.metadataId = metadata.id;
+      return runner.getComponentArguments(makeStorage({}), node);
+    };
+
+    test(`${id} sends an explicitly empty body through the runner to GitHub`, async () => {
+      jest.spyOn(GitHubWorkflowClient, "request").mockResolvedValue({
+        statusCode: 200,
+        data: { id: 1, number: 42, body: "" },
+      });
+      const args: JSONObject = parsedArguments({
+        repository: "acme/api",
+        number: 42,
+        body: "",
+      });
+
+      const result: RunReturnType = await new GitHubAction(metadata).run(
+        args,
+        options,
+      );
+
+      expect(result.executePort?.id).toBe("success");
+      expect(result.returnValues["body"]).toBe("");
+      expect(GitHubWorkflowClient.request).toHaveBeenCalledWith(
+        expect.objectContaining({
+          repository: "acme/api",
+          method: "PATCH",
+          body: { body: "" },
+        }),
+      );
+    });
+
+    test.each([{}, { body: undefined }, { body: null }])(
+      `${id} does not clear an unset body when updating a title: %j`,
+      async (body: JSONObject) => {
+        jest.spyOn(GitHubWorkflowClient, "request").mockResolvedValue({
+          statusCode: 200,
+          data: {
+            id: 1,
+            number: 42,
+            body: "Original body",
+            title: "Changed",
+          },
+        });
+        const args: JSONObject = parsedArguments({
+          repository: "acme/api",
+          number: 42,
+          title: "Changed",
+          state: "",
+          ...body,
+        });
+
+        const result: RunReturnType = await new GitHubAction(metadata).run(
+          args,
+          options,
+        );
+
+        expect(result.executePort?.id).toBe("success");
+        expect(GitHubWorkflowClient.request).toHaveBeenCalledWith(
+          expect.objectContaining({ body: { title: "Changed" } }),
+        );
+        expect(args).not.toHaveProperty("body");
+        expect(args).not.toHaveProperty("state");
+      },
+    );
+
+    test(`${id} omits an empty optional title while preserving an intentional body clear`, () => {
+      expect(parsedArguments({ title: "", body: "" })).toEqual({ body: "" });
+    });
+  }
 });
 
 describe("getComponentArguments — header dictionaries in both shapes", () => {

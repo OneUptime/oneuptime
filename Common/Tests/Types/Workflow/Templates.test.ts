@@ -903,7 +903,7 @@ describe.each(
    * nothing is not an error anywhere in the stack. The run succeeds and posts
    * "Incident: {{local.components.…}}" to Slack.
    */
-  test("every field read off a database record was asked for in select", () => {
+  test("every database field read is selected or is the ID returned by creation", () => {
     const spec: TemplateSpec = specOf(templateId);
 
     for (const reference of referencesOf(templateId)) {
@@ -932,6 +932,19 @@ describe.each(
       const fieldPath: Array<string> = segments.slice(5);
 
       if (fieldPath.length === 0) {
+        continue;
+      }
+
+      /*
+       * Create One returns the inserted record, including its generated ID,
+       * and has no Select argument. The GitHub reply templates need that ID
+       * to link back to the incident that was just created. Other field reads
+       * must still be covered by Select rather than assuming hydration.
+       */
+      if (
+        referenced.metadataId.endsWith("-create-one") &&
+        fieldPath.join(".") === "_id.value"
+      ) {
         continue;
       }
 

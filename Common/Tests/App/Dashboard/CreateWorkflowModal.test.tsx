@@ -94,13 +94,19 @@ interface ModalHarness {
   onCreated: MockFunction;
 }
 
-type RenderModalFunction = () => ModalHarness;
+type RenderModalFunction = (initialTemplateId?: string) => ModalHarness;
 
-const renderModal: RenderModalFunction = (): ModalHarness => {
+const renderModal: RenderModalFunction = (
+  initialTemplateId?: string,
+): ModalHarness => {
   const onClose: MockFunction = getJestMockFunction();
   const onCreated: MockFunction = getJestMockFunction();
   const view: RenderResult = render(
-    <CreateWorkflowModal onClose={onClose} onCreated={onCreated} />,
+    <CreateWorkflowModal
+      onClose={onClose}
+      onCreated={onCreated}
+      initialTemplateId={initialTemplateId}
+    />,
   );
 
   return {
@@ -109,6 +115,107 @@ const renderModal: RenderModalFunction = (): ModalHarness => {
     onCreated: onCreated,
   };
 };
+
+describe("CreateWorkflowModal integration starters", () => {
+  test("a GitHub starter opens at Name with the chosen template", () => {
+    renderModal("github-comment-incident");
+    expectActiveStep("Name");
+    expect(
+      screen.getByDisplayValue("GitHub comment to incident"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("workflow-template-search"),
+    ).not.toBeInTheDocument();
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  test("an unknown initial template falls back to the picker", () => {
+    renderModal("template-that-does-not-exist");
+    expectActiveStep("Start from");
+    expect(screen.getByTestId("workflow-template-search")).toBeInTheDocument();
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  test("a chosen integration starter can still be changed", () => {
+    renderModal("github-comment-incident");
+    fireEvent.click(screen.getByTestId("workflow-wizard-back"));
+    expectActiveStep("Start from");
+    selectTemplate(ZERO_CONFIG_TEMPLATE_ID);
+    expect(screen.getByDisplayValue("Log a message")).toBeInTheDocument();
+    expect(
+      within(getProgress()).queryByText("Configure"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("GitHub starter configuration is required before creation", () => {
+    renderModal("github-comment-incident");
+    submit();
+    expectActiveStep("Configure");
+    submit();
+    expect(
+      screen.getByText("GitHub repository is required."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Incident severity ID is required."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("OneUptime incidents page URL is required."),
+    ).toBeInTheDocument();
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    "github-comment-incident",
+    "github-labeled-issue-incident",
+    "incident-created-github-issue",
+  ])(
+    "%s creates a disabled workflow and all configuration before opening the builder",
+    async (id: string) => {
+      const created: Workflow = createdWorkflow();
+      mockCreate.mockImplementation(
+        async (
+          data: ModelCreateArguments,
+        ): Promise<{ data: Workflow | WorkflowVariable }> => {
+          return { data: data.modelType === Workflow ? created : data.model };
+        },
+      );
+      const template: WorkflowTemplate = getTemplate(id);
+      const harness: ModalHarness = renderModal(id);
+      submit();
+      const values: Record<string, string> = {
+        githubRepository: "acme/payments",
+        incidentSeverityId: "0198c8ec-2a1d-7f0c-9e75-384194161004",
+        incidentListUrl:
+          "https://oneuptime.example/dashboard/project-a/incidents",
+        incidentLabel: "production-incident",
+      };
+      for (const variable of template.variables) {
+        fillVariable(variable.name, values[variable.name]!);
+      }
+      submit();
+      await waitFor(() => {
+        expect(harness.onCreated).toHaveBeenCalledWith(created);
+      });
+      expect(mockCreate).toHaveBeenCalledTimes(template.variables.length + 1);
+      const workflow: Workflow = mockCreate.mock.calls[0]?.[0]
+        .model as Workflow;
+      expect(workflow.isEnabled).toBe(false);
+      expect(workflow.projectId?.toString()).toBe(PROJECT_ID.toString());
+      expect(workflow.graph?.["nodes"]).not.toHaveLength(0);
+      template.variables.forEach(
+        (definition: WorkflowTemplateVariable, index: number): void => {
+          const variable: WorkflowVariable = mockCreate.mock.calls[
+            index + 1
+          ]?.[0].model as WorkflowVariable;
+          expect(variable.name).toBe(definition.name);
+          expect(variable.content).toBe(values[definition.name]);
+          expect(variable.workflowId?.toString()).toBe(WORKFLOW_ID.toString());
+          expect(variable.projectId?.toString()).toBe(PROJECT_ID.toString());
+        },
+      );
+    },
+  );
+});
 
 type GetTemplateFunction = (templateId: string) => WorkflowTemplate;
 

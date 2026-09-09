@@ -52,75 +52,33 @@ export default class VMUtil {
      */
     const shouldEscapeForJSON: boolean = Boolean(isJSON) || didStringify;
 
-    if (
-      typeof valueToReplaceInPlace === "string" &&
-      valueToReplaceInPlace.toString().includes("{{") &&
-      valueToReplaceInPlace.toString().includes("}}")
-    ) {
-      let valueToReplaceInPlaceCopy: string = valueToReplaceInPlace.toString();
+    if (typeof valueToReplaceInPlace === "string") {
+      const exactPlaceholderPattern: RegExp = /^{{([^{}]*)}}$/;
+      const exactPlaceholder: RegExpExecArray | null =
+        exactPlaceholderPattern.exec(valueToReplaceInPlace.trim());
+      const exactValue: JSONValue = exactPlaceholder
+        ? VMUtil.deepFind(storageMap, exactPlaceholder[1]!)
+        : undefined;
 
-      // First, expand {{#each path}}...{{/each}} loops before variable substitution
-      valueToReplaceInPlaceCopy = VMUtil.expandEachLoops(
-        storageMap,
-        valueToReplaceInPlaceCopy,
-        shouldEscapeForJSON,
-      );
-
-      const variablesInArgument: Array<string> = [];
-
-      const regex: RegExp = /{{(.*?)}}/g; // Find all matches of the regular expression and capture the word between the braces {{x}} => x
-
-      let match: RegExpExecArray | null = null;
-
-      while ((match = regex.exec(valueToReplaceInPlaceCopy)) !== null) {
-        if (match[1]) {
-          variablesInArgument.push(match[1]);
-        }
-      }
-
-      for (const variable of variablesInArgument) {
-        const foundValue: JSONValue = VMUtil.deepFind(
-          storageMap as any,
-          variable as any,
+      /*
+       * Preserve the exact-placeholder contract: numbers, booleans and null stay
+       * typed, and objects/arrays become JSON. Embedded values are text and use
+       * the caller's JSON escaping rules instead.
+       */
+      if (exactValue !== undefined) {
+        valueToReplaceInPlace = (
+          typeof exactValue === "object" && exactValue !== null
+            ? JSON.stringify(exactValue, null, 2)
+            : exactValue
+        ) as string;
+      } else {
+        valueToReplaceInPlace = VMUtil.renderTemplate(
+          storageMap,
+          valueToReplaceInPlace,
+          shouldEscapeForJSON,
+          true,
         );
-
-        // Skip replacement if the variable is not found in the storageMap.
-        if (foundValue === undefined) {
-          continue;
-        }
-
-        let valueToReplaceInPlace: string;
-
-        // Properly serialize objects to JSON strings
-        if (typeof foundValue === "object" && foundValue !== null) {
-          valueToReplaceInPlace = JSON.stringify(foundValue, null, 2);
-        } else {
-          valueToReplaceInPlace = foundValue as string;
-        }
-
-        if (valueToReplaceInPlaceCopy.trim() === "{{" + variable + "}}") {
-          valueToReplaceInPlaceCopy = valueToReplaceInPlace;
-        } else {
-          const replacement: string = shouldEscapeForJSON
-            ? VMUtil.serializeValueForJSON(valueToReplaceInPlace)
-            : `${valueToReplaceInPlace}`;
-
-          /*
-           * Function form, not the string form. String.replace treats $&, $1,
-           * $` and $' in the REPLACEMENT as substitution patterns, so a
-           * resolved value of "50$" or "a$&b" rewrote itself using the matched
-           * text. A function replacement is taken literally.
-           */
-          valueToReplaceInPlaceCopy = valueToReplaceInPlaceCopy.replace(
-            "{{" + variable + "}}",
-            () => {
-              return replacement;
-            },
-          );
-        }
       }
-
-      valueToReplaceInPlace = valueToReplaceInPlaceCopy;
     }
 
     if (didStringify) {
@@ -156,183 +114,157 @@ export default class VMUtil {
     template: string,
     isJSON: boolean | undefined,
   ): string {
-    let result: string = template;
-    const maxIterations: number = 100; // safety limit to prevent infinite loops
-    let iterations: number = 0;
-
-    while (iterations < maxIterations) {
-      iterations++;
-
-      // Find the first (outermost) {{#each ...}} tag
-      const openTag: RegExp = /\{\{#each\s+(.*?)\}\}/;
-      const openMatch: RegExpExecArray | null = openTag.exec(result);
-
-      if (!openMatch) {
-        break; // no more {{#each}} blocks
-      }
-
-      const blockStart: number = openMatch.index!;
-      const arrayPath: string = openMatch[1]!.trim();
-      const bodyStart: number = blockStart + openMatch[0]!.length;
-
-      // Find the matching {{/each}} by counting nesting depth
-      let depth: number = 1;
-      let searchPos: number = bodyStart;
-      let matchEnd: number = -1;
-      let bodyEnd: number = -1;
-
-      while (depth > 0 && searchPos < result.length) {
-        const nextOpen: number = result.indexOf("{{#each ", searchPos);
-        const nextClose: number = result.indexOf("{{/each}}", searchPos);
-
-        if (nextClose === -1) {
-          // Unmatched {{#each}} — break out to avoid infinite loop
-          break;
-        }
-
-        if (nextOpen !== -1 && nextOpen < nextClose) {
-          // Found a nested {{#each}} before the next {{/each}}
-          depth++;
-          searchPos = nextOpen + 8; // skip past "{{#each "
-        } else {
-          // Found {{/each}}
-          depth--;
-          if (depth === 0) {
-            bodyEnd = nextClose;
-            matchEnd = nextClose + "{{/each}}".length;
-          }
-          searchPos = nextClose + "{{/each}}".length;
-        }
-      }
-
-      if (matchEnd === -1 || bodyEnd === -1) {
-        // Unmatched {{#each}} — remove it to prevent infinite loop
-        result =
-          result.slice(0, blockStart) +
-          result.slice(blockStart + openMatch[0]!.length);
-        continue;
-      }
-
-      const loopBody: string = result.slice(bodyStart, bodyEnd);
-
-      // Resolve the array from the storage map
-      const arrayValue: JSONValue = VMUtil.deepFind(storageMap, arrayPath);
-
-      if (!Array.isArray(arrayValue)) {
-        // Not an array — remove the block entirely
-        result = result.slice(0, blockStart) + result.slice(matchEnd);
-        continue;
-      }
-
-      // Expand the loop body for each element in the array
-      const expandedParts: Array<string> = [];
-
-      for (let i: number = 0; i < arrayValue.length; i++) {
-        const element: JSONValue = arrayValue[i]!;
-        let iterationBody: string = loopBody;
-
-        // Replace {{@index}} with the current index
-        iterationBody = iterationBody.replace(/\{\{@index\}\}/g, i.toString());
-
-        if (typeof element === "object" && element !== null) {
-          /*
-           * Merge element properties into a scoped storageMap so that:
-           * 1. Element properties can be accessed directly (e.g., {{status}})
-           * 2. Parent storageMap properties are still accessible (e.g., {{requestBody.receiver}})
-           */
-          const scopedStorageMap: JSONObject = {
-            ...storageMap,
-            ...(element as JSONObject),
-          };
-
-          // Recursively expand any nested {{#each}} blocks within the iteration body
-          iterationBody = VMUtil.expandEachLoops(
-            scopedStorageMap,
-            iterationBody,
-            isJSON,
-          );
-
-          // Replace remaining {{variable}} placeholders
-          iterationBody = VMUtil.replaceLoopVariables(
-            element as JSONObject,
-            storageMap,
-            iterationBody,
-            isJSON,
-          );
-        } else {
-          // For primitive array elements, replace {{this}} with the value
-          iterationBody = iterationBody.replace(
-            /\{\{this\}\}/g,
-            isJSON ? VMUtil.serializeValueForJSON(`${element}`) : `${element}`,
-          );
-        }
-
-        expandedParts.push(iterationBody);
-      }
-
-      result =
-        result.slice(0, blockStart) +
-        expandedParts.join("") +
-        result.slice(matchEnd);
-    }
-
-    return result;
+    return VMUtil.renderTemplate(storageMap, template, isJSON, false);
   }
 
   /**
-   * Replace {{variable}} placeholders inside a loop body.
-   * Variables are resolved first against the current element (scoped),
-   * then fall back to the parent storageMap.
+   * Parse only the original template. Rendered values are appended directly to
+   * the output and never scanned for more template syntax. This matters for
+   * untrusted webhook/comment text: a value containing {{local.variables.key}}
+   * or {{#each ...}} is data, even if another source placeholder uses that key.
+   * Nested loops recurse into their original source body, not rendered text.
    */
-  @CaptureSpan()
-  private static replaceLoopVariables(
-    element: JSONObject,
-    parentStorageMap: JSONObject,
-    body: string,
+  private static renderTemplate(
+    storageMap: JSONObject,
+    template: string,
     isJSON: boolean | undefined,
+    replaceVariables: boolean,
+    element?: JSONValue,
+    index?: number,
+    nestingDepth: number = 0,
   ): string {
-    const variableRegex: RegExp = /\{\{((?!#each\b|\/each\b|@index\b).*?)\}\}/g;
-    let match: RegExpExecArray | null = null;
-    const variables: Array<string> = [];
-
-    while ((match = variableRegex.exec(body)) !== null) {
-      if (match[1]) {
-        variables.push(match[1]);
-      }
+    if (nestingDepth > 100) {
+      // Bound authored nesting without evaluating the remaining source.
+      return template;
     }
 
-    for (const variable of variables) {
-      // First try resolving relative to the current element
-      let foundValue: JSONValue = VMUtil.deepFind(element, variable.trim());
+    const tokens: RegExp = /\{\{([\s\S]*?)\}\}/g;
+    const eachExpressionPattern: RegExp = /^#each\s+([\s\S]+)$/;
+    const eachOpeningPattern: RegExp = /^#each\s+/;
+    const output: Array<string> = [];
+    let cursor: number = 0;
+    let token: RegExpExecArray | null;
 
-      // Fall back to the parent storage map (for absolute paths)
-      if (foundValue === undefined) {
-        foundValue = VMUtil.deepFind(parentStorageMap, variable.trim());
+    while ((token = tokens.exec(template)) !== null) {
+      output.push(template.slice(cursor, token.index));
+      cursor = tokens.lastIndex;
+      const expression: string = token[1]!;
+      const each: RegExpExecArray | null =
+        eachExpressionPattern.exec(expression);
+
+      if (each) {
+        const bodyStart: number = cursor;
+        const closingTokens: RegExp = /\{\{([\s\S]*?)\}\}/g;
+        closingTokens.lastIndex = bodyStart;
+        let depth: number = 1;
+        let closing: RegExpExecArray | null;
+        let bodyEnd: number = -1;
+        let blockEnd: number = -1;
+        while ((closing = closingTokens.exec(template)) !== null) {
+          if (eachOpeningPattern.test(closing[1]!)) {
+            depth++;
+          } else if (closing[1] === "/each") {
+            depth--;
+            if (depth === 0) {
+              bodyEnd = closing.index;
+              blockEnd = closingTokens.lastIndex;
+              break;
+            }
+          }
+        }
+        if (bodyEnd === -1) {
+          /*
+           * Retain the historical unmatched-opening-tag behavior: remove the
+           * tag, then process the remaining source normally.
+           */
+          continue;
+        }
+
+        const arrayValue: JSONValue = VMUtil.resolveTemplateValue(
+          storageMap,
+          each[1]!.trim(),
+          element,
+          index,
+        );
+        if (Array.isArray(arrayValue)) {
+          const loopBody: string = template.slice(bodyStart, bodyEnd);
+          const scopedStorageMap: JSONObject =
+            typeof element === "object" && element !== null
+              ? { ...storageMap, ...(element as JSONObject) }
+              : storageMap;
+          for (
+            let itemIndex: number = 0;
+            itemIndex < arrayValue.length;
+            itemIndex++
+          ) {
+            output.push(
+              VMUtil.renderTemplate(
+                scopedStorageMap,
+                loopBody,
+                isJSON,
+                true,
+                arrayValue[itemIndex],
+                itemIndex,
+                nestingDepth + 1,
+              ),
+            );
+          }
+        }
+        cursor = blockEnd;
+        tokens.lastIndex = blockEnd;
+        continue;
       }
 
-      if (foundValue === undefined) {
-        continue; // leave unresolved
+      if (!replaceVariables || expression === "/each") {
+        output.push(token[0]);
+        continue;
       }
-
-      let replacement: string;
-
-      if (typeof foundValue === "object" && foundValue !== null) {
-        replacement = JSON.stringify(foundValue, null, 2);
-      } else {
-        replacement = `${foundValue}`;
+      const value: JSONValue = VMUtil.resolveTemplateValue(
+        storageMap,
+        index === undefined ? expression : expression.trim(),
+        element,
+        index,
+      );
+      if (value === undefined) {
+        output.push(token[0]);
+        continue;
       }
-
-      const substitution: string = isJSON
-        ? VMUtil.serializeValueForJSON(replacement)
-        : replacement;
-
-      // Function form — see the note on the same call in replaceValueInPlace.
-      body = body.replace("{{" + variable + "}}", () => {
-        return substitution;
-      });
+      const replacement: string =
+        typeof value === "object" && value !== null
+          ? JSON.stringify(value, null, 2)
+          : `${value}`;
+      output.push(
+        isJSON ? VMUtil.serializeValueForJSON(replacement) : replacement,
+      );
     }
+    output.push(template.slice(cursor));
+    return output.join("");
+  }
 
-    return body;
+  private static resolveTemplateValue(
+    storageMap: JSONObject,
+    path: string,
+    element?: JSONValue,
+    index?: number,
+  ): JSONValue {
+    if (index !== undefined) {
+      if (path === "@index") {
+        return index;
+      }
+      if (path === "this") {
+        return element;
+      }
+      if (typeof element === "object" && element !== null) {
+        const scopedValue: JSONValue = VMUtil.deepFind(
+          element as JSONObject,
+          path,
+        );
+        if (scopedValue !== undefined) {
+          return scopedValue;
+        }
+      }
+    }
+    return VMUtil.deepFind(storageMap, path);
   }
 
   @CaptureSpan()

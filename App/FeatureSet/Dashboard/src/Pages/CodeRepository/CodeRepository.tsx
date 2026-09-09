@@ -25,6 +25,9 @@ import RepositoryConnectionStatus from "../../Components/CodeRepository/Reposito
 import Card from "Common/UI/Components/Card/Card";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import GitHubAutomationPanel from "../../Components/CodeRepository/GitHubAutomationPanel";
+import CreateWorkflowModal from "../../Components/Workflow/CreateWorkflowModal";
+import Workflow from "Common/Models/DatabaseModels/Workflow";
 
 const CodeRepositoryPage: FunctionComponent<
   PageComponentProps
@@ -32,6 +35,9 @@ const CodeRepositoryPage: FunctionComponent<
   const [showGitHubConnectedBanner, setShowGitHubConnectedBanner] =
     useState<boolean>(false);
   const [refreshToggle, setRefreshToggle] = useState<string>("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
+    null,
+  );
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<CodeRepository>({ modelType: CodeRepository });
@@ -94,7 +100,7 @@ const CodeRepositoryPage: FunctionComponent<
         <Alert
           type={AlertType.SUCCESS}
           strongTitle="GitHub connected"
-          title="Your repositories were imported automatically."
+          title="Your repositories were imported automatically. Choose a workflow below to act on GitHub events."
           onClose={() => {
             setShowGitHubConnectedBanner(false);
           }}
@@ -109,11 +115,12 @@ const CodeRepositoryPage: FunctionComponent<
             Install the GitHub App and all repositories in the installation are
             imported automatically — no need to pick them one at a time. They
             stay in sync as repositories are added to or removed from the
-            installation. Connected repositories are what the{" "}
+            installation. Use GitHub events in workflows to create incidents,
+            reply to comments, and update issues. The{" "}
             <Link to={aiAgentsRoute} className="underline">
               AI agent
             </Link>{" "}
-            opens fix pull requests against.
+            can also open fix pull requests against connected repositories.
           </span>
         }
       >
@@ -181,6 +188,14 @@ const CodeRepositoryPage: FunctionComponent<
         )}
       </Card>
 
+      <GitHubAutomationPanel
+        isGitHubAppConfigured={isGitHubAppConfigured}
+        workflowsRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.WORKFLOWS] as Route,
+        )}
+        onSelectTemplate={setSelectedTemplateId}
+      />
+
       <ModelTable<CodeRepository>
         modelType={CodeRepository}
         id="code-repository-table"
@@ -200,7 +215,7 @@ const CodeRepositoryPage: FunctionComponent<
         cardProps={{
           title: "Code Repositories",
           description:
-            "Your connected code repositories. AI analyzes these and opens fix pull requests against them.",
+            "Your connected repositories for GitHub event workflows, issue and pull request actions, and AI code fixes.",
         }}
         showViewIdButton={true}
         noItemsMessage={
@@ -328,6 +343,24 @@ const CodeRepositoryPage: FunctionComponent<
       />
 
       {labelBulkActionModals}
+
+      {selectedTemplateId && (
+        <CreateWorkflowModal
+          initialTemplateId={selectedTemplateId}
+          onClose={() => {
+            setSelectedTemplateId(null);
+          }}
+          onCreated={(workflow: Workflow) => {
+            setSelectedTemplateId(null);
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.WORKFLOW_BUILDER] as Route,
+                { modelId: workflow.id as ObjectID },
+              ),
+            );
+          }}
+        />
+      )}
     </>
   );
 };

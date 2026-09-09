@@ -1,3 +1,7 @@
+import crypto from "crypto";
+import Semaphore, {
+  SemaphoreMutex,
+} from "Common/Server/Infrastructure/Semaphore";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
@@ -62,6 +66,80 @@ export default class QueueWorkflow {
   public static async addWorkflowToQueue(
     executeWorkflow: ExecuteWorkflowType,
     scheduleAt?: string,
+  ): Promise<void> {
+    if (!executeWorkflow.idempotencyKey) {
+      return this.enqueueWorkflow(executeWorkflow, scheduleAt);
+    }
+    if (
+      scheduleAt ||
+      executeWorkflow.runOnlyComponentId ||
+      executeWorkflow.idempotencyKey.length > 512
+    ) {
+      throw new BadDataException(
+        "Delivery identities are only supported for immediate workflow triggers.",
+      );
+    }
+    const runId: ObjectID = this.getDeliveryRunId(
+      executeWorkflow.workflowId,
+      executeWorkflow.idempotencyKey,
+    );
+    const mutex: SemaphoreMutex = await Semaphore.lock({
+      namespace: "workflow-delivery",
+      key: runId.toString(),
+      lockTimeout: 60000,
+      acquireTimeout: 1000,
+    });
+    try {
+      const existingLog: WorkflowLog | null =
+        await WorkflowLogService.findOneBy({
+          query: {
+            _id: runId.toString(),
+            workflowId: executeWorkflow.workflowId,
+          },
+          select: { _id: true, workflowStatus: true },
+          props: { isRoot: true },
+        });
+      if (
+        existingLog &&
+        existingLog.workflowStatus !== WorkflowStatus.Scheduled
+      ) {
+        return;
+      }
+      await this.enqueueWorkflow(
+        executeWorkflow,
+        undefined,
+        runId,
+        existingLog,
+      );
+    } finally {
+      await Semaphore.release(mutex);
+    }
+  }
+
+  public static getDeliveryRunId(
+    workflowId: ObjectID,
+    deliveryKey: string,
+  ): ObjectID {
+    const digest: string = crypto
+      .createHash("sha256")
+      .update(
+        JSON.stringify([
+          "oneuptime-workflow-delivery-v1",
+          workflowId.toString(),
+          deliveryKey,
+        ]),
+      )
+      .digest("hex");
+    return new ObjectID(
+      `${digest.slice(0, 8)}-${digest.slice(8, 12)}-5${digest.slice(13, 16)}-a${digest.slice(17, 20)}-${digest.slice(20, 32)}`,
+    );
+  }
+
+  private static async enqueueWorkflow(
+    executeWorkflow: ExecuteWorkflowType,
+    scheduleAt?: string,
+    runId?: ObjectID,
+    existingLog?: WorkflowLog | null,
   ): Promise<void> {
     const workflowId: ObjectID = executeWorkflow.workflowId;
 
@@ -148,7 +226,7 @@ export default class QueueWorkflow {
       isSubscriptionUnpaid: boolean;
     } = await ProjectService.getCurrentPlan(workflow.projectId);
 
-    if (projectPlan.isSubscriptionUnpaid) {
+    if (!existingLog && projectPlan.isSubscriptionUnpaid) {
       // Add Workflow Run Log.
 
       const runLog: WorkflowLog = new WorkflowLog();
@@ -170,7 +248,7 @@ export default class QueueWorkflow {
       return;
     }
 
-    if (projectPlan.plan) {
+    if (!existingLog && projectPlan.plan) {
       const startDate: Date = OneUptimeDate.getSomeDaysAgo(30);
       const endDate: Date = OneUptimeDate.getCurrentDate();
 
@@ -211,10 +289,13 @@ export default class QueueWorkflow {
     }
 
     // Add Workflow Run Log.
-    let workflowLog: WorkflowLog | null = null;
-    if (!scheduleAt) {
+    let workflowLog: WorkflowLog | null = existingLog || null;
+    if (!scheduleAt && !workflowLog) {
       // if the workflow is to be run immediately.
       const runLog: WorkflowLog = new WorkflowLog();
+      if (runId) {
+        runLog.id = runId;
+      }
       runLog.workflowId = workflowId;
       runLog.projectId = workflow.projectId;
       runLog.workflowStatus = WorkflowStatus.Scheduled;
@@ -249,6 +330,7 @@ export default class QueueWorkflow {
       {
         scheduleAt: resolvedScheduleAt,
         repeatableKey: workflow.repeatableJobKey || undefined,
+        skipExistenceCheck: Boolean(executeWorkflow.idempotencyKey),
       },
     );
 

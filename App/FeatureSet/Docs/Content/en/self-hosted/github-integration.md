@@ -1,6 +1,6 @@
 # GitHub Integration
 
-To integrate GitHub with your self-hosted OneUptime instance, you need to create a GitHub App and configure the required environment variables. This allows OneUptime to connect to your GitHub repositories for code repository management.
+This guide configures the GitHub App for a self-hosted OneUptime instance. Connected repositories support GitHub event workflows, native issue and pull request actions, and AI code fixes. See the [GitHub integration guide](/docs/integrations/github) for comment commands, starter templates, and workflow examples.
 
 ## Prerequisites
 
@@ -40,14 +40,20 @@ In the "Permissions & events" section, configure the following permissions:
 
 **Repository Permissions:**
 
-| Permission      | Access Level | Purpose                                                      |
-| --------------- | ------------ | ------------------------------------------------------------ |
-| Contents        | Read & Write | Read repository files, push branches (required for AI Agent) |
-| Pull requests   | Read & Write | Create and manage pull requests                              |
-| Issues          | Read & Write | Read and comment on issues                                   |
-| Commit statuses | Read         | Check build/CI status                                        |
-| Actions         | Read         | Read GitHub Actions workflow runs and logs                   |
-| Metadata        | Read         | Basic repository metadata (required)                         |
+| Permission      | Access Level | Purpose                                                                   |
+| --------------- | ------------ | ------------------------------------------------------------------------- |
+| Contents        | Read & Write | Read repository files, push branches (required for AI Agent)              |
+| Pull requests   | Read & Write | Read PR events and reviews, comment, update PRs, and request reviews      |
+| Issues          | Read & Write | Receive issue and comment events, create/update issues, and manage labels |
+| Commit statuses | Read         | Check build/CI status                                                     |
+| Actions         | Read         | Read GitHub Actions workflow runs and logs                                |
+| Checks          | Read         | Receive check run and check suite events                                  |
+| Deployments     | Read         | Receive deployment status events                                          |
+| Metadata        | Read         | Basic repository metadata (required)                                      |
+
+Grant the permissions needed by the features you use. Contents write access is used by code fixes; receiving push and release events requires Contents read access. Issues write access is needed to create issues and replies, while Pull requests write access is needed for PR updates and review requests. See GitHub's [permission selection guide](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/choosing-permissions-for-a-github-app).
+
+When upgrading an existing App, save the new permissions and ask each installation's administrator to approve the requested permissions in GitHub. Changing the App definition alone does not upgrade existing installations. Confirm the installation has the required access before enabling new workflow actions.
 
 **Organization Permissions (if using with organizations):**
 
@@ -63,7 +69,25 @@ In the "Permissions & events" section, configure the following permissions:
 
 ### Step 3: Subscribe to Webhook Events
 
-OneUptime uses the GitHub App's `installation` and `installation_repositories` events to synchronize installation and repository access. GitHub Apps automatically receive these events. The current handler acknowledges other events, including **Pull request**, **Push**, and **Workflow run**, without additional processing; subscribing to them does not enable notifications or CI/CD automation.
+Select the events your workflows will use in **Permissions & events > Subscribe to events**:
+
+| GitHub event subscription   | OneUptime workflow event      |
+| --------------------------- | ----------------------------- |
+| Issues                      | `issues`                      |
+| Issue comment               | `issue_comment`               |
+| Pull request                | `pull_request`                |
+| Pull request review         | `pull_request_review`         |
+| Pull request review comment | `pull_request_review_comment` |
+| Push                        | `push`                        |
+| Workflow run                | `workflow_run`                |
+| Check run                   | `check_run`                   |
+| Check suite                 | `check_suite`                 |
+| Release                     | `release`                     |
+| Deployment status           | `deployment_status`           |
+
+For the comment-to-incident starter, **Issue comment** is essential: it includes comments on issues and on pull request conversations. Inline code-review comments use **Pull request review comment**. GitHub's [event reference](https://docs.github.com/en/webhooks/webhook-events-and-payloads) describes the payloads and required permissions.
+
+OneUptime also consumes `installation` and `installation_repositories`, which GitHub Apps receive automatically, to synchronize installation and repository access. A GitHub event only performs workflow actions after you create and enable a matching **GitHub Event** workflow in OneUptime. Repository synchronization remains automatic.
 
 ### Step 4: Set Installation Access
 
@@ -141,31 +165,33 @@ gitHubApp:
 
 1. Log into your OneUptime dashboard
 2. Navigate to **Products** > **Code Repositories**
-3. Click **"Create Repository"** or use the GitHub App installation flow
-4. If redirected from GitHub, the installation ID will be automatically captured
-5. Select the repositories you want to connect from the list
-6. Click **"Connect"** to link the repository to your OneUptime project
+3. Click **Connect with GitHub App** to begin installation or connect an existing installation
+4. Complete GitHub installation and authorization, then return to OneUptime
+5. Repositories in the installation are imported into your project automatically
+6. Use **Put GitHub events to work** to choose a starter, configure its repository and other settings, review it, and enable the workflow
+
+New templates start switched off. Test with a repository and incident severity intended for testing before using a workflow for production response.
 
 ## Environment Variables Reference
 
-| Variable                    | Description                                                    | Required             |
-| --------------------------- | -------------------------------------------------------------- | -------------------- |
-| `GITHUB_APP_ID`             | The App ID from your GitHub App settings                       | Yes                  |
-| `GITHUB_APP_NAME`           | The exact name of your GitHub App (used for installation URLs) | Yes                  |
-| `GITHUB_APP_CLIENT_ID`      | The Client ID from your GitHub App settings                    | Yes                  |
-| `GITHUB_APP_CLIENT_SECRET`  | The client secret you generated                                | Yes                  |
-| `GITHUB_APP_PRIVATE_KEY`    | The contents of the private key (.pem file)                    | Yes                  |
-| `GITHUB_APP_WEBHOOK_SECRET` | The webhook secret for verifying webhook payloads              | Yes, for webhooks    |
+| Variable                    | Description                                                    | Required          |
+| --------------------------- | -------------------------------------------------------------- | ----------------- |
+| `GITHUB_APP_ID`             | The App ID from your GitHub App settings                       | Yes               |
+| `GITHUB_APP_NAME`           | The exact name of your GitHub App (used for installation URLs) | Yes               |
+| `GITHUB_APP_CLIENT_ID`      | The Client ID from your GitHub App settings                    | Yes               |
+| `GITHUB_APP_CLIENT_SECRET`  | The client secret you generated                                | Yes               |
+| `GITHUB_APP_PRIVATE_KEY`    | The contents of the private key (.pem file)                    | Yes               |
+| `GITHUB_APP_WEBHOOK_SECRET` | The webhook secret for verifying webhook payloads              | Yes, for webhooks |
 
 ## Network access for self-hosted deployments
 
 ### Traffic direction and endpoints
 
-| Traffic | Required access |
-| --- | --- |
-| OneUptime to GitHub | DNS and outbound HTTPS on TCP 443 to `api.github.com` for GitHub App tokens and repository API calls, and `github.com` for OAuth token exchange and HTTPS Git operations |
-| GitHub to OneUptime | Public HTTPS on TCP 443 to `POST /api/github/webhook` for installation and repository-access synchronization |
-| User's browser to OneUptime | Dashboard access and `GET /api/github/auth/callback` for installation/authorization redirects; these can remain accessible through the user's VPN |
+| Traffic                     | Required access                                                                                                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| OneUptime to GitHub         | DNS and outbound HTTPS on TCP 443 to `api.github.com` for GitHub App tokens and repository API calls, and `github.com` for OAuth token exchange and HTTPS Git operations |
+| GitHub to OneUptime         | Public HTTPS on TCP 443 to `POST /api/github/webhook` for installation synchronization and GitHub event workflows                                                        |
+| User's browser to OneUptime | Dashboard access and `GET /api/github/auth/callback` for installation/authorization redirects; these can remain accessible through the user's VPN                        |
 
 The callback/setup URL is a [browser redirect](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/about-the-user-authorization-callback-url), whereas the webhook is a request from GitHub's servers. A user's VPN connection does not give GitHub access to the webhook. The domains above cover the integration's core requests; additional repository tooling, downloads, LFS, or packages may require other destinations. These settings describe GitHub.com; changing the firewall does not configure support for a GitHub Enterprise Server hostname.
 
@@ -183,7 +209,13 @@ If you also restrict webhook source IPs, use the current `hooks` ranges from Git
 
 Complete installation from OneUptime, then inspect the GitHub App's **Advanced > Recent Deliveries**. Send or redeliver a test delivery and confirm the gateway forwards it and OneUptime accepts it. Add or remove a test repository from the installation and verify the connected repository list updates. GitHub documents [delivery diagnostics](https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/viewing-webhook-deliveries) and requires [a 2xx acknowledgment within ten seconds](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks). A browser GET to the webhook does not test a signed POST.
 
-Without inbound access, browser authorization and outbound API/Git operations may work, but installation deletion and repository-access changes cannot synchronize through webhooks. Current OneUptime webhook handling synchronizes `installation` and `installation_repositories`; accepting other subscribed events does not imply they perform additional automation. The [private network access setting](/docs/self-hosted/private-network-access) controls outbound requests to private destinations and does not make the webhook reachable by GitHub.
+Without inbound access, browser authorization and outbound API/Git operations may work, but installation synchronization and inbound GitHub workflows cannot receive events. A successful webhook acknowledgment confirms acceptance into the delivery queue; enabled workflows must still match the event, and their actions may succeed or fail independently. The [private network access setting](/docs/self-hosted/private-network-access) controls outbound requests to private destinations and does not make the webhook reachable by GitHub.
+
+OneUptime needs its Redis-backed delivery queue and Workflow service running to process GitHub events. Accepted deliveries are processed asynchronously, with up to eight attempts and exponential backoff starting at five seconds for processing failures. Failed ingestion must be redelivered from GitHub after the underlying problem is fixed; GitHub does not automatically retry failed deliveries. A manual **Redeliver** can also retry a delivery that exhausted OneUptime's processing attempts. See [GitHub delivery diagnostics](/docs/integrations/github#delivery-retries-and-testing) for testing and duplicate-delivery behavior.
+
+GitHub does not guarantee delivery order. OneUptime serializes processing for each installation to prevent synchronization and event handling from overlapping, but cannot recover the original event chronology. Events for repositories that are not connected when processed are skipped; connecting a repository later does not replay those events. Wait for the repository to appear in OneUptime before testing its workflow.
+
+Test comment workflows by enabling the starter and posting a new matching comment from a user with repository write access. Inspect **Workflows > [your workflow] > Logs** after the GitHub delivery is accepted. A bot comment, an edited comment, an unconnected repository, an inactive installation, or a sender without current write access can be accepted without starting a workflow.
 
 ## Troubleshooting
 

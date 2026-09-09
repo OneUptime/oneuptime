@@ -215,6 +215,36 @@ const DISCORD_WEBHOOK_URL: WorkflowTemplateVariable = {
   isSecret: true,
 };
 
+const GITHUB_REPOSITORY: WorkflowTemplateVariable = {
+  name: "githubRepository",
+  title: "GitHub repository",
+  description:
+    "Use owner/repository, or the ID of a connected Code Repository in this project. Install the GitHub App on this repository first.",
+  placeholder: "your-organization/your-repository",
+  required: true,
+  isSecret: false,
+};
+
+const GITHUB_INCIDENT_SEVERITY: WorkflowTemplateVariable = {
+  name: "incidentSeverityId",
+  title: "Incident severity ID",
+  description:
+    "Copy the ID of the severity to use from this project's Incidents > Settings > Incident Severity.",
+  placeholder: "00000000-0000-0000-0000-000000000000",
+  required: true,
+  isSecret: false,
+};
+
+const INCIDENT_LIST_URL: WorkflowTemplateVariable = {
+  name: "incidentListUrl",
+  title: "OneUptime incidents page URL",
+  description:
+    "Copy the URL of this project's Incidents page without a trailing slash. Used to link directly to the incident in GitHub.",
+  placeholder: "https://oneuptime.com/dashboard/your-project-id/incidents",
+  required: true,
+  isSecret: false,
+};
+
 /** The select every incident trigger uses. Anything referenced below must be in here. */
 const INCIDENT_SELECT: JSONObject = {
   _id: true,
@@ -2192,6 +2222,348 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
         {
           fromComponentId: "slack-1",
           toComponentId: "log-delivery-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
+  {
+    id: "github-comment-incident",
+    name: "Declare an incident from a GitHub comment",
+    description:
+      "A repository writer comments @oneuptime incident <title> on an issue or pull request. Create an incident and reply with its link.",
+    teaches:
+      "How a GitHub command filters comments, checks current write access, and passes event data to an incident and a GitHub reply.",
+    category: WorkflowTemplateCategory.Integrations,
+    icon: IconProp.GitHub,
+    workflowName: "GitHub comment to incident",
+    workflowDescription:
+      "Creates an incident for an explicit @oneuptime incident command from a current repository writer. Ignores bots and edited comments.",
+    variables: [GITHUB_REPOSITORY, GITHUB_INCIDENT_SEVERITY, INCIDENT_LIST_URL],
+    graph: {
+      nodes: [
+        {
+          componentId: "github-event-1",
+          metadataId: ComponentID.GitHubEvent,
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: {
+            repository: "{{local.variables.githubRepository}}",
+            event: "issue_comment",
+            actions: "created",
+            commentType: "all",
+            commentCommand: "@oneuptime incident",
+            ignoreBots: true,
+            requireWriteAccess: true,
+          },
+        },
+        {
+          componentId: "has-title",
+          metadataId: ComponentID.IfElse,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            "input-1-type": ConditionValueType.Text,
+            "input-1":
+              "title:{{local.components.github-event-1.returnValues.commandArguments}}",
+            operator: ConditionOperator.NotEqualTo,
+            "input-2-type": ConditionValueType.Text,
+            "input-2": "title:",
+          },
+        },
+        {
+          componentId: "incident-create-one-1",
+          metadataId: "incident-create-one",
+          componentType: ComponentType.Component,
+          position: { x: -100, y: 500 },
+          args: {
+            json: {
+              title:
+                "{{local.components.github-event-1.returnValues.commandArguments}}",
+              description:
+                "Declared from GitHub by {{local.components.github-event-1.returnValues.sender}}.\n\nSource: {{local.components.github-event-1.returnValues.url}}",
+              incidentSeverityId: "{{local.variables.incidentSeverityId}}",
+            },
+          },
+        },
+        {
+          componentId: "github-reply-1",
+          metadataId: ComponentID.GitHubAddComment,
+          componentType: ComponentType.Component,
+          position: { x: -100, y: 700 },
+          args: {
+            repository:
+              "{{local.components.github-event-1.returnValues.repository}}",
+            number:
+              "{{local.components.github-event-1.returnValues.issueNumber}}",
+            body: "Incident created in OneUptime: [View incident]({{local.variables.incidentListUrl}}/{{local.components.incident-create-one-1.returnValues.model._id.value}}).",
+          },
+        },
+        {
+          componentId: "github-usage-reply",
+          metadataId: ComponentID.GitHubAddComment,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 500 },
+          args: {
+            repository:
+              "{{local.components.github-event-1.returnValues.repository}}",
+            number:
+              "{{local.components.github-event-1.returnValues.issueNumber}}",
+            body: "Include an incident title in your command. Example: `@oneuptime incident Checkout errors in production`.",
+          },
+        },
+        {
+          componentId: "log-incident-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -400, y: 700 },
+          args: {
+            value:
+              "Could not create the incident. Check the Create One Incident step and the configured incident severity.",
+          },
+        },
+        {
+          componentId: "log-reply-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -100, y: 900 },
+          args: {
+            value:
+              "The incident was created, but the GitHub reply failed: {{local.components.github-reply-1.returnValues.error}}. Check GitHub permissions before retrying the reply.",
+          },
+        },
+        {
+          componentId: "log-usage-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 700 },
+          args: {
+            value:
+              "The command needs a title, and the usage reply failed: {{local.components.github-usage-reply.returnValues.error}}.",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "github-event-1",
+          toComponentId: "has-title",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "has-title",
+          toComponentId: "incident-create-one-1",
+          fromPort: "yes",
+        },
+        {
+          fromComponentId: "has-title",
+          toComponentId: "github-usage-reply",
+          fromPort: "no",
+        },
+        {
+          fromComponentId: "incident-create-one-1",
+          toComponentId: "github-reply-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "incident-create-one-1",
+          toComponentId: "log-incident-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "github-reply-1",
+          toComponentId: "log-reply-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "github-usage-reply",
+          toComponentId: "log-usage-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
+  {
+    id: "github-labeled-issue-incident",
+    name: "Escalate a labeled GitHub issue to an incident",
+    description:
+      "Apply a chosen label to a GitHub issue to create an incident. Replies with a link to the incident.",
+    teaches:
+      "How to match a specific label being added, scope an event to one repository, and connect the resulting incident back to GitHub.",
+    category: WorkflowTemplateCategory.Integrations,
+    icon: IconProp.GitHub,
+    workflowName: "Labeled GitHub issue to incident",
+    workflowDescription:
+      "Creates an incident when the selected label is added to an issue in a connected GitHub repository. Removing and reapplying the label creates a new incident.",
+    variables: [
+      GITHUB_REPOSITORY,
+      {
+        name: "incidentLabel",
+        title: "GitHub incident label",
+        description:
+          "The exact label to apply when an issue should become an incident. Create this label in GitHub first.",
+        placeholder: "oneuptime-incident",
+        required: true,
+        isSecret: false,
+      },
+      GITHUB_INCIDENT_SEVERITY,
+      INCIDENT_LIST_URL,
+    ],
+    graph: {
+      nodes: [
+        {
+          componentId: "github-event-1",
+          metadataId: ComponentID.GitHubEvent,
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: {
+            repository: "{{local.variables.githubRepository}}",
+            event: "issues",
+            actions: "labeled",
+            label: "{{local.variables.incidentLabel}}",
+            ignoreBots: true,
+          },
+        },
+        {
+          componentId: "incident-create-one-1",
+          metadataId: "incident-create-one",
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            json: {
+              title: "{{local.components.github-event-1.returnValues.title}}",
+              description:
+                "Escalated from GitHub: {{local.components.github-event-1.returnValues.url}}\n\n{{local.components.github-event-1.returnValues.body}}",
+              incidentSeverityId: "{{local.variables.incidentSeverityId}}",
+            },
+          },
+        },
+        {
+          componentId: "github-reply-1",
+          metadataId: ComponentID.GitHubAddComment,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 500 },
+          args: {
+            repository:
+              "{{local.components.github-event-1.returnValues.repository}}",
+            number:
+              "{{local.components.github-event-1.returnValues.issueNumber}}",
+            body: "Escalated to OneUptime: [View incident]({{local.variables.incidentListUrl}}/{{local.components.incident-create-one-1.returnValues.model._id.value}}).",
+          },
+        },
+        {
+          componentId: "log-incident-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -200, y: 500 },
+          args: {
+            value:
+              "Could not create an incident from the GitHub issue. Check the Create One Incident step and configured severity.",
+          },
+        },
+        {
+          componentId: "log-reply-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 700 },
+          args: {
+            value:
+              "The incident was created, but its GitHub reply failed: {{local.components.github-reply-1.returnValues.error}}.",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "github-event-1",
+          toComponentId: "incident-create-one-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "incident-create-one-1",
+          toComponentId: "github-reply-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "incident-create-one-1",
+          toComponentId: "log-incident-failed",
+          fromPort: "error",
+        },
+        {
+          fromComponentId: "github-reply-1",
+          toComponentId: "log-reply-failed",
+          fromPort: "error",
+        },
+      ],
+    },
+  },
+  {
+    id: "incident-created-github-issue",
+    name: "Open a GitHub issue when an incident is declared",
+    description:
+      "Create a GitHub issue with the incident summary and a link back to OneUptime.",
+    teaches:
+      "How native GitHub actions use the connected App and read fields from a OneUptime incident trigger.",
+    category: WorkflowTemplateCategory.Integrations,
+    icon: IconProp.GitHub,
+    workflowName: "New incidents to GitHub issues",
+    workflowDescription:
+      "Creates an issue in a connected GitHub repository whenever an incident is declared in this project.",
+    variables: [GITHUB_REPOSITORY, INCIDENT_LIST_URL],
+    graph: {
+      nodes: [
+        {
+          componentId: "incident-on-create-1",
+          metadataId: "incident-on-create",
+          componentType: ComponentType.Trigger,
+          position: { x: 100, y: 100 },
+          args: { select: INCIDENT_SELECT },
+        },
+        {
+          componentId: "github-create-issue-1",
+          metadataId: ComponentID.GitHubCreateIssue,
+          componentType: ComponentType.Component,
+          position: { x: 100, y: 300 },
+          args: {
+            repository: "{{local.variables.githubRepository}}",
+            title:
+              "[{{local.components.incident-on-create-1.returnValues.model.incidentNumberWithPrefix}}] {{local.components.incident-on-create-1.returnValues.model.title}}",
+            body: "## OneUptime incident\n\n{{local.components.incident-on-create-1.returnValues.model.description}}\n\n[View incident]({{local.variables.incidentListUrl}}/{{local.components.incident-on-create-1.returnValues.model._id.value}})",
+          },
+        },
+        {
+          componentId: "log-issue-created",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: -100, y: 500 },
+          args: {
+            value:
+              "GitHub issue created: {{local.components.github-create-issue-1.returnValues.url}}",
+          },
+        },
+        {
+          componentId: "log-issue-failed",
+          metadataId: ComponentID.Log,
+          componentType: ComponentType.Component,
+          position: { x: 300, y: 500 },
+          args: {
+            value:
+              "Could not create the GitHub issue: {{local.components.github-create-issue-1.returnValues.error}}. Check repository access and Issues write permission.",
+          },
+        },
+      ],
+      edges: [
+        {
+          fromComponentId: "incident-on-create-1",
+          toComponentId: "github-create-issue-1",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "github-create-issue-1",
+          toComponentId: "log-issue-created",
+          fromPort: "success",
+        },
+        {
+          fromComponentId: "github-create-issue-1",
+          toComponentId: "log-issue-failed",
           fromPort: "error",
         },
       ],

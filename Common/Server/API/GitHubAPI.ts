@@ -1,3 +1,7 @@
+import GitHubWebhookQueue, {
+  GitHubWebhookDelivery,
+} from "../Utils/CodeRepository/GitHub/GitHubWebhookQueue";
+import ServerException from "../../Types/Exception/ServerException";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -9,8 +13,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
-import { JSONArray, JSONObject } from "../../Types/JSON";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
+import { JSONObject } from "../../Types/JSON";
 import {
   DashboardClientUrl,
   GitHubAppName,
@@ -23,131 +26,12 @@ import CodeRepositoryService, {
 } from "../Services/CodeRepositoryService";
 import ProjectService from "../Services/ProjectService";
 import AccessTokenService from "../Services/AccessTokenService";
-import Project from "../../Models/DatabaseModels/Project";
 import URL from "../../Types/API/URL";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import JSONWebToken from "../Utils/JsonWebToken";
 import { UserTenantAccessPermission } from "../../Types/Permission";
 
 export default class GitHubAPI {
-  /*
-   * Resolves the projects linked to a GitHub App installation.
-   *
-   * Project.gitHubAppInstallationId is the only source consulted, because it
-   * is the only one GitHub has vouched for — the install callback writes it
-   * after verifying the installer controls the installation, and the
-   * uninstall webhook clears it.
-   *
-   * This used to fall back to CodeRepository rows carrying the installation
-   * ID. That inverted the trust: a row is supposed to derive its right to an
-   * installation FROM its project, so letting a row nominate its project as a
-   * link target meant anyone who could write an installation ID onto a row in
-   * their own project would have that project treated as an owner of the
-   * installation — and every webhook would then import the victim's
-   * repositories into it.
-   */
-  private static async getProjectIdsForInstallation(
-    installationId: string,
-  ): Promise<Array<ObjectID>> {
-    const projectIds: Array<ObjectID> = [];
-
-    const projects: Array<Project> = await ProjectService.findBy({
-      query: {
-        gitHubAppInstallationId: installationId,
-      },
-      select: {
-        _id: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    for (const project of projects) {
-      if (project.id) {
-        projectIds.push(project.id);
-      }
-    }
-
-    return projectIds;
-  }
-
-  // Imports all repositories in an installation into every project linked to it.
-  private static async importInstallationRepositoriesForLinkedProjects(
-    installationId: string,
-  ): Promise<void> {
-    const projectIds: Array<ObjectID> =
-      await GitHubAPI.getProjectIdsForInstallation(installationId);
-
-    if (projectIds.length === 0) {
-      logger.info(
-        `GitHub webhook: no projects linked to installation ${installationId}. Skipping repository import.`,
-      );
-      return;
-    }
-
-    for (const projectId of projectIds) {
-      const importResult: ImportReposFromInstallationResult =
-        await CodeRepositoryService.importReposFromInstallation({
-          projectId: projectId,
-          installationId: installationId,
-        });
-
-      logger.info(
-        `GitHub webhook: imported ${importResult.imported} repositories (${importResult.skipped} skipped) into project ${projectId.toString()} for installation ${installationId}`,
-      );
-    }
-  }
-
-  /*
-   * Deletes CodeRepository rows for repositories that were removed from the
-   * installation. Once a repository is removed we can no longer mint tokens
-   * for it, so keeping the row around is a dead end. Uses the service delete
-   * so cascades / SET NULLs apply.
-   */
-  private static async removeRepositoriesForInstallation(
-    installationId: string,
-    removedRepositories: JSONArray,
-  ): Promise<void> {
-    for (const removedRepository of removedRepositories) {
-      const fullName: string | undefined = (removedRepository as JSONObject)?.[
-        "full_name"
-      ]?.toString();
-
-      if (!fullName) {
-        continue;
-      }
-
-      const slashIndex: number = fullName.indexOf("/");
-
-      if (slashIndex <= 0) {
-        continue;
-      }
-
-      const organizationName: string = fullName.substring(0, slashIndex);
-      const repositoryName: string = fullName.substring(slashIndex + 1);
-
-      const deletedCount: number = await CodeRepositoryService.deleteBy({
-        query: {
-          gitHubAppInstallationId: installationId,
-          organizationName: organizationName,
-          repositoryName: repositoryName,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      logger.info(
-        `GitHub webhook: removed ${deletedCount} repository record(s) for ${fullName} (installation ${installationId})`,
-      );
-    }
-  }
-
   public getRouter(): ExpressRouter {
     const router: ExpressRouter = Express.getRouter();
 
@@ -351,9 +235,11 @@ export default class GitHubAPI {
           return Response.sendErrorResponse(
             req,
             res,
-            error instanceof Error
-              ? new BadDataException(error.message)
-              : new BadDataException("An error occurred"),
+            error instanceof ServerException
+              ? error
+              : error instanceof Error
+                ? new BadDataException(error.message)
+                : new BadDataException("An error occurred"),
           );
         }
       },
@@ -451,9 +337,11 @@ export default class GitHubAPI {
           return Response.sendErrorResponse(
             req,
             res,
-            error instanceof Error
-              ? new BadDataException(error.message)
-              : new BadDataException("An error occurred"),
+            error instanceof ServerException
+              ? error
+              : error instanceof Error
+                ? new BadDataException(error.message)
+                : new BadDataException("An error occurred"),
           );
         }
       },
@@ -491,7 +379,7 @@ export default class GitHubAPI {
             | string
             | undefined;
 
-          if (!signature) {
+          if (typeof signature !== "string" || !signature) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -500,7 +388,15 @@ export default class GitHubAPI {
           }
 
           // Get raw body for signature verification
-          const rawBody: string = JSON.stringify(req.body);
+          const rawBody: string | undefined = (req as OneUptimeRequest).rawBody;
+          if (typeof rawBody !== "string") {
+            throw new BadDataException(
+              "The original GitHub request body is required.",
+            );
+          }
+          if (Buffer.byteLength(rawBody, "utf8") > 25 * 1024 * 1024) {
+            throw new BadDataException("GitHub webhook payload exceeds 25 MB.");
+          }
 
           // Verify webhook signature
           const isValid: boolean = GitHubUtil.verifyWebhookSignature(
@@ -521,154 +417,54 @@ export default class GitHubAPI {
             getLogAttributesFromRequest(req as OneUptimeRequest),
           );
 
-          // Handle installation events - install and uninstall of the app
-          if (event === "installation") {
-            const action: string | undefined = (req.body as JSONObject)?.[
-              "action"
-            ]?.toString();
-            const installationId: string | undefined = (
-              (req.body as JSONObject)?.["installation"] as JSONObject
-            )?.["id"]?.toString();
-
-            /*
-             * App installed - import all repositories in the installation
-             * into any project linked to it. This covers installs done
-             * directly from GitHub (marketplace) without our redirect flow.
-             */
-            if (action === "created" && installationId) {
-              try {
-                await GitHubAPI.importInstallationRepositoriesForLinkedProjects(
-                  installationId,
-                );
-              } catch (importError) {
-                logger.error(
-                  `Failed to import repositories for GitHub App installation ${installationId}:`,
-                  getLogAttributesFromRequest(req as OneUptimeRequest),
-                );
-                logger.error(
-                  importError,
-                  getLogAttributesFromRequest(req as OneUptimeRequest),
-                );
-              }
-            }
-
-            if (action === "deleted" && installationId) {
-              logger.info(
-                `GitHub App installation ${installationId} was deleted. Clearing from database...`,
-                getLogAttributesFromRequest(req as OneUptimeRequest),
-              );
-
-              try {
-                // Clear the installation ID from any projects that have it
-                await ProjectService.updateBy({
-                  query: {
-                    gitHubAppInstallationId: installationId,
-                  },
-                  data: {
-                    gitHubAppInstallationId: null as unknown as string,
-                  },
-                  limit: 1000,
-                  skip: 0,
-                  props: {
-                    isRoot: true,
-                  },
-                });
-
-                // Also clear from any code repositories that have this installation ID
-                await CodeRepositoryService.updateBy({
-                  query: {
-                    gitHubAppInstallationId: installationId,
-                  },
-                  data: {
-                    gitHubAppInstallationId: null as unknown as string,
-                  },
-                  limit: 10000,
-                  skip: 0,
-                  props: {
-                    isRoot: true,
-                  },
-                });
-
-                logger.info(
-                  `Successfully cleared GitHub App installation ${installationId} from database`,
-                  getLogAttributesFromRequest(req as OneUptimeRequest),
-                );
-              } catch (clearError) {
-                logger.error(
-                  `Failed to clear GitHub App installation ${installationId} from database:`,
-                  getLogAttributesFromRequest(req as OneUptimeRequest),
-                );
-                logger.error(
-                  clearError,
-                  getLogAttributesFromRequest(req as OneUptimeRequest),
-                );
-              }
-            }
+          if (event === "ping") {
+            return Response.sendJsonObjectResponse(req, res, { success: true });
           }
 
-          /*
-           * Handle repositories being added to / removed from the
-           * installation so connected repositories stay in sync with GitHub
-           * without any manual picking.
-           */
-          if (event === "installation_repositories") {
-            const body: JSONObject = req.body as JSONObject;
-            const installationId: string | undefined = (
-              body["installation"] as JSONObject
-            )?.["id"]?.toString();
-
-            if (installationId) {
-              const repositoriesAdded: JSONArray =
-                (body["repositories_added"] as JSONArray) || [];
-              const repositoriesRemoved: JSONArray =
-                (body["repositories_removed"] as JSONArray) || [];
-
-              if (repositoriesAdded.length > 0) {
-                try {
-                  await GitHubAPI.importInstallationRepositoriesForLinkedProjects(
-                    installationId,
-                  );
-                } catch (importError) {
-                  logger.error(
-                    `Failed to import added repositories for GitHub App installation ${installationId}:`,
-                    getLogAttributesFromRequest(req as OneUptimeRequest),
-                  );
-                  logger.error(
-                    importError,
-                    getLogAttributesFromRequest(req as OneUptimeRequest),
-                  );
-                }
-              }
-
-              if (repositoriesRemoved.length > 0) {
-                try {
-                  await GitHubAPI.removeRepositoriesForInstallation(
-                    installationId,
-                    repositoriesRemoved,
-                  );
-                } catch (removeError) {
-                  logger.error(
-                    `Failed to remove repositories for GitHub App installation ${installationId}:`,
-                    getLogAttributesFromRequest(req as OneUptimeRequest),
-                  );
-                  logger.error(
-                    removeError,
-                    getLogAttributesFromRequest(req as OneUptimeRequest),
-                  );
-                }
-              }
-            }
+          const eventHeaderPattern: RegExp = /^[a-z_]+$/;
+          if (typeof event !== "string" || !eventHeaderPattern.test(event)) {
+            throw new BadDataException(
+              "A valid X-GitHub-Event header is required.",
+            );
           }
 
-          /*
-           * Handle different webhook events here
-           * For now, just acknowledge receipt
-           * Future: Handle push, pull_request, check_run events
-           */
+          if (!GitHubWebhookQueue.isSupportedEvent(event)) {
+            return Response.sendJsonObjectResponse(req, res, {
+              success: true,
+              message: "Event is not subscribed to by OneUptime",
+            });
+          }
+
+          if (
+            !req.body ||
+            typeof req.body !== "object" ||
+            Array.isArray(req.body)
+          ) {
+            throw new BadDataException("A GitHub webhook object is required.");
+          }
+
+          const deliveryId: unknown = req.headers["x-github-delivery"];
+          if (typeof deliveryId !== "string") {
+            throw new BadDataException("X-GitHub-Delivery is required.");
+          }
+
+          const delivery: GitHubWebhookDelivery = {
+            event,
+            deliveryId,
+            payload: req.body as JSONObject,
+          };
+          GitHubWebhookQueue.validate(delivery);
+          try {
+            await GitHubWebhookQueue.enqueue(delivery);
+          } catch {
+            throw new ServerException(
+              "GitHub delivery could not be queued. Please redeliver it.",
+            );
+          }
 
           return Response.sendJsonObjectResponse(req, res, {
             success: true,
-            message: "Webhook received",
+            message: "Webhook queued",
           } as JSONObject);
         } catch (error) {
           logger.error(
@@ -682,9 +478,11 @@ export default class GitHubAPI {
           return Response.sendErrorResponse(
             req,
             res,
-            error instanceof Error
-              ? new BadDataException(error.message)
-              : new BadDataException("An error occurred"),
+            error instanceof ServerException
+              ? error
+              : error instanceof Error
+                ? new BadDataException(error.message)
+                : new BadDataException("An error occurred"),
           );
         }
       },

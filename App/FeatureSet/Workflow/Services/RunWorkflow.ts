@@ -16,6 +16,7 @@ import ComponentMetadata, {
   Port,
   ReturnValue,
 } from "Common/Types/Workflow/Component";
+import ComponentID from "Common/Types/Workflow/ComponentID";
 import {
   TemplateExpression,
   TemplateExpressionKind,
@@ -1021,14 +1022,24 @@ export default class RunWorkflow {
         component.arguments = {};
       }
 
-      if (!component.arguments[argument.id]) {
-        continue;
-      }
-
       let argumentContent: JSONValue | undefined =
         component.arguments[argument.id];
 
-      if (!argumentContent) {
+      if (argumentContent === undefined || argumentContent === null) {
+        continue;
+      }
+
+      /*
+       * An explicitly saved false or 0 is a value, not a missing argument.
+       * Keep the existing behavior for blank optional form fields, except
+       * GitHub update bodies: a supplied empty body deliberately clears it.
+       * An untouched Body field is absent from the form's argument object.
+       */
+      const clearsGitHubBody: boolean =
+        argument.id === "body" &&
+        (component.metadata.id === ComponentID.GitHubUpdateIssue ||
+          component.metadata.id === ComponentID.GitHubUpdatePullRequest);
+      if (argumentContent === "" && !clearsGitHubBody) {
         continue;
       }
 

@@ -38,8 +38,11 @@ import Dictionary from "../../../../Types/Dictionary";
 import Text from "../../../../Types/Text";
 import ComponentID from "../../../../Types/Workflow/ComponentID";
 import ApiPatch from "./API/Patch";
+import GitHubEventTrigger from "./GitHub/GitHubEvent";
+import GitHubActions from "./GitHub/Actions";
 
 const Components: Dictionary<ComponentCode> = {
+  [ComponentID.GitHubEvent]: new GitHubEventTrigger(),
   [ComponentID.AIGenerateText]: new GenerateText(),
   [ComponentID.Webhook]: new WebhookTrigger(),
   [ComponentID.SlackSendMessageToChannel]: new SlackSendMessageToChannel(),
@@ -64,6 +67,10 @@ const Components: Dictionary<ComponentCode> = {
   [ComponentID.WorkflowRun]: new ExecuteWorkflow(),
   [ComponentID.Sleep]: new Sleep(),
 };
+
+for (const action of GitHubActions) {
+  Components[action.getMetadata().id] = action;
+}
 
 for (const baseModelService of Services) {
   if (!(baseModelService instanceof DatabaseService)) {

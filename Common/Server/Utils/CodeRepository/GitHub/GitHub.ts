@@ -13,7 +13,7 @@ import FixPullRequestCiStatus, {
 } from "../../../../Types/AI/FixPullRequestCiStatus";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
-import API from "../../../../Utils/API";
+import API, { RequestOptions } from "../../../../Utils/API";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import {
   GitHubAppClientId,
@@ -398,6 +398,7 @@ export default class GitHubUtil extends HostedCodeRepository {
       permissions?: {
         contents?: "read" | "write";
         pull_requests?: "read" | "write";
+        issues?: "read" | "write";
         /*
          * Check-run READ access for the Tier 1 CI verification sweep. The
          * GitHub App must have the "Checks: Read-only" permission configured
@@ -407,6 +408,9 @@ export default class GitHubUtil extends HostedCodeRepository {
         checks?: "read";
         metadata?: "read";
       };
+      repositories?: Array<string>;
+      requestOptions?: RequestOptions;
+      sanitizeErrors?: boolean;
     },
   ): Promise<GitHubInstallationToken> {
     const jwt: string = GitHubUtil.generateAppJWT();
@@ -422,8 +426,13 @@ export default class GitHubUtil extends HostedCodeRepository {
       requestData["permissions"] = options.permissions;
     }
 
-    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
-      {
+    if (options?.repositories) {
+      requestData["repositories"] = options.repositories;
+    }
+
+    let result: HTTPErrorResponse | HTTPResponse<JSONObject>;
+    try {
+      result = await API.post({
         url: url,
         data: requestData,
         headers: {
@@ -431,10 +440,23 @@ export default class GitHubUtil extends HostedCodeRepository {
           Accept: "application/vnd.github+json",
           "X-GitHub-Api-Version": "2022-11-28",
         },
-      },
-    );
+        ...(options?.requestOptions ? { options: options.requestOptions } : {}),
+      });
+    } catch (error) {
+      if (options?.sanitizeErrors) {
+        throw new BadDataException(
+          "Unable to request a GitHub installation token.",
+        );
+      }
+      throw error;
+    }
 
     if (result instanceof HTTPErrorResponse) {
+      if (options?.sanitizeErrors) {
+        throw new BadDataException(
+          `GitHub installation authorization failed (HTTP ${result.statusCode}). Check app permissions and repository access.`,
+        );
+      }
       // Check if this is a permission error and provide helpful message
       const errorMessage: string =
         (result.data as JSONObject)?.["message"]?.toString() || "";
@@ -467,6 +489,50 @@ export default class GitHubUtil extends HostedCodeRepository {
       token: result.data["token"] as string,
       expiresAt: OneUptimeDate.fromString(result.data["expires_at"] as string),
     };
+  }
+
+  /** Read current suspension state, since lifecycle deliveries can arrive out of order. */
+  @CaptureSpan()
+  public static async getInstallationSuspensionStatus(
+    installationId: string,
+  ): Promise<boolean | null> {
+    const installationIdPattern: RegExp = /^[1-9][0-9]*$/;
+    if (!installationIdPattern.test(installationId)) {
+      throw new BadDataException("A valid GitHub installation ID is required.");
+    }
+    let result: HTTPErrorResponse | HTTPResponse<JSONObject>;
+    try {
+      result = await API.get({
+        url: URL.fromString(
+          `https://api.github.com/app/installations/${installationId}`,
+        ),
+        headers: GitHubUtil.buildApiHeaders(GitHubUtil.generateAppJWT()),
+        options: { timeout: 30000, doNotFollowRedirects: true },
+      });
+    } catch {
+      // Transport errors may carry request headers containing the app JWT.
+      throw new BadDataException(
+        "GitHub installation status could not be checked. Retry this delivery.",
+      );
+    }
+    if (result instanceof HTTPErrorResponse) {
+      if (result.statusCode === 404) {
+        return null;
+      }
+      throw new BadDataException(
+        "GitHub installation status could not be checked. Retry this delivery.",
+      );
+    }
+    const suspension: unknown = result.data?.["suspended_at"];
+    if (suspension === null) {
+      return false;
+    }
+    if (typeof suspension === "string" && suspension) {
+      return true;
+    }
+    throw new BadDataException(
+      "GitHub returned an invalid installation suspension status.",
+    );
   }
 
   /*

@@ -17,6 +17,7 @@ export enum QueueName {
   Worker = "Worker",
   Telemetry = "Telemetry",
   Runbook = "Runbook",
+  GitHubWebhook = "GitHubWebhook",
   /*
    * Outbound marketing conversion webhooks. Data-carrying (the job holds the
    * whole event), unlike Worker, which looks its function up by name. Nothing

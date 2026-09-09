@@ -16,8 +16,12 @@ import SleepComponents from "./Components/Sleep";
 import TelegramComponents from "./Components/Telegram";
 import WebhookComponents from "./Components/Webhook";
 import WorkflowComponents from "./Components/Workflow";
+import GitHubComponents from "./Components/GitHub";
+import GitHubActions from "./Components/GitHubActions";
 
 const components: Array<ComponentMetadata> = [
+  ...GitHubComponents,
+  ...GitHubActions,
   ...AIComponents,
   ...LogComponents,
   ...APIComponents,
@@ -39,6 +43,12 @@ const components: Array<ComponentMetadata> = [
 export default components;
 
 export const Categories: Array<ComponentCategory> = [
+  {
+    name: "GitHub",
+    description:
+      "Respond to GitHub repository events and manage issues and pull requests.",
+    icon: IconProp.GitHub,
+  },
   {
     name: "AI",
     description:

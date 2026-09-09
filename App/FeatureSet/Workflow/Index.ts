@@ -1,4 +1,11 @@
 import ComponentCodeAPI from "./API/ComponentCode";
+import QueueWorkflow from "./Services/QueueWorkflow";
+import GitHubWebhookQueue, {
+  GitHubWebhookDelivery,
+} from "Common/Server/Utils/CodeRepository/GitHub/GitHubWebhookQueue";
+import GitHubWebhookProcessor from "Common/Server/Utils/CodeRepository/GitHub/GitHubWebhookProcessor";
+import { GitHubEventEnvelope } from "Common/Types/CodeRepository/GitHubEvent";
+import GitHubEventTrigger from "Common/Server/Types/Workflow/Components/GitHub/GitHubEvent";
 import ManualAPI from "./API/Manual";
 import RunStepAPI from "./API/RunStep";
 import ModelSchemaAPI from "./API/ModelSchema";
@@ -76,6 +83,30 @@ const WorkflowFeatureSet: FeatureSet = {
           { service: "workflow" },
         );
       } else {
+        const gitHubTrigger: GitHubEventTrigger = new GitHubEventTrigger();
+        QueueWorker.getWorker(
+          QueueName.GitHubWebhook,
+          async (job: QueueJob): Promise<void> => {
+            await GitHubWebhookQueue.process(
+              job.data as GitHubWebhookDelivery,
+              async (delivery: GitHubWebhookDelivery): Promise<void> => {
+                await GitHubWebhookProcessor.process(
+                  delivery,
+                  async (data: {
+                    projectId: ObjectID;
+                    envelope: GitHubEventEnvelope;
+                  }): Promise<void> => {
+                    await gitHubTrigger.dispatch(
+                      data,
+                      QueueWorkflow.addWorkflowToQueue.bind(QueueWorkflow),
+                    );
+                  },
+                );
+              },
+            );
+          },
+          { concurrency: 5 },
+        );
         QueueWorker.getWorker(
           QueueName.Workflow,
           async (job: QueueJob) => {
