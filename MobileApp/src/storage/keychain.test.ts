@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   clearTokens,
+  clearTokensIfCurrent,
   getCachedAccessToken,
   getTokens,
   storeTokens,
@@ -283,5 +284,132 @@ describe("the session and the server URL are kept apart", () => {
     await clearTokens();
 
     expect(await getServerUrl()).toBe(SELF_HOSTED_URL);
+  });
+});
+
+describe("canceling an old passkey cannot erase a newer password or SSO session", () => {
+  test("a newer write waits for an already-started conditional removal", async () => {
+    const oldSession: StoredTokens = makeTokens({ accessToken: "old-passkey" });
+    const newSession: StoredTokens = makeTokens({
+      accessToken: "new-password",
+    });
+    await storeTokens(oldSession);
+    let finishRemoval: (() => void) | undefined;
+    const removalGate: Promise<void> = new Promise(
+      (resolve: () => void): void => {
+        finishRemoval = resolve;
+      },
+    );
+    jest
+      .mocked(AsyncStorage.removeItem)
+      .mockImplementationOnce(async (key: string): Promise<void> => {
+        await removalGate;
+        await AsyncStorage.removeItem(key);
+      });
+    jest.mocked(AsyncStorage.setItem).mockClear();
+
+    const cleanup: Promise<void> = clearTokensIfCurrent(oldSession.accessToken);
+    await Promise.resolve();
+    const replacement: Promise<void> = storeTokens(newSession);
+    expect(getCachedAccessToken()).toBe(newSession.accessToken);
+    expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+
+    finishRemoval?.();
+    await Promise.all([cleanup, replacement]);
+    expect(await persistedSession()).toEqual(newSession);
+    expect(getCachedAccessToken()).toBe(newSession.accessToken);
+  });
+
+  test("pending old store, canceled cleanup and new SSO store commit in order", async () => {
+    const oldSession: StoredTokens = makeTokens({ accessToken: "old-passkey" });
+    const newSession: StoredTokens = makeTokens({ accessToken: "new-sso" });
+    let finishWrite: (() => void) | undefined;
+    const writeGate: Promise<void> = new Promise(
+      (resolve: () => void): void => {
+        finishWrite = resolve;
+      },
+    );
+    jest
+      .mocked(AsyncStorage.setItem)
+      .mockImplementationOnce(
+        async (key: string, value: string): Promise<void> => {
+          await writeGate;
+          await AsyncStorage.setItem(key, value);
+        },
+      );
+    const oldWrite: Promise<void> = storeTokens(oldSession);
+    await Promise.resolve();
+    const cleanup: Promise<void> = clearTokensIfCurrent(oldSession.accessToken);
+    const newWrite: Promise<void> = storeTokens(newSession);
+    expect(getCachedAccessToken()).toBe(newSession.accessToken);
+
+    finishWrite?.();
+    await Promise.all([oldWrite, cleanup, newWrite]);
+    expect(await persistedSession()).toEqual(newSession);
+    expect(getCachedAccessToken()).toBe(newSession.accessToken);
+  });
+
+  test.each(["old", "missing", "corrupt"])(
+    "a delayed %s storage read cannot restore an old cached owner",
+    async (kind: string) => {
+      const oldSession: StoredTokens = makeTokens({
+        accessToken: "old-passkey",
+      });
+      const newSession: StoredTokens = makeTokens({
+        accessToken: "new-password",
+      });
+      await storeTokens(oldSession);
+      let finishRead: ((value: string | null) => void) | undefined;
+      jest
+        .mocked(AsyncStorage.getItem)
+        .mockImplementationOnce((): Promise<string | null> => {
+          return new Promise(
+            (resolve: (value: string | null) => void): void => {
+              finishRead = resolve;
+            },
+          );
+        });
+      const staleRead: Promise<StoredTokens | null> = getTokens();
+      await Promise.resolve();
+      await storeTokens(newSession);
+      finishRead?.(
+        kind === "old"
+          ? JSON.stringify(oldSession)
+          : kind === "missing"
+            ? null
+            : "{broken",
+      );
+      await staleRead;
+
+      expect(getCachedAccessToken()).toBe(newSession.accessToken);
+      await clearTokensIfCurrent(oldSession.accessToken);
+      expect(await persistedSession()).toEqual(newSession);
+      expect(getCachedAccessToken()).toBe(newSession.accessToken);
+    },
+  );
+
+  test("an already newer cached owner prevents old cleanup from being queued", async () => {
+    const newSession: StoredTokens = makeTokens({
+      accessToken: "new-password",
+    });
+    await storeTokens(newSession);
+    jest.mocked(AsyncStorage.removeItem).mockClear();
+    await clearTokensIfCurrent("old-passkey");
+    expect(AsyncStorage.removeItem).not.toHaveBeenCalled();
+    expect(await persistedSession()).toEqual(newSession);
+  });
+
+  test("a failed old write does not block a later successful login", async () => {
+    jest
+      .mocked(AsyncStorage.setItem)
+      .mockRejectedValueOnce(new Error("storage failure"));
+    await expect(
+      storeTokens(makeTokens({ accessToken: "old-passkey" })),
+    ).rejects.toThrow("storage failure");
+    const newSession: StoredTokens = makeTokens({
+      accessToken: "new-password",
+    });
+    await storeTokens(newSession);
+    expect(await persistedSession()).toEqual(newSession);
   });
 });

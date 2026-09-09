@@ -75,6 +75,7 @@ const SENSITIVE_KEY_FRAGMENTS: Array<string> = [
   "onetimecode",
   "logincode",
   "resetcode",
+  "codeverifier",
   /*
    * A DSN carries the password inline, so the key name is the only signal
    * we get before the value is already in the log line.
@@ -232,7 +233,7 @@ export const isSensitiveLogKey: IsSensitiveLogKeyFunction = (
  * are too short to match safely against free-form prose.
  */
 const TEXT_SECRET_WORDS: string =
-  "password|passwd|passphrase|secret|token|credential|credentials|authorization|cookie|api[_-]?key|private[_-]?key|access[_-]?key|assertion|attestation|signature|raw[_-]?id|client[_-]?data[_-]?json|authenticator[_-]?data|user[_-]?handle|two[_-]?factor[_-]?secret";
+  "password|passwd|passphrase|secret|token|credential|credentials|authorization|cookie|api[_-]?key|private[_-]?key|access[_-]?key|assertion|attestation|signature|raw[_-]?id|client[_-]?data[_-]?json|authenticator[_-]?data|user[_-]?handle|two[_-]?factor[_-]?secret|code[_-]?verifier";
 
 // Bounded, so a long non-matching run cannot blow up on backtracking.
 const KEY_PREFIX: string = "[A-Za-z0-9_.-]{0,40}";

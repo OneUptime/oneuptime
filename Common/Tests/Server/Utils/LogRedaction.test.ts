@@ -61,6 +61,9 @@ describe("isSensitiveLogKey", () => {
       "parameters",
       "parameterValues",
       "bindParameters",
+      "codeVerifier",
+      "code_verifier",
+      "CODE-VERIFIER",
     ]) {
       expect(isSensitiveLogKey(key)).toBe(true);
     }
@@ -438,4 +441,34 @@ describe("redactLogValue - safety properties", () => {
     expect(output).not.toContain(SENTINEL);
     expect(output).toContain("[Truncated]");
   });
+});
+
+describe("mobile passkey PKCE exchange redaction", () => {
+  it("redacts both the authorization code and the verifier in a structured body", () => {
+    const output: string = serialize({
+      code: SENTINEL,
+      codeVerifier: SENTINEL,
+      state: "public-correlation-value",
+    });
+    expect(output).not.toContain(SENTINEL);
+    expect(JSON.parse(output)).toEqual({
+      code: REDACTED,
+      codeVerifier: REDACTED,
+      state: "public-correlation-value",
+    });
+  });
+
+  it.each(["codeVerifier", "code_verifier", "code-verifier"])(
+    "redacts %s after a request body or URL has already been stringified",
+    (key: string) => {
+      for (const value of [
+        JSON.stringify({ [key]: SENTINEL }),
+        `${key}=${SENTINEL}&state=public`,
+        `https://example.com/identity/mobile-passkey-exchange?${key}=${SENTINEL}`,
+      ]) {
+        expect(redactLogString(value)).not.toContain(SENTINEL);
+        expect(redactLogString(value)).toContain(REDACTED);
+      }
+    },
+  );
 });

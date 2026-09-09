@@ -164,5 +164,17 @@
     }
   },
   "Acme, Inc.": "Acme, Inc.",
-  "Jeff Smith": "Jeff Smith"
+  "Jeff Smith": "Jeff Smith",
+  "mobilePasskey": {
+    "title": "Se connecter à OneUptime On-Call",
+    "description": "Utilisez une clé d’accès enregistrée pour ce serveur OneUptime.",
+    "returnDescription": "Après confirmation, vous reviendrez dans l’application mobile.",
+    "invalid": "Lancez la connexion depuis l’application mobile OneUptime. Cette demande est absente ou invalide.",
+    "insecure": "Les clés d’accès nécessitent HTTPS. Revenez dans l’application et vérifiez l’adresse du serveur.",
+    "failed": "La connexion n’a pas pu aboutir. Revenez dans l’application et réessayez.",
+    "complete": "Votre clé d’accès a été vérifiée. Revenez dans l’application pour terminer la connexion.",
+    "returnToApp": "Revenir dans l’application",
+    "cancel": "Annuler et revenir dans l’application",
+    "setup": "Créez une clé d’accès dans Profil utilisateur → Clés d’accès et authentification à deux facteurs du tableau de bord web."
+  }
 }

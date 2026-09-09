@@ -164,5 +164,17 @@
     }
   },
   "Acme, Inc.": "Acme, Inc.",
-  "Jeff Smith": "Jeff Smith"
+  "Jeff Smith": "Jeff Smith",
+  "mobilePasskey": {
+    "title": "Logga in på OneUptime On-Call",
+    "description": "Använd en nyckel som sparats för den här OneUptime-servern.",
+    "returnDescription": "Efter att du har godkänt återvänder du till mobilappen.",
+    "invalid": "Starta inloggningen från OneUptimes mobilapp. Begäran saknas eller är ogiltig.",
+    "insecure": "Nycklar kräver HTTPS. Gå tillbaka till appen och kontrollera serveradressen.",
+    "failed": "Det gick inte att slutföra inloggningen. Gå tillbaka till appen och försök igen.",
+    "complete": "Din nyckel har verifierats. Gå tillbaka till appen för att slutföra inloggningen.",
+    "returnToApp": "Tillbaka till appen",
+    "cancel": "Avbryt och återgå till appen",
+    "setup": "Skapa en nyckel under Användarprofil → Nycklar och tvåfaktorsautentisering i webbpanelen."
+  }
 }

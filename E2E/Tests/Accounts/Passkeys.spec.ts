@@ -1,6 +1,7 @@
 import { BASE_URL, IS_BILLING_ENABLED } from "../../Config";
 import { registerAndCreateProject } from "../Dashboard/Helpers/ProductOnboarding";
 import {
+  APIRequestContext,
   APIResponse,
   Browser,
   BrowserContext,
@@ -16,7 +17,7 @@ import {
 } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 
 /*
  * Exercise the actual browser WebAuthn implementation, server verification,
@@ -375,6 +376,331 @@ test.describe("Passkey account lifecycle", () => {
       });
     }
     await signInWithPasskey();
+  });
+
+  test.describe("mobile browser handoff", () => {
+    test.skip(
+      !origin.startsWith("https://"),
+      "The app handoff requires an HTTPS E2E server, including for localhost.",
+    );
+
+    interface MobileRequest {
+      url: string;
+      state: string;
+      codeVerifier: string;
+      codeChallenge: string;
+    }
+
+    const mobilePageUrl: string = `${origin}/accounts/mobile-passkey`;
+    const exchangeEndpoint: string = `${origin}/identity/mobile-passkey-exchange`;
+    const sessionCookieNames: Array<string> = [
+      "user-id",
+      "user-token",
+      "user-refresh-token",
+    ];
+
+    const createMobileRequest: () => MobileRequest = (): MobileRequest => {
+      const codeVerifier: string = randomBytes(32).toString("hex");
+      const state: string = randomBytes(32).toString("hex");
+      const codeChallenge: string = createHash("sha256")
+        .update(codeVerifier, "ascii")
+        .digest("base64url");
+      const url: URL = new URL(mobilePageUrl);
+      url.searchParams.set("state", state);
+      url.searchParams.set("codeChallenge", codeChallenge);
+      url.searchParams.set("codeChallengeMethod", "S256");
+      return { url: url.toString(), state, codeVerifier, codeChallenge };
+    };
+
+    const expectNoBrowserSession: () => Promise<void> =
+      async (): Promise<void> => {
+        expect(
+          (await context.cookies()).filter((cookie: { name: string }) => {
+            return sessionCookieNames.includes(cookie.name);
+          }),
+        ).toEqual([]);
+      };
+
+    test("exchanges a real mobile passkey proof once without signing in the browser", async ({
+      request,
+    }: {
+      request: APIRequestContext;
+    }) => {
+      await signOut();
+      const mobile: MobileRequest = createMobileRequest();
+      await page.goto(mobile.url);
+      await expect(page.getByTestId("mobile-passkey-sign-in")).toBeEnabled();
+      await expect(
+        page.locator('input[type="email"], input[type="password"]'),
+      ).toHaveCount(0);
+      const optionsPromise: Promise<Response> =
+        page.waitForResponse(optionsRoute);
+      const assertionPromise: Promise<Request> =
+        page.waitForRequest(loginEndpoint);
+      const proofPromise: Promise<Response> =
+        page.waitForResponse(loginEndpoint);
+      await page.getByTestId("mobile-passkey-sign-in").click();
+
+      const optionsResponse: Response = await optionsPromise;
+      expect(optionsResponse.ok()).toBe(true);
+      expect(optionsResponse.request().postDataJSON()).toEqual({
+        mobileAuth: {
+          state: mobile.state,
+          codeChallenge: mobile.codeChallenge,
+          codeChallengeMethod: "S256",
+        },
+      });
+      expect((await optionsResponse.json()).options.userVerification).toBe(
+        "required",
+      );
+      const assertionRequest: Request = await assertionPromise;
+      expect(assertionRequest.postDataJSON()).toEqual({
+        credential: expect.any(Object),
+      });
+      expect((await assertionRequest.allHeaders())["cookie"]).toMatch(
+        /oneuptime-passkey-login=mobile\.[A-Za-z0-9_-]+/,
+      );
+
+      const proof: Response = await proofPromise;
+      expect(proof.ok()).toBe(true);
+      expect(proof.headers()["cache-control"]).toContain("no-store");
+      const proofBody: { mobileAuth: { callbackUrl: string } } =
+        await proof.json();
+      expect(proofBody).toEqual({
+        mobileAuth: { callbackUrl: expect.any(String) },
+      });
+      const callback: URL = new URL(proofBody.mobileAuth.callbackUrl);
+      expect(callback.protocol).toBe("oneuptime:");
+      expect(callback.hostname).toBe("passkey");
+      expect(callback.pathname).toBe("");
+      expect(Array.from(callback.searchParams.keys())).toEqual([
+        "code",
+        "state",
+        "serverOrigin",
+      ]);
+      expect(callback.searchParams.get("state")).toBe(mobile.state);
+      expect(callback.searchParams.get("serverOrigin")).toBe(
+        new URL(origin).origin,
+      );
+      const code: string = callback.searchParams.get("code") || "";
+      expect(code).toMatch(/^[A-Za-z0-9_-]{43}$/);
+      await expect(
+        page.getByRole("link", { name: "Return to app", exact: true }),
+      ).toHaveAttribute("href", callback.toString());
+      await expectNoBrowserSession();
+      await saveScreenshot("passkey-mobile-browser-confirmed", test.info());
+
+      /*
+       * The isolated API context represents the app after its system-browser
+       * callback. It has neither the browser's challenge cookie nor a session.
+       * The proof and code above came from the real server and authenticator.
+       */
+      const exchangeBody: {
+        code: string;
+        codeVerifier: string;
+        state: string;
+      } = {
+        code,
+        codeVerifier: mobile.codeVerifier,
+        state: mobile.state,
+      };
+      for (const wrong of [
+        { codeVerifier: randomBytes(32).toString("hex") },
+        { state: randomBytes(32).toString("hex") },
+      ]) {
+        const refused: APIResponse = await request.post(exchangeEndpoint, {
+          data: { ...exchangeBody, ...wrong },
+        });
+        expect(refused.status()).toBeGreaterThanOrEqual(400);
+        expect(refused.status()).toBeLessThan(500);
+        expect(refused.headers()["cache-control"]).toContain("no-store");
+      }
+
+      let nativeRefreshToken: string | undefined;
+      try {
+        const exchanged: APIResponse = await request.post(exchangeEndpoint, {
+          data: exchangeBody,
+        });
+        expect(exchanged.ok()).toBe(true);
+        expect(exchanged.headers()["cache-control"]).toContain("no-store");
+        const session: {
+          _id: string | { value: string };
+          _miscData: {
+            accessToken: string;
+            refreshToken: string;
+            refreshTokenExpiresAt: string;
+          };
+        } = await exchanged.json();
+        nativeRefreshToken = session._miscData.refreshToken;
+        expect(
+          typeof session._id === "string" ? session._id : session._id.value,
+        ).toBe(userId);
+        expect(session._miscData.accessToken).toEqual(expect.any(String));
+        expect(session._miscData.accessToken.length).toBeGreaterThan(0);
+        expect(nativeRefreshToken.length).toBeGreaterThan(0);
+        expect(
+          Date.parse(session._miscData.refreshTokenExpiresAt),
+        ).toBeGreaterThan(Date.now());
+        expect(
+          (await request.storageState()).cookies.filter(
+            (cookie: { name: string }) => {
+              return sessionCookieNames.includes(cookie.name);
+            },
+          ),
+        ).toEqual([]);
+        await expectNoBrowserSession();
+
+        const replayed: APIResponse = await request.post(exchangeEndpoint, {
+          data: exchangeBody,
+        });
+        expect(replayed.status()).toBeGreaterThanOrEqual(400);
+        expect(replayed.status()).toBeLessThan(500);
+
+        // Confirm that the returned refresh token belongs to a real active session.
+        const renewed: APIResponse = await request.post(
+          `${origin}/identity/refresh-token`,
+          {
+            data: { refreshToken: nativeRefreshToken },
+          },
+        );
+        expect(renewed.ok()).toBe(true);
+        const renewedSession: { accessToken: string; refreshToken: string } =
+          await renewed.json();
+        nativeRefreshToken = renewedSession.refreshToken;
+        expect(renewedSession.accessToken.length).toBeGreaterThan(0);
+        expect(nativeRefreshToken.length).toBeGreaterThan(0);
+        await expectNoBrowserSession();
+      } finally {
+        if (nativeRefreshToken) {
+          const loggedOut: APIResponse = await request.post(
+            `${origin}/identity/logout`,
+            {
+              data: { refreshToken: nativeRefreshToken },
+            },
+          );
+          expect(loggedOut.ok()).toBe(true);
+        }
+      }
+    });
+
+    test("canceling a real pending mobile prompt issues no code or session", async () => {
+      await signOut();
+      const mobile: MobileRequest = createMobileRequest();
+      await page.goto(mobile.url);
+      let assertionRequests: number = 0;
+      const countAssertions: (request: Request) => void = (
+        request: Request,
+      ): void => {
+        if (request.url() === loginEndpoint) {
+          assertionRequests++;
+        }
+      };
+      page.on("request", countAssertions);
+      await client.send("WebAuthn.setAutomaticPresenceSimulation", {
+        authenticatorId,
+        enabled: false,
+      });
+      try {
+        // Observe settlement of the real browser operation without replacing its result.
+        await page.evaluate(() => {
+          const originalGet: CredentialsContainer["get"] =
+            navigator.credentials.get.bind(navigator.credentials);
+          const runtime: Window & { passkeyRequestSettled?: boolean } = window;
+          runtime.passkeyRequestSettled = false;
+          navigator.credentials.get = async (
+            ...args: Parameters<CredentialsContainer["get"]>
+          ): Promise<Credential | null> => {
+            try {
+              return await originalGet(...args);
+            } finally {
+              navigator.credentials.get = originalGet;
+              runtime.passkeyRequestSettled = true;
+            }
+          };
+        });
+        await page.getByTestId("mobile-passkey-sign-in").click();
+        await expect(
+          page.getByRole("button", { name: "Check your device", exact: true }),
+        ).toBeVisible();
+        await page
+          .getByRole("button", {
+            name: "Cancel and return to app",
+            exact: true,
+          })
+          .click();
+        await expect(
+          page.getByText(
+            "Passkey sign-in canceled. You can try again or use your password.",
+            { exact: true },
+          ),
+        ).toBeVisible();
+        await expect(page.getByTestId("mobile-passkey-sign-in")).toBeEnabled();
+        await page.waitForFunction(() => {
+          const runtime: Window & { passkeyRequestSettled?: boolean } = window;
+          return runtime.passkeyRequestSettled === true;
+        });
+        expect(assertionRequests).toBe(0);
+        await expectNoBrowserSession();
+        await expect(
+          page.getByRole("link", { name: "Return to app", exact: true }),
+        ).toHaveCount(0);
+      } finally {
+        page.off("request", countAssertions);
+        await client.send("WebAuthn.setAutomaticPresenceSimulation", {
+          authenticatorId,
+          enabled: true,
+        });
+      }
+    });
+
+    test("invalid mobile requests and missing browser binding cannot issue a session", async () => {
+      await signOut();
+      let authenticationRequests: number = 0;
+      const countAuthentication: (request: Request) => void = (
+        request: Request,
+      ): void => {
+        if (request.url().startsWith(`${origin}/identity/passkey-login`)) {
+          authenticationRequests++;
+        }
+      };
+      page.on("request", countAuthentication);
+      try {
+        await page.goto(`${mobilePageUrl}?codeChallengeMethod=S256`);
+        await expect(page.getByRole("alert")).toHaveText(
+          "Start sign-in from the OneUptime mobile app. This request is missing or invalid.",
+        );
+        await expect(page.getByTestId("mobile-passkey-sign-in")).toHaveCount(0);
+        expect(authenticationRequests).toBe(0);
+        await expectNoBrowserSession();
+      } finally {
+        page.off("request", countAuthentication);
+      }
+
+      const invalidOptions: APIResponse = await context.request.post(
+        `${origin}/identity/passkey-login-options`,
+        {
+          headers: { Origin: new URL(origin).origin },
+          data: { mobileAuth: { codeChallengeMethod: "S256" } },
+        },
+      );
+      expect(invalidOptions.status()).toBeGreaterThanOrEqual(400);
+      expect(invalidOptions.status()).toBeLessThan(500);
+      const unboundProof: APIResponse = await context.request.post(
+        loginEndpoint,
+        {
+          headers: { Origin: new URL(origin).origin },
+          data: successfulAssertion,
+        },
+      );
+      expect(unboundProof.status()).toBeGreaterThanOrEqual(400);
+      expect(unboundProof.status()).toBeLessThan(500);
+      expect(await unboundProof.json()).not.toHaveProperty("mobileAuth");
+      await expectNoBrowserSession();
+
+      // Restore the web session used by the existing credential-revocation test.
+      await page.goto(loginUrl);
+      await signInWithPasskey();
+    });
   });
 
   test("revokes a registered passkey while preserving password sign-in", async () => {

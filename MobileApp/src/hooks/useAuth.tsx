@@ -35,6 +35,11 @@ import {
   type CompleteSsoLoginOutcome,
 } from "../sso/session";
 import { clearAllSsoDenials } from "../sso/ssoDenials";
+import {
+  signInWithPasskey,
+  discardPasskeySession,
+  PasskeySignInOptions,
+} from "../passkeys/signIn";
 
 /**
  * A password step that succeeded and is waiting on a second factor.
@@ -74,6 +79,9 @@ interface AuthContextValue {
   needsServerUrl: boolean;
   user: LoginResponse["user"] | null;
   login: (email: string, password: string) => Promise<LoginResponse>;
+  loginWithPasskey: (
+    options: PasskeySignInOptions,
+  ) => Promise<LoginResponse | null>;
   logout: () => Promise<void>;
   setNeedsServerUrl: (value: boolean) => void;
   setIsAuthenticated: (value: boolean) => void;
@@ -303,6 +311,27 @@ export function AuthProvider({
       [],
     );
 
+  const loginWithPasskey: (
+    options: PasskeySignInOptions,
+  ) => Promise<LoginResponse | null> = useCallback(
+    async (options: PasskeySignInOptions): Promise<LoginResponse | null> => {
+      setPendingTwoFactor(null);
+      setHeldUser(null);
+      setPendingBackupCodes(null);
+      const response: LoginResponse | null = await signInWithPasskey(options);
+      if (response && options.signal.aborted) {
+        await discardPasskeySession(response.accessToken);
+        return null;
+      }
+      if (response) {
+        setUser(response.user);
+        setIsAuthenticated(true);
+      }
+      return response;
+    },
+    [],
+  );
+
   const cancelTwoFactor: () => void = useCallback((): void => {
     setPendingTwoFactor(null);
     setHeldUser(null);
@@ -485,6 +514,7 @@ export function AuthProvider({
         needsServerUrl,
         user,
         login,
+        loginWithPasskey,
         logout,
         setNeedsServerUrl,
         setIsAuthenticated,
