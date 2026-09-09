@@ -68,9 +68,15 @@ export const MonitorTemplateSyncFieldsSummary: FunctionComponent<
   return (
     <div className="mb-5 rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-gray-700">
       <h3 className="font-medium text-gray-900">Template sync settings</h3>
-      <p className="mt-1">{getMonitorTemplateSyncFieldSummary(props)}</p>
       <p className="mt-1">
-        New monitors still start with the template's values for every field.
+        {getMonitorTemplateSyncFieldSummary({
+          monitorType: props.monitorType,
+          monitorSteps: props.monitorSteps,
+        })}
+      </p>
+      <p className="mt-1">
+        New monitors still start with the template&apos;s values for every
+        field.
       </p>
     </div>
   );
@@ -121,10 +127,10 @@ const MonitorTemplateSyncFields: FunctionComponent<ComponentProps> = (
     <Card title="Template sync settings">
       <div className="space-y-4">
         <p className="text-sm text-gray-500">
-          Check fields to keep each monitor's current values when syncing this
-          template to one or all linked monitors. The template's values remain
-          the defaults for new monitors. Lists such as request headers are
-          preserved in full.
+          Check fields to keep each monitor&apos;s current values when syncing
+          this template to one or all linked monitors. The template&apos;s
+          values remain the defaults for new monitors. Lists such as request
+          headers are preserved in full.
         </p>
         <div className="divide-y divide-gray-100">
           {fields.map((field: MonitorTemplateSyncField, index: number) => {
