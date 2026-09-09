@@ -169,6 +169,7 @@ function renderTable(
       modelType={MonitorLabelRule}
       id="monitor-label-rules"
       name="Monitor Label Rules"
+      userPreferencesKey="label-rule-import-export-tests"
       columns={[]}
       filters={[]}
       isCreateable={true}

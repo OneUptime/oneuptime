@@ -328,7 +328,7 @@ describe("label rule import and export API orchestration", () => {
 
   test("rejects unreadable or missing IDs instead of creating an empty relation", async () => {
     const label: BaseModel = makeRelation("Production", 1);
-    label._id = undefined;
+    delete label._id;
     mockPaged([label]);
     await expect(preview()).rejects.toThrow("was not found");
   });
