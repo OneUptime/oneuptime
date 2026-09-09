@@ -99,7 +99,13 @@ const LONG_ERROR: string =
 
 const originalClipboard: PropertyDescriptor | undefined =
   Object.getOwnPropertyDescriptor(navigator, "clipboard");
-const writeText: jest.Mock<(text: string) => Promise<void>> =
+/*
+ * `jest` here is the one imported from @jest/globals, whose fn() is generic
+ * over the function type. Naming the result through ReturnType keeps that
+ * type rather than the ambient @types/jest `Mock<Return, Args>`, which is a
+ * different shape and does not accept it.
+ */
+const writeText: ReturnType<typeof jest.fn<(text: string) => Promise<void>>> =
   jest.fn<(text: string) => Promise<void>>();
 
 function renderPage(error: string | null | undefined): void {
@@ -128,7 +134,7 @@ describe("Google SecOps complete error messages", () => {
   beforeEach((): void => {
     mockConnections = [];
     writeText.mockReset();
-    writeText.mockResolvedValue(undefined);
+    writeText.mockResolvedValue();
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
       value: { writeText },
