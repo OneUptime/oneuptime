@@ -36,9 +36,15 @@ function makeStatus(isDown: boolean): MonitorStatus {
 }
 
 function makeTimeline(status: MonitorStatus): MonitorStatusTimeline {
+  const statusId: ObjectID | null = status.id;
+
+  if (!statusId) {
+    throw new Error("Test status must have an ID.");
+  }
+
   const timeline: MonitorStatusTimeline = new MonitorStatusTimeline();
   timeline.monitorId = new ObjectID("monitor-1");
-  timeline.monitorStatusId = status.id;
+  timeline.monitorStatusId = statusId;
   timeline.monitorStatus = status;
   timeline.startsAt = new Date("2026-01-02T01:00:00.000Z");
   timeline.endsAt = new Date("2026-01-02T23:00:00.000Z");
