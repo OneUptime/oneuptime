@@ -19,11 +19,9 @@ import AlertBanner, {
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import PaidUsageConsent from "./PaidUsageConsent";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -34,7 +32,7 @@ import React, { FunctionComponent, ReactElement } from "react";
  * included in the Free plan, so a user who creates an ingestion key or a
  * non-Manual monitor requires billing setup. The server enforces payment
  * eligibility. These components explain prices, with acknowledgement required
- * for telemetry and bulk monitor creation. Everything here renders only when
+ * for bulk monitor creation. Everything here renders only when
  * billing is on AND the project is on Free (see isProjectOnFreePlan, which fails
  * closed).
  */
@@ -65,48 +63,7 @@ export const TELEMETRY_RATES_SENTENCE: string = `Logs, traces, metrics, profiles
 
 export const ACTIVE_MONITOR_PRICE_SENTENCE: string = `${ACTIVE_MONITOR_PRICE_TEXT} per monitor per month`;
 
-/*
- * The form key the telemetry consent checkbox is stored under. It is declared
- * with overrideField and no overrideFieldKey, which keeps it out of both the
- * model payload and miscDataProps - the acknowledgement never leaves the
- * browser, it only gates the submit.
- */
-export const TELEMETRY_CONSENT_FIELD_KEY: string =
-  "telemetryPayAsYouGoAcknowledged";
-
-export const TELEMETRY_CONSENT_ERROR: string =
-  "Please confirm you understand telemetry sent with this key is billed as you use it before creating an ingestion key.";
-
 export const MONITOR_CONSENT_ERROR: string = `Please confirm you understand this monitor is billed at ${ACTIVE_MONITOR_PRICE_TEXT} per month before creating it.`;
-
-type ConsentValidator = (values: FormValues<unknown>) => string | null;
-
-/**
- * A consent box is only satisfied by an explicit `true`. Unchecked (`false`)
- * and never-touched (`undefined`) both have to block, which is why this is a
- * customValidation and not `required` - the form's required check stringifies
- * the value, so `false` reads as the five-character string "false" and sails
- * straight through it.
- */
-function buildConsentValidator(data: {
-  fieldKey: string;
-  message: string;
-}): ConsentValidator {
-  return (values: FormValues<unknown>): string | null => {
-    if ((values as Record<string, unknown>)[data.fieldKey] === true) {
-      return null;
-    }
-
-    return data.message;
-  };
-}
-
-export const validateTelemetryConsent: ConsentValidator = buildConsentValidator(
-  {
-    fieldKey: TELEMETRY_CONSENT_FIELD_KEY,
-    message: TELEMETRY_CONSENT_ERROR,
-  },
-);
 
 interface PayAsYouGoCardProps {
   cardTitle: string;
@@ -296,12 +253,12 @@ const TelemetryPayAsYouGoModalNotice: FunctionComponent = (): ReactElement => {
 };
 
 /**
- * The pay-as-you-go notice and consent checkbox for the create ingestion key
+ * The pay-as-you-go notice for the create ingestion key
  * modal, as ModelForm fields. Empty unless the project is on the Free plan, so
  * the modal is untouched for everybody else.
  *
- * Both fields use `overrideField` with no `overrideFieldKey`: that gives them
- * a form value without adding them to the model payload or to miscDataProps.
+ * The field uses `overrideField` with no `overrideFieldKey`, keeping the
+ * notice out of the model payload and miscDataProps.
  */
 export function getTelemetryPayAsYouGoFormFields(): Array<
   ModelField<TelemetryIngestionKey>
@@ -325,50 +282,6 @@ export function getTelemetryPayAsYouGoFormFields(): Array<
       getCustomElement: (): ReactElement => {
         return <TelemetryPayAsYouGoModalNotice />;
       },
-    },
-    {
-      overrideField: {
-        [TELEMETRY_CONSENT_FIELD_KEY]: true,
-      },
-      showEvenIfPermissionDoesNotExist: true,
-      doNotShowWhenEditing: true,
-      spanFullRow: true,
-      fieldType: FormFieldSchemaType.CustomComponent,
-      getCustomElement: (
-        values: FormValues<TelemetryIngestionKey>,
-        props: CustomElementProps,
-      ): ReactElement => {
-        return (
-          <PaidUsageConsent
-            title="I agree to these usage charges"
-            description={TELEMETRY_RATES_SENTENCE}
-            value={
-              (values as Record<string, unknown>)[
-                TELEMETRY_CONSENT_FIELD_KEY
-              ] === true
-            }
-            onChange={props.onChange}
-            error={props.error}
-            dataTestId="telemetry-pay-as-you-go-consent"
-          />
-        );
-      },
-      title: "I understand telemetry sent with this key is billed as I use it",
-      description: TELEMETRY_RATES_SENTENCE,
-      dataTestId: "telemetry-pay-as-you-go-consent",
-      /*
-       * Seeds the key as false so the field is always present in form values.
-       * customValidation is skipped for keys that are absent, and a plain
-       * `defaultValue: false` is falsy and would not seed anything - required
-       * below is the backstop for that path.
-       */
-      getDefaultValue: (): boolean => {
-        return false;
-      },
-      required: true,
-      customValidation: validateTelemetryConsent as (
-        values: FormValues<TelemetryIngestionKey>,
-      ) => string | null,
     },
   ];
 }

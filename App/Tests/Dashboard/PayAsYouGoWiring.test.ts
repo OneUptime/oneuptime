@@ -5,7 +5,7 @@ import path from "path";
 /*
  * Telemetry ingest and every non-Manual monitor are metered, and nothing about
  * either is included in the Free plan. The dashboard says so before the
- * charge starts. Telemetry and bulk monitor creation also require consent.
+ * charge starts. Bulk monitor creation also requires consent.
  *
  * The behaviour itself is exercised against the real form in
  * Common/Tests/App/Dashboard/PayAsYouGoConsentGate.test.tsx. What is pinned
@@ -63,7 +63,7 @@ describe("Pay as you go wiring", () => {
       expect(source).toContain("<TelemetryPayAsYouGoCard />");
     });
 
-    test("spreads the notice and consent fields into the create modal's form", () => {
+    test("spreads the pricing notice into the create modal's form", () => {
       expect(source).toContain("...getTelemetryPayAsYouGoFormFields()");
     });
 
@@ -77,7 +77,7 @@ describe("Pay as you go wiring", () => {
      * The second door onto creating a key. It used to live inside
      * Components/Telemetry/Documentation.tsx; it was extracted here when the
      * security events setup guide needed the same key step, so both guides
-     * now share one modal - and one gate.
+     * now share one modal and its pricing notice.
      */
     const source: string = read(
       "Components",
@@ -85,16 +85,12 @@ describe("Pay as you go wiring", () => {
       "IngestionKeySelector.tsx",
     );
 
-    test("gates its create key modal too - it is the second door onto the same thing", () => {
-      /*
-       * This component has a ModelFormModal of its own. A consent gate that
-       * only covers the settings page is a gate with a way around it.
-       */
+    test("includes the pricing notice in its create key modal", () => {
       expect(source).toContain("...getTelemetryPayAsYouGoFormFields()");
       expect(source).toContain('from "../Billing/PayAsYouGo"');
     });
 
-    test("has exactly one create key modal, so one gate is enough", () => {
+    test("has exactly one create key modal", () => {
       expect(
         (source.match(/<ModelFormModal<TelemetryIngestionKey>/g) || []).length,
       ).toBe(1);
@@ -116,12 +112,11 @@ describe("Pay as you go wiring", () => {
     });
   });
 
-  describe("every surface that creates an ingestion key is gated", () => {
+  describe("every surface that creates an ingestion key shows billing information", () => {
     test("no create form for TelemetryIngestionKey exists without the notice fields", () => {
       /*
        * Guards against a third door being added later. Any file that builds a
-       * create form over TelemetryIngestionKey has to spread the notice and
-       * consent fields into it.
+       * create form over TelemetryIngestionKey has to include the notice.
        */
       const creatingFiles: Array<string> = collectSourceFiles(
         DASHBOARD_SRC,
@@ -141,10 +136,13 @@ describe("Pay as you go wiring", () => {
       for (const file of creatingFiles) {
         expect({
           file: path.relative(DASHBOARD_SRC, file),
-          gated: fs
+          hasBillingNotice: fs
             .readFileSync(file, "utf8")
             .includes("getTelemetryPayAsYouGoFormFields()"),
-        }).toEqual({ file: path.relative(DASHBOARD_SRC, file), gated: true });
+        }).toEqual({
+          file: path.relative(DASHBOARD_SRC, file),
+          hasBillingNotice: true,
+        });
       }
     });
   });
@@ -278,15 +276,10 @@ describe("Pay as you go wiring", () => {
       expect(source).not.toMatch(/\$1 per/);
     });
 
-    test("gate the submit with customValidation rather than required", () => {
-      /*
-       * The form's `required` check stringifies the value, so an unticked box
-       * reads as the non-empty string "false" and passes it. customValidation
-       * is the only thing that actually blocks - and it only runs when the key
-       * is present, which is what getDefaultValue is for.
-       */
-      expect(source).toContain("customValidation");
-      expect(source).toContain("getDefaultValue");
+    test("does not add an acknowledgement requirement to telemetry key creation", () => {
+      expect(source).not.toContain("telemetryPayAsYouGoAcknowledged");
+      expect(source).not.toContain("validateTelemetryConsent");
+      expect(source).not.toContain("telemetry-pay-as-you-go-consent");
     });
 
     test("use the shared billing predicate for which monitors cost money", () => {

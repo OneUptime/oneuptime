@@ -1,10 +1,7 @@
 import { BASE_URL } from "../../../Config";
 import { APIResponse, Page, expect, Locator } from "@playwright/test";
 import URL from "Common/Types/API/URL";
-import {
-  acknowledgePayAsYouGoIfPresent,
-  gotoProjectPage,
-} from "./ProductOnboarding";
+import { gotoProjectPage } from "./ProductOnboarding";
 
 /*
  * Helpers for the Telemetry (Logs / Traces / Metrics) e2e specs.
@@ -63,10 +60,6 @@ export const createTelemetryIngestionKey: CreateTelemetryIngestionKeyFunction =
       .locator("input[placeholder='Ingestion Key Name']")
       .first()
       .fill(data.keyName);
-    await acknowledgePayAsYouGoIfPresent({
-      page: page,
-      testId: "telemetry-pay-as-you-go-consent",
-    });
     await page.getByTestId("modal-footer-submit-button").click();
     await page.getByTestId("modal").waitFor({ state: "hidden" });
 

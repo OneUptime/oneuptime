@@ -21,14 +21,11 @@ import {
   MonitorBatchPayAsYouGoConsent,
   MonitorPayAsYouGoCard,
   SESSION_REPLAY_PRICE_PER_GB_TEXT,
-  TELEMETRY_CONSENT_ERROR,
-  TELEMETRY_CONSENT_FIELD_KEY,
   TELEMETRY_PRICE_PER_GB_TEXT,
   TelemetryPayAsYouGoCard,
   getMonitorBatchPriceSentence,
   getTelemetryPayAsYouGoFormFields,
   isMonitorBatchConsentRequired,
-  validateTelemetryConsent,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo";
 
 /*
@@ -252,26 +249,17 @@ describe("Pay as you go notices", () => {
       expect(ACTIVE_MONITOR_PRICE_TEXT).toBe("$1");
       expect(MONITOR_CONSENT_ERROR).toContain("$1");
     });
-
-    it("does not put a single per-GB rate in the telemetry consent error", () => {
-      /*
-       * Two different per-GB rates travel on one ingestion key, so any single
-       * figure in a message about "telemetry" is wrong for one of them. The
-       * error stays rate-free and the rates live next to the checkbox.
-       */
-      expect(TELEMETRY_CONSENT_ERROR).not.toContain("$");
-      expect(TELEMETRY_CONSENT_ERROR).toContain("billed as you use it");
-    });
   });
 
   describe("getTelemetryPayAsYouGoFormFields", () => {
-    it("adds a notice and a consent checkbox on the Free plan", () => {
+    it("adds only a nonblocking notice on the Free plan", () => {
       const fields: Array<ModelField<TelemetryIngestionKey>> =
         getTelemetryPayAsYouGoFormFields();
 
-      expect(fields).toHaveLength(2);
+      expect(fields).toHaveLength(1);
       expect(fields[0]?.fieldType).toBe(FormFieldSchemaType.CustomComponent);
-      expect(fields[1]?.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+      expect(fields[0]?.required).toBe(false);
+      expect(fields[0]?.customValidation).toBeUndefined();
     });
 
     it("renders the modal notice with the rate and a pricing link", () => {
@@ -295,13 +283,9 @@ describe("Pay as you go notices", () => {
       ).toHaveAttribute("href", "https://oneuptime.com/pricing");
     });
 
-    it("names both per-GB rates in the modal notice and on the consent box", () => {
-      const [noticeField, consentField]: Array<
-        ModelField<TelemetryIngestionKey>
-      > = getTelemetryPayAsYouGoFormFields() as [
-        ModelField<TelemetryIngestionKey>,
-        ModelField<TelemetryIngestionKey>,
-      ];
+    it("keeps both per-GB rates in the modal notice", () => {
+      const noticeField: ModelField<TelemetryIngestionKey> =
+        getTelemetryPayAsYouGoFormFields()[0]!;
 
       const { container }: { container: HTMLElement } = render(
         <div>
@@ -314,47 +298,19 @@ describe("Pay as you go notices", () => {
 
       expect(container.textContent).toContain("$0.10 per GB ingested");
       expect(container.textContent).toContain("$2 per GB");
-
-      /*
-       * The title is the sentence the user affirms by ticking, so it must not
-       * carry a rate that is wrong for half the data the key accepts.
-       */
-      expect(consentField.title).not.toContain("$");
-      expect(String(consentField.description)).toContain("$0.10 per GB");
-      expect(String(consentField.description)).toContain("$2 per GB");
+      expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     });
 
-    it("keeps the consent value out of the API payload", () => {
-      const consentField: ModelField<TelemetryIngestionKey> =
-        getTelemetryPayAsYouGoFormFields()[1]!;
+    it("keeps the notice out of the API payload", () => {
+      const noticeField: ModelField<TelemetryIngestionKey> =
+        getTelemetryPayAsYouGoFormFields()[0]!;
 
-      /*
-       * overrideField with no overrideFieldKey is what makes this a purely
-       * client-side field: ModelForm builds the payload from `field`, and
-       * miscDataProps from `overrideFieldKey`. Neither is set to a real key.
-       */
-      expect(consentField.field).toBeUndefined();
-      expect(consentField.overrideFieldKey).toBeUndefined();
-      expect(consentField.overrideField).toEqual({
-        [TELEMETRY_CONSENT_FIELD_KEY]: true,
+      expect(noticeField.field).toBeUndefined();
+      expect(noticeField.overrideFieldKey).toBeUndefined();
+      expect(noticeField.overrideField).toEqual({
+        telemetryPayAsYouGoNotice: true,
       });
-      expect(consentField.showEvenIfPermissionDoesNotExist).toBe(true);
-    });
-
-    it("seeds the consent value as false so validation actually runs on it", () => {
-      const consentField: ModelField<TelemetryIngestionKey> =
-        getTelemetryPayAsYouGoFormFields()[1]!;
-
-      /*
-       * The form skips customValidation for keys that are absent from its
-       * values, and a plain `defaultValue: false` is falsy and seeds nothing.
-       * getDefaultValue is the only thing that puts the key there.
-       */
-      expect(consentField.getDefaultValue).toBeDefined();
-      expect(
-        consentField.getDefaultValue!({} as FormValues<TelemetryIngestionKey>),
-      ).toBe(false);
-      expect(consentField.required).toBe(true);
+      expect(noticeField.showEvenIfPermissionDoesNotExist).toBe(true);
     });
 
     it("does not touch the edit form - the key is only created once", () => {
@@ -505,35 +461,6 @@ describe("Pay as you go notices", () => {
       );
 
       expect(container).toBeEmptyDOMElement();
-    });
-  });
-
-  describe("consent validators", () => {
-    it("only an explicit tick satisfies the telemetry consent", () => {
-      expect(validateTelemetryConsent({})).toBe(TELEMETRY_CONSENT_ERROR);
-      expect(
-        validateTelemetryConsent({ [TELEMETRY_CONSENT_FIELD_KEY]: false }),
-      ).toBe(TELEMETRY_CONSENT_ERROR);
-      expect(
-        validateTelemetryConsent({ [TELEMETRY_CONSENT_FIELD_KEY]: undefined }),
-      ).toBe(TELEMETRY_CONSENT_ERROR);
-      expect(
-        validateTelemetryConsent({ [TELEMETRY_CONSENT_FIELD_KEY]: true }),
-      ).toBeNull();
-    });
-
-    it("does not accept a truthy non-boolean as consent", () => {
-      /*
-       * The form's own `required` check stringifies values, which is exactly
-       * why it cannot be used here - "false" is a non-empty string. Nothing
-       * but boolean true counts.
-       */
-      expect(
-        validateTelemetryConsent({ [TELEMETRY_CONSENT_FIELD_KEY]: "true" }),
-      ).toBe(TELEMETRY_CONSENT_ERROR);
-      expect(
-        validateTelemetryConsent({ [TELEMETRY_CONSENT_FIELD_KEY]: 1 }),
-      ).toBe(TELEMETRY_CONSENT_ERROR);
     });
   });
 });
