@@ -82,6 +82,20 @@ export const addTestPaymentMethod: ProjectBillingFunction = async (data: {
 
   await modal.getByTestId("modal-footer-submit-button").click();
   await expect(modal).toBeHidden({ timeout: 60000 });
+
+  // Check the gate before waiting on UI state so API failures retain their cause.
+  const statusResponse: APIResponse = await page.request.get(
+    URL.fromString(BASE_URL.toString())
+      .addRoute("/api/billing/pay-as-you-go-status")
+      .toString(),
+    { headers: { tenantid: data.projectId } },
+  );
+  const statusDiagnostic: string = `GET /api/billing/pay-as-you-go-status returned ${statusResponse.status()}: ${await statusResponse.text()}`;
+  expect(statusResponse.ok(), statusDiagnostic).toBe(true);
+  expect(await statusResponse.json(), statusDiagnostic).toMatchObject({
+    isAllowed: true,
+  });
+
   await expect(page.getByTestId("billing-usage-status")).toContainText(
     "A payment method is on file.",
     { timeout: 60000 },
@@ -91,14 +105,4 @@ export const addTestPaymentMethod: ProjectBillingFunction = async (data: {
   ).toBeVisible({
     timeout: 60000,
   });
-
-  // Verify the same server-side gate used by monitor creation and ingestion.
-  const statusResponse: APIResponse = await page.request.get(
-    URL.fromString(BASE_URL.toString())
-      .addRoute("/api/billing/pay-as-you-go-status")
-      .toString(),
-    { headers: { tenantid: data.projectId } },
-  );
-  expect(statusResponse.ok()).toBe(true);
-  expect(await statusResponse.json()).toMatchObject({ isAllowed: true });
 };
