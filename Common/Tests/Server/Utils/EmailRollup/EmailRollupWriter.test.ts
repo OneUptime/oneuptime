@@ -108,6 +108,11 @@ interface CapturedPreferenceRead {
   projectId: ObjectID;
 }
 
+interface SeveritySnapshotCase {
+  severityVar: string;
+  eventType: NotificationSettingEventType;
+}
+
 function buildEnvelope(overrides: Partial<EmailEnvelope> = {}): EmailEnvelope {
   return {
     subject: "Incident created: Checkout is down",
@@ -579,33 +584,42 @@ describe("EmailRollupWriter.sendOrRollup", () => {
       },
     ];
 
+    const snapshotCases: Array<SeveritySnapshotCase> = [];
+
     for (const family of families) {
-      test.each(family.eventTypes)(
-        "snapshots the matching severity and state for %s",
-        async (eventType: NotificationSettingEventType) => {
-          recentCount(BURST_THRESHOLD);
-          const vars: Dictionary<string | JSONObject> = {
-            alertSeverity: "Alert severity",
-            incidentSeverity: "Incident severity",
-            episodeSeverity: "Episode severity",
-            currentState: " Awaiting review ",
-          };
-          vars[family.severityVar] = " Customer-defined priority ";
-
-          await EmailRollupWriter.sendOrRollup(
-            sendData({
-              eventType: eventType,
-              emailEnvelope: buildEnvelope({ vars: vars }),
-            }),
-          );
-
-          expect(writtenItem().severity).toBe("Customer-defined priority");
-          expect(writtenItem().currentState).toBe("Awaiting review");
-          expect(writtenItem().sentAt).toBeUndefined();
-          expect(sendMail).not.toHaveBeenCalled();
-        },
-      );
+      for (const eventType of family.eventTypes) {
+        snapshotCases.push({
+          severityVar: family.severityVar,
+          eventType: eventType,
+        });
+      }
     }
+
+    test.each(snapshotCases)(
+      "snapshots the matching severity and state for $eventType",
+      async (snapshotCase: SeveritySnapshotCase) => {
+        recentCount(BURST_THRESHOLD);
+        const vars: Dictionary<string | JSONObject> = {
+          alertSeverity: "Alert severity",
+          incidentSeverity: "Incident severity",
+          episodeSeverity: "Episode severity",
+          currentState: " Awaiting review ",
+        };
+        vars[snapshotCase.severityVar] = " Customer-defined priority ";
+
+        await EmailRollupWriter.sendOrRollup(
+          sendData({
+            eventType: snapshotCase.eventType,
+            emailEnvelope: buildEnvelope({ vars: vars }),
+          }),
+        );
+
+        expect(writtenItem().severity).toBe("Customer-defined priority");
+        expect(writtenItem().currentState).toBe("Awaiting review");
+        expect(writtenItem().sentAt).toBeUndefined();
+        expect(sendMail).not.toHaveBeenCalled();
+      },
+    );
 
     test.each([undefined, null, "", " \t\n ", 42, true, { name: "Critical" }])(
       "ignores missing or non-text metadata %p without disrupting deferral",

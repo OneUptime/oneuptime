@@ -114,8 +114,10 @@ const KNOWN_LINK_VARS: ReadonlyArray<string> = [
   "onCallPolicyViewLink",
 ];
 
-// Episode notifications can also contain child-resource details; keep the
-// severity tied to the same resource as the event and its current state.
+/*
+ * Episode notifications can also contain child-resource details; keep the
+ * severity tied to the same resource as the event and its current state.
+ */
 const SEVERITY_VAR_BY_CATEGORY: Partial<Record<RollupCategory, string>> = {
   [RollupCategory.Alerts]: "alertSeverity",
   [RollupCategory.Incidents]: "incidentSeverity",

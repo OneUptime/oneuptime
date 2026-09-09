@@ -669,7 +669,11 @@ describe("NotificationRollup.hbs severity, state and card spacing", () => {
     { severity: undefined, currentState: "Resolved", labels: ["State:"] },
   ])(
     "omits unavailable labels for legacy and partial metadata: %j",
-    (input) => {
+    (input: {
+      severity: string | undefined;
+      currentState: string | undefined;
+      labels: Array<string>;
+    }): void => {
       const html: string = render(
         EmailTemplateType.NotificationRollup,
         build([

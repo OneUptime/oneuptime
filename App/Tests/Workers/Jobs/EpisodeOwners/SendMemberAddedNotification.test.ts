@@ -114,8 +114,10 @@ jest.mock("Common/Server/Utils/PasswordHash", () => {
 
 type CronHandler = () => Promise<void>;
 
-// Preserve registration before beforeEach clears mock call histories. The
-// handlers execute the real worker flow with only external services mocked.
+/*
+ * Preserve registration before beforeEach clears mock call histories. The
+ * handlers execute the real worker flow with only external services mocked.
+ */
 const handlers: Map<string, CronHandler> = new Map(
   jest
     .mocked(RunCron)

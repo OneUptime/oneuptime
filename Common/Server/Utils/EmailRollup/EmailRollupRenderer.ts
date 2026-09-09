@@ -290,8 +290,10 @@ export const foldItems: FoldItemsFunction = (
       existing.latestAt = createdAtMs;
       existing.title = item.subject ?? "";
       existing.link = link;
-      // All details describe the same notification as the title. Clearing a
-      // missing latest value avoids presenting an older snapshot as current.
+      /*
+       * All details describe the same notification as the title. Clearing a
+       * missing latest value avoids presenting an older snapshot as current.
+       */
       existing.severity = normaliseDetail(item.severity);
       existing.currentState = normaliseDetail(item.currentState);
       /*
