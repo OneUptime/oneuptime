@@ -30,6 +30,13 @@ export interface MaintainedResourceKeys {
    * the name set is ever matched; the id set exists for shape parity.
    */
   proxmoxClusters: ResourceKeySet;
+  /*
+   * vCenters, like Proxmox/Ceph clusters, have no `oneuptime.*.id`
+   * label stamp (the VMware Agent stamps `vmware.vcenter.name` only),
+   * so only the name set is ever matched; the id set exists for shape
+   * parity.
+   */
+  vmwareVCenters: ResourceKeySet;
   cephClusters: ResourceKeySet;
   /*
    * Docker Swarm clusters, like Proxmox/Ceph clusters, have no
@@ -64,8 +71,8 @@ export interface MaintainedResourceKeys {
  * incident/alert creation loops can skip exactly those series while the
  * other 90 hosts keep alerting. It covers every resource type a
  * maintenance event can attach to AND a series can identify: Host,
- * DockerHost, KubernetesCluster, ProxmoxCluster, CephCluster, and
- * Service.
+ * DockerHost, KubernetesCluster, ProxmoxCluster, VMwareVCenter,
+ * CephCluster, and Service.
  */
 export default class MonitorMaintenanceSuppression {
   /*
@@ -143,6 +150,10 @@ export default class MonitorMaintenanceSuppression {
           input.maintained.proxmoxClusters.names,
         ) ||
         this.intersects(
+          refs.vmwareVCenterNames,
+          input.maintained.vmwareVCenters.names,
+        ) ||
+        this.intersects(
           refs.cephClusterNames,
           input.maintained.cephClusters.names,
         ) ||
@@ -185,6 +196,8 @@ export default class MonitorMaintenanceSuppression {
       maintained.kubernetesClusters.names.size > 0 ||
       maintained.proxmoxClusters.ids.size > 0 ||
       maintained.proxmoxClusters.names.size > 0 ||
+      maintained.vmwareVCenters.ids.size > 0 ||
+      maintained.vmwareVCenters.names.size > 0 ||
       maintained.cephClusters.ids.size > 0 ||
       maintained.cephClusters.names.size > 0 ||
       maintained.dockerSwarmClusters.ids.size > 0 ||
@@ -198,8 +211,8 @@ export default class MonitorMaintenanceSuppression {
 
   /*
    * Collect the ids + identifiers of every Host / DockerHost /
-   * PodmanHost / KubernetesCluster / ProxmoxCluster / CephCluster /
-   * DockerSwarmCluster / IoTFleet / Service attached to an ongoing
+   * PodmanHost / KubernetesCluster / ProxmoxCluster / VMwareVCenter /
+   * CephCluster / DockerSwarmCluster / IoTFleet / Service attached to an ongoing
    * maintenance event in this project. Monitors attached
    * to the event are intentionally not collected here — those are
    * already handled upstream by the whole-monitor disable flag, which
@@ -214,6 +227,7 @@ export default class MonitorMaintenanceSuppression {
       podmanHosts: { ids: new Set<string>(), names: new Set<string>() },
       kubernetesClusters: { ids: new Set<string>(), names: new Set<string>() },
       proxmoxClusters: { ids: new Set<string>(), names: new Set<string>() },
+      vmwareVCenters: { ids: new Set<string>(), names: new Set<string>() },
       cephClusters: { ids: new Set<string>(), names: new Set<string>() },
       dockerSwarmClusters: {
         ids: new Set<string>(),
@@ -238,6 +252,7 @@ export default class MonitorMaintenanceSuppression {
           podmanHosts: { _id: true, hostIdentifier: true },
           kubernetesClusters: { _id: true, clusterIdentifier: true },
           proxmoxClusters: { _id: true, name: true },
+          vmwareVCenters: { _id: true, name: true },
           cephClusters: { _id: true, name: true },
           dockerSwarmClusters: { _id: true, name: true },
           iotFleets: { _id: true, name: true },
@@ -280,6 +295,13 @@ export default class MonitorMaintenanceSuppression {
           maintained.proxmoxClusters,
           proxmoxCluster._id,
           proxmoxCluster.name,
+        );
+      }
+      for (const vmwareVCenter of event.vmwareVCenters || []) {
+        this.addKey(
+          maintained.vmwareVCenters,
+          vmwareVCenter._id,
+          vmwareVCenter.name,
         );
       }
       for (const cephCluster of event.cephClusters || []) {

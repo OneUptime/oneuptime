@@ -230,6 +230,9 @@ import "./Jobs/Host/CleanupStaleHosts";
 // Proxmox cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/Proxmox/CleanupStaleResources";
 
+// VMware vCenter disconnection sweeper + inventory cleanup.
+import "./Jobs/VMware/CleanupStaleResources";
+
 // Ceph cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/Ceph/CleanupStaleResources";
 

@@ -151,13 +151,14 @@ describe("CapturedMetricAttributeUtil", () => {
           "k8s.cluster.name": "prod",
           "iot.fleet.name": "fleet-a",
           "proxmox.cluster.name": "pve",
+          "vmware.vcenter.name": "vcsa",
           "ceph.cluster.name": "ceph",
           "docker.swarm.cluster.name": "swarm",
           keep: "yes",
         });
 
       expect(result.attributes).toEqual({ keep: "yes" });
-      expect(result.droppedReservedKeys).toHaveLength(7);
+      expect(result.droppedReservedKeys).toHaveLength(8);
     });
 
     test("records numbers and booleans as text instead of dropping them", () => {

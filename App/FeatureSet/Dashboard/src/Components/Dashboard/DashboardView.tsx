@@ -59,6 +59,8 @@ import DashboardPodmanVolumeListComponentUtil from "Common/Utils/Dashboard/Compo
 import DashboardHostListComponentUtil from "Common/Utils/Dashboard/Components/DashboardHostListComponent";
 import DashboardProxmoxNodeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardProxmoxNodeListComponent";
 import DashboardProxmoxGuestListComponentUtil from "Common/Utils/Dashboard/Components/DashboardProxmoxGuestListComponent";
+import DashboardVMwareHostListComponentUtil from "Common/Utils/Dashboard/Components/DashboardVMwareHostListComponent";
+import DashboardVMwareVirtualMachineListComponentUtil from "Common/Utils/Dashboard/Components/DashboardVMwareVirtualMachineListComponent";
 import DashboardDockerSwarmNodeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerSwarmNodeListComponent";
 import DashboardDockerSwarmServiceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerSwarmServiceListComponent";
 import DashboardCephOsdListComponentUtil from "Common/Utils/Dashboard/Components/DashboardCephOsdListComponent";
@@ -904,6 +906,18 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           if (componentType === DashboardComponentType.ProxmoxGuestList) {
             newComponent =
               DashboardProxmoxGuestListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.VMwareHostList) {
+            newComponent =
+              DashboardVMwareHostListComponentUtil.getDefaultComponent();
+          }
+
+          if (
+            componentType === DashboardComponentType.VMwareVirtualMachineList
+          ) {
+            newComponent =
+              DashboardVMwareVirtualMachineListComponentUtil.getDefaultComponent();
           }
 
           if (componentType === DashboardComponentType.DockerSwarmNodeList) {

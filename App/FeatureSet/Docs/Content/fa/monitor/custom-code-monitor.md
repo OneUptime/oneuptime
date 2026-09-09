@@ -94,7 +94,7 @@ return {
 
 - هویت مانیتور: `monitorId`، `projectId`، `monitorName`، `probeName`، `probeId`، `isCustomMetric`.
 - هر چیزی در فضای نام `oneuptime.` یا `resource.` — این‌ها شناسه‌هایی را حمل می‌کنند که OneUptime هنگام دریافت مهر می‌زند.
-- ویژگی‌های هویت منبع: `service.name`، `host.name`، `k8s.cluster.name`، `iot.fleet.name`، `proxmox.cluster.name`، `ceph.cluster.name` و `docker.swarm.cluster.name`.
+- ویژگی‌های هویت منبع: `service.name`، `host.name`، `k8s.cluster.name`، `iot.fleet.name`، `proxmox.cluster.name`، `vmware.vcenter.name`، `ceph.cluster.name` و `docker.swarm.cluster.name`.
 
 دلیلش این است که این نام‌ها فقط برچسب نیستند — OneUptime آن‌ها را به‌عنوان ادعایی درباره اینکه یک نقطه داده به کدام منبع تعلق دارد بازمی‌خواند. متریکی که با `service.name: payments-api` نشانه‌گذاری شده باشد در زبانه متریک‌های همان سرویس ظاهر می‌شود، و اگر بعداً یک مانیتور متریک گروه‌بندی‌شده بر اساس `service.name` بسازید، هشدارهایش به آن سرویس پیوند می‌خورند، به مالکان آن سرویس فراخوان می‌دهند و در پنجره تعمیر و نگهداری آن ساکت می‌شوند. برای مرتبط کردن یک مانیتور با یک سرویس یا میزبان، به‌جایش از برچسب‌های خود مانیتور استفاده کنید.
 

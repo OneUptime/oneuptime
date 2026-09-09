@@ -198,6 +198,7 @@ describe("getIconForEventType", () => {
       "CephCluster",
       "PodmanHost",
       "ProxmoxCluster",
+      "VMwareVCenter",
       "Host",
       "CloudResource",
       "Service",

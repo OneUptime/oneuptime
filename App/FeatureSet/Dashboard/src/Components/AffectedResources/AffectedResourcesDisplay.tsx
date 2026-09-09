@@ -3,6 +3,7 @@ import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -17,6 +18,7 @@ import DockerHostElement from "../DockerHost/DockerHost";
 import DockerSwarmClusterElement from "../DockerSwarm/DockerSwarmClusterElement";
 import IoTFleetElement from "../IoT/IoTFleetElement";
 import ProxmoxClusterElement from "../Proxmox/ProxmoxClusterElement";
+import VMwareVCenterElement from "../VMware/VMwareVCenterElement";
 import PodmanHostElement from "../PodmanHost/PodmanHost";
 import HostElement from "../Host/Host";
 import KubernetesClusterElement from "../KubernetesCluster/KubernetesCluster";
@@ -31,6 +33,7 @@ export interface ComponentProps {
   dockerHosts?: Array<DockerHost> | undefined;
   podmanHosts?: Array<PodmanHost> | undefined;
   proxmoxClusters?: Array<ProxmoxCluster> | undefined;
+  vmwareVCenters?: Array<VMwareVCenter> | undefined;
   cephClusters?: Array<CephCluster> | undefined;
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
   iotFleets?: Array<IoTFleet> | undefined;
@@ -46,6 +49,7 @@ export interface ComponentProps {
   hideDockerHosts?: boolean | undefined;
   hidePodmanHosts?: boolean | undefined;
   hideProxmoxClusters?: boolean | undefined;
+  hideVMwareVCenters?: boolean | undefined;
   hideCephClusters?: boolean | undefined;
   hideDockerSwarmClusters?: boolean | undefined;
   hideIoTFleets?: boolean | undefined;
@@ -196,6 +200,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const dockerHosts: Array<DockerHost> = props.dockerHosts || [];
   const podmanHosts: Array<PodmanHost> = props.podmanHosts || [];
   const proxmoxClusters: Array<ProxmoxCluster> = props.proxmoxClusters || [];
+  const vmwareVCenters: Array<VMwareVCenter> = props.vmwareVCenters || [];
   const cephClusters: Array<CephCluster> = props.cephClusters || [];
   const dockerSwarmClusters: Array<DockerSwarmCluster> =
     props.dockerSwarmClusters || [];
@@ -211,6 +216,8 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const showPodman: boolean = !props.hidePodmanHosts && podmanHosts.length > 0;
   const showProxmox: boolean =
     !props.hideProxmoxClusters && proxmoxClusters.length > 0;
+  const showVMware: boolean =
+    !props.hideVMwareVCenters && vmwareVCenters.length > 0;
   const showCeph: boolean = !props.hideCephClusters && cephClusters.length > 0;
   const showSwarm: boolean =
     !props.hideDockerSwarmClusters && dockerSwarmClusters.length > 0;
@@ -226,6 +233,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     !showDocker &&
     !showPodman &&
     !showProxmox &&
+    !showVMware &&
     !showCeph &&
     !showSwarm &&
     !showIoTFleets &&
@@ -255,6 +263,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showDocker ? dockerHosts.length : 0) +
     (showPodman ? podmanHosts.length : 0) +
     (showProxmox ? proxmoxClusters.length : 0) +
+    (showVMware ? vmwareVCenters.length : 0) +
     (showCeph ? cephClusters.length : 0) +
     (showSwarm ? dockerSwarmClusters.length : 0) +
     (showIoTFleets ? iotFleets.length : 0) +
@@ -267,6 +276,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showDocker ? 1 : 0) +
     (showPodman ? 1 : 0) +
     (showProxmox ? 1 : 0) +
+    (showVMware ? 1 : 0) +
     (showCeph ? 1 : 0) +
     (showSwarm ? 1 : 0) +
     (showIoTFleets ? 1 : 0) +
@@ -375,6 +385,21 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
             items={proxmoxClusters}
             renderItem={(cluster: ProxmoxCluster) => {
               return <ProxmoxClusterElement proxmoxCluster={cluster} />;
+            }}
+          />
+        )}
+        {showVMware && (
+          <CategoryCard<VMwareVCenter>
+            icon={IconProp.VMware}
+            label="vCenters"
+            iconBgClass="bg-sky-50"
+            iconColorClass="text-sky-600"
+            accentBarClass="bg-sky-500"
+            countBgClass="bg-sky-50"
+            countTextClass="text-sky-700"
+            items={vmwareVCenters}
+            renderItem={(vcenter: VMwareVCenter) => {
+              return <VMwareVCenterElement vmwareVCenter={vcenter} />;
             }}
           />
         )}

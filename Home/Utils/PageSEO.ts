@@ -622,6 +622,42 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/vmware": {
+    title:
+      "VMware Monitoring | vCenter, ESXi Hosts, VMs & Datastores | OneUptime",
+    description:
+      "Monitor VMware vSphere end to end: ESXi host and virtual machine health, datastore capacity, CPU ready, memory ballooning, cluster and vSAN alerting. One read-only agent per vCenter, usage-based pricing, 10-minute setup. Open source.",
+    canonicalPath: "/product/vmware",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "VMware", url: "/product/vmware" },
+    ],
+    softwareApplication: {
+      name: "OneUptime VMware Monitoring",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Monitor VMware vSphere with one agent per vCenter: ESXi host, virtual machine, datastore, cluster, resource pool and vSAN metrics, ready-made alert templates for CPU ready, ballooning, swapping and datastore capacity, and on-call escalation in a single product.",
+      features: [
+        "Whole-vCenter monitoring from one read-only agent",
+        "ESXi host, VM, datastore, cluster and resource pool inventory",
+        "VM power state and template tracking",
+        "CPU ready, memory ballooning and swapping alerts",
+        "Datastore capacity warning and critical thresholds",
+        "Cluster host effectiveness and datacenter health alerts",
+        "vSAN latency and congestion alerting",
+        "In-guest host agent cross-linking",
+        "Copy-paste onboarding with a troubleshooting script",
+        "Usage-based pricing, not per-socket or per-VM",
+        "OpenTelemetry native (vcenter receiver)",
+        "Open source",
+      ],
+    },
+  },
+
   "/product/ai-observability": {
     title:
       "AI / LLM Observability | Tokens, Cost, Traces & Prompts | OneUptime",
@@ -846,13 +882,13 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
       applicationCategory: "DeveloperApplication",
       operatingSystem: "Web, Cloud",
       description:
-        "Auto-discovered topology maps for your whole stack: a layer-7 service map built from OpenTelemetry traces with per-edge traffic, error rate, and latency; a nested infrastructure map spanning Kubernetes, Proxmox, Ceph, Docker Swarm, and hosts; and a live LLDP network map of switches, routers, and firewalls. Active incidents and alerts overlay on the services that own them.",
+        "Auto-discovered topology maps for your whole stack: a layer-7 service map built from OpenTelemetry traces with per-edge traffic, error rate, and latency; a nested infrastructure map spanning Kubernetes, Proxmox, VMware, Ceph, Docker Swarm, and hosts; and a live LLDP network map of switches, routers, and firewalls. Active incidents and alerts overlay on the services that own them.",
       features: [
         "Service map auto-generated from traces",
         "Per-edge call rate, error rate & latency",
         "Health colors by error rate",
         "Nested infrastructure containment map",
-        "Kubernetes, Proxmox, Ceph, Docker Swarm & hosts",
+        "Kubernetes, Proxmox, VMware, Ceph, Docker Swarm & hosts",
         "Fleets grouped by workload",
         "Live LLDP network topology map",
         "Active incident & alert overlay on nodes",

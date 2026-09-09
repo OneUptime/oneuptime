@@ -351,6 +351,20 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: resourcesCategory,
     },
     {
+      title: t("navbar.items.vmwareTitle", "VMware"),
+      description: t(
+        "navbar.items.vmwareDescription",
+        "Monitor vCenter, ESXi hosts, virtual machines and datastores.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.VMWARE_VCENTERS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.VMWARE_VCENTERS],
+      icon: IconProp.VMware,
+      iconColor: "blue",
+      category: resourcesCategory,
+    },
+    {
       title: t("navbar.items.iotTitle", "IoT"),
       description: t(
         "navbar.items.iotDescription",

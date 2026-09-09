@@ -91,6 +91,17 @@ ENV_ARGS=(
   # missing, so the token stub below is all the filesystem it needs.)
   -e "KUBERNETES_SERVICE_HOST=127.0.0.1"
   -e "KUBERNETES_SERVICE_PORT=6443"
+  # The VMware agent (a native vcenter receiver, no exporter sidecar). The
+  # receiver's config validation parses the endpoint as a URL and the TLS
+  # flag as a boolean — an unset variable resolves to an empty string, which
+  # fails both — so give them the shapes the compose file ships.
+  -e "ONEUPTIME_TELEMETRY_INGESTION_KEY=validate-only"
+  -e "VMWARE_VCENTER_NAME=validate-only"
+  -e "VCENTER_ENDPOINT=https://vcenter.example.com"
+  -e "VCENTER_USERNAME=validate-only"
+  -e "VCENTER_PASSWORD=validate-only"
+  -e "VCENTER_INSECURE_SKIP_VERIFY=true"
+  -e "VCENTER_COLLECTION_INTERVAL=2m"
 )
 
 failures=0
@@ -115,7 +126,7 @@ validate() {
   fi
 }
 
-for agent in DockerAgent PodmanAgent DockerSwarmAgent; do
+for agent in DockerAgent PodmanAgent DockerSwarmAgent VMwareAgent; do
   # Copied into the work dir so every config is mounted from one place and the
   # bind mount cannot pick up anything else from the agent directory.
   cp "${REPO_ROOT}/${agent}/otel-collector-config.yaml" "${WORK_DIR}/${agent}.yaml"

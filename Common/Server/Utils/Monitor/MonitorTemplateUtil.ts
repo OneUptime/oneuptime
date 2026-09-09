@@ -517,6 +517,7 @@ export default class MonitorTemplateUtil {
         data.monitorType === MonitorType.Podman ||
         data.monitorType === MonitorType.DockerSwarm ||
         data.monitorType === MonitorType.Proxmox ||
+        data.monitorType === MonitorType.VMware ||
         data.monitorType === MonitorType.Ceph
       ) {
         const metricResponse: MetricMonitorResponse =

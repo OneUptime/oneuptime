@@ -23,6 +23,9 @@ import PodmanResourceService, {
 import ProxmoxResourceService, {
   ParsedProxmoxResource,
 } from "../../../Server/Services/ProxmoxResourceService";
+import VMwareResourceService, {
+  ParsedVMwareResource,
+} from "../../../Server/Services/VMwareResourceService";
 import logger from "../../../Server/Utils/Logger";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import ObjectID from "../../../Types/ObjectID";
@@ -637,6 +640,104 @@ describe("ProxmoxResourceService — oversized values can't drop the chunk", () 
   });
 });
 
+describe("VMwareResourceService — oversized values can't drop the chunk", () => {
+  function vmwareResource(
+    overrides: Partial<ParsedVMwareResource> = {},
+  ): ParsedVMwareResource {
+    return {
+      kind: "VirtualMachine",
+      externalId: "vm/5029f9a1-2b3c-4d5e-8f60-71a2b3c4d5e6",
+      name: "web-01",
+      datacenterName: "dc-east",
+      clusterName: "prod-cluster",
+      hostName: "esx-01.example.com",
+      resourcePoolName: "Resources",
+      resourcePoolPath: "/dc-east/host/prod-cluster/Resources",
+      virtualAppName: null,
+      vmInstanceUuid: "5029f9a1-2b3c-4d5e-8f60-71a2b3c4d5e6",
+      isTemplate: false,
+      isPoweredOn: true,
+      lastSeenAt: OBSERVED_AT,
+      ...overrides,
+    };
+  }
+
+  test("bulkUpsert clamps an oversized externalId and keeps its sibling row", async () => {
+    const query: jest.Mock = mockQueryRunner(VMwareResourceService);
+
+    await VMwareResourceService.bulkUpsert({
+      projectId: PROJECT_ID,
+      vmwareVCenterId: PARENT_ID,
+      resources: [vmwareResource({ externalId: OVERSIZED }), vmwareResource()],
+    });
+
+    expect(query).toHaveBeenCalledTimes(1);
+    const params: Array<unknown> = paramsOf(query);
+
+    expect(params).toContain(CLAMPED_TO_SHORT_TEXT);
+    expect(params).not.toContain(OVERSIZED);
+    expect(params).toContain("vm/5029f9a1-2b3c-4d5e-8f60-71a2b3c4d5e6");
+    expectNoParamExceedsLongText(params);
+  });
+
+  test("bulkUpsert clamps a deep resource-pool inventory path to LongText, not ShortText", async () => {
+    const query: jest.Mock = mockQueryRunner(VMwareResourceService);
+
+    await VMwareResourceService.bulkUpsert({
+      projectId: PROJECT_ID,
+      vmwareVCenterId: PARENT_ID,
+      resources: [vmwareResource({ resourcePoolPath: OVERSIZED })],
+    });
+
+    const params: Array<unknown> = paramsOf(query);
+    expect(params).toContain(CLAMPED_TO_LONG_TEXT);
+    expect(params).not.toContain(OVERSIZED);
+    expectNoParamExceedsLongText(params);
+  });
+
+  test("bulkUpdateLatestMetrics clamps identity the same way bulkUpsert does", async () => {
+    const query: jest.Mock = mockQueryRunner(VMwareResourceService);
+
+    await VMwareResourceService.bulkUpdateLatestMetrics({
+      projectId: PROJECT_ID,
+      vmwareVCenterId: PARENT_ID,
+      metrics: [
+        {
+          kind: "VirtualMachine",
+          externalId: OVERSIZED,
+          cpuPercent: null,
+          cpuMhz: null,
+          cpuCapacityMhz: null,
+          cpuEffectiveMhz: null,
+          memoryBytes: null,
+          maxMemoryBytes: null,
+          memoryEffectiveBytes: null,
+          memoryPercent: null,
+          diskBytes: null,
+          maxDiskBytes: null,
+          diskPercent: null,
+          cpuReadinessPercent: null,
+          memoryBalloonedBytes: null,
+          memorySwappedBytes: null,
+          hostCount: null,
+          effectiveHostCount: null,
+          poweredOnHostCount: null,
+          vmCount: null,
+          poweredOnVmCount: null,
+          vmTemplateCount: null,
+          datastoreCount: null,
+          clusterCount: null,
+          observedAt: OBSERVED_AT,
+        },
+      ],
+    });
+
+    const params: Array<unknown> = paramsOf(query);
+    expect(params).toContain(CLAMPED_TO_SHORT_TEXT);
+    expect(params).not.toContain(OVERSIZED);
+  });
+});
+
 describe("CephResourceService — oversized values can't drop the chunk", () => {
   function cephResource(
     overrides: Partial<ParsedCephResource> = {},
@@ -1001,6 +1102,45 @@ describe("NULL stays NULL through the clamp", () => {
     }
   });
 
+  test("VMwareResource passes its nullable identity columns through as null", async () => {
+    const query: jest.Mock = mockQueryRunner(VMwareResourceService);
+
+    // A standalone ESXi host: no cluster, no VM-only attributes.
+    await VMwareResourceService.bulkUpsert({
+      projectId: PROJECT_ID,
+      vmwareVCenterId: PARENT_ID,
+      resources: [
+        {
+          kind: "Host",
+          externalId: "host/dc-east/esx-01.example.com",
+          name: "esx-01.example.com",
+          datacenterName: "dc-east",
+          clusterName: null,
+          hostName: null,
+          resourcePoolName: null,
+          resourcePoolPath: null,
+          virtualAppName: null,
+          vmInstanceUuid: null,
+          isTemplate: null,
+          isPoweredOn: null,
+          lastSeenAt: OBSERVED_AT,
+        },
+      ],
+    });
+
+    const params: Array<unknown> = paramsOf(query);
+    /*
+     * Tuple: projectId, vmwareVCenterId, kind, externalId, name,
+     * datacenterName, clusterName(6), hostName(7), resourcePoolName(8),
+     * resourcePoolPath(9), virtualAppName(10), vmInstanceUuid(11),
+     * isTemplate(12), isPoweredOn(13), lastSeenAt, version.
+     */
+    for (const index of [6, 7, 8, 9, 10, 11, 12, 13]) {
+      expect(params[index]).toBeNull();
+    }
+    expect(params).not.toContain("");
+  });
+
   test("PodmanResource keeps a null imageName null rather than empty", async () => {
     const query: jest.Mock = mockQueryRunner(PodmanResourceService);
 
@@ -1212,6 +1352,17 @@ describe("an empty batch still short-circuits", () => {
         await ProxmoxResourceService.bulkUpsert({
           projectId: PROJECT_ID,
           proxmoxClusterId: PARENT_ID,
+          resources: [],
+        });
+      },
+    ],
+    [
+      "VMwareResourceService.bulkUpsert",
+      VMwareResourceService,
+      async (): Promise<void> => {
+        await VMwareResourceService.bulkUpsert({
+          projectId: PROJECT_ID,
+          vmwareVCenterId: PARENT_ID,
           resources: [],
         });
       },

@@ -3,6 +3,7 @@ import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -41,6 +42,7 @@ export type AffectedResourceType =
   | "DockerHost"
   | "PodmanHost"
   | "ProxmoxCluster"
+  | "VMwareVCenter"
   | "CephCluster"
   | "DockerSwarmCluster"
   | "IoTFleet"
@@ -66,6 +68,7 @@ export interface AffectedResourcesPayload {
   dockerHosts: Array<string>;
   podmanHosts: Array<string>;
   proxmoxClusters: Array<string>;
+  vmwareVCenters: Array<string>;
   cephClusters: Array<string>;
   dockerSwarmClusters: Array<string>;
   iotFleets: Array<string>;
@@ -80,6 +83,7 @@ export interface ComponentProps {
   dockerHosts?: Array<DockerHost> | undefined;
   podmanHosts?: Array<PodmanHost> | undefined;
   proxmoxClusters?: Array<ProxmoxCluster> | undefined;
+  vmwareVCenters?: Array<VMwareVCenter> | undefined;
   cephClusters?: Array<CephCluster> | undefined;
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
   iotFleets?: Array<IoTFleet> | undefined;
@@ -142,6 +146,12 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
     modelType: ProxmoxCluster,
     supportsLabels: true,
   },
+  VMwareVCenter: {
+    label: "vCenter",
+    icon: IconProp.VMware,
+    modelType: VMwareVCenter,
+    supportsLabels: true,
+  },
   CephCluster: {
     label: "Ceph Cluster",
     icon: IconProp.Ceph,
@@ -179,7 +189,7 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
 };
 
 /*
- * The default set. Proxmox / Ceph / Docker Swarm / IoT are deliberately
+ * The default set. Proxmox / VMware / Ceph / Docker Swarm / IoT are deliberately
  * NOT here: a page only gets them by naming them in `resourceTypes`,
  * because offering a type the page's onChange handler does not write
  * back would silently drop the user's selection on save.
@@ -385,6 +395,9 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     if (resourceTypes.includes("ProxmoxCluster")) {
       items.push(...toItems(props.proxmoxClusters, "ProxmoxCluster", cache));
     }
+    if (resourceTypes.includes("VMwareVCenter")) {
+      items.push(...toItems(props.vmwareVCenters, "VMwareVCenter", cache));
+    }
     if (resourceTypes.includes("CephCluster")) {
       items.push(...toItems(props.cephClusters, "CephCluster", cache));
     }
@@ -410,6 +423,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     props.dockerHosts,
     props.podmanHosts,
     props.proxmoxClusters,
+    props.vmwareVCenters,
     props.cephClusters,
     props.dockerSwarmClusters,
     props.iotFleets,
@@ -743,6 +757,13 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
       proxmoxClusters: next
         .filter((i: AffectedResourceItem): boolean => {
           return i.type === "ProxmoxCluster";
+        })
+        .map((i: AffectedResourceItem): string => {
+          return i._id;
+        }),
+      vmwareVCenters: next
+        .filter((i: AffectedResourceItem): boolean => {
+          return i.type === "VMwareVCenter";
         })
         .map((i: AffectedResourceItem): string => {
           return i._id;

@@ -55,6 +55,7 @@ describe("MonitorTypeHelper", () => {
       MonitorType.Podman,
       MonitorType.DockerSwarm,
       MonitorType.Proxmox,
+      MonitorType.VMware,
       MonitorType.Ceph,
     ])("returns true for %s", (monitorType: MonitorType) => {
       expect(MonitorTypeHelper.isTelemetryMonitor(monitorType)).toBe(true);

@@ -85,6 +85,13 @@ const FEED_PAGES: Array<FeedPageSpec> = [
     routesFile: "ProxmoxRoutes.tsx",
   },
   {
+    product: "VMware",
+    pageMapKey: "VMWARE_VCENTER_VIEW_FEED",
+    urlPrefix: "vmware",
+    pagesDirectory: "VMware",
+    routesFile: "VMwareRoutes.tsx",
+  },
+  {
     product: "Host",
     pageMapKey: "HOST_VIEW_FEED",
     urlPrefix: "host",
@@ -115,7 +122,7 @@ function read(...segments: Array<string>): string {
 
 describe("Resource feed pages", () => {
   test("every product that grew a feed is covered here", () => {
-    expect(FEED_PAGES.length).toBe(9);
+    expect(FEED_PAGES.length).toBe(10);
   });
 
   test.each(FEED_PAGES)(

@@ -457,6 +457,123 @@ describe("SeriesDebugHints", () => {
       expect(commands).toContain("pvesh get /cluster/resources");
     });
 
+    test("VMware reads the resource.-prefixed vcenter attributes the templates group by", () => {
+      /*
+       * The vcenter receiver's identity is OTel RESOURCE attributes, so a
+       * grouped VMware alert carries `resource.vcenter.vm.name`, not the
+       * bare key. Both spellings must resolve.
+       */
+      const prefixed: Array<string> = getCommandStrings({
+        monitorType: MonitorType.VMware,
+        seriesLabels: { "resource.vcenter.vm.name": "web-01" },
+      });
+      const bare: Array<string> = getCommandStrings({
+        monitorType: MonitorType.VMware,
+        seriesLabels: { "vcenter.vm.name": "web-01" },
+      });
+
+      expect(prefixed[0]).toBe("govc vm.info -r web-01");
+      expect(prefixed).toContain("govc device.info -vm web-01");
+      expect(bare).toEqual(prefixed);
+    });
+
+    test("VMware puts the VM before the host it runs on", () => {
+      /*
+       * A VM series also carries its parent host. The VM is the thing that
+       * breached, so its command comes first; the host's follows.
+       */
+      const commands: Array<string> = getCommandStrings({
+        monitorType: MonitorType.VMware,
+        seriesLabels: {
+          "resource.vcenter.datacenter.name": "DC1",
+          "resource.vcenter.cluster.name": "Compute-A",
+          "resource.vcenter.host.name": "esx01.example.com",
+          "resource.vcenter.vm.name": "web-01",
+        },
+      });
+
+      expect(commands[0]).toBe("govc vm.info -r web-01");
+      expect(commands).toContain("govc host.info esx01.example.com");
+      expect(
+        commands.indexOf("govc host.info esx01.example.com"),
+      ).toBeGreaterThan(commands.indexOf("govc vm.info -r web-01"));
+      expect(commands).toContain("govc cluster.usage Compute-A");
+      expect(commands).toContain("govc ls -l /DC1/host/Compute-A");
+      expect(commands).toContain("govc datacenter.info DC1");
+    });
+
+    test("VMware offers esxtop for a host, since ready time and ballooning live there", () => {
+      const commands: Array<string> = getCommandStrings({
+        monitorType: MonitorType.VMware,
+        seriesLabels: { "resource.vcenter.host.name": "esx01.example.com" },
+      });
+
+      expect(commands[0]).toBe("govc host.info esx01.example.com");
+      expect(commands).toContain("esxtop");
+    });
+
+    test("VMware inspects a datastore by name", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.VMware,
+          seriesLabels: { "resource.vcenter.datastore.name": "vsanDatastore" },
+        }),
+      ).toEqual(["govc datastore.info vsanDatastore"]);
+    });
+
+    test("VMware only lists a cluster's hosts when the datacenter is known", () => {
+      /*
+       * `/<dc>/host/<cluster>` needs the datacenter; without it govc would
+       * apply its default datacenter and could list the wrong cluster on
+       * a multi-DC vCenter, so the listing is withheld rather than guessed.
+       */
+      const withoutDc: Array<string> = getCommandStrings({
+        monitorType: MonitorType.VMware,
+        seriesLabels: { "resource.vcenter.cluster.name": "Compute-A" },
+      });
+
+      expect(withoutDc).toEqual(["govc cluster.usage Compute-A"]);
+    });
+
+    test("VMware addresses a resource pool by its inventory path", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.VMware,
+          seriesLabels: {
+            "resource.vcenter.resource_pool.inventory_path":
+              "/DC1/host/Compute-A/Resources/prod",
+          },
+        }),
+      ).toEqual(["govc pool.info /DC1/host/Compute-A/Resources/prod"]);
+    });
+
+    test("VMware quotes a VM name carrying spaces or shell metacharacters", () => {
+      const commands: Array<string> = getCommandStrings({
+        monitorType: MonitorType.VMware,
+        seriesLabels: { "resource.vcenter.vm.name": "Web Server; rm -rf /" },
+      });
+
+      expect(commands[0]).toBe("govc vm.info -r 'Web Server; rm -rf /'");
+    });
+
+    test("a series naming only the vCenter still gets a first command", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.VMware,
+          seriesLabels: { "resource.vmware.vcenter.name": "vcsa-prod" },
+        }),
+      ).toEqual(["govc about"]);
+    });
+
+    test("VMware emits nothing for labels it does not recognise", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.VMware,
+          seriesLabels: { "service.name": "api" },
+        }),
+      ).toEqual([]);
+    });
+
     test("Ceph always starts from health detail", () => {
       const commands: Array<string> = getCommandStrings({
         monitorType: MonitorType.Ceph,
@@ -556,6 +673,20 @@ describe("SeriesDebugHints", () => {
       {
         monitorType: MonitorType.Proxmox,
         seriesLabels: { vmid: "100", node: "pve1", storage: "local-lvm" },
+      },
+      {
+        monitorType: MonitorType.VMware,
+        seriesLabels: {
+          "resource.vmware.vcenter.name": "vcsa-prod",
+          "resource.vcenter.datacenter.name": "DC1",
+          "resource.vcenter.cluster.name": "Compute-A",
+          "resource.vcenter.host.name": "esx01.example.com",
+          "resource.vcenter.vm.name": "web-01",
+          "resource.vcenter.vm_template.name": "ubuntu-24.04-template",
+          "resource.vcenter.datastore.name": "vsanDatastore",
+          "resource.vcenter.resource_pool.inventory_path":
+            "/DC1/host/Compute-A/Resources/prod",
+        },
       },
       {
         monitorType: MonitorType.Ceph,

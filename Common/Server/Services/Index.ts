@@ -98,6 +98,12 @@ import DockerSwarmClusterOwnerUserService from "./DockerSwarmClusterOwnerUserSer
 import CephClusterLabelRuleService from "./CephClusterLabelRuleService";
 import CephClusterOwnerRuleService from "./CephClusterOwnerRuleService";
 import CephClusterOwnerTeamService from "./CephClusterOwnerTeamService";
+import VMwareVCenterService from "./VMwareVCenterService";
+import VMwareResourceService from "./VMwareResourceService";
+import VMwareVCenterLabelRuleService from "./VMwareVCenterLabelRuleService";
+import VMwareVCenterOwnerRuleService from "./VMwareVCenterOwnerRuleService";
+import VMwareVCenterOwnerTeamService from "./VMwareVCenterOwnerTeamService";
+import VMwareVCenterOwnerUserService from "./VMwareVCenterOwnerUserService";
 import CephClusterOwnerUserService from "./CephClusterOwnerUserService";
 import LlmProviderService from "./LlmProviderService";
 import DataSourceService from "./DataSourceService";
@@ -145,6 +151,7 @@ import DockerSwarmClusterFeedService from "./DockerSwarmClusterFeedService";
 import CephClusterFeedService from "./CephClusterFeedService";
 import PodmanHostFeedService from "./PodmanHostFeedService";
 import ProxmoxClusterFeedService from "./ProxmoxClusterFeedService";
+import VMwareVCenterFeedService from "./VMwareVCenterFeedService";
 import HostFeedService from "./HostFeedService";
 import CloudResourceFeedService from "./CloudResourceFeedService";
 import ServiceFeedService from "./ServiceFeedService";
@@ -551,6 +558,12 @@ const services: Array<BaseService> = [
   CephClusterOwnerRuleService,
   CephClusterOwnerTeamService,
   CephClusterOwnerUserService,
+  VMwareVCenterService,
+  VMwareResourceService,
+  VMwareVCenterLabelRuleService,
+  VMwareVCenterOwnerRuleService,
+  VMwareVCenterOwnerTeamService,
+  VMwareVCenterOwnerUserService,
   LlmProviderService,
   DataSourceService,
 
@@ -580,6 +593,7 @@ const services: Array<BaseService> = [
   CephClusterFeedService,
   PodmanHostFeedService,
   ProxmoxClusterFeedService,
+  VMwareVCenterFeedService,
   HostFeedService,
   CloudResourceFeedService,
   ServiceFeedService,

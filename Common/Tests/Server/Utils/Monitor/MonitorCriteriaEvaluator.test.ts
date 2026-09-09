@@ -3,6 +3,7 @@ import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import MetricMonitorResponse, {
   ProxmoxAffectedResource,
+  VMwareAffectedResource,
   CephAffectedResource,
   KubernetesAffectedResource,
 } from "../../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
@@ -14,6 +15,10 @@ import {
   getCephAlertTemplateById,
   CephAlertTemplate,
 } from "../../../../Types/Monitor/CephAlertTemplates";
+import {
+  getVMwareAlertTemplateById,
+  VMwareAlertTemplate,
+} from "../../../../Types/Monitor/VMwareAlertTemplates";
 import ObjectID from "../../../../Types/ObjectID";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import {
@@ -48,6 +53,11 @@ import FilterCondition from "../../../../Types/Filter/FilterCondition";
 
 type EvaluatorPrivate = {
   buildProxmoxRootCauseContext: (input: {
+    dataToProcess: unknown;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+  }) => string | null;
+  buildVMwareRootCauseContext: (input: {
     dataToProcess: unknown;
     monitorStep: MonitorStep;
     monitor: Monitor;
@@ -91,6 +101,23 @@ function proxmoxStep(): MonitorStep {
     throw new Error("pve-node-offline template missing");
   }
   return template.getMonitorStep(templateArgs());
+}
+
+function vmwareStep(): MonitorStep {
+  const template: VMwareAlertTemplate | undefined = getVMwareAlertTemplateById(
+    "vmware-host-cpu-saturation",
+  );
+  if (!template) {
+    throw new Error("vmware-host-cpu-saturation template missing");
+  }
+  return template.getMonitorStep({
+    vcenterIdentifier: "vcsa-prod",
+    onlineMonitorStatusId: ObjectID.generate(),
+    offlineMonitorStatusId: ObjectID.generate(),
+    defaultIncidentSeverityId: ObjectID.generate(),
+    defaultAlertSeverityId: ObjectID.generate(),
+    monitorName: "Test Monitor",
+  });
 }
 
 function cephStep(): MonitorStep {
@@ -312,6 +339,341 @@ describe("MonitorCriteriaEvaluator - Proxmox root cause breakdown", () => {
     expect(context).toContain("- Resource ID Filter: 100");
     // No breakdown attached: the metric name comes from the step's query.
     expect(context).toContain("- Metric: `pve_up`");
+  });
+});
+
+describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
+  /*
+   * VMware twin of the Proxmox block. The differences are deliberate:
+   * identity comes from the vcenter receiver's RESOURCE attributes
+   * (stored `resource.vcenter.*`), the table is
+   * Resource / Kind / Host / Cluster / Value, and utilization metrics
+   * are already 0–100 percentages (catalog unit "%") — never [0, 1]
+   * ratios — so the Value column must print them as-is and never ×100.
+   */
+  test("renders the Resource/Kind/Host/Cluster/Value table: zero rows dropped, worst first, % as-is", () => {
+    const affectedResources: Array<VMwareAffectedResource> = [
+      {
+        datacenterName: "DC1",
+        clusterName: "prod-cluster",
+        hostName: "esx-01",
+        metricValue: 42.5,
+      },
+      {
+        datacenterName: "DC1",
+        clusterName: "prod-cluster",
+        hostName: "esx-02",
+        metricValue: 97.25,
+      },
+      // Zero-value row — must be dropped from the table.
+      {
+        datacenterName: "DC1",
+        clusterName: "prod-cluster",
+        hostName: "esx-03",
+        metricValue: 0,
+      },
+    ];
+
+    const context: string | null = Evaluator.buildVMwareRootCauseContext({
+      dataToProcess: metricResponse({
+        vmwareResourceBreakdown: {
+          vcenterName: "vcsa-prod",
+          metricName: "vcenter.host.cpu.utilization",
+          metricFriendlyName: "Host CPU Utilization",
+          affectedResources,
+          attributes: {},
+        },
+      }),
+      monitorStep: vmwareStep(),
+      monitor: new Monitor(),
+    });
+
+    expect(context).not.toBeNull();
+    expect(context).toContain("**vCenter Details**");
+    expect(context).toContain("- vCenter: vcsa-prod");
+    expect(context).toContain(
+      "- Metric: Host CPU Utilization (`vcenter.host.cpu.utilization`)",
+    );
+
+    expect(context).toContain("| Resource | Kind | Host | Cluster | Value |");
+    // Worst (97.25) sorts above 42.5; the zero row is gone entirely.
+    const worstIndex: number = context!.indexOf("`esx-02`");
+    const mildIndex: number = context!.indexOf("`esx-01`");
+    expect(worstIndex).toBeGreaterThan(-1);
+    expect(mildIndex).toBeGreaterThan(worstIndex);
+    expect(context).not.toContain("esx-03");
+    expect(context).toContain("**Affected Resources** (2 total)");
+
+    /*
+     * The catalog declares "%" for the receiver's utilization metrics,
+     * whose values are already percentages: 97.25 must read "97.25%",
+     * never "9725.00%". A host IS the resource, so its Host column is
+     * "-" and the Cluster column carries the cluster it belongs to.
+     */
+    expect(context).toContain(
+      "| `esx-02` | Host | - | `prod-cluster` | **97.25%** |",
+    );
+    expect(context).toContain(
+      "| `esx-01` | Host | - | `prod-cluster` | **42.50%** |",
+    );
+    expect(context).not.toContain("9725");
+  });
+
+  test("a sub-1 percentage value is not mistaken for a ratio", () => {
+    /*
+     * 0.42 on a "%" metric is 0.42% of a host's CPU. Proxmox's
+     * `_ratio` metrics would render that as 42.00%; the vcenter
+     * receiver never emits ratios, so the same number must stay 0.42%.
+     */
+    const context: string | null = Evaluator.buildVMwareRootCauseContext({
+      dataToProcess: metricResponse({
+        vmwareResourceBreakdown: {
+          vcenterName: "vcsa-prod",
+          metricName: "vcenter.host.cpu.utilization",
+          metricFriendlyName: "Host CPU Utilization",
+          affectedResources: [
+            { datacenterName: "DC1", hostName: "esx-01", metricValue: 0.42 },
+          ],
+          attributes: {},
+        },
+      }),
+      monitorStep: vmwareStep(),
+      monitor: new Monitor(),
+    });
+
+    expect(context).toContain("| `esx-01` | Host | - | - | **0.42%** |");
+    expect(context).not.toContain("42.00%");
+  });
+
+  test("renders VM rows with their parent host and cluster, and bytes at human scale", () => {
+    const context: string | null = Evaluator.buildVMwareRootCauseContext({
+      dataToProcess: metricResponse({
+        vmwareResourceBreakdown: {
+          vcenterName: "vcsa-prod",
+          metricName: "vcenter.vm.disk.usage",
+          metricFriendlyName: "VM Disk Usage",
+          affectedResources: [
+            {
+              datacenterName: "DC1",
+              clusterName: "prod-cluster",
+              hostName: "esx-02",
+              vmName: "db-01",
+              vmId: "5029abcd-1111-2222-3333-444455556666",
+              resourcePoolName: "Resources",
+              resourcePoolPath: "/DC1/host/prod-cluster/Resources",
+              metricValue: 8589934592,
+            },
+            {
+              datacenterName: "DC1",
+              hostName: "esx-standalone",
+              vmName: "lab-01",
+              vmId: "5029abcd-aaaa-bbbb-cccc-ddddeeeeffff",
+              metricValue: 1073741824,
+            },
+          ],
+          attributes: {},
+        },
+      }),
+      monitorStep: vmwareStep(),
+      monitor: new Monitor(),
+    });
+
+    /*
+     * A VM row carries a resource pool AND a host, but it is still a
+     * VM: the Kind column must say so (VM check runs first), the Host
+     * column is the ESXi host running it, and the on-call engineer
+     * should not have to divide by 2^30 in their head.
+     */
+    expect(context).toContain(
+      "| `db-01` | Virtual Machine | `esx-02` | `prod-cluster` | **8.59 GB** |",
+    );
+    // A VM on a standalone ESXi host has no cluster.
+    expect(context).toContain(
+      "| `lab-01` | Virtual Machine | `esx-standalone` | - | **1.07 GB** |",
+    );
+    expect(context).not.toContain("**8589934592**");
+    expect(context).not.toContain("Resource Pool");
+  });
+
+  test("renders datastore, cluster, datacenter and resource pool rows by their own identity", () => {
+    const context: string | null = Evaluator.buildVMwareRootCauseContext({
+      dataToProcess: metricResponse({
+        vmwareResourceBreakdown: {
+          vcenterName: "vcsa-prod",
+          metricName: "vcenter.datacenter.host.count",
+          metricFriendlyName: "Datacenter Host Count",
+          affectedResources: [
+            { datacenterName: "DC1", metricValue: 4 },
+            {
+              datacenterName: "DC1",
+              clusterName: "prod-cluster",
+              metricValue: 3,
+            },
+            {
+              datacenterName: "DC1",
+              datastoreName: "vsan-ds-01",
+              metricValue: 2,
+            },
+            {
+              datacenterName: "DC1",
+              clusterName: "prod-cluster",
+              resourcePoolName: "batch",
+              resourcePoolPath: "/DC1/host/prod-cluster/Resources/batch",
+              metricValue: 1,
+            },
+          ],
+          attributes: {},
+        },
+      }),
+      monitorStep: vmwareStep(),
+      monitor: new Monitor(),
+    });
+
+    /*
+     * `{hosts}` is an annotation-only unit, so counts render as bare
+     * integers. Each kind resolves by the most specific identity
+     * attribute it carries: a datacenter-only row is a Datacenter, a
+     * cluster row shows no duplicate Cluster cell, a pool shows its
+     * name with the inventory path (pool names are only unique within
+     * a parent).
+     */
+    expect(context).toContain("| `DC1` | Datacenter | - | - | **4** |");
+    expect(context).toContain("| `prod-cluster` | Cluster | - | - | **3** |");
+    expect(context).toContain("| `vsan-ds-01` | Datastore | - | - | **2** |");
+    expect(context).toContain(
+      "| `batch` (`/DC1/host/prod-cluster/Resources/batch`) | Resource Pool | - | `prod-cluster` | **1** |",
+    );
+  });
+
+  test("renders latency in the catalog's unit", () => {
+    const context: string | null = Evaluator.buildVMwareRootCauseContext({
+      dataToProcess: metricResponse({
+        vmwareResourceBreakdown: {
+          vcenterName: "vcsa-prod",
+          metricName: "vcenter.host.disk.latency.max",
+          metricFriendlyName: "Host Disk Latency (Max)",
+          affectedResources: [
+            { datacenterName: "DC1", hostName: "esx-01", metricValue: 85 },
+          ],
+          attributes: {},
+        },
+      }),
+      monitorStep: vmwareStep(),
+      monitor: new Monitor(),
+    });
+
+    // Unit from the catalog ("ms"), not a bare, unit-less 85.
+    expect(context).toMatch(
+      /\| `esx-01` \| Host \| - \| - \| \*\*85(\.00)? ms\*\* \|/,
+    );
+  });
+
+  test("caps the table at 10 rows, worst first, with an overflow suffix", () => {
+    const affectedResources: Array<VMwareAffectedResource> = [];
+    for (let i: number = 1; i <= 12; i++) {
+      affectedResources.push({
+        datacenterName: "DC1",
+        hostName: `esx-${String(i).padStart(2, "0")}`,
+        metricValue: i,
+      });
+    }
+
+    const context: string | null = Evaluator.buildVMwareRootCauseContext({
+      dataToProcess: metricResponse({
+        vmwareResourceBreakdown: {
+          vcenterName: "vcsa-prod",
+          metricName: "vcenter.host.network.packet.error.rate",
+          metricFriendlyName: "Host Network Packet Error Rate",
+          affectedResources,
+          attributes: {},
+        },
+      }),
+      monitorStep: vmwareStep(),
+      monitor: new Monitor(),
+    });
+
+    expect(context).toContain("**Affected Resources** (12 total)");
+    expect(context).toContain("*... and 2 more affected resources*");
+    // The worst rows survive the cap; the mildest two are cut.
+    expect(context).toContain("`esx-12`");
+    expect(context).toContain("`esx-03`");
+    expect(context).not.toContain("`esx-02`");
+    expect(context).not.toContain("`esx-01`");
+  });
+
+  test("identity-less breakdowns render no table and fall back to the metric summary", () => {
+    const context: string | null = Evaluator.buildVMwareRootCauseContext({
+      dataToProcess: metricResponse({
+        vmwareResourceBreakdown: {
+          vcenterName: "vcsa-prod",
+          metricName: "vcenter.datacenter.vm.count",
+          metricFriendlyName: "Datacenter VM Count",
+          affectedResources: [
+            // A value but NO identity attributes.
+            { metricValue: 3 },
+          ],
+          attributes: {},
+        },
+        metricResult: [{ data: [{}, {}] } as any],
+      }),
+      monitorStep: vmwareStep(),
+      monitor: new Monitor(),
+    });
+
+    expect(context).not.toContain(
+      "| Resource | Kind | Host | Cluster | Value |",
+    );
+    expect(context).toContain("**Metric Summary**");
+    expect(context).toContain("- 2 metric data point(s) returned");
+  });
+
+  test("surfaces the worker's resource-filter mapping (resource.vcenter.*) in the vCenter context", () => {
+    const step: MonitorStep = vmwareStep();
+    /*
+     * The worker maps resourceFilters to `resource.vcenter.*` equality
+     * attributes; the evaluator surfaces the same filters so the
+     * incident shows WHAT was scoped.
+     */
+    step.data!.vmwareMonitor!.resourceFilters = {
+      datacenterName: "DC1",
+      clusterName: "prod-cluster",
+      hostName: "esx-01",
+      vmName: "db-01",
+      datastoreName: "vsan-ds-01",
+      resourcePoolPath: "/DC1/host/prod-cluster/Resources/batch",
+    };
+
+    const context: string | null = Evaluator.buildVMwareRootCauseContext({
+      dataToProcess: metricResponse(),
+      monitorStep: step,
+      monitor: new Monitor(),
+    });
+
+    expect(context).toContain("**vCenter Details**");
+    expect(context).toContain("- vCenter: vcsa-prod");
+    expect(context).toContain("- Datacenter Filter: DC1");
+    expect(context).toContain("- Cluster Filter: prod-cluster");
+    expect(context).toContain("- Host Filter: esx-01");
+    expect(context).toContain("- Virtual Machine Filter: db-01");
+    expect(context).toContain("- Datastore Filter: vsan-ds-01");
+    expect(context).toContain(
+      "- Resource Pool Filter: /DC1/host/prod-cluster/Resources/batch",
+    );
+    // No breakdown attached: the metric name comes from the step's query.
+    expect(context).toContain("- Metric: `vcenter.host.cpu.utilization`");
+    // Nothing Proxmox leaks into a VMware root cause.
+    expect(context).not.toContain("Proxmox");
+    expect(context).not.toContain("Scope Filter");
+  });
+
+  test("returns null when there is neither a step config nor a breakdown", () => {
+    const context: string | null = Evaluator.buildVMwareRootCauseContext({
+      dataToProcess: metricResponse(),
+      monitorStep: new MonitorStep(),
+      monitor: new Monitor(),
+    });
+
+    expect(context).toBeNull();
   });
 });
 

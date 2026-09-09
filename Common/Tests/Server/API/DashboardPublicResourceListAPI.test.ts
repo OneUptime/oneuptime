@@ -17,6 +17,7 @@ import PodmanResourceService from "../../../Server/Services/PodmanResourceServic
 import ProxmoxResourceService from "../../../Server/Services/ProxmoxResourceService";
 import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
 import SpanService from "../../../Server/Services/SpanService";
+import VMwareResourceService from "../../../Server/Services/VMwareResourceService";
 import PublicDashboardResourceListPolicy, {
   BuildPublicDashboardResourceListPolicyData,
   PublicDashboardResourceListPolicyResult,
@@ -267,6 +268,18 @@ const RESOURCE_ROUTE_CASES: Array<ResourceRouteCase> = [
     kind: "Guest",
   },
   {
+    resourceType: "vmware-resource",
+    componentType: DashboardComponentType.VMwareHostList,
+    service: VMwareResourceService,
+    kind: "Host",
+  },
+  {
+    resourceType: "vmware-resource",
+    componentType: DashboardComponentType.VMwareVirtualMachineList,
+    service: VMwareResourceService,
+    kind: "VirtualMachine",
+  },
+  {
     resourceType: "ceph-resource",
     componentType: DashboardComponentType.CephOsdList,
     service: CephResourceService,
@@ -323,6 +336,7 @@ const ALL_SERVICES: Array<ListService> = [
   PodmanHostService,
   PodmanResourceService,
   ProxmoxResourceService,
+  VMwareResourceService,
   CephResourceService,
   DockerSwarmResourceService,
   SpanService,
@@ -520,7 +534,7 @@ describe("DashboardAPI public resource-list", () => {
       }
     });
 
-    it("does not return sibling-only Proxmox or Swarm fields", async () => {
+    it("does not return sibling-only Proxmox, VMware or Swarm fields", async () => {
       const cases: Array<{
         resourceType: string;
         componentType: DashboardComponentType;
@@ -541,6 +555,20 @@ describe("DashboardAPI public resource-list", () => {
           service: ProxmoxResourceService,
           included: "latestCpuPercent",
           excluded: "vmid",
+        },
+        {
+          resourceType: "vmware-resource",
+          componentType: DashboardComponentType.VMwareVirtualMachineList,
+          service: VMwareResourceService,
+          included: "isPoweredOn",
+          excluded: "cpuCapacityMhz",
+        },
+        {
+          resourceType: "vmware-resource",
+          componentType: DashboardComponentType.VMwareHostList,
+          service: VMwareResourceService,
+          included: "cpuCapacityMhz",
+          excluded: "isPoweredOn",
         },
         {
           resourceType: "docker-swarm-resource",

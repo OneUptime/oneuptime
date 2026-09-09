@@ -86,6 +86,7 @@ const MONITORING_AGENT_PAGES: Array<{ name: string; parts: Array<string> }> = [
   { name: "Kubernetes", parts: ["Pages", "Kubernetes", "View", "Index.tsx"] },
   { name: "Ceph", parts: ["Pages", "Ceph", "View", "Index.tsx"] },
   { name: "Proxmox", parts: ["Pages", "Proxmox", "View", "Index.tsx"] },
+  { name: "VMware", parts: ["Pages", "VMware", "View", "Index.tsx"] },
   {
     name: "Serverless",
     parts: ["Pages", "Serverless", "View", "Overview.tsx"],

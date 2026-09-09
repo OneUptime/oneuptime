@@ -24,22 +24,30 @@ import MonitorStepPodmanMonitor, {
 import MonitorStepProxmoxMonitor, {
   MonitorStepProxmoxMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
+import MonitorStepVMwareMonitor, {
+  MonitorStepVMwareMonitorUtil,
+} from "../../../Types/Monitor/MonitorStepVMwareMonitor";
 import { JSONObject } from "../../../Types/JSON";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 import { describe, expect, it } from "@jest/globals";
 
 /*
  * The infrastructure monitor-step types (Host, Docker, Podman, Kubernetes,
- * Ceph, IoT, Docker Swarm, Proxmox) each ship a small `*Util` class with
+ * Ceph, IoT, Docker Swarm, Proxmox, VMware) each ship a small `*Util` class with
  * getDefault / fromJSON / toJSON. getDefault seeds the monitor-step editor
  * when a user first picks that monitor type, so two things it does are
  * load-bearing and neither is obvious from the (near-identity) code:
  *
- *   1. THE DEFAULT ROLLING WINDOW. Every infra step defaults to
- *      RollingTime.Past1Minute. That value is what a freshly created
- *      metric monitor evaluates over until the user changes it; a silent
- *      change to it would change the meaning of every new monitor. Pinned
- *      per type so a copy-paste edit in one file is caught.
+ *   1. THE DEFAULT ROLLING WINDOW. Every infra step whose agent scrapes
+ *      every 30 s defaults to RollingTime.Past1Minute. VMware is the one
+ *      exception: its agent polls vCenter every 2 minutes
+ *      (VCENTER_COLLECTION_INTERVAL) and emits one sample per object per
+ *      collection, so it defaults to Past5Minutes — a 1-minute window
+ *      would be empty every other evaluation and flap. That value is what
+ *      a freshly created metric monitor evaluates over until the user
+ *      changes it; a silent change to it would change the meaning of every
+ *      new monitor. Pinned per type so a copy-paste edit in one file is
+ *      caught in either direction.
  *
  *   2. getDefault RETURNS A FRESH OBJECT GRAPH. The editor mutates the
  *      returned object (typing an identifier, adding a filter). If
@@ -60,6 +68,8 @@ interface InfraCase {
   util: InfraMonitorUtil<any>;
   // The empty-string identifier field each default carries.
   identifierField: string;
+  // The rolling window getDefault seeds — see note 1 in the header.
+  defaultRollingTime: RollingTime;
 }
 
 const CASES: Array<InfraCase> = [
@@ -67,50 +77,64 @@ const CASES: Array<InfraCase> = [
     name: "Host",
     util: MonitorStepHostMonitorUtil as InfraMonitorUtil<MonitorStepHostMonitor>,
     identifierField: "hostIdentifier",
+    defaultRollingTime: RollingTime.Past1Minute,
   },
   {
     name: "Docker",
     util: MonitorStepDockerMonitorUtil as InfraMonitorUtil<MonitorStepDockerMonitor>,
     identifierField: "hostIdentifier",
+    defaultRollingTime: RollingTime.Past1Minute,
   },
   {
     name: "Podman",
     util: MonitorStepPodmanMonitorUtil as InfraMonitorUtil<MonitorStepPodmanMonitor>,
     identifierField: "hostIdentifier",
+    defaultRollingTime: RollingTime.Past1Minute,
   },
   {
     name: "Kubernetes",
     util: MonitorStepKubernetesMonitorUtil as InfraMonitorUtil<MonitorStepKubernetesMonitor>,
     identifierField: "clusterIdentifier",
+    defaultRollingTime: RollingTime.Past1Minute,
   },
   {
     name: "Ceph",
     util: MonitorStepCephMonitorUtil as InfraMonitorUtil<MonitorStepCephMonitor>,
     identifierField: "clusterIdentifier",
+    defaultRollingTime: RollingTime.Past1Minute,
   },
   {
     name: "IoT",
     util: MonitorStepIoTMonitorUtil as InfraMonitorUtil<MonitorStepIoTMonitor>,
     identifierField: "fleetIdentifier",
+    defaultRollingTime: RollingTime.Past1Minute,
   },
   {
     name: "DockerSwarm",
     util: MonitorStepDockerSwarmMonitorUtil as InfraMonitorUtil<MonitorStepDockerSwarmMonitor>,
     identifierField: "clusterIdentifier",
+    defaultRollingTime: RollingTime.Past1Minute,
   },
   {
     name: "Proxmox",
     util: MonitorStepProxmoxMonitorUtil as InfraMonitorUtil<MonitorStepProxmoxMonitor>,
     identifierField: "clusterIdentifier",
+    defaultRollingTime: RollingTime.Past1Minute,
+  },
+  {
+    name: "VMware",
+    util: MonitorStepVMwareMonitorUtil as InfraMonitorUtil<MonitorStepVMwareMonitor>,
+    identifierField: "vcenterIdentifier",
+    defaultRollingTime: RollingTime.Past5Minutes,
   },
 ];
 
 describe("Infrastructure monitor-step getDefault contract", () => {
   for (const testCase of CASES) {
     describe(`MonitorStep${testCase.name}MonitorUtil`, () => {
-      it("defaults the rolling window to Past1Minute", () => {
+      it(`defaults the rolling window to ${testCase.defaultRollingTime}`, () => {
         const def: Record<string, unknown> = testCase.util.getDefault();
-        expect(def["rollingTime"]).toBe(RollingTime.Past1Minute);
+        expect(def["rollingTime"]).toBe(testCase.defaultRollingTime);
       });
 
       it("defaults the identifier to an empty string", () => {
@@ -145,6 +169,27 @@ describe("Infrastructure monitor-step getDefault contract", () => {
       });
     });
   }
+});
+
+describe("Infrastructure monitor-step default rolling window", () => {
+  it("only VMware departs from the 1-minute window, and only upward", () => {
+    /*
+     * Guards the table itself: a new product copy-pasted from VMware must
+     * not inherit the 5-minute window without the 2-minute-collection
+     * justification, and VMware must never slide back to 1 minute.
+     */
+    for (const testCase of CASES) {
+      if (testCase.name === "VMware") {
+        expect(testCase.defaultRollingTime).toBe(RollingTime.Past5Minutes);
+      } else {
+        expect(testCase.defaultRollingTime).toBe(RollingTime.Past1Minute);
+      }
+    }
+
+    expect(MonitorStepVMwareMonitorUtil.getDefault().rollingTime).toBe(
+      RollingTime.Past5Minutes,
+    );
+  });
 });
 
 describe("Infrastructure monitor-step JSON round-trip", () => {

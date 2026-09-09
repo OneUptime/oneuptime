@@ -29,6 +29,7 @@ const METRIC_SHAPED_KEYS: Array<keyof MonitorStepType> = [
   "dockerSwarmMonitor",
   "podmanMonitor",
   "proxmoxMonitor",
+  "vmwareMonitor",
   "cephMonitor",
   "iotMonitor",
 ];

@@ -367,20 +367,25 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
           /*
            * Auto-discover Kubernetes cluster, Docker host, Proxmox
-           * cluster and Ceph cluster from resource attributes. They
-           * look at disjoint attributes and don't share state, so we
-           * issue all Postgres lookups concurrently and only wait
-           * once. The cluster id is also what the inventory hook
-           * below keys its buffer on.
+           * cluster, VMware vCenter and Ceph cluster from resource
+           * attributes. They look at disjoint attributes and don't
+           * share state, so we issue all Postgres lookups concurrently
+           * and only wait once. The cluster id is also what the
+           * inventory hook below keys its buffer on. (There is no
+           * VMware inventory hook on the logs path: ESXi syslog
+           * forwarded through the agent attaches to the vCenter purely
+           * through the primary-entity routing below.)
            */
           const [
             kubernetesClusterId,
             dockerHostId,
             podmanHostId,
             proxmoxClusterId,
+            vmwareVCenterId,
             cephClusterId,
             dockerSwarmClusterId,
           ]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
@@ -401,6 +406,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               attributes: resourceAttributes_raw,
             }),
             this.autoDiscoverProxmoxCluster({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            this.autoDiscoverVMwareVCenter({
               projectId,
               attributes: resourceAttributes_raw,
             }),
@@ -488,6 +497,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               podmanHostId,
               kubernetesClusterId,
               proxmoxClusterId,
+              vmwareVCenterId,
               cephClusterId,
               dockerSwarmClusterId,
               serverlessFunctionId,

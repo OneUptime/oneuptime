@@ -87,6 +87,8 @@
       "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",
       "proxmoxDescription": "Proxmoxクラスター、ノード、ゲストを監視。",
+      "vmwareTitle": "VMware",
+      "vmwareDescription": "vCenter、ESXiホスト、仮想マシン、データストアを監視。",
       "cephTitle": "Ceph",
       "cephDescription": "Cephクラスター、OSD、プールを監視。",
       "hostsTitle": "ホスト",

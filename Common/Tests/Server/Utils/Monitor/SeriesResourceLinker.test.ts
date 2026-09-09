@@ -30,6 +30,7 @@ import KubernetesClusterService from "../../../../Server/Services/KubernetesClus
 import PodmanHostService from "../../../../Server/Services/PodmanHostService";
 import ProxmoxClusterService from "../../../../Server/Services/ProxmoxClusterService";
 import ServiceService from "../../../../Server/Services/ServiceService";
+import VMwareVCenterService from "../../../../Server/Services/VMwareVCenterService";
 import SeriesResourceLinker, {
   SeriesLinkableModel,
   SeriesResolvedResourceIds,
@@ -100,6 +101,11 @@ const RESOURCE_SERVICES: Array<ResourceServiceUnderTest> = [
   {
     relation: "proxmoxClusters",
     service: ProxmoxClusterService,
+    nameColumn: "name",
+  },
+  {
+    relation: "vmwareVCenters",
+    service: VMwareVCenterService,
     nameColumn: "name",
   },
   { relation: "cephClusters", service: CephClusterService, nameColumn: "name" },
@@ -185,6 +191,7 @@ function emptyResourceContext(): SeriesResolvedResourceIds {
     kubernetesClusterIds: [],
     serviceIds: [],
     proxmoxClusterIds: [],
+    vmwareVCenterIds: [],
     cephClusterIds: [],
     dockerSwarmClusterIds: [],
     iotFleetIds: [],
@@ -336,6 +343,8 @@ describe("SeriesResourceLinker.linkSeriesResourcesToModel", () => {
     ["services", "service.name", "name"],
     ["services", "oneuptime.service.name", "name"],
     ["proxmoxClusters", "proxmox.cluster.name", "name"],
+    ["vmwareVCenters", "vmware.vcenter.name", "name"],
+    ["vmwareVCenters", "resource.vmware.vcenter.name", "name"],
     ["cephClusters", "ceph.cluster.name", "name"],
     ["dockerSwarmClusters", "docker.swarm.cluster.name", "name"],
     ["iotFleets", "iot.fleet.name", "name"],
@@ -522,6 +531,7 @@ describe("SeriesResourceLinker.linkSeriesResourcesToModel", () => {
         "k8s.cluster.name": "k8s-1",
         "service.name": "svc-1",
         "proxmox.cluster.name": "pve-1",
+        "vmware.vcenter.name": "vcsa-1",
         "ceph.cluster.name": "ceph-1",
         "docker.swarm.cluster.name": "swarm-1",
         "iot.fleet.name": "fleet-1",
@@ -541,8 +551,8 @@ describe("SeriesResourceLinker.linkSeriesResourcesToModel", () => {
       }
     }
 
-    // 9 types, and hosts get an extra query for the id stamp.
-    expect(assertedQueries).toBe(10);
+    // 10 types, and hosts get an extra query for the id stamp.
+    expect(assertedQueries).toBe(11);
   });
 
   test("does not link a resource that belongs to another project", async () => {
@@ -664,6 +674,7 @@ describe("SeriesResourceLinker.resolveResourcesFromSeriesLabels", () => {
     expect(resolved.podmanHostIds).toEqual([]);
     expect(resolved.kubernetesClusterIds).toEqual([]);
     expect(resolved.proxmoxClusterIds).toEqual([]);
+    expect(resolved.vmwareVCenterIds).toEqual([]);
     expect(resolved.cephClusterIds).toEqual([]);
     expect(resolved.dockerSwarmClusterIds).toEqual([]);
   });
@@ -678,6 +689,7 @@ describe("SeriesResourceLinker.attachResolvedResources", () => {
       resolved: {
         ...emptyResourceContext(),
         proxmoxClusterIds: ["pve-1"],
+        vmwareVCenterIds: ["vcsa-1"],
         cephClusterIds: ["ceph-1"],
         dockerSwarmClusterIds: ["swarm-1"],
         iotFleetIds: ["fleet-1"],
@@ -685,6 +697,7 @@ describe("SeriesResourceLinker.attachResolvedResources", () => {
     });
 
     expect(idsOn(alert, "proxmoxClusters")).toEqual(["pve-1"]);
+    expect(idsOn(alert, "vmwareVCenters")).toEqual(["vcsa-1"]);
     expect(idsOn(alert, "cephClusters")).toEqual(["ceph-1"]);
     expect(idsOn(alert, "dockerSwarmClusters")).toEqual(["swarm-1"]);
     expect(idsOn(alert, "iotFleets")).toEqual(["fleet-1"]);
@@ -721,6 +734,36 @@ describe("SeriesResourceLinker.attachResolvedResources", () => {
     ]);
   });
 
+  test("merges a vCenter from the label path with the step-config one", async () => {
+    /*
+     * VMware twin of the Proxmox merge: a user-built monitor grouped by
+     * `vmware.vcenter.name` names one vCenter through its labels while
+     * the step's vcenterIdentifier names another; both must survive.
+     */
+    rowsByRelation.set("vmwareVCenters", [{ _id: "vcsa-from-label" }]);
+
+    const alert: Alert = new Alert();
+
+    await SeriesResourceLinker.linkSeriesResourcesToModel({
+      model: alert,
+      seriesLabels: { "resource.vmware.vcenter.name": "vcsa-a" },
+      projectId: PROJECT_ID,
+    });
+
+    SeriesResourceLinker.attachResolvedResources({
+      model: alert,
+      resolved: {
+        ...emptyResourceContext(),
+        vmwareVCenterIds: ["vcsa-from-step-config"],
+      },
+    });
+
+    expect(idsOn(alert, "vmwareVCenters")).toEqual([
+      "vcsa-from-label",
+      "vcsa-from-step-config",
+    ]);
+  });
+
   test("dedupes a cluster both paths resolved", async () => {
     rowsByRelation.set("cephClusters", [{ _id: "ceph-1" }]);
 
@@ -752,6 +795,7 @@ describe("SeriesResourceLinker.attachResolvedResources", () => {
     });
 
     expect(alert.proxmoxClusters).toBeUndefined();
+    expect(alert.vmwareVCenters).toBeUndefined();
     expect(alert.cephClusters).toBeUndefined();
     expect(alert.dockerSwarmClusters).toBeUndefined();
     expect(alert.iotFleets).toBeUndefined();

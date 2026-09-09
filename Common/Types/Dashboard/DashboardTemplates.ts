@@ -36,6 +36,7 @@ export enum DashboardTemplateType {
   KubernetesCost = "KubernetesCost",
   Host = "Host",
   Proxmox = "Proxmox",
+  VMware = "VMware",
   Ceph = "Ceph",
   DockerSwarm = "DockerSwarm",
   Metrics = "Metrics",
@@ -149,6 +150,14 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     description:
       "Live node and guest inventories with status, CPU/memory trends, network throughput, and cluster logs.",
     icon: IconProp.ServerStack,
+    category: DashboardTemplateCategory.Infrastructure,
+  },
+  {
+    type: DashboardTemplateType.VMware,
+    name: "VMware Dashboard",
+    description:
+      "Live ESXi host and virtual machine inventories, host CPU/memory utilization, datastore capacity, CPU ready and memory ballooning trends, and vCenter logs.",
+    icon: IconProp.VMware,
     category: DashboardTemplateCategory.Infrastructure,
   },
   {
@@ -689,6 +698,60 @@ function createProxmoxGuestListComponent(data: {
       maxRows: data.maxRows ?? 20,
       guestTypeFilter: data.guestTypeFilter,
       statusFilter: data.statusFilter,
+    },
+  };
+}
+
+function createVMwareHostListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.VMwareHostList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 4,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 20,
+    },
+  };
+}
+
+function createVMwareVirtualMachineListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+  powerStateFilter?: string;
+  templateFilter?: string;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.VMwareVirtualMachineList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 4,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 20,
+      powerStateFilter: data.powerStateFilter,
+      templateFilter: data.templateFilter,
     },
   };
 }
@@ -3189,6 +3252,255 @@ function createProxmoxDashboardConfig(): DashboardViewConfig {
   };
 }
 
+function createVMwareDashboardConfig(): DashboardViewConfig {
+  /*
+   * Layout notes:
+   *
+   * - Host / VM counts come from the Postgres inventory list widgets
+   *   (VMwareResource), never from Sum-of-gauge Value widgets. The
+   *   vcenter receiver's count metrics (vcenter.datacenter.host.count,
+   *   vcenter.cluster.vm.count, ...) fan out over status x power_state
+   *   attributes and re-emit every scrape, so summing them across the
+   *   dashboard window multiplies (buckets x scrapes) — the same failure
+   *   the Kubernetes / Proxmox templates document — and template metric
+   *   widgets cannot filter on datapoint attributes to pick one bucket.
+   *   The list-widget headers show the true current counts; the VM list
+   *   hides templates so its header counts real virtual machines.
+   *
+   * - Every metric here is a per-object gauge the receiver already
+   *   reports in its final unit (utilization in %, readiness in %,
+   *   throughput in KiBy/s, ballooned memory in MiBy), so Avg is the
+   *   right aggregation for the temperature tiles and trend charts and
+   *   nothing needs transformAsRate.
+   *
+   * - Ballooned memory is charted with Max rather than Avg: one VM under
+   *   balloon pressure is the signal, and averaging it across a fleet of
+   *   healthy VMs would hide it.
+   *
+   * - Host charts fan out via groupByAttributeKeys on the resource's own
+   *   identity attribute so one line per ESXi host is drawn; identity for
+   *   vcenter metrics lives in RESOURCE attributes, hence the `resource.`
+   *   prefix (same convention as the vCenter variable below).
+   */
+  const components: Array<DashboardBaseComponent> = [
+    // Row 0: Title
+    createTextComponent({
+      text: "VMware Dashboard",
+      top: 0,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Rows 1-4: Live inventory from the Postgres snapshot
+    createVMwareHostListComponent({
+      title: "Hosts",
+      top: 1,
+      left: 0,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+    }),
+    createVMwareVirtualMachineListComponent({
+      title: "Virtual Machines",
+      top: 1,
+      left: 6,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+      templateFilter: "exclude",
+    }),
+
+    // Row 5: Section header
+    createTextComponent({
+      text: "Utilization",
+      top: 5,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Row 6: Fleet-wide temperature tiles. All four are percentages the
+     * receiver reports directly, and all are "higher = worse".
+     */
+    createValueComponent({
+      title: "Host CPU (avg %)",
+      top: 6,
+      left: 0,
+      width: 3,
+      metricConfig: {
+        metricName: "vcenter.host.cpu.utilization",
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "Host Memory (avg %)",
+      top: 6,
+      left: 3,
+      width: 3,
+      metricConfig: {
+        metricName: "vcenter.host.memory.utilization",
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "Datastore Used (avg %)",
+      top: 6,
+      left: 6,
+      width: 3,
+      metricConfig: {
+        metricName: "vcenter.datastore.disk.utilization",
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "VM CPU Ready (avg %)",
+      top: 6,
+      left: 9,
+      width: 3,
+      metricConfig: {
+        metricName: "vcenter.vm.cpu.readiness",
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+
+    // Rows 7-9: Per-host CPU and memory trends
+    createChartComponent({
+      title: "Host CPU Utilization",
+      chartType: DashboardChartType.Line,
+      top: 7,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "vcenter.host.cpu.utilization",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "CPU %",
+        legendUnit: "%",
+        groupByAttributeKeys: ["resource.vcenter.host.name"],
+      },
+    }),
+    createChartComponent({
+      title: "Host Memory Utilization",
+      chartType: DashboardChartType.Line,
+      top: 7,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "vcenter.host.memory.utilization",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Memory %",
+        legendUnit: "%",
+        groupByAttributeKeys: ["resource.vcenter.host.name"],
+      },
+    }),
+
+    // Row 10: Section header
+    createTextComponent({
+      text: "Capacity & Contention",
+      top: 10,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Rows 11-13: Datastore capacity and VM CPU contention
+    createChartComponent({
+      title: "Datastore Utilization",
+      chartType: DashboardChartType.Line,
+      top: 11,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "vcenter.datastore.disk.utilization",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Used %",
+        legendUnit: "%",
+        groupByAttributeKeys: ["resource.vcenter.datastore.name"],
+      },
+    }),
+    createChartComponent({
+      title: "VM CPU Ready (avg across VMs)",
+      chartType: DashboardChartType.Line,
+      top: 11,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "vcenter.vm.cpu.readiness",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "CPU ready %",
+        legendUnit: "%",
+      },
+    }),
+
+    // Rows 14-16: Memory pressure and host network throughput
+    createChartComponent({
+      title: "VM Memory Ballooned (max per VM)",
+      chartType: DashboardChartType.Area,
+      top: 14,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "vcenter.vm.memory.ballooned",
+        aggregationType: MetricsAggregationType.Max,
+        legend: "Ballooned MiB",
+        legendUnit: "MiB",
+      },
+    }),
+    createChartComponent({
+      title: "Host Network Throughput (avg per host)",
+      chartType: DashboardChartType.Area,
+      top: 14,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "vcenter.host.network.throughput",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "KiB/s",
+        legendUnit: "KiB/s",
+        groupByAttributeKeys: ["resource.vcenter.host.name"],
+      },
+    }),
+
+    // Rows 17-19: Logs (ESXi syslog forwarded through the agent's syslog receiver)
+    createLogStreamComponent({
+      title: "vCenter Logs",
+      top: 17,
+      left: 0,
+      width: 12,
+      height: 3,
+    }),
+  ];
+
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "vcenter",
+      label: "vCenter",
+      attributeKey: "resource.vmware.vcenter.name",
+    }),
+  ];
+
+  return {
+    _type: ObjectType.DashboardViewConfig,
+    components,
+    variables,
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 20),
+  };
+}
+
 function createDockerSwarmDashboardConfig(): DashboardViewConfig {
   /*
    * Layout notes:
@@ -3824,6 +4136,8 @@ export function getTemplateConfig(
       return createHostDashboardConfig();
     case DashboardTemplateType.Proxmox:
       return createProxmoxDashboardConfig();
+    case DashboardTemplateType.VMware:
+      return createVMwareDashboardConfig();
     case DashboardTemplateType.Ceph:
       return createCephDashboardConfig();
     case DashboardTemplateType.DockerSwarm:

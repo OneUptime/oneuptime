@@ -255,6 +255,36 @@ export const ProxmoxRoutePath: Dictionary<string> = {
   [PageMap.PROXMOX_ARCHIVED]: `archived`,
 };
 
+export const VMwareRoutePath: Dictionary<string> = {
+  [PageMap.VMWARE_VCENTER_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.VMWARE_VCENTER_VIEW_HOSTS]: `${RouteParams.ModelID}/hosts`,
+  [PageMap.VMWARE_VCENTER_VIEW_HOST_DETAIL]: `${RouteParams.ModelID}/hosts/${RouteParams.SubModelID}`,
+  [PageMap.VMWARE_VCENTER_VIEW_VIRTUAL_MACHINES]: `${RouteParams.ModelID}/virtual-machines`,
+  [PageMap.VMWARE_VCENTER_VIEW_VIRTUAL_MACHINE_DETAIL]: `${RouteParams.ModelID}/virtual-machines/${RouteParams.SubModelID}`,
+  [PageMap.VMWARE_VCENTER_VIEW_DATASTORES]: `${RouteParams.ModelID}/datastores`,
+  [PageMap.VMWARE_VCENTER_VIEW_DATASTORE_DETAIL]: `${RouteParams.ModelID}/datastores/${RouteParams.SubModelID}`,
+  [PageMap.VMWARE_VCENTER_VIEW_CLUSTERS]: `${RouteParams.ModelID}/clusters`,
+  [PageMap.VMWARE_VCENTER_VIEW_CLUSTER_DETAIL]: `${RouteParams.ModelID}/clusters/${RouteParams.SubModelID}`,
+  [PageMap.VMWARE_VCENTER_VIEW_RESOURCE_POOLS]: `${RouteParams.ModelID}/resource-pools`,
+  [PageMap.VMWARE_VCENTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
+  [PageMap.VMWARE_VCENTER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.VMWARE_VCENTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.VMWARE_VCENTER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.VMWARE_VCENTER_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.VMWARE_VCENTER_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.VMWARE_VCENTER_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.VMWARE_VCENTER_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.VMWARE_VCENTER_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
+  [PageMap.VMWARE_VCENTER_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.VMWARE_VCENTER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.VMWARE_VCENTER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.VMWARE_VCENTER_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.VMWARE_DOCUMENTATION]: `documentation`,
+  [PageMap.VMWARE_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.VMWARE_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.VMWARE_ARCHIVED]: `archived`,
+};
+
 export const IoTRoutePath: Dictionary<string> = {
   [PageMap.IOT_FLEET_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.IOT_FLEET_VIEW_DEVICES]: `${RouteParams.ModelID}/devices`,
@@ -3349,6 +3379,178 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PROXMOX_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/proxmox/${
       ProxmoxRoutePath[PageMap.PROXMOX_ARCHIVED]
+    }`,
+  ),
+
+  // VMware
+
+  [PageMap.VMWARE_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/*`,
+  ),
+
+  [PageMap.VMWARE_VCENTERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_HOSTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_HOSTS]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_HOST_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_HOST_DETAIL]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_VIRTUAL_MACHINES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_VIRTUAL_MACHINES]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_VIRTUAL_MACHINE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_VIRTUAL_MACHINE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_DATASTORES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_DATASTORES]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_DATASTORE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_DATASTORE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_CLUSTERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_CLUSTERS]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_CLUSTER_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_CLUSTER_DETAIL]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_RESOURCE_POOLS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_RESOURCE_POOLS]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_RECOMMENDATIONS]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_FEED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_FEED]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.VMWARE_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.VMWARE_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.VMWARE_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.VMWARE_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_ARCHIVED]
     }`,
   ),
 

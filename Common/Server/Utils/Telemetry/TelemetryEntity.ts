@@ -754,7 +754,7 @@ export default class InventoryItem {
 
     /*
      * docker.swarm.cluster — docker.swarm.cluster.name only, mirroring the
-     * proxmox/ceph cluster identity: the typed Postgres row
+     * proxmox/ceph/vmware root identity: the typed Postgres row
      * (DockerSwarmCluster) and the read side
      * (`EntityKey.keyForDockerSwarmCluster`) are name-based, and the agent
      * stamps `docker.swarm.cluster.name` on every signal. Node/Service/Task
@@ -772,6 +772,149 @@ export default class InventoryItem {
             id: { "docker.swarm.cluster.name": name },
           }
         : null;
+    },
+
+    /*
+     * ---- VMware vSphere ------------------------------------------------
+     *
+     * Identity for every vSphere object lives in RESOURCE attributes the
+     * OpenTelemetry Collector `vcenter` receiver emits (one OTLP resource
+     * per datacenter / cluster / host / VM / datastore / resource pool),
+     * plus the OneUptime-defined `vmware.vcenter.name` the agent's
+     * resource processor stamps on all of them. That root attribute is
+     * the only thing that says WHICH vCenter an object belongs to, so every
+     * resolver below requires it and folds it in (see
+     * vmwareVCenterIdentity) — a resource without it resolves to no VMware
+     * entity at all, rather than to a key that would collide across
+     * vCenters. Datacenters and resource pools are tracked as VMwareResource
+     * inventory rows but are deliberately not entities.
+     */
+
+    // vmware.vcenter — vmware.vcenter.name only (see vmwareVCenterIdentity).
+    (attrs: EntityAttributes) => {
+      const id: Dictionary<string> | null =
+        InventoryItem.vmwareVCenterIdentity(attrs);
+      return id ? { entityType: EntityType.VMwareVCenter, id } : null;
+    },
+
+    /*
+     * vmware.cluster — vCenter + vcenter.datacenter.name +
+     * vcenter.cluster.name. Cluster names are unique only within a
+     * datacenter, so the datacenter is part of the identity. Emitted for
+     * every resource that carries a cluster name (a host in a cluster, a VM
+     * on such a host, the cluster's own resource), so the cluster entity is
+     * kept alive by all of them.
+     */
+    (attrs: EntityAttributes) => {
+      const vcenter: Dictionary<string> | null =
+        InventoryItem.vmwareVCenterIdentity(attrs);
+      const datacenter: string | null = InventoryItem.str(
+        attrs,
+        "vcenter.datacenter.name",
+      );
+      const cluster: string | null = InventoryItem.str(
+        attrs,
+        "vcenter.cluster.name",
+      );
+      if (!vcenter || !datacenter || !cluster) {
+        return null;
+      }
+      return {
+        entityType: EntityType.VMwareCluster,
+        id: {
+          ...vcenter,
+          "vcenter.datacenter.name": datacenter,
+          "vcenter.cluster.name": cluster,
+        },
+      };
+    },
+
+    /*
+     * vmware.host — vCenter + vcenter.datacenter.name + vcenter.host.name.
+     * The cluster is deliberately NOT identity: moving an ESXi host between
+     * clusters (or out of one into a standalone role) does not change which
+     * host it is, so folding the cluster in would fork the key. It is kept
+     * as a descriptive attribute instead. Emitted for the host's own
+     * resource and for every VM resource (which carries its parent host).
+     */
+    (attrs: EntityAttributes) => {
+      const vcenter: Dictionary<string> | null =
+        InventoryItem.vmwareVCenterIdentity(attrs);
+      const datacenter: string | null = InventoryItem.str(
+        attrs,
+        "vcenter.datacenter.name",
+      );
+      const host: string | null = InventoryItem.str(attrs, "vcenter.host.name");
+      if (!vcenter || !datacenter || !host) {
+        return null;
+      }
+      return {
+        entityType: EntityType.VMwareHost,
+        id: {
+          ...vcenter,
+          "vcenter.datacenter.name": datacenter,
+          "vcenter.host.name": host,
+        },
+      };
+    },
+
+    /*
+     * vmware.vm — vCenter + the VM's instance UUID. The receiver reports it
+     * as `vcenter.vm.id` on a virtual machine and as `vcenter.vm_template.id`
+     * on a template; a template IS a VM (converting one to the other keeps
+     * the instance UUID), so both are accepted and stored under the single
+     * identity key `vcenter.vm.id` — the key survives the conversion. The
+     * host name is deliberately NOT identity: a vMotion moves a VM between
+     * ESXi hosts without changing what it is, so folding the host in would
+     * fork the key on every migration. The VM name is not identity either
+     * (a VM can be renamed). Name, host, cluster, datacenter, resource pool
+     * and the template name are descriptive.
+     */
+    (attrs: EntityAttributes) => {
+      const vcenter: Dictionary<string> | null =
+        InventoryItem.vmwareVCenterIdentity(attrs);
+      const vmId: string | null =
+        InventoryItem.str(attrs, "vcenter.vm.id") ||
+        InventoryItem.str(attrs, "vcenter.vm_template.id");
+      if (!vcenter || !vmId) {
+        return null;
+      }
+      return {
+        entityType: EntityType.VMwareVirtualMachine,
+        id: {
+          ...vcenter,
+          "vcenter.vm.id": vmId,
+        },
+      };
+    },
+
+    /*
+     * vmware.datastore — vCenter + vcenter.datacenter.name +
+     * vcenter.datastore.name. Datastore names are unique within a
+     * datacenter (a datastore mounted by many hosts is still one object).
+     */
+    (attrs: EntityAttributes) => {
+      const vcenter: Dictionary<string> | null =
+        InventoryItem.vmwareVCenterIdentity(attrs);
+      const datacenter: string | null = InventoryItem.str(
+        attrs,
+        "vcenter.datacenter.name",
+      );
+      const datastore: string | null = InventoryItem.str(
+        attrs,
+        "vcenter.datastore.name",
+      );
+      if (!vcenter || !datacenter || !datastore) {
+        return null;
+      }
+      return {
+        entityType: EntityType.VMwareDatastore,
+        id: {
+          ...vcenter,
+          "vcenter.datacenter.name": datacenter,
+          "vcenter.datastore.name": datastore,
+        },
+      };
     },
 
     /*
@@ -906,6 +1049,22 @@ export default class InventoryItem {
     ],
     [EntityType.ProxmoxGuest]: ["proxmox.guest.name", "proxmox.guest.type"],
     [EntityType.CephCluster]: ["ceph.cluster.fsid"],
+    /*
+     * VMware: the cluster an ESXi host sits in and the host / name / pool a
+     * VM currently has are exactly the things vSphere moves or renames
+     * (cluster membership changes, vMotion, rename, convert-to-template), so
+     * they ride along as descriptive metadata and never enter the key — see
+     * the vmware.host / vmware.vm resolvers.
+     */
+    [EntityType.VMwareHost]: ["vcenter.cluster.name"],
+    [EntityType.VMwareVirtualMachine]: [
+      "vcenter.vm.name",
+      "vcenter.vm_template.name",
+      "vcenter.host.name",
+      "vcenter.cluster.name",
+      "vcenter.datacenter.name",
+      "vcenter.resource_pool.name",
+    ],
   };
 
   private static descriptiveAttributesFor(
@@ -1024,6 +1183,27 @@ export default class InventoryItem {
     const name: string | null = this.str(attrs, "proxmox.cluster.name");
     if (name) {
       return { "proxmox.cluster.name": name };
+    }
+    return null;
+  }
+
+  /*
+   * VMware vCenter identity — vmware.vcenter.name only, mirroring
+   * proxmoxClusterIdentity above: the typed Postgres row (VMwareVCenter) and
+   * the read side (`EntityKey.keyForVMwareVCenter`) are name-based, and the
+   * attribute is the user-configured join key (`VMWARE_VCENTER_NAME`) the
+   * VMware agent's resource processor stamps on every resource — the
+   * OpenTelemetry Collector `vcenter` receiver itself emits nothing that
+   * names the vCenter it scraped. This identity is folded into every
+   * composite vmware cluster/host/vm/datastore identity, which must stay
+   * name-based with it, and no VMware entity resolves without it.
+   */
+  private static vmwareVCenterIdentity(
+    attrs: EntityAttributes,
+  ): Dictionary<string> | null {
+    const name: string | null = this.str(attrs, "vmware.vcenter.name");
+    if (name) {
+      return { "vmware.vcenter.name": name };
     }
     return null;
   }

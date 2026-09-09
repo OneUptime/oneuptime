@@ -25,7 +25,7 @@
  * So this file pins BOTH halves. The title/description assertions fail if
  * someone reverts the wording; the property/column assertions fail if someone
  * "finishes the job" by renaming the field, which is the change that would take
- * production down quietly. The final describe pins that the eleven unrelated
+ * production down quietly. The final describe pins that the twelve unrelated
  * monitoring-agent models were NOT swept up in the rename.
  * ---------------------------------------------------------------------------
  */
@@ -42,6 +42,7 @@ import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
 import Runner from "../../Models/DatabaseModels/Runner";
 import RumApplication from "../../Models/DatabaseModels/RumApplication";
 import ServerlessFunction from "../../Models/DatabaseModels/ServerlessFunction";
+import VMwareVCenter from "../../Models/DatabaseModels/VMwareVCenter";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { TableColumnMetadata } from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -171,7 +172,7 @@ describe("Runner.agentVersion column contract (must NOT be renamed)", () => {
 });
 
 /*
- * The eleven models below are real monitoring agents / SDKs reporting the
+ * The twelve models below are real monitoring agents / SDKs reporting the
  * version of software OneUptime ships onto a customer host. "Agent Version" is
  * correct for all of them. A find-and-replace across the repo would have
  * renamed them too, so each one is pinned by name — a bulk rename fails here
@@ -193,6 +194,7 @@ describe("unrelated monitoring-agent models keep saying 'Agent Version'", () => 
     { name: "IoTFleet", model: IoTFleet },
     { name: "RumApplication", model: RumApplication },
     { name: "ServerlessFunction", model: ServerlessFunction },
+    { name: "VMwareVCenter", model: VMwareVCenter },
   ];
 
   test.each(AGENT_MODELS)(

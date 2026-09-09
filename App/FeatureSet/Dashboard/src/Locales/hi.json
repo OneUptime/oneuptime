@@ -87,6 +87,8 @@
       "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",
       "proxmoxDescription": "Proxmox क्लस्टर्स, नोड्स और गेस्ट्स की निगरानी करें।",
+      "vmwareTitle": "VMware",
+      "vmwareDescription": "vCenter, ESXi होस्ट्स, वर्चुअल मशीनों और डेटास्टोर्स की निगरानी करें।",
       "cephTitle": "Ceph",
       "cephDescription": "Ceph क्लस्टर्स, OSD और पूल्स की निगरानी करें।",
       "hostsTitle": "होस्ट्स",

@@ -30,6 +30,7 @@ import DockerHostService from "./DockerHostService";
 import PodmanHostService from "./PodmanHostService";
 import KubernetesClusterService from "./KubernetesClusterService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
+import VMwareVCenterService from "./VMwareVCenterService";
 import CephClusterService from "./CephClusterService";
 import IoTFleetService from "./IoTFleetService";
 import Host from "../../Models/DatabaseModels/Host";
@@ -37,6 +38,7 @@ import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenter from "../../Models/DatabaseModels/VMwareVCenter";
 import IoTFleet from "../../Models/DatabaseModels/IoTFleet";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
 import ServiceType from "../../Types/Telemetry/ServiceType";
@@ -439,7 +441,8 @@ export class Service extends DatabaseService<Model> {
   /*
    * Map of resourceId -> retainTelemetryDataForDays for every resource in
    * the project that can own telemetry (Service, Host, DockerHost,
-   * KubernetesCluster, ProxmoxCluster, CephCluster). Used to scale billed
+   * KubernetesCluster, ProxmoxCluster, VMwareVCenter, CephCluster). Used to
+   * scale billed
    * cost by the actual retention applied to each resource's telemetry.
    * Resources without an override (and the unattributed bucket) fall back
    * to the project default.
@@ -544,6 +547,23 @@ export class Service extends DatabaseService<Model> {
         retentionByServiceId.set(
           proxmoxCluster.id.toString(),
           proxmoxCluster.retainTelemetryDataForDays,
+        );
+      }
+    }
+
+    const vmwareVCenters: Array<VMwareVCenter> =
+      await VMwareVCenterService.findBy({
+        query: { projectId: projectId },
+        select: { _id: true, retainTelemetryDataForDays: true },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: { isRoot: true },
+      });
+    for (const vmwareVCenter of vmwareVCenters) {
+      if (vmwareVCenter.id && vmwareVCenter.retainTelemetryDataForDays) {
+        retentionByServiceId.set(
+          vmwareVCenter.id.toString(),
+          vmwareVCenter.retainTelemetryDataForDays,
         );
       }
     }

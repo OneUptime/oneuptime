@@ -87,6 +87,8 @@
       "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",
       "proxmoxDescription": "Supervise clústeres, nodos e invitados de Proxmox.",
+      "vmwareTitle": "VMware",
+      "vmwareDescription": "Supervise vCenter, hosts ESXi, máquinas virtuales y datastores.",
       "cephTitle": "Ceph",
       "cephDescription": "Supervise clústeres, OSD y pools de Ceph.",
       "hostsTitle": "Hosts",

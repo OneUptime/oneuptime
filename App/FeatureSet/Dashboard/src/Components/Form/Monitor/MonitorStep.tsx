@@ -94,6 +94,10 @@ import ProxmoxMonitorStepForm from "./ProxmoxMonitor/ProxmoxMonitorStepForm";
 import MonitorStepProxmoxMonitor, {
   MonitorStepProxmoxMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
+import VMwareMonitorStepForm from "./VMwareMonitor/VMwareMonitorStepForm";
+import MonitorStepVMwareMonitor, {
+  MonitorStepVMwareMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import IoTMonitorStepForm from "./IoTMonitor/IoTMonitorStepForm";
 import MonitorStepIoTMonitor, {
   MonitorStepIoTMonitorUtil,
@@ -1608,6 +1612,33 @@ return {
             }
             onChange={(value: MonitorStepProxmoxMonitor) => {
               monitorStep.setProxmoxMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onMonitorCriteriaChange={(criteria: MonitorCriteria) => {
+              monitorStep.setMonitorCriteria(criteria);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onlineMonitorStatusId={props.onlineMonitorStatusId}
+            offlineMonitorStatusId={props.offlineMonitorStatusId}
+            defaultIncidentSeverityId={props.defaultIncidentSeverityId}
+            defaultAlertSeverityId={props.defaultAlertSeverityId}
+            monitorName={props.monitorName}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.VMware && (
+        <Card
+          title="VMware Monitor Configuration"
+          description="Configure your vCenter monitoring — ESXi hosts, virtual machines, datastores and clusters — using templates, curated metrics, or the advanced query builder."
+        >
+          <VMwareMonitorStepForm
+            monitorStepVMwareMonitor={
+              monitorStep.data?.vmwareMonitor ||
+              MonitorStepVMwareMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepVMwareMonitor) => {
+              monitorStep.setVMwareMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
             onMonitorCriteriaChange={(criteria: MonitorCriteria) => {

@@ -98,6 +98,9 @@ jest.mock("../../../../Server/Services/KubernetesClusterService", () => {
 jest.mock("../../../../Server/Services/ProxmoxClusterService", () => {
   return { __esModule: true, default: {} };
 });
+jest.mock("../../../../Server/Services/VMwareVCenterService", () => {
+  return { __esModule: true, default: {} };
+});
 jest.mock("../../../../Server/Services/CephClusterService", () => {
   return { __esModule: true, default: {} };
 });

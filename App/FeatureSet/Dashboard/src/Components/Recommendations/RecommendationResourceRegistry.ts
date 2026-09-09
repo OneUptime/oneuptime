@@ -7,6 +7,7 @@ import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import Service from "Common/Models/DatabaseModels/Service";
 import TechStack from "Common/Types/Service/TechStack";
@@ -94,6 +95,8 @@ export interface RecommendationResourceDefinition {
  *   Podman      hostIdentifier     agent-reported
  *   DockerSwarm name               model has no identifier column
  *   Proxmox     name               model has no identifier column
+ *   VMware      name               VMwareVCenter.name IS the agent-stamped
+ *                                  `vmware.vcenter.name` attribute
  *   Ceph        name               model has no identifier column
  *   IoTDevice   name               IoTFleet has no identifier column
  *   RUM         _id                Metric/Span/Exception.primaryEntityId is
@@ -101,7 +104,7 @@ export interface RecommendationResourceDefinition {
  *   Service     _id                same — primaryEntityId is the Service row
  *                                  id for OpenTelemetry telemetry
  *
- * The four `name` rows mean renaming one of those resources orphans its
+ * The five `name` rows mean renaming one of those resources orphans its
  * existing monitors from the diff — they will show as available again. That is
  * pre-existing behaviour inherited from the per-page wiring, faithfully
  * preserved here rather than quietly changed: switching them to a different
@@ -141,6 +144,12 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
   {
     resourceType: MonitorRecommendationResourceType.Proxmox,
     modelType: ProxmoxCluster,
+    identifierFieldName: "name",
+    displayNameFieldName: "name",
+  },
+  {
+    resourceType: MonitorRecommendationResourceType.VMware,
+    modelType: VMwareVCenter,
     identifierFieldName: "name",
     displayNameFieldName: "name",
   },

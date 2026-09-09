@@ -8,7 +8,7 @@ import { gotoProjectPage } from "./ProductOnboarding";
  * (InfraResources.spec.ts).
  *
  * Each infra product (Kubernetes / Docker / Podman / Docker Swarm / Proxmox /
- * Ceph / Host / IoT) has:
+ * VMware / Ceph / Host / IoT) has:
  *   - a list page  /dashboard/:projectId/<product>            (shows resources)
  *   - a metrics page /dashboard/:projectId/<product>/:id/metrics (shows metrics)
  *

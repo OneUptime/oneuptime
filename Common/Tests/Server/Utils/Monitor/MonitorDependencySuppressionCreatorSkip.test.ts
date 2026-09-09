@@ -220,6 +220,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
         kubernetesClusterIds: [],
         serviceIds: [],
         proxmoxClusterIds: [],
+        vmwareVCenterIds: [],
         cephClusterIds: [],
         dockerSwarmClusterIds: [],
         iotFleetIds: [],

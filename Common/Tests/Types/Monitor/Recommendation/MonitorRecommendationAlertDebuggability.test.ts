@@ -297,6 +297,7 @@ describe("Recommendation templates produce debuggable alerts", () => {
       MonitorType.DockerSwarm,
       MonitorType.Host,
       MonitorType.Proxmox,
+      MonitorType.VMware,
       MonitorType.Ceph,
     ];
 

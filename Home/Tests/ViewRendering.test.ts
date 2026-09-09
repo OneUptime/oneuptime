@@ -23,6 +23,10 @@ import {
   getClaimsNeedingReview,
 } from "../Utils/Claims";
 import PageSEOConfig, { getPageSEO, PageSEOData } from "../Utils/PageSEO";
+import {
+  VMwareAlertTemplate,
+  getAllVMwareAlertTemplates,
+} from "Common/Types/Monitor/VMwareAlertTemplates";
 import ejs from "ejs";
 import fs from "fs";
 import path from "path";
@@ -665,6 +669,275 @@ describe("security-events.ejs", () => {
   });
 });
 
+describe("vmware.ejs", () => {
+  let html: string = "";
+  const seo: PageSEOData = PageSEOConfig["/product/vmware"]!;
+
+  beforeAll(async () => {
+    // Exactly the locals Routes.ts hands the template, plus homeUrl.
+    html = await render("vmware.ejs", {
+      enableGoogleTagManager: false,
+      seo: seoFor("/product/vmware"),
+      homeUrl: HOME_URL,
+    });
+  });
+
+  test("renders a complete page", () => {
+    expect(html).toContain("<!DOCTYPE html>");
+    expect(html).toContain("</html>");
+    expect(html.length).toBeGreaterThan(10000);
+  });
+
+  test("the hardcoded head is identical to the SEO entry", () => {
+    /*
+     * The template hard-codes <title> and the meta description while
+     * head-social.ejs renders the OG/canonical tags from `seo`. Search
+     * engines see the first pair, social cards the second; they must agree
+     * word for word or the page advertises itself two different ways.
+     */
+    expect(html).toContain(`<title>${seo.title}</title>`);
+    expect(html).toContain(`content="${seo.description}"`);
+    expect(html).toContain(
+      '<link rel="canonical" href="https://oneuptime.com/product/vmware"',
+    );
+  });
+
+  test("renders the sections the page is built around", () => {
+    for (const heading of [
+      "Your whole vSphere estate, one dashboard",
+      "Every object in your vSphere inventory, monitored",
+      "From signup to a monitored vCenter in 10 minutes",
+      "The monitoring vSphere deserves, without the suite",
+      "Twenty-three monitors, ready on day one",
+      "Everything you need for vSphere operations",
+      "A VMware dashboard in one click, or build your own",
+      "vSphere alerts where your team already works",
+      "Pay for data, or pay nothing and run it yourself",
+      "Questions vSphere administrators ask",
+    ]) {
+      expect(html).toContain(heading);
+    }
+  });
+
+  test("covers every vSphere object kind the agent inventories", () => {
+    for (const kind of [
+      "ESXi Hosts",
+      "Virtual Machines",
+      "Datastores",
+      "Clusters & Datacenters",
+      "Resource Pools",
+      "vSAN",
+    ]) {
+      expect(html).toContain(`>${kind}</h3>`);
+    }
+  });
+
+  test("describes how the agent actually works", () => {
+    // One collector-only agent per vCenter, read-only user, no in-guest install.
+    expect(html).toContain("One Agent Per vCenter");
+    expect(html).toContain("Read-Only");
+    expect(html).toContain(
+      '<code class="text-sm bg-gray-100 px-1 py-0.5 rounded">vcenter</code> receiver',
+    );
+    expect(html).toContain("VCENTER_ENDPOINT");
+    expect(html).toContain("Nothing installed on ESXi");
+  });
+
+  test("quotes every alert template the product ships, by its real name", () => {
+    /*
+     * The template list is the marketing page's most checkable claim. Every
+     * name must be exactly the one in the Common catalog, and the catalog is
+     * the source — so a renamed or added template fails here until the page
+     * catches up. The count in the section heading is pinned too.
+     */
+    const templates: Array<VMwareAlertTemplate> = getAllVMwareAlertTemplates();
+
+    expect(templates.length).toBe(23);
+    for (const template of templates) {
+      expect(html).toContain(`<span>${escapeForHtml(template.name)}</span>`);
+    }
+  });
+
+  test("labels each template with its catalog severity", () => {
+    for (const template of getAllVMwareAlertTemplates()) {
+      const row: RegExp = new RegExp(
+        `<span>${escapeForHtml(template.name)}</span><span[^>]*>${template.severity}</span>`,
+      );
+      expect(html).toMatch(row);
+    }
+  });
+
+  test("never leaks Proxmox-only concepts into the VMware page", () => {
+    /*
+     * The page was authored from the Proxmox template. Anything a vSphere
+     * administrator would recognise as Proxmox vocabulary is a copy-paste
+     * left behind, not a feature.
+     */
+    const body: string = vmwareOwnSectionsOf(html);
+
+    for (const leak of [
+      /\bpve\b/i,
+      /quorum/i,
+      /vzdump/i,
+      /backup job/i,
+      /replication job/i,
+      /\bLXC\b/,
+      /guest agent/i,
+      /HA resource/i,
+    ]) {
+      expect(body).not.toMatch(leak);
+    }
+  });
+
+  test("stays licensing-neutral and does not impersonate VMware or Broadcom", () => {
+    const body: string = pageBodyOf(html);
+
+    expect(body).toContain("not a VMware or Broadcom product");
+    expect(body).toContain("standalone ESXi host");
+    expect(body).toContain("7.0 and later");
+    // Copy describes OneUptime; it must not present itself as the vendor.
+    expect(body).not.toMatch(/official VMware/i);
+    expect(body).not.toMatch(/by Broadcom/i);
+    expect(body).not.toMatch(/VMware-certified/i);
+  });
+
+  test("states the pricing and self-hosting story", () => {
+    expect(html).toContain("$0.10");
+    expect(html).toContain("No Per-Socket, No Per-VM Pricing");
+    expect(html).toContain('href="/enterprise/self-hosted"');
+    expect(html).toContain('href="/pricing"');
+  });
+
+  test("cross-links the products and docs the page leans on", () => {
+    for (const href of [
+      "/product/host",
+      "/product/proxmox",
+      "/product/dashboards",
+      "/docs/telemetry/vmware",
+      "/docs/monitor/vmware-monitor",
+      "/accounts/register",
+      "/enterprise/demo",
+    ]) {
+      expect(html).toContain(`href="${href}"`);
+    }
+  });
+
+  test("every product link in the page body is a real canonical page", () => {
+    const productLinks: Array<string> = catalogueLinksIn(pageBodyOf(html));
+
+    // The page should be linking out; an empty list means the regex broke.
+    expect(productLinks.length).toBeGreaterThan(2);
+
+    for (const href of productLinks) {
+      expect(PageSEOConfig[href]?.canonicalPath).toBe(href);
+    }
+  });
+
+  test("wires the cursor glow to its own element ids", () => {
+    /*
+     * The inline script looks the hero and glow layers up by id; a leftover
+     * proxmox-* id from the template the page was cloned from would render
+     * the hero without its glow and nobody would notice.
+     */
+    expect(html).toContain('id="vmware-hero-section"');
+    expect(html).toContain('id="vmware-grid-glow"');
+    expect(html).toContain("getElementById('vmware-hero-section')");
+    expect(html).toContain("getElementById('vmware-grid-glow')");
+    expect(html).not.toContain("proxmox-hero-section");
+    expect(html).not.toContain("proxmox-grid-glow");
+  });
+});
+
+/*
+ * The VMware page's own sections: everything in <main> up to the end of its
+ * FAQ. The shared features-table include that follows legitimately lists the
+ * Proxmox card's quorum / backup / replication bullets, so a Proxmox-vocabulary
+ * scan has to stop before it.
+ */
+function vmwareOwnSectionsOf(html: string): string {
+  const body: string = pageBodyOf(html);
+  const faqStart: number = body.indexOf('id="vmware-faq"');
+  const faqEnd: number = body.indexOf("</dl>", faqStart);
+
+  expect(faqStart).toBeGreaterThan(-1);
+  expect(faqEnd).toBeGreaterThan(faqStart);
+
+  return body.slice(0, faqEnd);
+}
+
+describe("VMware on every product surface", () => {
+  /*
+   * There is no single product registry on the marketing site: the nav, the
+   * footer, the features table, the homepage hero grid, the homepage product
+   * list, the "everything you can monitor" pills, the product showcase and the
+   * topology page each list products by hand. Render each and check the link.
+   */
+  test("the navigation lists VMware in both the mobile grid and the flyout", async () => {
+    const nav: string = await render("nav.ejs", { homeUrl: HOME_URL });
+
+    // Two product lists, two links.
+    expect(nav.split('href="/product/vmware"').length - 1).toBe(2);
+    expect(nav).toContain(
+      'data-search="vmware vsphere vcenter esxi hosts vms virtual machines datastores vsan clusters resource pools"',
+    );
+  });
+
+  test("the footer lists VMware", async () => {
+    const footer: string = await render("footer.ejs", {
+      footerCards: false,
+      cta: false,
+      homeUrl: HOME_URL,
+    });
+
+    expect(footer).toContain('href="/product/vmware"');
+  });
+
+  test.each([
+    "features-table.ejs",
+    "Partials/product-showcase.ejs",
+    "Partials/hero-cards/product-grid.ejs",
+    "Partials/home-products.ejs",
+    "Partials/home-detect.ejs",
+  ])("%s links to the VMware product", async (templateFileName: string) => {
+    const partial: string = await render(templateFileName, {
+      homeUrl: HOME_URL,
+    });
+
+    expect(partial).toContain('href="/product/vmware"');
+    // The hypervisor mark is drawn inline; every surface carries it.
+    expect(partial).toContain(
+      '<rect x="3" y="4" width="18" height="16" rx="2"',
+    );
+  });
+
+  test("the topology page places VMware in its infrastructure map", async () => {
+    const topology: string = await render("topology.ejs", {
+      enableGoogleTagManager: false,
+      seo: seoFor("/product/topology"),
+      homeUrl: HOME_URL,
+    });
+
+    expect(topology).toContain('href="/product/vmware"');
+    expect(topology).toContain("Explore VMware");
+    expect(topology).toContain(
+      "Kubernetes, Proxmox, VMware, Ceph, Docker Swarm &amp; hosts",
+    );
+  });
+
+  test("the hero card and icon partials render on their own", async () => {
+    const card: string = await render("Partials/hero-cards/vmware.ejs", {});
+    const icon: string = await render("Partials/icons/vmware.ejs", {
+      iconClass: "h-3 w-3",
+    });
+
+    expect(card).toContain('href="/product/vmware"');
+    expect(card).toContain(">VMware<");
+    expect(icon).toContain('class="h-3 w-3 text-indigo-600"');
+    // Not a trademarked wordmark: the mark is the neutral hypervisor glyph.
+    expect(icon).not.toMatch(/<title>VMware<\/title>/);
+  });
+});
+
 describe("aligned marketing pages still render", () => {
   test("enterprise-overview.ejs renders with governed uptime language", async () => {
     const html: string = await render("enterprise-overview.ejs", {
@@ -715,8 +988,10 @@ describe("aligned marketing pages still render", () => {
 
     expect(nav).toContain('href="/enterprise/self-hosted"');
     expect(nav).toContain('href="/trust"');
+    expect(nav).toContain('href="/product/vmware"');
     expect(footer).toContain('href="/enterprise/self-hosted"');
     expect(footer).toContain('href="/trust"');
+    expect(footer).toContain('href="/product/vmware"');
   });
 });
 

@@ -22,6 +22,7 @@ const METRIC_VIEW_CONFIG_KEYS: Array<keyof MonitorStepType> = [
   "dockerSwarmMonitor",
   "podmanMonitor",
   "proxmoxMonitor",
+  "vmwareMonitor",
   "cephMonitor",
   "iotMonitor",
 ];

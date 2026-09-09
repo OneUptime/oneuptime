@@ -52,6 +52,7 @@ const AUTO_DISCOVERY_METHODS_RETURNING_NULL: Array<string> = [
   "autoDiscoverDockerHost",
   "autoDiscoverPodmanHost",
   "autoDiscoverProxmoxCluster",
+  "autoDiscoverVMwareVCenter",
   "autoDiscoverCephCluster",
   "autoDiscoverDockerSwarmCluster",
   "autoDiscoverHost",

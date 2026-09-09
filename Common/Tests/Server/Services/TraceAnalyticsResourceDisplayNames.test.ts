@@ -34,10 +34,10 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  *   TraceAggregationService.RESOURCE_FACET_KEYS.has(key)
  *     && ResourceFacetResolver.isResourceFacet(key)
  *
- * - `proxmoxClusterId` / `cephClusterId` are resource dimensions in the
- *   aggregation service but have NO branch in ResourceFacetResolver.resolveOne
- *   (it returns [] for them). They must not cost a resolve round-trip, and
- *   their ids stay raw.
+ * - `proxmoxClusterId` / `vmwareVCenterId` / `cephClusterId` are resource
+ *   dimensions in the aggregation service but have NO branch in
+ *   ResourceFacetResolver.resolveOne (it returns [] for them). They must not
+ *   cost a resolve round-trip, and their ids stay raw.
  * - `primaryEntityId` / `serviceId` are resolvable by the resolver but are
  *   deliberately not resource dimensions here — the traces explorer resolves
  *   that service split client-side, so the server leaves them alone.
@@ -52,6 +52,7 @@ const marketingAppId: string = ObjectID.generate().toString();
 const deletedAppId: string = ObjectID.generate().toString();
 const hostId: string = ObjectID.generate().toString();
 const proxmoxClusterId: string = ObjectID.generate().toString();
+const vmwareVCenterId: string = ObjectID.generate().toString();
 const cephClusterId: string = ObjectID.generate().toString();
 const serviceEntityId: string = ObjectID.generate().toString();
 /*
@@ -640,6 +641,42 @@ describe("TraceAggregationService.getAnalyticsTable (resource display names)", (
 
     expect(rows).toHaveLength(1);
     expect(valuesFor(rows, "proxmoxClusterId")).toEqual([proxmoxClusterId]);
+    expect(valuesFor(rows, "cephClusterId")).toEqual([cephClusterId]);
+    expect(resolveSpy).not.toHaveBeenCalled();
+  });
+
+  test("vmwareVCenterId is a resource dimension the resolver cannot resolve — no round-trip, id stays raw", async () => {
+    /*
+     * Same contract as the Proxmox / Ceph keys above (the group-by cap is two
+     * dimensions, hence the separate case): vmwareVCenterId is in
+     * RESOURCE_FACET_KEYS but has no ResourceFacetResolver branch.
+     */
+    stubQuery({
+      main: [
+        {
+          vmwareVCenterId: vmwareVCenterId,
+          cephClusterId: cephClusterId,
+          cnt: "4",
+        },
+      ],
+    });
+    const resolveSpy: jest.SpyInstance = stubResolver({
+      vmwareVCenterId: [
+        { value: vmwareVCenterId, count: 1, displayName: "NOPE" },
+      ],
+      cephClusterId: [{ value: cephClusterId, count: 1, displayName: "NOPE" }],
+    });
+
+    const rows: Array<TraceAnalyticsTableRow> =
+      await TraceAggregationService.getAnalyticsTable(
+        analyticsRequest({
+          chartType: "table",
+          groupBy: ["vmwareVCenterId", "cephClusterId"],
+        }),
+      );
+
+    expect(rows).toHaveLength(1);
+    expect(valuesFor(rows, "vmwareVCenterId")).toEqual([vmwareVCenterId]);
     expect(valuesFor(rows, "cephClusterId")).toEqual([cephClusterId]);
     expect(resolveSpy).not.toHaveBeenCalled();
   });

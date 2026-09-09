@@ -12,6 +12,7 @@ import {
   keyForKubernetesCluster,
   keyForProxmoxCluster,
   keyForCephCluster,
+  keyForVMwareVCenter,
 } from "../../../../Utils/Telemetry/EntityKey";
 import logger from "../../../../Server/Utils/Logger";
 import { describe, expect, test } from "@jest/globals";
@@ -395,6 +396,324 @@ describe("InventoryItem.extractEntities — per type", () => {
     expect(afterMigration!.entityKey).toBe(beforeMigration!.entityKey);
   });
 
+  test("vmware.vcenter: keyed on vmware.vcenter.name", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      { "vmware.vcenter.name": "vcsa-prod" },
+      EntityType.VMwareVCenter,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "vmware.vcenter.name": "vcsa-prod",
+    });
+    expect(e!.entityKey).toBe(
+      expectedKey(PROJECT, EntityType.VMwareVCenter, {
+        "vmware.vcenter.name": "vcsa-prod",
+      }),
+    );
+  });
+
+  test("vmware: nothing resolves without the agent-stamped vmware.vcenter.name", () => {
+    /*
+     * The vcenter receiver's own attributes never say which vCenter they
+     * came from, so a resource missing the agent-stamped root attribute
+     * must resolve to NO VMware entity — a vCenter-less key would collide
+     * across every vCenter in the project that has a cluster called "Prod".
+     */
+    expect(
+      typesFor({
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+        "vcenter.host.name": "esxi-01.example.com",
+        "vcenter.vm.name": "web-01",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+        "vcenter.datastore.name": "vsanDatastore",
+      }),
+    ).toEqual([]);
+  });
+
+  test("vmware: descriptive-only attributes yield no vmware entities", () => {
+    expect(
+      typesFor({
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.vm.name": "web-01",
+        "vcenter.resource_pool.name": "Resources",
+      }),
+    ).toEqual([EntityType.VMwareVCenter]);
+    expect(typesFor({ "vcenter.vm.name": "web-01" })).toEqual([]);
+  });
+
+  test("vmware.cluster: composes vcenter + datacenter + cluster identity", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+      },
+      EntityType.VMwareCluster,
+    );
+    // Identity values are canonicalized (trimmed + lowercased) like every type.
+    expect(e!.identifyingAttributes).toEqual({
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.datacenter.name": "dc1",
+      "vcenter.cluster.name": "prod",
+    });
+    expect(e!.entityKey).toBe(
+      expectedKey(PROJECT, EntityType.VMwareCluster, {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+      }),
+    );
+  });
+
+  test("vmware.cluster / host / datastore require the datacenter (part of identity)", () => {
+    expect(
+      typesFor({
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.cluster.name": "Prod",
+      }),
+    ).toEqual([EntityType.VMwareVCenter]);
+    expect(
+      typesFor({
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.host.name": "esxi-01.example.com",
+      }),
+    ).toEqual([EntityType.VMwareVCenter]);
+    expect(
+      typesFor({
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datastore.name": "vsanDatastore",
+      }),
+    ).toEqual([EntityType.VMwareVCenter]);
+  });
+
+  test("vmware.host: composes vcenter + datacenter + host identity", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.host.name": "esxi-01.example.com",
+      },
+      EntityType.VMwareHost,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.datacenter.name": "dc1",
+      "vcenter.host.name": "esxi-01.example.com",
+    });
+  });
+
+  test("vmware.host: cluster is not identity (moving a host between clusters keeps the key)", () => {
+    const inClusterA: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+        "vcenter.host.name": "esxi-01.example.com",
+      },
+      EntityType.VMwareHost,
+    );
+    const inClusterB: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Staging",
+        "vcenter.host.name": "esxi-01.example.com",
+      },
+      EntityType.VMwareHost,
+    );
+    const standalone: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.host.name": "esxi-01.example.com",
+      },
+      EntityType.VMwareHost,
+    );
+    expect(inClusterB!.entityKey).toBe(inClusterA!.entityKey);
+    expect(standalone!.entityKey).toBe(inClusterA!.entityKey);
+    expect(inClusterA!.identifyingAttributes).not.toHaveProperty(
+      "vcenter.cluster.name",
+    );
+  });
+
+  test("vmware.vm: keyed on vcenter + vcenter.vm.id (instance UUID), never the name", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.host.name": "esxi-01.example.com",
+        "vcenter.vm.name": "web-01",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+    });
+    expect(e!.entityKey).toBe(
+      expectedKey(PROJECT, EntityType.VMwareVirtualMachine, {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      }),
+    );
+  });
+
+  test("vmware.vm: host name is not identity (vMotion keeps the key)", () => {
+    const beforeVMotion: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+        "vcenter.host.name": "esxi-01.example.com",
+        "vcenter.vm.name": "web-01",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+    const afterVMotion: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+        "vcenter.host.name": "esxi-02.example.com",
+        "vcenter.vm.name": "web-01",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+    expect(afterVMotion!.entityKey).toBe(beforeVMotion!.entityKey);
+  });
+
+  test("vmware.vm: renaming the VM keeps the key", () => {
+    const before: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.vm.name": "web-01",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+    const after: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.vm.name": "web-01-renamed",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+    expect(after!.entityKey).toBe(before!.entityKey);
+  });
+
+  test("vmware.vm: a template is a VM keyed on vcenter.vm_template.id; converting keeps the key", () => {
+    const template: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.host.name": "esxi-01.example.com",
+        "vcenter.vm_template.name": "ubuntu-22.04-golden",
+        "vcenter.vm_template.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+    expect(template).toBeDefined();
+    expect(template!.identifyingAttributes).toEqual({
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+    });
+
+    // Convert-to-template keeps the instance UUID, so the key survives.
+    const asVm: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.vm.name": "ubuntu-22.04-golden",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+    expect(asVm!.entityKey).toBe(template!.entityKey);
+
+    // A template resource yields exactly one VM entity, not two.
+    expect(
+      typesFor({
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.vm_template.id": "5029abcd-1234-5678-9abc-def012345678",
+      }).filter((t: EntityType) => {
+        return t === EntityType.VMwareVirtualMachine;
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("vmware.vm: vcenter.vm.id wins when both id attributes are present", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.vm.id": "id-vm",
+        "vcenter.vm_template.id": "id-template",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.vm.id": "id-vm",
+    });
+  });
+
+  test("vmware.vm: falls back to nothing when only a name is present (no id → no entity)", () => {
+    expect(
+      typesFor({
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.host.name": "esxi-01.example.com",
+        "vcenter.vm.name": "web-01",
+      }),
+    ).not.toContain(EntityType.VMwareVirtualMachine);
+  });
+
+  test("vmware.datastore: composes vcenter + datacenter + datastore identity", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.datastore.name": "vsanDatastore",
+      },
+      EntityType.VMwareDatastore,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.datacenter.name": "dc1",
+      "vcenter.datastore.name": "vsandatastore",
+    });
+    expect(e!.entityKey).toBe(
+      expectedKey(PROJECT, EntityType.VMwareDatastore, {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.datastore.name": "vsanDatastore",
+      }),
+    );
+  });
+
+  test("vmware: every child identity spreads the vcenter identity", () => {
+    const attrs: EntityAttributes = {
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.datacenter.name": "DC1",
+      "vcenter.cluster.name": "Prod",
+      "vcenter.host.name": "esxi-01.example.com",
+      "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      "vcenter.datastore.name": "vsanDatastore",
+    };
+    for (const type of [
+      EntityType.VMwareCluster,
+      EntityType.VMwareHost,
+      EntityType.VMwareVirtualMachine,
+      EntityType.VMwareDatastore,
+    ]) {
+      const e: ExtractedEntity | undefined = entityOfType(attrs, type);
+      expect(e).toBeDefined();
+      expect(e!.identifyingAttributes["vmware.vcenter.name"]).toBe("vcsa-prod");
+    }
+  });
+
   test("ceph.cluster: keyed on name only, ignoring fsid (read side is name-based)", () => {
     const e: ExtractedEntity | undefined = entityOfType(
       { "ceph.cluster.fsid": "f-1", "ceph.cluster.name": "ceph-prod" },
@@ -501,6 +820,77 @@ describe("InventoryItem.extractEntities — composition & safety", () => {
     );
   });
 
+  test("a full vmware VM resource yields vcenter + cluster + host + vm", () => {
+    // The vcenter receiver's resource for a VM inside a cluster.
+    const types: Array<EntityType> = typesFor({
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.datacenter.name": "DC1",
+      "vcenter.cluster.name": "Prod",
+      "vcenter.host.name": "esxi-01.example.com",
+      "vcenter.vm.name": "web-01",
+      "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      "vcenter.resource_pool.name": "Resources",
+      "vcenter.resource_pool.inventory_path": "/DC1/host/Prod/Resources",
+    });
+    expect(new Set(types)).toEqual(
+      new Set([
+        EntityType.VMwareVCenter,
+        EntityType.VMwareCluster,
+        EntityType.VMwareHost,
+        EntityType.VMwareVirtualMachine,
+      ]),
+    );
+  });
+
+  test("a vmware VM resource on a standalone host yields no cluster entity", () => {
+    const types: Array<EntityType> = typesFor({
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.datacenter.name": "DC1",
+      "vcenter.host.name": "esxi-01.example.com",
+      "vcenter.vm.name": "web-01",
+      "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+    });
+    expect(new Set(types)).toEqual(
+      new Set([
+        EntityType.VMwareVCenter,
+        EntityType.VMwareHost,
+        EntityType.VMwareVirtualMachine,
+      ]),
+    );
+  });
+
+  test("a vmware datastore resource yields vcenter + datastore only", () => {
+    const types: Array<EntityType> = typesFor({
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.datacenter.name": "DC1",
+      "vcenter.datastore.name": "vsanDatastore",
+    });
+    expect(new Set(types)).toEqual(
+      new Set([EntityType.VMwareVCenter, EntityType.VMwareDatastore]),
+    );
+  });
+
+  test("vmware datacenter / resource pool resources yield only the vcenter entity", () => {
+    // Datacenters and resource pools are inventory rows, not entities.
+    expect(
+      typesFor({
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+      }),
+    ).toEqual([EntityType.VMwareVCenter]);
+    expect(
+      new Set(
+        typesFor({
+          "vmware.vcenter.name": "vcsa-prod",
+          "vcenter.datacenter.name": "DC1",
+          "vcenter.cluster.name": "Prod",
+          "vcenter.resource_pool.name": "Resources",
+          "vcenter.resource_pool.inventory_path": "/DC1/host/Prod/Resources",
+        }),
+      ),
+    ).toEqual(new Set([EntityType.VMwareVCenter, EntityType.VMwareCluster]));
+  });
+
   test("extractEntityKeys is sorted, deduped, and a superset of the primary", () => {
     const attrs: EntityAttributes = {
       "service.name": "checkout",
@@ -558,6 +948,66 @@ describe("InventoryItem.extractEntities — composition & safety", () => {
       },
     });
     expect(clusterA).not.toBe(clusterB);
+  });
+
+  test("same cluster name in two vcenters does not collide", () => {
+    const a: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-us",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+      },
+      EntityType.VMwareCluster,
+    );
+    const b: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-eu",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+      },
+      EntityType.VMwareCluster,
+    );
+    expect(a!.entityKey).not.toBe(b!.entityKey);
+  });
+
+  test("same cluster name in two datacenters of one vcenter does not collide", () => {
+    const a: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+      },
+      EntityType.VMwareCluster,
+    );
+    const b: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC2",
+        "vcenter.cluster.name": "Prod",
+      },
+      EntityType.VMwareCluster,
+    );
+    expect(a!.entityKey).not.toBe(b!.entityKey);
+  });
+
+  test("same VM instance UUID in two vcenters does not collide", () => {
+    const a: string = InventoryItem.computeEntityKey({
+      projectId: PROJECT,
+      entityType: EntityType.VMwareVirtualMachine,
+      identifyingAttributes: {
+        "vmware.vcenter.name": "vcsa-us",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+    });
+    const b: string = InventoryItem.computeEntityKey({
+      projectId: PROJECT,
+      entityType: EntityType.VMwareVirtualMachine,
+      identifyingAttributes: {
+        "vmware.vcenter.name": "vcsa-eu",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+    });
+    expect(a).not.toBe(b);
   });
 });
 
@@ -641,6 +1091,41 @@ describe("read-side keyFor* helpers match ingest-side extraction", () => {
     expect(keyForProxmoxCluster(PROJECT, "  PVE-PROD ")).toBe(
       stamped!.entityKey,
     );
+  });
+
+  test("keyForVMwareVCenter matches the vcenter entity stamped from vmware.vcenter.name", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "vmware.vcenter.name": "vcsa-prod" },
+      EntityType.VMwareVCenter,
+    );
+    expect(stamped).toBeDefined();
+    expect(keyForVMwareVCenter(PROJECT, "vcsa-prod")).toBe(stamped!.entityKey);
+  });
+
+  test("keyForVMwareVCenter canonicalizes casing/whitespace like ingest", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "vmware.vcenter.name": "VCSA-Prod" },
+      EntityType.VMwareVCenter,
+    );
+    expect(keyForVMwareVCenter(PROJECT, "vcsa-prod")).toBe(stamped!.entityKey);
+    expect(keyForVMwareVCenter(PROJECT, "  VCSA-PROD ")).toBe(
+      stamped!.entityKey,
+    );
+  });
+
+  test("keyForVMwareVCenter still matches when the resource carries vcenter.* child attributes", () => {
+    // The vcenter entity is name-only; child attributes must not leak in.
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+        "vcenter.host.name": "esxi-01.example.com",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+      EntityType.VMwareVCenter,
+    );
+    expect(keyForVMwareVCenter(PROJECT, "vcsa-prod")).toBe(stamped!.entityKey);
   });
 
   test("keyForCephCluster matches the cluster entity stamped from ceph.cluster.name", () => {
@@ -924,6 +1409,101 @@ describe("descriptive attributes & labels (never identity-bearing)", () => {
       "proxmox.guest.type": "qemu",
     });
     expect(bare!.descriptiveAttributes).toBeUndefined();
+  });
+
+  test("vmware.vm: name/host/cluster/pool descriptive attributes are emitted, key unchanged", () => {
+    const bare: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+    const decorated: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+        "vcenter.host.name": "esxi-01.example.com",
+        "vcenter.vm.name": "web-01",
+        "vcenter.vm.id": "5029abcd-1234-5678-9abc-def012345678",
+        "vcenter.resource_pool.name": "Resources",
+        "vcenter.resource_pool.inventory_path": "/DC1/host/Prod/Resources",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+
+    expect(decorated!.entityKey).toBe(bare!.entityKey);
+    expect(decorated!.identifyingAttributes).toEqual(
+      bare!.identifyingAttributes,
+    );
+    expect(decorated!.descriptiveAttributes).toEqual({
+      "vcenter.vm.name": "web-01",
+      "vcenter.host.name": "esxi-01.example.com",
+      "vcenter.cluster.name": "Prod",
+      "vcenter.datacenter.name": "DC1",
+      "vcenter.resource_pool.name": "Resources",
+    });
+    expect(bare!.descriptiveAttributes).toBeUndefined();
+  });
+
+  test("vmware.vm: a template carries its template name as descriptive metadata", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.host.name": "esxi-01.example.com",
+        "vcenter.vm_template.name": "ubuntu-22.04-golden",
+        "vcenter.vm_template.id": "5029abcd-1234-5678-9abc-def012345678",
+      },
+      EntityType.VMwareVirtualMachine,
+    );
+    expect(e!.descriptiveAttributes).toEqual({
+      "vcenter.vm_template.name": "ubuntu-22.04-golden",
+      "vcenter.host.name": "esxi-01.example.com",
+      "vcenter.datacenter.name": "DC1",
+    });
+  });
+
+  test("vmware.host: cluster descriptive when present, key unchanged", () => {
+    const bare: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.host.name": "esxi-01.example.com",
+      },
+      EntityType.VMwareHost,
+    );
+    const decorated: ExtractedEntity | undefined = entityOfType(
+      {
+        "vmware.vcenter.name": "vcsa-prod",
+        "vcenter.datacenter.name": "DC1",
+        "vcenter.cluster.name": "Prod",
+        "vcenter.host.name": "esxi-01.example.com",
+      },
+      EntityType.VMwareHost,
+    );
+    expect(decorated!.entityKey).toBe(bare!.entityKey);
+    expect(decorated!.descriptiveAttributes).toEqual({
+      "vcenter.cluster.name": "Prod",
+    });
+    expect(bare!.descriptiveAttributes).toBeUndefined();
+  });
+
+  test("vmware.vcenter / cluster / datastore emit no descriptive attributes", () => {
+    const attrs: EntityAttributes = {
+      "vmware.vcenter.name": "vcsa-prod",
+      "vcenter.datacenter.name": "DC1",
+      "vcenter.cluster.name": "Prod",
+      "vcenter.datastore.name": "vsanDatastore",
+    };
+    for (const type of [
+      EntityType.VMwareVCenter,
+      EntityType.VMwareCluster,
+      EntityType.VMwareDatastore,
+    ]) {
+      expect(entityOfType(attrs, type)!.descriptiveAttributes).toBeUndefined();
+    }
   });
 
   test("ceph.cluster: fsid descriptive when present, key unchanged", () => {

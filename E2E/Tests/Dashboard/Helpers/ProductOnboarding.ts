@@ -199,7 +199,7 @@ export const gotoProjectPage: GotoProjectPageFunction = async (data: {
 
 /*
  * Fills and submits the inline "Create Ingestion Key" ModelFormModal used
- * by the Proxmox/Ceph DocumentationCard (form id "create-ingestion-key").
+ * by the Proxmox/VMware/Ceph DocumentationCard (form id "create-ingestion-key").
  * The caller clicks the trigger button first — either the empty-state
  * "Create Ingestion Key" CTA or the "New Key" button next to the dropdown.
  */

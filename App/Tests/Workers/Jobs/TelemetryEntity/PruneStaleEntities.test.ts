@@ -248,6 +248,11 @@ describe("entity pruning is scoped to discovered rows", () => {
       EntityType.CephCluster,
       EntityType.DockerSwarmCluster,
       EntityType.TelemetrySdk,
+      EntityType.VMwareVCenter,
+      EntityType.VMwareCluster,
+      EntityType.VMwareHost,
+      EntityType.VMwareVirtualMachine,
+      EntityType.VMwareDatastore,
     ]) {
       expect(swept).toContain(entityType);
     }

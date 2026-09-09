@@ -422,7 +422,7 @@ export const fillByPlaceholder: (data: {
 
 /*
  * Infrastructure monitor types (Kubernetes / Docker / Host / Podman /
- * Docker Swarm / Proxmox / Ceph / IoT Device) can only be created once an
+ * Docker Swarm / Proxmox / VMware / Ceph / IoT Device) can only be created once an
  * infrastructure entity exists — the criteria step picks it from a dropdown.
  * These entities are normal CRUD models a project owner can create directly,
  * so we seed one via the API (far more reliable than waiting for OTLP-derived
@@ -439,7 +439,8 @@ export interface InfraMonitorRecipe {
   /*
    * Identifier column the model requires in addition to name
    * (clusterIdentifier for Kubernetes, hostIdentifier for Docker/Host/Podman).
-   * Omitted for the name-keyed clusters (Docker Swarm / Proxmox / Ceph / IoT).
+   * Omitted for the name-keyed clusters (Docker Swarm / Proxmox / VMware /
+   * Ceph / IoT).
    */
   identifierField?: string;
   // A Quick Setup template name to select (matched as a substring).

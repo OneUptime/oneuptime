@@ -104,6 +104,7 @@ export class MetricAggregationService {
       ["podmanHostId", ServiceType.PodmanHost],
       ["kubernetesClusterId", ServiceType.KubernetesCluster],
       ["proxmoxClusterId", ServiceType.ProxmoxCluster],
+      ["vmwareVCenterId", ServiceType.VMwareVCenter],
       ["cephClusterId", ServiceType.CephCluster],
       ["serverlessFunctionId", ServiceType.ServerlessFunction],
       ["cloudResourceId", ServiceType.CloudResource],

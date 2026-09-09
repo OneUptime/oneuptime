@@ -18,6 +18,7 @@ import { getAllKubernetesAlertTemplates } from "../../../../Types/Monitor/Kubern
 import { getAllPodmanAlertTemplates } from "../../../../Types/Monitor/PodmanAlertTemplates";
 import { getAllProxmoxAlertTemplates } from "../../../../Types/Monitor/ProxmoxAlertTemplates";
 import { getAllRumAlertTemplates } from "../../../../Types/Monitor/RumAlertTemplates";
+import { getAllVMwareAlertTemplates } from "../../../../Types/Monitor/VMwareAlertTemplates";
 import {
   getAllServiceAlertTemplates,
   getLanguagesWithServiceAlertTemplates,
@@ -64,6 +65,7 @@ interface ModuleExpectation {
   contextFreeTemplateCount: number;
   identifierFieldName:
     | "clusterIdentifier"
+    | "vcenterIdentifier"
     | "hostIdentifier"
     | "fleetIdentifier"
     | "rumApplicationId"
@@ -112,6 +114,13 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
     templateCount: getAllProxmoxAlertTemplates().length,
     contextFreeTemplateCount: getAllProxmoxAlertTemplates().length,
     identifierFieldName: "clusterIdentifier",
+  },
+  {
+    resourceType: MonitorRecommendationResourceType.VMware,
+    monitorTypes: [MonitorType.VMware],
+    templateCount: getAllVMwareAlertTemplates().length,
+    contextFreeTemplateCount: getAllVMwareAlertTemplates().length,
+    identifierFieldName: "vcenterIdentifier",
   },
   {
     resourceType: MonitorRecommendationResourceType.Ceph,

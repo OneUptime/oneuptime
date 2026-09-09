@@ -119,6 +119,35 @@ describe("SelfHosted content model", () => {
     expect(componentNames).toContain("PgBouncer");
   });
 
+  test("the agents component lists every infrastructure agent that ships", () => {
+    /*
+     * The ingest tier's "Agents" component is the one sentence on the
+     * self-hosted page that tells a buyer which infrastructure products report
+     * into their own instance. A product with an agent directory in the repo
+     * but no mention here reads as "cloud only".
+     */
+    const agents: ArchitectureComponent | undefined = ArchitectureTiers.flatMap(
+      (tier: ArchitectureTier) => {
+        return tier.components;
+      },
+    ).find((component: ArchitectureComponent) => {
+      return component.name === "Agents";
+    });
+
+    expect(agents).toBeDefined();
+    for (const product of [
+      "Docker",
+      "Docker Swarm",
+      "Podman",
+      "Proxmox",
+      "VMware",
+      "Kubernetes",
+      "Ceph",
+    ]) {
+      expect(agents!.description).toContain(product);
+    }
+  });
+
   test("sizing tiers go from evaluation to scale and each is fully specified", () => {
     expect(
       SizingTiers.map((tier: SizingTier) => {

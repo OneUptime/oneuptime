@@ -703,11 +703,23 @@ enum Permission {
   EditCephClusterOwnerRule = "EditCephClusterOwnerRule",
   ReadCephClusterOwnerRule = "ReadCephClusterOwnerRule",
 
+  // vCenter (VMware) Owner Rule Permissions
+  CreateVMwareVCenterOwnerRule = "CreateVMwareVCenterOwnerRule",
+  DeleteVMwareVCenterOwnerRule = "DeleteVMwareVCenterOwnerRule",
+  EditVMwareVCenterOwnerRule = "EditVMwareVCenterOwnerRule",
+  ReadVMwareVCenterOwnerRule = "ReadVMwareVCenterOwnerRule",
+
   // Ceph Cluster Label Rule Permissions
   CreateCephClusterLabelRule = "CreateCephClusterLabelRule",
   DeleteCephClusterLabelRule = "DeleteCephClusterLabelRule",
   EditCephClusterLabelRule = "EditCephClusterLabelRule",
   ReadCephClusterLabelRule = "ReadCephClusterLabelRule",
+
+  // vCenter (VMware) Label Rule Permissions
+  CreateVMwareVCenterLabelRule = "CreateVMwareVCenterLabelRule",
+  DeleteVMwareVCenterLabelRule = "DeleteVMwareVCenterLabelRule",
+  EditVMwareVCenterLabelRule = "EditVMwareVCenterLabelRule",
+  ReadVMwareVCenterLabelRule = "ReadVMwareVCenterLabelRule",
 
   // Runbook Owner Rule Permissions
   CreateRunbookOwnerRule = "CreateRunbookOwnerRule",
@@ -1074,6 +1086,10 @@ enum Permission {
   CreateCephClusterFeed = "CreateCephClusterFeed",
   EditCephClusterFeed = "EditCephClusterFeed",
   ReadCephClusterFeed = "ReadCephClusterFeed",
+
+  CreateVMwareVCenterFeed = "CreateVMwareVCenterFeed",
+  EditVMwareVCenterFeed = "EditVMwareVCenterFeed",
+  ReadVMwareVCenterFeed = "ReadVMwareVCenterFeed",
 
   CreatePodmanHostFeed = "CreatePodmanHostFeed",
   EditPodmanHostFeed = "EditPodmanHostFeed",
@@ -1507,6 +1523,11 @@ enum Permission {
   EditCephCluster = "EditCephCluster",
   ReadCephCluster = "ReadCephCluster",
 
+  CreateVMwareVCenter = "CreateVMwareVCenter",
+  DeleteVMwareVCenter = "DeleteVMwareVCenter",
+  EditVMwareVCenter = "EditVMwareVCenter",
+  ReadVMwareVCenter = "ReadVMwareVCenter",
+
   CreateProxmoxClusterOwnerTeam = "CreateProxmoxClusterOwnerTeam",
   CreateDockerSwarmClusterOwnerTeam = "CreateDockerSwarmClusterOwnerTeam",
   DeleteProxmoxClusterOwnerTeam = "DeleteProxmoxClusterOwnerTeam",
@@ -1540,10 +1561,20 @@ enum Permission {
   EditCephClusterOwnerTeam = "EditCephClusterOwnerTeam",
   ReadCephClusterOwnerTeam = "ReadCephClusterOwnerTeam",
 
+  CreateVMwareVCenterOwnerTeam = "CreateVMwareVCenterOwnerTeam",
+  DeleteVMwareVCenterOwnerTeam = "DeleteVMwareVCenterOwnerTeam",
+  EditVMwareVCenterOwnerTeam = "EditVMwareVCenterOwnerTeam",
+  ReadVMwareVCenterOwnerTeam = "ReadVMwareVCenterOwnerTeam",
+
   CreateCephClusterOwnerUser = "CreateCephClusterOwnerUser",
   DeleteCephClusterOwnerUser = "DeleteCephClusterOwnerUser",
   EditCephClusterOwnerUser = "EditCephClusterOwnerUser",
   ReadCephClusterOwnerUser = "ReadCephClusterOwnerUser",
+
+  CreateVMwareVCenterOwnerUser = "CreateVMwareVCenterOwnerUser",
+  DeleteVMwareVCenterOwnerUser = "DeleteVMwareVCenterOwnerUser",
+  EditVMwareVCenterOwnerUser = "EditVMwareVCenterOwnerUser",
+  ReadVMwareVCenterOwnerUser = "ReadVMwareVCenterOwnerUser",
 
   CreateHost = "CreateHost",
   DeleteHost = "DeleteHost",
@@ -3493,6 +3524,37 @@ export class PermissionHelper {
         title: "Read Ceph Cluster Feed",
         description:
           "This permission can read the activity feed of a Ceph cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateVMwareVCenterFeed,
+        title: "Create vCenter Feed",
+        description:
+          "This permission can create the activity feed of a vCenter in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditVMwareVCenterFeed,
+        title: "Edit vCenter Feed",
+        description:
+          "This permission can edit the activity feed of a vCenter in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadVMwareVCenterFeed,
+        title: "Read vCenter Feed",
+        description:
+          "This permission can read the activity feed of a vCenter in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -9259,6 +9321,43 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+
+      {
+        permission: Permission.CreateVMwareVCenter,
+        title: "Create vCenter",
+        description: "This permission can create vCenter in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteVMwareVCenter,
+        title: "Delete vCenter",
+        description: "This permission can delete vCenter of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditVMwareVCenter,
+        title: "Edit vCenter",
+        description: "This permission can edit vCenter of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadVMwareVCenter,
+        title: "Read vCenter",
+        description: "This permission can read vCenter of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
     ];
 
     /*
@@ -10317,6 +10416,47 @@ export class PermissionHelper {
       },
 
       {
+        permission: Permission.CreateVMwareVCenterOwnerTeam,
+        title: "Create vCenter Team Owner",
+        description:
+          "This permission can create vCenter Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteVMwareVCenterOwnerTeam,
+        title: "Delete vCenter Team Owner",
+        description:
+          "This permission can delete vCenter Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditVMwareVCenterOwnerTeam,
+        title: "Edit vCenter Team Owner",
+        description:
+          "This permission can edit vCenter Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadVMwareVCenterOwnerTeam,
+        title: "Read vCenter Team Owner",
+        description:
+          "This permission can read vCenter Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
         permission: Permission.CreateCephClusterOwnerUser,
         title: "Create Ceph Cluster User Owner",
         description:
@@ -10351,6 +10491,47 @@ export class PermissionHelper {
         title: "Read Ceph Cluster User Owner",
         description:
           "This permission can read Ceph Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateVMwareVCenterOwnerUser,
+        title: "Create vCenter User Owner",
+        description:
+          "This permission can create vCenter User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteVMwareVCenterOwnerUser,
+        title: "Delete vCenter User Owner",
+        description:
+          "This permission can delete vCenter User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditVMwareVCenterOwnerUser,
+        title: "Edit vCenter User Owner",
+        description:
+          "This permission can edit vCenter User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadVMwareVCenterOwnerUser,
+        title: "Read vCenter User Owner",
+        description:
+          "This permission can read vCenter User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -12994,6 +13175,48 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
 
+      // vCenter (VMware) Owner Rule Permissions
+      {
+        permission: Permission.CreateVMwareVCenterOwnerRule,
+        title: "Create vCenter Owner Rule",
+        description:
+          "This permission can create vCenter Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteVMwareVCenterOwnerRule,
+        title: "Delete vCenter Owner Rule",
+        description:
+          "This permission can delete vCenter Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditVMwareVCenterOwnerRule,
+        title: "Edit vCenter Owner Rule",
+        description:
+          "This permission can edit vCenter Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadVMwareVCenterOwnerRule,
+        title: "Read vCenter Owner Rule",
+        description:
+          "This permission can read vCenter Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
       // Ceph Cluster Label Rule Permissions
       {
         permission: Permission.CreateCephClusterLabelRule,
@@ -13030,6 +13253,48 @@ export class PermissionHelper {
         title: "Read Ceph Cluster Label Rule",
         description:
           "This permission can read Ceph Cluster Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // vCenter (VMware) Label Rule Permissions
+      {
+        permission: Permission.CreateVMwareVCenterLabelRule,
+        title: "Create vCenter Label Rule",
+        description:
+          "This permission can create vCenter Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteVMwareVCenterLabelRule,
+        title: "Delete vCenter Label Rule",
+        description:
+          "This permission can delete vCenter Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditVMwareVCenterLabelRule,
+        title: "Edit vCenter Label Rule",
+        description:
+          "This permission can edit vCenter Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadVMwareVCenterLabelRule,
+        title: "Read vCenter Label Rule",
+        description:
+          "This permission can read vCenter Label Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

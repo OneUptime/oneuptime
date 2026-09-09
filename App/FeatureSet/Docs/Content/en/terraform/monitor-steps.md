@@ -143,7 +143,7 @@ Each element of `monitor_steps` is one probe target:
 | `retry_count_on_error` | number | Synthetic | Retries on script error. |
 | `criteria` | list (required) | all | The decision tree — see below. |
 
-Telemetry and infrastructure monitor types carry their query configuration in per-type **escape hatch** attributes — optional strings holding the sub-config's raw JSON, written with `jsonencode()`: `log_monitor`, `trace_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `ceph_monitor`, `iot_monitor`. Example for a Logs monitor:
+Telemetry and infrastructure monitor types carry their query configuration in per-type **escape hatch** attributes — optional strings holding the sub-config's raw JSON, written with `jsonencode()`: `log_monitor`, `trace_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `iot_monitor`. Example for a Logs monitor:
 
 ```hcl
 monitor_steps = [{

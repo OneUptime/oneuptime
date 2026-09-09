@@ -57,8 +57,8 @@ const BASE_API_INDEX: string = fs.readFileSync(
 );
 
 /*
- * The nine resources that gained an activity feed. Written out rather than
- * globbed so that adding a tenth is a deliberate edit here as well as a new
+ * The ten resources that gained an activity feed. Written out rather than
+ * globbed so that adding an eleventh is a deliberate edit here as well as a new
  * file - the wiring below is exactly what gets forgotten when a family is
  * added by copying another one.
  */
@@ -69,6 +69,7 @@ const FEED_SERVICE_NAMES: Array<string> = [
   "CephClusterFeedService",
   "PodmanHostFeedService",
   "ProxmoxClusterFeedService",
+  "VMwareVCenterFeedService",
   "HostFeedService",
   "CloudResourceFeedService",
   "ServiceFeedService",

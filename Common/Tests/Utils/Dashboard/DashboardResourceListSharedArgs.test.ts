@@ -26,13 +26,19 @@ import {
   KubernetesFiltersSection,
   getKubernetesCommonArguments,
 } from "../../../Utils/Dashboard/Components/DashboardKubernetesResourceListShared";
+import {
+  VMwareDisplaySection,
+  VMwareFiltersSection,
+  getVMwareCommonArguments,
+} from "../../../Utils/Dashboard/Components/DashboardVMwareResourceListShared";
 
 /*
  * The per-provider argument builders behind the infrastructure list widgets.
  *
- * Ceph, Docker Swarm and Proxmox are the same widget four times over — the
- * files are identical but for the provider's name — and Kubernetes is that
- * shape plus a namespace filter. They were written by copying one another,
+ * Ceph, Docker Swarm, Proxmox and VMware are the same widget five times over
+ * — the files are identical but for the provider's name (VMware filters on
+ * vCenters rather than clusters) — and Kubernetes is that shape plus a
+ * namespace filter. They were written by copying one another,
  * which is fine, and it is also exactly why they drift: a fix or an addition
  * made to one has no reason to fail anywhere else, so the widgets slowly stop
  * behaving alike and nobody finds out until an operator asks why the Proxmox
@@ -85,6 +91,14 @@ const WIDGETS: Array<ProviderWidget> = [
     filtersSection: ProxmoxFiltersSection,
     clusterArgumentId: "proxmoxClusterIds",
     clusterEntityType: EntityFilterModelType.ProxmoxCluster,
+  },
+  {
+    provider: "VMware",
+    args: getVMwareCommonArguments<DashboardBaseComponent>(),
+    displaySection: VMwareDisplaySection,
+    filtersSection: VMwareFiltersSection,
+    clusterArgumentId: "vmwareVCenterIds",
+    clusterEntityType: EntityFilterModelType.VMwareVCenter,
   },
   {
     provider: "Kubernetes",

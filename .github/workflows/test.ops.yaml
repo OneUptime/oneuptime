@@ -42,6 +42,6 @@ jobs:
       # catches all three — and it is the only check that runs the same
       # collector binary the agent images are built FROM.
       #
-      # Runs the pinned collector image over the three agent configs and over
+      # Runs the pinned collector image over the four agent configs and over
       # both collector ConfigMaps rendered out of the kubernetes-agent chart.
       - run: bash Tests/Ops/validate-collector-configs.sh

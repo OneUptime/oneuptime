@@ -36,6 +36,10 @@ export const NESTABLE_CHILD_TYPES: Set<EntityType> = new Set<EntityType>([
   EntityType.KubernetesDeployment,
   EntityType.ProxmoxNode,
   EntityType.ProxmoxGuest,
+  EntityType.VMwareCluster,
+  EntityType.VMwareHost,
+  EntityType.VMwareVirtualMachine,
+  EntityType.VMwareDatastore,
   EntityType.DockerSwarmNode,
   EntityType.DockerSwarmService,
   EntityType.DockerSwarmTask,
@@ -49,6 +53,14 @@ export const NESTABLE_CHILD_TYPES: Set<EntityType> = new Set<EntityType>([
 export const CONTAINER_SPECIFICITY: Partial<Record<EntityType, number>> = {
   [EntityType.KubernetesCluster]: 0,
   [EntityType.ProxmoxCluster]: 0,
+  /*
+   * vSphere nests vCenter ⊃ cluster ⊃ ESXi host ⊃ VM; datastores sit
+   * directly under the vCenter. The cluster is optional (standalone hosts
+   * hang straight off the vCenter), so the host is more specific than the
+   * cluster but both may parent directly to the vCenter.
+   */
+  [EntityType.VMwareVCenter]: 0,
+  [EntityType.VMwareCluster]: 1,
   [EntityType.CephCluster]: 0,
   [EntityType.DockerSwarmCluster]: 0,
   [EntityType.Host]: 1,
@@ -56,9 +68,11 @@ export const CONTAINER_SPECIFICITY: Partial<Record<EntityType, number>> = {
   [EntityType.KubernetesNode]: 2,
   [EntityType.KubernetesDeployment]: 2,
   [EntityType.ProxmoxNode]: 2,
+  [EntityType.VMwareHost]: 2,
   [EntityType.DockerSwarmNode]: 2,
   [EntityType.KubernetesPod]: 3,
   [EntityType.ProxmoxGuest]: 3,
+  [EntityType.VMwareVirtualMachine]: 3,
   [EntityType.DockerSwarmTask]: 3,
   [EntityType.Container]: 4,
 };

@@ -10,6 +10,8 @@ import PodmanHostService from "Common/Server/Services/PodmanHostService";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
+import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import IoTFleetService from "Common/Server/Services/IoTFleetService";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import CephClusterService from "Common/Server/Services/CephClusterService";
@@ -523,6 +525,14 @@ export default abstract class OtelIngestBaseService {
    *      still route via #1 — cluster discovery and the
    *      attribute-scoped dashboards work regardless, but per-cluster
    *      retention only applies to batches that land here.
+   *   4c. Else if a VMwareVCenter was discovered → ServiceType.VMwareVCenter,
+   *      primaryEntityId = vCenter row id, serviceName `vmware/<name>`.
+   *      The OTel `vcenter` receiver does not synthesize a service.name,
+   *      so the shipped VMware Agent config only has to stamp
+   *      `vmware.vcenter.name` (it still deletes service.name /
+   *      service.instance.id defensively, so an OTEL_RESOURCE_ATTRIBUTES
+   *      override cannot route the batch to a phantom Service via #1 and
+   *      bypass per-vCenter retention).
    *   5. Fallback: no Service row at all. primaryEntityId = projectId,
    *      ServiceType.Unknown. The read side groups these under a
    *      synthetic "Unknown Service" bucket. No oneuptime.label.*
@@ -540,6 +550,7 @@ export default abstract class OtelIngestBaseService {
     podmanHostId?: ObjectID | null;
     kubernetesClusterId?: ObjectID | null;
     proxmoxClusterId?: ObjectID | null;
+    vmwareVCenterId?: ObjectID | null;
     cephClusterId?: ObjectID | null;
     dockerSwarmClusterId?: ObjectID | null;
     serverlessFunctionId?: ObjectID | null;
@@ -663,6 +674,7 @@ export default abstract class OtelIngestBaseService {
     podmanHostId?: ObjectID | null;
     kubernetesClusterId?: ObjectID | null;
     proxmoxClusterId?: ObjectID | null;
+    vmwareVCenterId?: ObjectID | null;
     cephClusterId?: ObjectID | null;
     dockerSwarmClusterId?: ObjectID | null;
     serverlessFunctionId?: ObjectID | null;
@@ -758,6 +770,17 @@ export default abstract class OtelIngestBaseService {
           : "Docker Swarm Cluster",
         resourceId: data.dockerSwarmClusterId,
         primaryEntityType: ServiceType.DockerSwarmCluster,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.vmwareVCenterId) {
+      const vcenterName: string | null =
+        this.getVMwareVCenterNameFromAttributes(data.attributes);
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: vcenterName ? `vmware/${vcenterName}` : "vCenter",
+        resourceId: data.vmwareVCenterId,
+        primaryEntityType: ServiceType.VMwareVCenter,
         projectId: data.projectId,
       });
     }
@@ -1381,6 +1404,145 @@ export default abstract class OtelIngestBaseService {
     } catch (err) {
       logger.warn(
         `Proxmox cluster label promotion failed for ${data.proxmoxClusterId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  /*
+   * `vmware.vcenter.name` is the VMware join key — a OneUptime-defined
+   * resource attribute (no upstream semconv exists; the vcenter receiver
+   * only stamps per-object `vcenter.*` attributes) that the VMware Agent
+   * collector config stamps from the VMWARE_VCENTER_NAME env through a
+   * resource processor. One value = one vSphere endpoint (a vCenter
+   * Server, or a standalone ESXi host).
+   */
+  protected static getVMwareVCenterNameFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    return this.getStringAttribute(attributes, "vmware.vcenter.name");
+  }
+
+  private static readonly VMWARE_VCENTER_ID_CACHE_NAMESPACE: string =
+    "vmware-vcenter-id";
+  private static readonly VMWARE_VCENTER_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  @CaptureSpan()
+  protected static async autoDiscoverVMwareVCenter(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    /*
+     * Fences armed below, released by the catch block. See
+     * releaseMaintenanceFences.
+     */
+    const armedFences: Array<MaintenanceFence> = [];
+    try {
+      const vcenterName: string | null =
+        this.getVMwareVCenterNameFromAttributes(data.attributes);
+
+      if (!vcenterName) {
+        return null;
+      }
+
+      const cacheKey: string = `${data.projectId.toString()}:${vcenterName}`;
+      let vcenterIdStr: string | null = await this.getEntityIdFromCaches(
+        this.VMWARE_VCENTER_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!vcenterIdStr) {
+        const vcenter: VMwareVCenter =
+          await VMwareVCenterService.findOrCreateByName({
+            projectId: data.projectId,
+            name: vcenterName,
+          });
+
+        if (vcenter._id) {
+          vcenterIdStr = vcenter._id.toString();
+          await this.setEntityIdInCaches(
+            this.VMWARE_VCENTER_ID_CACHE_NAMESPACE,
+            cacheKey,
+            vcenterIdStr,
+            this.VMWARE_VCENTER_ID_CACHE_EXPIRY_SECONDS,
+          );
+        }
+      }
+
+      if (vcenterIdStr) {
+        const vcenterId: ObjectID = new ObjectID(vcenterIdStr);
+        /*
+         * Same fence rationale as the Kubernetes / Proxmox paths — skip
+         * the per-batch maintenance UPDATE + label upsert when we
+         * already ran it within the fence window. The vcenter receiver
+         * emits one ResourceMetrics per vSphere object, so a single
+         * collection of a mid-sized vCenter is hundreds of resource
+         * blocks: without the fence every one of them would heartbeat.
+         */
+        if (await this.shouldRunMaintenance("vmware-vcenter", vcenterIdStr)) {
+          armedFences.push({ scope: "vmware-vcenter", id: vcenterIdStr });
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          await VMwareVCenterService.updateLastSeen(vcenterId, {
+            agentVersion: agentVersion || undefined,
+          });
+          await this.promoteOneuptimeLabelsToVMwareVCenter({
+            projectId: data.projectId,
+            vmwareVCenterId: vcenterId,
+            attributes: data.attributes,
+          });
+        }
+        return vcenterId;
+      }
+
+      return null;
+    } catch (err) {
+      await this.releaseMaintenanceFences(armedFences);
+      logger.error(
+        "Error auto-discovering VMware vCenter: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * Promote `oneuptime.label.<dim>=<val>` resource attributes into
+   * project labels and attach them to the discovered vCenter. Mirrors
+   * the Kubernetes / Proxmox cluster label promotion. Throttled
+   * per-vCenter inside `attachLabels` so steady-state ingest with
+   * unchanged labels costs one in-memory cache lookup.
+   */
+  protected static async promoteOneuptimeLabelsToVMwareVCenter(data: {
+    projectId: ObjectID;
+    vmwareVCenterId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await VMwareVCenterService.attachLabels({
+        vmwareVCenterId: data.vmwareVCenterId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `vCenter label promotion failed for ${data.vmwareVCenterId.toString()}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );

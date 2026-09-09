@@ -194,6 +194,7 @@ helm install oneuptime oneuptime/oneuptime
 - **Docker** — 단일 에이전트가 모든 컨테이너를 자동으로 발견하고 메트릭과 로그를 전송합니다. [문서 →](/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
 - **Podman** — Podman의 Docker 호환 소켓을 통한 동일한 단일 에이전트 자동 발견. [문서 →](/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
 - **Proxmox** — 노드, VM, 컨테이너, 스토리지, HA 상태, 백업 커버리지 및 복제 상태. [문서 →](/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
+- **VMware** — vCenter, ESXi 호스트, 가상 머신, 데이터스토어, 클러스터, 리소스 풀 및 vSAN. [문서 →](/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — 클러스터 상태, 용량 예측, OSD/풀/PG/모니터 가시성. [문서 →](/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
 
 ---

@@ -651,6 +651,14 @@
               <span class="text-sm font-medium text-gray-900">Proxmox</span>
             </a>
 
+            <!-- VMware - Indigo -->
+            <a href="/product/vmware" class="flex items-center gap-3 rounded-xl p-3 hover:bg-indigo-50 ring-1 ring-transparent hover:ring-indigo-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200">
+                <%- include('./Partials/icons/vmware', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">VMware</span>
+            </a>
+
             <!-- AI / LLM Observability - Violet -->
             <a href="/product/ai-observability" class="flex items-center gap-3 rounded-xl p-3 hover:bg-violet-50 ring-1 ring-transparent hover:ring-violet-200">
               <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-violet-50 ring-1 ring-violet-200">
@@ -1077,6 +1085,15 @@
                 <div class="min-w-0 flex-1">
                   <p class="product-card-title truncate text-sm font-medium text-gray-900">Proxmox</p>
                   <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">VE clusters, VMs &amp; backups</p>
+                </div>
+              </a>
+              <a href="/product/vmware" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="vmware vsphere vcenter esxi hosts vms virtual machines datastores vsan clusters resource pools">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200">
+                  <%- include('./Partials/icons/vmware', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">VMware</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">vCenter, ESXi hosts, VMs &amp; datastores</p>
                 </div>
               </a>
               <a href="/product/ai-observability" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="ai llm observability gen_ai openai anthropic tokens cost prompts agents">

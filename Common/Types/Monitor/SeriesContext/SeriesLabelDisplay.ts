@@ -105,6 +105,39 @@ const FriendlyLabelNames: Record<string, string> = {
   node: "Node",
   storage: "Storage",
 
+  /*
+   * --- VMware ---
+   *
+   * The OTel `vcenter` receiver stamps identity as RESOURCE attributes
+   * (`vcenter.host.name`, `vcenter.vm.name`, ...), which arrive here
+   * `resource.`-prefixed; the agent adds `vmware.vcenter.name` on top.
+   * The unprefixed spelling is registered once and covers both. The
+   * second block is the receiver's DATAPOINT attributes, which a user's
+   * own monitor may group by (`power_state`, `status`, `object`, ...).
+   */
+  "vmware.vcenter.name": "vCenter",
+  "vcenter.datacenter.name": "Datacenter",
+  "vcenter.cluster.name": "vSphere Cluster",
+  "vcenter.host.name": "ESXi Host",
+  "vcenter.vm.name": "Virtual Machine",
+  "vcenter.vm.id": "VM Instance UUID",
+  "vcenter.vm_template.name": "VM Template",
+  "vcenter.vm_template.id": "VM Template UUID",
+  "vcenter.datastore.name": "Datastore",
+  "vcenter.resource_pool.name": "Resource Pool",
+  "vcenter.resource_pool.inventory_path": "Resource Pool Path",
+  "vcenter.virtual_app.name": "vApp",
+  "vcenter.virtual_app.inventory_path": "vApp Path",
+  power_state: "Power State",
+  status: "Status",
+  effective: "Effective",
+  disk_state: "Disk State",
+  disk_type: "Disk Type",
+  object: "Object",
+  type: "Type",
+  cpu_reservation_type: "CPU Reservation Type",
+  cpu_state: "CPU State",
+
   // --- Ceph ---
   "ceph.cluster.name": "Ceph Cluster",
   ceph_daemon: "Ceph Daemon",
@@ -172,6 +205,34 @@ const LabelPriority: Record<string, number> = {
   "device.name": 25,
   "proxmox.vm.name": 25,
   vmid: 25,
+  /*
+   * VMware: the object that breached first (VM / template / datastore /
+   * resource pool / NIC-or-disk instance), then the host it runs on, then
+   * the cluster, datacenter and vCenter that merely scope it. The instance
+   * UUIDs are pushed to the end — correct, but not what a human scans for.
+   */
+  "vcenter.vm.name": 25,
+  "vcenter.vm_template.name": 25,
+  object: 26,
+  "vcenter.datastore.name": 30,
+  "vcenter.resource_pool.name": 30,
+  "vcenter.resource_pool.inventory_path": 32,
+  "vcenter.virtual_app.name": 34,
+  "vcenter.virtual_app.inventory_path": 36,
+  power_state: 55,
+  status: 55,
+  effective: 55,
+  disk_state: 56,
+  disk_type: 56,
+  cpu_reservation_type: 56,
+  cpu_state: 56,
+  type: 57,
+  "vcenter.host.name": 60,
+  "vcenter.cluster.name": 75,
+  "vcenter.datacenter.name": 78,
+  "vmware.vcenter.name": 80,
+  "vcenter.vm.id": 95,
+  "vcenter.vm_template.id": 95,
   id: 30,
   "pve.id": 32,
   "pve.type": 55,

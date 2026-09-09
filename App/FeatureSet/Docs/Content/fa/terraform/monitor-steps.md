@@ -143,7 +143,7 @@ resource "oneuptime_monitor" "website" {
 | `retry_count_on_error` | عدد | Synthetic | تلاش دوباره هنگام خطای اسکریپت. |
 | `criteria` | فهرست (الزامی) | همه | درخت تصمیم — پایین را ببینید. |
 
-نوع‌های مانیتور تله‌متری و زیرساخت پیکربندی پرس‌وجویشان را در صفت‌های **دریچه فرار** به ازای هر نوع حمل می‌کنند — رشته‌هایی اختیاری که JSON خام زیرپیکربندی را نگه می‌دارند و با `jsonencode()` نوشته می‌شوند: `log_monitor`، `trace_monitor`، `metric_monitor`، `exception_monitor`، `profile_monitor`، `dns_monitor`، `domain_monitor`، `dnssec_monitor`، `sql_monitor`، `database_monitor`، `external_status_page_monitor`، `network_device_monitor`، `kubernetes_monitor`، `docker_monitor`، `docker_swarm_monitor`، `host_monitor`، `podman_monitor`، `proxmox_monitor`، `ceph_monitor`، `iot_monitor`. نمونه‌ای برای مانیتور Logs:
+نوع‌های مانیتور تله‌متری و زیرساخت پیکربندی پرس‌وجویشان را در صفت‌های **دریچه فرار** به ازای هر نوع حمل می‌کنند — رشته‌هایی اختیاری که JSON خام زیرپیکربندی را نگه می‌دارند و با `jsonencode()` نوشته می‌شوند: `log_monitor`، `trace_monitor`، `metric_monitor`، `exception_monitor`، `profile_monitor`، `dns_monitor`، `domain_monitor`، `dnssec_monitor`، `sql_monitor`، `database_monitor`، `external_status_page_monitor`، `network_device_monitor`، `kubernetes_monitor`، `docker_monitor`، `docker_swarm_monitor`، `host_monitor`، `podman_monitor`، `proxmox_monitor`، `vmware_monitor`، `ceph_monitor`، `iot_monitor`. نمونه‌ای برای مانیتور Logs:
 
 ```hcl
 monitor_steps = [{

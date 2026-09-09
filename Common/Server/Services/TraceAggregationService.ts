@@ -244,6 +244,7 @@ export class TraceAggregationService {
       ["podmanHostId", ServiceType.PodmanHost],
       ["kubernetesClusterId", ServiceType.KubernetesCluster],
       ["proxmoxClusterId", ServiceType.ProxmoxCluster],
+      ["vmwareVCenterId", ServiceType.VMwareVCenter],
       ["cephClusterId", ServiceType.CephCluster],
       ["serverlessFunctionId", ServiceType.ServerlessFunction],
       ["cloudResourceId", ServiceType.CloudResource],
@@ -1395,10 +1396,10 @@ export class TraceAggregationService {
     /*
      * Both memberships are required, and the two sets genuinely differ:
      *
-     * - `proxmoxClusterId` / `cephClusterId` are resource dimensions here
-     *   but have no branch in ResourceFacetResolver.resolveOne, which
-     *   returns [] for them. Asking anyway would cost a round-trip and
-     *   still leave the cell raw.
+     * - `proxmoxClusterId` / `vmwareVCenterId` / `cephClusterId` are
+     *   resource dimensions here but have no branch in
+     *   ResourceFacetResolver.resolveOne, which returns [] for them. Asking
+     *   anyway would cost a round-trip and still leave the cell raw.
      * - `primaryEntityId` / `serviceId` are resolvable but are NOT resource
      *   dimensions here — they select the OpenTelemetry-service slot, and
      *   the traces explorer already resolves that split client-side

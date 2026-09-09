@@ -1,4 +1,6 @@
 import { isRedirectPath, REDIRECT_PATHS } from "../Utils/Sitemap";
+import fs from "fs";
+import path from "path";
 
 /*
  * A redirect path listed in the sitemap sends crawlers (and buyers reading it)
@@ -28,6 +30,8 @@ describe("Sitemap isRedirectPath", () => {
       "/blog",
       "/enterprise",
       "/product/monitoring",
+      "/product/proxmox",
+      "/product/vmware",
     ]) {
       expect(isRedirectPath(canonicalPath)).toBe(false);
     }
@@ -45,6 +49,32 @@ describe("Sitemap isRedirectPath", () => {
 
   test("returns false for the empty string", () => {
     expect(isRedirectPath("")).toBe(false);
+  });
+});
+
+describe("Sitemap product page priorities", () => {
+  /*
+   * PAGE_CONFIG is module-private, so read the source: a product page that is
+   * missing from it silently falls back to the default priority and drops
+   * below the blog in crawl order. The two hypervisor products must be
+   * configured identically.
+   */
+  const sitemapSource: string = fs.readFileSync(
+    path.join(__dirname, "..", "Utils", "Sitemap.ts"),
+    "utf-8",
+  );
+
+  test("the VMware product page is configured like the Proxmox one", () => {
+    expect(sitemapSource).toContain(
+      '"/product/proxmox": { priority: 0.9, changefreq: "weekly" }',
+    );
+    expect(sitemapSource).toContain(
+      '"/product/vmware": { priority: 0.9, changefreq: "weekly" }',
+    );
+  });
+
+  test("the VMware product page is configured exactly once", () => {
+    expect(sitemapSource.split('"/product/vmware"').length - 1).toBe(1);
   });
 });
 

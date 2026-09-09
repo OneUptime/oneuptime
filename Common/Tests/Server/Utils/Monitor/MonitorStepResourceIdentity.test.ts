@@ -236,6 +236,12 @@ describe("MonitorStepResourceIdentity — declared infra identifiers", () => {
       "clusterIdentifier",
       "proxmoxClusterNames",
     ],
+    [
+      MonitorType.VMware,
+      "vmwareMonitor",
+      "vcenterIdentifier",
+      "vmwareVCenterNames",
+    ],
     [MonitorType.Ceph, "cephMonitor", "clusterIdentifier", "cephClusterNames"],
     [
       MonitorType.DockerSwarm,
