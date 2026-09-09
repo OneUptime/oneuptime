@@ -16,6 +16,7 @@
     "compile": "tsc",
     "debug-tests": "playwright test --debug",
     "test-topology-ui": "playwright test --config playwright.topology.config.ts",
+    "test-discovery-ui": "playwright test --config playwright.discovery.config.ts",
     "test-label-rule-transfer": "playwright test --config playwright.label-rules.config.ts",
     "test-label-rule-transfer-ui": "playwright test --config playwright.label-rules-ui.config.ts"
   },

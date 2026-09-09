@@ -21,15 +21,10 @@ import path from "path";
  * around an unbreakable line is exactly an overflow, so the text left the
  * column instead of merely widening it.
  *
- * That defect is invisible to every kind of test this repo can run. The App
- * suite is `testEnvironment: "node"` with no DOM at all, and even under jsdom
- * there is NO LAYOUT: getBoundingClientRect returns zeros, `white-space` is
- * never resolved, nothing wraps, nothing overflows and no column has a width.
- * A test that "checks the text does not overlap" cannot be written here, or
- * anywhere in CI as it stands. So the only durable guard is a source-level
- * one — every assertion below is a class / attribute / call-site assertion
- * over the source TEXT, deliberately, in the places a reader would expect a
- * visual assertion.
+ * The App suite uses the Node test environment, so it cannot measure layout.
+ * These source assertions preserve the shared wrapping contract and the
+ * page's use of it. The Discovery browser suite separately checks actual
+ * column bounds, responsive layout, and access to the expanded explanation.
  *
  * Sources are whitespace-squashed and matched with regexes rather than exact
  * lines, so a prettier run that re-wraps a JSX attribute or a ternary cannot
@@ -99,10 +94,6 @@ function matchAll(pattern: RegExp, text: string): Array<string> {
   }
 
   return values;
-}
-
-function countOccurrences(pattern: RegExp, text: string): number {
-  return (text.match(new RegExp(pattern.source, "g")) || []).length;
 }
 
 /**
@@ -312,54 +303,61 @@ describe("Table cell classes are built by the shared helper", () => {
  */
 
 /*
- * GROUP 3 — the page that reported #3585 stays fixed.
+ * GROUP 3 — the page that reported #3585 stays fixed as its layout evolves.
  *
- * Two columns opt in. "Responded Hosts" is the cell whose sentence overlapped.
- * "Recurrence" is the other half of the same deformed row: the server write
- * that sets the status message also blanks nextScanAt, so that column renders
- * a sentence of its own in the very same row, on one unbreakable line, with no
- * width cap at all. And the `max-w-md` the page used to put on its own
- * explanation divs is gone: capping the width is the helper's job now, and left
- * on a div that inherits nowrap that cap IS the overflow.
+ * Discovery now groups the probe and schedule beneath the scan identity and
+ * puts long explanations in expandable details (#3672). Counts and progress
+ * have compact columns of their own. Inner width caps are safe only while the
+ * containing column opts out of nowrap; the full explanation must remain
+ * accessible when its preview is shortened.
  */
 describe("Discovery page columns opt into wrapping", () => {
-  test("at least two columns declare wrapContent", () => {
-    expect(
-      countOccurrences(/wrapContent:\s*true/, DISCOVERY_PAGE),
-    ).toBeGreaterThanOrEqual(2);
-  });
+  test.each(["Scan", "Status", "Responded Hosts", "Recurrence"])(
+    "%s opts into the shared wrapping behavior",
+    (title: string) => {
+      const block: string = columnBlockByTitle(DISCOVERY_PAGE, title);
 
-  test("Responded Hosts wraps and no longer caps its own explanation divs", () => {
+      expect(block).toMatch(/wrapContent:\s*true/);
+      expect(block).toMatch(/wrapMaxWidthClassName:\s*"max-w-[^"]+"/);
+      expect(block).not.toMatch(/className="[^"]*\bwhitespace-nowrap\b/);
+    },
+  );
+
+  test("Responded Hosts keeps compact counts separate from the long explanation", () => {
     const block: string = columnBlockByTitle(DISCOVERY_PAGE, "Responded Hosts");
 
     expect(block).toMatch(/wrapContent:\s*true/);
-
-    /*
-     * jsdom cannot be asked whether the text overflows — there is no layout
-     * anywhere in CI — so the assertion is on the class that CAUSED the
-     * overflow. A `max-w-*` anywhere inside this column, on an element that
-     * inherits the row's whitespace mode, is the exact shape of the bug.
-     */
-    expect(block).not.toMatch(/max-w-/);
+    expect(block).toMatch(/wrapMaxWidthClassName:\s*"max-w-xs"/);
+    expect(block).toMatch(/\{outcome\.respondedHostSummary\}/);
+    expect(block).toMatch(/outcome\.pingOnlyHostCount/);
+    expect(block).not.toMatch(/outcome\.explanation|item\.statusMessage/);
   });
 
-  test("Recurrence wraps with its own narrower cap", () => {
+  test("Recurrence wraps when the optional column is shown", () => {
     const block: string = columnBlockByTitle(DISCOVERY_PAGE, "Recurrence");
 
+    expect(block).toMatch(/isHiddenByDefault:\s*true/);
     expect(block).toMatch(/wrapContent:\s*true/);
     expect(block).toMatch(/wrapMaxWidthClassName:\s*"max-w-xs"/);
   });
 
-  test("both explanation divs keep title={outcome.explanation}", () => {
-    /*
-     * The width cap means a long enough message can still be clipped by the
-     * column, so the hover affordance that shows the whole sentence is not
-     * decoration — it is the fallback. It sits on the two divs that render
-     * `outcome.explanation`, and the cleanup that removed their `max-w-md`
-     * neighbours must not take it with them.
-     */
-    const block: string = columnBlockByTitle(DISCOVERY_PAGE, "Responded Hosts");
+  test("Scan keeps the full explanation in labeled native details beneath its preview", () => {
+    const block: string = columnBlockByTitle(DISCOVERY_PAGE, "Scan");
+    const details: RegExpMatchArray | null = block.match(
+      /<details\b[^>]*>(.*?)<\/details>/,
+    );
 
-    expect(countOccurrences(/title=\{outcome\.explanation\}/, block)).toBe(2);
+    expect(block).toMatch(/wrapContent:\s*true/);
+    expect(block).toMatch(/wrapMaxWidthClassName:\s*"max-w-sm"/);
+    expect(details).not.toBeNull();
+    const content: string = details![1]!;
+
+    // Native details supplies keyboard access to the unabridged message.
+    expect(content).toMatch(/<summary\b[^>]*aria-label=\{/);
+    expect(content).toMatch(/line-clamp-2[^>]*>\s*\{item\.statusMessage\}/);
+    expect(content).toContain("Show details");
+    expect(content).toMatch(
+      /<\/summary>\s*<p\b[^>]*>\s*\{item\.statusMessage\}\s*<\/p>/,
+    );
   });
 });

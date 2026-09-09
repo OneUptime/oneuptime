@@ -3,6 +3,7 @@ import NetworkDeviceDiscoveryScanService, {
 } from "../../../Server/Services/NetworkDeviceDiscoveryScanService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import NetworkDeviceDiscoveryScan from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import { DISCOVERY_SCAN_STARTED_MESSAGE } from "../../../Utils/NetworkDiscovery/DiscoveryScanStatus";
 import {
   afterEach,
   beforeEach,
@@ -15,7 +16,7 @@ import {
 /*
  * The /probe-ingest/probe/discovery-scan/list route hands the requesting
  * probe its pending subnet scans and claims them (status "In Progress" +
- * startedAt, and a cleared statusMessage) via
+ * startedAt, and a current-run statusMessage) via
  * DatabaseService.updateColumnsByIdWithoutHooks — one raw
  * parameterized UPDATE that skips ALL on-update hooks: workflow HTTP
  * triggers, audit-log inserts, realtime events, service
@@ -74,6 +75,17 @@ const PROGRESS_WRITE_COLUMNS: Array<string> = [
   "autoImportProcessedAt",
 ];
 
+/*
+ * The stale-scan reaper also writes atomically so a new progress report cannot
+ * race with its decision to fail a silent run. It skips the same service hooks.
+ */
+const REAPER_WRITE_COLUMNS: Array<string> = [
+  "status",
+  "statusMessage",
+  "completedAt",
+  "nextScanAt",
+];
+
 describe("discovery-scan claim hookless write safety preconditions", () => {
   describe("NetworkDeviceDiscoveryScan model (claim write in DiscoveryScan.ts)", () => {
     /*
@@ -115,6 +127,7 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
         "statusMessage",
         // ...and every column the running-sweep progress write stamps.
         ...PROGRESS_WRITE_COLUMNS,
+        ...REAPER_WRITE_COLUMNS,
       ];
       for (const column of fastPathColumns) {
         expect(scan.isTableColumn(column)).toBe(true);
@@ -219,6 +232,7 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
          * skipping it.
          */
         ...PROGRESS_WRITE_COLUMNS,
+        ...REAPER_WRITE_COLUMNS,
       ];
 
       for (const column of claimWriteColumns) {
@@ -324,7 +338,7 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
         data: {
           status: "In Progress",
           startedAt: new Date(0),
-          statusMessage: null,
+          statusMessage: DISCOVERY_SCAN_STARTED_MESSAGE,
         },
         props: { isRoot: true },
         limit: 1,

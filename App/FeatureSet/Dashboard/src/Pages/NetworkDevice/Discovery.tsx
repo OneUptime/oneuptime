@@ -1,4 +1,11 @@
 import PageComponentProps from "../PageComponentProps";
+import DiscoveryScanProgress, {
+  isWaitingForDiscoveryProgress,
+} from "../../Components/NetworkDevice/DiscoveryScanProgress";
+import useDiscoveryScanLiveUpdates, {
+  DiscoveryScanLiveUpdates,
+} from "../../Components/NetworkDevice/useDiscoveryScanLiveUpdates";
+import { DiscoveryScanStatus } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import ProbeUtil from "../../Utils/Probe";
@@ -617,6 +624,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
   const [error, setError] = useState<string>("");
 
   const [refreshToggle, setRefreshToggle] = useState<string>("");
+  const liveUpdates: DiscoveryScanLiveUpdates = useDiscoveryScanLiveUpdates();
 
   // Review Results modal state.
   const [showReviewModal, setShowReviewModal] = useState<boolean>(false);
@@ -708,6 +716,12 @@ const NetworkDeviceDiscovery: FunctionComponent<
     scan: NetworkDeviceDiscoveryScan | null,
     importedByScanId?: ImportedIpAddressesByScanId,
   ): Array<DiscoveredDeviceEntry> => {
+    if (
+      scan?.status === DiscoveryScanStatus.Pending ||
+      isWaitingForDiscoveryProgress(scan)
+    ) {
+      return [];
+    }
     return markDiscoveredHostsAsRegistered({
       /*
        * Normalised first: the jsonb comes verbatim off the probe, and a null
@@ -1232,6 +1246,64 @@ const NetworkDeviceDiscovery: FunctionComponent<
         isViewable={false}
         showRefreshButton={true}
         refreshToggle={refreshToggle}
+        onFetchSuccess={liveUpdates.onRowsLoaded}
+        topContent={
+          liveUpdates.lastRefreshedAt ? (
+            <div
+              className={`mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3 ${liveUpdates.error ? "border-amber-200 bg-amber-50" : "border-blue-100 bg-blue-50"}`}
+            >
+              <div className="min-w-0">
+                <p
+                  className={`flex items-center gap-2 text-sm font-medium ${liveUpdates.error ? "text-amber-900" : "text-blue-900"}`}
+                  role="status"
+                  aria-live="polite"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`h-2 w-2 shrink-0 rounded-full ${liveUpdates.error ? "bg-amber-500" : liveUpdates.activeCount > 0 ? "bg-blue-500" : "bg-green-500"}`}
+                  />
+                  {liveUpdates.error
+                    ? "Live updates interrupted"
+                    : liveUpdates.activeCount > 0
+                      ? `${liveUpdates.activeCount} ${liveUpdates.activeCount === 1 ? "scan" : "scans"} in progress or queued`
+                      : "Scan results up to date"}
+                </p>
+                <p className="mt-1 text-xs text-gray-600">
+                  {liveUpdates.error
+                    ? "Showing the last known progress. Updates will retry automatically."
+                    : liveUpdates.activeCount > 0
+                      ? "Progress refreshes every 10 seconds. You can review results while a scan runs."
+                      : "No scans on this page are currently running. Review their results below."}
+                </p>
+                {liveUpdates.error && (
+                  <p className="mt-1 text-xs text-amber-800">
+                    {liveUpdates.error}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-3 text-xs text-gray-500">
+                <span>
+                  {liveUpdates.isPaused && liveUpdates.activeCount > 0
+                    ? "Updates paused while this tab is hidden"
+                    : liveUpdates.isRefreshing
+                      ? "Refreshing progress…"
+                      : `Last refreshed ${liveUpdates.lastRefreshedAt.toLocaleTimeString()}`}
+                </span>
+                {liveUpdates.error && (
+                  <Button
+                    title="Retry now"
+                    buttonSize={ButtonSize.Small}
+                    buttonStyle={ButtonStyleType.NORMAL}
+                    isLoading={liveUpdates.isRefreshing}
+                    onClick={() => {
+                      void liveUpdates.refresh();
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          ) : undefined
+        }
         name="Network Device Discovery Scans"
         /*
          * Both halves of a scan's identity are searchable, because either one
@@ -1293,12 +1365,15 @@ const NetworkDeviceDiscovery: FunctionComponent<
             },
             title: "Scan",
             type: FieldType.Element,
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-sm",
             getElement: (item: NetworkDeviceDiscoveryScan): ReactElement => {
+              item = liveUpdates.getScan(item);
               const name: string | null = ScanNameUtil.getDisplayName(item);
 
               return (
-                <div>
-                  <div className="flex items-center gap-2">
+                <div className="min-w-56 max-w-xs space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
                     <div className="text-sm font-medium text-gray-900">
                       {name || item.cidr || "—"}
                     </div>
@@ -1332,6 +1407,31 @@ const NetworkDeviceDiscovery: FunctionComponent<
                     <div className="text-xs text-gray-500">{item.cidr}</div>
                   ) : (
                     <></>
+                  )}
+                  <p className="text-xs text-gray-500">
+                    {item.probe?.name || "Probe not available"}
+                    {item.isRecurring
+                      ? ` · Repeats${item.rescanIntervalInMinutes ? ` every ${item.rescanIntervalInMinutes} min` : " automatically"}`
+                      : " · One-time"}
+                  </p>
+                  {item.statusMessage && (
+                    <details className="group pt-1 text-xs leading-5 text-gray-600">
+                      <summary
+                        className="cursor-pointer list-none rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
+                        aria-label={`Scan details for ${ScanNameUtil.getScanLabel(item) || "this scan"}`}
+                      >
+                        <span className="line-clamp-2 group-open:hidden">
+                          {item.statusMessage}
+                        </span>
+                        <span className="text-blue-700 group-open:hidden">
+                          Show details
+                        </span>
+                        <span className="hidden text-blue-700 group-open:inline">
+                          Hide details
+                        </span>
+                      </summary>
+                      <p className="mt-1">{item.statusMessage}</p>
+                    </details>
                   )}
                 </div>
               );
@@ -1408,6 +1508,9 @@ const NetworkDeviceDiscovery: FunctionComponent<
             },
             title: "Probe",
             type: FieldType.Text,
+            isHiddenByDefault: true,
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-xs",
             getElement: (item: NetworkDeviceDiscoveryScan): ReactElement => {
               return (
                 <span className="text-sm text-gray-900">
@@ -1422,23 +1525,10 @@ const NetworkDeviceDiscovery: FunctionComponent<
             },
             title: "Status",
             type: FieldType.Element,
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-xs",
             getElement: (item: NetworkDeviceDiscoveryScan): ReactElement => {
-              const status: string = (item.status as string) || "Pending";
-
-              let colorClassName: string = "text-gray-500";
-              if (status === "In Progress") {
-                colorClassName = "text-blue-600";
-              } else if (status === "Completed") {
-                colorClassName = "text-green-600";
-              } else if (status === "Failed") {
-                colorClassName = "text-red-600";
-              }
-
-              return (
-                <span className={`text-sm font-medium ${colorClassName}`}>
-                  {status}
-                </span>
-              );
+              return <DiscoveryScanProgress scan={liveUpdates.getScan(item)} />;
             },
           },
           {
@@ -1447,88 +1537,42 @@ const NetworkDeviceDiscovery: FunctionComponent<
             },
             title: "Responded Hosts",
             type: FieldType.Element,
-            /*
-             * This cell carries whole sentences written by the server and by
-             * the probe - the requeue note an edit writes (RETIRE_RUN_PAYLOAD
-             * in Common/Server/Services/NetworkDeviceDiscoveryScanService.ts),
-             * the probe's account of an ICMP-only sweep, the unclaimed-scan
-             * diagnosis - and statusMessage is a 500-character column. Without
-             * this the cell inherits the row's `whitespace-nowrap` and the
-             * sentence is painted straight over the Recurrence and Started
-             * cells beside it (OneUptime issue #3585).
-             */
             wrapContent: true,
+            wrapMaxWidthClassName: "max-w-xs",
             getElement: (item: NetworkDeviceDiscoveryScan): ReactElement => {
+              item = liveUpdates.getScan(item);
               const outcome: DiscoveryScanOutcome =
                 summarizeDiscoveryScan(item);
-
-              /*
-               * No host counts yet. That used to render a bare em-dash and
-               * stop, which threw away the only explanation a scan that never
-               * ran ever gets: the worker's "nobody has claimed this" note
-               * (Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts)
-               * and the stale-In-Progress reaper's "the probe did not report a
-               * result within 2 hours" were both written to statusMessage,
-               * fetched by this page, and then rendered nowhere — so a stuck
-               * scan looked identical to one that had simply just been
-               * submitted (OneUptime issue #3287).
-               */
-              if (!outcome.hasReported) {
-                if (!outcome.explanation) {
-                  return <span className="text-sm text-gray-400">—</span>;
-                }
-
-                return (
-                  <div
-                    className="text-xs text-gray-500"
-                    title={outcome.explanation}
-                  >
-                    {outcome.explanation}
-                  </div>
-                );
-              }
-
-              /*
-               * The count is SNMP responders only, so "0 of 254" on its own
-               * reads as "there is nothing on this subnet" even when the sweep
-               * found live hosts that simply did not answer SNMP. Both extra
-               * lines below exist to keep a zero from being mistaken for an
-               * empty network: the ping-only tally, and the probe's own
-               * explanation of the sweep — which was already being stored and
-               * fetched, and was simply never rendered anywhere.
-               */
               return (
-                <div>
-                  <div className="text-sm text-gray-900">
-                    {outcome.respondedHostSummary}
-                  </div>
-                  {/*
-                   * "Scanning - 1,024 of 15,360 addresses swept so far".
-                   *
-                   * Without it the line above is read as this sweep's verdict
-                   * on the range, and a long scan that is working perfectly
-                   * looks like a finished scan of the wrong subnet (OneUptime
-                   * issue #3598). Blue rather than grey because it is the one
-                   * line here that describes something still happening.
-                   */}
-                  {outcome.progressSummary && (
-                    <div className="text-xs text-blue-600">
-                      {outcome.progressSummary}
-                    </div>
+                <div className="min-w-36 max-w-48 space-y-1">
+                  {!outcome.hasReported ||
+                  isWaitingForDiscoveryProgress(item) ||
+                  item.status === DiscoveryScanStatus.Pending ? (
+                    <span className="text-xs text-gray-500">
+                      {item.status === DiscoveryScanStatus.Pending
+                        ? "Results will appear when the probe starts."
+                        : outcome.isInProgress
+                          ? "Hosts appear here as they are discovered."
+                          : "No discovery results were reported."}
+                    </span>
+                  ) : (
+                    <>
+                      <p className="text-sm text-gray-900">
+                        {outcome.respondedHostSummary}
+                      </p>
+                      {outcome.pingOnlyHostCount > 0 && (
+                        <p className="text-xs text-gray-500">{`+ ${outcome.pingOnlyHostCount} alive without SNMP`}</p>
+                      )}
+                    </>
                   )}
-                  {outcome.pingOnlyHostCount > 0 && (
-                    <div className="text-xs text-gray-500">
-                      {`+ ${outcome.pingOnlyHostCount} alive without SNMP`}
-                    </div>
-                  )}
-                  {outcome.explanation && (
-                    <div
-                      className="text-xs text-gray-500 mt-1"
-                      title={outcome.explanation}
-                    >
-                      {outcome.explanation}
-                    </div>
-                  )}
+                  {(outcome.isInProgress ||
+                    item.status === DiscoveryScanStatus.Failed) &&
+                    !isWaitingForDiscoveryProgress(item) &&
+                    getDiscoveredHosts(item).length > 0 && (
+                      <p className="text-xs font-medium text-blue-700">
+                        Partial results are ready to review.
+                      </p>
+                    )}
                 </div>
               );
             },
@@ -1539,6 +1583,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
             },
             title: "Recurrence",
             type: FieldType.Element,
+            isHiddenByDefault: true,
             hideOnMobile: true,
             /*
              * Both of this column's second lines are sentences rather than
@@ -1556,6 +1601,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
             wrapContent: true,
             wrapMaxWidthClassName: "max-w-xs",
             getElement: (item: NetworkDeviceDiscoveryScan): ReactElement => {
+              item = liveUpdates.getScan(item);
               if (!item.isRecurring) {
                 return <span className="text-sm text-gray-400">One-time</span>;
               }
@@ -1611,14 +1657,29 @@ const NetworkDeviceDiscovery: FunctionComponent<
           },
           {
             field: {
-              createdAt: true,
+              startedAt: true,
             },
             title: "Started",
             type: FieldType.DateTime,
+            isHiddenByDefault: true,
             hideOnMobile: true,
+            getElement: (item: NetworkDeviceDiscoveryScan): ReactElement => {
+              const startedAt: Date | undefined =
+                liveUpdates.getScan(item).startedAt;
+              return (
+                <span className="text-sm text-gray-600">
+                  {startedAt
+                    ? OneUptimeDate.getDateAsLocalFormattedString(
+                        OneUptimeDate.fromString(startedAt),
+                      )
+                    : "Not started"}
+                </span>
+              );
+            },
           },
         ]}
         selectMoreFields={{
+          completedAt: true,
           scannedHostCount: true,
           discoveredDevices: true,
           /*
@@ -1695,17 +1756,23 @@ const NetworkDeviceDiscovery: FunctionComponent<
              * (project, address), so re-opening the dialog when more hosts
              * arrive costs nothing.
              *
-             * Gated on there being results rather than on the status alone: a
-             * scan that has just been claimed has an empty dialog to offer,
-             * which is a worse answer than no button.
+             * Failed runs can be reviewed too when they reported partial
+             * results before stopping. Pending runs cannot: any old hosts
+             * belong to the preceding run. A newly claimed scan with no hosts
+             * has no review to offer yet.
              */
             isVisible: (item: NetworkDeviceDiscoveryScan): boolean => {
+              item = liveUpdates.getScan(item);
+              if (isWaitingForDiscoveryProgress(item)) {
+                return false;
+              }
               if (item.status === "Completed") {
                 return true;
               }
 
               return (
-                item.status === "In Progress" &&
+                (item.status === DiscoveryScanStatus.InProgress ||
+                  item.status === DiscoveryScanStatus.Failed) &&
                 getDiscoveredHosts(item).length > 0
               );
             },
@@ -1714,7 +1781,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
               onCompleteAction: VoidFunction,
             ) => {
               try {
-                await openReviewModal(item);
+                await openReviewModal(liveUpdates.getScan(item));
               } finally {
                 onCompleteAction();
               }
@@ -1825,6 +1892,25 @@ const NetworkDeviceDiscovery: FunctionComponent<
             });
           }}
         >
+          {scanToReview.status === DiscoveryScanStatus.InProgress ||
+          scanToReview.status === DiscoveryScanStatus.Failed ? (
+            <Alert
+              type={AlertType.INFO}
+              strongTitle={
+                scanToReview.status === DiscoveryScanStatus.InProgress
+                  ? "This scan is still running"
+                  : "These are partial results"
+              }
+              title={
+                scanToReview.status === DiscoveryScanStatus.InProgress
+                  ? "You can import the hosts found so far. This review is a snapshot; close it and reopen Review Results to see newly discovered hosts."
+                  : "The scan stopped before it finished, but the hosts it already found are available to import."
+              }
+            />
+          ) : (
+            <></>
+          )}
+
           <div>
             {reviewEntries.length > 0 && (
               <div className="mb-3 border-b border-gray-200 pb-3">

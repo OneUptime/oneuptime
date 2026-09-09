@@ -5,6 +5,7 @@ import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import NetworkDeviceDiscoveryScanService from "Common/Server/Services/NetworkDeviceDiscoveryScanService";
 import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
+import { DISCOVERY_SCAN_STARTED_MESSAGE } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
 import Probe, {
   ProbeConnectionStatus,
 } from "Common/Models/DatabaseModels/Probe";
@@ -58,6 +59,10 @@ RunCron(
   "NetworkDeviceDiscovery:RequeueRecurringScans",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    const staleBefore: Date = OneUptimeDate.getSomeHoursAgo(
+      STALE_IN_PROGRESS_HOURS,
+    );
+
     /*
      * Rescue scans stranded In Progress by a dead probe. Without this a
      * recurring scan whose probe died mid-sweep would never be re-queued
@@ -71,9 +76,7 @@ RunCron(
       await NetworkDeviceDiscoveryScanService.findAllBy({
         query: {
           status: "In Progress",
-          startedAt: QueryHelper.lessThan(
-            OneUptimeDate.getSomeHoursAgo(STALE_IN_PROGRESS_HOURS),
-          ),
+          startedAt: QueryHelper.lessThan(staleBefore),
           /*
            * ...and SILENT for that long, not merely running for it.
            *
@@ -96,14 +99,13 @@ RunCron(
            * (an older probe that reports nothing until the end) reaped exactly
            * as it was before.
            */
-          updatedAt: QueryHelper.lessThan(
-            OneUptimeDate.getSomeHoursAgo(STALE_IN_PROGRESS_HOURS),
-          ),
+          updatedAt: QueryHelper.lessThan(staleBefore),
         },
         select: {
           _id: true,
           name: true,
           cidr: true,
+          statusMessage: true,
         },
         props: {
           isRoot: true,
@@ -111,24 +113,60 @@ RunCron(
       });
 
     for (const scan of staleScans) {
-      logger.warn(
-        `Discovery scan ${scan.id?.toString()} (${ScanNameUtil.getScanLabel(scan)}) has been In Progress and silent for over ${STALE_IN_PROGRESS_HOURS} hour(s); marking it Failed (probe likely went offline mid-scan).`,
-      );
+      /*
+       * Recheck silence in the write itself. A progress upload, final result,
+       * or settings edit can land after the query above; an unconditional
+       * save would then fail a scan that has just resumed or already finished.
+       *
+       * Compare against the cutoff, not the selected updatedAt value: SQL
+       * timestamps retain microseconds that a JavaScript Date cannot round-trip.
+       * This is a trusted, hook-free update of run state only, like the probe's
+       * progress write; no sweep settings or schedule settings are changed.
+       */
+      const completedAt: Date = OneUptimeDate.getCurrentDate();
+      const result: { affected?: number | undefined } =
+        await NetworkDeviceDiscoveryScanService.getRepository()
+          .createQueryBuilder()
+          .update(NetworkDeviceDiscoveryScan)
+          .set({
+            status: "Failed",
+            statusMessage: `The probe reported nothing about this scan for ${STALE_IN_PROGRESS_HOURS} hours - not even progress - so it may have gone offline mid-scan. Any hosts below are the ones it had already found and sent.`,
+            completedAt: completedAt,
+            // Recurring scans become due immediately; ignored for one-shots.
+            nextScanAt: completedAt,
+            /*
+             * Until the first report, a recurring scan retains its previous
+             * run's inventory under the claim message. Retire that inventory
+             * before exposing this failed run. If new progress arrived after
+             * the read, the updatedAt guard below skips this entire write.
+             */
+            ...(scan.statusMessage === DISCOVERY_SCAN_STARTED_MESSAGE
+              ? {
+                  discoveredDevices: (): string => {
+                    return "NULL";
+                  },
+                  scannedHostCount: (): string => {
+                    return "NULL";
+                  },
+                  respondedHostCount: (): string => {
+                    return "NULL";
+                  },
+                }
+              : {}),
+          })
+          .where('"_id" = :scanId', { scanId: scan.id!.toString() })
+          .andWhere('"status" = :status', { status: "In Progress" })
+          .andWhere(
+            '"startedAt" < :staleBefore AND "updatedAt" < :staleBefore',
+            { staleBefore: staleBefore },
+          )
+          .execute();
 
-      await NetworkDeviceDiscoveryScanService.updateOneById({
-        id: scan.id!,
-        // Cast: same DeepPartial-recursion workaround as below.
-        data: {
-          status: "Failed",
-          statusMessage: `The probe reported nothing about this scan for ${STALE_IN_PROGRESS_HOURS} hours - not even progress - so it may have gone offline mid-scan. Any hosts below are the ones it had already found and sent.`,
-          completedAt: OneUptimeDate.getCurrentDate(),
-          // Recurring scans become due immediately; ignored for one-shots.
-          nextScanAt: OneUptimeDate.getCurrentDate(),
-        } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
-        props: {
-          isRoot: true,
-        },
-      });
+      if (result.affected) {
+        logger.warn(
+          `Discovery scan ${scan.id?.toString()} (${ScanNameUtil.getScanLabel(scan)}) has been In Progress and silent for over ${STALE_IN_PROGRESS_HOURS} hour(s); marking it Failed (probe likely went offline mid-scan).`,
+        );
+      }
     }
 
     const dueScans: Array<NetworkDeviceDiscoveryScan> =

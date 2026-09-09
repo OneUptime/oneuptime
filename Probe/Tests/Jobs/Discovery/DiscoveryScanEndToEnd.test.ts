@@ -64,7 +64,17 @@ afterEach(() => {
 });
 
 function reportedResult(): JSONObject {
-  const call: Array<unknown> = fetchSpy.mock.calls[0] as Array<unknown>;
+  const call: Array<unknown> | undefined = fetchSpy.mock.calls.find(
+    (candidate: Array<unknown>): boolean => {
+      const data: JSONObject = (candidate[0] as JSONObject)[
+        "data"
+      ] as JSONObject;
+      return data["isPartial"] !== true;
+    },
+  );
+  if (!call) {
+    throw new Error("The sweep did not upload a terminal discovery result.");
+  }
   return (call[0] as JSONObject)["data"] as JSONObject;
 }
 
@@ -109,6 +119,11 @@ describe("discovery on a subnet where ICMP is filtered", () => {
     networkWhereIcmpIsFilteredAndSnmpWorks(["10.244.102.2", "10.244.102.5"]);
 
     await runScan(makeScan());
+
+    const firstUpload: JSONObject = fetchSpy.mock.calls[0]![0]
+      .data as JSONObject;
+    expect(firstUpload["isPartial"]).toBe(true);
+    expect(reportedResult()["isPartial"]).not.toBe(true);
 
     const devices: Array<JSONObject> = reportedDevices();
     expect(
