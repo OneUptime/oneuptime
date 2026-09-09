@@ -4,6 +4,7 @@ import { describe, expect, test } from "@jest/globals";
 import { getMetadataArgsStorage } from "typeorm";
 import { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
+import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import AllModelTypes from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import UserNotificationEmailRollupBatch from "../../../Models/DatabaseModels/UserNotificationEmailRollupBatch";
@@ -22,6 +23,8 @@ import {
 } from "../../../Server/Utils/EmailRollup/EmailRollupConstants";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import Dictionary from "../../../Types/Dictionary";
+import ColumnLength from "../../../Types/Database/ColumnLength";
+import ColumnType from "../../../Types/Database/ColumnType";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import GenericFunction from "../../../Types/GenericFunction";
 import ObjectID from "../../../Types/ObjectID";
@@ -451,6 +454,40 @@ describe("the indexes each table cannot work without", () => {
     for (const index of compositeIndexes(UserNotificationEmailRollupItem)) {
       expect(index.unique).toBe(false);
     }
+  });
+});
+
+describe("severity and state snapshots remain compatible with pending notifications", () => {
+  test.each(["severity", "currentState"])(
+    "%s is a nullable bounded text column with no default or relation",
+    (name: string) => {
+      const column: ColumnMetadataArgs | undefined =
+        getMetadataArgsStorage().columns.find(
+          (entry: ColumnMetadataArgs): boolean => {
+            return (
+              entry.target === UserNotificationEmailRollupItem &&
+              entry.propertyName === name
+            );
+          },
+        );
+
+      expect(column).toBeDefined();
+      expect(column?.options.type).toBe(ColumnType.ShortText);
+      expect(column?.options.length).toBe(ColumnLength.ShortText);
+      expect(column?.options.nullable).toBe(true);
+      expect(column?.options.default).toBeUndefined();
+      expect(
+        relationArgs(UserNotificationEmailRollupItem, name),
+      ).toBeUndefined();
+    },
+  );
+
+  test("new legacy-shaped queue items have no invented severity or state", () => {
+    const item: UserNotificationEmailRollupItem =
+      new UserNotificationEmailRollupItem();
+
+    expect(item.severity).toBeUndefined();
+    expect(item.currentState).toBeUndefined();
   });
 });
 

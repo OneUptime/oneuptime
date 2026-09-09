@@ -63,6 +63,8 @@ interface ItemInput {
   eventType?: NotificationSettingEventType | undefined;
   viewLink?: string | undefined;
   rollupCategory?: RollupCategory | undefined;
+  severity?: string | undefined;
+  currentState?: string | undefined;
 }
 
 type MakeItemFunction = (input: ItemInput) => UserNotificationEmailRollupItem;
@@ -87,6 +89,14 @@ const makeItem: MakeItemFunction = (
 
   if (input.viewLink !== undefined) {
     item.viewLink = input.viewLink;
+  }
+
+  if (input.severity !== undefined) {
+    item.severity = input.severity;
+  }
+
+  if (input.currentState !== undefined) {
+    item.currentState = input.currentState;
   }
 
   return item;
@@ -342,6 +352,289 @@ describe("foldItems", () => {
   test("an empty list folds to no rows", () => {
     expect(foldItems([])).toEqual([]);
   });
+});
+
+describe("foldItems notification details", () => {
+  const link: string =
+    "https://oneuptime.example.com/dashboard/p1/incidents/i1";
+
+  test.each([RollupCategory.Incidents, RollupCategory.Alerts])(
+    "%s details follow the newest notification even when input is unsorted",
+    (category: RollupCategory) => {
+      const rows: Array<RollupRow> = foldItems([
+        makeItem({
+          createdAt: at(120),
+          subject: "Checkout recovered",
+          viewLink: link,
+          rollupCategory: category,
+          severity: "SEV 2 — Degraded",
+          currentState: "Resolved",
+        }),
+        makeItem({
+          createdAt: at(0),
+          subject: "Checkout is down",
+          viewLink: link,
+          rollupCategory: category,
+          severity: "SEV 1 — Critical",
+          currentState: "Created",
+        }),
+        makeItem({
+          createdAt: at(60),
+          subject: "Checkout acknowledged",
+          viewLink: link,
+          rollupCategory: category,
+          severity: "SEV 1 — Critical",
+          currentState: "Investigating",
+        }),
+      ]);
+
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        title: "Checkout recovered",
+        severity: "SEV 2 — Degraded",
+        currentState: "Resolved",
+        category: category,
+        itemCount: 3,
+        firstAtMs: at(0).getTime(),
+        latestAtMs: at(120).getTime(),
+      });
+    },
+  );
+
+  test("the last notification wins both title and details when timestamps tie", () => {
+    const rows: Array<RollupRow> = foldItems([
+      makeItem({
+        createdAt: at(60),
+        subject: "Investigating",
+        viewLink: link,
+        severity: "Critical",
+        currentState: "Acknowledged",
+      }),
+      makeItem({
+        createdAt: at(60),
+        subject: "Recovered",
+        viewLink: link,
+        severity: "Warning",
+        currentState: "Resolved",
+      }),
+    ]);
+
+    expect(rows[0]).toMatchObject({
+      title: "Recovered",
+      severity: "Warning",
+      currentState: "Resolved",
+      itemCount: 2,
+    });
+  });
+
+  test.each([60, 120])(
+    "missing details on the latest notification clear older values at second %i",
+    (latestOffset: number) => {
+      const rows: Array<RollupRow> = foldItems([
+        makeItem({
+          createdAt: at(60),
+          subject: "Original notification",
+          viewLink: link,
+          severity: "Critical",
+          currentState: "Created",
+        }),
+        makeItem({
+          createdAt: at(latestOffset),
+          subject: "Latest notification without details",
+          viewLink: link,
+        }),
+      ]);
+
+      expect(rows[0]).toMatchObject({
+        title: "Latest notification without details",
+        severity: "",
+        currentState: "",
+      });
+    },
+  );
+
+  test("a latest state without severity does not inherit the previous severity", () => {
+    const rows: Array<RollupRow> = foldItems([
+      makeItem({
+        createdAt: at(0),
+        subject: "Original",
+        viewLink: link,
+        severity: "Critical",
+        currentState: "Created",
+      }),
+      makeItem({
+        createdAt: at(60),
+        subject: "Latest",
+        viewLink: link,
+        currentState: "Resolved",
+      }),
+    ]);
+
+    expect(rows[0]).toMatchObject({ severity: "", currentState: "Resolved" });
+  });
+
+  test("a latest severity without state does not inherit the previous state", () => {
+    const rows: Array<RollupRow> = foldItems([
+      makeItem({
+        createdAt: at(0),
+        subject: "Original",
+        viewLink: link,
+        severity: "Critical",
+        currentState: "Created",
+      }),
+      makeItem({
+        createdAt: at(60),
+        subject: "Latest",
+        viewLink: link,
+        severity: "Warning",
+      }),
+    ]);
+
+    expect(rows[0]).toMatchObject({ severity: "Warning", currentState: "" });
+  });
+
+  test("details remain attached to their own resource when rows are sorted and sectioned", () => {
+    const email: RollupEmail = build([
+      makeItem({
+        createdAt: at(0),
+        subject: "Database incident",
+        viewLink: link,
+        severity: "Critical",
+        currentState: "Investigating",
+      }),
+      makeItem({
+        createdAt: at(120),
+        subject: "Disk alert",
+        viewLink: "https://oneuptime.example.com/dashboard/p1/alerts/a1",
+        rollupCategory: RollupCategory.Alerts,
+        severity: "Warning",
+        currentState: "Resolved",
+      }),
+      makeItem({
+        createdAt: at(60),
+        subject: "API incident",
+        viewLink: "https://oneuptime.example.com/dashboard/p1/incidents/i2",
+        severity: "Major",
+        currentState: "Acknowledged",
+      }),
+    ]);
+
+    expect(varRows(email)).toMatchObject([
+      {
+        title: "API incident",
+        severity: "Major",
+        currentState: "Acknowledged",
+      },
+      {
+        title: "Database incident",
+        severity: "Critical",
+        currentState: "Investigating",
+      },
+      { title: "Disk alert", severity: "Warning", currentState: "Resolved" },
+    ]);
+  });
+});
+
+describe("buildRollupEmail notification details", () => {
+  test.each([RollupCategory.Incidents, RollupCategory.Alerts])(
+    "%s rows expose the exact custom labels as raw text for Handlebars escaping",
+    (category: RollupCategory) => {
+      const severity: string = 'P0 <urgent> & "customer-facing"';
+      const currentState: string = "L'équipe enquête — {{customState}}";
+      const email: RollupEmail = build([
+        makeItem({
+          createdAt: at(0),
+          subject: "Service update",
+          rollupCategory: category,
+          severity: severity,
+          currentState: currentState,
+        }),
+      ]);
+
+      expect(varRows(email)[0]).toMatchObject({
+        severity: severity,
+        currentState: currentState,
+        hasSeverity: "true",
+        hasCurrentState: "true",
+        hasDetails: "true",
+      });
+    },
+  );
+
+  test("a row with only a severity shows only the available detail", () => {
+    const email: RollupEmail = build([
+      makeItem({ createdAt: at(0), subject: "Alert", severity: "Critical" }),
+    ]);
+
+    expect(varRows(email)[0]).toMatchObject({
+      severity: "Critical",
+      currentState: "",
+      hasSeverity: "true",
+      hasCurrentState: "false",
+      hasDetails: "true",
+    });
+  });
+
+  test("a row with only a state shows only the available detail", () => {
+    const email: RollupEmail = build([
+      makeItem({
+        createdAt: at(0),
+        subject: "Alert",
+        currentState: "Resolved",
+      }),
+    ]);
+
+    expect(varRows(email)[0]).toMatchObject({
+      severity: "",
+      currentState: "Resolved",
+      hasSeverity: "false",
+      hasCurrentState: "true",
+      hasDetails: "true",
+    });
+  });
+
+  test.each(ROLLUP_CATEGORY_ORDER)(
+    "legacy %s rows without saved details omit the details block",
+    (category: RollupCategory) => {
+      const email: RollupEmail = build([
+        makeItem({
+          createdAt: at(0),
+          subject: "Legacy notification",
+          rollupCategory: category,
+        }),
+      ]);
+
+      expect(varRows(email)[0]).toMatchObject({
+        title: "Legacy notification",
+        severity: "",
+        currentState: "",
+        hasSeverity: "false",
+        hasCurrentState: "false",
+        hasDetails: "false",
+      });
+    },
+  );
+
+  test.each([null, "", "   \t\n"])(
+    "null or blank saved details (%j) do not produce empty metadata labels",
+    (detail: string | null) => {
+      const item: UserNotificationEmailRollupItem = makeItem({
+        createdAt: at(0),
+        subject: "Legacy notification",
+      });
+
+      // Nullable database columns can hydrate as null on older queued rows.
+      Object.assign(item, { severity: detail, currentState: detail });
+
+      expect(varRows(build([item]))[0]).toMatchObject({
+        severity: "",
+        currentState: "",
+        hasSeverity: "false",
+        hasCurrentState: "false",
+        hasDetails: "false",
+      });
+    },
+  );
 });
 
 describe("buildRollupEmail category counts", () => {
@@ -792,7 +1085,7 @@ describe("buildRollupEmail singular and plural copy", () => {
 });
 
 describe("buildRollupEmail variable set", () => {
-  test("every variable the template needs is present, and rows carry exactly eight fields", () => {
+  test("every variable the template needs is present, including optional notification details", () => {
     const email: RollupEmail = build([
       makeItem({
         createdAt: at(0),
@@ -825,13 +1118,18 @@ describe("buildRollupEmail variable set", () => {
      */
     expect(Object.keys(varRows(email)[0]!).sort()).toEqual(
       [
+        "currentState",
+        "hasCurrentState",
+        "hasDetails",
         "hasLink",
+        "hasSeverity",
         "isSectionStart",
         "link",
         "metaLabel",
         "rowBackground",
         "sectionCount",
         "sectionLabel",
+        "severity",
         "title",
       ].sort(),
     );

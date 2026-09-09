@@ -39,6 +39,11 @@ import RollupCategory, {
  *   rows[].link             raw          our own table, href="{{this.link}}"
  *   rows[].hasLink          raw          {{#ifCond this.hasLink "true"}}
  *   rows[].metaLabel        raw          our own table, {{this.metaLabel}}
+ *   rows[].severity         raw          our own table, {{this.severity}}
+ *   rows[].currentState     raw          our own table, {{this.currentState}}
+ *   rows[].hasSeverity      raw          {{#ifCond this.hasSeverity "true"}}
+ *   rows[].hasCurrentState  raw          {{#ifCond this.hasCurrentState "true"}}
+ *   rows[].hasDetails       raw          {{#ifCond this.hasDetails "true"}}
  *   rows[].isSectionStart   raw          {{#ifCond this.isSectionStart "true"}}
  *   rows[].sectionLabel     raw          our own section heading
  *   rows[].sectionCount     raw          our own section heading
@@ -74,6 +79,8 @@ export interface RollupRow {
   title: string;
   link: string;
   hasLink: string;
+  severity: string;
+  currentState: string;
   itemCount: number;
   category: RollupCategory;
   firstAtMs: number;
@@ -201,6 +208,8 @@ interface RollupGroup {
   firstAt: number;
   title: string;
   link: string;
+  severity: string;
+  currentState: string;
   category: RollupCategory;
   itemCount: number;
 }
@@ -209,6 +218,14 @@ interface CategoryCount {
   label: string;
   count: number;
 }
+
+type NormaliseDetailFunction = (value: string | undefined) => string;
+
+const normaliseDetail: NormaliseDetailFunction = (
+  value: string | undefined,
+): string => {
+  return typeof value === "string" && value.trim() !== "" ? value : "";
+};
 
 /*
  * Collapse the raw notification list into the rows a human reads.
@@ -244,6 +261,8 @@ export const foldItems: FoldItemsFunction = (
         firstAt: createdAtMs,
         title: item.subject ?? "",
         link: link,
+        severity: normaliseDetail(item.severity),
+        currentState: normaliseDetail(item.currentState),
         category: normaliseCategory(item.rollupCategory),
         itemCount: 1,
       });
@@ -271,6 +290,10 @@ export const foldItems: FoldItemsFunction = (
       existing.latestAt = createdAtMs;
       existing.title = item.subject ?? "";
       existing.link = link;
+      // All details describe the same notification as the title. Clearing a
+      // missing latest value avoids presenting an older snapshot as current.
+      existing.severity = normaliseDetail(item.severity);
+      existing.currentState = normaliseDetail(item.currentState);
       /*
        * The category follows the LATEST item too. A group is keyed on its deep
        * link, and two events about one resource can in principle be filed
@@ -295,6 +318,8 @@ export const foldItems: FoldItemsFunction = (
       title: group.title,
       link: group.link,
       hasLink: group.link === "" ? "false" : "true",
+      severity: group.severity,
+      currentState: group.currentState,
       itemCount: group.itemCount,
       category: group.category,
       firstAtMs: group.firstAt,
@@ -689,6 +714,12 @@ export const buildRollupEmail: BuildRollupEmailFunction = (
         link: row.link,
         hasLink: row.hasLink,
         metaLabel: metaLabel,
+        severity: row.severity,
+        currentState: row.currentState,
+        hasSeverity: row.severity === "" ? "false" : "true",
+        hasCurrentState: row.currentState === "" ? "false" : "true",
+        hasDetails:
+          row.severity !== "" || row.currentState !== "" ? "true" : "false",
         /*
          * The heading is emitted by the first row of the section rather than
          * by an entry of its own, so every element of this array is a real

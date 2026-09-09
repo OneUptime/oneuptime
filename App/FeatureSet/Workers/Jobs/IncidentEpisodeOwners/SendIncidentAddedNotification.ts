@@ -143,6 +143,9 @@ RunCron(
             currentIncidentState: {
               name: true,
             } as Select<IncidentState>,
+            incidentSeverity: {
+              name: true,
+            },
             episodeNumber: true,
             episodeNumberWithPrefix: true,
           },
@@ -306,6 +309,7 @@ RunCron(
             episodeNumber: episodeNumberStr,
             projectName: episode.project!.name!,
             currentState: episode.currentIncidentState?.name || "Not Set",
+            episodeSeverity: episode.incidentSeverity?.name || "Not Set",
             incidentCount: incidentCountInBatch.toString(),
             incidentCountLabel:
               incidentCountInBatch === 1 ? "incident" : "incidents",

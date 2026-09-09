@@ -69,6 +69,8 @@ export interface FakeItemRow {
   eventType: NotificationSettingEventType;
   rollupCategory: RollupCategory;
   subject: string;
+  severity: string | null;
+  currentState: string | null;
   viewLink: string | null;
   sentAt: Date | null;
   rollupBatchId: ObjectID | null;
@@ -345,6 +347,8 @@ export function seedItem(
     toEmail: Email;
     createdAt: Date;
     subject?: string | undefined;
+    severity?: string | null | undefined;
+    currentState?: string | null | undefined;
     eventType?: NotificationSettingEventType | undefined;
     rollupCategory?: RollupCategory | undefined;
     viewLink?: string | null | undefined;
@@ -364,6 +368,8 @@ export function seedItem(
       NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
     rollupCategory: data.rollupCategory ?? RollupCategory.Incidents,
     subject: data.subject ?? `Incident created ${id.toString()}`,
+    severity: data.severity ?? null,
+    currentState: data.currentState ?? null,
     viewLink: data.viewLink ?? null,
     sentAt: data.sentAt ?? null,
     rollupBatchId: data.rollupBatchId ?? null,

@@ -40,8 +40,9 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * this customer" without adding telemetry.
  *
  * WHAT IS DELIBERATELY NOT STORED: the envelope vars, the template type, and
- * any rendered body. A rollup line is eventType + subject + an optional deep
- * link. Storing envelopes would multiply row size roughly fiftyfold, add a
+ * any rendered body. A rollup line stores eventType, subject, an optional deep
+ * link, and the severity and state names shown in alert/incident emails.
+ * Storing envelopes would multiply row size roughly fiftyfold, add a
  * stale-template bug class the moment a template changes under a queued row,
  * and buy nothing a reader of the rollup email ever sees.
  *
@@ -290,6 +291,46 @@ export default class UserNotificationEmailRollupItem extends BaseModel {
     nullable: false,
   })
   public subject?: string = undefined;
+
+  /*
+   * Snapshot the labels in the original notification so a later state change
+   * or rename cannot make a queued event describe a different point in time.
+   * Nullable for older queue items and notification families without these
+   * details. These names use the same length as severity and state models.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Severity",
+    description: "Severity name when this notification was queued",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public severity?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Current State",
+    description: "State name when this notification was queued",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public currentState?: string = undefined;
 
   /*
    * The deep link back into the dashboard, lifted out of the envelope vars,

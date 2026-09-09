@@ -84,6 +84,8 @@ interface ItemInput {
   subject: string;
   viewLink?: string | undefined;
   rollupCategory?: RollupCategory | undefined;
+  severity?: string | undefined;
+  currentState?: string | undefined;
 }
 
 type MakeItemFunction = (input: ItemInput) => UserNotificationEmailRollupItem;
@@ -99,6 +101,12 @@ const makeItem: MakeItemFunction = (
   item.eventType =
     NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION;
   item.rollupCategory = input.rollupCategory ?? RollupCategory.Incidents;
+  if (input.severity !== undefined) {
+    item.severity = input.severity;
+  }
+  if (input.currentState !== undefined) {
+    item.currentState = input.currentState;
+  }
 
   if (input.viewLink !== undefined) {
     item.viewLink = input.viewLink;
@@ -591,6 +599,152 @@ describe("NotificationRollup.hbs escaping", () => {
   });
 });
 
+describe("NotificationRollup.hbs severity, state and card spacing", () => {
+  test.each([
+    RollupCategory.Alerts,
+    RollupCategory.Incidents,
+    RollupCategory.AlertEpisodes,
+    RollupCategory.IncidentEpisodes,
+  ])(
+    "renders severity and state from the latest %s notification",
+    (category: RollupCategory) => {
+      const html: string = render(
+        EmailTemplateType.NotificationRollup,
+        build([
+          makeItem({
+            offsetSeconds: 0,
+            subject: "Initial notification",
+            viewLink: INCIDENT_LINK,
+            rollupCategory: category,
+            severity: "Critical",
+            currentState: "Created",
+          }),
+          makeItem({
+            offsetSeconds: 60,
+            subject: "Latest notification",
+            viewLink: INCIDENT_LINK,
+            rollupCategory: category,
+            severity: "High",
+            currentState: "Acknowledged",
+          }),
+        ]).vars,
+      );
+
+      expect(html).toContain("Severity: <strong>High</strong>");
+      expect(html).toContain("State: <strong>Acknowledged</strong>");
+      expect(html).toContain("Latest notification");
+      expect(html).toContain("2 updates · latest 12:01 UTC");
+      expect(html).not.toContain("<strong>Critical</strong>");
+      expect(html).not.toContain("<strong>Created</strong>");
+    },
+  );
+
+  test("escapes custom severity and state names exactly once", () => {
+    const html: string = render(
+      EmailTemplateType.NotificationRollup,
+      build([
+        makeItem({
+          offsetSeconds: 0,
+          subject: "Custom labels",
+          severity: 'High & <urgent> "customer"',
+          currentState: "Investigating <external> & 'waiting'",
+        }),
+      ]).vars,
+    );
+
+    expect(html).toContain(
+      "Severity: <strong>High &amp; &lt;urgent&gt; &quot;customer&quot;</strong>",
+    );
+    expect(html).toContain(
+      "State: <strong>Investigating &lt;external&gt; &amp; &#x27;waiting&#x27;</strong>",
+    );
+    expect(html).not.toContain("<urgent>");
+    expect(html).not.toContain("<external>");
+    expect(html).not.toContain("&amp;lt;");
+  });
+
+  test.each([
+    { severity: undefined, currentState: undefined, labels: [] },
+    { severity: "Low", currentState: undefined, labels: ["Severity:"] },
+    { severity: undefined, currentState: "Resolved", labels: ["State:"] },
+  ])(
+    "omits unavailable labels for legacy and partial metadata: %j",
+    (input) => {
+      const html: string = render(
+        EmailTemplateType.NotificationRollup,
+        build([
+          makeItem({
+            offsetSeconds: 0,
+            subject: "Existing queued notification",
+            severity: input.severity,
+            currentState: input.currentState,
+          }),
+        ]).vars,
+      );
+
+      const expectedLabels: ReadonlyArray<string> = input.labels;
+      for (const label of ["Severity:", "State:"]) {
+        expect(html.includes(label)).toBe(expectedLabels.includes(label));
+      }
+      expect(html).not.toContain("<strong></strong>");
+      expect(html).toContain("Existing queued notification");
+    },
+  );
+
+  test("does not render stale labels when the newest event has no metadata", () => {
+    const html: string = render(
+      EmailTemplateType.NotificationRollup,
+      build([
+        makeItem({
+          offsetSeconds: 0,
+          subject: "Old notification",
+          viewLink: INCIDENT_LINK,
+          severity: "Critical",
+          currentState: "Created",
+        }),
+        makeItem({
+          offsetSeconds: 60,
+          subject: "New notification",
+          viewLink: INCIDENT_LINK,
+        }),
+      ]).vars,
+    );
+
+    expect(html).not.toContain("Severity:");
+    expect(html).not.toContain("State:");
+    expect(html).toContain("New notification");
+  });
+
+  test("inserts a fixed-height email-compatible spacer between every pair of cards in a section", () => {
+    const html: string = render(
+      EmailTemplateType.NotificationRollup,
+      zebraEmail(5).vars,
+    );
+    const spacers: Array<RegExpMatchArray> = Array.from(
+      html.matchAll(
+        /<tr aria-hidden="true">\s*<td colspan="2" height="12" style="([^"]*)">&nbsp;<\/td>\s*<\/tr>\s*<tr style="background-color:/g,
+      ),
+    );
+
+    expect(spacers).toHaveLength(4);
+    for (const spacer of spacers) {
+      expect(spacer[1]).toContain("height: 12px;");
+      expect(spacer[1]).toContain("line-height: 12px;");
+      expect(spacer[1]).toContain("mso-line-height-rule: exactly;");
+    }
+    expect(renderedRowBackgrounds(html)).toHaveLength(5);
+  });
+
+  test("uses section heading padding without adding blank card spacers for single-row sections", () => {
+    const html: string = render(
+      EmailTemplateType.NotificationRollup,
+      standardEmail().vars,
+    );
+    expect(renderedRowBackgrounds(html)).toHaveLength(3);
+    expect(html).not.toContain('<tr aria-hidden="true">');
+  });
+});
+
 describe("NotificationRollup.hbs zebra striping", () => {
   /*
    * The stripe used to be {{#if @odd}} in the template. Handlebars defines
@@ -779,13 +933,18 @@ describe("NotificationRollup.hbs source rules", () => {
      */
     expect(Array.from(references.rowScoped).sort()).toEqual(
       [
+        "currentState",
+        "hasCurrentState",
+        "hasDetails",
         "hasLink",
+        "hasSeverity",
         "isSectionStart",
         "link",
         "metaLabel",
         "rowBackground",
         "sectionCount",
         "sectionLabel",
+        "severity",
         "title",
       ].sort(),
     );

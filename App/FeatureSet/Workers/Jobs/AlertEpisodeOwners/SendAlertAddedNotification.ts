@@ -143,6 +143,9 @@ RunCron(
             currentAlertState: {
               name: true,
             } as Select<AlertState>,
+            alertSeverity: {
+              name: true,
+            },
             episodeNumber: true,
             episodeNumberWithPrefix: true,
           },
@@ -296,6 +299,7 @@ RunCron(
             episodeNumber: episodeNumberStr,
             projectName: episode.project!.name!,
             currentState: episode.currentAlertState?.name || "Not Set",
+            episodeSeverity: episode.alertSeverity?.name || "Not Set",
             alertCount: alertCountInBatch.toString(),
             alertCountLabel: alertCountInBatch === 1 ? "alert" : "alerts",
             remainingCount: remainingCount.toString(),
