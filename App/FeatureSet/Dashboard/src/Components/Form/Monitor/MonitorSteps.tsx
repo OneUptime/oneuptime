@@ -41,6 +41,7 @@ export interface ComponentProps extends CustomElementProps {
   onBlur?: () => void;
   initialValue?: MonitorSteps;
   monitorType: MonitorType;
+  isMonitorTemplate?: boolean | undefined;
   monitorName?: string | undefined; // this is used to prefill incident title and description. If not provided then it will be empty.
   monitorId?: ObjectID | undefined; // this is used to populate secrets when testing the monitor.
 }
@@ -478,6 +479,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           return (
             <MonitorStepElement
               monitorType={props.monitorType}
+              isMonitorTemplate={props.isMonitorTemplate}
               allMonitorSteps={monitorSteps}
               key={index}
               monitorStatusDropdownOptions={monitorStatusDropdownOptions}

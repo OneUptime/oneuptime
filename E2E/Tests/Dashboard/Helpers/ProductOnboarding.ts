@@ -17,6 +17,7 @@ const projectDashboardUrlRegex: RegExp =
 type RegisterAndCreateProjectFunction = (data: {
   page: Page;
   projectNamePrefix: string;
+  email?: string | undefined;
   /*
    * Only used when billing is enabled: selects this plan by its visible name
    * (e.g. "Growth") instead of whichever plan happens to unlock submit first.
@@ -31,6 +32,7 @@ export const registerAndCreateProject: RegisterAndCreateProjectFunction =
   async (data: {
     page: Page;
     projectNamePrefix: string;
+    email?: string | undefined;
     preferredPlanName?: string | undefined;
     enablePaidUsage?: boolean | undefined;
   }): Promise<string> => {
@@ -54,7 +56,7 @@ export const registerAndCreateProject: RegisterAndCreateProjectFunction =
       }
     }
 
-    const email: string = Faker.generateEmail().toString();
+    const email: string = data.email || Faker.generateEmail().toString();
 
     await page.getByTestId("email").click();
     await page.getByTestId("email").fill(email);

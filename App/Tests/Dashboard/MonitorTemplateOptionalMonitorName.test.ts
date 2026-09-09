@@ -255,15 +255,12 @@ describe("Monitor Template criteria seeding survives a blank default name", () =
   test("the view page loads the template name alongside the monitor name", () => {
     const code: string = readCode(MONITOR_TEMPLATES_VIEW);
 
-    expect(code).toContain(
-      squash(`
-        select: {
-          monitorType: true,
-          monitorName: true,
-          templateName: true,
-        },
-      `),
-    );
+    const templateSelect: string | undefined = code.match(
+      /select: \{[^}]*monitorType: true[^}]*\}/,
+    )?.[0];
+    // Additional template data can be fetched without dropping either name.
+    expect(templateSelect).toContain("monitorName: true");
+    expect(templateSelect).toContain("templateName: true");
     expect(code).toContain(
       squash('setTemplateName(item?.templateName?.trim() || "");'),
     );
