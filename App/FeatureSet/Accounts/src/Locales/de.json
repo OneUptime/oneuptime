@@ -164,5 +164,17 @@
     }
   },
   "Acme, Inc.": "Acme, Inc.",
-  "Jeff Smith": "Jeff Smith"
+  "Jeff Smith": "Jeff Smith",
+  "mobilePasskey": {
+    "title": "Bei OneUptime On-Call anmelden",
+    "description": "Verwenden Sie einen für diesen OneUptime-Server gespeicherten Passkey.",
+    "returnDescription": "Nach Ihrer Bestätigung kehren Sie zur mobilen App zurück.",
+    "invalid": "Starten Sie die Anmeldung in der mobilen OneUptime-App. Diese Anfrage fehlt oder ist ungültig.",
+    "insecure": "Passkeys erfordern HTTPS. Kehren Sie zur App zurück und prüfen Sie die Serveradresse.",
+    "failed": "Die Anmeldung konnte nicht abgeschlossen werden. Kehren Sie zur App zurück und versuchen Sie es erneut.",
+    "complete": "Ihr Passkey wurde bestätigt. Kehren Sie zur App zurück, um die Anmeldung abzuschließen.",
+    "returnToApp": "Zurück zur App",
+    "cancel": "Abbrechen und zur App zurückkehren",
+    "setup": "Erstellen Sie im Web-Dashboard unter Benutzerprofil → Passkeys und Zwei-Faktor-Authentifizierung einen Passkey."
+  }
 }

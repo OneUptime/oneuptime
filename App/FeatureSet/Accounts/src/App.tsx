@@ -22,6 +22,11 @@ const ForgotPasswordPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
 const LoginPage: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
   return import("./Pages/Login");
 });
+const MobilePasskeyPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
+  () => {
+    return import("./Pages/MobilePasskey");
+  },
+);
 const LoginWithSSO: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
   return import("./Pages/LoginWithSSO");
 });
@@ -52,6 +57,10 @@ function App(): ReactElement {
           <Routes>
             <Route path="/accounts" element={<LoginPage />} />
             <Route path="/accounts/login" element={<LoginPage />} />
+            <Route
+              path="/accounts/mobile-passkey"
+              element={<MobilePasskeyPage />}
+            />
             <Route path="/accounts/forbidden" element={<ForbiddenPage />} />
             <Route path="/accounts/sso" element={<LoginWithSSO />} />
             <Route

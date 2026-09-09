@@ -164,5 +164,17 @@
     }
   },
   "Acme, Inc.": "Acme, Inc.",
-  "Jeff Smith": "Jeff Smith"
+  "Jeff Smith": "Jeff Smith",
+  "mobilePasskey": {
+    "title": "OneUptime On-Call にサインイン",
+    "description": "この OneUptime サーバー用に保存したパスキーを使用します。",
+    "returnDescription": "承認すると、モバイルアプリに戻ります。",
+    "invalid": "OneUptime モバイルアプリからサインインを開始してください。このリクエストは存在しないか、無効です。",
+    "insecure": "パスキーには HTTPS が必要です。アプリに戻り、サーバーアドレスを確認してください。",
+    "failed": "サインインを完了できませんでした。アプリに戻って、もう一度お試しください。",
+    "complete": "パスキーを確認しました。アプリに戻ってサインインを完了してください。",
+    "returnToApp": "アプリに戻る",
+    "cancel": "キャンセルしてアプリに戻る",
+    "setup": "Web ダッシュボードの「ユーザープロフィール → パスキーと二要素認証」でパスキーを作成してください。"
+  }
 }

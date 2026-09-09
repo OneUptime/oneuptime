@@ -164,5 +164,17 @@
     }
   },
   "Acme, Inc.": "Acme, Inc.",
-  "Jeff Smith": "Jeff Smith"
+  "Jeff Smith": "Jeff Smith",
+  "mobilePasskey": {
+    "title": "Aanmelden bij OneUptime On-Call",
+    "description": "Gebruik een toegangssleutel die voor deze OneUptime-server is opgeslagen.",
+    "returnDescription": "Na je bevestiging keer je terug naar de mobiele app.",
+    "invalid": "Start het aanmelden vanuit de mobiele OneUptime-app. Dit verzoek ontbreekt of is ongeldig.",
+    "insecure": "Toegangssleutels vereisen HTTPS. Ga terug naar de app en controleer het serveradres.",
+    "failed": "Het aanmelden kon niet worden voltooid. Ga terug naar de app en probeer het opnieuw.",
+    "complete": "Je toegangssleutel is geverifieerd. Ga terug naar de app om het aanmelden te voltooien.",
+    "returnToApp": "Terug naar de app",
+    "cancel": "Annuleren en terug naar de app",
+    "setup": "Maak een toegangssleutel via Gebruikersprofiel → Toegangssleutels en tweefactorauthenticatie in het webdashboard."
+  }
 }

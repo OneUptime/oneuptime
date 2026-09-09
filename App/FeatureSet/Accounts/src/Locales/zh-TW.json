@@ -164,5 +164,17 @@
     }
   },
   "Acme, Inc.": "Acme, Inc.",
-  "Jeff Smith": "Jeff Smith"
+  "Jeff Smith": "Jeff Smith",
+  "mobilePasskey": {
+    "title": "登入 OneUptime On-Call",
+    "description": "使用為此 OneUptime 伺服器儲存的通行金鑰。",
+    "returnDescription": "確認後，你將返回行動應用程式。",
+    "invalid": "請從 OneUptime 行動應用程式開始登入。此請求缺失或無效。",
+    "insecure": "通行金鑰需要 HTTPS。請返回應用程式並檢查伺服器位址。",
+    "failed": "無法完成登入。請返回應用程式重試。",
+    "complete": "通行金鑰已驗證。請返回應用程式完成登入。",
+    "returnToApp": "返回應用程式",
+    "cancel": "取消並返回應用程式",
+    "setup": "在網頁控制台的「使用者個人資料 → 通行金鑰和雙重驗證」中建立通行金鑰。"
+  }
 }
