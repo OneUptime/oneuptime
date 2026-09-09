@@ -13,9 +13,8 @@ import nodePath from "path";
  * rejected it". Neither is what the code does:
  *
  *  - the stored string is synthetic. GoogleSecOpsClient builds a prefix
- *    naming the step plus the HTTP status, appends only the FIRST slice of
- *    the response body, and ConnectorErrorMessage then clamps the whole
- *    thing and appends a truncation marker. Nothing about it is verbatim.
+ *    naming the step plus the HTTP status and redacts credentials from
+ *    the complete diagnostic. Nothing about it is verbatim.
  *  - the same catch block in GoogleSecOpsPoller.pollAllDueConnections
  *    stores failures Chronicle never saw. A token exchange failure comes
  *    from the OAuth endpoint in the customer's own service-account JSON,
@@ -35,14 +34,14 @@ import nodePath from "path";
  *  2. every message prefix the texts quote is really thrown by
  *     GoogleSecOpsClient, and every HTTP-error template the client can
  *     throw is named by both texts,
- *  3. the slice limit, the clamp and the truncation marker the texts
- *     describe are the ones the code actually applies,
+ *  3. the complete-error and copy guidance matches the untruncated,
+ *     credential-redacted diagnostic the connector now stores,
  *  4. "Last Polled: Never with an empty Last Error means the worker never
  *     ran" is genuinely unreachable once a poll has been attempted.
  *
- * Every constant is parsed back out of the producing source rather than
- * written down here, so renaming a message or moving a limit breaks this
- * test instead of quietly invalidating it.
+ * Message prefixes are read from their producing source so a rename cannot
+ * quietly invalidate the troubleshooting guidance. Behavioral client and UI
+ * suites separately verify long messages, redaction and clipboard contents.
  *
  * Sources are read as TEXT, the same choice as
  * App/Tests/Dashboard/SecurityEventsSetupGuide.test.ts: react is a
@@ -73,36 +72,22 @@ const CLIENT_API_EXCEPTION_PATTERN: RegExp =
 const THROWN_MESSAGE_PATTERN: RegExp =
   /new\s+(?:APIException|Error)\(\s*(?:`([^`]*)`|"((?:[^"\\]|\\.)*)")/g;
 /*
- * Matches every truncation the client applies, whether the bound is written
- * inline (`responseText.slice(0, 500)`) or named (`text.slice(0,
- * BODY_ECHO_LIMIT)`). Pinning only the inline form is what let four further
- * echo sites appear without a single assertion here noticing them.
+ * Detects length-based cuts in diagnostic strings, whether the bound is
+ * written inline or named. These would invalidate the full-error guidance.
  */
-const BODY_ECHO_PATTERN: RegExp = /\.slice\(\s*0\s*,\s*(\w+)\s*\)/g;
-/*
- * The same echo as it appears interpolated inside an error template, with
- * the bound left unpinned for the same reason: inline and named spellings
- * mean the same width, and the worst-case builder must not care which.
- */
-const BODY_ECHO_INTERPOLATION: RegExp =
-  /\$\{responseText\.slice\(\s*0\s*,\s*\w+\s*\)\}/;
+const DIAGNOSTIC_SLICE_PATTERN: RegExp = /\.slice\(\s*0\s*,\s*\w+\s*\)/;
 /* Matches a quoted key in an object literal, e.g. the query parameter names. */
 const QUOTED_KEY_PATTERN: RegExp = /"([^"]+)"\s*:/g;
-/* Matches a `return "..."` / `return `...`` operator hint. */
-const RETURNED_LITERAL_PATTERN: RegExp =
-  /return\s+(?:`([^`]*)`|"((?:[^"\\]|\\.)*)")/g;
 /* Matches the client's request-timeout constant. */
 const REQUEST_TIMEOUT_PATTERN: RegExp =
   /REQUEST_TIMEOUT_IN_SECONDS:\s*number\s*=\s*(\d+)/;
 /* Matches the body of the client's "unknown query parameter" 400 detector. */
 const UNKNOWN_FIELD_PATTERN_SOURCE: RegExp =
   /UNKNOWN_FIELD_PATTERN:\s*RegExp\s*=\s*\/(.+?)\/i;/;
-/* Matches the truncation marker constant in ConnectorErrorMessage.ts. */
-const TRUNCATION_MARKER_PATTERN: RegExp =
-  /TRUNCATION_MARKER:\s*string\s*=\s*"((?:[^"\\]|\\.)*)"/;
-/* Matches the overall clamp constant in ConnectorErrorMessage.ts. */
-const MAX_MESSAGE_LENGTH_PATTERN: RegExp =
-  /MAX_CONNECTOR_ERROR_MESSAGE_LENGTH:\s*number\s*=\s*(\d+)/;
+const FULL_ERROR_RECORDING_PATTERN: RegExp =
+  /lastError:\s*redactLogString\(\s*ConnectorErrorMessage\.toMessage\(\s*error,\s*\{\s*truncate:\s*false\s*\}/;
+const OBSOLETE_TRUNCATION_GUIDANCE_PATTERN: RegExp =
+  /first\s+(?:500|1000)\s+characters|clamped overall|\(truncated\)/i;
 /* Matches a backticked span that claims to be a connector error message. */
 const GUIDANCE_QUOTED_MESSAGE_PATTERN: RegExp = /`(Google[^`]*)`/g;
 /* Matches the ` (HTTP ...)` tail the docs render in place of the status. */
@@ -296,28 +281,6 @@ function extractBulletBlock(text: string, startsWith: string): string {
 }
 
 /*
- * A slice bound written inline is its own value; a named one is resolved out
- * of the client's `const NAME: number = N` declaration. An unresolvable name
- * throws rather than becoming NaN and satisfying a "they are all equal"
- * check by accident.
- */
-const INLINE_BOUND_PATTERN: RegExp = /^\d+$/;
-
-function resolveNumericToken(token: string, source: string): number {
-  if (INLINE_BOUND_PATTERN.test(token)) {
-    return Number(token);
-  }
-
-  return Number(
-    requireGroup(
-      new RegExp(`\\b${token}\\s*:\\s*number\\s*=\\s*(\\d+)`),
-      source,
-      `the numeric constant ${token}`,
-    ),
-  );
-}
-
-/*
  * Undo the two elisions the prose is allowed to make when it quotes a
  * message it does not want to print in full: the ` (HTTP ...)` status tail,
  * and a trailing ellipsis standing in for the rest of the message.
@@ -415,39 +378,11 @@ const httpErrorPrefixes: Array<string> = clientHttpErrorPrefixByTemplate.map(
   },
 );
 
-/*
- * Every cap the client truncates with, named constants resolved. The
- * guidance quotes exactly ONE number, so what has to hold is that there is
- * only one number to quote.
- */
-const responseSliceLimits: Array<number> = matchAllGroups(
-  BODY_ECHO_PATTERN,
-  clientSource,
-).map((groups: Array<string>): number => {
-  return resolveNumericToken(groups[1] as string, clientSource);
-});
-
-const responseSliceLimit: number = responseSliceLimits[0] as number;
-
 const requestTimeoutInSeconds: number = Number(
   requireGroup(
     REQUEST_TIMEOUT_PATTERN,
     clientSource,
     "REQUEST_TIMEOUT_IN_SECONDS",
-  ),
-);
-
-const truncationMarker: string = requireGroup(
-  TRUNCATION_MARKER_PATTERN,
-  connectorErrorMessageSource,
-  "TRUNCATION_MARKER",
-);
-
-const maxConnectorErrorMessageLength: number = Number(
-  requireGroup(
-    MAX_MESSAGE_LENGTH_PATTERN,
-    connectorErrorMessageSource,
-    "MAX_CONNECTOR_ERROR_MESSAGE_LENGTH",
   ),
 );
 
@@ -486,32 +421,6 @@ const pollAllDueConnectionsBody: string = sliceBetween(
 const pollConnectionBody: string = pollerSource.slice(
   indexOfOrThrow(pollerSource, "public static async pollConnection("),
 );
-
-/*
- * describeHttpFailure appends an operator hint behind the echoed body, so
- * the widest HTTP error is no longer just prefix + slice. Only the hints'
- * literal text is measured here: two of them interpolate values out of
- * Google's ErrorInfo metadata, which carries no documented bound. That
- * residual is exactly why nothing downstream relies on the message fitting —
- * ConnectorErrorMessage clamps it and the column is unbounded text.
- */
-const operatorHintBody: string = sliceBetween(
-  clientSource,
-  "private static hintForReason(",
-  "private static findErrorObject(",
-);
-
-const longestOperatorHintLength: number = Math.max(
-  0,
-  ...matchAllGroups(RETURNED_LITERAL_PATTERN, operatorHintBody).map(
-    (groups: Array<string>): number => {
-      return (groups[1] || groups[2] || "").length;
-    },
-  ),
-);
-
-/* What describeHttpFailure puts between the echoed body and the hint. */
-const HINT_SEPARATOR: string = " — ";
 
 /*
  * Which prefix belongs to which step is read off the method that throws
@@ -605,7 +514,7 @@ const FORBIDDEN_CLAIMS: Array<ForbiddenClaim> = [
     /*
      * "**Last Error** carries verbatim whatever the Chronicle API returned"
      * and "The field carries the API's own message verbatim." The stored
-     * value is a synthetic prefix plus a truncated slice; never verbatim.
+     * value has a synthetic prefix and credential redaction; never verbatim.
      */
     pattern: /\bverbatim\b/i,
     wording: "Last Error carries the API's message verbatim",
@@ -613,7 +522,7 @@ const FORBIDDEN_CLAIMS: Array<ForbiddenClaim> = [
   {
     /*
      * "the connection's **Last Error** field says exactly what the API
-     * returned" — it says at most the first slice of it, behind a prefix.
+     * returned" — credentials are redacted and a step prefix is added.
      */
     pattern: /exactly what the[^.]{0,40}API returned/i,
     wording: "Last Error says exactly what the API returned",
@@ -1194,16 +1103,13 @@ describe("Every error prefix the guidance names is really produced", () => {
 });
 
 /*
- * The failure the customer actually hit, and the one claim in its
- * troubleshooting entry an operator will act on: that the 400 is proof the
- * credential worked. Google authenticates before it transcodes the query
- * string, so a request that reaches parameter binding has already been
- * authenticated — the same request without credentials never gets past 401.
- * Both halves are pinned here: the client really has stopped sending the
- * parameter, and the client's own hint for this 400 really does say it is
- * not a credential problem.
+ * An explicit pageSize rejection identifies a request-contract mismatch.
+ * The correction predates this change, so the next diagnostic step is to
+ * inspect deployed images. Credential acceptance must be established from
+ * a successful token exchange, without assuming authentication ordering
+ * from a parameter-binding error.
  */
-describe("the pageSize 400 is documented as a OneUptime bug, not a bad key", () => {
+describe("the pageSize 400 points to the deployed request parameters", () => {
   const PAGE_SIZE_ERROR_TEXT: string =
     'Unknown name "pageSize": Cannot bind query parameter';
 
@@ -1246,81 +1152,92 @@ describe("the pageSize 400 is documented as a OneUptime bug, not a bad key", () 
   });
 
   for (const guidance of guidanceTexts) {
-    test(`${guidance.name} quotes the error and says not to regenerate the key`, () => {
+    test(`${guidance.name} identifies the existing correction and checks deployed images`, () => {
       expect(guidance.whole).toContain(PAGE_SIZE_ERROR_TEXT);
-      expect(guidance.whole).toMatch(/regenerate/i);
+      expect(guidance.whole).toContain("Upstream **13.0.0** already replaced");
+      expect(guidance.whole).toContain("alertListOptions.maxReturnedAlerts");
+      expect(guidance.whole).toContain("actual app and worker images");
+      expect(guidance.whole).toContain(
+        "Rotating the service-account key does not correct an unsupported query parameter.",
+      );
+      expect(guidance.whole).not.toContain("fixed in this release");
+      expect(guidance.whole).not.toContain("resolved in this release");
+      expect(guidance.whole).not.toContain("Upgrade and the poll succeeds");
+    });
 
-      // The reason, not just the instruction: auth runs before transcoding.
-      expect(guidance.whole).toMatch(/authenticat/i);
+    test(`${guidance.name} distinguishes token acceptance from a parameter rejection`, () => {
+      expect(guidance.whole).toContain(
+        "A successful OAuth token exchange confirms credential acceptance",
+      );
+      expect(guidance.whole).toContain(
+        "the parameter rejection alone does not establish authentication or authorization",
+      );
+      expect(guidance.whole).not.toContain(
+        "Google authenticates a request before it transcodes",
+      );
+      expect(guidance.whole).not.toContain("proof the key was accepted");
+      expect(guidance.whole).not.toContain(
+        "proof the service account was accepted",
+      );
     });
   }
 });
 
-describe("The truncation story the guidance tells is the one the code runs", () => {
-  test("the client caps every body it echoes at one shared limit", () => {
-    /*
-     * Not the two HTTP templates any more: the status-less diagnostics echo
-     * the body they could not read, and describeHttpFailure echoes the
-     * error it summarizes. Both texts quote ONE figure, so what has to hold
-     * is that there is only one figure to quote — whichever site produced
-     * the message, and whether the bound is written inline or named.
-     */
-    expect(responseSliceLimits.length).toBeGreaterThan(2);
-    expect(new Set(responseSliceLimits).size).toBe(1);
-    expect(responseSliceLimit).toBeGreaterThan(0);
+describe("Full-error guidance matches retention, redaction and copy controls", () => {
+  test("the client retains complete HTTP diagnostics with credentials redacted", () => {
+    expect(clientSource).not.toMatch(DIAGNOSTIC_SLICE_PATTERN);
+
+    for (const template of clientHttpErrorTemplates) {
+      expect(template).toContain(
+        "${GoogleSecOpsClient.redactErrorBody(responseText)}",
+      );
+    }
+  });
+
+  test("streamed Google errors retain their structured details", () => {
+    const streamErrorFormatter: string = sliceBetween(
+      clientSource,
+      "private static summarizeErrorObject(",
+      "private static isJsonObject(",
+    );
+
+    expect(streamErrorFormatter).toContain(
+      "JSON.stringify(redactLogValue(error))",
+    );
+    expect(streamErrorFormatter).toContain("redactLogValue(");
+  });
+
+  test("the SecOps poller bypasses the shared message clamp and redacts stored failures", () => {
+    expect(pollAllDueConnectionsBody).toMatch(FULL_ERROR_RECORDING_PATTERN);
+    expect(connectorErrorMessageSource).toContain("options.truncate === false");
+  });
+
+  test("the page implements the documented full-error and copy actions", () => {
+    expect(connectionsPageSource).toContain('title="View Full Error"');
+    expect(connectionsPageSource).toContain('label="Copy Error"');
+    expect(connectionsPageSource).toContain('aria-label="Full error message"');
   });
 
   for (const guidance of guidanceTexts) {
-    test(`${guidance.name} quotes the client's real slice limit`, () => {
+    test(`${guidance.name} describes the complete redacted message and how to copy it`, () => {
       expect(guidance.lastError).toContain(
-        `first ${responseSliceLimit} characters of the response body`,
+        "complete error message with credentials redacted",
       );
-    });
-
-    /*
-     * The marker is quoted as inline code, and — critically — hedged. A
-     * client HTTP error never actually reaches the clamp (see below), so a
-     * text promising the marker unconditionally would be wrong again.
-     */
-    test(`${guidance.name} quotes the real truncation marker, conditionally`, () => {
-      expect(guidance.lastError).toContain(`\`${truncationMarker}\``);
-      expect(guidance.lastError).toMatch(/if it is still too long/i);
+      expect(guidance.lastError).toContain("**View Full Error**");
+      expect(guidance.lastError).toContain("**Copy Error**");
+      expect(guidance.lastError).not.toMatch(
+        OBSOLETE_TRUNCATION_GUIDANCE_PATTERN,
+      );
     });
   }
 
-  test("the overall clamp leaves room for the slice, so the hedge is honest", () => {
-    expect(maxConnectorErrorMessageLength).toBeGreaterThan(responseSliceLimit);
-
-    // The hint really is appended behind the echoed body, not in place of it.
-    expect(clientSource).toContain(`return \`${HINT_SEPARATOR}\${hint}\`;`);
-    expect(longestOperatorHintLength).toBeGreaterThan(0);
-
-    /*
-     * Worst case for a client HTTP error: the longest prefix, a three
-     * digit status, a full body slice, and the longest operator hint
-     * describeHttpFailure can append behind it. It still fits under the
-     * clamp, which is why the guidance says the marker appears only "if it
-     * is still too long" — the messages that do get marked come from
-     * elsewhere, e.g. a ClickHouse error echoing back the whole query.
-     */
-    for (const entry of clientHttpErrorPrefixByTemplate) {
-      /*
-       * The echo interpolation is matched, not rebuilt. Its bound may be
-       * written inline or as a named constant and both mean the same
-       * width, so reconstructing one spelling made this test depend on
-       * which the client happened to use — unifying the two HTTP templates
-       * onto the named constant every other echo site already used left
-       * the interpolation unexpanded, and only the `${` tripwire noticed.
-       */
-      const worstCase: string = entry.template
-        .replace(HTTP_STATUS_INTERPOLATION, "999")
-        .replace(BODY_ECHO_INTERPOLATION, "x".repeat(responseSliceLimit));
-
-      expect(worstCase).not.toContain("${");
-      expect(
-        worstCase.length + HINT_SEPARATOR.length + longestOperatorHintLength,
-      ).toBeLessThan(maxConnectorErrorMessageLength);
-    }
+  test("the docs explain that an upgrade cannot recover an already truncated error", () => {
+    expect(docsGuidance).toContain(
+      "Errors recorded before upgrading may already be truncated",
+    );
+    expect(docsGuidance).toContain(
+      "a subsequent failed poll records the complete message",
+    );
   });
 });
 

@@ -27,8 +27,8 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * actually reads off `Last Error`: both body shapes (this host wraps its
  * errors in the stream's array envelope, an error rejected at the edge
  * does not), the ErrorInfo.reason branches that turn a status code into an
- * instruction, and the 500-character echo that the integration doc and the
- * connections page both quote verbatim.
+ * instruction, and the complete, credential-redacted diagnostic customers
+ * can copy from the connections page.
  *
  * It closes with the exact 400 a customer hit in production. Google's
  * authn runs BEFORE HTTP transcoding — a live probe returns 401, not that
@@ -62,12 +62,6 @@ const INSTANCE: string =
 
 const WINDOW_START: Date = new Date("2026-08-21T09:00:00.000Z");
 const WINDOW_END: Date = new Date("2026-08-21T10:00:00.000Z");
-
-/*
- * The figure the integration doc and the connections page both print, and
- * the width the lastError column is sized against.
- */
-const BODY_ECHO_LIMIT: number = 500;
 
 /*
  * The HTTP-shaped opening the connections page's taxonomy splits on. An
@@ -323,12 +317,77 @@ function hintForErrorInfo(data: {
 const IAM_RESOURCE: string =
   "projects/my-project/locations/us/instances/3f0a-instance";
 const IAM_PERMISSION: string = "chronicle.legacies.legacyFetchAlertsView";
+const NESTED_DIAGNOSTIC_SECRET: string = "ya29.nested-diagnostic-secret-12345";
+const NESTED_DIAGNOSTIC_TAIL: string = "NESTED-DIAGNOSTIC-TAIL";
+
+function nestedCredentialDiagnostic(): string {
+  return `${"diagnostic detail ".repeat(100)}Invalid value: ${JSON.stringify({
+    access_token: NESTED_DIAGNOSTIC_SECRET,
+    resource: INSTANCE,
+  })} ${NESTED_DIAGNOSTIC_TAIL}`;
+}
+
+function expectRedactedNestedDiagnostic(message: string): void {
+  expect(message.length).toBeGreaterThan(1000);
+  expect(message).toContain(NESTED_DIAGNOSTIC_TAIL);
+  expect(message).toContain(INSTANCE);
+  expect(message).toContain("[REDACTED]");
+  expect(message).not.toContain(NESTED_DIAGNOSTIC_SECRET);
+}
 
 afterEach(() => {
   jest.restoreAllMocks();
 });
 
 describe("GoogleSecOpsClient in-band validation errors on an HTTP 200", () => {
+  test.each(["queryValidationErrors", "runtimeErrors"])(
+    "redacts credential JSON inside %s details before serializing them",
+    (field: string): void => {
+      const entry: JSONObject = {
+        code: 400,
+        diagnostic: nestedCredentialDiagnostic(),
+      };
+      if (field === "queryValidationErrors") {
+        entry["message"] = "Invalid snapshot query.";
+      }
+      /*
+       * Cover both an entry with a recognized message field and the JSON
+       * fallback used when the server supplies only additional details.
+       */
+      const failure: Error = parseFailure(
+        JSON.stringify([{ [field]: [entry] }]),
+      );
+
+      expect(failure).toBeInstanceOf(APIException);
+      expect(failure.message).toContain('"code":400');
+      expectRedactedNestedDiagnostic(failure.message);
+    },
+  );
+
+  test("preserves long validation messages and additional diagnostic fields", () => {
+    const message: string = `${"query diagnostic ".repeat(150)}QUERY-ERROR-TAIL`;
+    const failure: Error = parseFailure(
+      JSON.stringify([
+        {
+          validSnapshotQuery: false,
+          queryValidationErrors: [
+            {
+              message,
+              fieldPath: "snapshotQuery",
+              details: "ADDITIONAL-VALIDATION-CONTEXT",
+              access_token: "validation-secret-token",
+            },
+          ],
+        },
+      ]),
+    );
+
+    expect(failure.message).toContain(message);
+    expect(failure.message).toContain("snapshotQuery");
+    expect(failure.message).toContain("ADDITIONAL-VALIDATION-CONTEXT");
+    expect(failure.message).not.toContain("validation-secret-token");
+  });
+
   test("validSnapshotQuery:false throws and carries the query parse error Chronicle reported", () => {
     const parseError: string =
       "line 1:12 mismatched input 'AND' expecting {'(', VALUE}";
@@ -836,8 +895,8 @@ describe("GoogleSecOpsClient.describeHttpFailure", () => {
     }
 
     /*
-     * All three are OneUptime bugs, but the fix differs: stop sending a
-     * field, start sending one, or go and read the transcoder's complaint.
+     * Explicit field errors identify a client bug; an opaque 400 needs
+     * the instance configuration and deployed request checked as well.
      */
     const distinct: Set<string> = new Set<string>([
       unknownField,
@@ -849,6 +908,115 @@ describe("GoogleSecOpsClient.describeHttpFailure", () => {
 });
 
 describe("GoogleSecOpsClient HTTP failures as the operator reads them", () => {
+  test.each(["OAuth", "Chronicle"])(
+    "redacts credential JSON embedded in a %s HTTP error message",
+    async (endpoint: string): Promise<void> => {
+      const diagnostic: string = nestedCredentialDiagnostic();
+      const body: string =
+        endpoint === "OAuth"
+          ? JSON.stringify({
+              error: "invalid_grant",
+              error_description: diagnostic,
+            })
+          : bareErrorBody(
+              googleError({
+                code: 400,
+                status: "INVALID_ARGUMENT",
+                message: diagnostic,
+              }),
+            );
+      const { client } = makeClient({
+        token: endpoint === "OAuth" ? { status: 400, body } : okTokenResponse(),
+        alerts: { status: 400, body },
+      });
+      const result: Promise<FetchAlertsResult> = client.fetchDetectionAlerts({
+        startTime: WINDOW_START,
+        endTime: WINDOW_END,
+      });
+
+      await expect(result).rejects.toThrow(APIException);
+      await expect(result).rejects.toThrow("HTTP 400");
+      await expect(result).rejects.toThrow(NESTED_DIAGNOSTIC_TAIL);
+      await expect(result).rejects.toThrow(INSTANCE);
+      await expect(result).rejects.toThrow("[REDACTED]");
+      await expect(result).rejects.not.toThrow(NESTED_DIAGNOSTIC_SECRET);
+      if (endpoint === "Chronicle") {
+        await expect(result).rejects.toThrow('"code":400');
+      }
+    },
+  );
+
+  test("redacts credentials in a non-JSON HTTP diagnostic without dropping its tail", async (): Promise<void> => {
+    const body: string = `Authorization: Bearer ${NESTED_DIAGNOSTIC_SECRET}\n${"diagnostic ".repeat(150)}${NESTED_DIAGNOSTIC_TAIL}`;
+    const failure: AlertsFailure = await alertsFailure({ status: 500, body });
+
+    expect(failure.error.message).toContain(NESTED_DIAGNOSTIC_TAIL);
+    expect(failure.error.message).toContain("[REDACTED]");
+    expect(failure.error.message).not.toContain(NESTED_DIAGNOSTIC_SECRET);
+  });
+
+  test("preserves long OAuth errors while redacting an echoed assertion", async () => {
+    const description: string = `${"diagnostic ".repeat(200)}OAUTH-ERROR-TAIL`;
+    const { fetchImplementation } = makeFetch({
+      token: {
+        status: 400,
+        body: JSON.stringify({
+          error: "invalid_grant",
+          error_description: description,
+          assertion: "private-assertion-value",
+        }),
+      },
+      alerts: { status: 200, body: "[]" },
+    });
+    const client: GoogleSecOpsClient = new GoogleSecOpsClient({
+      region: "us",
+      instanceResourceName: INSTANCE,
+      serviceAccountJson: SERVICE_ACCOUNT_JSON,
+      fetchImplementation,
+    });
+
+    await expect(
+      client.fetchDetectionAlerts({
+        startTime: WINDOW_START,
+        endTime: WINDOW_END,
+      }),
+    ).rejects.toThrow(
+      `Google token exchange failed (HTTP 400): ${JSON.stringify({
+        error: "invalid_grant",
+        error_description: description,
+        assertion: "[REDACTED]",
+      })}`,
+    );
+  });
+
+  test.each(["stream", "object", "text"])(
+    "a generic 400 (%s) preserves the rejection and gives configuration and deployment checks",
+    async (shape: string) => {
+      const error: JSONObject = googleError({
+        code: 400,
+        status: "INVALID_ARGUMENT",
+        message: "Request contains an invalid argument.",
+      });
+      const body: string =
+        shape === "stream"
+          ? streamErrorBody(error)
+          : shape === "object"
+            ? JSON.stringify({ error })
+            : "Bad Request";
+      const failure: AlertsFailure = await alertsFailure({ status: 400, body });
+
+      expect(failure.error).toBeInstanceOf(APIException);
+      expect(failure.error.message).toContain(body);
+      expect(failure.error.message).toContain("instance resource name");
+      expect(failure.error.message).toContain("region");
+      expect(failure.error.message).toContain("running OneUptime image");
+      expect(failure.error.message).not.toContain("This is a OneUptime bug");
+      expect(failure.error.message).not.toContain(
+        "before it reached the service",
+      );
+    },
+  );
+
   test("an array-wrapped 403 is echoed whole and carries the IAM guidance on its tail", async () => {
     const denied: JSONObject = googleError({
       code: 403,
@@ -946,26 +1114,67 @@ describe("GoogleSecOpsClient HTTP failures as the operator reads them", () => {
     expect(guidance).toContain("RESOURCE_EXHAUSTED");
   });
 
-  test("a long body is echoed to exactly the first 500 characters and no further", async () => {
-    const head: string = `${"A".repeat(BODY_ECHO_LIMIT - 1)}Z`;
-    const tailMarker: string = "TAIL-BEYOND-THE-ECHO-LIMIT";
+  test("preserves the complete response beyond the old 500 and 1000 character limits", async () => {
+    const body: string = `${"A".repeat(2000)}TAIL-BEYOND-THE-OLD-LIMITS`;
+    const failure: AlertsFailure = await alertsFailure({ status: 500, body });
 
-    const failure: AlertsFailure = await alertsFailure({
-      status: 500,
-      body: `${head}${tailMarker}${"B".repeat(600)}`,
-    });
-
-    /*
-     * The echo is the tail of the message for a 500 (no guidance branch
-     * applies), so slicing from the body's first byte isolates it exactly.
-     */
-    const echoed: string = failure.error.message.slice(
-      failure.error.message.indexOf("A"),
+    expect(failure.error.message).toBe(
+      `Google SecOps alerts fetch failed (HTTP 500): ${body}`,
     );
+  });
 
-    expect(echoed).toHaveLength(BODY_ECHO_LIMIT);
-    expect(echoed).toBe(head);
-    expect(failure.error.message).not.toContain(tailMarker);
+  test("redacts credentials while preserving long Google error details", async () => {
+    const body: string = streamErrorBody(
+      googleError({
+        code: 400,
+        status: "INVALID_ARGUMENT",
+        message: "Request contains an invalid argument.",
+        details: [
+          {
+            description: `${"detail ".repeat(300)}INSTANCE-DIAGNOSTIC-TAIL`,
+            resource: INSTANCE,
+            access_token: "test-access-token-secret",
+            private_key: "test-private-key-secret",
+          },
+        ],
+      }),
+    );
+    const failure: AlertsFailure = await alertsFailure({ status: 400, body });
+
+    expect(failure.error.message).toContain("INSTANCE-DIAGNOSTIC-TAIL");
+    expect(failure.error.message).toContain(INSTANCE);
+    expect(failure.error.message).toContain('"code":400');
+    expect(failure.error.message).toContain("[REDACTED]");
+    expect(failure.error.message).not.toContain("test-access-token-secret");
+    expect(failure.error.message).not.toContain("test-private-key-secret");
+  });
+
+  test("keeps full details from an error inside an HTTP 200 stream", () => {
+    const error: JSONObject = googleError({
+      code: 400,
+      status: "INVALID_ARGUMENT",
+      message: "Invalid request.",
+      details: [badRequestDetail(`${"detail ".repeat(300)}STREAM-ERROR-TAIL`)],
+    });
+    const failure: Error = parseFailure(streamErrorBody(error));
+
+    expect(failure.message).toContain(JSON.stringify(error));
+    expect(failure.message).toContain("STREAM-ERROR-TAIL");
+  });
+
+  test("redacts credential JSON in streamed error messages and details before serialization", (): void => {
+    const error: JSONObject = googleError({
+      code: 400,
+      status: "INVALID_ARGUMENT",
+      message: nestedCredentialDiagnostic(),
+      details: [{ diagnostic: nestedCredentialDiagnostic() }],
+    });
+    const failure: Error = parseFailure(streamErrorBody(error));
+
+    expect(failure).toBeInstanceOf(APIException);
+    expect(failure.message).toContain('"code":400');
+    expect(failure.message).toContain('"status":"INVALID_ARGUMENT"');
+    expectRedactedNestedDiagnostic(failure.message);
   });
 });
 
@@ -1100,6 +1309,7 @@ describe("the pageSize 400 reported from production", () => {
      */
     expect(Array.from(params.keys()).sort()).toEqual([
       "alertListOptions.maxReturnedAlerts",
+      "snapshotQuery",
       "timeRange.endTime",
       "timeRange.startTime",
     ]);

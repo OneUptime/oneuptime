@@ -68,6 +68,7 @@ const WINDOW_END: Date = new Date("2026-08-21T10:00:00.000Z");
  */
 const EXPECTED_QUERY_KEYS: Array<string> = [
   "alertListOptions.maxReturnedAlerts",
+  "snapshotQuery",
   "timeRange.endTime",
   "timeRange.startTime",
 ];
@@ -301,7 +302,7 @@ function serviceAccountJsonWith(fields: Record<string, unknown>): string {
 }
 
 describe("GoogleSecOpsClient alerts request parameters", () => {
-  test("sends exactly the three documented field paths and nothing else", async () => {
+  test("sends exactly the documented field paths and nothing else", async () => {
     const { client, requests } = makeClient();
 
     const result: FetchAlertsResult = await client.fetchDetectionAlerts({
@@ -386,7 +387,7 @@ describe("GoogleSecOpsClient alerts request parameters", () => {
     expect(sortedQueryKeysOf(cappedRequest)).toEqual(EXPECTED_QUERY_KEYS);
   });
 
-  test("never sends pageSize, snapshotQuery or baselineQuery", async () => {
+  test("explicitly requests all alert statuses without pagination or a baseline filter", async () => {
     const { client, requests } = makeClient();
 
     await client.fetchDetectionAlerts({
@@ -414,22 +415,12 @@ describe("GoogleSecOpsClient alerts request parameters", () => {
     expect(params.has("pageToken")).toBe(false);
 
     /*
-     * Spec conflict C2, open and deliberately unsettled here. The reference
-     * doc prefixes snapshotQuery with `Required.`, but that is a
-     * field_behavior annotation the HTTP transcoder does not enforce, and
-     * this service validates queries in-band (validSnapshotQuery /
-     * queryValidationErrors) instead of rejecting them. We omit it, because
-     * the only concrete catch-all candidate is Google's own SDK default
-     * `feedback_summary.status != "CLOSED"`, which silently drops every
-     * CLOSED alert — trading a loud, testable 400 for permanent invisible
-     * data loss. Omission fails loudly if it turns out to be enforced.
-     *
-     * Settling this needs one live call against a real tenant, with and
-     * without the parameter, comparing HTTP status and baselineAlertsCount.
-     * Until that runs, this assertion is the record of the decision and the
-     * first line to change if the tenant disagrees.
+     * Google documents an empty snapshot query as matching the entire
+     * baseline. A CLOSED-status filter would silently lose detections.
      */
-    expect(params.has("snapshotQuery")).toBe(false);
+    expect(params.has("snapshotQuery")).toBe(true);
+    expect(params.get("snapshotQuery")).toBe("");
+    expect(rawQueryPairsOf(request).get("snapshotQuery")).toBe("");
 
     /*
      * baselineQuery exists only to reuse a cached baseline across repeated

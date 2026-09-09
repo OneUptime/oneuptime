@@ -31,7 +31,7 @@ import {
  * caught a per-connection poll failure and then wrote { lastPolledAt,
  * lastError } back onto the row with a bare, unguarded updateOneById.
  * lastError was TableColumnType.LongText — varchar(500) — while a Google
- * SecOps client error is a fixed prefix plus up to 500 characters of
+ * SecOps client error was a fixed prefix plus up to 500 characters of
  * echoed response body, so it overflowed. DatabaseService's
  * checkMaxLengthOfFields turns an overflow into a BadDataException, the
  * throw escaped the catch block and the whole loop with it, nothing was
@@ -46,8 +46,8 @@ import {
  * So this file pins both halves of the fix, plus the column widening that
  * makes the clamp sufficient:
  *
- *   - toMessage: every thrown shape becomes a non-empty string that is
- *     never longer than MAX_CONNECTOR_ERROR_MESSAGE_LENGTH, with the
+ *   - toMessage: by default, every thrown shape becomes a non-empty string
+ *     no longer than MAX_CONNECTOR_ERROR_MESSAGE_LENGTH, with the
  *     truncation marker counted inside the limit rather than added on
  *     top of it.
  *   - recordFailure: the bookkeeping write runs inside its own
@@ -273,7 +273,7 @@ describe("ConnectorErrorMessage.toMessage", () => {
       ).toBe(true);
     });
 
-    test("no input can produce a string longer than the limit", () => {
+    test("default options never produce a string longer than the limit", () => {
       const cases: Array<unknown> = [
         new Error(repeatToLength("x", 10)),
         new Error(repeatToLength("x", MAX_CONNECTOR_ERROR_MESSAGE_LENGTH)),
@@ -314,6 +314,61 @@ describe("ConnectorErrorMessage.toMessage", () => {
       expect(message.endsWith(TRUNCATION_MARKER)).toBe(false);
     });
   });
+
+  describe("full diagnostics for an unbounded column", () => {
+    test.each(["Error", "string", "custom object"])(
+      "truncate:false preserves the complete %s message, including its final detail",
+      (shape: string): void => {
+        const fullMessage: string = `${"Google diagnostic detail. ".repeat(100)}final-instance-detail`;
+        const error: unknown =
+          shape === "Error"
+            ? new Error(fullMessage)
+            : shape === "string"
+              ? fullMessage
+              : {
+                  toString: (): string => {
+                    return fullMessage;
+                  },
+                };
+
+        expect(fullMessage.length).toBeGreaterThan(
+          MAX_CONNECTOR_ERROR_MESSAGE_LENGTH,
+        );
+        expect(
+          ConnectorErrorMessage.toMessage(error, { truncate: false }),
+        ).toBe(fullMessage);
+
+        // Opting in for Google SecOps must not change existing bounded callers.
+        for (const options of [
+          {},
+          { truncate: true },
+          { truncate: undefined },
+        ]) {
+          const bounded: string = ConnectorErrorMessage.toMessage(
+            error,
+            options,
+          );
+          expect(bounded.length).toBe(MAX_CONNECTOR_ERROR_MESSAGE_LENGTH);
+          expect(bounded.endsWith(TRUNCATION_MARKER)).toBe(true);
+          expect(bounded).not.toContain("final-instance-detail");
+        }
+      },
+    );
+
+    test("full diagnostics still trim outer whitespace and supply the empty-message fallback", (): void => {
+      const fullMessage: string = `${"diagnostic ".repeat(150)}final-detail`;
+      expect(
+        ConnectorErrorMessage.toMessage(new Error(` \n${fullMessage}\t `), {
+          truncate: false,
+        }),
+      ).toBe(fullMessage);
+      for (const error of [null, undefined, " \n ", new Error("\t")]) {
+        expect(
+          ConnectorErrorMessage.toMessage(error, { truncate: false }),
+        ).toBe(UNKNOWN_ERROR_MESSAGE);
+      }
+    });
+  });
 });
 
 /*
@@ -345,8 +400,8 @@ describe("ConnectorErrorMessage.toMessage on the real Google SecOps client error
     "projects/my-project/locations/us/instances/3f0a-instance";
 
   /*
-   * A Google error body is JSON and routinely far longer than the 500
-   * characters the client keeps of it.
+   * Google error bodies routinely exceed both the old 500-character client
+   * slice and the helper's default 1,000-character limit.
    */
   const HUGE_ERROR_BODY: string = JSON.stringify({
     error: {
@@ -401,7 +456,7 @@ describe("ConnectorErrorMessage.toMessage on the real Google SecOps client error
     throw new Error("expected the client to throw");
   }
 
-  test("a failed alerts fetch overflows the old column, and toMessage keeps it storable", async () => {
+  test("a failed alerts fetch retains its full body with opt-in and remains bounded by default", async () => {
     const error: Error = await captureFetchAlertsError([
       {
         status: 200,
@@ -416,18 +471,8 @@ describe("ConnectorErrorMessage.toMessage on the real Google SecOps client error
     expect(rawMessage.startsWith(prefix)).toBe(true);
 
     /*
-     * The template is a 46-character prefix plus responseText.slice(0, 500),
-     * and now an operator hint behind that. 546 was already > 500, so under
-     * the old TableColumnType.LongText declaration checkMaxLengthOfFields
-     * threw BadDataException on the poller's own recovery write — which is
-     * how lastPolledAt and lastError both stayed null while the connector
-     * silently stopped polling. The hint only makes the overflow worse.
-     *
-     * Both halves are pinned by content rather than by total length: the
-     * echo is exactly the first 500 characters of the body, and the tail is
-     * exactly what describeHttpFailure derives for this status and body. A
-     * length-only check would go on passing if the echo and the hint ever
-     * traded characters with each other.
+     * The entire Google response precedes the operator hint. Applying the
+     * old 500-character slice here would make full persistence ineffective.
      */
     const guidance: string = GoogleSecOpsClient.describeHttpFailure(
       403,
@@ -436,33 +481,24 @@ describe("ConnectorErrorMessage.toMessage on the real Google SecOps client error
 
     expect(prefix.length).toBe(46);
     expect(guidance.length).toBeGreaterThan(0);
-    expect(rawMessage).toBe(
-      `${prefix}${HUGE_ERROR_BODY.slice(0, 500)}${guidance}`,
-    );
+    expect(rawMessage).toBe(`${prefix}${HUGE_ERROR_BODY}${guidance}`);
     expect(rawMessage.length).toBeGreaterThan(OLD_LAST_ERROR_COLUMN_MAX_LENGTH);
     expect(rawMessage.length).toBeGreaterThan(
       getMaxLengthFromTableColumnType(TableColumnType.LongText)!,
     );
 
-    const stored: string = ConnectorErrorMessage.toMessage(error);
-
-    expect(stored.length).toBeLessThanOrEqual(
+    expect(rawMessage.length).toBeGreaterThan(
       MAX_CONNECTOR_ERROR_MESSAGE_LENGTH,
     );
-
-    /*
-     * Prefix + echo + hint still fits inside 1000, so the whole diagnostic
-     * survives the clamp. Asserted rather than assumed: if a future hint
-     * pushes the worst case past the clamp, the operator starts reading a
-     * truncated message and this test should be the thing that says so.
-     */
-    expect(rawMessage.length).toBeLessThanOrEqual(
-      MAX_CONNECTOR_ERROR_MESSAGE_LENGTH,
+    const bounded: string = ConnectorErrorMessage.toMessage(error);
+    expect(bounded.length).toBe(MAX_CONNECTOR_ERROR_MESSAGE_LENGTH);
+    expect(bounded.endsWith(TRUNCATION_MARKER)).toBe(true);
+    expect(ConnectorErrorMessage.toMessage(error, { truncate: false })).toBe(
+      rawMessage,
     );
-    expect(stored).toBe(rawMessage);
   });
 
-  test("a failed token exchange overflows the old column too, and toMessage keeps it storable", async () => {
+  test("a failed token exchange retains its full body with opt-in and remains bounded by default", async () => {
     const error: Error = await captureFetchAlertsError([
       { status: 401, body: HUGE_ERROR_BODY },
     ]);
@@ -473,7 +509,7 @@ describe("ConnectorErrorMessage.toMessage on the real Google SecOps client error
     expect(rawMessage.startsWith(prefix)).toBe(true);
 
     /*
-     * Prefix + 500 characters of echoed body, and nothing behind it. The
+     * Prefix + the complete response body, and nothing behind it. The
      * token exchange deliberately carries no Chronicle hint: every hint
      * describeHttpFailure knows how to give is about the instance resource
      * name, the chronicle.viewer role or the region prefix, none of which
@@ -481,23 +517,23 @@ describe("ConnectorErrorMessage.toMessage on the real Google SecOps client error
      * that appending guidance here becomes a decision rather than a
      * side effect of editing the alerts path.
      */
-    expect(rawMessage).toBe(`${prefix}${HUGE_ERROR_BODY.slice(0, 500)}`);
-    expect(rawMessage.length).toBe(prefix.length + 500);
+    expect(rawMessage).toBe(`${prefix}${HUGE_ERROR_BODY}`);
+    expect(rawMessage.length).toBe(prefix.length + HUGE_ERROR_BODY.length);
     expect(rawMessage.length).toBeGreaterThan(OLD_LAST_ERROR_COLUMN_MAX_LENGTH);
 
-    const stored: string = ConnectorErrorMessage.toMessage(error);
-
-    expect(stored.length).toBeLessThanOrEqual(
-      MAX_CONNECTOR_ERROR_MESSAGE_LENGTH,
+    const bounded: string = ConnectorErrorMessage.toMessage(error);
+    expect(bounded.length).toBe(MAX_CONNECTOR_ERROR_MESSAGE_LENGTH);
+    expect(bounded.endsWith(TRUNCATION_MARKER)).toBe(true);
+    expect(ConnectorErrorMessage.toMessage(error, { truncate: false })).toBe(
+      rawMessage,
     );
-    expect(stored).toBe(rawMessage);
   });
 
   test("a ClickHouse-style error that echoes a whole compiled query is clamped", () => {
     /*
      * The evaluator side of the same bug: a ClickHouse failure echoes the
      * compiled query back, so its messages run to thousands of characters
-     * rather than the client's bounded 546.
+     * just as a detailed Google API failure does.
      */
     const echoedQuery: string = repeatToLength(
       "SELECT count() FROM security_event WHERE projectId = {p0:String} AND ",
