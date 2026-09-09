@@ -46,6 +46,27 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
         isEditable={false}
         isCreateable={true}
         isViewable={true}
+        onBeforeCreate={async (
+          item: MonitorTemplate,
+        ): Promise<MonitorTemplate> => {
+          /*
+           * Manual monitors skip the criteria step, so its type-change cleanup
+           * never mounts when a user returns to Defaults and chooses Manual.
+           */
+          if (item.monitorType === MonitorType.Manual && item.monitorSteps) {
+            const steps: MonitorStepsType = MonitorStepsType.clone(
+              item.monitorSteps,
+            );
+            for (const step of steps.data?.monitorStepsInstanceArray || []) {
+              if (step.data) {
+                step.data.doNotSyncFields = [];
+              }
+            }
+            item.monitorSteps = steps;
+          }
+
+          return item;
+        }}
         createEditModalWidth={ModalWidth.Large}
         cardProps={{
           title: "Monitor Templates",
@@ -213,6 +234,7 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
               return (
                 <MonitorStepsForm
                   {...fieldProps}
+                  isMonitorTemplate={true}
                   monitorType={value.monitorType || MonitorType.Manual}
                   monitorName={
                     value.monitorName?.trim() ||

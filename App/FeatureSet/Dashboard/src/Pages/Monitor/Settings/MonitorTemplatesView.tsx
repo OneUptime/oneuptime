@@ -45,6 +45,10 @@ import MonitorType, {
 } from "Common/Types/Monitor/MonitorType";
 import MonitorTypeUtil from "../../../Utils/MonitorType";
 import MonitorStepsForm from "../../../Components/Form/Monitor/MonitorSteps";
+import {
+  getMonitorTemplateSyncFieldSummary,
+  MonitorTemplateSyncFieldsSummary,
+} from "../../../Components/Form/Monitor/MonitorTemplateSyncFields";
 import MonitorStepsViewer from "../../../Components/Monitor/MonitorSteps/MonitorSteps";
 import MonitoringInterval from "../../../Utils/MonitorIntervalDropdownOptions";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -92,6 +96,14 @@ const MonitorTemplatesView: FunctionComponent<
   const [monitorType, setMonitorType] = useState<MonitorType | undefined>(
     undefined,
   );
+  const [templateMonitorSteps, setTemplateMonitorSteps] = useState<
+    MonitorStepsType | undefined
+  >(undefined);
+
+  const protectedFieldsSummary: string = getMonitorTemplateSyncFieldSummary({
+    monitorType: monitorType || MonitorType.Manual,
+    monitorSteps: templateMonitorSteps,
+  });
 
   /*
    * The default monitor name this template gives the monitors it creates.
@@ -198,11 +210,13 @@ const MonitorTemplatesView: FunctionComponent<
             id: modelId,
             select: {
               monitorType: true,
+              monitorSteps: true,
               monitorName: true,
               templateName: true,
             },
           });
         setMonitorType(item?.monitorType);
+        setTemplateMonitorSteps(item?.monitorSteps);
         setTemplateMonitorName(item?.monitorName?.trim() || "");
         setTemplateName(item?.templateName?.trim() || "");
       } catch {
@@ -833,6 +847,7 @@ const MonitorTemplatesView: FunctionComponent<
       {/* Monitoring Criteria — only meaningful for non-Manual monitor types. */}
       {monitorType && monitorType !== MonitorType.Manual && (
         <CardModelDetail<MonitorTemplate>
+          key={monitorType}
           name="Monitoring Criteria"
           cardProps={{
             title: "Monitoring Criteria",
@@ -855,6 +870,9 @@ const MonitorTemplatesView: FunctionComponent<
           createEditModalWidth={ModalWidth.Large}
           isEditable={true}
           editButtonText="Edit Criteria"
+          onSaveSuccess={(item: MonitorTemplate) => {
+            setTemplateMonitorSteps(item.monitorSteps);
+          }}
           formFields={[
             {
               field: {
@@ -876,6 +894,7 @@ const MonitorTemplatesView: FunctionComponent<
                 return (
                   <MonitorStepsForm
                     {...fieldProps}
+                    isMonitorTemplate={true}
                     monitorType={monitorType}
                     monitorName={criteriaSeedMonitorName}
                   />
@@ -887,6 +906,9 @@ const MonitorTemplatesView: FunctionComponent<
             showDetailsInNumberOfColumns: 1,
             modelType: MonitorTemplate,
             id: "model-detail-monitor-template-criteria",
+            onItemLoaded: (item: MonitorTemplate) => {
+              setTemplateMonitorSteps(item.monitorSteps);
+            },
             fields: [
               {
                 field: {
@@ -899,10 +921,16 @@ const MonitorTemplatesView: FunctionComponent<
                     return <p>No criteria configured.</p>;
                   }
                   return (
-                    <MonitorStepsViewer
-                      monitorSteps={item.monitorSteps as MonitorStepsType}
-                      monitorType={monitorType}
-                    />
+                    <>
+                      <MonitorTemplateSyncFieldsSummary
+                        monitorSteps={item.monitorSteps as MonitorStepsType}
+                        monitorType={monitorType}
+                      />
+                      <MonitorStepsViewer
+                        monitorSteps={item.monitorSteps as MonitorStepsType}
+                        monitorType={monitorType}
+                      />
+                    </>
                   );
                 },
               },
@@ -1195,7 +1223,7 @@ const MonitorTemplatesView: FunctionComponent<
           title="Sync Criteria to Linked Monitors"
           description={
             <span>
-              {`This will overwrite ONLY the monitor criteria on ${linkedMonitorCount} monitor${linkedMonitorCount === 1 ? "" : "s"} created from this template. Monitoring interval, minimum probe agreement, name, description, labels, and custom field values will be left alone. This cannot be undone.`}
+              {`This will copy the template's criteria and step settings, including destinations and request options where applicable, to ${linkedMonitorCount} linked monitor${linkedMonitorCount === 1 ? "" : "s"}. ${protectedFieldsSummary} Monitoring interval, minimum probe agreement, name, description, labels, and custom field values will be left alone. This cannot be undone.`}
             </span>
           }
           submitButtonText="Sync Criteria"
@@ -1275,7 +1303,7 @@ const MonitorTemplatesView: FunctionComponent<
           title="Sync Monitor from Template"
           description={
             <span>
-              {`This will overwrite the criteria, monitoring interval, minimum probe agreement, and labels on "${singleSyncMonitor.name || "this monitor"}" with the template's current values. Name, description, and custom field values will be left alone. This cannot be undone.`}
+              {`This will copy the template's criteria and step settings, including destinations and request options where applicable, plus its monitoring interval, minimum probe agreement, and labels to "${singleSyncMonitor.name || "this monitor"}". ${protectedFieldsSummary} Name, description, and custom field values will be left alone. This cannot be undone.`}
             </span>
           }
           submitButtonText="Sync Now"

@@ -84,6 +84,7 @@ import MonitorStepIoTMonitor, {
 import MetricsViewConfig from "../Metrics/MetricsViewConfig";
 import MetricQueryConfigData from "../Metrics/MetricQueryConfigData";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
+import MonitorTemplateSyncFieldUtil from "./MonitorTemplateSyncField";
 
 /*
  * Caps and defaults for per-step request timeout and retry settings.
@@ -120,6 +121,8 @@ export const clampMonitorRetryCount: (value: number) => number = (
 
 export interface MonitorStepType {
   id: string;
+  // Template policy: keep these fields from each linked monitor during sync.
+  doNotSyncFields?: Array<string> | undefined;
   monitorDestination?: URL | IP | Hostname | undefined;
 
   monitorCriteria: MonitorCriteria;
@@ -756,6 +759,15 @@ export default class MonitorStep extends DatabaseProperty {
       return "Monitor Step is required.";
     }
 
+    try {
+      MonitorTemplateSyncFieldUtil.parse(
+        value.data.doNotSyncFields,
+        monitorType,
+      );
+    } catch (error) {
+      return (error as Error).message;
+    }
+
     // If the monitor type is incoming request, then the monitor destination is not required
     if (
       !value.data.monitorDestination &&
@@ -1035,24 +1047,26 @@ export default class MonitorStep extends DatabaseProperty {
         _type: ObjectType.MonitorStep,
         value: {
           id: this.data.id,
+          doNotSyncFields: MonitorTemplateSyncFieldUtil.parse(
+            this.data.doNotSyncFields,
+          ),
           monitorDestination:
             this.data?.monitorDestination?.toJSON() || undefined,
-          doNotFollowRedirects: this.data.doNotFollowRedirects || undefined,
-          allowSelfSignedCertificates:
-            this.data.allowSelfSignedCertificates || undefined,
-          tlsClientCertificate: this.data.tlsClientCertificate || undefined,
-          tlsClientKey: this.data.tlsClientKey || undefined,
-          tlsClientKeyPassphrase: this.data.tlsClientKeyPassphrase || undefined,
+          doNotFollowRedirects: this.data.doNotFollowRedirects,
+          allowSelfSignedCertificates: this.data.allowSelfSignedCertificates,
+          tlsClientCertificate: this.data.tlsClientCertificate,
+          tlsClientKey: this.data.tlsClientKey,
+          tlsClientKeyPassphrase: this.data.tlsClientKeyPassphrase,
           monitorDestinationPort:
             this.data?.monitorDestinationPort?.toJSON() || undefined,
           monitorCriteria: this.data.monitorCriteria.toJSON(),
           requestType: this.data.requestType,
           requestHeaders: this.data.requestHeaders || undefined,
-          requestBody: this.data.requestBody || undefined,
-          customCode: this.data.customCode || undefined,
+          requestBody: this.data.requestBody,
+          customCode: this.data.customCode,
           screenSizeTypes: this.data.screenSizeTypes || undefined,
           browserTypes: this.data.browserTypes || undefined,
-          retryCountOnError: this.data.retryCountOnError || undefined,
+          retryCountOnError: this.data.retryCountOnError,
           requestTimeoutInMs: this.data.requestTimeoutInMs || undefined,
           retryCount:
             this.data.retryCount === undefined
@@ -1220,15 +1234,18 @@ export default class MonitorStep extends DatabaseProperty {
 
     monitorStep.data = JSONFunctions.deserialize({
       id: json["id"] as string,
+      doNotSyncFields: MonitorTemplateSyncFieldUtil.parse(
+        json["doNotSyncFields"],
+      ),
       monitorDestination: monitorDestination || undefined,
-      doNotFollowRedirects: json["doNotFollowRedirects"] || undefined,
+      doNotFollowRedirects: json["doNotFollowRedirects"] ?? undefined,
       allowSelfSignedCertificates:
-        json["allowSelfSignedCertificates"] || undefined,
+        json["allowSelfSignedCertificates"] ?? undefined,
       tlsClientCertificate:
-        (json["tlsClientCertificate"] as string) || undefined,
-      tlsClientKey: (json["tlsClientKey"] as string) || undefined,
+        (json["tlsClientCertificate"] as string) ?? undefined,
+      tlsClientKey: (json["tlsClientKey"] as string) ?? undefined,
       tlsClientKeyPassphrase:
-        (json["tlsClientKeyPassphrase"] as string) || undefined,
+        (json["tlsClientKeyPassphrase"] as string) ?? undefined,
       monitorDestinationPort: monitorDestinationPort || undefined,
       monitorCriteria: MonitorCriteria.fromJSON(
         json["monitorCriteria"] as JSONObject,
@@ -1236,12 +1253,12 @@ export default class MonitorStep extends DatabaseProperty {
       requestType: (json["requestType"] as HTTPMethod) || HTTPMethod.GET,
       requestHeaders:
         (json["requestHeaders"] as Dictionary<string>) || undefined,
-      requestBody: (json["requestBody"] as string) || undefined,
-      customCode: (json["customCode"] as string) || undefined,
+      requestBody: (json["requestBody"] as string) ?? undefined,
+      customCode: (json["customCode"] as string) ?? undefined,
       screenSizeTypes:
         (json["screenSizeTypes"] as Array<ScreenSizeType>) || undefined,
       browserTypes: (json["browserTypes"] as Array<BrowserType>) || undefined,
-      retryCountOnError: (json["retryCountOnError"] as number) || undefined,
+      retryCountOnError: (json["retryCountOnError"] as number) ?? undefined,
       requestTimeoutInMs: (json["requestTimeoutInMs"] as number) || undefined,
       retryCount:
         json["retryCount"] === undefined || json["retryCount"] === null
@@ -1362,6 +1379,16 @@ export default class MonitorStep extends DatabaseProperty {
       _type: Zod.literal(ObjectType.MonitorStep),
       value: Zod.object({
         id: Zod.string(),
+        doNotSyncFields: Zod.array(
+          Zod.string().refine((value: string): boolean => {
+            try {
+              MonitorTemplateSyncFieldUtil.parse([value]);
+              return true;
+            } catch {
+              return false;
+            }
+          }, "Unsupported do not sync field"),
+        ).optional(),
         monitorDestination: Zod.any().optional(),
         monitorCriteria: Zod.any(),
         requestType: Zod.any(),

@@ -1,4 +1,5 @@
 import MonitorCriteriaElement from "./MonitorCriteria";
+import MonitorTemplateSyncFields from "./MonitorTemplateSyncFields";
 import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import Hostname from "Common/Types/API/Hostname";
@@ -178,6 +179,7 @@ export interface ComponentProps {
   onChange?: undefined | ((value: MonitorStep) => void);
   // onDelete?: undefined | (() => void);
   monitorType: MonitorType;
+  isMonitorTemplate?: boolean | undefined;
   allMonitorSteps: MonitorSteps;
   probes: Array<Probe>;
   monitorId?: ObjectID | undefined; // this is used to populate secrets when testing the monitor.
@@ -768,6 +770,12 @@ return {
 
   return (
     <div className="mt-5 space-y-6">
+      <MonitorTemplateSyncFields
+        monitorType={props.monitorType}
+        value={monitorStep}
+        isMonitorTemplate={props.isMonitorTemplate}
+        onChange={props.onChange}
+      />
       {/* Monitor Target Card */}
       {hasMonitorDestination && (
         <Card

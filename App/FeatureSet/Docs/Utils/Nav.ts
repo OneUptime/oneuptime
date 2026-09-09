@@ -226,6 +226,10 @@ const DocsNav: NavGroup[] = [
     title: "Monitor",
     links: [
       {
+        title: "Monitor Templates",
+        url: "/docs/monitor/monitor-templates",
+      },
+      {
         title: "Website Monitor",
         url: "/docs/monitor/website-monitor",
       },
