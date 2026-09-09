@@ -1,8 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { AddUserNotificationEmailRollup1791000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1791000000000-AddUserNotificationEmailRollup";
+import { AddSeverityAndStateToNotificationEmailRollup1791900000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1791900000000-AddSeverityAndStateToNotificationEmailRollup";
 import UserNotificationEmailRollupBatch from "../../../../Models/DatabaseModels/UserNotificationEmailRollupBatch";
 import UserNotificationEmailRollupItem from "../../../../Models/DatabaseModels/UserNotificationEmailRollupItem";
 import Columns from "../../../../Types/Database/Columns";
@@ -241,9 +243,38 @@ describe("the queue table it creates", () => {
   /*
    * ...and the other direction. A column the entity persists but the table has
    * no room for is a runtime error on the first insert, not a compile error, so
-   * the model is the authority the SQL is held to.
+   * the current model is held to the schema after subsequent migrations too.
+   * Keep ITEM_COLUMNS unchanged so the original CREATE TABLE assertions still
+   * describe the historical migration. Later columns must come from a
+   * registered migration's up() rather than an exception list in this test.
    */
-  test("every column the model persists exists in the table", () => {
+  test("every column the model persists exists after registered migrations", async () => {
+    const migratedItemColumns: Set<string> = new Set<string>(
+      ITEM_COLUMNS.keys(),
+    );
+
+    expect(
+      SchemaMigrations.indexOf(
+        AddSeverityAndStateToNotificationEmailRollup1791900000000,
+      ),
+    ).toBeGreaterThan(
+      SchemaMigrations.indexOf(AddUserNotificationEmailRollup1791000000000),
+    );
+
+    await new AddSeverityAndStateToNotificationEmailRollup1791900000000().up({
+      query: async (statement: string): Promise<void> => {
+        const addedColumn: string | undefined = statement.match(
+          /^ALTER TABLE "UserNotificationEmailRollupItem" ADD "(\w+)" /,
+        )?.[1];
+
+        expect(addedColumn).toBeDefined();
+
+        if (addedColumn) {
+          migratedItemColumns.add(addedColumn);
+        }
+      },
+    } as QueryRunner);
+
     const persisted: Array<string> = persistedColumnsOf(
       new UserNotificationEmailRollupItem(),
     );
@@ -251,7 +282,7 @@ describe("the queue table it creates", () => {
     expect(persisted.length).toBeGreaterThan(0);
 
     for (const columnName of persisted) {
-      expect(ITEM_COLUMNS.has(columnName)).toBe(true);
+      expect(migratedItemColumns.has(columnName)).toBe(true);
     }
   });
 

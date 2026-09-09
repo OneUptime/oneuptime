@@ -11,6 +11,7 @@ import {
 } from "./EmailRollupConstants";
 import UserNotificationEmailRollupItem from "../../../Models/DatabaseModels/UserNotificationEmailRollupItem";
 import OneUptimeDate from "../../../Types/Date";
+import ColumnLength from "../../../Types/Database/ColumnLength";
 import Dictionary from "../../../Types/Dictionary";
 import Email from "../../../Types/Email";
 import { EmailEnvelope } from "../../../Types/Email/EmailMessage";
@@ -112,6 +113,29 @@ const KNOWN_LINK_VARS: ReadonlyArray<string> = [
   "deviceViewLink",
   "onCallPolicyViewLink",
 ];
+
+/*
+ * Episode notifications can also contain child-resource details; keep the
+ * severity tied to the same resource as the event and its current state.
+ */
+const SEVERITY_VAR_BY_CATEGORY: Partial<Record<RollupCategory, string>> = {
+  [RollupCategory.Alerts]: "alertSeverity",
+  [RollupCategory.Incidents]: "incidentSeverity",
+  [RollupCategory.AlertEpisodes]: "episodeSeverity",
+  [RollupCategory.IncidentEpisodes]: "episodeSeverity",
+};
+
+function extractLabel(
+  value: string | JSONObject | undefined,
+): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const label: string = value.trim();
+
+  return label ? label.slice(0, ColumnLength.ShortText) : undefined;
+}
 
 type IsAbsoluteLinkFunction = (
   value: string | JSONObject | undefined,
@@ -321,6 +345,26 @@ export default class EmailRollupWriter {
           stripHandlebarsBraces(data.emailEnvelope.subject ?? ""),
           ROLLUP_SUBJECT_MAX_LENGTH,
         ) ?? "";
+
+      const severityVar: string | undefined =
+        SEVERITY_VAR_BY_CATEGORY[category];
+
+      if (severityVar) {
+        const severity: string | undefined = extractLabel(
+          data.emailEnvelope.vars?.[severityVar],
+        );
+        const currentState: string | undefined = extractLabel(
+          data.emailEnvelope.vars?.["currentState"],
+        );
+
+        if (severity !== undefined) {
+          item.severity = severity;
+        }
+
+        if (currentState !== undefined) {
+          item.currentState = currentState;
+        }
+      }
 
       const link: string | undefined = EmailRollupWriter.extractViewLink(
         data.emailEnvelope.vars,

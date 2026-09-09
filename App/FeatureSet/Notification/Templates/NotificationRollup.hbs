@@ -89,9 +89,20 @@
               <td align="right" style="padding: 24px 0 10px; font-size: 12px; line-height: 18px; font-weight: 600; letter-spacing: 0.4px; color: #64748b;">{{this.sectionCount}}</td>
             </tr>
             {{/ifCond}}
+            {{#ifCond this.isSectionStart "false"}}
+            <tr aria-hidden="true">
+              <td colspan="2" height="12" style="height: 12px; padding: 0; border: 0; font-size: 1px; line-height: 12px; mso-line-height-rule: exactly;">&nbsp;</td>
+            </tr>
+            {{/ifCond}}
             <tr style="background-color: {{this.rowBackground}};">
               <td colspan="2" style="padding: 16px 18px; border: 1px solid #e2e8f0; border-radius: 8px; overflow-wrap: anywhere; word-break: break-word;">
                 <div style="font-size: 15px; line-height: 24px; font-weight: 600; color: #0f172a;">{{#ifCond this.hasLink "true"}}<a href="{{this.link}}" style="display: block; color: #111111; text-decoration: underline; text-underline-offset: 3px;">{{this.title}}</a>{{/ifCond}}{{#ifCond this.hasLink "false"}}{{this.title}}{{/ifCond}}</div>
+                {{#ifCond this.hasDetails "true"}}
+                <div style="padding-top: 10px; font-size: 12px; line-height: 20px; color: #334155;">
+                  {{#ifCond this.hasSeverity "true"}}<span style="display: inline-block; max-width: 100%; box-sizing: border-box; padding: 3px 8px; margin: 0 8px 4px 0; background-color: #eef2f7; border: 1px solid #cbd5e1; border-radius: 4px;">Severity: <strong>{{this.severity}}</strong></span>{{/ifCond}}
+                  {{#ifCond this.hasCurrentState "true"}}<span style="display: inline-block; max-width: 100%; box-sizing: border-box; padding: 3px 8px; margin: 0 0 4px; background-color: #eef2f7; border: 1px solid #cbd5e1; border-radius: 4px;">State: <strong>{{this.currentState}}</strong></span>{{/ifCond}}
+                </div>
+                {{/ifCond}}
                 <div style="font-size: 13px; line-height: 20px; color: #64748b; padding-top: 6px;">{{this.metaLabel}}</div>
               </td>
             </tr>
