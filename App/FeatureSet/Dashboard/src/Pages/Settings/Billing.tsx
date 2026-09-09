@@ -3,7 +3,6 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import CheckoutForm from "./BillingPaymentMethodForm";
-import BillingUsageStatus from "../../Components/Billing/BillingUsageStatus";
 import { Elements } from "@stripe/react-stripe-js";
 import { Stripe } from "@stripe/stripe-js";
 /*
@@ -394,22 +393,6 @@ const Settings: FunctionComponent<ComponentProps> = (
 
       {!isLoading && !error ? (
         <div>
-          {BILLING_ENABLED && !reseller ? (
-            <BillingUsageStatus
-              isFreePlan={Boolean(
-                currentPlanId &&
-                  SubscriptionPlan.isFreePlan(currentPlanId, getAllEnvVars()),
-              )}
-              paymentMethodsCount={paymentMethodsCount}
-              onAddPaymentMethod={async () => {
-                setShowPaymentMethodModal(true);
-                await fetchSetupIntent();
-              }}
-              onRetry={fetchPaymentMethodsCount}
-            />
-          ) : (
-            <></>
-          )}
           {!reseller && (
             <CardModelDetail<Project>
               name="Plan Details"
@@ -675,6 +658,8 @@ const Settings: FunctionComponent<ComponentProps> = (
             isViewable={false}
             refreshToggle={paymentMethodsRefresh.toString()}
             onItemDeleted={fetchPaymentMethodsCount}
+            // Table filters can hide saved methods; plan controls need the unfiltered count.
+            onFetchSuccess={fetchPaymentMethodsCount}
             name="Settings > Billing > Add Payment Method"
             cardProps={{
               buttons: [
@@ -747,7 +732,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             <ConfirmModal
               title={`Add a Payment Method`}
               description={
-                "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates. You will review these charges before saving your payment method."
+                "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates."
               }
               submitButtonText={"Add Payment Method"}
               onSubmit={async () => {
