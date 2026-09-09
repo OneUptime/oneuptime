@@ -52,9 +52,11 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
     default: (props: ModelTableProps<UserWebAuthn>): React.ReactElement => {
       if (mockRenderRealPasskeyTable && props.id === "webauthn-table") {
         const ModelTable: typeof import("../../../UI/Components/ModelTable/ModelTable").default =
-          jest.requireActual<
-            typeof import("../../../UI/Components/ModelTable/ModelTable")
-          >("../../../UI/Components/ModelTable/ModelTable").default;
+          (
+            jest.requireActual(
+              "../../../UI/Components/ModelTable/ModelTable",
+            ) as typeof import("../../../UI/Components/ModelTable/ModelTable")
+          ).default;
         return <ModelTable {...props} />;
       }
       return (
@@ -577,7 +579,13 @@ describe("Passkey settings registration", () => {
     jest.spyOn(ModelAPI, "getItem").mockResolvedValue(storedKey);
     jest
       .spyOn(ModelAPI, "createOrUpdate")
-      .mockResolvedValue(new HTTPResponse<UserWebAuthn>(200, storedKey, {}));
+      .mockResolvedValue(
+        new HTTPResponse<UserWebAuthn>(
+          200,
+          UserWebAuthn.toJSON(storedKey, UserWebAuthn),
+          {},
+        ),
+      );
     renderPage();
     const rename: HTMLElement = await screen.findByRole("button", {
       name: "Rename",
