@@ -51,7 +51,10 @@ const USER_JSON: JSONObject = {
   email: "ada@example.com",
   name: "Ada Lovelace",
 };
-type PostedRequest = { url: string; data: JSONObject | undefined };
+type PostedRequest = {
+  url: string;
+  data: Parameters<typeof API.post>[0]["data"];
+};
 let posted: Array<PostedRequest> = [];
 
 const renderPage: () => void = (): void => {
@@ -81,10 +84,9 @@ describe("Passwordless passkey login", () => {
     jest
       .spyOn(API, "post")
       .mockImplementation(
-        async (options: {
-          url?: { toString: () => string };
-          data?: JSONObject;
-        }): Promise<HTTPResponse<JSONObject>> => {
+        async (
+          options: Parameters<typeof API.post>[0],
+        ): Promise<HTTPResponse<JSONObject>> => {
           const url: string = options.url?.toString() || "";
           posted.push({ url: url, data: options.data });
           if (url.endsWith("/passkey-login-options")) {
@@ -204,15 +206,20 @@ describe("Passwordless passkey login", () => {
   });
 
   test("shows expired/rejected credentials without creating a local login", async () => {
-    const post: SpyInstance<typeof API.post> = jest.spyOn(API, "post");
-    post.mockResolvedValueOnce(
-      new HTTPResponse<JSONObject>(200, { options: authenticationOptions }, {}),
-    );
-    post.mockRejectedValueOnce(
-      new Error(
-        "This passkey is no longer registered. Please sign in with your password.",
-      ),
-    );
+    jest
+      .spyOn(API, "post")
+      .mockResolvedValueOnce(
+        new HTTPResponse<JSONObject>(
+          200,
+          { options: authenticationOptions },
+          {},
+        ),
+      )
+      .mockRejectedValueOnce(
+        new Error(
+          "This passkey is no longer registered. Please sign in with your password.",
+        ),
+      );
     renderPage();
     await clickPasskey();
     expect(
@@ -317,10 +324,9 @@ describe("Passwordless passkey login", () => {
     jest
       .spyOn(API, "post")
       .mockImplementation(
-        async (options: {
-          url?: { toString: () => string };
-          data?: JSONObject;
-        }): Promise<HTTPResponse<JSONObject>> => {
+        async (
+          options: Parameters<typeof API.post>[0],
+        ): Promise<HTTPResponse<JSONObject>> => {
           const url: string = options.url?.toString() || "";
           posted.push({ url: url, data: options.data });
           return new HTTPResponse<JSONObject>(
@@ -349,8 +355,10 @@ describe("Passwordless passkey login", () => {
       "/user-webauthn/generate-authentication-options",
     );
     expect(posted[1]?.url).toContain("/identity/verify-webauthn-auth");
-    expect(posted[1]?.data?.["data"]).toMatchObject({
-      credential: { id: "-_8A", response: { userHandle: "CgsM" } },
+    expect(posted[1]?.data).toMatchObject({
+      data: {
+        credential: { id: "-_8A", response: { userHandle: "CgsM" } },
+      },
     });
     expect(LoginUtil.login).toHaveBeenCalledWith({
       user: expect.any(User),

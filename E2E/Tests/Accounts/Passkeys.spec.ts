@@ -174,11 +174,15 @@ test.describe("Passkey account lifecycle", () => {
   });
 
   test("creates a discoverable passkey in account settings and shows recovery codes", async () => {
-    projectId = await registerAndCreateProject({
+    const onboardingOptions: Parameters<typeof registerAndCreateProject>[0] & {
+      enablePaidUsage: false;
+    } = {
       page,
       email,
       projectNamePrefix: "Passkey tests",
-    });
+      enablePaidUsage: false,
+    };
+    projectId = await registerAndCreateProject(onboardingOptions);
     userId = (await context.cookies()).find((cookie: { name: string }) => {
       return cookie.name === "user-id";
     })!.value;

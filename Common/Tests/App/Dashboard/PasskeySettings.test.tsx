@@ -1,4 +1,3 @@
-import { SpyInstance } from "jest-mock";
 import "@testing-library/jest-dom";
 import {
   afterEach,
@@ -147,7 +146,10 @@ jest.mock(
   },
 );
 
-type PostedRequest = { url: string; data: JSONObject | undefined };
+type PostedRequest = {
+  url: string;
+  data: Parameters<typeof API.post>[0]["data"];
+};
 let posted: Array<PostedRequest> = [];
 let backupCodes: Array<string> = [];
 
@@ -201,10 +203,9 @@ describe("Passkey settings registration", () => {
     jest
       .spyOn(API, "post")
       .mockImplementation(
-        async (options: {
-          url?: { toString: () => string };
-          data?: JSONObject;
-        }): Promise<HTTPResponse<JSONObject>> => {
+        async (
+          options: Parameters<typeof API.post>[0],
+        ): Promise<HTTPResponse<JSONObject>> => {
           const url: string = options.url?.toString() || "";
           posted.push({ url: url, data: options.data });
           if (url.endsWith("/generate-registration-options")) {
@@ -280,7 +281,7 @@ describe("Passkey settings registration", () => {
     renderPage();
     await register(false);
     expect(posted[0]?.data).toEqual({ isPasskey: false });
-    expect(posted[1]?.data?.["name"]).toBe("My laptop");
+    expect(posted[1]?.data).toMatchObject({ name: "My laptop" });
   });
 
   test("passes newly minted recovery codes to their save-once UI", async () => {
@@ -324,13 +325,14 @@ describe("Passkey settings registration", () => {
   });
 
   test("shows verification rejection and leaves the modal available for retry", async () => {
-    const post: SpyInstance<typeof API.post> = jest.spyOn(API, "post");
-    post.mockResolvedValueOnce(
-      new HTTPResponse<JSONObject>(200, { options: registrationOptions }, {}),
-    );
-    post.mockRejectedValueOnce(
-      new Error("Registration expired. Please try again."),
-    );
+    jest
+      .spyOn(API, "post")
+      .mockResolvedValueOnce(
+        new HTTPResponse<JSONObject>(200, { options: registrationOptions }, {}),
+      )
+      .mockRejectedValueOnce(
+        new Error("Registration expired. Please try again."),
+      );
     renderPage();
     await register();
     expect(

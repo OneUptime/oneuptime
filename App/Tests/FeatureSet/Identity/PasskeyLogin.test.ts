@@ -437,7 +437,7 @@ describe("passkey login", () => {
       } else if (condition === "unverified email") {
         user.isEmailVerified = false;
       } else {
-        user.email = undefined;
+        delete user.email;
       }
       const { next } = await invoke("/passkey-login");
       expect(next).toHaveBeenCalledWith(expect.any(BadDataException));
