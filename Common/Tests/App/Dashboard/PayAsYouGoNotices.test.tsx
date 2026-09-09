@@ -2,7 +2,7 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import BaseAPI from "../../../UI/Utils/API/API";
 import ObjectID from "../../../Types/ObjectID";
 import "@testing-library/jest-dom";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as React from "react";
 import { beforeEach, describe, expect, it } from "@jest/globals";
@@ -194,25 +194,132 @@ describe("Pay as you go notices", () => {
   });
 
   describe("MonitorPayAsYouGoCard", () => {
-    it("tells a Free plan project every monitor except Manual is billed, and at what rate", () => {
+    it("provides a named pricing region with a clear heading hierarchy", () => {
+      render(<MonitorPayAsYouGoCard />);
+
+      const card: HTMLElement = screen.getByRole("region", {
+        name: "Monitor pricing",
+      });
+
+      expect(card).toHaveAttribute("data-testid", "monitor-pay-as-you-go-card");
+      expect(
+        within(card).getByRole("heading", {
+          name: "Monitor pricing",
+          level: 2,
+        }),
+      ).toBeInTheDocument();
+      expect(
+        within(card).getByRole("heading", {
+          name: "Active monitoring",
+          level: 3,
+        }),
+      ).toBeInTheDocument();
+      expect(
+        within(card).getByRole("heading", {
+          name: "Manual monitors",
+          level: 3,
+        }),
+      ).toBeInTheDocument();
+    });
+
+    it("renders icon wrappers in valid HTML containers", () => {
+      render(<MonitorPayAsYouGoCard />);
+
+      const card: HTMLElement = screen.getByRole("region", {
+        name: "Monitor pricing",
+      });
+
+      // Icon includes a div wrapper, which cannot be nested inside p or span.
+      expect(card.querySelector("p div, span div")).toBeNull();
+    });
+
+    it("introduces the Free plan once without repeating the pricing summary", () => {
       render(<MonitorPayAsYouGoCard />);
 
       expect(
-        screen.getByText("Monitors are a pay as you go feature"),
+        screen.getAllByText(
+          "Your project is on the Free plan. Choose the monitoring that fits your needs.",
+        ),
+      ).toHaveLength(1);
+      expect(
+        screen.getAllByText(/Your project is on the Free plan/),
+      ).toHaveLength(1);
+      expect(
+        screen.queryByText("Monitors are a pay as you go feature"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("quotes the real active-monitor rate once with its billing unit", () => {
+      render(<MonitorPayAsYouGoCard />);
+
+      expect(screen.getAllByText(ACTIVE_MONITOR_PRICE_TEXT)).toHaveLength(1);
+      expect(screen.getAllByText("per monitor per month")).toHaveLength(1);
+      expect(screen.getByText("Pay as you go")).toBeInTheDocument();
+      expect(
+        screen.getAllByText(
+          "Every monitor type except Manual is an active monitor.",
+        ),
+      ).toHaveLength(1);
+      expect(screen.queryByText("Starting at")).not.toBeInTheDocument();
+    });
+
+    it("makes the unlimited free Manual option explicit", () => {
+      render(<MonitorPayAsYouGoCard />);
+
+      expect(screen.getByText("Always free")).toBeInTheDocument();
+      expect(
+        screen.getByText("Unlimited monitors. No monitoring charges."),
       ).toBeInTheDocument();
+    });
 
-      const card: HTMLElement = screen.getByTestId(
-        "monitor-pay-as-you-go-card",
-      );
+    it("explains how to start and stop active-monitor charges", () => {
+      render(<MonitorPayAsYouGoCard />);
 
-      expect(card).toHaveTextContent("$1");
-      expect(card).toHaveTextContent("per monitor per month");
-      expect(card).toHaveTextContent(
-        "Every monitor type except Manual is an active monitor",
+      expect(
+        screen.getAllByText(
+          "Add a payment method before creating an active monitor.",
+        ),
+      ).toHaveLength(1);
+      expect(
+        screen.getByText(
+          "No commitment. Delete a monitor to stop its charges.",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("preserves the additional telemetry charge disclosure", () => {
+      render(<MonitorPayAsYouGoCard />);
+
+      expect(
+        screen.getAllByText(
+          "Telemetry-based monitors also incur charges for the telemetry they read.",
+        ),
+      ).toHaveLength(1);
+    });
+
+    it("offers a native pricing link that opens in a separate tab", () => {
+      render(<MonitorPayAsYouGoCard />);
+
+      const pricingLink: HTMLElement = screen.getByRole("link", {
+        name: "View pricing",
+      });
+
+      expect(pricingLink).toHaveAttribute(
+        "href",
+        "https://oneuptime.com/pricing",
       );
-      expect(card).toHaveTextContent(
-        "Manual monitors are always free, and unlimited.",
-      );
+      expect(pricingLink).toHaveAttribute("target", "_blank");
+      expect(pricingLink).toHaveAttribute("rel", "noopener noreferrer");
+    });
+
+    it("makes View pricing reachable with the keyboard", async () => {
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+      render(<MonitorPayAsYouGoCard />);
+
+      await user.tab();
+
+      expect(screen.getByRole("link", { name: "View pricing" })).toHaveFocus();
     });
 
     it.each([PlanType.Growth, PlanType.Scale, PlanType.Enterprise])(
@@ -228,8 +335,28 @@ describe("Pay as you go notices", () => {
       },
     );
 
-    it("renders nothing on a self-hosted install", () => {
-      config.billingEnabled = false;
+    it.each([
+      PlanType.Free,
+      PlanType.Growth,
+      PlanType.Scale,
+      PlanType.Enterprise,
+      null,
+    ])(
+      "renders nothing on a self-hosted install with plan %s",
+      (plan: PlanType | null) => {
+        config.billingEnabled = false;
+        setPlan(plan);
+
+        const { container }: { container: HTMLElement } = render(
+          <MonitorPayAsYouGoCard />,
+        );
+
+        expect(container).toBeEmptyDOMElement();
+      },
+    );
+
+    it("renders nothing when the plan is not known yet", () => {
+      setPlan(null);
 
       const { container }: { container: HTMLElement } = render(
         <MonitorPayAsYouGoCard />,
@@ -238,12 +365,22 @@ describe("Pay as you go notices", () => {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it("renders nothing when the plan is not known yet", () => {
+    it("shows pricing when the plan becomes available and removes it after an upgrade", () => {
       setPlan(null);
 
-      const { container }: { container: HTMLElement } = render(
-        <MonitorPayAsYouGoCard />,
-      );
+      const { container, rerender } = render(<MonitorPayAsYouGoCard />);
+
+      expect(container).toBeEmptyDOMElement();
+
+      setPlan(PlanType.Free);
+      rerender(<MonitorPayAsYouGoCard />);
+
+      expect(
+        screen.getByRole("region", { name: "Monitor pricing" }),
+      ).toBeInTheDocument();
+
+      setPlan(PlanType.Growth);
+      rerender(<MonitorPayAsYouGoCard />);
 
       expect(container).toBeEmptyDOMElement();
     });

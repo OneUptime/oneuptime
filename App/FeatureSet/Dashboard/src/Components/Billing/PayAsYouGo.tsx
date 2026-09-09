@@ -270,23 +270,108 @@ export const MonitorPayAsYouGoCard: FunctionComponent = (): ReactElement => {
   }
 
   return (
-    <PayAsYouGoCard
-      dataTestId="monitor-pay-as-you-go-card"
-      cardTitle="Monitors are a pay as you go feature"
-      cardDescription={`Your project is on the Free plan. Every monitor type except Manual is an active monitor, billed at ${ACTIVE_MONITOR_PRICE_SENTENCE}.`}
-      featureName="Active monitoring"
-      featureIcon={IconProp.Activity}
-      priceLabel="Starting at"
-      priceText={ACTIVE_MONITOR_PRICE_TEXT}
-      priceCaption="per monitor per month"
-      summary={`Your project is on the Free plan. Every monitor type except ${MonitorType.Manual} is an active monitor and is billed at ${ACTIVE_MONITOR_PRICE_SENTENCE}.`}
-      points={[
-        `${MonitorType.Manual} monitors are always free, and unlimited.`,
-        "Add a payment method before creating an active monitor.",
-        "No commitment - delete a monitor and the charge stops.",
-        "Telemetry based monitors are billed as active monitors on top of the telemetry they read.",
-      ]}
-    />
+    <section
+      aria-label="Monitor pricing"
+      data-testid="monitor-pay-as-you-go-card"
+      className="mb-5 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+    >
+      <div className="p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Monitor pricing
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-gray-500">
+              Your project is on the Free plan. Choose the monitoring that fits
+              your needs.
+            </p>
+          </div>
+          <a
+            href={PRICING_PAGE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex flex-shrink-0 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+          >
+            View pricing
+            <div aria-hidden="true">
+              <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
+            </div>
+          </a>
+        </div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 p-4 sm:p-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <div aria-hidden="true" className="mr-1 text-indigo-600">
+                <Icon icon={IconProp.Bolt} className="h-5 w-5" />
+              </div>
+              <h3 className="text-sm font-semibold text-gray-900">
+                Active monitoring
+              </h3>
+              <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                Pay as you go
+              </span>
+            </div>
+            <p className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <span className="text-3xl font-semibold tracking-tight text-gray-900">
+                {ACTIVE_MONITOR_PRICE_TEXT}
+              </span>
+              <span className="text-sm text-gray-600">
+                per monitor per month
+              </span>
+            </p>
+            <p className="mt-3 text-sm leading-6 text-gray-600">
+              Every monitor type except {MonitorType.Manual} is an active
+              monitor.
+            </p>
+            <p className="mt-1 text-sm leading-6 text-gray-600">
+              No commitment. Delete a monitor to stop its charges.
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 sm:p-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <div aria-hidden="true" className="mr-1 text-gray-500">
+                <Icon icon={IconProp.CheckCircle} className="h-5 w-5" />
+              </div>
+              <h3 className="text-sm font-semibold text-gray-900">
+                Manual monitors
+              </h3>
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                Always free
+              </span>
+            </div>
+            <p className="mt-3 text-3xl font-semibold tracking-tight text-gray-900">
+              Free
+            </p>
+            <p className="mt-3 text-sm leading-6 text-gray-600">
+              Unlimited monitors. No monitoring charges.
+            </p>
+            <p className="mt-1 text-sm leading-6 text-gray-600">
+              Update their status manually or through the API.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-2 border-t border-gray-200 bg-gray-50/50 px-5 py-4 sm:px-6">
+        <div className="flex items-start gap-2 text-sm leading-5 text-gray-700">
+          <div aria-hidden="true" className="mt-0.5 flex-shrink-0 text-gray-400">
+            <Icon icon={IconProp.Billing} className="h-4 w-4" />
+          </div>
+          <span>Add a payment method before creating an active monitor.</span>
+        </div>
+        <div className="flex items-start gap-2 text-xs leading-5 text-gray-500">
+          <div aria-hidden="true" className="mt-0.5 flex-shrink-0 text-gray-400">
+            <Icon icon={IconProp.Info} className="h-4 w-4" />
+          </div>
+          <span>
+            Telemetry-based monitors also incur charges for the telemetry they
+            read.
+          </span>
+        </div>
+      </div>
+    </section>
   );
 };
 
