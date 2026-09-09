@@ -242,7 +242,7 @@ test.describe("Monitor pay-as-you-go pricing", () => {
     }
   });
 
-  test("keeps Manual monitor setup usable without paid-usage consent", async () => {
+  test("keeps Manual monitor setup usable without a payment method", async () => {
     const form: Locator = ctx.page.locator("#create-monitor-form");
     await expect(form).toBeVisible();
     await form
@@ -250,8 +250,8 @@ test.describe("Monitor pay-as-you-go pricing", () => {
       .fill("Manual pricing check");
     await selectMonitorTypeCard({ page: ctx.page, cardValue: "Manual" });
     await expect(
-      ctx.page.getByTestId("monitor-pay-as-you-go-consent"),
-    ).toBeHidden();
+      form.getByRole("checkbox", { name: "I agree to these usage charges" }),
+    ).toHaveCount(0);
     await ctx.page.getByTestId("Create Monitor").click();
     await expect(
       ctx.page.getByRole("combobox", { name: /^Labels\b/ }),

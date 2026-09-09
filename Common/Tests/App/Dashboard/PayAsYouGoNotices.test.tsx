@@ -2,13 +2,12 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import BaseAPI from "../../../UI/Utils/API/API";
 import ObjectID from "../../../Types/ObjectID";
 import "@testing-library/jest-dom";
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as React from "react";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import MonitorType from "../../../Types/Monitor/MonitorType";
-import Monitor from "../../../Models/DatabaseModels/Monitor";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
@@ -19,20 +18,14 @@ import { getJestSpyOn } from "../../Spy";
 import {
   ACTIVE_MONITOR_PRICE_TEXT,
   MONITOR_CONSENT_ERROR,
-  MONITOR_CONSENT_FIELD_KEY,
   MonitorBatchPayAsYouGoConsent,
   MonitorPayAsYouGoCard,
   SESSION_REPLAY_PRICE_PER_GB_TEXT,
-  TELEMETRY_CONSENT_ERROR,
-  TELEMETRY_CONSENT_FIELD_KEY,
   TELEMETRY_PRICE_PER_GB_TEXT,
   TelemetryPayAsYouGoCard,
   getMonitorBatchPriceSentence,
-  getMonitorPayAsYouGoFormFields,
   getTelemetryPayAsYouGoFormFields,
   isMonitorBatchConsentRequired,
-  validateMonitorConsent,
-  validateTelemetryConsent,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo";
 
 /*
@@ -393,16 +386,6 @@ describe("Pay as you go notices", () => {
       expect(ACTIVE_MONITOR_PRICE_TEXT).toBe("$1");
       expect(MONITOR_CONSENT_ERROR).toContain("$1");
     });
-
-    it("does not put a single per-GB rate in the telemetry consent error", () => {
-      /*
-       * Two different per-GB rates travel on one ingestion key, so any single
-       * figure in a message about "telemetry" is wrong for one of them. The
-       * error stays rate-free and the rates live next to the checkbox.
-       */
-      expect(TELEMETRY_CONSENT_ERROR).not.toContain("$");
-      expect(TELEMETRY_CONSENT_ERROR).toContain("billed as you use it");
-    });
   });
 
   describe("getTelemetryPayAsYouGoFormFields", () => {
@@ -422,13 +405,14 @@ describe("Pay as you go notices", () => {
       return screen.getByRole("region", { name: "Telemetry pricing" });
     };
 
-    it("adds a notice and a consent checkbox on the Free plan", () => {
+    it("adds only a nonblocking notice on the Free plan", () => {
       const fields: Array<ModelField<TelemetryIngestionKey>> =
         getTelemetryPayAsYouGoFormFields();
 
-      expect(fields).toHaveLength(2);
+      expect(fields).toHaveLength(1);
       expect(fields[0]?.fieldType).toBe(FormFieldSchemaType.CustomComponent);
-      expect(fields[1]?.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+      expect(fields[0]?.required).toBe(false);
+      expect(fields[0]?.customValidation).toBeUndefined();
     });
 
     it("gives the modal notice a named pricing region and a clear heading", () => {
@@ -575,117 +559,22 @@ describe("Pay as you go notices", () => {
       expect(noticeField.required).toBe(false);
     });
 
-    it("keeps consent explicit when the notice and checkbox are rendered together", async () => {
-      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
-      const onChange: MockFunction = getJestMockFunction();
-      const fields: Array<ModelField<TelemetryIngestionKey>> =
-        getTelemetryPayAsYouGoFormFields();
-      const initialValues: FormValues<TelemetryIngestionKey> = {
-        [TELEMETRY_CONSENT_FIELD_KEY]: false,
-      } as FormValues<TelemetryIngestionKey>;
+    it("renders pricing without an acknowledgement section or a paid-access request", () => {
+      renderModalNotice();
 
-      render(
-        <>
-          {fields.map(
-            (field: ModelField<TelemetryIngestionKey>, index: number) => {
-              return (
-                <React.Fragment key={index}>
-                  {field.getCustomElement!(initialValues, {
-                    onChange: onChange as (value: boolean) => void,
-                  })}
-                </React.Fragment>
-              );
-            },
-          )}
-        </>,
-      );
-
-      const checkbox: HTMLElement = screen.getByRole("checkbox", {
-        name: "I agree to these usage charges",
-      });
-
-      await waitFor(() => {
-        expect(checkbox).toBeEnabled();
-      });
-      expect(checkbox).not.toBeChecked();
-      expect(fields[1]!.customValidation!(initialValues)).toBe(
-        TELEMETRY_CONSENT_ERROR,
-      );
-
-      await user.tab();
-      expect(screen.getByRole("link", { name: "View pricing" })).toHaveFocus();
-      expect(onChange).not.toHaveBeenCalled();
-
-      await user.tab();
-      expect(checkbox).toHaveFocus();
-      await act(async (): Promise<void> => {
-        await user.keyboard(" ");
-      });
-
-      expect(onChange).toHaveBeenCalledWith(true);
-      expect(checkbox).toBeChecked();
+      expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
       expect(
-        fields[1]!.customValidation!({
-          [TELEMETRY_CONSENT_FIELD_KEY]: true,
-        } as FormValues<TelemetryIngestionKey>),
-      ).toBeNull();
+        screen.queryByTestId("telemetry-pay-as-you-go-consent"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("I agree to these usage charges"),
+      ).not.toBeInTheDocument();
+      expect(BaseAPI.get).not.toHaveBeenCalled();
     });
 
-    it("keeps pricing available while a missing payment method blocks consent", async () => {
-      jest
-        .spyOn(BaseAPI, "get")
-        .mockResolvedValue({ data: { isAllowed: false } } as any);
-      const onChange: MockFunction = getJestMockFunction();
-      const fields: Array<ModelField<TelemetryIngestionKey>> =
-        getTelemetryPayAsYouGoFormFields();
-
-      render(
-        <>
-          {fields.map(
-            (field: ModelField<TelemetryIngestionKey>, index: number) => {
-              return (
-                <React.Fragment key={index}>
-                  {field.getCustomElement!(
-                    {
-                      [TELEMETRY_CONSENT_FIELD_KEY]: false,
-                    } as FormValues<TelemetryIngestionKey>,
-                    { onChange: onChange as (value: boolean) => void },
-                  )}
-                </React.Fragment>
-              );
-            },
-          )}
-        </>,
-      );
-
-      expect(
-        await screen.findByText(
-          "Add a payment method before using this paid feature. Free features remain available without a card.",
-        ),
-      ).toBeInTheDocument();
-      const checkbox: HTMLElement = screen.getByRole("checkbox", {
-        name: "I agree to these usage charges",
-      });
-
-      expect(checkbox).toBeDisabled();
-      expect(checkbox).not.toBeChecked();
-      expect(
-        screen.getByRole("region", { name: "Telemetry pricing" }),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole("link", { name: "View pricing" }),
-      ).toHaveAttribute("href", "https://oneuptime.com/pricing");
-      await userEvent.click(checkbox);
-      expect(onChange).not.toHaveBeenCalled();
-    });
-
-    it("names both per-GB rates in the modal notice and on the consent box", () => {
-      const [noticeField, consentField]: Array<
-        ModelField<TelemetryIngestionKey>
-      > = getTelemetryPayAsYouGoFormFields() as [
-        ModelField<TelemetryIngestionKey>,
-        ModelField<TelemetryIngestionKey>,
-      ];
+    it("keeps both per-GB rates in the modal notice", () => {
+      const noticeField: ModelField<TelemetryIngestionKey> =
+        getTelemetryPayAsYouGoFormFields()[0]!;
 
       render(
         <div>
@@ -704,47 +593,7 @@ describe("Pay as you go notices", () => {
       expect(notice).toHaveTextContent("per GB ingested");
       expect(notice).toHaveTextContent("$2");
       expect(notice).toHaveTextContent("per GB");
-
-      /*
-       * The title is the sentence the user affirms by ticking, so it must not
-       * carry a rate that is wrong for half the data the key accepts.
-       */
-      expect(consentField.title).not.toContain("$");
-      expect(String(consentField.description)).toContain("$0.10 per GB");
-      expect(String(consentField.description)).toContain("$2 per GB");
-    });
-
-    it("keeps the consent value out of the API payload", () => {
-      const consentField: ModelField<TelemetryIngestionKey> =
-        getTelemetryPayAsYouGoFormFields()[1]!;
-
-      /*
-       * overrideField with no overrideFieldKey is what makes this a purely
-       * client-side field: ModelForm builds the payload from `field`, and
-       * miscDataProps from `overrideFieldKey`. Neither is set to a real key.
-       */
-      expect(consentField.field).toBeUndefined();
-      expect(consentField.overrideFieldKey).toBeUndefined();
-      expect(consentField.overrideField).toEqual({
-        [TELEMETRY_CONSENT_FIELD_KEY]: true,
-      });
-      expect(consentField.showEvenIfPermissionDoesNotExist).toBe(true);
-    });
-
-    it("seeds the consent value as false so validation actually runs on it", () => {
-      const consentField: ModelField<TelemetryIngestionKey> =
-        getTelemetryPayAsYouGoFormFields()[1]!;
-
-      /*
-       * The form skips customValidation for keys that are absent from its
-       * values, and a plain `defaultValue: false` is falsy and seeds nothing.
-       * getDefaultValue is the only thing that puts the key there.
-       */
-      expect(consentField.getDefaultValue).toBeDefined();
-      expect(
-        consentField.getDefaultValue!({} as FormValues<TelemetryIngestionKey>),
-      ).toBe(false);
-      expect(consentField.required).toBe(true);
+      expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     });
 
     it("does not touch the edit form - the key is only created once", () => {
@@ -789,66 +638,10 @@ describe("Pay as you go notices", () => {
       expect(getTelemetryPayAsYouGoFormFields()).toEqual([]);
 
       setPlan(PlanType.Free);
-      expect(getTelemetryPayAsYouGoFormFields()).toHaveLength(2);
+      expect(getTelemetryPayAsYouGoFormFields()).toHaveLength(1);
 
       setPlan(PlanType.Growth);
       expect(getTelemetryPayAsYouGoFormFields()).toEqual([]);
-    });
-  });
-
-  describe("getMonitorPayAsYouGoFormFields", () => {
-    it("adds one consent checkbox, on the step it was asked for", () => {
-      const fields: Array<ModelField<Monitor>> = getMonitorPayAsYouGoFormFields(
-        { stepId: "monitor-info" },
-      );
-
-      expect(fields).toHaveLength(1);
-      expect(fields[0]?.fieldType).toBe(FormFieldSchemaType.CustomComponent);
-      expect(fields[0]?.stepId).toBe("monitor-info");
-      expect(fields[0]?.overrideField).toEqual({
-        [MONITOR_CONSENT_FIELD_KEY]: true,
-      });
-      expect(fields[0]?.overrideFieldKey).toBeUndefined();
-    });
-
-    it("is shown for billed monitor types and hidden for Manual", () => {
-      const showIf: (values: FormValues<Monitor>) => boolean =
-        getMonitorPayAsYouGoFormFields({ stepId: "monitor-info" })[0]!.showIf!;
-
-      expect(
-        showIf({ monitorType: MonitorType.Manual } as FormValues<Monitor>),
-      ).toBe(false);
-
-      for (const monitorType of [
-        MonitorType.Website,
-        MonitorType.API,
-        MonitorType.Logs,
-        MonitorType.IncomingRequest,
-        MonitorType.NetworkDevice,
-      ]) {
-        expect(
-          showIf({ monitorType: monitorType } as FormValues<Monitor>),
-        ).toBe(true);
-      }
-    });
-
-    it.each([PlanType.Growth, PlanType.Scale, PlanType.Enterprise])(
-      "adds nothing on the %s plan",
-      (plan: PlanType) => {
-        setPlan(plan);
-
-        expect(
-          getMonitorPayAsYouGoFormFields({ stepId: "monitor-info" }),
-        ).toEqual([]);
-      },
-    );
-
-    it("adds nothing on a self-hosted install", () => {
-      config.billingEnabled = false;
-
-      expect(
-        getMonitorPayAsYouGoFormFields({ stepId: "monitor-info" }),
-      ).toEqual([]);
     });
   });
 
@@ -978,73 +771,6 @@ describe("Pay as you go notices", () => {
       );
 
       expect(container).toBeEmptyDOMElement();
-    });
-  });
-
-  describe("consent validators", () => {
-    it("only an explicit tick satisfies the telemetry consent", () => {
-      expect(validateTelemetryConsent({})).toBe(TELEMETRY_CONSENT_ERROR);
-      expect(
-        validateTelemetryConsent({ [TELEMETRY_CONSENT_FIELD_KEY]: false }),
-      ).toBe(TELEMETRY_CONSENT_ERROR);
-      expect(
-        validateTelemetryConsent({ [TELEMETRY_CONSENT_FIELD_KEY]: undefined }),
-      ).toBe(TELEMETRY_CONSENT_ERROR);
-      expect(
-        validateTelemetryConsent({ [TELEMETRY_CONSENT_FIELD_KEY]: true }),
-      ).toBeNull();
-    });
-
-    it("does not accept a truthy non-boolean as consent", () => {
-      /*
-       * The form's own `required` check stringifies values, which is exactly
-       * why it cannot be used here - "false" is a non-empty string. Nothing
-       * but boolean true counts.
-       */
-      expect(
-        validateTelemetryConsent({ [TELEMETRY_CONSENT_FIELD_KEY]: "true" }),
-      ).toBe(TELEMETRY_CONSENT_ERROR);
-      expect(
-        validateTelemetryConsent({ [TELEMETRY_CONSENT_FIELD_KEY]: 1 }),
-      ).toBe(TELEMETRY_CONSENT_ERROR);
-    });
-
-    it("blocks a billed monitor until it is acknowledged", () => {
-      expect(validateMonitorConsent({ monitorType: MonitorType.Website })).toBe(
-        MONITOR_CONSENT_ERROR,
-      );
-      expect(
-        validateMonitorConsent({
-          monitorType: MonitorType.Website,
-          [MONITOR_CONSENT_FIELD_KEY]: false,
-        }),
-      ).toBe(MONITOR_CONSENT_ERROR);
-      expect(
-        validateMonitorConsent({
-          monitorType: MonitorType.Website,
-          [MONITOR_CONSENT_FIELD_KEY]: true,
-        }),
-      ).toBeNull();
-    });
-
-    it("never blocks a Manual monitor - there is nothing to acknowledge", () => {
-      expect(validateMonitorConsent({ monitorType: MonitorType.Manual })).toBe(
-        null,
-      );
-      expect(
-        validateMonitorConsent({
-          monitorType: MonitorType.Manual,
-          [MONITOR_CONSENT_FIELD_KEY]: false,
-        }),
-      ).toBeNull();
-    });
-
-    it("blocks when no monitor type has been picked yet", () => {
-      /*
-       * An unset type is not Manual, so it is treated as billed. Failing this
-       * way round means the box can never be skipped by submitting early.
-       */
-      expect(validateMonitorConsent({})).toBe(MONITOR_CONSENT_ERROR);
     });
   });
 });

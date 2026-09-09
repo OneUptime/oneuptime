@@ -4,12 +4,12 @@ import path from "path";
 
 /*
  * Telemetry ingest and every non-Manual monitor are metered, and nothing about
- * either is included in the Free plan. The dashboard now says so before the
- * charge starts, and makes the user acknowledge it.
+ * either is included in the Free plan. The dashboard says so before the
+ * charge starts. Bulk monitor creation also requires consent.
  *
  * The behaviour itself is exercised against the real form in
  * Common/Tests/App/Dashboard/PayAsYouGoConsentGate.test.tsx. What is pinned
- * here is the wiring: both notices and both sets of form fields are one-line
+ * here is the wiring: the notices and telemetry form fields are one-line
  * call sites that can be dropped in a refactor without breaking a type or a
  * render, which would silently take the warning away and leave Free plan users
  * billed with no notice.
@@ -63,7 +63,7 @@ describe("Pay as you go wiring", () => {
       expect(source).toContain("<TelemetryPayAsYouGoCard />");
     });
 
-    test("spreads the notice and consent fields into the create modal's form", () => {
+    test("spreads the pricing notice into the create modal's form", () => {
       expect(source).toContain("...getTelemetryPayAsYouGoFormFields()");
     });
 
@@ -77,7 +77,7 @@ describe("Pay as you go wiring", () => {
      * The second door onto creating a key. It used to live inside
      * Components/Telemetry/Documentation.tsx; it was extracted here when the
      * security events setup guide needed the same key step, so both guides
-     * now share one modal - and one gate.
+     * now share one modal and its pricing notice.
      */
     const source: string = read(
       "Components",
@@ -85,16 +85,12 @@ describe("Pay as you go wiring", () => {
       "IngestionKeySelector.tsx",
     );
 
-    test("gates its create key modal too - it is the second door onto the same thing", () => {
-      /*
-       * This component has a ModelFormModal of its own. A consent gate that
-       * only covers the settings page is a gate with a way around it.
-       */
+    test("includes the pricing notice in its create key modal", () => {
       expect(source).toContain("...getTelemetryPayAsYouGoFormFields()");
       expect(source).toContain('from "../Billing/PayAsYouGo"');
     });
 
-    test("has exactly one create key modal, so one gate is enough", () => {
+    test("has exactly one create key modal", () => {
       expect(
         (source.match(/<ModelFormModal<TelemetryIngestionKey>/g) || []).length,
       ).toBe(1);
@@ -116,12 +112,11 @@ describe("Pay as you go wiring", () => {
     });
   });
 
-  describe("every surface that creates an ingestion key is gated", () => {
+  describe("every surface that creates an ingestion key shows billing information", () => {
     test("no create form for TelemetryIngestionKey exists without the notice fields", () => {
       /*
        * Guards against a third door being added later. Any file that builds a
-       * create form over TelemetryIngestionKey has to spread the notice and
-       * consent fields into it.
+       * create form over TelemetryIngestionKey has to include the notice.
        */
       const creatingFiles: Array<string> = collectSourceFiles(
         DASHBOARD_SRC,
@@ -141,10 +136,13 @@ describe("Pay as you go wiring", () => {
       for (const file of creatingFiles) {
         expect({
           file: path.relative(DASHBOARD_SRC, file),
-          gated: fs
+          hasBillingNotice: fs
             .readFileSync(file, "utf8")
             .includes("getTelemetryPayAsYouGoFormFields()"),
-        }).toEqual({ file: path.relative(DASHBOARD_SRC, file), gated: true });
+        }).toEqual({
+          file: path.relative(DASHBOARD_SRC, file),
+          hasBillingNotice: true,
+        });
       }
     });
   });
@@ -156,33 +154,17 @@ describe("Pay as you go wiring", () => {
       expect(source).toContain("<MonitorPayAsYouGoCard />");
     });
 
-    test("puts the consent field on the step that holds the monitor type picker", () => {
-      /*
-       * The step id matters: the form only validates fields belonging to the
-       * step being submitted, so a consent box parked on a step the user never
-       * submits would never block anything.
-       */
-      expect(source).toContain(
-        'getMonitorPayAsYouGoFormFields({ stepId: "monitor-info" })',
-      );
-
-      // The call site, not the import at the top of the file.
-      const consentIndex: number = source.indexOf(
-        'getMonitorPayAsYouGoFormFields({ stepId: "monitor-info" })',
-      );
-      const monitorTypeIndex: number = source.indexOf(
-        "monitorTypesAsCategorizedCardSelectOptions",
-      );
-
-      expect(monitorTypeIndex).toBeGreaterThan(-1);
-      expect(consentIndex).toBeGreaterThan(monitorTypeIndex);
+    test("does not add a duplicate billing acknowledgement to the form", () => {
+      expect(source).not.toContain("getMonitorPayAsYouGoFormFields");
+      expect(source).not.toContain("monitorPayAsYouGoAcknowledged");
+      expect(source).not.toContain("validateMonitorConsent");
     });
 
-    test("declares a monitor-info step for that field to be validated on", () => {
+    test("keeps the monitor-info step for the monitor details and type picker", () => {
       expect(source).toContain('id: "monitor-info"');
     });
 
-    test("imports both from the billing component", () => {
+    test("imports the warning card from the billing component", () => {
       expect(source).toContain('from "../../Components/Billing/PayAsYouGo"');
     });
   });
@@ -220,13 +202,13 @@ describe("Pay as you go wiring", () => {
     });
   });
 
-  describe("every surface that creates a monitor is gated", () => {
+  describe("every surface that creates a monitor shows billing information", () => {
     test("no create path for Monitor exists without a PayAsYouGo reference", () => {
       /*
        * The telemetry half of this change had an invariant like this from the
        * start; the monitor half did not, which is how the recommendations
        * bulk-create path was missed. Any file that creates a Monitor has to
-       * reference the pay-as-you-go gate.
+       * reference the pay-as-you-go notice or consent component.
        */
       const creatingFiles: Array<string> = collectSourceFiles(
         DASHBOARD_SRC,
@@ -246,8 +228,10 @@ describe("Pay as you go wiring", () => {
 
         expect({
           file: relative,
-          gated: fs.readFileSync(file, "utf8").includes("PayAsYouGo"),
-        }).toEqual({ file: relative, gated: true });
+          hasBillingNotice: fs
+            .readFileSync(file, "utf8")
+            .includes("PayAsYouGo"),
+        }).toEqual({ file: relative, hasBillingNotice: true });
       }
     });
   });
@@ -266,7 +250,6 @@ describe("Pay as you go wiring", () => {
       "TelemetryPayAsYouGoCard",
       "MonitorPayAsYouGoCard",
       "getTelemetryPayAsYouGoFormFields",
-      "getMonitorPayAsYouGoFormFields",
       "isMonitorBatchConsentRequired",
     ];
 
@@ -293,15 +276,10 @@ describe("Pay as you go wiring", () => {
       expect(source).not.toMatch(/\$1 per/);
     });
 
-    test("gate the submit with customValidation rather than required", () => {
-      /*
-       * The form's `required` check stringifies the value, so an unticked box
-       * reads as the non-empty string "false" and passes it. customValidation
-       * is the only thing that actually blocks - and it only runs when the key
-       * is present, which is what getDefaultValue is for.
-       */
-      expect(source).toContain("customValidation");
-      expect(source).toContain("getDefaultValue");
+    test("does not add an acknowledgement requirement to telemetry key creation", () => {
+      expect(source).not.toContain("telemetryPayAsYouGoAcknowledged");
+      expect(source).not.toContain("validateTelemetryConsent");
+      expect(source).not.toContain("telemetry-pay-as-you-go-consent");
     });
 
     test("use the shared billing predicate for which monitors cost money", () => {

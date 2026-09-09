@@ -37,8 +37,8 @@ interface NoticeLayout {
 /*
  * Exercises the notice inside the real ModelTable create modal, including
  * its shared form fields and the modal's scroll container. The Free project
- * has no payment method; these tests leave consent unchecked and never
- * submit an ingestion key or send telemetry.
+ * has no payment method; these tests never submit an ingestion key or send
+ * telemetry. Pricing stays visible without an acknowledgement control.
  *
  * cd E2E && HOST=dev.oneuptime.com HTTP_PROTOCOL=https BILLING_ENABLED=true \
  *   npx playwright test Tests/Dashboard/TelemetryPayAsYouGoNotice.spec.ts \
@@ -175,18 +175,10 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
       await expect(
         notice.getByRole("link", { name: "View pricing", exact: true }),
       ).toBeVisible();
+      await expect(modal.getByRole("checkbox")).toHaveCount(0);
       await expect(
-        modal.getByTestId("telemetry-pay-as-you-go-consent"),
-      ).not.toBeChecked();
-      await expect(modal.getByRole("status")).toContainText(
-        "Add a payment method before using this paid feature.",
-      );
-      await expect(
-        modal.getByTestId("telemetry-pay-as-you-go-consent"),
-      ).toBeDisabled();
-      await expect(
-        modal.getByRole("link", { name: "Set up billing", exact: true }),
-      ).toBeVisible();
+        modal.getByText("I agree to these usage charges", { exact: true }),
+      ).toHaveCount(0);
 
       await notice.scrollIntoViewIfNeeded();
 
@@ -311,9 +303,7 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
         await expect(modal).toBeVisible();
         await expect(name).toHaveValue(draftName);
         await expect(description).toHaveValue(draftDescription);
-        await expect(
-          modal.getByTestId("telemetry-pay-as-you-go-consent"),
-        ).not.toBeChecked();
+        await expect(modal.getByRole("checkbox")).toHaveCount(0);
       } finally {
         await popup.close();
       }
@@ -322,7 +312,7 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
     }
   });
 
-  test("can dismiss and reopen the modal with pricing and consent available", async () => {
+  test("can dismiss and reopen the modal with pricing and no acknowledgement control", async () => {
     const modal: Locator = ctx.page.getByTestId("modal");
     await modal
       .getByPlaceholder("Ingestion Key Name", { exact: true })
@@ -338,9 +328,7 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
     await expect(
       modal.getByRole("region", { name: "Telemetry pricing", exact: true }),
     ).toBeVisible();
-    await expect(
-      modal.getByTestId("telemetry-pay-as-you-go-consent"),
-    ).not.toBeChecked();
+    await expect(modal.getByRole("checkbox")).toHaveCount(0);
     await expect(
       modal.getByPlaceholder("Ingestion Key Name", { exact: true }),
     ).toBeEditable();

@@ -59,6 +59,14 @@ export const METERED_BILLING_START_METADATA_KEY: string =
  */
 const CANCEL_RETRY_DELAYS_IN_MS: Array<number> = [1000, 3000];
 
+const PAYMENT_METHOD_TYPES: Array<Stripe.PaymentMethodListParams.Type> = [
+  "card",
+  "sepa_debit",
+  "us_bank_account",
+  "bacs_debit",
+];
+const PAYMENT_READ_MAX_RETRIES: number = 3;
+
 export interface Invoice {
   id: string;
   amount: number;
@@ -1277,11 +1285,62 @@ export class BillingService extends BaseService {
 
   @CaptureSpan()
   public async hasPaymentMethods(customerId: string): Promise<boolean> {
-    if ((await this.getPaymentMethods(customerId)).length > 0) {
-      return true;
+    if (!this.isBillingEnabled()) {
+      throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
+    }
+
+    // Eligibility needs one attached method, without fetching or changing defaults.
+    for (const type of PAYMENT_METHOD_TYPES) {
+      const methods: Stripe.ApiList<Stripe.PaymentMethod> =
+        await this.listPaymentMethods(customerId, type, 1);
+      if (methods.data.length > 0) {
+        return true;
+      }
     }
 
     return false;
+  }
+
+  private async readPaymentProvider<T>(read: () => Promise<T>): Promise<T> {
+    for (let attempt: number = 0; ; attempt++) {
+      try {
+        return await read();
+      } catch (err) {
+        const providerError: { statusCode?: number } = err as {
+          statusCode?: number;
+        };
+        if (
+          providerError?.statusCode !== 429 ||
+          attempt >= PAYMENT_READ_MAX_RETRIES
+        ) {
+          throw err;
+        }
+
+        // Stripe's network retries do not generally cover rate-limit responses.
+        // Retry only these reads; exhausted failures must still deny paid usage.
+        const delayInMs: number = Math.round(
+          1000 * 2 ** attempt * (1 + Math.random() / 2),
+        );
+        await Sleep.sleep(delayInMs);
+      }
+    }
+  }
+
+  private async listPaymentMethods(
+    customerId: string,
+    type: Stripe.PaymentMethodListParams.Type,
+    limit?: number,
+  ): Promise<Stripe.ApiList<Stripe.PaymentMethod>> {
+    const params: Stripe.PaymentMethodListParams = {
+      customer: customerId,
+      type,
+    };
+    if (limit !== undefined) {
+      params.limit = limit;
+    }
+    return this.readPaymentProvider(() => {
+      return this.stripe.paymentMethods.list(params);
+    });
   }
 
   /**
@@ -1340,31 +1399,20 @@ export class BillingService extends BaseService {
     if (!this.isBillingEnabled()) {
       throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
     }
+
     const paymentMethods: Array<PaymentMethod> = [];
 
     const cardPaymentMethods: Stripe.ApiList<Stripe.PaymentMethod> =
-      await this.stripe.paymentMethods.list({
-        customer: customerId,
-        type: "card",
-      });
+      await this.listPaymentMethods(customerId, "card");
 
     const sepaPaymentMethods: Stripe.ApiList<Stripe.PaymentMethod> =
-      await this.stripe.paymentMethods.list({
-        customer: customerId,
-        type: "sepa_debit",
-      });
+      await this.listPaymentMethods(customerId, "sepa_debit");
 
     const usBankPaymentMethods: Stripe.ApiList<Stripe.PaymentMethod> =
-      await this.stripe.paymentMethods.list({
-        customer: customerId,
-        type: "us_bank_account",
-      });
+      await this.listPaymentMethods(customerId, "us_bank_account");
 
     const bacsPaymentMethods: Stripe.ApiList<Stripe.PaymentMethod> =
-      await this.stripe.paymentMethods.list({
-        customer: customerId,
-        type: "bacs_debit",
-      });
+      await this.listPaymentMethods(customerId, "bacs_debit");
 
     cardPaymentMethods.data.forEach((item: Stripe.PaymentMethod) => {
       paymentMethods.push({
@@ -1405,7 +1453,9 @@ export class BillingService extends BaseService {
     // check if there's a default payment method.
 
     const customer: Stripe.Response<Stripe.Customer | Stripe.DeletedCustomer> =
-      await this.stripe.customers.retrieve(customerId);
+      await this.readPaymentProvider(() => {
+        return this.stripe.customers.retrieve(customerId);
+      });
 
     const defaultPaymentMethod:
       | string
@@ -1603,7 +1653,9 @@ export class BillingService extends BaseService {
     }
 
     const subscription: Stripe.Response<Stripe.Subscription> =
-      await this.stripe.subscriptions.retrieve(subscriptionId);
+      await this.readPaymentProvider(() => {
+        return this.stripe.subscriptions.retrieve(subscriptionId);
+      });
 
     return subscription;
   }

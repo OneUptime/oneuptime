@@ -1,10 +1,8 @@
-import UsagePricingSummary from "../../Components/Billing/UsagePricingSummary";
 import {
   PaymentElement,
   useElements,
   useStripe,
 } from "@stripe/react-stripe-js";
-import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, {
   FormEvent,
@@ -12,7 +10,6 @@ import React, {
   ReactElement,
   Ref,
   useRef,
-  useState,
 } from "react";
 
 export interface ComponentProps {
@@ -21,19 +18,11 @@ export interface ComponentProps {
   formRef: Ref<HTMLButtonElement>;
 }
 
-export const PAYMENT_METHOD_CONSENT_LABEL: string =
-  "I understand that adding a payment method enables paid usage, billed at the published rates in addition to any subscription charges.";
-
-export const PAYMENT_METHOD_CONSENT_ERROR: string =
-  "Please confirm you understand the usage charges before adding a payment method.";
-
 const CheckoutForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const stripe: ReturnType<typeof useStripe> = useStripe();
   const elements: ReturnType<typeof useElements> = useElements();
-  const [hasAcknowledgedCharges, setHasAcknowledgedCharges] =
-    useState<boolean>(false);
   const isSubmitting: React.MutableRefObject<boolean> = useRef<boolean>(false);
 
   const submitForm: (
@@ -44,11 +33,6 @@ const CheckoutForm: FunctionComponent<ComponentProps> = (
     event.preventDefault();
 
     if (isSubmitting.current) {
-      return;
-    }
-
-    if (!hasAcknowledgedCharges) {
-      props.onError(PAYMENT_METHOD_CONSENT_ERROR);
       return;
     }
 
@@ -85,21 +69,7 @@ const CheckoutForm: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <form onSubmit={submitForm} className="space-y-5">
-      <div className="space-y-3 rounded-lg border border-indigo-100 bg-indigo-50 p-4">
-        <p className="text-sm font-medium text-gray-900">
-          Adding a payment method enables paid usage for this project. Your
-          subscription plan stays the same.
-        </p>
-        <UsagePricingSummary />
-        <CheckboxElement
-          title={PAYMENT_METHOD_CONSENT_LABEL}
-          ariaLabel={PAYMENT_METHOD_CONSENT_LABEL}
-          value={hasAcknowledgedCharges}
-          onChange={setHasAcknowledgedCharges}
-          dataTestId="payment-method-usage-consent"
-        />
-      </div>
+    <form onSubmit={submitForm}>
       <PaymentElement />
       <button
         ref={props.formRef}

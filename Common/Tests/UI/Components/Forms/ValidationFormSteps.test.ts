@@ -350,10 +350,9 @@ describe("Validation.validate — showIf short-circuits before every rule", () =
 
 describe("Validation.validate — customValidation semantics a wizard depends on", () => {
   /*
-   * Pinned because App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo.tsx
-   * relies on it (and works around it with getDefaultValue), and because it is
-   * the reason the Discovery validators short-circuit on empty instead of
-   * returning the parser's own "is required" text.
+   * Discovery validators short-circuit on empty instead of returning the
+   * parser's own "is required" text, leaving required-field validation to
+   * the form.
    */
   test("does not run for a field whose key is absent from the values", () => {
     const fields: Fields<WizardEntity> = [
