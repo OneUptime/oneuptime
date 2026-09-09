@@ -891,8 +891,10 @@ describe("label rule table import and export", () => {
       fireEvent.click(screen.getByRole("button", { name: /^Import 1 rule/ }));
 
       await screen.findByRole("heading", { name: /Import complete/i });
-      // A failed response may follow a committed write. Reload the rules so
-      // the user can check whether an apparently failed row was saved.
+      /*
+       * A failed response may follow a committed write. Reload the rules so
+       * the user can check whether an apparently failed row was saved.
+       */
       if (successCount + failedCount > 0) {
         expect(lastTableProps().refreshToggle).not.toBe(initialRefresh);
       } else {

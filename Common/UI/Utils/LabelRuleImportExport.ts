@@ -215,8 +215,10 @@ export default class LabelRuleImportExport {
             data.modelType,
           );
           model.setValue("projectId", projectId);
-          // Each row uses the normal API permission checks and validation hooks.
-          // Never automatically retry: a lost response can follow a successful write.
+          /*
+           * Each row uses the normal API permission checks and validation hooks.
+           * Never automatically retry: a lost response can follow a successful write.
+           */
           await modelAPI.create({
             model,
             modelType: data.modelType,

@@ -368,9 +368,11 @@ export default class LabelRuleImportExport {
     );
   }
 
-  // Primary resource criteria have the same meaning despite their different model names.
-  // Secondary monitor criteria retain their identity, so they cannot accidentally become
-  // primary criteria when an incident rule is imported into monitors.
+  /*
+   * Primary resource criteria have the same meaning despite their different model names.
+   * Secondary monitor criteria retain their identity, so they cannot accidentally become
+   * primary criteria when an incident rule is imported into monitors.
+   */
   private static semanticColumn(model: BaseModel, column: string): string {
     const resource: string = model.tableName!.replace(/LabelRule$/, "");
     let prefix: string = resource[0]!.toLowerCase() + resource.slice(1);

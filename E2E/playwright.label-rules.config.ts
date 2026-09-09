@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./LabelRules",
+  testMatch: "ImportExport.spec.ts",
   timeout: 180000,
   expect: { timeout: 30000 },
   fullyParallel: false,

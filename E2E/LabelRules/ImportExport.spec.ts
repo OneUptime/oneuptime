@@ -117,21 +117,34 @@ test.describe("Label rule JSON transfer through the Dashboard and API", () => {
     await page.goto(
       buildUrl(`/dashboard/${projectId}/${resource}/settings/label-rules`),
     );
-    await expect(page.getByRole("button", { name: "Import JSON" })).toBeVisible();
+    await page
+      .getByRole("button", { name: "More options", exact: true })
+      .click();
+    await expect(
+      page.getByRole("menuitem", { name: "Import JSON" }),
+    ).toBeVisible();
   };
 
-  const openImport: (payload: PortableRuleFile | string) => Promise<void> = async (
+  const openImport: (
+    payload: PortableRuleFile | string,
+  ) => Promise<void> = async (
     payload: PortableRuleFile | string,
   ): Promise<void> => {
-    await page.getByRole("button", { name: "Import JSON" }).click();
+    await page.getByRole("menuitem", { name: "Import JSON" }).click();
     await page
       .getByTestId("label-rule-import-json")
-      .fill(typeof payload === "string" ? payload : JSON.stringify(payload, null, 2));
+      .fill(
+        typeof payload === "string"
+          ? payload
+          : JSON.stringify(payload, null, 2),
+      );
   };
 
   const preview: () => Promise<void> = async (): Promise<void> => {
     await page.getByRole("button", { name: "Validate and preview" }).click();
-    await expect(page.getByText("Preview import", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("Preview import", { exact: true }),
+    ).toBeVisible();
   };
 
   const importRules: (count: number) => Promise<void> = async (
@@ -140,7 +153,9 @@ test.describe("Label rule JSON transfer through the Dashboard and API", () => {
     await page
       .getByRole("button", { name: new RegExp(`^Import ${count} rules?$`) })
       .click();
-    await expect(page.getByText("Import complete", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("Import complete", { exact: true }),
+    ).toBeVisible();
   };
 
   const rulesNamed: (
@@ -162,7 +177,9 @@ test.describe("Label rule JSON transfer through the Dashboard and API", () => {
   };
 
   test.beforeAll(async ({ browser }: { browser: Browser }) => {
-    context = await browser.newContext({ viewport: { width: 1600, height: 1100 } });
+    context = await browser.newContext({
+      viewport: { width: 1600, height: 1100 },
+    });
     page = await context.newPage();
     const sourceId: string = await registerAndCreateProject({
       page,
@@ -191,7 +208,12 @@ test.describe("Label rule JSON transfer through the Dashboard and API", () => {
 
   test.afterAll(async () => {
     for (const projectId of projectIds.reverse()) {
-      await deleteItem({ page, projectId, path: "/api/project", id: projectId });
+      await deleteItem({
+        page,
+        projectId,
+        path: "/api/project",
+        id: projectId,
+      });
     }
     await context?.close();
   });
@@ -204,7 +226,10 @@ test.describe("Label rule JSON transfer through the Dashboard and API", () => {
     await expect(page.getByText(name, { exact: true })).toBeVisible();
     expect(await rulesNamed(source.id, name)).toHaveLength(0);
     if (process.env["LABEL_RULE_SCREENSHOTS"] === "true") {
-      await page.screenshot({ path: path.join(artifacts, "import-preview.png"), fullPage: true });
+      await page.screenshot({
+        path: path.join(artifacts, "import-preview.png"),
+        fullPage: true,
+      });
     }
     await importRules(1);
     const saved: Array<JSONish> = await rulesNamed(source.id, name);
@@ -233,7 +258,7 @@ test.describe("Label rule JSON transfer through the Dashboard and API", () => {
   test("file upload resolves references to destination labels and creates new records", async () => {
     const name: string = "Imported production routers";
     await navigate(destination.id);
-    await page.getByRole("button", { name: "Import JSON" }).click();
+    await page.getByRole("menuitem", { name: "Import JSON" }).click();
     await page.getByTestId("label-rule-import-file").setInputFiles({
       name: "network-label-rules.json",
       mimeType: "application/json",
@@ -265,17 +290,26 @@ test.describe("Label rule JSON transfer through the Dashboard and API", () => {
     expect(destination.networkLabelId).not.toBe(source.networkLabelId);
     expect(await rulesNamed(source.id, name)).toHaveLength(0);
     if (process.env["LABEL_RULE_SCREENSHOTS"] === "true") {
-      await page.screenshot({ path: path.join(artifacts, "import-complete.png"), fullPage: true });
+      await page.screenshot({
+        path: path.join(artifacts, "import-complete.png"),
+        fullPage: true,
+      });
     }
   });
 
   test("imports a compatible network rule into monitors with mapped match criteria", async () => {
     const name: string = "Production monitor labeling";
     await navigate(destination.id, "monitors");
-    await openImport(portableFile([rule(name, { networkDeviceNamePattern: "^core-" })]));
+    await openImport(
+      portableFile([rule(name, { networkDeviceNamePattern: "^core-" })]),
+    );
     await preview();
     await importRules(1);
-    const saved: Array<JSONish> = await rulesNamed(destination.id, name, monitorRulePath);
+    const saved: Array<JSONish> = await rulesNamed(
+      destination.id,
+      name,
+      monitorRulePath,
+    );
     expect(saved).toHaveLength(1);
     const item: JSONish = await getItem({
       page,
@@ -307,24 +341,37 @@ test.describe("Label rule JSON transfer through the Dashboard and API", () => {
           projectId: source.id,
           isEnabled: index % 2 === 0,
           networkDeviceNamePattern: "^edge-",
-          networkDeviceLabels: [source.productionLabelId],
-          labelsToAdd: [source.networkLabelId],
+          networkDeviceLabels: [{ _id: source.productionLabelId }],
+          labelsToAdd: [{ _id: source.networkLabelId }],
         },
       });
     }
     await navigate(source.id);
     const downloadPromise: Promise<Download> = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Export JSON" }).click();
-    const exported: PortableRuleFile = await downloadJson(await downloadPromise);
+    await page.getByRole("menuitem", { name: "Export JSON" }).click();
+    const exported: PortableRuleFile = await downloadJson(
+      await downloadPromise,
+    );
     expect(exported.fileType).toBe("oneuptime-label-rules");
     expect(exported.schemaVersion).toBe(1);
     expect(exported.resourceType).toBe("NetworkDeviceLabelRule");
     expect(exported.items).toHaveLength(31);
-    expect(exported.items.filter((item: JSONish) => { return item["isEnabled"] === false; })).toHaveLength(16);
-    expect(exported.items).toEqual(expect.arrayContaining([
-      expect.objectContaining({ name: "Production core switches", networkDeviceNamePattern: "core-.*", labelsToAdd: ["Network"], networkDeviceLabels: ["Production"] }),
-      expect.objectContaining({ name: "Export pagination 30" }),
-    ]));
+    expect(
+      exported.items.filter((item: JSONish) => {
+        return item["isEnabled"] === false;
+      }),
+    ).toHaveLength(16);
+    expect(exported.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "Production core switches",
+          networkDeviceNamePattern: "core-.*",
+          labelsToAdd: ["Network"],
+          networkDeviceLabels: ["Production"],
+        }),
+        expect.objectContaining({ name: "Export pagination 30" }),
+      ]),
+    );
     for (const item of exported.items) {
       expect(item).not.toHaveProperty("_id");
       expect(item).not.toHaveProperty("projectId");
@@ -332,68 +379,164 @@ test.describe("Label rule JSON transfer through the Dashboard and API", () => {
       expect(item["labelsToAdd"]).toEqual(["Network"]);
     }
     if (process.env["LABEL_RULE_SCREENSHOTS"] === "true") {
-      await page.screenshot({ path: path.join(artifacts, "label-rules-toolbar.png"), fullPage: true });
+      await page.screenshot({
+        path: path.join(artifacts, "label-rules-toolbar.png"),
+        fullPage: true,
+      });
     }
-    // Feed the actual download back into a different project, then inspect the
-    // preview's second page before creating only the selected JSON sample.
+    /*
+     * Feed the actual download back into a different project, then inspect the
+     * preview's second page before creating only the selected JSON sample.
+     */
     await navigate(destination.id);
     await openImport(exported);
     await preview();
     await expect(page.getByTestId("modal")).toContainText("Page 1 of 2");
-    await page.getByTestId("modal").getByRole("button", { name: "Next", exact: true }).click();
+    await page
+      .getByTestId("modal")
+      .getByRole("button", { name: "Next", exact: true })
+      .click();
     await expect(page.getByTestId("modal")).toContainText("Page 2 of 2");
-    expect(await rulesNamed(destination.id, "Production core switches")).toHaveLength(0);
+    expect(
+      await rulesNamed(destination.id, "Production core switches"),
+    ).toHaveLength(0);
     await page.getByRole("button", { name: "Edit JSON", exact: true }).click();
-    await page.getByTestId("label-rule-import-json").fill(JSON.stringify({ ...exported, items: exported.items.filter((item: JSONish) => { return item["name"] === "Production core switches"; }) }));
+    await page.getByTestId("label-rule-import-json").fill(
+      JSON.stringify({
+        ...exported,
+        items: exported.items.filter((item: JSONish) => {
+          return item["name"] === "Production core switches";
+        }),
+      }),
+    );
     await preview();
     await importRules(1);
-    const sourceRows: Array<JSONish> = await rulesNamed(source.id, "Production core switches");
-    const destinationRows: Array<JSONish> = await rulesNamed(destination.id, "Production core switches");
+    const sourceRows: Array<JSONish> = await rulesNamed(
+      source.id,
+      "Production core switches",
+    );
+    const destinationRows: Array<JSONish> = await rulesNamed(
+      destination.id,
+      "Production core switches",
+    );
     expect(destinationRows).toHaveLength(1);
-    expect(toId(destinationRows[0]!["_id"])).not.toBe(toId(sourceRows[0]!["_id"]));
+    expect(toId(destinationRows[0]!["_id"])).not.toBe(
+      toId(sourceRows[0]!["_id"]),
+    );
     expect(destinationRows[0]!["isEnabled"]).toBe(false);
   });
 
   test("refuses cross-resource wildcard patterns instead of changing their matching behavior", async () => {
     const name: string = "Wildcard matching semantics";
     await navigate(destination.id, "monitors");
-    await openImport(portableFile([rule(name, { networkDeviceNamePattern: "core-*" })]));
+    await openImport(
+      portableFile([rule(name, { networkDeviceNamePattern: "core-*" })]),
+    );
     await page.getByRole("button", { name: "Validate and preview" }).click();
-    await expect(page.getByTestId("modal").getByRole("alert")).toContainText(/wildcard matching/i);
-    expect(await rulesNamed(destination.id, name, monitorRulePath)).toHaveLength(0);
+    await expect(page.getByTestId("modal").getByRole("alert")).toContainText(
+      /wildcard matching/i,
+    );
+    expect(
+      await rulesNamed(destination.id, name, monitorRulePath),
+    ).toHaveLength(0);
   });
 
   test("requires labels to exist in the destination project before preview", async () => {
     await navigate(emptyProjectId);
     await openImport(portableFile([rule("Unresolved destination references")]));
     await page.getByRole("button", { name: "Validate and preview" }).click();
-    await expect(page.getByTestId("modal").getByRole("alert")).toContainText(/not found|does not exist|missing/i);
-    expect(await rulesNamed(emptyProjectId, "Unresolved destination references")).toHaveLength(0);
+    await expect(page.getByTestId("modal").getByRole("alert")).toContainText(
+      /not found|does not exist|missing/i,
+    );
+    expect(
+      await rulesNamed(emptyProjectId, "Unresolved destination references"),
+    ).toHaveLength(0);
   });
 
-  const invalidPayloads: Array<{ title: string; payload: PortableRuleFile | string }> = [
+  const invalidPayloads: Array<{
+    title: string;
+    payload: PortableRuleFile | string;
+  }> = [
     { title: "malformed JSON", payload: "{ broken json" },
-    { title: "an unsupported version", payload: { ...portableFile([rule("Invalid version")]), schemaVersion: 99 } },
+    {
+      title: "an unsupported version",
+      payload: {
+        ...portableFile([rule("Invalid version")]),
+        schemaVersion: 99,
+      },
+    },
     { title: "an empty rule list", payload: portableFile([]) },
-    { title: "an unknown condition", payload: portableFile([rule("Unknown condition", { unsupportedCondition: "do not drop me" })]) },
-    { title: "a missing destination label", payload: portableFile([rule("Missing label", { labelsToAdd: ["Does not exist"] })]) },
-    { title: "a missing prerequisite label", payload: portableFile([rule("Missing prerequisite", { networkDeviceLabels: ["Absent prerequisite"] })]) },
-    { title: "a nonboolean enabled value", payload: portableFile([rule("Invalid enabled", { isEnabled: "true" })]) },
+    {
+      title: "an unknown condition",
+      payload: portableFile([
+        rule("Unknown condition", { unsupportedCondition: "do not drop me" }),
+      ]),
+    },
+    {
+      title: "a missing destination label",
+      payload: portableFile([
+        rule("Missing label", { labelsToAdd: ["Does not exist"] }),
+      ]),
+    },
+    {
+      title: "a missing prerequisite label",
+      payload: portableFile([
+        rule("Missing prerequisite", {
+          networkDeviceLabels: ["Absent prerequisite"],
+        }),
+      ]),
+    },
+    {
+      title: "a nonboolean enabled value",
+      payload: portableFile([rule("Invalid enabled", { isEnabled: "true" })]),
+    },
   ];
 
-  for (const invalid of invalidPayloads) {
-    test(`rejects ${invalid.title} before creating any rules`, async () => {
-      await navigate(destination.id);
-      const before: Array<JSONish> = await listItems({ page, projectId: destination.id, path: networkRulePath, select: { _id: true } });
-      await openImport(invalid.payload);
-      await page.getByRole("button", { name: "Validate and preview" }).click();
-      await expect(page.getByText("Preview import", { exact: true })).not.toBeVisible();
-      await expect(page.getByTestId("label-rule-import-json")).toBeVisible();
-      await expect(page.getByTestId("modal").getByRole("alert")).toContainText(/invalid|unsupported|unknown|must|required|not found|not exist|at least/i);
-      const after: Array<JSONish> = await listItems({ page, projectId: destination.id, path: networkRulePath, select: { _id: true } });
-      expect(after.map((item: JSONish) => { return item["_id"]; }).sort()).toEqual(before.map((item: JSONish) => { return item["_id"]; }).sort());
-    });
-  }
+  invalidPayloads.forEach(
+    (invalid: { title: string; payload: PortableRuleFile | string }) => {
+      test(`rejects ${invalid.title} before creating any rules`, async () => {
+        await navigate(destination.id);
+        const before: Array<JSONish> = await listItems({
+          page,
+          projectId: destination.id,
+          path: networkRulePath,
+          select: { _id: true },
+        });
+        await openImport(invalid.payload);
+        await page
+          .getByRole("button", { name: "Validate and preview" })
+          .click();
+        await expect(
+          page.getByText("Preview import", { exact: true }),
+        ).not.toBeVisible();
+        await expect(page.getByTestId("label-rule-import-json")).toBeVisible();
+        await expect(
+          page.getByTestId("modal").getByRole("alert"),
+        ).toContainText(
+          /invalid|unsupported|unknown|must|required|not found|not exist|at least/i,
+        );
+        const after: Array<JSONish> = await listItems({
+          page,
+          projectId: destination.id,
+          path: networkRulePath,
+          select: { _id: true },
+        });
+        expect(
+          after
+            .map((item: JSONish) => {
+              return item["_id"];
+            })
+            .sort(),
+        ).toEqual(
+          before
+            .map((item: JSONish) => {
+              return item["_id"];
+            })
+            .sort(),
+        );
+      });
+    },
+  );
 
   test("cancelling a valid preview leaves the destination unchanged", async () => {
     const name: string = "Cancelled import";
@@ -402,20 +545,42 @@ test.describe("Label rule JSON transfer through the Dashboard and API", () => {
     await preview();
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
     expect(await rulesNamed(destination.id, name)).toHaveLength(0);
-    await expect(page.getByRole("button", { name: "Import JSON" })).toBeVisible();
+    await page.getByRole("button", { name: "More options", exact: true }).click();
+    await expect(
+      page.getByRole("menuitem", { name: "Import JSON" }),
+    ).toBeVisible();
   });
 
   test("reports partial failures and downloads only failed rules for safe retry", async () => {
-    const names: Array<string> = ["Partial import first", "Partial import denied", "Partial import last"];
+    const names: Array<string> = [
+      "Partial import first",
+      "Partial import denied",
+      "Partial import last",
+    ];
     await navigate(destination.id);
     await page.route(`**${networkRulePath}`, async (route: Route) => {
-      if (route.request().method() === "POST" && route.request().postDataJSON()?.data?.name === names[1]) {
-        await route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ message: "Temporary label-rule creation failure" }) });
+      if (
+        route.request().method() === "POST" &&
+        route.request().postDataJSON()?.data?.name === names[1]
+      ) {
+        await route.fulfill({
+          status: 500,
+          contentType: "application/json",
+          body: JSON.stringify({
+            message: "Temporary label-rule creation failure",
+          }),
+        });
         return;
       }
       await route.continue();
     });
-    await openImport(portableFile(names.map((name: string) => { return rule(name); })));
+    await openImport(
+      portableFile(
+        names.map((name: string) => {
+          return rule(name);
+        }),
+      ),
+    );
     await preview();
     await importRules(3);
     expect(await rulesNamed(destination.id, names[0]!)).toHaveLength(1);
@@ -424,7 +589,11 @@ test.describe("Label rule JSON transfer through the Dashboard and API", () => {
     const downloadPromise: Promise<Download> = page.waitForEvent("download");
     await page.getByRole("button", { name: "Download failed rules" }).click();
     const failed: PortableRuleFile = await downloadJson(await downloadPromise);
-    expect(failed.items.map((item: JSONish) => { return item["name"]; })).toEqual([names[1]]);
+    expect(
+      failed.items.map((item: JSONish) => {
+        return item["name"];
+      }),
+    ).toEqual([names[1]]);
     await page.unroute(`**${networkRulePath}`);
     await navigate(destination.id);
     await openImport(failed);
@@ -440,7 +609,14 @@ test.describe("Label rule JSON transfer through the Dashboard and API", () => {
     await navigate(destination.id);
     await page.route(`**${networkRulePath}`, async (route: Route) => {
       if (route.request().method() === "POST") {
-        await route.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ message: "You do not have permission to create Network Device Label Rules." }) });
+        await route.fulfill({
+          status: 403,
+          contentType: "application/json",
+          body: JSON.stringify({
+            message:
+              "You do not have permission to create Network Device Label Rules.",
+          }),
+        });
         return;
       }
       await route.continue();

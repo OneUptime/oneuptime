@@ -1,16 +1,16 @@
 # Import and Export Label Rules
 
-Every **Label Rules** page has **Export JSON** and **Import JSON** actions, including Incidents, Alerts, Monitors, and Network Devices.
+Every **Label Rules** page has **Export JSON** and **Import JSON** actions in its **More options** (⋯) menu, including Incidents, Alerts, Monitors, and Network Devices.
 
 ## Export rules
 
-Select **Export JSON** to download all rules of that type in the current project. The export includes rules on other table pages and ignores table filters. It preserves enabled status, conditions, labels to add, and label inheritance options. Project IDs, rule IDs, and audit fields are excluded.
+Open **More options** and select **Export JSON** to download all rules of that type in the current project. The export includes rules on other table pages and ignores table filters. It preserves enabled status, conditions, labels to add, and label inheritance options. Project IDs, rule IDs, and audit fields are excluded.
 
 Linked labels, monitors, and severities are represented by their exact names. These resources are not created by an import.
 
 ## Import rules
 
-1. Open the destination project's **Label Rules** page and select **Import JSON**.
+1. Open the destination project's **Label Rules** page and select **More options → Import JSON**.
 2. Upload a JSON export file or paste its contents.
 3. Select **Validate and preview**. All rules are checked before any are created. Referenced resources must exist with unique, matching names in the destination project.
 4. Review the rule names, enabled status, labels, and conditions. Large batches have a paginated preview. Select **Edit JSON** to make corrections and validate again.

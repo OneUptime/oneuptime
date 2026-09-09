@@ -1,22 +1,39 @@
-# Label rule import and export integration tests
+# Label rule import and export browser coverage
 
-Run against a running OneUptime development server with billing disabled:
+The production-page browser suite runs without a OneUptime server:
 
 ```bash
 cd E2E
-HOST=localhost:18081 HTTP_PROTOCOL=http BILLING_ENABLED=false npx playwright test --config playwright.label-rules.config.ts
+npm run test-label-rule-transfer-ui
 ```
 
-The suite registers a fresh user and creates isolated projects through the real
-Accounts and Dashboard interfaces and CRUD APIs. It exercises the production
-label rule pages, downloads the actual JSON files, and reads persisted rules back
-through the API. Existing projects are not modified. The tests clean up their own
-projects after the suite.
-
-Only the deliberate partial failure and denied-create cases intercept requests;
-all other scenarios use the live server and database. The partial failure test
-proves that retry files contain only unsuccessful rows, so already imported rules
-are not duplicated on retry.
+It renders the actual Network Device and Monitor Label Rules pages, their tables,
+and the import/export components. Only ModelAPI data access and the user's
+permission snapshot are replaced. It covers paste and upload, validation before
+writes, destination label mapping, 501-row export pagination, preview editing,
+partial failures and retry downloads, permissions, and file-size limits.
 
 Screenshots are saved under `output/playwright/label-rule-import-export/` at the
-repository root. Set `LABEL_RULE_SCREENSHOTS=true` to capture the review images.
+repository root. Every fixture image displays **Demo workspace · Synthetic data**
+to distinguish it from a live deployment. These screenshots verify the production
+UI; they do not demonstrate database persistence.
+
+## Live Dashboard and API integration
+
+Run the separate live suite against a running OneUptime development server with
+billing disabled:
+
+```bash
+cd E2E
+HOST=localhost:18081 HTTP_PROTOCOL=http BILLING_ENABLED=false npm run test-label-rule-transfer
+```
+
+This suite registers a fresh user, creates isolated projects, exercises the actual
+Dashboard and CRUD APIs, downloads JSON, and reads persisted records back through
+the API. Existing projects are not modified, and the suite deletes its own
+projects after it finishes. Only the deliberately failed-create and denied-create
+cases intercept browser requests.
+
+The live suite must run behind the normal OneUptime ingress routes. When using a
+standalone App container directly, the ingress must map `/identity/*` to
+`/api/identity/*` as the development ingress does.
