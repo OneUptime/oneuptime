@@ -835,10 +835,8 @@ describe("GoogleSecOpsClient.describeHttpFailure", () => {
       expect(hint).not.toBe("");
     }
 
-    /*
-     * All three are OneUptime bugs, but the fix differs: stop sending a
-     * field, start sending one, or go and read the transcoder's complaint.
-     */
+    // Explicit field errors identify a client bug; an opaque 400 needs
+    // the instance configuration and deployed request checked as well.
     const distinct: Set<string> = new Set<string>([
       unknownField,
       missingRequired,
@@ -849,6 +847,32 @@ describe("GoogleSecOpsClient.describeHttpFailure", () => {
 });
 
 describe("GoogleSecOpsClient HTTP failures as the operator reads them", () => {
+  test.each(["stream", "object", "text"])(
+    "a generic 400 (%s) preserves the rejection and gives configuration and deployment checks",
+    async (shape: string) => {
+      const error: JSONObject = googleError({
+        code: 400,
+        status: "INVALID_ARGUMENT",
+        message: "Request contains an invalid argument.",
+      });
+      const body: string =
+        shape === "stream"
+          ? streamErrorBody(error)
+          : shape === "object"
+            ? JSON.stringify({ error })
+            : "Bad Request";
+      const failure: AlertsFailure = await alertsFailure({ status: 400, body });
+
+      expect(failure.error).toBeInstanceOf(APIException);
+      expect(failure.error.message).toContain(body);
+      expect(failure.error.message).toContain("instance resource name");
+      expect(failure.error.message).toContain("region");
+      expect(failure.error.message).toContain("running OneUptime image");
+      expect(failure.error.message).not.toContain("This is a OneUptime bug");
+      expect(failure.error.message).not.toContain("before it reached the service");
+    },
+  );
+
   test("an array-wrapped 403 is echoed whole and carries the IAM guidance on its tail", async () => {
     const denied: JSONObject = googleError({
       code: 403,
@@ -1100,6 +1124,7 @@ describe("the pageSize 400 reported from production", () => {
      */
     expect(Array.from(params.keys()).sort()).toEqual([
       "alertListOptions.maxReturnedAlerts",
+      "snapshotQuery",
       "timeRange.endTime",
       "timeRange.startTime",
     ]);

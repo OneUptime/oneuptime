@@ -71,6 +71,19 @@ The connections list is the poll's health readout: **Name**, **Status** (Enabled
   - A message matching none of the above — the failure was on OneUptime's side. `Google SecOps connection is missing id, projectId, region, instance, or credentials` means this connection row is incomplete despite the `Google` in front of it; otherwise the alerts arrived and writing them to the telemetry store is what failed.
 - **Last Error reads `Google SecOps alerts fetch failed (HTTP 400)` and quotes `Unknown name "pageSize": Cannot bind query parameter`** — this was a OneUptime bug in the shape of the request, fixed in this release. Upgrade and the poll succeeds with no change on your side. Do **not** regenerate the service-account key over it: Google authenticates a request before it transcodes the query string, so reaching the parameter-binding stage at all is proof the key was accepted. The identical request sent with no credentials comes back `401` and never gets far enough to produce this `400`.
 
+### An alert request still returns `400 INVALID_ARGUMENT`
+
+A successful OAuth token exchange confirms that Google accepted the service-account credential. It does not confirm the SecOps instance resource name or permission to read that instance. A generic `Request contains an invalid argument` response does not identify which argument failed.
+
+The upstream **13.0.0** release already uses `alertListOptions.maxReturnedAlerts`. If a deployment reporting that version still sends `pageSize`, check the actual images used by every polling worker, including separately deployed workers and custom builds.
+
+1. Check the **running app and worker image versions**. Updating a local connector source file or re-uploading the service-account JSON does not update a deployed container. Deploy an image containing the connector correction to every app or dedicated worker that runs the poll job. If you build your own image, rebuild it with the corrected source and deploy a new, immutable tag; restarting a pod with the old image is insufficient.
+2. Verify the connector request against the [Google API reference](https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacyFetchAlertsView). It uses `timeRange.startTime`, `timeRange.endTime`, `snapshotQuery=` (an empty value includes all alert statuses), and `alertListOptions.maxReturnedAlerts`. It must not send `pageSize` or `pageToken`. Do not substitute a filter excluding closed alerts, since that loses detections.
+3. Compare the full `projects/{project}/locations/{location}/instances/{instance}` resource with the values in your Google SecOps tenant settings. The instance component must be the SecOps instance ID; a connection display name or service-account name is not a substitute. Confirm that the regional endpoint matches the instance location.
+4. Wait for the next configured poll interval after the rollout completes. **Last Polled** should advance and **Last Error** should clear on a successful poll. If the window contains detections, they should appear under **Security Events**; a quiet window can legitimately ingest zero events.
+
+If the same error persists, provide support with the image tag or digest, region, instance resource name, and the complete Google error message after redacting credentials. Do not send the service-account private key, JWT assertion, or access token. Failed polls preserve the cursor, but catch-up is limited to the most recent 24 hours.
+
 ## Option 3 — Forward UDM events
 
 For full-fidelity search and correlation, forward UDM events themselves (for example from a BigQuery export pipeline, Cloud Function, or any forwarder you already run):

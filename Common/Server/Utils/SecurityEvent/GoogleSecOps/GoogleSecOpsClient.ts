@@ -172,21 +172,6 @@ const UNKNOWN_FIELD_PATTERN: RegExp =
 const MISSING_FIELD_PATTERN: RegExp = /required|missing/i;
 
 /*
- * The doc marks snapshotQuery `Required.`, but that is a field_behavior
- * annotation the HTTP transcoder does not enforce; this service validates
- * queries in-band (validSnapshotQuery / queryValidationErrors) rather than
- * rejecting them. Fortinet's shipping connector omits it and gets 200, and
- * the doc defines empty-snapshot-query semantics as "match all baseline".
- * NOT verified against a live tenant.
- *
- * Deliberately NOT Google's SDK default `feedback_summary.status != "CLOSED"`
- * — that drops every CLOSED alert, trading a loud 400 for silent data loss.
- * If it turns out to be enforced, the 400 will name the missing field and
- * this is the one line to change.
- */
-const SNAPSHOT_QUERY: string | null = null;
-
-/*
  * Every field a FetchAlertsViewResponse chunk may carry. A body in which no
  * element carries at least one of these is not this endpoint's response,
  * and must never be reported as "no alerts".
@@ -415,25 +400,17 @@ export default class GoogleSecOpsClient {
     const maxReturnedAlerts: number = data.maxAlerts || DEFAULT_MAX_ALERTS;
 
     /*
-     * `alertListOptions.maxReturnedAlerts` is the flattened field path the
-     * HTTP transcoder binds AlertListOptions.max_returned_alerts from. No
-     * Google page prints this literal for this method — it is derived from
-     * google.api.HttpRule transcoding and corroborated by two independent
-     * shipping clients (Google's own secops-wrapper SDK and Fortinet's
-     * certified FortiSOAR connector), not verified verbatim in the docs.
-     * It is safe to send anyway because the parameter is optional and the
-     * failure mode is loud: a wrong name 400s with `Unknown name`, exactly
-     * like the `pageSize` this replaced, and never fails silently.
+     * Google requires snapshotQuery and documents its empty value as
+     * matching the entire baseline. Send it explicitly, including CLOSED
+     * alerts, with the nested count option this streaming endpoint accepts.
+     * https://cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacyFetchAlertsView
      */
     const params: URLSearchParams = new URLSearchParams({
       "timeRange.startTime": data.startTime.toISOString(),
       "timeRange.endTime": data.endTime.toISOString(),
+      snapshotQuery: "",
       "alertListOptions.maxReturnedAlerts": String(maxReturnedAlerts),
     });
-
-    if (SNAPSHOT_QUERY) {
-      params.set("snapshotQuery", SNAPSHOT_QUERY);
-    }
 
     const url: string = `${this.getApiBaseUrl()}/legacy:legacyFetchAlertsView?${params.toString()}`;
 
@@ -1108,7 +1085,7 @@ export default class GoogleSecOpsClient {
 
     const hint: string = reason
       ? GoogleSecOpsClient.hintForReason(reason, error)
-      : GoogleSecOpsClient.hintForStatus(status, message, error);
+      : GoogleSecOpsClient.hintForStatus(status, message);
 
     if (!hint) {
       return "";
@@ -1162,15 +1139,10 @@ export default class GoogleSecOpsClient {
   private static hintForStatus(
     status: number,
     message: string,
-    error: JSONObject | null,
   ): string {
     if (status === 400) {
-      /*
-       * AIP-193 requires a service-generated error to carry ErrorInfo, so a
-       * 400 that carries only BadRequest came from the HTTP transcoder —
-       * which means OneUptime's request shape is wrong, never the
-       * customer's credentials.
-       */
+      // Specific field errors identify a request-contract problem. A
+      // generic INVALID_ARGUMENT does not identify the failing argument.
       if (UNKNOWN_FIELD_PATTERN.test(message)) {
         return "OneUptime sent a query parameter this endpoint does not accept. This is a OneUptime bug, not a credential or permission problem.";
       }
@@ -1179,11 +1151,7 @@ export default class GoogleSecOpsClient {
         return "Chronicle rejected the request for a missing required field. This is a OneUptime bug, not a credential or permission problem.";
       }
 
-      if (!error) {
-        return "Chronicle rejected the request shape before it reached the service. This is a OneUptime bug, not a credential or permission problem.";
-      }
-
-      return "";
+      return "Chronicle rejected an argument without identifying which one. Verify the instance resource name and region in Google SecOps, and confirm the running OneUptime image includes the latest connector fixes.";
     }
 
     if (status === 401) {
