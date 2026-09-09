@@ -21,9 +21,13 @@ const SCAN_ID: string = "22222222-2222-4222-8222-222222222222";
 const OTHER_ID: string = "33333333-3333-4333-8333-333333333333";
 let getListSpy: jest.SpyInstance;
 
-function scan(
-  overrides: Partial<NetworkDeviceDiscoveryScan> = {},
-): NetworkDeviceDiscoveryScan {
+type ScanOverrides = {
+  [Key in keyof NetworkDeviceDiscoveryScan]?:
+    | NetworkDeviceDiscoveryScan[Key]
+    | undefined;
+};
+
+function scan(overrides: ScanOverrides = {}): NetworkDeviceDiscoveryScan {
   return Object.assign(
     new NetworkDeviceDiscoveryScan(),
     {
@@ -120,7 +124,7 @@ describe("Discovery scan live updates", () => {
     expect(result.current.getScan(rows[0]!).scannedHostCount).toBe(20);
     expect(rows[0]!.scannedHostCount).toBe(10);
     expect(result.current.error).toBe("");
-    expect(request.select.snmpCommunityString).toBeUndefined();
+    expect(request.select["snmpCommunityString"]).toBeUndefined();
     expect(request.requestOptions.apiRequestOptions).toEqual({
       timeout: DISCOVERY_REFRESH_TIMEOUT_MS,
       retries: 0,
@@ -243,7 +247,7 @@ describe("Discovery scan live updates", () => {
     { isRecurring: true, nextScanAt: new Date("invalid") },
   ])(
     "a finished scan without a valid recurring schedule makes no requests: %p",
-    async (recurrence: Partial<NetworkDeviceDiscoveryScan>) => {
+    async (recurrence: ScanOverrides) => {
       const { result } = renderHook(useDiscoveryScanLiveUpdates);
       act(() => {
         result.current.onRowsLoaded([

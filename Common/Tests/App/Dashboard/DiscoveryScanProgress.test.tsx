@@ -6,9 +6,13 @@ import DiscoveryScanProgress, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryScanProgress";
 import NetworkDeviceDiscoveryScan from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 
-function scan(
-  overrides: Partial<NetworkDeviceDiscoveryScan> = {},
-): NetworkDeviceDiscoveryScan {
+type ScanOverrides = {
+  [Key in keyof NetworkDeviceDiscoveryScan]?:
+    | NetworkDeviceDiscoveryScan[Key]
+    | undefined;
+};
+
+function scan(overrides: ScanOverrides = {}): NetworkDeviceDiscoveryScan {
   return Object.assign(
     new NetworkDeviceDiscoveryScan(),
     {

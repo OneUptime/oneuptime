@@ -120,9 +120,13 @@ const SCAN_ID: string = "22222222-2222-4222-8222-222222222222";
 let getListSpy: jest.SpyInstance;
 let getItemSpy: jest.SpyInstance;
 
-function scan(
-  overrides: Partial<NetworkDeviceDiscoveryScan> = {},
-): NetworkDeviceDiscoveryScan {
+type ScanOverrides = {
+  [Key in keyof NetworkDeviceDiscoveryScan]?:
+    | NetworkDeviceDiscoveryScan[Key]
+    | undefined;
+};
+
+function scan(overrides: ScanOverrides = {}): NetworkDeviceDiscoveryScan {
   return Object.assign(
     new NetworkDeviceDiscoveryScan(),
     {
