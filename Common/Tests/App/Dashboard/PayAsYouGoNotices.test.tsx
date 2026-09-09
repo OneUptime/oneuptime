@@ -475,7 +475,19 @@ describe("Pay as you go notices", () => {
       },
     ])(
       "associates the $name rate and unit with its own data types",
-      ({ name, description, price, unit, otherPrice }) => {
+      ({
+        name,
+        description,
+        price,
+        unit,
+        otherPrice,
+      }: {
+        name: string;
+        description: string;
+        price: string;
+        unit: string;
+        otherPrice: string;
+      }) => {
         const notice: HTMLElement = renderModalNotice();
         const rate: HTMLElement = within(notice).getByRole("group", { name });
 
