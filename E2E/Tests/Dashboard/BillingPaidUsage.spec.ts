@@ -33,8 +33,13 @@ test.describe("Payment method authorizes paid usage", () => {
             data: { data: { name: "Key before payment method", projectId } },
           },
         );
-        expect(blockedResponse.status()).toBe(402);
-        expect(await blockedResponse.json()).toMatchObject({
+        const blockedResponseDetail: string =
+          blockedResponse.status() >= 400
+            ? await blockedResponse.text()
+            : "Successful response body omitted.";
+        const blockedDiagnostic: string = `POST /api/telemetry-ingestion-key returned ${blockedResponse.status()}: ${blockedResponseDetail}`;
+        expect(blockedResponse.status(), blockedDiagnostic).toBe(402);
+        expect(await blockedResponse.json(), blockedDiagnostic).toMatchObject({
           error: expect.stringContaining("Add a payment method"),
         });
 
@@ -52,7 +57,14 @@ test.describe("Payment method authorizes paid usage", () => {
             .toString(),
           { headers: { tenantid: projectId } },
         );
-        expect(deleteResponse.ok()).toBe(true);
+        const deleteResponseDetail: string =
+          deleteResponse.status() >= 400
+            ? await deleteResponse.text()
+            : "Successful response body omitted.";
+        expect(
+          deleteResponse.ok(),
+          `DELETE /api/project returned ${deleteResponse.status()}: ${deleteResponseDetail}`,
+        ).toBe(true);
       }
     });
   }

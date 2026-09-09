@@ -1244,30 +1244,34 @@ describe("BillingService", () => {
 
     describe("hasPaymentMethods", () => {
       it("should return true if the customer has payment methods", async () => {
-        billingService.getPaymentMethods =
-          getJestMockFunction().mockResolvedValue(mockPaymentMethods);
+        mockStripe.paymentMethods.list =
+          getJestMockFunction().mockResolvedValue({
+            data: mockPaymentMethods,
+          });
 
         const result: boolean =
           await billingService.hasPaymentMethods(customerId);
 
         expect(result).toBeTruthy();
-        expect(billingService.getPaymentMethods).toHaveBeenCalledWith(
-          customerId,
-        );
+        expect(mockStripe.paymentMethods.list).toHaveBeenCalledWith({
+          customer: customerId,
+          type: "card",
+          limit: 1,
+        });
+        expect(mockStripe.paymentMethods.list).toHaveBeenCalledTimes(1);
       });
 
       it("should return false if the customer does not have payment methods", async () => {
-        const mockEmptyPaymentMethods: PaymentMethod[] = Array<PaymentMethod>();
-        billingService.getPaymentMethods =
-          getJestMockFunction().mockResolvedValue(mockEmptyPaymentMethods);
+        mockStripe.paymentMethods.list =
+          getJestMockFunction().mockResolvedValue({
+            data: [],
+          });
 
         const result: boolean =
           await billingService.hasPaymentMethods(customerId);
 
         expect(result).toBeFalsy();
-        expect(billingService.getPaymentMethods).toHaveBeenCalledWith(
-          customerId,
-        );
+        expect(mockStripe.paymentMethods.list).toHaveBeenCalledTimes(4);
       });
     });
 
