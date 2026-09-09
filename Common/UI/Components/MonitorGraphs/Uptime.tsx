@@ -13,12 +13,7 @@ import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusT
 import StatusPageHistoryChartBarColorRule from "../../../Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
 import UptimeHistoryLabels from "../../../Types/Monitor/UptimeHistoryLabels";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 export type MonitorEvent = CommonMonitorEvent;
 
@@ -47,29 +42,22 @@ export interface ComponentProps {
 const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [events, setEvents] = useState<Array<Event>>([]);
-
-  const [barColorRules, setBarColorRules] = useState<BarChartRule[]>([]);
-
-  useEffect(() => {
-    const eventList: Array<Event> = UptimeUtil.getNonOverlappingMonitorEvents(
-      props.items,
-    );
-    setEvents(eventList);
+  // A search can reveal many histories at once. Derive their data before the
+  // first paint instead of painting empty bars and rebuilding them in effects.
+  const events: Array<Event> = useMemo(() => {
+    return UptimeUtil.getNonOverlappingMonitorEvents(props.items);
   }, [props.items]);
 
-  useEffect(() => {
-    if (props.barColorRules) {
-      setBarColorRules(
-        props.barColorRules.map((rule: StatusPageHistoryChartBarColorRule) => {
-          return {
-            barColor: rule.barColor!,
-            uptimePercentGreaterThanOrEqualTo:
-              rule.uptimePercentGreaterThanOrEqualTo!,
-          };
-        }),
-      );
-    }
+  const barColorRules: Array<BarChartRule> = useMemo(() => {
+    return (props.barColorRules || []).map(
+      (rule: StatusPageHistoryChartBarColorRule): BarChartRule => {
+        return {
+          barColor: rule.barColor!,
+          uptimePercentGreaterThanOrEqualTo:
+            rule.uptimePercentGreaterThanOrEqualTo!,
+        };
+      },
+    );
   }, [props.barColorRules]);
 
   if (props.isLoading) {

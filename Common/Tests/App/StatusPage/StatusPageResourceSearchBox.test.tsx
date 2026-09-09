@@ -2,6 +2,7 @@ import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import { describe, expect, jest, test } from "@jest/globals";
+import ResourceSearchBox from "../../../../App/FeatureSet/StatusPage/src/Components/Search/ResourceSearchBox";
 
 jest.mock("react-i18next", () => {
   return {
@@ -25,8 +26,6 @@ jest.mock("react-i18next", () => {
     },
   };
 });
-
-import ResourceSearchBox from "../../../../App/FeatureSet/StatusPage/src/Components/Search/ResourceSearchBox";
 
 /*
  * Contract under test - the field that answers "which of these is mine?".
@@ -53,6 +52,7 @@ function renderBox(
       onChange={props.onChange || onChange}
       matchedCount={props.matchedCount === undefined ? 12 : props.matchedCount}
       totalCount={props.totalCount === undefined ? 12 : props.totalCount}
+      isPending={props.isPending}
     />,
   );
 
@@ -96,6 +96,20 @@ describe("ResourceSearchBox", () => {
 });
 
 describe("ResourceSearchBox - the result count", () => {
+  test("marks the previous count busy while the next results are rendering", () => {
+    renderBox({
+      value: "0660",
+      matchedCount: 40,
+      totalCount: 40,
+      isPending: true,
+    });
+
+    expect(input()).toHaveValue("0660");
+    expect(
+      screen.getByTestId("status-page-resource-search-count"),
+    ).toHaveAttribute("aria-busy", "true");
+  });
+
   test("says how much of the page survived the query", () => {
     renderBox({ value: "checkout", matchedCount: 3, totalCount: 42 });
 
@@ -122,6 +136,9 @@ describe("ResourceSearchBox - the result count", () => {
     expect(
       screen.getByTestId("status-page-resource-search-count"),
     ).toHaveAttribute("aria-live", "polite");
+    expect(
+      screen.getByTestId("status-page-resource-search-count"),
+    ).toHaveAttribute("aria-busy", "false");
   });
 
   test("the field points at the count so it is read with the field", () => {

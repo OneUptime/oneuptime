@@ -1,5 +1,10 @@
 import Tippy from "@tippyjs/react";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  cloneElement,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light-border.css";
 import "tippy.js/animations/shift-away-subtle.css";
@@ -8,10 +13,16 @@ export interface ComponentProps {
   text?: string | undefined;
   children: ReactElement;
   richContent?: ReactElement | undefined;
+  // Large collections can wait to create a tooltip until first opened.
+  lazy?: boolean | undefined;
 }
 
-const Tooltip: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
+interface PopupProps extends ComponentProps {
+  reference?: HTMLElement | undefined;
+}
+
+const TooltipPopup: FunctionComponent<PopupProps> = (
+  props: PopupProps,
 ): ReactElement => {
   if (!props.text && !props.richContent) {
     return props.children;
@@ -47,6 +58,9 @@ const Tooltip: FunctionComponent<ComponentProps> = (
        * impossible to build under it.
        */
       content={tooltipContent}
+      {...(props.reference
+        ? { reference: props.reference, showOnCreate: true }
+        : { children: props.children })}
       interactive={isRich}
       trigger="mouseenter focus"
       hideOnClick={false}
@@ -65,9 +79,39 @@ const Tooltip: FunctionComponent<ComponentProps> = (
          */
         expanded: false,
       }}
-    >
-      {props.children}
-    </Tippy>
+    />
+  );
+};
+
+const Tooltip: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const [reference, setReference] = useState<HTMLElement | null>(null);
+
+  if (!props.lazy || (!props.text && !props.richContent)) {
+    return <TooltipPopup {...props} />;
+  }
+
+  // Keep the trigger in the same place before and after opening. Wrapping it
+  // in Tippy on first interaction would replace the DOM node and lose focus.
+  // Tippy attaches its normal hover, focus and interactive-hide handlers to
+  // this external reference once, when the visitor first uses the tooltip.
+  const child: ReactElement<React.HTMLAttributes<HTMLElement>> = props.children;
+
+  return (
+    <>
+      {cloneElement(child, {
+        onMouseEnter: (event: React.MouseEvent<HTMLElement>) => {
+          child.props.onMouseEnter?.(event);
+          setReference(event.currentTarget);
+        },
+        onFocus: (event: React.FocusEvent<HTMLElement>) => {
+          child.props.onFocus?.(event);
+          setReference(event.currentTarget);
+        },
+      })}
+      {reference && <TooltipPopup {...props} reference={reference} />}
+    </>
   );
 };
 
