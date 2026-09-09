@@ -15,6 +15,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 
 const getListMock: MockFunction = getJestMockFunction();
+const countMock: MockFunction = getJestMockFunction();
 const getItemMock: MockFunction = getJestMockFunction();
 const postMock: MockFunction = getJestMockFunction();
 const confirmSetupMock: MockFunction = getJestMockFunction();
@@ -28,6 +29,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     default: {
       getList: (...args: Array<unknown>) => {
         return getListMock(...args);
+      },
+      count: (...args: Array<unknown>) => {
+        return countMock(...args);
       },
       getItem: (...args: Array<unknown>) => {
         return getItemMock(...args);
@@ -225,6 +229,7 @@ describe("Billing page paid usage flow", () => {
     jest.restoreAllMocks();
     billingEnabled = true;
     getListMock.mockReset().mockResolvedValue({ data: [], count: 0 });
+    countMock.mockReset().mockResolvedValue(0);
     getItemMock
       .mockReset()
       .mockResolvedValue({ paymentProviderPlanId: "free-plan" });
@@ -268,9 +273,8 @@ describe("Billing page paid usage flow", () => {
   );
 
   it("recovers plan editing through table refresh after a failed lookup, regardless of filtered rows", async () => {
-    getListMock
-      .mockRejectedValueOnce(new Error("Payment methods unavailable"))
-      .mockResolvedValueOnce({ data: [], count: 1 });
+    getListMock.mockRejectedValueOnce(new Error("Payment methods unavailable"));
+    countMock.mockResolvedValueOnce(1);
     renderBilling();
     await screen.findByTestId("payment-methods-table");
 
@@ -292,6 +296,12 @@ describe("Billing page paid usage flow", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "Refresh payment methods" }),
     );
+    expect(countMock).toHaveBeenCalledTimes(1);
+    expect(countMock).toHaveBeenCalledWith({
+      modelType: BillingPaymentMethod,
+      query: { projectId },
+    });
+    expect(getListMock).toHaveBeenCalledTimes(1);
     await waitFor(() => {
       expect(changePlan).toBeEnabled();
     });
@@ -299,23 +309,23 @@ describe("Billing page paid usage flow", () => {
 
     expect(openPlanEditorMock).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(getListMock).toHaveBeenCalledTimes(2);
-    expect(getListMock.mock.calls[1]?.[0]).toEqual(
-      expect.objectContaining({ query: { projectId }, limit: 1 }),
-    );
   });
 
   it("requires a payment method for plan changes after deleting the last card", async () => {
-    getListMock
-      .mockResolvedValueOnce({ data: [], count: 1 })
-      .mockResolvedValueOnce({ data: [], count: 0 });
+    getListMock.mockResolvedValueOnce({ data: [], count: 1 });
+    countMock.mockResolvedValueOnce(0);
     renderBilling();
     await screen.findByTestId("payment-methods-table");
     await userEvent.click(
       screen.getByRole("button", { name: "Remove payment method" }),
     );
     await waitFor(() => {
-      expect(getListMock).toHaveBeenCalledTimes(2);
+      expect(countMock).toHaveBeenCalledTimes(1);
+    });
+    expect(getListMock).toHaveBeenCalledTimes(1);
+    expect(countMock).toHaveBeenCalledWith({
+      modelType: BillingPaymentMethod,
+      query: { projectId },
     });
     await userEvent.click(screen.getByRole("button", { name: "Change Plan" }));
 
@@ -325,6 +335,58 @@ describe("Billing page paid usage flow", () => {
       "You need a payment method before changing your subscription plan.",
     );
     expect(openPlanEditorMock).not.toHaveBeenCalled();
+  });
+
+  it.each(["Refresh payment methods", "Remove payment method"])(
+    "keeps plan editing available without resynchronizing table row IDs after %s",
+    async (notification: string) => {
+      getListMock.mockResolvedValueOnce({ data: [], count: 2 });
+      countMock.mockResolvedValueOnce(1);
+      renderBilling();
+      await screen.findByTestId("payment-methods-table");
+
+      await userEvent.click(screen.getByRole("button", { name: notification }));
+
+      expect(countMock).toHaveBeenCalledTimes(1);
+      expect(countMock).toHaveBeenCalledWith({
+        modelType: BillingPaymentMethod,
+        query: { projectId },
+      });
+      expect(getListMock).toHaveBeenCalledTimes(1);
+      await userEvent.click(
+        screen.getByRole("button", { name: "Change Plan" }),
+      );
+      expect(openPlanEditorMock).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    },
+  );
+
+  it("disables plan editing after a count failure and recovers on the next table refresh", async () => {
+    getListMock.mockResolvedValueOnce({ data: [], count: 1 });
+    countMock
+      .mockRejectedValueOnce(new Error("Payment method count unavailable"))
+      .mockResolvedValueOnce(1);
+    renderBilling();
+    await screen.findByTestId("payment-methods-table");
+
+    const changePlan: HTMLElement = screen.getByRole("button", {
+      name: "Change Plan",
+    });
+    const refresh: HTMLElement = screen.getByRole("button", {
+      name: "Refresh payment methods",
+    });
+    expect(changePlan).toBeEnabled();
+    await userEvent.click(refresh);
+    await waitFor(() => {
+      expect(changePlan).toBeDisabled();
+    });
+
+    await userEvent.click(refresh);
+    await waitFor(() => {
+      expect(changePlan).toBeEnabled();
+    });
+    expect(countMock).toHaveBeenCalledTimes(2);
+    expect(getListMock).toHaveBeenCalledTimes(1);
   });
 
   it("saves without an extra pricing acknowledgement and refreshes status and the card list", async () => {
