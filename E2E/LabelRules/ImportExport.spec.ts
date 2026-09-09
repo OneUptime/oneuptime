@@ -545,7 +545,9 @@ test.describe("Label rule JSON transfer through the Dashboard and API", () => {
     await preview();
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
     expect(await rulesNamed(destination.id, name)).toHaveLength(0);
-    await page.getByRole("button", { name: "More options", exact: true }).click();
+    await page
+      .getByRole("button", { name: "More options", exact: true })
+      .click();
     await expect(
       page.getByRole("menuitem", { name: "Import JSON" }),
     ).toBeVisible();
