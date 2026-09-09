@@ -54,6 +54,7 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import React, {
   FunctionComponent,
   ReactElement,
+  useDeferredValue,
   useEffect,
   useMemo,
   useRef,
@@ -148,6 +149,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
   });
 
   const [searchQuery, setSearchQuery] = useState<string>("");
+  // Keep typing and clearing responsive while React reveals history charts.
+  const deferredSearchQuery: string = useDeferredValue(searchQuery);
   const [
     scheduledMaintenanceEventsPublicNotes,
     setScheduledMaintenanceEventsPublicNotes,
@@ -208,8 +211,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
     Math.max(statusPage?.showUptimeHistoryInDays || 90, 1),
     90,
   );
-  const startDate: Date = OneUptimeDate.getSomeDaysAgo(uptimeHistoryDays);
-  const endDate: Date = OneUptimeDate.getCurrentDate();
+  /*
+   * The history window belongs to the fetched snapshot. Typing must not give
+   * every chart new dates or change an uptime reading without new status data.
+   */
+  const endDate: Date = lastRefreshedAt;
+  const startDate: Date = useMemo(() => {
+    return OneUptimeDate.getSomeDaysAgoFromDate(endDate, uptimeHistoryDays);
+  }, [endDate, uptimeHistoryDays]);
   const [currentStatus, setCurrentStatus] = useState<MonitorStatus | null>(
     null,
   );
@@ -597,12 +606,17 @@ const Overview: FunctionComponent<PageComponentProps> = (
    */
   const searchResult: StatusPageResourceSearchResult = useMemo(() => {
     return StatusPageResourceSearchUtil.search({
-      query: searchQuery,
+      query: deferredSearchQuery,
       statusPageResources: statusPageResources,
       statusPageGroups: resourceGroups,
       statusPageGroupTreeIndex: groupTreeIndex,
     });
-  }, [searchQuery, statusPageResources, resourceGroups, groupTreeIndex]);
+  }, [
+    deferredSearchQuery,
+    statusPageResources,
+    resourceGroups,
+    groupTreeIndex,
+  ]);
 
   type IsResourceVisibleFunction = (resource: StatusPageResource) => boolean;
 
@@ -629,87 +643,113 @@ const Overview: FunctionComponent<PageComponentProps> = (
     group: StatusPageGroup;
   }) => GroupRollup | null;
 
-  const getGroupRollup: GetGroupRollupFunction = (data: {
-    group: StatusPageGroup;
-  }): GroupRollup | null => {
-    /*
-     * Everything under this group, at any depth. A group with nothing under it
-     * reports no rollup at all - see getRollupKind.
-     */
-    const resourcesInSubtree: Array<StatusPageResource> =
-      StatusPageResourceUptimeUtil.getResourcesInStatusPageGroupAndDescendants({
-        statusPageGroup: data.group,
-        statusPageResources: statusPageResources,
-        allStatusPageGroups: resourceGroups,
-        statusPageGroupTreeIndex: groupTreeIndex,
-      });
-
-    const currentStatus: MonitorStatus =
-      StatusPageResourceUptimeUtil.getCurrentStatusPageGroupStatus({
-        statusPageGroup: data.group,
-        monitorStatusTimelines: monitorStatusTimelines,
-        statusPageResources: statusPageResources,
-        monitorStatuses: monitorStatuses,
-        monitorGroupCurrentStatuses: monitorGroupCurrentStatuses,
-        allStatusPageGroups: resourceGroups,
-        statusPageGroupTreeIndex: groupTreeIndex,
-      });
-
-    const color: string = currentStatus?.color?.toString() || Green.toString();
-
-    const isCurrentlyDown: boolean = Boolean(
-      (statusPage?.downtimeMonitorStatuses || []).find(
-        (downtimeStatus: MonitorStatus) => {
-          return (
-            currentStatus?.id?.toString() === downtimeStatus?.id?.toString()
-          );
-        },
-      ),
-    );
-
-    const uptimePercent: number | null = data.group.showUptimePercent
-      ? StatusPageResourceUptimeUtil.calculateAvgUptimePercentOfStatusPageGroup(
+  const groupRollups: Map<StatusPageGroup, GroupRollup | null> = useMemo(() => {
+    const getGroupRollup: GetGroupRollupFunction = (data: {
+      group: StatusPageGroup;
+    }): GroupRollup | null => {
+      /*
+       * Everything under this group, at any depth. A group with nothing under it
+       * reports no rollup at all - see getRollupKind.
+       */
+      const resourcesInSubtree: Array<StatusPageResource> =
+        StatusPageResourceUptimeUtil.getResourcesInStatusPageGroupAndDescendants(
           {
             statusPageGroup: data.group,
-            monitorStatusTimelines: monitorStatusTimelines,
-            precision:
-              data.group.uptimePercentPrecision || UptimePrecision.ONE_DECIMAL,
-            downtimeMonitorStatuses: statusPage?.downtimeMonitorStatuses || [],
             statusPageResources: statusPageResources,
-            monitorsInGroup: monitorsInGroup,
-            uptimeWindow: { startDate: startDate, endDate: endDate },
             allStatusPageGroups: resourceGroups,
             statusPageGroupTreeIndex: groupTreeIndex,
           },
-        )
-      : null;
+        );
 
-    const kind: StatusPageGroupRollupKind =
-      StatusPageGroupNestingLayoutUtil.getRollupKind({
-        showUptimePercent: Boolean(data.group.showUptimePercent),
-        showCurrentStatus: Boolean(data.group.showCurrentStatus),
-        isCurrentlyDown: isCurrentlyDown,
-        uptimePercent: uptimePercent,
-        resourceCountInSubtree: resourcesInSubtree.length,
-      });
+      const currentStatus: MonitorStatus =
+        StatusPageResourceUptimeUtil.getCurrentStatusPageGroupStatus({
+          statusPageGroup: data.group,
+          monitorStatusTimelines: monitorStatusTimelines,
+          statusPageResources: statusPageResources,
+          monitorStatuses: monitorStatuses,
+          monitorGroupCurrentStatuses: monitorGroupCurrentStatuses,
+          allStatusPageGroups: resourceGroups,
+          statusPageGroupTreeIndex: groupTreeIndex,
+        });
 
-    if (kind === StatusPageGroupRollupKind.UptimePercent) {
-      return {
-        label: `${uptimePercent}${t("overview.uptimeSuffix")}`,
-        color: color,
-      };
-    }
+      const color: string =
+        currentStatus?.color?.toString() || Green.toString();
 
-    if (kind === StatusPageGroupRollupKind.CurrentStatus) {
-      return {
-        label:
-          translateStatusName(currentStatus?.name) || t("overview.operational"),
-        color: color,
-      };
-    }
+      const isCurrentlyDown: boolean = Boolean(
+        (statusPage?.downtimeMonitorStatuses || []).find(
+          (downtimeStatus: MonitorStatus) => {
+            return (
+              currentStatus?.id?.toString() === downtimeStatus?.id?.toString()
+            );
+          },
+        ),
+      );
 
-    return null;
-  };
+      const uptimePercent: number | null = data.group.showUptimePercent
+        ? StatusPageResourceUptimeUtil.calculateAvgUptimePercentOfStatusPageGroup(
+            {
+              statusPageGroup: data.group,
+              monitorStatusTimelines: monitorStatusTimelines,
+              precision:
+                data.group.uptimePercentPrecision ||
+                UptimePrecision.ONE_DECIMAL,
+              downtimeMonitorStatuses:
+                statusPage?.downtimeMonitorStatuses || [],
+              statusPageResources: statusPageResources,
+              monitorsInGroup: monitorsInGroup,
+              uptimeWindow: { startDate: startDate, endDate: endDate },
+              allStatusPageGroups: resourceGroups,
+              statusPageGroupTreeIndex: groupTreeIndex,
+            },
+          )
+        : null;
+
+      const kind: StatusPageGroupRollupKind =
+        StatusPageGroupNestingLayoutUtil.getRollupKind({
+          showUptimePercent: Boolean(data.group.showUptimePercent),
+          showCurrentStatus: Boolean(data.group.showCurrentStatus),
+          isCurrentlyDown: isCurrentlyDown,
+          uptimePercent: uptimePercent,
+          resourceCountInSubtree: resourcesInSubtree.length,
+        });
+
+      if (kind === StatusPageGroupRollupKind.UptimePercent) {
+        return {
+          label: `${uptimePercent}${t("overview.uptimeSuffix")}`,
+          color: color,
+        };
+      }
+
+      if (kind === StatusPageGroupRollupKind.CurrentStatus) {
+        return {
+          label:
+            translateStatusName(currentStatus?.name) ||
+            t("overview.operational"),
+          color: color,
+        };
+      }
+
+      return null;
+    };
+
+    return new Map(
+      resourceGroups.map((group: StatusPageGroup) => {
+        return [group, getGroupRollup({ group })];
+      }),
+    );
+  }, [
+    resourceGroups,
+    statusPageResources,
+    groupTreeIndex,
+    monitorStatusTimelines,
+    monitorStatuses,
+    monitorGroupCurrentStatuses,
+    statusPage,
+    monitorsInGroup,
+    startDate,
+    endDate,
+    t,
+  ]);
 
   /*
    * Every bar in one resource list is drawn over the same window and sits in the
@@ -746,6 +786,227 @@ const Overview: FunctionComponent<PageComponentProps> = (
       </div>
     );
   };
+
+  /*
+   * Search only selects these elements; their timelines, incidents and charts
+   * are rebuilt when the payload, history window or language changes.
+   */
+  const monitorOverviews: Map<
+    StatusPageResource,
+    Array<ReactElement>
+  > = useMemo(() => {
+    const overviews: Map<StatusPageResource, Array<ReactElement>> = new Map();
+    for (const resource of statusPageResources) {
+      const elements: Array<ReactElement> = [];
+      /*
+       * Keyed on the resource rather than on a fresh random number, so a
+       * resource is not torn down and remounted on every render - that used
+       * to throw away an open incident day modal. A resource with no id of
+       * its own falls back to its position, and the two branches below are
+       * namespaced apart because nothing stops one resource from carrying
+       * both a monitor and a monitor group.
+       */
+      const resourceKey: string =
+        resource._id?.toString() || `position-${overviews.size}`;
+
+      // if it's a monitor
+
+      if (resource.monitor) {
+        let currentStatus: MonitorStatus | undefined = monitorStatuses.find(
+          (status: MonitorStatus) => {
+            return (
+              status._id?.toString() ===
+              resource.monitor?.currentMonitorStatusId?.toString()
+            );
+          },
+        );
+
+        if (!currentStatus) {
+          currentStatus = new MonitorStatus();
+          currentStatus.name = t("overview.operational");
+          currentStatus.color = Green;
+        }
+
+        const monitorId: string = resource.monitor?._id?.toString() || "";
+
+        const monitorIncidents: Array<UptimeBarTooltipIncident> =
+          timelineIncidents.filter((incident: UptimeBarTooltipIncident) => {
+            return incident.monitorIds.some((id: ObjectID) => {
+              return id.toString() === monitorId;
+            });
+          });
+
+        elements.push(
+          <MonitorOverview
+            key={`monitor-${resourceKey}`}
+            showTimeAxisLabels={false}
+            monitorName={resource.displayName || resource.monitor?.name || ""}
+            statusPageHistoryChartBarColorRules={
+              statusPageHistoryChartBarColorRules
+            }
+            downtimeMonitorStatuses={statusPage?.downtimeMonitorStatuses || []}
+            description={resource.displayDescription || ""}
+            tooltip={resource.displayTooltip || ""}
+            currentStatus={currentStatus}
+            showUptimePercent={Boolean(resource.showUptimePercent)}
+            uptimePrecision={
+              resource.uptimePercentPrecision || UptimePrecision.ONE_DECIMAL
+            }
+            monitorStatusTimeline={StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
+              {
+                statusPageResource: resource,
+                monitorStatusTimelines: monitorStatusTimelines,
+                monitorsInGroup: monitorsInGroup,
+              },
+            )}
+            startDate={startDate}
+            endDate={endDate}
+            showHistoryChart={resource.showStatusHistoryChart}
+            showCurrentStatus={resource.showCurrentStatus}
+            uptimeGraphHeight={10}
+            defaultBarColor={statusPage?.defaultBarColor || Green}
+            uptimeHistoryDays={uptimeHistoryDays}
+            incidents={monitorIncidents}
+            onIncidentClick={(incidentId: string) => {
+              Navigation.navigate(
+                RouteUtil.populateRouteParams(
+                  StatusPageUtil.isPreviewPage()
+                    ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
+                    : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
+                  new ObjectID(incidentId),
+                ),
+              );
+            }}
+          />,
+        );
+      }
+
+      // if it's a monitor group, then...
+
+      if (resource.monitorGroupId) {
+        let currentStatus: MonitorStatus | undefined = monitorStatuses.find(
+          (status: MonitorStatus) => {
+            return (
+              status._id?.toString() ===
+              monitorGroupCurrentStatuses[
+                resource.monitorGroupId?.toString() || ""
+              ]?.toString()
+            );
+          },
+        );
+
+        if (!currentStatus) {
+          currentStatus = new MonitorStatus();
+          currentStatus.name = t("overview.operational");
+          currentStatus.color = Green;
+        }
+
+        // Get monitor IDs in this group
+        const groupMonitorIds: Array<string> = (
+          monitorsInGroup[resource.monitorGroupId?.toString() || ""] || []
+        ).map((id: ObjectID) => {
+          return id.toString();
+        });
+
+        const groupIncidents: Array<UptimeBarTooltipIncident> =
+          timelineIncidents.filter((incident: UptimeBarTooltipIncident) => {
+            return incident.monitorIds.some((id: ObjectID) => {
+              return groupMonitorIds.includes(id.toString());
+            });
+          });
+
+        elements.push(
+          <MonitorOverview
+            key={`monitor-group-${resourceKey}`}
+            showTimeAxisLabels={false}
+            monitorName={resource.displayName || resource.monitor?.name || ""}
+            showUptimePercent={Boolean(resource.showUptimePercent)}
+            uptimePrecision={
+              resource.uptimePercentPrecision || UptimePrecision.ONE_DECIMAL
+            }
+            statusPageHistoryChartBarColorRules={
+              statusPageHistoryChartBarColorRules
+            }
+            description={resource.displayDescription || ""}
+            tooltip={resource.displayTooltip || ""}
+            currentStatus={currentStatus}
+            monitorStatusTimeline={StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
+              {
+                statusPageResource: resource,
+                monitorStatusTimelines: monitorStatusTimelines,
+                monitorsInGroup: monitorsInGroup,
+              },
+            )}
+            downtimeMonitorStatuses={statusPage?.downtimeMonitorStatuses || []}
+            startDate={startDate}
+            endDate={endDate}
+            showHistoryChart={resource.showStatusHistoryChart}
+            showCurrentStatus={resource.showCurrentStatus}
+            uptimeGraphHeight={10}
+            defaultBarColor={statusPage?.defaultBarColor || Green}
+            uptimeHistoryDays={uptimeHistoryDays}
+            incidents={groupIncidents}
+            onIncidentClick={(incidentId: string) => {
+              Navigation.navigate(
+                RouteUtil.populateRouteParams(
+                  StatusPageUtil.isPreviewPage()
+                    ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
+                    : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
+                  new ObjectID(incidentId),
+                ),
+              );
+            }}
+          />,
+        );
+      }
+      overviews.set(resource, elements);
+    }
+    return overviews;
+  }, [
+    statusPageResources,
+    monitorStatuses,
+    timelineIncidents,
+    statusPageHistoryChartBarColorRules,
+    statusPage,
+    monitorStatusTimelines,
+    monitorsInGroup,
+    monitorGroupCurrentStatuses,
+    startDate,
+    endDate,
+    uptimeHistoryDays,
+    t,
+  ]);
+
+  const overallUptime: number | null = useMemo(() => {
+    if (
+      !currentStatus?.isOperationalState ||
+      !statusPage?.showOverallUptimePercentOnStatusPage
+    ) {
+      return null;
+    }
+    return StatusPageResourceUptimeUtil.calculateAvgUptimePercentageOfAllResources(
+      {
+        monitorStatusTimelines,
+        statusPageResources,
+        downtimeMonitorStatuses: statusPage.downtimeMonitorStatuses || [],
+        precision:
+          statusPage.overallUptimePercentPrecision ||
+          UptimePrecision.TWO_DECIMAL,
+        resourceGroups,
+        monitorsInGroup,
+        uptimeWindow: { startDate, endDate },
+      },
+    );
+  }, [
+    currentStatus,
+    statusPage,
+    monitorStatusTimelines,
+    statusPageResources,
+    resourceGroups,
+    monitorsInGroup,
+    startDate,
+    endDate,
+  ]);
 
   if (isLoading) {
     return (
@@ -792,171 +1053,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           continue;
         }
 
-        /*
-         * Keyed on the resource rather than on a fresh random number, so a
-         * resource is not torn down and remounted on every render - that used
-         * to throw away an open incident day modal. A resource with no id of
-         * its own falls back to its position, and the two branches below are
-         * namespaced apart because nothing stops one resource from carrying
-         * both a monitor and a monitor group.
-         */
-        const resourceKey: string =
-          resource._id?.toString() || `position-${elements.length}`;
-
-        // if it's a monitor
-
-        if (resource.monitor) {
-          let currentStatus: MonitorStatus | undefined = monitorStatuses.find(
-            (status: MonitorStatus) => {
-              return (
-                status._id?.toString() ===
-                resource.monitor?.currentMonitorStatusId?.toString()
-              );
-            },
-          );
-
-          if (!currentStatus) {
-            currentStatus = new MonitorStatus();
-            currentStatus.name = t("overview.operational");
-            currentStatus.color = Green;
-          }
-
-          const monitorId: string = resource.monitor?._id?.toString() || "";
-
-          const monitorIncidents: Array<UptimeBarTooltipIncident> =
-            timelineIncidents.filter((incident: UptimeBarTooltipIncident) => {
-              return incident.monitorIds.some((id: ObjectID) => {
-                return id.toString() === monitorId;
-              });
-            });
-
-          elements.push(
-            <MonitorOverview
-              key={`monitor-${resourceKey}`}
-              showTimeAxisLabels={false}
-              monitorName={resource.displayName || resource.monitor?.name || ""}
-              statusPageHistoryChartBarColorRules={
-                statusPageHistoryChartBarColorRules
-              }
-              downtimeMonitorStatuses={
-                statusPage?.downtimeMonitorStatuses || []
-              }
-              description={resource.displayDescription || ""}
-              tooltip={resource.displayTooltip || ""}
-              currentStatus={currentStatus}
-              showUptimePercent={Boolean(resource.showUptimePercent)}
-              uptimePrecision={
-                resource.uptimePercentPrecision || UptimePrecision.ONE_DECIMAL
-              }
-              monitorStatusTimeline={StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
-                {
-                  statusPageResource: resource,
-                  monitorStatusTimelines: monitorStatusTimelines,
-                  monitorsInGroup: monitorsInGroup,
-                },
-              )}
-              startDate={startDate}
-              endDate={endDate}
-              showHistoryChart={resource.showStatusHistoryChart}
-              showCurrentStatus={resource.showCurrentStatus}
-              uptimeGraphHeight={10}
-              defaultBarColor={statusPage?.defaultBarColor || Green}
-              uptimeHistoryDays={uptimeHistoryDays}
-              incidents={monitorIncidents}
-              onIncidentClick={(incidentId: string) => {
-                Navigation.navigate(
-                  RouteUtil.populateRouteParams(
-                    StatusPageUtil.isPreviewPage()
-                      ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
-                      : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
-                    new ObjectID(incidentId),
-                  ),
-                );
-              }}
-            />,
-          );
-        }
-
-        // if it's a monitor group, then...
-
-        if (resource.monitorGroupId) {
-          let currentStatus: MonitorStatus | undefined = monitorStatuses.find(
-            (status: MonitorStatus) => {
-              return (
-                status._id?.toString() ===
-                monitorGroupCurrentStatuses[
-                  resource.monitorGroupId?.toString() || ""
-                ]?.toString()
-              );
-            },
-          );
-
-          if (!currentStatus) {
-            currentStatus = new MonitorStatus();
-            currentStatus.name = t("overview.operational");
-            currentStatus.color = Green;
-          }
-
-          // Get monitor IDs in this group
-          const groupMonitorIds: Array<string> = (
-            monitorsInGroup[resource.monitorGroupId?.toString() || ""] || []
-          ).map((id: ObjectID) => {
-            return id.toString();
-          });
-
-          const groupIncidents: Array<UptimeBarTooltipIncident> =
-            timelineIncidents.filter((incident: UptimeBarTooltipIncident) => {
-              return incident.monitorIds.some((id: ObjectID) => {
-                return groupMonitorIds.includes(id.toString());
-              });
-            });
-
-          elements.push(
-            <MonitorOverview
-              key={`monitor-group-${resourceKey}`}
-              showTimeAxisLabels={false}
-              monitorName={resource.displayName || resource.monitor?.name || ""}
-              showUptimePercent={Boolean(resource.showUptimePercent)}
-              uptimePrecision={
-                resource.uptimePercentPrecision || UptimePrecision.ONE_DECIMAL
-              }
-              statusPageHistoryChartBarColorRules={
-                statusPageHistoryChartBarColorRules
-              }
-              description={resource.displayDescription || ""}
-              tooltip={resource.displayTooltip || ""}
-              currentStatus={currentStatus}
-              monitorStatusTimeline={StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
-                {
-                  statusPageResource: resource,
-                  monitorStatusTimelines: monitorStatusTimelines,
-                  monitorsInGroup: monitorsInGroup,
-                },
-              )}
-              downtimeMonitorStatuses={
-                statusPage?.downtimeMonitorStatuses || []
-              }
-              startDate={startDate}
-              endDate={endDate}
-              showHistoryChart={resource.showStatusHistoryChart}
-              showCurrentStatus={resource.showCurrentStatus}
-              uptimeGraphHeight={10}
-              defaultBarColor={statusPage?.defaultBarColor || Green}
-              uptimeHistoryDays={uptimeHistoryDays}
-              incidents={groupIncidents}
-              onIncidentClick={(incidentId: string) => {
-                Navigation.navigate(
-                  RouteUtil.populateRouteParams(
-                    StatusPageUtil.isPreviewPage()
-                      ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
-                      : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
-                    new ObjectID(incidentId),
-                  ),
-                );
-              }}
-            />,
-          );
-        }
+        elements.push(...(monitorOverviews.get(resource) || []));
       }
     }
 
@@ -1457,7 +1554,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       });
     }
 
-    const rollup: GroupRollup | null = getGroupRollup({ group: group });
+    const rollup: GroupRollup | null = groupRollups.get(group) || null;
 
     return (
       <ResourceGroupSection
@@ -1706,23 +1803,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 textOnRight={
                   currentStatus.isOperationalState &&
                   statusPage?.showOverallUptimePercentOnStatusPage
-                    ? (StatusPageResourceUptimeUtil.calculateAvgUptimePercentageOfAllResources(
-                        {
-                          monitorStatusTimelines: monitorStatusTimelines,
-                          statusPageResources: statusPageResources,
-                          downtimeMonitorStatuses:
-                            statusPage.downtimeMonitorStatuses || [],
-                          precision:
-                            statusPage.overallUptimePercentPrecision ||
-                            UptimePrecision.TWO_DECIMAL,
-                          resourceGroups: resourceGroups,
-                          monitorsInGroup: monitorsInGroup,
-                          uptimeWindow: {
-                            startDate: startDate,
-                            endDate: endDate,
-                          },
-                        },
-                      )?.toString() || "100") + t("overview.uptimeSuffix")
+                    ? (overallUptime?.toString() || "100") +
+                      t("overview.uptimeSuffix")
                     : undefined
                 }
                 textClassName="text-white text-lg flex justify-between w-full"
@@ -1754,6 +1836,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
               onChange={setSearchQuery}
               matchedCount={searchResult.matchedResourceCount}
               totalCount={searchResult.totalResourceCount}
+              isPending={searchQuery !== deferredSearchQuery}
             />
           )}
 
@@ -1766,7 +1849,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
             statusPageResourceCount: statusPageResources.length,
             statusPageGroupCount: resourceGroups.length,
           }) && (
-            <div className="mt-5 mb-6 space-y-3 sm:space-y-5">
+            <div
+              className="mt-5 mb-6 space-y-3 sm:space-y-5"
+              aria-busy={searchQuery !== deferredSearchQuery}
+            >
               {statusPageResources.filter((resource: StatusPageResource) => {
                 return (
                   !resource.statusPageGroupId && isResourceVisible(resource)
@@ -1813,7 +1899,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     defaultValue: "No matching resources",
                   })}
                   description={t("search.noResultsDescription", {
-                    query: searchQuery.trim(),
+                    query: deferredSearchQuery.trim(),
                     defaultValue:
                       'Nothing on this page matches "{{query}}". Try a shorter search.',
                   })}

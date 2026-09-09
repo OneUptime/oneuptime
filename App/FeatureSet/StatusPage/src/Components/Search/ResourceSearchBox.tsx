@@ -9,6 +9,7 @@ export interface ComponentProps {
   /* How many resources survive the current query, and how many there are. */
   matchedCount: number;
   totalCount: number;
+  isPending?: boolean | undefined;
 }
 
 /*
@@ -71,7 +72,7 @@ const ResourceSearchBox: FunctionComponent<ComponentProps> = (
               props.onChange("");
             }
           }}
-          className="block w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-10 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="block w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-10 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 [&::-webkit-search-cancel-button]:appearance-none"
         />
         {hasQuery && (
           <button
@@ -95,6 +96,7 @@ const ResourceSearchBox: FunctionComponent<ComponentProps> = (
          * and an assertive region would interrupt the visitor's own typing.
          */
         aria-live="polite"
+        aria-busy={Boolean(props.isPending)}
         className="mt-1.5 min-h-[1rem] px-1 text-xs text-gray-500"
         data-testid="status-page-resource-search-count"
       >
