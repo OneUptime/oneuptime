@@ -356,13 +356,19 @@ export const MonitorPayAsYouGoCard: FunctionComponent = (): ReactElement => {
 
       <div className="space-y-2 border-t border-gray-200 bg-gray-50/50 px-5 py-4 sm:px-6">
         <div className="flex items-start gap-2 text-sm leading-5 text-gray-700">
-          <div aria-hidden="true" className="mt-0.5 flex-shrink-0 text-gray-400">
+          <div
+            aria-hidden="true"
+            className="mt-0.5 flex-shrink-0 text-gray-400"
+          >
             <Icon icon={IconProp.Billing} className="h-4 w-4" />
           </div>
           <span>Add a payment method before creating an active monitor.</span>
         </div>
         <div className="flex items-start gap-2 text-xs leading-5 text-gray-500">
-          <div aria-hidden="true" className="mt-0.5 flex-shrink-0 text-gray-400">
+          <div
+            aria-hidden="true"
+            className="mt-0.5 flex-shrink-0 text-gray-400"
+          >
             <Icon icon={IconProp.Info} className="h-4 w-4" />
           </div>
           <span>
