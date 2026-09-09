@@ -31,8 +31,26 @@
     "errorOnSignUp": "Voltooi de captcha-uitdaging voordat u zich registreert."
   },
   "login": {
+    "passkey": {
+      "signIn": "Inloggen met een passkey",
+      "description": "Gebruik je vingerafdruk, gezicht of de pincode van je apparaat.",
+      "passwordAlternative": "of log in met een wachtwoord",
+      "inProgress": "Voltooi of annuleer het inloggen met een passkey voordat je je wachtwoord gebruikt.",
+      "title": "Een opgeslagen passkey gebruiken",
+      "helpTitle": "Zijn passkeys nieuw voor je?",
+      "help": "Meld je aan met je wachtwoord of SSO en open daarna Gebruikersprofiel → Passkeys & tweefactorauthenticatie om je eerste passkey te maken.",
+      "preparing": "Je passkey wordt voorbereid…",
+      "waiting": "Kijk op je apparaat",
+      "waitingDescription": "Volg de aanwijzingen van je browser of wachtwoordmanager.",
+      "verifying": "Je wordt aangemeld…",
+      "cancelled": "Aanmelden met een passkey is geannuleerd. Probeer het opnieuw of gebruik je wachtwoord.",
+      "notCompleted": "Aanmelden met een passkey is geannuleerd of verlopen. Probeer het opnieuw of meld je aan met je wachtwoord.",
+      "unsupported": "Passkeys zijn niet beschikbaar in deze browser. Je kunt je nog steeds aanmelden met je wachtwoord of SSO.",
+      "insecure": "Passkeys vereisen een beveiligde verbinding (HTTPS). Je kunt je nog steeds aanmelden met je wachtwoord of SSO.",
+      "tryAgain": "Passkey opnieuw proberen"
+    },
     "title": "Meld u aan bij uw account",
-    "subtitle": "Sluit u aan bij duizenden bedrijven die OneUptime gebruiken om de hele tijd online te blijven.",
+    "subtitle": "Gebruik een passkey, wachtwoord of de SSO van je organisatie.",
     "submitButton": "Inloggen",
     "forgotPassword": "Wachtwoord vergeten?",
     "useSso": "Gebruik in plaats daarvan single sign-on (SSO)",

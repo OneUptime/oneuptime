@@ -1,5 +1,7 @@
 import {
   LOGIN_API_URL,
+  PASSKEY_LOGIN_API_URL,
+  PASSKEY_LOGIN_OPTIONS_API_URL,
   VERIFY_TOTP_AUTH_API_URL,
   VERIFY_TOTP_ENROLMENT_API_URL,
   VERIFY_BACKUP_CODE_API_URL,
@@ -42,7 +44,9 @@ import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import API from "Common/UI/Utils/API/API";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import Base64 from "Common/Utils/Base64";
+import WebAuthn from "Common/UI/Utils/WebAuthn";
+import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import QRCodeElement from "Common/UI/Components/QR/QR";
@@ -70,6 +74,13 @@ const BACKUP_CODE_OFFER_SNOOZE_MILLISECONDS: number = 7 * 24 * 60 * 60 * 1000;
 
 const BACKUP_CODE_OFFER_SKIPPED_KEY: string = "backup-code-offer-skipped-at";
 
+type PasskeyStage = "idle" | "preparing" | "prompt" | "verifying";
+
+interface PasskeyAttempt {
+  controller: AbortController;
+  canCancel: boolean;
+}
+
 const LoginPage: () => JSX.Element = () => {
   const { t } = useTranslation();
   const apiUrl: URL = LOGIN_API_URL;
@@ -79,6 +90,30 @@ const LoginPage: () => JSX.Element = () => {
   }
 
   const [initialValues, setInitialValues] = React.useState<JSONObject>({});
+  const [passkeyStage, setPasskeyStage] = React.useState<PasskeyStage>("idle");
+  const isPasskeyLoading: boolean = passkeyStage !== "idle";
+  const [isPasskeySupported] = React.useState<boolean>(WebAuthn.isSupported);
+  const [isPasswordLoading, setIsPasswordLoading] =
+    React.useState<boolean>(false);
+  const [passkeyError, setPasskeyError] = React.useState<string>("");
+  const [passkeyNotice, setPasskeyNotice] = React.useState<string>("");
+  const passkeyInProgress: React.MutableRefObject<boolean> =
+    React.useRef<boolean>(false);
+  const passkeyAttempt: React.MutableRefObject<PasskeyAttempt | null> =
+    React.useRef<PasskeyAttempt | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      passkeyAttempt.current?.controller.abort();
+      passkeyAttempt.current = null;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (passkeyNotice) {
+      document.getElementById("passkey-login")?.focus();
+    }
+  }, [passkeyNotice]);
 
   const [showTwoFactorAuth, setShowTwoFactorAuth] =
     React.useState<boolean>(false);
@@ -314,26 +349,9 @@ const LoginPage: () => JSX.Element = () => {
           throw result;
         }
 
-        const data: any = result.data as any;
-
-        // Convert base64url strings back to Uint8Array
-        data.options.challenge = Base64.base64UrlToUint8Array(
-          data.options.challenge,
+        const credential: JSONObject = await WebAuthn.authenticate(
+          result.data["options"] as JSONObject,
         );
-        if (data.options.allowCredentials) {
-          data.options.allowCredentials.forEach((cred: any) => {
-            cred.id = Base64.base64UrlToUint8Array(cred.id);
-          });
-        }
-
-        // Use WebAuthn API
-        const credential: PublicKeyCredential =
-          (await navigator.credentials.get({
-            publicKey: data.options,
-          })) as PublicKeyCredential;
-
-        const assertionResponse: AuthenticatorAssertionResponse =
-          credential.response as AuthenticatorAssertionResponse;
 
         // Verify
         const verifyResult: HTTPResponse<JSONObject> = await API.post({
@@ -341,29 +359,7 @@ const LoginPage: () => JSX.Element = () => {
           data: {
             data: {
               ...initialValues,
-              credential: {
-                id: credential.id,
-                rawId: Base64.uint8ArrayToBase64Url(
-                  new Uint8Array(credential.rawId),
-                ),
-                response: {
-                  authenticatorData: Base64.uint8ArrayToBase64Url(
-                    new Uint8Array(assertionResponse.authenticatorData),
-                  ),
-                  clientDataJSON: Base64.uint8ArrayToBase64Url(
-                    new Uint8Array(assertionResponse.clientDataJSON),
-                  ),
-                  signature: Base64.uint8ArrayToBase64Url(
-                    new Uint8Array(assertionResponse.signature),
-                  ),
-                  userHandle: assertionResponse.userHandle
-                    ? Base64.uint8ArrayToBase64Url(
-                        new Uint8Array(assertionResponse.userHandle),
-                      )
-                    : null,
-                },
-                type: credential.type,
-              },
+              credential: credential,
             },
           },
         });
@@ -402,6 +398,117 @@ const LoginPage: () => JSX.Element = () => {
       user: user,
       token: miscData ? miscData["token"] : undefined,
     });
+  };
+
+  type SignInWithPasskeyFunction = () => Promise<void>;
+
+  const signInWithPasskey: SignInWithPasskeyFunction =
+    async (): Promise<void> => {
+      if (
+        passkeyInProgress.current ||
+        isPasswordLoading ||
+        !isPasskeySupported
+      ) {
+        return;
+      }
+
+      passkeyInProgress.current = true;
+      const attempt: PasskeyAttempt = {
+        controller: new AbortController(),
+        canCancel: true,
+      };
+      passkeyAttempt.current = attempt;
+      setPasskeyStage("preparing");
+      setPasskeyError("");
+      setPasskeyNotice("");
+
+      try {
+        WebAuthn.ensureSupported();
+        const optionsResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: PASSKEY_LOGIN_OPTIONS_API_URL,
+            data: {},
+            options: { signal: attempt.controller.signal },
+          });
+
+        if (
+          passkeyAttempt.current !== attempt ||
+          attempt.controller.signal.aborted
+        ) {
+          return;
+        }
+
+        if (optionsResponse instanceof HTTPErrorResponse) {
+          throw optionsResponse;
+        }
+
+        setPasskeyStage("prompt");
+        const credential: JSONObject = await WebAuthn.authenticate(
+          optionsResponse.data["options"] as JSONObject,
+          attempt.controller.signal,
+        );
+
+        if (
+          passkeyAttempt.current !== attempt ||
+          attempt.controller.signal.aborted
+        ) {
+          return;
+        }
+
+        // Once verification starts, canceling a request cannot undo its session.
+        attempt.canCancel = false;
+        setPasskeyStage("verifying");
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: PASSKEY_LOGIN_API_URL,
+            data: { credential: credential },
+          });
+
+        if (passkeyAttempt.current !== attempt) {
+          return;
+        }
+
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        login(
+          User.fromJSON(response.data, User) as User,
+          getMiscData(response),
+        );
+      } catch (error) {
+        if (passkeyAttempt.current !== attempt) {
+          return;
+        }
+
+        if (
+          error instanceof Error &&
+          (error.name === "NotAllowedError" || error.name === "AbortError")
+        ) {
+          setPasskeyNotice(t("login.passkey.notCompleted"));
+        } else {
+          setPasskeyError(WebAuthn.getErrorMessage(error, "sign-in"));
+        }
+      } finally {
+        if (passkeyAttempt.current === attempt) {
+          passkeyAttempt.current = null;
+          passkeyInProgress.current = false;
+          setPasskeyStage("idle");
+        }
+      }
+    };
+
+  const cancelPasskeySignIn: () => void = (): void => {
+    const attempt: PasskeyAttempt | null = passkeyAttempt.current;
+    if (!attempt?.canCancel) {
+      return;
+    }
+
+    passkeyAttempt.current = null;
+    attempt.controller.abort();
+    passkeyInProgress.current = false;
+    setPasskeyStage("idle");
+    setPasskeyNotice(t("login.passkey.cancelled"));
   };
 
   type ReadBackupCodesFunction = (miscData: JSONObject) => Array<string>;
@@ -864,115 +971,240 @@ const LoginPage: () => JSX.Element = () => {
           )}
 
           {!pendingLogin && !showTwoFactorAuth && !totpEnrolment && (
-            <ModelForm<User>
-              modelType={User}
-              id="login-form"
-              name="Login"
-              fields={loginFields}
-              createOrUpdateApiUrl={apiUrl}
-              formType={FormType.Create}
-              submitButtonText={t("login.submitButton")}
-              onBeforeCreate={(data: User, miscDataProps: JSONObject) => {
-                if (isCaptchaEnabled) {
-                  const captchaToken: string | undefined = (
-                    miscDataProps["captchaToken"] as string | undefined
-                  )
-                    ?.toString()
-                    .trim();
-
-                  if (!captchaToken) {
-                    throw new Error(t("captcha.errorOnSignIn"));
-                  }
-
-                  miscDataProps["captchaToken"] = captchaToken;
-                  setShouldResetCaptcha(true);
-                }
-
-                setInitialValues(User.toJSON(data, User));
-                return Promise.resolve(data);
-              }}
-              onLoadingChange={(loading: boolean) => {
-                if (!isCaptchaEnabled) {
-                  return;
-                }
-
-                if (!loading && shouldResetCaptcha) {
-                  setShouldResetCaptcha(false);
-                  handleCaptchaReset();
-                }
-              }}
-              onSuccess={(
-                value: User | JSONObject,
-                miscData: JSONObject | undefined,
-              ) => {
-                /*
-                 * Checked BEFORE the two-factor-method lists below, and the
-                 * order is load-bearing rather than stylistic. A user being
-                 * forced to enrol has ZERO methods set up, so that condition
-                 * is false for them -- putting this second would let control
-                 * fall straight through to login() and a redirect into a
-                 * dashboard the server never authorised, with no session
-                 * behind it.
-                 */
-                if (miscData && miscData["twoFactorEnrolmentRequired"]) {
-                  setTotpEnrolment({
-                    twoFactorAuthId: miscData["twoFactorAuthId"] as string,
-                    twoFactorOtpUrl: miscData["twoFactorOtpUrl"] as string,
-                  });
-                  return;
-                }
-
-                if (
-                  miscData &&
-                  ((((miscData as JSONObject)["totpAuthList"] as JSONArray)
-                    ?.length || 0) > 0 ||
-                    (((miscData as JSONObject)["webAuthnList"] as JSONArray)
-                      ?.length || 0) > 0)
-                ) {
-                  const totpAuthList: Array<UserTotpAuth> =
-                    UserTotpAuth.fromJSONArray(
-                      (miscData as JSONObject)["totpAuthList"] as JSONArray,
-                      UserTotpAuth,
-                    );
-                  const webAuthnList: Array<UserWebAuthn> =
-                    UserWebAuthn.fromJSONArray(
-                      (miscData as JSONObject)["webAuthnList"] as JSONArray,
-                      UserWebAuthn,
-                    );
-                  setTotpAuthList(totpAuthList);
-                  setWebAuthnList(webAuthnList);
-                  /*
-                   * Absent means "the server could not count them", which is
-                   * not the same as zero -- see `isKnownToHaveNoBackupCodes`.
-                   */
-                  const reportedBackupCodeCount: unknown = (
-                    miscData as JSONObject
-                  )["backupCodeCount"];
-
-                  setBackupCodeCount(
-                    typeof reportedBackupCodeCount === "number"
-                      ? reportedBackupCodeCount
-                      : null,
-                  );
-                  setShowTwoFactorAuth(true);
-                  return;
-                }
-
-                login(value as User, miscData as JSONObject);
-              }}
-              maxPrimaryButtonWidth={true}
-              footer={
-                <div className="actions text-center mt-4 hover:underline fw-semibold">
+            <>
+              <section
+                aria-labelledby="passkey-heading"
+                className="mb-6 rounded-xl border border-indigo-100 bg-indigo-50/50 p-4"
+              >
+                <div className="mb-4 flex items-start gap-3">
+                  <div
+                    aria-hidden="true"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-indigo-600 shadow-sm"
+                  >
+                    <Icon icon={IconProp.Fingerprint} className="h-6 w-6" />
+                  </div>
                   <div>
-                    <Link to={new Route("/accounts/sso")}>
-                      <div className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm">
-                        {t("login.useSso")}
-                      </div>
-                    </Link>
+                    <h3
+                      id="passkey-heading"
+                      className="text-sm font-semibold text-gray-900"
+                    >
+                      {t("login.passkey.title")}
+                    </h3>
+                    <p className="mt-1 text-sm leading-5 text-gray-600">
+                      {t("login.passkey.description")}
+                    </p>
                   </div>
                 </div>
-              }
-            />
+                <Button
+                  id="passkey-login"
+                  title={t(
+                    passkeyStage === "preparing"
+                      ? "login.passkey.preparing"
+                      : passkeyStage === "prompt"
+                        ? "login.passkey.waiting"
+                        : passkeyStage === "verifying"
+                          ? "login.passkey.verifying"
+                          : passkeyError || passkeyNotice
+                            ? "login.passkey.tryAgain"
+                            : "login.passkey.signIn",
+                  )}
+                  buttonStyle={ButtonStyleType.PRIMARY}
+                  className="w-full justify-center"
+                  style={{ width: "100%", marginLeft: 0 }}
+                  dataTestId="passkey-login"
+                  isLoading={isPasskeyLoading}
+                  disabled={
+                    !isPasskeySupported || isPasskeyLoading || isPasswordLoading
+                  }
+                  onClick={() => {
+                    void signInWithPasskey();
+                  }}
+                />
+                <div role="status" aria-live="polite" aria-atomic="true">
+                  {isPasskeyLoading && (
+                    <p className="mt-3 text-center text-sm text-gray-600">
+                      {t(
+                        passkeyStage === "prompt"
+                          ? "login.passkey.waitingDescription"
+                          : passkeyStage === "verifying"
+                            ? "login.passkey.verifying"
+                            : "login.passkey.preparing",
+                      )}
+                    </p>
+                  )}
+                  {passkeyNotice && (
+                    <p className="mt-3 text-sm text-gray-600">
+                      {passkeyNotice}
+                    </p>
+                  )}
+                </div>
+                {(passkeyStage === "preparing" ||
+                  passkeyStage === "prompt") && (
+                  <div className="mt-3 text-center">
+                    <Button
+                      title={t("common.cancel")}
+                      buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                      dataTestId="cancel-passkey-login"
+                      onClick={cancelPasskeySignIn}
+                    />
+                  </div>
+                )}
+                {passkeyError && (
+                  <div
+                    role="alert"
+                    className="mt-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-800"
+                  >
+                    {passkeyError}
+                  </div>
+                )}
+                {!isPasskeySupported && (
+                  <p className="mt-3 text-sm text-gray-600">
+                    {t(
+                      window.isSecureContext === false
+                        ? "login.passkey.insecure"
+                        : "login.passkey.unsupported",
+                    )}
+                  </p>
+                )}
+                <details className="mt-3 text-sm text-gray-600">
+                  <summary className="w-fit cursor-pointer rounded-sm font-medium text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
+                    {t("login.passkey.helpTitle")}
+                  </summary>
+                  <p className="mt-2 leading-6">{t("login.passkey.help")}</p>
+                </details>
+              </section>
+              <div className="relative mb-6">
+                <div
+                  className="absolute inset-0 flex items-center"
+                  aria-hidden="true"
+                >
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="bg-white px-3 text-sm text-gray-500">
+                    {t("login.passkey.passwordAlternative")}
+                  </span>
+                </div>
+              </div>
+              <fieldset disabled={isPasskeyLoading}>
+                <ModelForm<User>
+                  modelType={User}
+                  id="login-form"
+                  name="Login"
+                  disableAutofocus={true}
+                  fields={loginFields}
+                  createOrUpdateApiUrl={apiUrl}
+                  formType={FormType.Create}
+                  submitButtonText={t("login.submitButton")}
+                  onBeforeCreate={(data: User, miscDataProps: JSONObject) => {
+                    if (passkeyInProgress.current) {
+                      throw new Error(t("login.passkey.inProgress"));
+                    }
+                    setPasskeyError("");
+                    setPasskeyNotice("");
+                    if (isCaptchaEnabled) {
+                      const captchaToken: string | undefined = (
+                        miscDataProps["captchaToken"] as string | undefined
+                      )
+                        ?.toString()
+                        .trim();
+
+                      if (!captchaToken) {
+                        throw new Error(t("captcha.errorOnSignIn"));
+                      }
+
+                      miscDataProps["captchaToken"] = captchaToken;
+                      setShouldResetCaptcha(true);
+                    }
+
+                    setInitialValues(User.toJSON(data, User));
+                    return Promise.resolve(data);
+                  }}
+                  onLoadingChange={(loading: boolean) => {
+                    setIsPasswordLoading(loading);
+                    if (!isCaptchaEnabled) {
+                      return;
+                    }
+
+                    if (!loading && shouldResetCaptcha) {
+                      setShouldResetCaptcha(false);
+                      handleCaptchaReset();
+                    }
+                  }}
+                  onSuccess={(
+                    value: User | JSONObject,
+                    miscData: JSONObject | undefined,
+                  ) => {
+                    /*
+                     * Checked BEFORE the two-factor-method lists below, and the
+                     * order is load-bearing rather than stylistic. A user being
+                     * forced to enrol has ZERO methods set up, so that condition
+                     * is false for them -- putting this second would let control
+                     * fall straight through to login() and a redirect into a
+                     * dashboard the server never authorised, with no session
+                     * behind it.
+                     */
+                    if (miscData && miscData["twoFactorEnrolmentRequired"]) {
+                      setTotpEnrolment({
+                        twoFactorAuthId: miscData["twoFactorAuthId"] as string,
+                        twoFactorOtpUrl: miscData["twoFactorOtpUrl"] as string,
+                      });
+                      return;
+                    }
+
+                    if (
+                      miscData &&
+                      ((((miscData as JSONObject)["totpAuthList"] as JSONArray)
+                        ?.length || 0) > 0 ||
+                        (((miscData as JSONObject)["webAuthnList"] as JSONArray)
+                          ?.length || 0) > 0)
+                    ) {
+                      const totpAuthList: Array<UserTotpAuth> =
+                        UserTotpAuth.fromJSONArray(
+                          (miscData as JSONObject)["totpAuthList"] as JSONArray,
+                          UserTotpAuth,
+                        );
+                      const webAuthnList: Array<UserWebAuthn> =
+                        UserWebAuthn.fromJSONArray(
+                          (miscData as JSONObject)["webAuthnList"] as JSONArray,
+                          UserWebAuthn,
+                        );
+                      setTotpAuthList(totpAuthList);
+                      setWebAuthnList(webAuthnList);
+                      /*
+                       * Absent means "the server could not count them", which is
+                       * not the same as zero -- see `isKnownToHaveNoBackupCodes`.
+                       */
+                      const reportedBackupCodeCount: unknown = (
+                        miscData as JSONObject
+                      )["backupCodeCount"];
+
+                      setBackupCodeCount(
+                        typeof reportedBackupCodeCount === "number"
+                          ? reportedBackupCodeCount
+                          : null,
+                      );
+                      setShowTwoFactorAuth(true);
+                      return;
+                    }
+
+                    login(value as User, miscData as JSONObject);
+                  }}
+                  maxPrimaryButtonWidth={true}
+                  footer={
+                    <div className="actions text-center mt-4 hover:underline fw-semibold">
+                      <div>
+                        <Link to={new Route("/accounts/sso")}>
+                          <div className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm">
+                            {t("login.useSso")}
+                          </div>
+                        </Link>
+                      </div>
+                    </div>
+                  }
+                />
+              </fieldset>
+            </>
           )}
 
           {!pendingLogin &&

@@ -42,6 +42,7 @@ export default class UserWebAuthnAPI extends BaseAPI<
           const result: { options: any; challenge: string } =
             await UserWebAuthnService.generateRegistrationOptions({
               userId: userId,
+              isPasskey: req.body?.["isPasskey"] === true,
             });
 
           return Response.sendJsonObjectResponse(req, res, result);

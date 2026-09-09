@@ -1,10 +1,12 @@
+import "../TestingUtils/WebAuthnServiceMocks";
 import UserWebAuthnService from "../../../Server/Services/UserWebAuthnService";
 import UserService from "../../../Server/Services/UserService";
 import User from "../../../Models/DatabaseModels/User";
 import UserWebAuthn from "../../../Models/DatabaseModels/UserWebAuthn";
 import Email from "../../../Types/Email";
 import ObjectID from "../../../Types/ObjectID";
-import OneUptimeDate from "../../../Types/Date";
+import Redis from "../../../Server/Infrastructure/Redis";
+import { getJestSpyOn } from "../../Spy";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
 import {
@@ -87,23 +89,6 @@ const buildUser: BuildUserFunction = (): User => {
   user.id = USER_ID;
   user.email = USER_EMAIL;
 
-  /*
-   * A live, unexpired challenge in BOTH slots, so verification gets past
-   * `getAndClearStoredChallenge` whichever flow is under test and reaches the
-   * library call this file is actually about. The value is whatever the stub
-   * issues. That the slots are separate at all is exercised end to end in
-   * App/Tests/FeatureSet/Identity/WebAuthnUserVerification.test.ts.
-   */
-  const expiresAt: Date = OneUptimeDate.addRemoveMinutes(
-    OneUptimeDate.getCurrentDate(),
-    5,
-  );
-
-  user.webauthnRegistrationChallenge = "mock-challenge";
-  user.webauthnRegistrationChallengeExpiresAt = expiresAt;
-  user.webauthnAuthenticationChallenge = "mock-challenge";
-  user.webauthnAuthenticationChallengeExpiresAt = expiresAt;
-
   return user;
 };
 
@@ -135,8 +120,58 @@ const CREDENTIAL_FROM_THE_BROWSER: Record<string, unknown> = {
   clientExtensionResults: {},
 };
 
+let challengeCache: Map<string, string>;
+let redisSet: jest.Mock;
+let redisConsume: jest.Mock;
+const REGISTRATION_KEY: string = `webauthn-registration-${USER_ID.toString()}`;
+const AUTHENTICATION_KEY: string = `webauthn-security-key-login-${USER_ID.toString()}`;
+
 beforeEach(() => {
   jest.clearAllMocks();
+  challengeCache = new Map([
+    [
+      REGISTRATION_KEY,
+      JSON.stringify({
+        challenge: "mock-challenge",
+        requireUserVerification: false,
+      }),
+    ],
+    [AUTHENTICATION_KEY, "mock-challenge"],
+  ]);
+  redisSet = jest.fn(async (key: string, value: string): Promise<string> => {
+    challengeCache.set(key, value);
+    return "OK";
+  });
+  redisConsume = jest.fn(
+    async (
+      _script: string,
+      _keyCount: number,
+      key: string,
+    ): Promise<string | null> => {
+      const value: string | null = challengeCache.get(key) || null;
+      challengeCache.delete(key);
+      return value;
+    },
+  );
+  getJestSpyOn(Redis, "getClient").mockReturnValue({
+    set: redisSet,
+    eval: redisConsume,
+  });
+  getJestSpyOn(Redis, "isConnected").mockReturnValue(true);
+  asMock(verifyRegistrationResponse).mockResolvedValue({
+    verified: true,
+    registrationInfo: {
+      credential: {
+        id: CREDENTIAL_ID,
+        publicKey: new Uint8Array([1, 2, 3]),
+        counter: 0,
+      },
+    },
+  });
+  asMock(verifyAuthenticationResponse).mockResolvedValue({
+    verified: true,
+    authenticationInfo: { newCounter: 1 },
+  });
 
   UserService.findOneById = jest.fn().mockResolvedValue(buildUser()) as never;
   UserService.findOneBy = jest.fn().mockResolvedValue(buildUser()) as never;
@@ -431,116 +466,65 @@ describe("UserWebAuthnService user verification policy", () => {
     });
   });
 
-  describe("which challenge slot each flow writes", () => {
-    /*
-     * The two flows land on the SAME User row -- registration keyed by the
-     * session's user, signing in keyed by an email address -- and they used to
-     * write the same pair of columns, so whichever went last destroyed the
-     * other's challenge.
-     *
-     * Asserted here at the column level because that is where the separation
-     * either exists or does not: a helper that computed its column names from
-     * a variable, or a refactor that reached for the wrong branch, would still
-     * pass an end-to-end test that only ever runs one flow at a time. The
-     * behavioural proof -- two live flows over one row -- is in
-     * App/Tests/FeatureSet/Identity/WebAuthnUserVerification.test.ts.
-     */
-
-    type WrittenKeysFunction = () => Array<Array<string>>;
-
-    const writtenKeys: WrittenKeysFunction = (): Array<Array<string>> => {
-      return asMock(UserService.updateOneById).mock.calls.map(
-        (call: Array<unknown>): Array<string> => {
-          return Object.keys(
-            (call[0] as { data: Record<string, unknown> }).data,
-          );
-        },
-      );
-    };
-
-    test("registering writes only the registration slot", async () => {
+  describe("which challenge namespace each flow uses", () => {
+    test("registering writes only the registration challenge with a five minute expiry", async () => {
       await UserWebAuthnService.generateRegistrationOptions({
         userId: USER_ID,
       });
-
-      for (const keys of writtenKeys()) {
-        expect(keys.sort()).toEqual([
-          "webauthnRegistrationChallenge",
-          "webauthnRegistrationChallengeExpiresAt",
-        ]);
-      }
-
-      expect(writtenKeys().length).toBeGreaterThan(0);
+      expect(redisSet).toHaveBeenCalledWith(
+        REGISTRATION_KEY,
+        expect.any(String),
+        "EX",
+        300,
+      );
+      expect(redisSet).toHaveBeenCalledTimes(1);
+      expect(UserService.updateOneById).not.toHaveBeenCalled();
     });
 
-    test("signing in writes only the authentication slot", async () => {
+    test("signing in writes only the security key authentication challenge", async () => {
       await UserWebAuthnService.generateAuthenticationOptions({
         email: USER_EMAIL.toString(),
       });
-
-      for (const keys of writtenKeys()) {
-        expect(keys.sort()).toEqual([
-          "webauthnAuthenticationChallenge",
-          "webauthnAuthenticationChallengeExpiresAt",
-        ]);
-      }
-
-      expect(writtenKeys().length).toBeGreaterThan(0);
+      expect(redisSet).toHaveBeenCalledWith(
+        AUTHENTICATION_KEY,
+        expect.any(String),
+        "EX",
+        300,
+      );
+      expect(redisSet).toHaveBeenCalledTimes(1);
+      expect(UserService.updateOneById).not.toHaveBeenCalled();
     });
 
-    test("clearing a spent registration challenge leaves the sign-in slot alone", async () => {
-      /*
-       * The clear is what actually did the damage. `getAndClearStoredChallenge`
-       * empties the slot it read, and with one shared slot that meant every
-       * completed ceremony wiped whatever the other flow had pending.
-       */
+    test("consuming registration leaves a pending security key login intact", async () => {
       await UserWebAuthnService.verifyRegistration({
         credential: CREDENTIAL_FROM_THE_BROWSER,
         name: "MacBook Touch ID",
         props: { userId: USER_ID },
       });
-
-      const touched: Array<string> = writtenKeys().flat();
-
-      expect(touched).toContain("webauthnRegistrationChallenge");
-      expect(touched).not.toContain("webauthnAuthenticationChallenge");
+      expect(challengeCache.has(REGISTRATION_KEY)).toBe(false);
+      expect(challengeCache.get(AUTHENTICATION_KEY)).toBe("mock-challenge");
     });
 
-    test("clearing a spent sign-in challenge leaves the registration slot alone", async () => {
+    test("consuming a security key login leaves a pending registration intact", async () => {
       await UserWebAuthnService.verifyAuthentication({
         userId: USER_ID.toString(),
         credential: CREDENTIAL_FROM_THE_BROWSER,
       });
-
-      const touched: Array<string> = writtenKeys().flat();
-
-      expect(touched).toContain("webauthnAuthenticationChallenge");
-      expect(touched).not.toContain("webauthnRegistrationChallenge");
+      expect(challengeCache.has(AUTHENTICATION_KEY)).toBe(false);
+      expect(challengeCache.has(REGISTRATION_KEY)).toBe(true);
     });
 
-    test("each flow reads back only its own slot", async () => {
-      /*
-       * The read half of the same property. Selecting both slots would work
-       * today and quietly re-create the coupling the moment somebody picked
-       * the wrong one out of the row.
-       */
+    test("each flow consumes only its own challenge", async () => {
       await UserWebAuthnService.verifyAuthentication({
         userId: USER_ID.toString(),
         credential: CREDENTIAL_FROM_THE_BROWSER,
       });
-
-      const selected: Array<string> = asMock(
-        UserService.findOneById,
-      ).mock.calls.flatMap((call: Array<unknown>): Array<string> => {
-        const select: Record<string, unknown> | undefined = (
-          call[0] as { select?: Record<string, unknown> }
-        ).select;
-
-        return select ? Object.keys(select) : [];
-      });
-
-      expect(selected).toContain("webauthnAuthenticationChallenge");
-      expect(selected).not.toContain("webauthnRegistrationChallenge");
+      expect(redisConsume).toHaveBeenCalledWith(
+        expect.any(String),
+        1,
+        AUTHENTICATION_KEY,
+      );
+      expect(redisConsume).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -604,7 +588,7 @@ describe("UserWebAuthnService user verification policy", () => {
       /*
        * Relaxing user verification removes one check, and this is the check it
        * must not be confused with. The challenge is what makes a response
-       * fresh; it is read from the User row rather than from the request, and
+       * fresh; it is read from Redis rather than from the request, and
        * it is what the library is told to expect.
        */
       await UserWebAuthnService.verifyRegistration({
@@ -641,7 +625,7 @@ describe("UserWebAuthnService user verification policy", () => {
 
     test("the challenge is still spent as it is read", async () => {
       /*
-       * One-time use: the row is cleared during verification, so the same
+       * One-time use: the challenge is consumed during verification, so the same
        * captured response cannot be replayed. Asserted here because it is the
        * other write this code path makes to the User row, and a refactor of
        * the policy constants sits close enough to it to disturb it.
@@ -652,15 +636,14 @@ describe("UserWebAuthnService user verification policy", () => {
         props: { userId: USER_ID },
       });
 
-      const clearing: Array<unknown> = asMock(
-        UserService.updateOneById,
-      ).mock.calls.map((call: Array<unknown>): unknown => {
-        return (call[0] as { data: Record<string, unknown> }).data[
-          "webauthnRegistrationChallenge"
-        ];
-      });
-
-      expect(clearing).toContain(null);
+      expect(challengeCache.has(REGISTRATION_KEY)).toBe(false);
+      await expect(
+        UserWebAuthnService.verifyRegistration({
+          credential: CREDENTIAL_FROM_THE_BROWSER,
+          name: "MacBook Touch ID",
+          props: { userId: USER_ID },
+        }),
+      ).rejects.toThrow("already used");
     });
   });
 });

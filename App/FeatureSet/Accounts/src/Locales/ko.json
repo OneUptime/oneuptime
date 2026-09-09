@@ -31,8 +31,26 @@
     "errorOnSignUp": "가입하기 전에 captcha 챌린지를 완료해 주세요."
   },
   "login": {
+    "passkey": {
+      "signIn": "패스키로 로그인",
+      "description": "지문, 얼굴 인식 또는 기기 PIN을 사용하세요.",
+      "passwordAlternative": "또는 비밀번호로 로그인",
+      "inProgress": "비밀번호를 사용하기 전에 패스키 로그인을 완료하거나 취소하세요.",
+      "title": "저장된 패스키 사용",
+      "helpTitle": "패스키가 처음이신가요?",
+      "help": "비밀번호 또는 SSO로 로그인한 다음 사용자 프로필 → 패스키 및 2단계 인증에서 첫 패스키를 만드세요.",
+      "preparing": "패스키를 준비하고 있어요…",
+      "waiting": "기기를 확인하세요",
+      "waitingDescription": "브라우저 또는 비밀번호 관리자의 안내를 따르세요.",
+      "verifying": "로그인하고 있어요…",
+      "cancelled": "패스키 로그인이 취소되었습니다. 다시 시도하거나 비밀번호를 사용하세요.",
+      "notCompleted": "패스키 로그인이 취소되었거나 시간이 초과되었습니다. 다시 시도하거나 비밀번호로 로그인하세요.",
+      "unsupported": "이 브라우저에서는 패스키를 사용할 수 없습니다. 비밀번호 또는 SSO로 로그인할 수 있습니다.",
+      "insecure": "패스키를 사용하려면 보안 연결(HTTPS)이 필요합니다. 비밀번호 또는 SSO로 로그인할 수 있습니다.",
+      "tryAgain": "패스키로 다시 시도"
+    },
     "title": "계정에 로그인",
-    "subtitle": "OneUptime을 사용하여 항상 온라인 상태를 유지하는 수천 개의 비즈니스에 참여하세요.",
+    "subtitle": "패스키, 비밀번호 또는 조직의 SSO로 로그인하세요.",
     "submitButton": "로그인",
     "forgotPassword": "비밀번호를 잊으셨나요?",
     "useSso": "대신 SSO (단일 로그인) 사용",

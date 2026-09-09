@@ -9,6 +9,14 @@ export const LOGIN_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/login"),
 );
 
+export const PASSKEY_LOGIN_OPTIONS_API_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route("/passkey-login-options"));
+
+export const PASSKEY_LOGIN_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
+  new Route("/passkey-login"),
+);
+
 export const VERIFY_TOTP_AUTH_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/verify-totp-auth"),
 );

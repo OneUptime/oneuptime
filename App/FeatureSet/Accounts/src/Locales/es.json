@@ -31,8 +31,26 @@
     "errorOnSignUp": "Complete el desafío captcha antes de registrarse."
   },
   "login": {
+    "passkey": {
+      "signIn": "Iniciar sesión con una clave de acceso",
+      "description": "Usa tu huella, tu rostro o el PIN de tu dispositivo.",
+      "passwordAlternative": "o inicia sesión con una contraseña",
+      "inProgress": "Completa o cancela el inicio de sesión con clave de acceso antes de usar tu contraseña.",
+      "title": "Usar una clave de acceso guardada",
+      "helpTitle": "¿No conoces las claves de acceso?",
+      "help": "Inicia sesión con tu contraseña o SSO y abre Perfil de usuario → Claves de acceso y autenticación de dos factores para crear tu primera clave de acceso.",
+      "preparing": "Preparando tu clave de acceso…",
+      "waiting": "Revisa tu dispositivo",
+      "waitingDescription": "Sigue las indicaciones de tu navegador o gestor de contraseñas.",
+      "verifying": "Iniciando sesión…",
+      "cancelled": "Se canceló el inicio de sesión con clave de acceso. Inténtalo de nuevo o usa tu contraseña.",
+      "notCompleted": "El inicio de sesión con clave de acceso se canceló o expiró. Inténtalo de nuevo o inicia sesión con tu contraseña.",
+      "unsupported": "Las claves de acceso no están disponibles en este navegador. Puedes seguir iniciando sesión con tu contraseña o SSO.",
+      "insecure": "Las claves de acceso necesitan una conexión segura (HTTPS). Puedes seguir iniciando sesión con tu contraseña o SSO.",
+      "tryAgain": "Volver a intentar con clave de acceso"
+    },
     "title": "Inicie sesión en su cuenta",
-    "subtitle": "Únase a miles de empresas que utilizan OneUptime para mantenerse en línea todo el tiempo.",
+    "subtitle": "Usa una clave de acceso, una contraseña o el SSO de tu organización.",
     "submitButton": "Iniciar sesión",
     "forgotPassword": "¿Olvidó su contraseña?",
     "useSso": "Usar inicio de sesión único (SSO) en su lugar",

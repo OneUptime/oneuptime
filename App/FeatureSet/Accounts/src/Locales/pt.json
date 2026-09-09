@@ -31,8 +31,26 @@
     "errorOnSignUp": "Complete o desafio captcha antes de se cadastrar."
   },
   "login": {
+    "passkey": {
+      "signIn": "Entrar com uma chave de acesso",
+      "description": "Use sua impressão digital, seu rosto ou o PIN do dispositivo.",
+      "passwordAlternative": "ou entre com uma senha",
+      "inProgress": "Conclua ou cancele o acesso com a chave de acesso antes de usar sua senha.",
+      "title": "Usar uma chave de acesso salva",
+      "helpTitle": "Ainda não conhece as chaves de acesso?",
+      "help": "Entre com sua senha ou SSO e abra Perfil do usuário → Chaves de acesso e autenticação de dois fatores para criar sua primeira chave de acesso.",
+      "preparing": "Preparando sua chave de acesso…",
+      "waiting": "Confira seu dispositivo",
+      "waitingDescription": "Siga as instruções do navegador ou gerenciador de senhas.",
+      "verifying": "Entrando…",
+      "cancelled": "O acesso com chave de acesso foi cancelado. Tente novamente ou use sua senha.",
+      "notCompleted": "O acesso com chave de acesso foi cancelado ou expirou. Tente novamente ou entre com sua senha.",
+      "unsupported": "As chaves de acesso não estão disponíveis neste navegador. Você ainda pode entrar com sua senha ou SSO.",
+      "insecure": "As chaves de acesso precisam de uma conexão segura (HTTPS). Você ainda pode entrar com sua senha ou SSO.",
+      "tryAgain": "Tentar novamente com chave de acesso"
+    },
     "title": "Faça login na sua conta",
-    "subtitle": "Junte-se a milhares de empresas que usam o OneUptime para mantê-las online o tempo todo.",
+    "subtitle": "Use uma chave de acesso, uma senha ou o SSO da sua organização.",
     "submitButton": "Entrar",
     "forgotPassword": "Esqueceu a senha?",
     "useSso": "Use o login único (SSO) em vez disso",

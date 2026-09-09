@@ -44,7 +44,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
 
         <SideMenuItem
           link={{
-            title: "Two Factor Auth",
+            title: "Passkeys & Two Factor Auth",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.USER_TWO_FACTOR_AUTH] as Route,
             ),

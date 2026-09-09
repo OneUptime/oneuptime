@@ -31,8 +31,26 @@
     "errorOnSignUp": "Bitte vervollständigen Sie das Captcha, bevor Sie sich registrieren."
   },
   "login": {
+    "passkey": {
+      "signIn": "Mit einem Passkey anmelden",
+      "description": "Nutzen Sie Ihren Fingerabdruck, Ihr Gesicht oder Ihre Geräte-PIN.",
+      "passwordAlternative": "oder mit einem Passwort anmelden",
+      "inProgress": "Beenden oder brechen Sie die Passkey-Anmeldung ab, bevor Sie Ihr Passwort verwenden.",
+      "title": "Gespeicherten Passkey verwenden",
+      "helpTitle": "Neu bei Passkeys?",
+      "help": "Melden Sie sich mit Ihrem Passwort oder SSO an und öffnen Sie dann Benutzerprofil → Passkeys & Zwei-Faktor-Authentifizierung, um Ihren ersten Passkey zu erstellen.",
+      "preparing": "Ihr Passkey wird vorbereitet…",
+      "waiting": "Prüfen Sie Ihr Gerät",
+      "waitingDescription": "Folgen Sie der Aufforderung Ihres Browsers oder Passwortmanagers.",
+      "verifying": "Sie werden angemeldet…",
+      "cancelled": "Die Passkey-Anmeldung wurde abgebrochen. Versuchen Sie es erneut oder verwenden Sie Ihr Passwort.",
+      "notCompleted": "Die Passkey-Anmeldung wurde abgebrochen oder ist abgelaufen. Versuchen Sie es erneut oder melden Sie sich mit Ihrem Passwort an.",
+      "unsupported": "Passkeys sind in diesem Browser nicht verfügbar. Sie können sich weiterhin mit Ihrem Passwort oder SSO anmelden.",
+      "insecure": "Passkeys benötigen eine sichere Verbindung (HTTPS). Sie können sich weiterhin mit Ihrem Passwort oder SSO anmelden.",
+      "tryAgain": "Passkey erneut versuchen"
+    },
     "title": "Melden Sie sich bei Ihrem Konto an",
-    "subtitle": "Schließen Sie sich Tausenden von Unternehmen an, die OneUptime nutzen, um stets online zu bleiben.",
+    "subtitle": "Verwenden Sie einen Passkey, ein Passwort oder das SSO Ihrer Organisation.",
     "submitButton": "Anmelden",
     "forgotPassword": "Passwort vergessen?",
     "useSso": "Stattdessen Single Sign-On (SSO) verwenden",

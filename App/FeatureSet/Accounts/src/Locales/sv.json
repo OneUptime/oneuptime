@@ -31,8 +31,26 @@
     "errorOnSignUp": "Slutför captcha-utmaningen innan du registrerar dig."
   },
   "login": {
+    "passkey": {
+      "signIn": "Logga in med en passnyckel",
+      "description": "Använd ditt fingeravtryck, ditt ansikte eller enhetens PIN-kod.",
+      "passwordAlternative": "eller logga in med ett lösenord",
+      "inProgress": "Slutför eller avbryt inloggningen med passnyckel innan du använder lösenordet.",
+      "title": "Använd en sparad passnyckel",
+      "helpTitle": "Är passnycklar nytt för dig?",
+      "help": "Logga in med ditt lösenord eller SSO och öppna sedan Användarprofil → Passnycklar och tvåfaktorsautentisering för att skapa din första passnyckel.",
+      "preparing": "Förbereder din passnyckel…",
+      "waiting": "Titta på din enhet",
+      "waitingDescription": "Följ anvisningarna från webbläsaren eller lösenordshanteraren.",
+      "verifying": "Loggar in dig…",
+      "cancelled": "Inloggningen med passnyckel avbröts. Försök igen eller använd ditt lösenord.",
+      "notCompleted": "Inloggningen med passnyckel avbröts eller tog för lång tid. Försök igen eller logga in med ditt lösenord.",
+      "unsupported": "Passnycklar är inte tillgängliga i den här webbläsaren. Du kan fortfarande logga in med ditt lösenord eller SSO.",
+      "insecure": "Passnycklar kräver en säker anslutning (HTTPS). Du kan fortfarande logga in med ditt lösenord eller SSO.",
+      "tryAgain": "Försök med passnyckeln igen"
+    },
     "title": "Logga in på ditt konto",
-    "subtitle": "Gå med i tusentals företag som använder OneUptime för att hålla dem online hela tiden.",
+    "subtitle": "Använd en passnyckel, ett lösenord eller organisationens SSO.",
     "submitButton": "Logga in",
     "forgotPassword": "Glömt lösenord?",
     "useSso": "Använd istället enkel inloggning (SSO)",

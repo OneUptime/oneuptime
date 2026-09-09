@@ -20,6 +20,8 @@ import DatabaseConfig from "Common/Server/DatabaseConfig";
 import {
   AppVersion,
   EncryptionSecret,
+  Host,
+  HttpProtocol,
   IsBillingEnabled,
 } from "Common/Server/EnvironmentConfig";
 import API from "Common/Utils/API";
@@ -65,6 +67,7 @@ import IdentityRateLimit, {
   IdentityRateLimitBucket,
 } from "Common/Server/Middleware/IdentityRateLimit";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import { URL as NodeURL } from "url";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -190,6 +193,159 @@ const finalizeUserLogin: (
 
   return { sessionMetadata, accessToken };
 };
+
+const PASSKEY_LOGIN_COOKIE: string = "oneuptime-passkey-login";
+const passkeyRateLimit: (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void> = IdentityRateLimit.getMiddleware(
+  IdentityRateLimitBucket.Passkey,
+);
+const PASSKEY_LOGIN_ERROR: string =
+  "Unable to sign in with this passkey. Please try again or use your password.";
+
+/*
+ * Bind the anonymous challenge to the browser that started this sign-in.
+ * A challenge ID supplied in the request body must never replace this cookie.
+ */
+const assertPasskeyOrigin: (req: ExpressRequest) => void = (
+  req: ExpressRequest,
+): void => {
+  if (
+    req.headers.origin !==
+    new NodeURL(`${HttpProtocol}${Host.toString()}`).origin
+  ) {
+    throw new BadDataException(PASSKEY_LOGIN_ERROR);
+  }
+};
+
+router.post(
+  "/passkey-login-options",
+  passkeyRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      assertPasskeyOrigin(req);
+      const result: Awaited<
+        ReturnType<
+          typeof UserWebAuthnService.generatePasskeyAuthenticationOptions
+        >
+      > = await UserWebAuthnService.generatePasskeyAuthenticationOptions();
+
+      res.cookie(PASSKEY_LOGIN_COOKIE, result.challengeId, {
+        httpOnly: true,
+        secure: HttpProtocol.toString() === "https://",
+        sameSite: "strict",
+        path: "/",
+        maxAge: 5 * 60 * 1000,
+      });
+
+      /*
+       * Discoverable credentials let the authenticator select the account.
+       * Options do not disclose whether any particular email has an account.
+       */
+      return Response.sendJsonObjectResponse(req, res, {
+        options: result.options as unknown as JSONObject,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.post(
+  "/passkey-login",
+  passkeyRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      assertPasskeyOrigin(req);
+      const challengeId: unknown = req.cookies?.[PASSKEY_LOGIN_COOKIE];
+      res.clearCookie(PASSKEY_LOGIN_COOKIE, {
+        httpOnly: true,
+        secure: HttpProtocol.toString() === "https://",
+        sameSite: "strict",
+        path: "/",
+      });
+
+      if (
+        typeof challengeId !== "string" ||
+        !challengeId.match(/^[A-Za-z0-9_-]{32,128}$/)
+      ) {
+        throw new BadDataException(PASSKEY_LOGIN_ERROR);
+      }
+
+      let verifiedUser: User;
+      try {
+        verifiedUser = await UserWebAuthnService.verifyPasskeyAuthentication({
+          challengeId,
+          credential: req.body?.credential,
+        });
+      } catch {
+        // Do not expose credential ownership or verification internals.
+        throw new BadDataException(PASSKEY_LOGIN_ERROR);
+      }
+
+      if (!verifiedUser.id) {
+        throw new BadDataException(PASSKEY_LOGIN_ERROR);
+      }
+
+      const user: User | null = await UserService.findOneById({
+        id: verifiedUser.id,
+        select: {
+          _id: true,
+          name: true,
+          email: true,
+          isMasterAdmin: true,
+          isEmailVerified: true,
+          profilePictureId: true,
+          timezone: true,
+        },
+        props: { isRoot: true },
+      });
+
+      if (!user?.id || !user.email || !user.isEmailVerified) {
+        throw new BadDataException(PASSKEY_LOGIN_ERROR);
+      }
+
+      /*
+       * Verified passkeys prove possession and device PIN/biometrics together.
+       * Project and global SSO requirements still apply to this ordinary login
+       * through UserAuthorization, just as they do after a password login.
+       */
+      await AccessTokenService.refreshUserAllPermissions(user.id);
+      const loginResult: FinalizeUserLoginResult = await finalizeUserLogin({
+        req,
+        res,
+        user,
+        isGlobalLogin: true,
+      });
+
+      logger.info(
+        "User logged in with a passkey: " + user.email.toString(),
+        getLogAttributesFromRequest(req as RequestLike),
+      );
+
+      return Response.sendEntityResponse(req, res, user, User, {
+        miscData: {
+          accessToken: loginResult.accessToken,
+          refreshToken: loginResult.sessionMetadata.refreshToken,
+          refreshTokenExpiresAt:
+            loginResult.sessionMetadata.refreshTokenExpiresAt.toISOString(),
+        },
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
 
 router.post(
   "/signup",

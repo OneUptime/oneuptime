@@ -31,8 +31,26 @@
     "errorOnSignUp": "Fullfør captcha-utfordringen før du registrerer deg."
   },
   "login": {
+    "passkey": {
+      "signIn": "Logg inn med en passnøkkel",
+      "description": "Bruk fingeravtrykket ditt, ansiktet ditt eller enhetens PIN-kode.",
+      "passwordAlternative": "eller logg inn med et passord",
+      "inProgress": "Fullfør eller avbryt innloggingen med passnøkkel før du bruker passordet.",
+      "title": "Bruk en lagret passnøkkel",
+      "helpTitle": "Er passnøkler nytt for deg?",
+      "help": "Logg inn med passord eller SSO, og åpne deretter Brukerprofil → Passnøkler og tofaktorautentisering for å opprette din første passnøkkel.",
+      "preparing": "Gjør passnøkkelen klar…",
+      "waiting": "Se på enheten din",
+      "waitingDescription": "Følg instruksjonene fra nettleseren eller passordbehandleren.",
+      "verifying": "Logger deg inn…",
+      "cancelled": "Innlogging med passnøkkel ble avbrutt. Prøv igjen, eller bruk passordet ditt.",
+      "notCompleted": "Innlogging med passnøkkel ble avbrutt eller tidsavbrutt. Prøv igjen, eller logg inn med passordet ditt.",
+      "unsupported": "Passnøkler er ikke tilgjengelige i denne nettleseren. Du kan fortsatt logge inn med passord eller SSO.",
+      "insecure": "Passnøkler krever en sikker tilkobling (HTTPS). Du kan fortsatt logge inn med passord eller SSO.",
+      "tryAgain": "Prøv passnøkkelen igjen"
+    },
     "title": "Logg inn på kontoen din",
-    "subtitle": "Bli med tusenvis av bedrifter som bruker OneUptime for å holde dem online hele tiden.",
+    "subtitle": "Bruk en passnøkkel, et passord eller organisasjonens SSO.",
     "submitButton": "Logg inn",
     "forgotPassword": "Glemt passord?",
     "useSso": "Bruk enkeltpålogging (SSO) i stedet",
