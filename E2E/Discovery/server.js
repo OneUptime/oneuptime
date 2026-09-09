@@ -6,7 +6,7 @@ const { createConfig } = require("../../Common/UI/esbuild-config.js");
 const esbuild = require("../../Common/node_modules/esbuild");
 const repository = path.resolve(__dirname, "../..");
 const output = path.join(repository, "output/playwright/discovery/fixture");
-const port = Number(process.env.TOPOLOGY_FIXTURE_PORT || 4198);
+const port = 4198;
 const config = createConfig({
   serviceName: "discovery-fixture",
   publicPath: "/dist/",
