@@ -1,7 +1,7 @@
 import BaseAPI from "../../../UI/Utils/API/API";
 import ObjectID from "../../../Types/ObjectID";
 import "@testing-library/jest-dom";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as React from "react";
 import { beforeEach, describe, expect, it } from "@jest/globals";
@@ -206,12 +206,17 @@ describe("Pay as you go consent gate", () => {
     it("shows the pay as you go notice and the consent box in the form", async () => {
       renderIngestionKeyForm();
 
+      const notice: HTMLElement = await screen.findByRole(
+        "region",
+        { name: "Telemetry pricing" },
+        { timeout: WAIT_TIMEOUT },
+      );
+
       expect(
-        await screen.findByText(
-          "Telemetry is a pay as you go feature",
-          {},
-          { timeout: WAIT_TIMEOUT },
-        ),
+        within(notice).getByRole("heading", {
+          name: "Telemetry pricing",
+          level: 3,
+        }),
       ).toBeInTheDocument();
       expect(
         screen.getByTestId("telemetry-pay-as-you-go-consent"),
@@ -300,7 +305,7 @@ describe("Pay as you go consent gate", () => {
       expect(createOrUpdateMock).not.toHaveBeenCalled();
     });
 
-    it("does not send the acknowledgement to the API", async () => {
+    it("does not send the pricing notice or acknowledgement to the API", async () => {
       renderIngestionKeyForm();
 
       await userEvent.type(
@@ -329,12 +334,13 @@ describe("Pay as you go consent gate", () => {
        * The consent is a UI gate, not data. It has no column, so sending it
        * would be an unknown property on the create payload.
        */
-      expect(call?.miscDataProps ?? {}).not.toHaveProperty(
+      for (const fieldKey of [
         TELEMETRY_CONSENT_FIELD_KEY,
-      );
-      expect(JSON.stringify(call?.model ?? {})).not.toContain(
-        TELEMETRY_CONSENT_FIELD_KEY,
-      );
+        "telemetryPayAsYouGoNotice",
+      ]) {
+        expect(call?.miscDataProps ?? {}).not.toHaveProperty(fieldKey);
+        expect(JSON.stringify(call?.model ?? {})).not.toContain(fieldKey);
+      }
     });
   });
 
@@ -359,7 +365,7 @@ describe("Pay as you go consent gate", () => {
         screen.queryByTestId("telemetry-pay-as-you-go-consent"),
       ).not.toBeInTheDocument();
       expect(
-        screen.queryByText("Telemetry is a pay as you go feature"),
+        screen.queryByRole("region", { name: "Telemetry pricing" }),
       ).not.toBeInTheDocument();
 
       await userEvent.click(screen.getByText("Create Ingestion Key"));
@@ -388,6 +394,9 @@ describe("Pay as you go consent gate", () => {
 
       expect(
         screen.queryByTestId("telemetry-pay-as-you-go-consent"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("region", { name: "Telemetry pricing" }),
       ).not.toBeInTheDocument();
 
       await userEvent.click(screen.getByText("Create Ingestion Key"));

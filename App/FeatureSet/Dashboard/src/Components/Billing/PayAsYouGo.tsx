@@ -14,9 +14,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import URL from "Common/Types/API/URL";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
-import AlertBanner, {
-  AlertBannerType,
-} from "Common/UI/Components/AlertBanner/AlertBanner";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import PaidUsageConsent from "./PaidUsageConsent";
@@ -387,25 +384,102 @@ export const MonitorPayAsYouGoCard: FunctionComponent = (): ReactElement => {
  */
 const TelemetryPayAsYouGoModalNotice: FunctionComponent = (): ReactElement => {
   return (
-    <AlertBanner
-      type={AlertBannerType.Info}
-      title="Telemetry is a pay as you go feature"
+    <section
+      aria-label="Telemetry pricing"
+      data-testid="telemetry-pay-as-you-go-notice"
+      className="overflow-hidden rounded-xl border border-gray-200 bg-white"
     >
-      <p className="text-sm text-gray-700">
-        Your project is on the Free plan, which does not bundle any telemetry. A
-        payment method is required before you can create a key or send paid
-        telemetry. Data sent with this ingestion key is billed as you use it.{" "}
-        {TELEMETRY_RATES_SENTENCE}{" "}
-        <Link
-          className="underline"
-          openInNewTab={true}
-          to={URL.fromString(PRICING_PAGE_URL)}
+      <div className="border-b border-gray-100 bg-indigo-50/50 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="text-sm font-semibold text-gray-900">
+            Telemetry pricing
+          </h3>
+          <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+            Pay as you go
+          </span>
+        </div>
+        <p className="mt-1 text-sm leading-6 text-gray-600">
+          Telemetry is not included in your Free plan.
+        </p>
+      </div>
+
+      <div className="divide-y divide-gray-100 px-4">
+        <div
+          role="group"
+          aria-label="Telemetry"
+          className="flex items-start justify-between gap-4 py-3"
         >
-          See pay as you go pricing
-        </Link>
-        .
-      </p>
-    </AlertBanner>
+          <div className="min-w-0">
+            <h4 className="text-sm font-semibold text-gray-900">Telemetry</h4>
+            <p className="mt-1 text-xs leading-5 text-gray-500">
+              Logs, traces, metrics, profiles and security events
+            </p>
+          </div>
+          <p className="flex-shrink-0 text-right">
+            <span className="block text-xl font-semibold tracking-tight text-gray-900">
+              {TELEMETRY_PRICE_PER_GB_TEXT}
+            </span>{" "}
+            <span className="block text-xs leading-5 text-gray-500">
+              per GB ingested
+            </span>
+          </p>
+        </div>
+
+        <div
+          role="group"
+          aria-label="Session replay"
+          className="flex items-start justify-between gap-4 py-3"
+        >
+          <div className="min-w-0">
+            <h4 className="text-sm font-semibold text-gray-900">
+              Session replay
+            </h4>
+            <p className="mt-1 text-xs leading-5 text-gray-500">
+              Session replay recordings
+            </p>
+          </div>
+          <p className="flex-shrink-0 text-right">
+            <span className="block text-xl font-semibold tracking-tight text-gray-900">
+              {SESSION_REPLAY_PRICE_PER_GB_TEXT}
+            </span>{" "}
+            <span className="block text-xs leading-5 text-gray-500">
+              per GB
+            </span>
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-3 border-t border-gray-200 bg-gray-50 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <p className="text-xs leading-5 text-gray-500">
+            {TELEMETRY_PRICE_RETENTION_IN_DAYS} day retention for both.
+          </p>
+          <a
+            href={PRICING_PAGE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-md px-1 py-1 text-xs font-medium text-indigo-700 hover:text-indigo-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+          >
+            View pricing
+            <div aria-hidden="true">
+              <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
+            </div>
+          </a>
+        </div>
+        <div className="flex items-start gap-2 text-xs leading-5 text-gray-600">
+          <div
+            aria-hidden="true"
+            className="mt-0.5 flex-shrink-0 text-gray-400"
+          >
+            <Icon icon={IconProp.Billing} className="h-4 w-4" />
+          </div>
+          <p>
+            Add a payment method before creating a key or sending paid
+            telemetry.
+          </p>
+        </div>
+      </div>
+    </section>
   );
 };
 
