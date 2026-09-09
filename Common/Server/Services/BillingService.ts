@@ -1316,8 +1316,10 @@ export class BillingService extends BaseService {
           throw err;
         }
 
-        // Stripe's network retries do not generally cover rate-limit responses.
-        // Retry only these reads; exhausted failures must still deny paid usage.
+        /*
+         * Stripe's network retries do not generally cover rate-limit responses.
+         * Retry only these reads; exhausted failures must still deny paid usage.
+         */
         const delayInMs: number = Math.round(
           1000 * 2 ** attempt * (1 + Math.random() / 2),
         );
