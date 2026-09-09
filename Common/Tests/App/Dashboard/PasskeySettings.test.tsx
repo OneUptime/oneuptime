@@ -1,3 +1,4 @@
+/* global CredentialCreationOptions */
 import "@testing-library/jest-dom";
 import {
   afterEach,
@@ -14,6 +15,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as React from "react";
@@ -29,28 +31,39 @@ import WebAuthnTestUtil, {
   registrationOptions,
 } from "../../Utils/WebAuthnTestUtil";
 import PasskeySettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/TwoFactorAuth";
+import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
+import UserWebAuthn from "../../../Models/DatabaseModels/UserWebAuthn";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import Permission from "../../../Types/Permission";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
+import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
+
+let mockRenderRealPasskeyTable: boolean = false;
 
 /*
- * Keep the real page and browser/API boundary. Shared list and form components
- * are exercised by their own tests and the real browser E2E suite.
+ * Keep the real page, enrollment modal, input and browser/API boundary. Only
+ * registration cases replace unrelated model lists; management cases use the
+ * real passkey table and edit form to verify the name-only update boundary.
  */
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
     __esModule: true,
-    default: (props: {
-      id: string;
-      refreshToggle: string;
-      cardProps: {
-        title: string;
-        description: string;
-        rightElement?: React.ReactElement;
-      };
-    }): React.ReactElement => {
+    default: (props: ModelTableProps<UserWebAuthn>): React.ReactElement => {
+      if (mockRenderRealPasskeyTable && props.id === "webauthn-table") {
+        const ModelTable: typeof import("../../../UI/Components/ModelTable/ModelTable").default =
+          jest.requireActual<
+            typeof import("../../../UI/Components/ModelTable/ModelTable")
+          >("../../../UI/Components/ModelTable/ModelTable").default;
+        return <ModelTable {...props} />;
+      }
       return (
         <section data-testid={props.id} data-refresh={props.refreshToggle}>
-          <h2>{props.cardProps.title}</h2>
-          <p>{props.cardProps.description}</p>
-          {props.cardProps.rightElement}
+          <h2>{props.cardProps?.title}</h2>
+          <p>{props.cardProps?.description}</p>
+          {props.cardProps?.rightElement}
+          {props.topContent}
+          {props.noItemsMessage}
         </section>
       );
     },
@@ -61,51 +74,6 @@ jest.mock("../../../UI/Components/Page/Page", () => {
     __esModule: true,
     default: (props: { children: React.ReactNode }): React.ReactElement => {
       return <div>{props.children}</div>;
-    },
-  };
-});
-/*
- * Exercise this page's registration state and browser/API boundary. The shared
- * form initializes values in asynchronous effects; its primitive behavior and
- * the production modal are covered by the form suites and browser E2E.
- */
-jest.mock("../../../UI/Components/FormModal/BasicFormModal", () => {
-  return {
-    __esModule: true,
-    default: function MockRegistrationModal(props: {
-      title: string;
-      description?: string;
-      isLoading?: boolean;
-      submitButtonText?: string;
-      formProps: { error?: string; fields: Array<{ dataTestId?: string }> };
-      onSubmit?: (value: JSONObject) => void;
-    }): React.ReactElement {
-      const [name, setName] = React.useState<string>("");
-      return (
-        <div role="dialog">
-          <h2>{props.title}</h2>
-          <p>{props.description}</p>
-          {props.formProps.error && <p>{props.formProps.error}</p>}
-          <form
-            onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
-              event.preventDefault();
-              props.onSubmit?.({ name: name });
-            }}
-          >
-            <input
-              required
-              data-testid={props.formProps.fields[0]?.dataTestId}
-              value={name}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                setName(event.target.value);
-              }}
-            />
-            <button type="submit" disabled={props.isLoading}>
-              {props.submitButtonText}
-            </button>
-          </form>
-        </div>
-      );
     },
   };
 });
@@ -165,6 +133,31 @@ const renderPage: () => void = (): void => {
   );
 };
 
+const click: (element: HTMLElement) => Promise<void> = async (
+  element: HTMLElement,
+): Promise<void> => {
+  await act(async () => {
+    await userEvent.click(element);
+  });
+};
+
+const type: (element: HTMLElement, value: string) => Promise<void> = async (
+  element: HTMLElement,
+  value: string,
+): Promise<void> => {
+  await act(async () => {
+    await userEvent.type(element, value);
+  });
+};
+
+const keyboard: (keys: string) => Promise<void> = async (
+  keys: string,
+): Promise<void> => {
+  await act(async () => {
+    await userEvent.keyboard(keys);
+  });
+};
+
 const enterName: () => Promise<void> = async (): Promise<void> => {
   const input: HTMLElement = await screen.findByTestId("passkey-name");
   await act(async () => {
@@ -176,14 +169,14 @@ const enterName: () => Promise<void> = async (): Promise<void> => {
 const register: (isPasskey?: boolean) => Promise<void> = async (
   isPasskey: boolean = true,
 ): Promise<void> => {
-  await userEvent.click(
+  await click(
     screen.getByRole("button", {
       name: isPasskey ? "Add Passkey" : "Add Security Key",
     }),
   );
   await enterName();
   await act(async () => {
-    await userEvent.click(
+    await click(
       screen.getByRole("button", {
         name: isPasskey ? "Create Passkey" : "Register Security Key",
       }),
@@ -193,6 +186,10 @@ const register: (isPasskey?: boolean) => Promise<void> = async (
 
 describe("Passkey settings registration", () => {
   beforeEach(() => {
+    mockRenderRealPasskeyTable = false;
+    window.localStorage.clear();
+    PermissionGate.clearPermissionPropsCache();
+    TableFilterUrlState.resetClaimedKeys();
     posted = [];
     backupCodes = [];
     WebAuthnTestUtil.install();
@@ -238,13 +235,58 @@ describe("Passkey settings registration", () => {
       screen.getByText("Two factor authentication is disabled"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        /Passkeys work independently of the two factor authentication setting/,
-      ),
+      screen.getByText(/whether two factor authentication is on or off/),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole("heading")[0]).toHaveTextContent(
-      "Passkeys and security keys",
+    expect(screen.getAllByRole("heading")[0]).toHaveTextContent("Passkeys");
+  });
+
+  test("explains first-time setup, password fallback and second-step security keys", () => {
+    renderPage();
+    expect(screen.getByText("Add your first passkey")).toBeVisible();
+    expect(screen.getByText(/choose "Sign in with a passkey"/)).toBeVisible();
+    expect(screen.getByText(/keep your password available/)).toBeVisible();
+    expect(screen.getByText(/save your backup codes below/)).toBeVisible();
+    expect(
+      screen.getByText(/as a second step after your password/),
+    ).toBeVisible();
+  });
+
+  test("labels the name input, associates its hint and supports keyboard submission", async () => {
+    renderPage();
+    await click(screen.getByRole("button", { name: "Add Passkey" }));
+    const dialog: HTMLElement = screen.getByRole("dialog", {
+      name: "Add Passkey",
+    });
+    const input: HTMLElement = within(dialog).getByRole("textbox", {
+      name: "Passkey name",
+    });
+    expect(input).toHaveAccessibleDescription(
+      /Choose a name you will recognize later/,
     );
+    expect(dialog).toHaveAccessibleDescription(
+      /follow your browser's instructions/,
+    );
+    await type(input, "  My phone  ");
+    await keyboard("{Enter}");
+    await waitFor(() => {
+      expect(posted).toHaveLength(2);
+    });
+    expect(posted[1]?.data).toMatchObject({ name: "My phone" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  test("rejects a whitespace-only name before contacting the browser or server", async () => {
+    jest.spyOn(navigator.credentials, "create");
+    renderPage();
+    await click(screen.getByRole("button", { name: "Add Passkey" }));
+    await type(screen.getByTestId("passkey-name"), "   ");
+    await click(screen.getByRole("button", { name: "Create Passkey" }));
+    expect(screen.getByRole("textbox", { name: "Passkey name" })).toBeInvalid();
+    expect(
+      screen.getByText("Enter a name to recognize this key."),
+    ).toBeVisible();
+    expect(posted).toHaveLength(0);
+    expect(navigator.credentials.create).not.toHaveBeenCalled();
   });
 
   test("requests a discoverable passkey, verifies registration and refreshes management", async () => {
@@ -275,6 +317,9 @@ describe("Passkey settings registration", () => {
     expect(
       screen.getByTestId("webauthn-table").getAttribute("data-refresh"),
     ).not.toBe(refreshBefore);
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Passkey added. Use it the next time you sign in.",
+    );
   });
 
   test("preserves separate legacy security key MFA registration", async () => {
@@ -282,6 +327,9 @@ describe("Passkey settings registration", () => {
     await register(false);
     expect(posted[0]?.data).toEqual({ isPasskey: false });
     expect(posted[1]?.data).toMatchObject({ name: "My laptop" });
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Security key added. It is ready to use for two factor authentication.",
+    );
   });
 
   test("passes newly minted recovery codes to their save-once UI", async () => {
@@ -308,6 +356,13 @@ describe("Passkey settings registration", () => {
     expect(
       screen.getByRole("button", { name: "Create Passkey" }),
     ).toBeEnabled();
+    expect(screen.getByTestId("passkey-name")).toHaveValue("My laptop");
+    await click(screen.getByRole("button", { name: "Create Passkey" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    expect(posted).toHaveLength(3);
+    expect(posted[2]?.data).toMatchObject({ name: "My laptop" });
   });
 
   test("explains duplicate authenticators", async () => {
@@ -341,6 +396,7 @@ describe("Passkey settings registration", () => {
     expect(
       screen.getByRole("button", { name: "Create Passkey" }),
     ).toBeEnabled();
+    expect(screen.getByTestId("passkey-name")).toHaveValue("My laptop");
     expect(screen.getByTestId("enrolment-backup-codes")).toBeEmptyDOMElement();
   });
 
@@ -364,7 +420,7 @@ describe("Passkey settings registration", () => {
       );
     });
     renderPage();
-    await userEvent.click(screen.getByRole("button", { name: "Add Passkey" }));
+    await click(screen.getByRole("button", { name: "Add Passkey" }));
     await enterName();
     const submit: HTMLElement = screen.getByRole("button", {
       name: "Create Passkey",
@@ -375,9 +431,202 @@ describe("Passkey settings registration", () => {
       expect(navigator.credentials.create).toHaveBeenCalledTimes(1);
     });
     expect(posted).toHaveLength(1);
+    expect(screen.getByTestId("passkey-name")).toHaveValue("My laptop");
+    expect(screen.getByTestId("passkey-name")).toHaveAttribute("readonly");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Follow the prompt from your browser or device.",
+    );
+    expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
     await act(async () => {
       finish!(WebAuthnTestUtil.credential(true));
     });
     expect(posted).toHaveLength(2);
+  });
+
+  test("does not open the browser after the dialog closes while options are loading", async () => {
+    let finish: ((value: HTTPResponse<JSONObject>) => void) | undefined;
+    jest.spyOn(API, "post").mockImplementationOnce(() => {
+      return new Promise<HTTPResponse<JSONObject>>(
+        (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+          finish = resolve;
+        },
+      );
+    });
+    jest.spyOn(navigator.credentials, "create");
+    renderPage();
+    await register();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Preparing registration",
+    );
+    await click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await act(async () => {
+      finish!(
+        new HTTPResponse<JSONObject>(200, { options: registrationOptions }, {}),
+      );
+    });
+    expect(navigator.credentials.create).not.toHaveBeenCalled();
+    expect(API.post).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  test("aborts a closed prompt and ignores its late result while a new registration is open", async () => {
+    let finishFirst: ((value: Credential | null) => void) | undefined;
+    let finishSecond: ((value: Credential | null) => void) | undefined;
+    let firstSignal: AbortSignal | undefined;
+    jest
+      .spyOn(navigator.credentials, "create")
+      .mockImplementationOnce((options?: CredentialCreationOptions) => {
+        firstSignal = options?.signal;
+        return new Promise<Credential | null>(
+          (resolve: (value: Credential | null) => void) => {
+            finishFirst = resolve;
+          },
+        );
+      })
+      .mockImplementationOnce(() => {
+        return new Promise<Credential | null>(
+          (resolve: (value: Credential | null) => void) => {
+            finishSecond = resolve;
+          },
+        );
+      });
+    renderPage();
+    await register();
+    await keyboard("{Escape}");
+    expect(firstSignal?.aborted).toBe(true);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await register();
+    expect(navigator.credentials.create).toHaveBeenCalledTimes(2);
+    await act(async () => {
+      finishFirst!(WebAuthnTestUtil.credential(true));
+    });
+    expect(posted).toHaveLength(2);
+    expect(screen.getByRole("status")).toHaveTextContent("Follow the prompt");
+    expect(screen.getByTestId("modal-footer-submit-button")).toBeDisabled();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await act(async () => {
+      finishSecond!(WebAuthnTestUtil.credential(true));
+    });
+    expect(posted).toHaveLength(3);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Passkey added");
+  });
+
+  test("keeps verification visible until saving finishes and preserves returned recovery codes", async () => {
+    let finish: ((value: HTTPResponse<JSONObject>) => void) | undefined;
+    jest
+      .spyOn(API, "post")
+      .mockResolvedValueOnce(
+        new HTTPResponse<JSONObject>(200, { options: registrationOptions }, {}),
+      )
+      .mockImplementationOnce(() => {
+        return new Promise<HTTPResponse<JSONObject>>(
+          (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+            finish = resolve;
+          },
+        );
+      });
+    renderPage();
+    await register();
+    expect(screen.getByRole("status")).toHaveTextContent("Saving your key");
+    expect(
+      screen.queryByRole("button", { name: "Cancel" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Close" }),
+    ).not.toBeInTheDocument();
+    await keyboard("{Escape}");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await act(async () => {
+      finish!(
+        new HTTPResponse<JSONObject>(
+          200,
+          { verified: true, backupCodes: ["ABCDE-12345"] },
+          {},
+        ),
+      );
+    });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByTestId("enrolment-backup-codes")).toHaveTextContent(
+      "ABCDE-12345",
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent("Passkey added");
+  });
+
+  test("lets the owner rename a key without updating credential or verification fields", async () => {
+    mockRenderRealPasskeyTable = true;
+    const storedKey: UserWebAuthn = new UserWebAuthn();
+    storedKey._id = "44444444-4444-4444-8444-444444444444";
+    storedKey.name = "Old laptop";
+    storedKey.createdAt = new Date("2026-09-08T12:00:00.000Z");
+    storedKey.isVerified = true;
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue([Permission.CurrentUser]);
+    jest.spyOn(PermissionUtil, "getGlobalPermissions").mockReturnValue({
+      projectIds: [],
+      globalPermissions: [Permission.CurrentUser],
+      _type: "UserGlobalAccessPermission",
+    });
+    jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(null);
+    jest
+      .spyOn(ModelAPI, "getList")
+      .mockResolvedValue({ data: [storedKey], count: 1, skip: 0, limit: 10 });
+    jest.spyOn(ModelAPI, "getItem").mockResolvedValue(storedKey);
+    jest
+      .spyOn(ModelAPI, "createOrUpdate")
+      .mockResolvedValue(new HTTPResponse<UserWebAuthn>(200, storedKey, {}));
+    renderPage();
+    const rename: HTMLElement = await screen.findByRole("button", {
+      name: "Rename",
+    });
+    expect(
+      screen.getByRole("columnheader", { name: /Date added/ }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("columnheader", { name: /Is Verified/ }),
+    ).not.toBeInTheDocument();
+    await click(rename);
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      name: "Edit Passkey or Security Key",
+    });
+    const input: HTMLElement = await within(dialog).findByRole("textbox", {
+      name: "Name",
+    });
+    await waitFor(() => {
+      expect(input).toHaveValue("Old laptop");
+    });
+    expect(within(dialog).getAllByRole("textbox")).toHaveLength(1);
+    fireEvent.change(input, { target: { value: "   " } });
+    await click(within(dialog).getByRole("button", { name: "Save Changes" }));
+    expect(
+      await within(dialog).findByText("Enter a name to recognize this key."),
+    ).toBeVisible();
+    expect(ModelAPI.createOrUpdate).not.toHaveBeenCalled();
+    fireEvent.change(input, { target: { value: "Work laptop" } });
+    await click(within(dialog).getByRole("button", { name: "Save Changes" }));
+    await waitFor(() => {
+      expect(ModelAPI.createOrUpdate).toHaveBeenCalledTimes(1);
+    });
+    expect(ModelAPI.createOrUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelType: UserWebAuthn,
+        model: expect.objectContaining({
+          _id: storedKey._id,
+          name: "Work laptop",
+        }),
+      }),
+    );
+    const savedModel: UserWebAuthn = jest.mocked(ModelAPI.createOrUpdate).mock
+      .calls[0]![0].model as UserWebAuthn;
+    expect(savedModel.credentialId).toBeUndefined();
+    expect(savedModel.publicKey).toBeUndefined();
+    expect(savedModel.counter).toBeUndefined();
+    expect(savedModel.transports).toBeUndefined();
+    expect(savedModel.isVerified).toBeUndefined();
+    expect(savedModel.createdAt).toBeUndefined();
+    expect(API.post).not.toHaveBeenCalled();
   });
 });

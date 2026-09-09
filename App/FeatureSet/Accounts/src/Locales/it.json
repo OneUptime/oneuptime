@@ -33,12 +33,24 @@
   "login": {
     "passkey": {
       "signIn": "Accedi con una passkey",
-      "description": "Usa l’impronta digitale, il volto, il blocco schermo o una chiave di sicurezza.",
+      "description": "Usa l’impronta digitale, il riconoscimento del volto o il PIN del dispositivo.",
       "passwordAlternative": "oppure accedi con una password",
-      "inProgress": "Completa o annulla l’accesso con passkey prima di usare la password."
+      "inProgress": "Completa o annulla l’accesso con passkey prima di usare la password.",
+      "title": "Usa una passkey salvata",
+      "helpTitle": "Non conosci le passkey?",
+      "help": "Accedi con la password o l’SSO, poi apri Profilo utente → Passkey e autenticazione a due fattori per creare la tua prima passkey.",
+      "preparing": "Preparazione della passkey…",
+      "waiting": "Controlla il dispositivo",
+      "waitingDescription": "Segui le indicazioni del browser o del gestore di password.",
+      "verifying": "Accesso in corso…",
+      "cancelled": "L’accesso con passkey è stato annullato. Puoi riprovare o usare la password.",
+      "notCompleted": "L’accesso con passkey è stato annullato o è scaduto. Riprova oppure accedi con la password.",
+      "unsupported": "Le passkey non sono disponibili in questo browser. Puoi comunque accedere con la password o l’SSO.",
+      "insecure": "Le passkey richiedono una connessione sicura (HTTPS). Puoi comunque accedere con la password o l’SSO.",
+      "tryAgain": "Riprova con la passkey"
     },
     "title": "Accedi al tuo account",
-    "subtitle": "Unisciti a migliaia di aziende che usano OneUptime per rimanere sempre online.",
+    "subtitle": "Usa una passkey, una password o l’SSO della tua organizzazione.",
     "submitButton": "Accedi",
     "forgotPassword": "Password dimenticata?",
     "useSso": "Usa invece il Single Sign-On (SSO)",

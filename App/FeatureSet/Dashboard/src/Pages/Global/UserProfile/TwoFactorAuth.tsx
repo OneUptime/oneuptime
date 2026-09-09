@@ -27,6 +27,12 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import User from "Common/Models/DatabaseModels/User";
 import WebAuthn from "Common/UI/Utils/WebAuthn";
 import BackupCodes from "../../../Components/TwoFactorAuth/BackupCodes";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import FieldLabel from "Common/UI/Components/Forms/Fields/FieldLabel";
+import Input from "Common/UI/Components/Input/Input";
+import Modal from "Common/UI/Components/Modal/Modal";
+
+type RegistrationStep = "preparing" | "prompt" | "saving";
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [selectedTotpAuth, setSelectedTotpAuth] =
@@ -46,13 +52,30 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
     React.useState<boolean>(false);
   const [webAuthnRegistrationError, setWebAuthnRegistrationError] =
     React.useState<string | null>(null);
-  const [webAuthnRegistrationLoading, setWebAuthnRegistrationLoading] =
-    React.useState<boolean>(false);
+  const [webAuthnRegistrationStep, setWebAuthnRegistrationStep] =
+    React.useState<RegistrationStep | null>(null);
+  const [webAuthnRegistrationName, setWebAuthnRegistrationName] =
+    React.useState<string>("");
+  const [webAuthnRegistrationNameError, setWebAuthnRegistrationNameError] =
+    React.useState<string | undefined>(undefined);
+  const [webAuthnRegistrationSuccess, setWebAuthnRegistrationSuccess] =
+    React.useState<string | null>(null);
 
   const [isRegisteringPasskey, setIsRegisteringPasskey] =
     React.useState<boolean>(true);
   const registrationInProgress: React.MutableRefObject<boolean> =
     React.useRef<boolean>(false);
+  const registrationSaving: React.MutableRefObject<boolean> =
+    React.useRef<boolean>(false);
+  const registrationController: React.MutableRefObject<AbortController | null> =
+    React.useRef<AbortController | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      registrationController.current?.abort();
+      registrationController.current = null;
+    };
+  }, []);
 
   /*
    * Recovery codes the server minted for this account while the user was
@@ -88,6 +111,121 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
     }
   };
 
+  const openRegistration: (isPasskey: boolean) => void = (
+    isPasskey: boolean,
+  ): void => {
+    setIsRegisteringPasskey(isPasskey);
+    setWebAuthnRegistrationName("");
+    setWebAuthnRegistrationNameError(undefined);
+    setWebAuthnRegistrationError(null);
+    setWebAuthnRegistrationSuccess(null);
+    setShowWebAuthnRegistrationModal(true);
+  };
+
+  const closeRegistration: () => void = (): void => {
+    // Once verification starts, the server may already have saved the key.
+    if (registrationSaving.current) {
+      return;
+    }
+    registrationController.current?.abort();
+    registrationController.current = null;
+    registrationInProgress.current = false;
+    setShowWebAuthnRegistrationModal(false);
+    setWebAuthnRegistrationStep(null);
+    setWebAuthnRegistrationError(null);
+  };
+
+  const registerWebAuthn: () => Promise<void> = async (): Promise<void> => {
+    if (registrationInProgress.current) {
+      return;
+    }
+
+    const name: string = webAuthnRegistrationName.trim();
+    if (!name) {
+      setWebAuthnRegistrationNameError("Enter a name to recognize this key.");
+      return;
+    }
+
+    const controller: AbortController = new AbortController();
+    registrationController.current = controller;
+    registrationInProgress.current = true;
+    setWebAuthnRegistrationName(name);
+    setWebAuthnRegistrationNameError(undefined);
+    setWebAuthnRegistrationError(null);
+    setWebAuthnRegistrationStep("preparing");
+
+    try {
+      WebAuthn.ensureSupported();
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/user-webauthn/generate-registration-options`,
+          ),
+          data: { isPasskey: isRegisteringPasskey },
+          options: { signal: controller.signal },
+        });
+
+      if (controller.signal.aborted) {
+        return;
+      }
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      setWebAuthnRegistrationStep("prompt");
+      const credential: JSONObject = await WebAuthn.register(
+        response.data["options"] as JSONObject,
+        controller.signal,
+      );
+
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      registrationSaving.current = true;
+      setWebAuthnRegistrationStep("saving");
+      const verifyResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post<JSONObject>({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/user-webauthn/verify-registration`,
+          ),
+          data: { name: name, credential: credential },
+        });
+
+      if (controller.signal.aborted) {
+        return;
+      }
+      if (verifyResponse instanceof HTTPErrorResponse) {
+        throw verifyResponse;
+      }
+
+      /* The only plaintext copy -- see the recovery-code note above. */
+      readBackupCodesFromResponse(verifyResponse);
+      setShowWebAuthnRegistrationModal(false);
+      setWebAuthnRegistrationSuccess(
+        isRegisteringPasskey
+          ? "Passkey added. Use it the next time you sign in."
+          : "Security key added. It is ready to use for two factor authentication.",
+      );
+      setTableRefreshToggle((previous: string) => {
+        return String(Number(previous) + 1);
+      });
+    } catch (err) {
+      if (!controller.signal.aborted) {
+        setWebAuthnRegistrationError(
+          WebAuthn.getErrorMessage(err, "registration"),
+        );
+      }
+    } finally {
+      if (registrationController.current === controller) {
+        registrationController.current = null;
+        registrationInProgress.current = false;
+        registrationSaving.current = false;
+        setWebAuthnRegistrationStep(null);
+      }
+    }
+  };
+
   return (
     <Page
       title={"User Profile"}
@@ -112,6 +250,14 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
       sideMenu={<SideMenu />}
     >
       <div>
+        {webAuthnRegistrationSuccess && (
+          <Alert
+            type={AlertType.SUCCESS}
+            title={webAuthnRegistrationSuccess}
+            className="mb-5"
+            dataTestId="passkey-registration-success"
+          />
+        )}
         <div>
           <ModelTable<UserWebAuthn>
             modelType={UserWebAuthn}
@@ -124,47 +270,63 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             query={{
               userId: UserUtil.getUserId(),
             }}
-            isEditable={false}
+            isEditable={true}
+            editButtonText="Rename"
             showRefreshButton={true}
             isCreateable={false}
             isViewable={false}
             cardProps={{
-              title: "Passkeys and security keys",
+              title: "Passkeys",
               description:
-                "Sign in without a password using a passkey saved on your device, password manager, or security key. Passkeys work independently of the two factor authentication setting below.",
+                "Use your fingerprint, face, screen lock, or security key to sign in.",
               rightElement: (
-                <div className="flex flex-wrap justify-end gap-2 mb-4">
-                  <Button
-                    title="Add Passkey"
-                    dataTestId="add-passkey"
-                    buttonStyle={ButtonStyleType.PRIMARY}
-                    icon={IconProp.Add}
-                    onClick={() => {
-                      setIsRegisteringPasskey(true);
-                      setWebAuthnRegistrationLoading(false);
-                      setWebAuthnRegistrationError(null);
-                      setShowWebAuthnRegistrationModal(true);
-                    }}
-                  />
-                  <Button
-                    title="Add Security Key"
-                    buttonStyle={ButtonStyleType.NORMAL}
-                    icon={IconProp.Add}
-                    onClick={() => {
-                      setIsRegisteringPasskey(false);
-                      setWebAuthnRegistrationLoading(false);
-                      setWebAuthnRegistrationError(null);
-                      return setShowWebAuthnRegistrationModal(true);
-                    }}
-                  />
-                </div>
+                <Button
+                  title="Add Passkey"
+                  dataTestId="add-passkey"
+                  buttonStyle={ButtonStyleType.PRIMARY}
+                  icon={IconProp.Add}
+                  style={{ marginLeft: 0 }}
+                  onClick={() => {
+                    openRegistration(true);
+                  }}
+                />
               ),
             }}
+            topContent={
+              <p className="mt-3 mb-4 text-sm text-gray-600">
+                Passkeys let you sign in without a password, whether two factor
+                authentication is on or off. Existing security keys are also
+                listed here.
+              </p>
+            }
             noItemsMessage={
-              "No passkeys or security keys yet. Add a passkey to sign in without a password."
+              <div className="py-6 text-center">
+                <p className="font-medium text-gray-900">
+                  Add your first passkey
+                </p>
+                <p className="mx-auto mt-2 max-w-md text-sm text-gray-500">
+                  Save it on your device, in a password manager, or on a
+                  security key. Next time, choose &quot;Sign in with a
+                  passkey&quot; on the login screen.
+                </p>
+              </div>
             }
             singularName="Passkey or Security Key"
             pluralName="Passkeys and Security Keys"
+            formFields={[
+              {
+                field: { name: true },
+                title: "Name",
+                description: "Choose a name that helps you recognize this key.",
+                fieldType: FormFieldSchemaType.Text,
+                required: true,
+                customValidation: (values: FormValues<UserWebAuthn>) => {
+                  return String(values.name || "").trim()
+                    ? null
+                    : "Enter a name to recognize this key.";
+                },
+              },
+            ]}
             columns={[
               {
                 field: {
@@ -175,13 +337,43 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               {
                 field: {
-                  isVerified: true,
+                  createdAt: true,
                 },
-                title: "Is Verified?",
-                type: FieldType.Boolean,
+                title: "Date added",
+                type: FieldType.DateTime,
               },
             ]}
           />
+        </div>
+
+        <div className="mb-5 rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 md:px-6">
+          <h3 className="text-sm font-medium text-gray-900">
+            Keep another way to sign in
+          </h3>
+          <p className="mt-1 text-sm leading-6 text-gray-600">
+            Add a passkey on another device or keep your password available in
+            case you lose access to a passkey. If you use two factor
+            authentication, save your backup codes below before you need them.
+          </p>
+          <div className="mt-4 border-t border-gray-200 pt-4">
+            <h3 className="text-sm font-medium text-gray-900">
+              Security keys for two factor authentication
+            </h3>
+            <p className="mt-1 text-sm leading-6 text-gray-600">
+              Use a security key as a second step after your password. To sign
+              in without a password using a compatible security key, choose Add
+              Passkey.
+            </p>
+            <Button
+              title="Add Security Key"
+              buttonStyle={ButtonStyleType.SECONDARY_LINK}
+              style={{ marginLeft: 0 }}
+              className="mt-2"
+              onClick={() => {
+                openRegistration(false);
+              }}
+            />
+          </div>
         </div>
 
         <ModelTable<UserTotpAuth>
@@ -371,107 +563,77 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
           <></>
         )}
 
-        {showWebAuthnRegistrationModal ? (
-          <BasicFormModal
+        {showWebAuthnRegistrationModal && (
+          <Modal
             title={isRegisteringPasskey ? "Add Passkey" : "Add Security Key"}
             description={
               isRegisteringPasskey
-                ? "Create a passkey to sign in with your fingerprint, face, screen lock, or security key. Your password remains available."
-                : "Register a security key to use after your password for two factor authentication."
+                ? "Name your passkey, then follow your browser's instructions to save it."
+                : "Name your security key, then follow your browser's instructions to register it."
             }
-            formProps={{
-              error: webAuthnRegistrationError || undefined,
-              fields: [
-                {
-                  field: {
-                    name: true,
-                  },
-                  title: "Name",
-                  description: isRegisteringPasskey
-                    ? "Give your passkey a name (e.g., iCloud Keychain, Windows Hello)"
-                    : "Give your security key a name (e.g., YubiKey, Titan Key)",
-                  dataTestId: "passkey-name",
-                  fieldType: FormFieldSchemaType.Text,
-                  required: true,
-                },
-              ],
-            }}
             submitButtonText={
               isRegisteringPasskey ? "Create Passkey" : "Register Security Key"
             }
-            onClose={() => {
-              if (registrationInProgress.current) {
-                return;
-              }
-              setShowWebAuthnRegistrationModal(false);
-              setWebAuthnRegistrationError(null);
-              setWebAuthnRegistrationLoading(false);
-            }}
-            isLoading={webAuthnRegistrationLoading}
-            onSubmit={async (values: JSONObject) => {
-              if (registrationInProgress.current) {
-                return;
-              }
-              registrationInProgress.current = true;
-              try {
-                setWebAuthnRegistrationLoading(true);
-                setWebAuthnRegistrationError("");
-
-                WebAuthn.ensureSupported();
-                const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-                  await API.post({
-                    url: URL.fromString(APP_API_URL.toString()).addRoute(
-                      `/user-webauthn/generate-registration-options`,
-                    ),
-                    data: { isPasskey: isRegisteringPasskey },
-                  });
-
-                if (response instanceof HTTPErrorResponse) {
-                  throw response;
+            onClose={
+              webAuthnRegistrationStep === "saving"
+                ? undefined
+                : closeRegistration
+            }
+            isLoading={webAuthnRegistrationStep !== null}
+            disableSubmitButton={webAuthnRegistrationStep !== null}
+            onSubmit={registerWebAuthn}
+          >
+            <div>
+              <FieldLabel
+                title={
+                  isRegisteringPasskey ? "Passkey name" : "Security key name"
                 }
-
-                const credential: JSONObject = await WebAuthn.register(
-                  response.data["options"] as JSONObject,
-                );
-
-                // Verify registration
-                const verifyResponse:
-                  | HTTPResponse<JSONObject>
-                  | HTTPErrorResponse = await API.post<JSONObject>({
-                  url: URL.fromString(APP_API_URL.toString()).addRoute(
-                    `/user-webauthn/verify-registration`,
-                  ),
-                  data: {
-                    name: values["name"],
-                    credential: credential,
-                  },
-                });
-
-                if (verifyResponse instanceof HTTPErrorResponse) {
-                  throw verifyResponse;
+                htmlFor="passkey-registration-name"
+                required={true}
+              />
+              <Input
+                id="passkey-registration-name"
+                dataTestId="passkey-name"
+                placeholder={
+                  isRegisteringPasskey ? "My laptop" : "My security key"
                 }
-
-                /* The only copy -- see the note on the TOTP branch above. */
-                readBackupCodesFromResponse(verifyResponse);
-
-                setShowWebAuthnRegistrationModal(false);
-                setWebAuthnRegistrationError(null);
-                setTableRefreshToggle((previous: string) => {
-                  return String(Number(previous) + 1);
-                });
-                setWebAuthnRegistrationLoading(false);
-              } catch (err) {
-                setWebAuthnRegistrationError(
-                  WebAuthn.getErrorMessage(err, "registration"),
-                );
-              } finally {
-                registrationInProgress.current = false;
-                setWebAuthnRegistrationLoading(false);
-              }
-            }}
-          />
-        ) : (
-          <></>
+                value={webAuthnRegistrationName}
+                onChange={(value: string) => {
+                  setWebAuthnRegistrationName(value);
+                  setWebAuthnRegistrationNameError(undefined);
+                }}
+                onEnterPress={registerWebAuthn}
+                disabled={webAuthnRegistrationStep !== null}
+                error={webAuthnRegistrationNameError}
+                ariaDescribedby="passkey-name-hint"
+                autoComplete="off"
+              />
+              <p id="passkey-name-hint" className="mt-2 text-sm text-gray-500">
+                Choose a name you will recognize later, such as your device or
+                password manager.
+              </p>
+              {webAuthnRegistrationError && (
+                <Alert
+                  title={webAuthnRegistrationError}
+                  type={AlertType.DANGER}
+                  className="mt-4"
+                />
+              )}
+              {webAuthnRegistrationStep && (
+                <p
+                  role="status"
+                  aria-live="polite"
+                  className="mt-4 rounded-md bg-indigo-50 p-3 text-sm text-indigo-800"
+                >
+                  {webAuthnRegistrationStep === "preparing"
+                    ? "Preparing registration…"
+                    : webAuthnRegistrationStep === "prompt"
+                      ? "Follow the prompt from your browser or device. You can cancel and try again."
+                      : "Saving your key. Keep this window open for a moment…"}
+                </p>
+              )}
+            </div>
+          </Modal>
         )}
       </div>
       <CardModelDetail<User>

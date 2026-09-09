@@ -33,12 +33,24 @@
   "login": {
     "passkey": {
       "signIn": "使用通行密钥登录",
-      "description": "使用指纹、面容、屏幕锁定或安全密钥。",
+      "description": "使用指纹、面容或设备 PIN 码。",
       "passwordAlternative": "或使用密码登录",
-      "inProgress": "使用密码前，请完成或取消通行密钥登录。"
+      "inProgress": "使用密码前，请完成或取消通行密钥登录。",
+      "title": "使用已保存的通行密钥",
+      "helpTitle": "初次使用通行密钥？",
+      "help": "先使用密码或 SSO 登录，然后打开用户资料 → 通行密钥和双重身份验证，创建您的第一个通行密钥。",
+      "preparing": "正在准备通行密钥…",
+      "waiting": "请查看您的设备",
+      "waitingDescription": "按照浏览器或密码管理器的提示操作。",
+      "verifying": "正在登录…",
+      "cancelled": "已取消通行密钥登录。您可以重试或使用密码。",
+      "notCompleted": "通行密钥登录已取消或超时。请重试或使用密码登录。",
+      "unsupported": "此浏览器不支持通行密钥。您仍可使用密码或 SSO 登录。",
+      "insecure": "通行密钥需要安全连接（HTTPS）。您仍可使用密码或 SSO 登录。",
+      "tryAgain": "重试通行密钥"
     },
     "title": "登录您的账户",
-    "subtitle": "加入数千家使用 OneUptime 保持随时在线的企业。",
+    "subtitle": "使用通行密钥、密码或组织的单点登录（SSO）。",
     "submitButton": "登录",
     "forgotPassword": "忘记密码？",
     "useSso": "改用单点登录（SSO）",

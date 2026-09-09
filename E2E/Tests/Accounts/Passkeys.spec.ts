@@ -339,6 +339,41 @@ test.describe("Passkey account lifecycle", () => {
       ),
     ).toBeVisible();
     await expectSignedOut();
+    await expect(
+      page.getByText("Email is required.", { exact: true }),
+    ).toHaveCount(0);
+
+    /*
+     * The in-page Cancel action must abort a real pending browser ceremony,
+     * restore password sign-in, and permit a fresh attempt with the same key.
+     */
+    await client.send("WebAuthn.setAutomaticPresenceSimulation", {
+      authenticatorId,
+      enabled: false,
+    });
+    try {
+      await page.getByTestId("passkey-login").click();
+      await expect(
+        page.getByRole("button", { name: "Check your device", exact: true }),
+      ).toBeVisible();
+      await page.getByTestId("cancel-passkey-login").click();
+      await expect(
+        page.getByText(
+          "Passkey sign-in canceled. You can try again or use your password.",
+          { exact: true },
+        ),
+      ).toBeVisible();
+      await expect(page.locator('input[type="password"]')).toBeEnabled();
+      await expect(
+        page.getByText("Email is required.", { exact: true }),
+      ).toHaveCount(0);
+      await expectSignedOut();
+    } finally {
+      await client.send("WebAuthn.setAutomaticPresenceSimulation", {
+        authenticatorId,
+        enabled: true,
+      });
+    }
     await signInWithPasskey();
   });
 

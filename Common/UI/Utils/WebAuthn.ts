@@ -62,11 +62,27 @@ export default class WebAuthn {
     }
   }
 
-  public static async authenticate(options: JSONObject): Promise<JSONObject> {
+  public static isSupported(): boolean {
+    try {
+      WebAuthn.ensureSupported();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  public static async authenticate(
+    options: JSONObject,
+    signal?: AbortSignal,
+  ): Promise<JSONObject> {
     WebAuthn.ensureSupported();
+    if (signal?.aborted) {
+      throw new DOMException("Passkey request canceled.", "AbortError");
+    }
     const json: RequestOptionsJSON = options as unknown as RequestOptionsJSON;
     const credential: PublicKeyCredential | null =
       (await navigator.credentials.get({
+        ...(signal ? { signal: signal } : {}),
         publicKey: {
           ...json,
           challenge: WebAuthn.decode(json.challenge),
@@ -83,6 +99,10 @@ export default class WebAuthn {
             : {}),
         } as PublicKeyCredentialRequestOptions,
       })) as PublicKeyCredential | null;
+
+    if (signal?.aborted) {
+      throw new DOMException("Passkey request canceled.", "AbortError");
+    }
 
     if (!credential) {
       throw new DOMException("No credential was selected.", "NotAllowedError");
@@ -111,11 +131,18 @@ export default class WebAuthn {
     };
   }
 
-  public static async register(options: JSONObject): Promise<JSONObject> {
+  public static async register(
+    options: JSONObject,
+    signal?: AbortSignal,
+  ): Promise<JSONObject> {
     WebAuthn.ensureSupported();
+    if (signal?.aborted) {
+      throw new DOMException("Passkey request canceled.", "AbortError");
+    }
     const json: CreationOptionsJSON = options as unknown as CreationOptionsJSON;
     const credential: PublicKeyCredential | null =
       (await navigator.credentials.create({
+        ...(signal ? { signal: signal } : {}),
         publicKey: {
           ...json,
           challenge: WebAuthn.decode(json.challenge),
@@ -133,6 +160,10 @@ export default class WebAuthn {
             : {}),
         } as PublicKeyCredentialCreationOptions,
       })) as PublicKeyCredential | null;
+
+    if (signal?.aborted) {
+      throw new DOMException("Passkey request canceled.", "AbortError");
+    }
 
     if (!credential) {
       throw new DOMException("No credential was created.", "NotAllowedError");

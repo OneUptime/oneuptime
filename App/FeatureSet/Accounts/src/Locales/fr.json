@@ -33,12 +33,24 @@
   "login": {
     "passkey": {
       "signIn": "Se connecter avec une clé d’accès",
-      "description": "Utilisez votre empreinte digitale, votre visage, le verrouillage de l’écran ou une clé de sécurité.",
+      "description": "Utilisez votre empreinte digitale, votre visage ou le code PIN de votre appareil.",
       "passwordAlternative": "ou se connecter avec un mot de passe",
-      "inProgress": "Terminez ou annulez la connexion par clé d’accès avant d’utiliser votre mot de passe."
+      "inProgress": "Terminez ou annulez la connexion par clé d’accès avant d’utiliser votre mot de passe.",
+      "title": "Utiliser une clé d’accès enregistrée",
+      "helpTitle": "Vous découvrez les clés d’accès ?",
+      "help": "Connectez-vous avec votre mot de passe ou le SSO, puis ouvrez Profil utilisateur → Clés d’accès et authentification à deux facteurs pour créer votre première clé d’accès.",
+      "preparing": "Préparation de votre clé d’accès…",
+      "waiting": "Consultez votre appareil",
+      "waitingDescription": "Suivez les instructions de votre navigateur ou gestionnaire de mots de passe.",
+      "verifying": "Connexion en cours…",
+      "cancelled": "La connexion par clé d’accès a été annulée. Réessayez ou utilisez votre mot de passe.",
+      "notCompleted": "La connexion par clé d’accès a été annulée ou a expiré. Réessayez ou connectez-vous avec votre mot de passe.",
+      "unsupported": "Les clés d’accès ne sont pas disponibles dans ce navigateur. Vous pouvez toujours vous connecter avec votre mot de passe ou le SSO.",
+      "insecure": "Les clés d’accès nécessitent une connexion sécurisée (HTTPS). Vous pouvez toujours vous connecter avec votre mot de passe ou le SSO.",
+      "tryAgain": "Réessayer avec une clé d’accès"
     },
     "title": "Connectez-vous à votre compte",
-    "subtitle": "Rejoignez des milliers d'entreprises qui utilisent OneUptime pour rester en ligne en permanence.",
+    "subtitle": "Utilisez une clé d’accès, un mot de passe ou le SSO de votre organisation.",
     "submitButton": "Connexion",
     "forgotPassword": "Mot de passe oublié ?",
     "useSso": "Utiliser plutôt l'authentification unique (SSO)",

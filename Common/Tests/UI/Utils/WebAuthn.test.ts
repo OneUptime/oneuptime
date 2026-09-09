@@ -150,15 +150,81 @@ describe("WebAuthn browser boundary", () => {
   });
 
   test("reports unsupported browsers and insecure origins before invoking an authenticator", () => {
+    expect(WebAuthn.isSupported()).toBe(true);
     Object.defineProperty(window, "PublicKeyCredential", { value: undefined });
+    expect(WebAuthn.isSupported()).toBe(false);
     expect(() => {
       WebAuthn.ensureSupported();
     }).toThrow("This browser does not support passkeys");
     Object.defineProperty(window, "isSecureContext", { value: false });
+    expect(WebAuthn.isSupported()).toBe(false);
     expect(() => {
       WebAuthn.ensureSupported();
     }).toThrow("Passkeys require a secure connection");
   });
+
+  test.each(["sign-in", "registration"])(
+    "passes cancellation to the browser for %s",
+    async (operation: string) => {
+      const controller: AbortController = new AbortController();
+      const get: SpyInstance<typeof navigator.credentials.get> = jest.spyOn(
+        navigator.credentials,
+        "get",
+      );
+      const create: SpyInstance<typeof navigator.credentials.create> =
+        jest.spyOn(navigator.credentials, "create");
+      if (operation === "sign-in") {
+        await WebAuthn.authenticate(authenticationOptions, controller.signal);
+        expect(get.mock.calls[0]![0]!.signal).toBe(controller.signal);
+      } else {
+        await WebAuthn.register(registrationOptions, controller.signal);
+        expect(create.mock.calls[0]![0]!.signal).toBe(controller.signal);
+      }
+    },
+  );
+
+  test.each(["sign-in", "registration"])(
+    "does not open an already canceled %s prompt",
+    async (operation: string) => {
+      const controller: AbortController = new AbortController();
+      controller.abort();
+      const get: SpyInstance<typeof navigator.credentials.get> = jest.spyOn(
+        navigator.credentials,
+        "get",
+      );
+      const create: SpyInstance<typeof navigator.credentials.create> =
+        jest.spyOn(navigator.credentials, "create");
+      await expect(
+        operation === "sign-in"
+          ? WebAuthn.authenticate(authenticationOptions, controller.signal)
+          : WebAuthn.register(registrationOptions, controller.signal),
+      ).rejects.toMatchObject({ name: "AbortError" });
+      expect(get).not.toHaveBeenCalled();
+      expect(create).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(["sign-in", "registration"])(
+    "discards a late %s credential after cancellation",
+    async (operation: string) => {
+      const controller: AbortController = new AbortController();
+      jest.spyOn(navigator.credentials, "get").mockImplementation(async () => {
+        controller.abort();
+        return WebAuthnTestUtil.credential();
+      });
+      jest
+        .spyOn(navigator.credentials, "create")
+        .mockImplementation(async () => {
+          controller.abort();
+          return WebAuthnTestUtil.credential(true);
+        });
+      await expect(
+        operation === "sign-in"
+          ? WebAuthn.authenticate(authenticationOptions, controller.signal)
+          : WebAuthn.register(registrationOptions, controller.signal),
+      ).rejects.toMatchObject({ name: "AbortError" });
+    },
+  );
 
   test.each(["NotAllowedError", "AbortError"])(
     "explains %s with a retry and password fallback",

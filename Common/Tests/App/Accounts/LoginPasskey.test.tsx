@@ -197,12 +197,173 @@ describe("Passwordless passkey login", () => {
   test("reports an unsupported browser without making a challenge request", async () => {
     Object.defineProperty(window, "PublicKeyCredential", { value: undefined });
     renderPage();
-    await clickPasskey();
+    expect(screen.getByTestId("passkey-login")).toBeDisabled();
     expect(
-      screen.getByText(/This browser does not support passkeys/),
+      screen.getByText(/Passkeys aren’t available in this browser/),
     ).toBeInTheDocument();
     expect(posted).toHaveLength(0);
+    expect(await screen.findByTestId("password")).toBeEnabled();
+  });
+
+  test("explains setup without hiding the password or SSO choices", async () => {
+    renderPage();
+    expect(await screen.findByTestId("email")).not.toHaveFocus();
+    await act(async () => {
+      await userEvent.click(screen.getByText("New to passkeys?"));
+    });
+    expect(
+      screen.getByText(/then open User Profile/).closest("details"),
+    ).toHaveAttribute("open");
+    expect(screen.getByTestId("email")).toBeEnabled();
+    expect(screen.getByText("Use single sign-on (SSO) instead")).toBeVisible();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(posted).toHaveLength(0);
+  });
+
+  test("explains HTTPS requirements before an unsupported attempt", async () => {
+    Object.defineProperty(window, "isSecureContext", { value: false });
+    renderPage();
+    expect(screen.getByTestId("passkey-login")).toBeDisabled();
+    expect(screen.getByText(/Passkeys need a secure connection/)).toBeVisible();
+    expect(await screen.findByTestId("password")).toBeEnabled();
+    expect(posted).toHaveLength(0);
+  });
+
+  test("canceling the browser prompt restores focus and discards a late credential", async () => {
+    let finish: ((value: Credential | null) => void) | undefined;
+    const get: SpyInstance<typeof navigator.credentials.get> = jest
+      .spyOn(navigator.credentials, "get")
+      .mockImplementationOnce(() => {
+        return new Promise<Credential | null>(
+          (resolve: (value: Credential | null) => void) => {
+            finish = resolve;
+          },
+        );
+      });
+    renderPage();
+    await clickPasskey();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Follow the prompt from your browser or password manager.",
+    );
+    await act(async () => {
+      await userEvent.click(screen.getByTestId("cancel-passkey-login"));
+    });
+    expect(get.mock.calls[0]![0]!.signal!.aborted).toBe(true);
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Passkey sign-in canceled.",
+    );
     expect(screen.getByTestId("password")).toBeEnabled();
+    expect(screen.getByTestId("passkey-login")).toHaveFocus();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await clickPasskey();
+    expect(LoginUtil.login).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      finish!(WebAuthnTestUtil.credential());
+    });
+    expect(LoginUtil.login).toHaveBeenCalledTimes(1);
+    expect(posted).toHaveLength(3);
+  });
+
+  test("canceling preparation aborts the request and cannot overwrite a newer attempt", async () => {
+    let finish: ((value: HTTPResponse<JSONObject>) => void) | undefined;
+    jest.spyOn(API, "post").mockImplementationOnce(() => {
+      return new Promise<HTTPResponse<JSONObject>>(
+        (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+          finish = resolve;
+        },
+      );
+    });
+    const get: SpyInstance<typeof navigator.credentials.get> = jest.spyOn(
+      navigator.credentials,
+      "get",
+    );
+    renderPage();
+    await clickPasskey();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Getting your passkey ready",
+    );
+    await act(async () => {
+      await userEvent.click(screen.getByTestId("cancel-passkey-login"));
+    });
+    expect(
+      jest.mocked(API.post).mock.calls[0]![0].options!.signal!.aborted,
+    ).toBe(true);
+    await clickPasskey();
+    expect(LoginUtil.login).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      finish!(
+        new HTTPResponse<JSONObject>(
+          200,
+          { options: authenticationOptions },
+          {},
+        ),
+      );
+    });
+    expect(get).toHaveBeenCalledTimes(1);
+    expect(LoginUtil.login).toHaveBeenCalledTimes(1);
+  });
+
+  test("keeps sign-in locked while the server completes verification", async () => {
+    let finish: ((value: HTTPResponse<JSONObject>) => void) | undefined;
+    jest
+      .spyOn(API, "post")
+      .mockResolvedValueOnce(
+        new HTTPResponse<JSONObject>(
+          200,
+          { options: authenticationOptions },
+          {},
+        ),
+      )
+      .mockImplementationOnce(() => {
+        return new Promise<HTTPResponse<JSONObject>>(
+          (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+            finish = resolve;
+          },
+        );
+      });
+    renderPage();
+    await clickPasskey();
+    expect(screen.getByRole("status")).toHaveTextContent("Signing you in");
+    expect(
+      screen.queryByTestId("cancel-passkey-login"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("password")).toBeDisabled();
+    await act(async () => {
+      finish!(
+        new HTTPResponse<JSONObject>(
+          200,
+          { ...USER_JSON, _miscData: { token: "session" } },
+          {},
+        ),
+      );
+    });
+    expect(LoginUtil.login).toHaveBeenCalledTimes(1);
+  });
+
+  test("aborts an open prompt when leaving the page and ignores its result", async () => {
+    let finish: ((value: Credential | null) => void) | undefined;
+    const get: SpyInstance<typeof navigator.credentials.get> = jest
+      .spyOn(navigator.credentials, "get")
+      .mockImplementationOnce(() => {
+        return new Promise<Credential | null>(
+          (resolve: (value: Credential | null) => void) => {
+            finish = resolve;
+          },
+        );
+      });
+    const view: ReturnType<typeof render> = render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    );
+    await clickPasskey();
+    view.unmount();
+    expect(get.mock.calls[0]![0]!.signal!.aborted).toBe(true);
+    await act(async () => {
+      finish!(WebAuthnTestUtil.credential());
+    });
+    expect(LoginUtil.login).not.toHaveBeenCalled();
+    expect(posted).toHaveLength(1);
   });
 
   test("shows expired/rejected credentials without creating a local login", async () => {
