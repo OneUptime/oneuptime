@@ -414,8 +414,19 @@ export class Service extends DatabaseService<Model> {
       /*
        * Check even on key-cache hits. Billing eligibility has its own bounded
        * cache, and must not remain enabled for the lifetime of a live key.
+       *
+       * This runs for every ingested batch, so it is the one caller that may
+       * answer from a recently cached denial rather than re-reading the
+       * payment provider. Without that, an unpaid project ingesting telemetry
+       * turns every batch into provider reads and holds the whole Stripe
+       * account at its rate limit. The client retries, so a few seconds
+       * between adding a card and ingest being admitted costs nothing - and
+       * BillingPaymentMethodService clears the entry as soon as the card is
+       * read, which is what the billing page does right after one is added.
        */
-      await PayAsYouGoBillingService.requirePayAsYouGo(policy.projectId);
+      await PayAsYouGoBillingService.requirePayAsYouGo(policy.projectId, {
+        allowStaleDenial: true,
+      });
     }
 
     return policy;

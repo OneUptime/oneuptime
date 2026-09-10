@@ -9,6 +9,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "../../Models/DatabaseModels/BillingPaymentMethod";
 import Project from "../../Models/DatabaseModels/Project";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import PayAsYouGoBillingService from "./PayAsYouGoBillingService";
 import Dictionary from "../../Types/Dictionary";
 import ObjectID from "../../Types/ObjectID";
 
@@ -94,6 +95,16 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
+    /*
+     * We have just read the authoritative list of payment methods for this
+     * project, so any cached authorization decision is now stale by
+     * definition. Clearing it here is what makes the admission path's denial
+     * cache safe: the billing page reads this table immediately after a card
+     * is added, so ingest stops being denied on the very next batch instead of
+     * at the end of the denial TTL.
+     */
+    PayAsYouGoBillingService.invalidate(data.projectId);
+
     return paymentMethods;
   }
 
@@ -166,6 +177,13 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    /*
+     * No authorization invalidation here on purpose: BillingService
+     * .deletePaymentMethod refuses to detach the last remaining method, so a
+     * successful delete always leaves the project with at least one card and
+     * its authorization unchanged. Clearing the cache would only force a
+     * needless provider read.
+     */
     return { deleteBy, carryForward: null };
   }
 }

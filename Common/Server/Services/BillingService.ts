@@ -87,6 +87,11 @@ const PAYMENT_READ_MAX_RETRY_DELAY_IN_MS: number = 8000;
  * 500 {"error":"Server Error"}. That is a user-visible failure of the billing
  * page on a single upstream hiccup. The SDK's own retry generates an
  * idempotency key per attempt, so it is safe for writes as well as reads.
+ *
+ * It does NOT cover a plain 429: stripe-node's _shouldRetry
+ * (node_modules/stripe/lib/StripeResource.js) retries connection-closed codes,
+ * 409 and >=500 only. Rate limits are handled by readPaymentProvider's own
+ * ladder and, more importantly, by not making the calls in the first place.
  */
 const STRIPE_MAX_NETWORK_RETRIES: number = 2;
 
@@ -1381,10 +1386,16 @@ export class BillingService extends BaseService {
   }
 
   /**
-   * Stripe answers a rate limit with Retry-After when it knows how long the
-   * caller should wait. Preferring our own doubling over Stripe's own number
-   * is how a retry ladder ends up firing all of its attempts inside a window
-   * the provider already said was too small.
+   * Honour Retry-After if it is there, rather than preferring our own doubling
+   * over a number the provider gave us.
+   *
+   * Be clear about what this does NOT buy: Stripe documents only a
+   * `Stripe-Rate-Limited-Reason` header on a rate-limited 429
+   * (https://docs.stripe.com/rate-limits) and does not document sending
+   * Retry-After, so on the failure that actually breaks us this falls through
+   * to the exponential backoff. It is kept because it is correct if Stripe
+   * ever does send one - not because it is mitigating today's rate limit.
+   * Do not count it as mitigation when sizing this.
    */
   private static getPaymentReadRetryDelay(
     err: unknown,
