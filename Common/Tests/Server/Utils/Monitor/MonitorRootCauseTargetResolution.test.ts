@@ -345,7 +345,7 @@ describe("Root cause Attempts line", () => {
      * unreported count must not be rendered as a real one.
      */
     expect(context).not.toContain("- Attempts:");
-    expect(/^- Attempts:/m.test(context)).toBe(false);
+    expect(new RegExp("^- Attempts:", "m").test(context)).toBe(false);
   });
 });
 
