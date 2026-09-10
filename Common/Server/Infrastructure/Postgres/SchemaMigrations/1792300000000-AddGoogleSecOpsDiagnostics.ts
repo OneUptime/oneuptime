@@ -1,9 +1,9 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddGoogleSecOpsDiagnostics1789060959775
+export class AddGoogleSecOpsDiagnostics1792300000000
   implements MigrationInterface
 {
-  public name: string = "AddGoogleSecOpsDiagnostics1789060959775";
+  public name: string = "AddGoogleSecOpsDiagnostics1792300000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
