@@ -7,10 +7,20 @@ import logger from "Common/Server/Utils/Logger";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import { EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
-import { FindOperator } from "typeorm";
 import { beforeEach, describe, expect, test } from "@jest/globals";
 import JobDictionary from "../../../../FeatureSet/Workers/Utils/JobDictionary";
 import "../../../../FeatureSet/Workers/Jobs/PaymentProvider/UpdateTeamMembersIfNull";
+
+/*
+ * QueryHelper.notNull() hands back a typeorm FindOperator, but typeorm is
+ * Common's dependency and not App's - this import was the only reference to
+ * the ORM anywhere in App, and it failed to resolve when App was compiled on
+ * its own. The assertions below only ever ask the operator to render its
+ * SQL, so describe that much and leave the ORM out of this project.
+ */
+interface RenderableQueryOperator {
+  getSql?: (alias: string) => string;
+}
 
 /*
  * Run the real cron registration and its registered handler. Only the queue,
@@ -148,11 +158,11 @@ describe("subscription seat reconciliation sweep", () => {
     await runJob();
 
     const lookup: {
-      query: Record<string, FindOperator<string>>;
+      query: Record<string, RenderableQueryOperator>;
       select: Record<string, boolean>;
       props: { isRoot: boolean };
     } = findProjects.mock.calls[0]![0] as {
-      query: Record<string, FindOperator<string>>;
+      query: Record<string, RenderableQueryOperator>;
       select: Record<string, boolean>;
       props: { isRoot: boolean };
     };
