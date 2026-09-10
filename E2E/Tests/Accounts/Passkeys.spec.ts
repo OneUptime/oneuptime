@@ -1,4 +1,8 @@
-import { BASE_URL, IS_BILLING_ENABLED } from "../../Config";
+import {
+  BASE_URL,
+  E2E_SIGNUP_PASSWORD,
+  IS_BILLING_ENABLED,
+} from "../../Config";
 import { registerAndCreateProject } from "../Dashboard/Helpers/ProductOnboarding";
 import {
   APIRequestContext,
@@ -859,7 +863,11 @@ test.describe("Passkey account lifecycle", () => {
     await expectSignedOut();
 
     await page.locator('input[type="email"]').fill(email);
-    await page.locator('input[type="password"]').fill("sample");
+    /*
+     * This account was created by registerAndCreateProject, so it can only be
+     * signed back in with the passphrase that helper signed up with.
+     */
+    await page.locator('input[type="password"]').fill(E2E_SIGNUP_PASSWORD);
     await page.locator('input[type="password"]').press("Enter");
     await expectSignedIn();
     await expect(page).toHaveURL(new RegExp(`/dashboard/${projectId}`), {
@@ -894,7 +902,12 @@ test.describe("Passkey account lifecycle", () => {
 
     await signOut();
     await page.locator('input[type="email"]').fill(email);
-    await page.locator('input[type="password"]').fill("sample");
+    /*
+     * The same account registerAndCreateProject signed up, so the same
+     * passphrase it used - a password the signup policy would reject can
+     * never have been set on it.
+     */
+    await page.locator('input[type="password"]').fill(E2E_SIGNUP_PASSWORD);
     await page.locator('input[type="password"]').press("Enter");
     await expect(
       page.getByText(securityKeyName, { exact: true }),

@@ -1,4 +1,8 @@
-import { BASE_URL, IS_BILLING_ENABLED } from "../../../Config";
+import {
+  BASE_URL,
+  E2E_SIGNUP_PASSWORD,
+  IS_BILLING_ENABLED,
+} from "../../../Config";
 import { Page, expect, Response, Locator } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
@@ -71,9 +75,9 @@ export const registerAndCreateProject: RegisterAndCreateProjectFunction =
       await page.getByTestId("companyPhoneNumber").press("Tab");
     }
 
-    await page.getByTestId("password").fill("sample");
+    await page.getByTestId("password").fill(E2E_SIGNUP_PASSWORD);
     await page.getByTestId("password").press("Tab");
-    await page.getByTestId("confirmPassword").fill("sample");
+    await page.getByTestId("confirmPassword").fill(E2E_SIGNUP_PASSWORD);
     await page.getByTestId("Sign Up").click();
 
     await page.waitForURL(

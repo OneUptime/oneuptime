@@ -1,4 +1,5 @@
 import { APIResponse, Page, Response, expect } from "@playwright/test";
+import { E2E_SIGNUP_PASSWORD } from "../Config";
 
 export type JSONish = Record<string, any>;
 
@@ -136,8 +137,8 @@ export const registerAndCreateProject: (data: {
     .getByTestId("email")
     .fill(`label-transfer-${unique}@example.com`);
   await data.page.getByTestId("name").fill("Label Transfer Test");
-  await data.page.getByTestId("password").fill("sample");
-  await data.page.getByTestId("confirmPassword").fill("sample");
+  await data.page.getByTestId("password").fill(E2E_SIGNUP_PASSWORD);
+  await data.page.getByTestId("confirmPassword").fill(E2E_SIGNUP_PASSWORD);
   const signUpResponse: Promise<Response> = data.page.waitForResponse(
     (response: Response): boolean => {
       return (

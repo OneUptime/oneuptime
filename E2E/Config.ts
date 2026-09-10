@@ -1,5 +1,6 @@
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
+import { getSignupPasswordValidationError } from "Common/Types/Password";
 
 type GetEnvFunction = (key: string) => string;
 
@@ -20,6 +21,31 @@ export const REGISTERED_USER_EMAIL: string =
   env("E2E_TEST_REGISTERED_USER_EMAIL") || "";
 export const REGISTERED_USER_PASSWORD: string =
   env("E2E_TEST_REGISTERED_USER_PASSWORD") || "";
+
+/*
+ * Every spec that signs a brand new account up shares this passphrase, so a
+ * change to the signup password policy has one place to land instead of one
+ * per spec.
+ */
+export const E2E_SIGNUP_PASSWORD: string = "violet river lantern";
+
+/*
+ * Checked here against the very function the register form validates with,
+ * because a password the policy rejects does not fail visibly: the form blocks
+ * submission, no request reaches /identity/signup, the SPA never navigates, and
+ * every spec that calls registerAndCreateProject sits on waitForURL until its
+ * timeout. Refusing to load is the difference between one readable message and
+ * a suite that burns its whole budget on hangs. The message never contains the
+ * password itself.
+ */
+const signupPasswordError: string | null =
+  getSignupPasswordValidationError(E2E_SIGNUP_PASSWORD);
+
+if (signupPasswordError) {
+  throw new Error(
+    `E2E_SIGNUP_PASSWORD does not satisfy the signup password policy: ${signupPasswordError}`,
+  );
+}
 
 export const IS_BILLING_ENABLED: boolean = env("BILLING_ENABLED") === "true";
 

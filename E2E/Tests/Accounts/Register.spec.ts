@@ -1,4 +1,9 @@
-import { BASE_URL, IS_BILLING_ENABLED, IS_USER_REGISTERED } from "../../Config";
+import {
+  BASE_URL,
+  E2E_SIGNUP_PASSWORD,
+  IS_BILLING_ENABLED,
+  IS_USER_REGISTERED,
+} from "../../Config";
 import { Page, expect, test, Response } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
@@ -63,9 +68,9 @@ test.describe("Account Registration", () => {
       await page.getByTestId("companyPhoneNumber").press("Tab");
     }
 
-    await page.getByTestId("password").fill("violet river lantern");
+    await page.getByTestId("password").fill(E2E_SIGNUP_PASSWORD);
     await page.getByTestId("password").press("Tab");
-    await page.getByTestId("confirmPassword").fill("violet river lantern");
+    await page.getByTestId("confirmPassword").fill(E2E_SIGNUP_PASSWORD);
     await page.getByTestId("Sign Up").click();
 
     // wait for navigation with base url

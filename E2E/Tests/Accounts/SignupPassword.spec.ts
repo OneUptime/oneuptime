@@ -254,6 +254,30 @@ test.describe("Signup password feedback", () => {
   }
 });
 
+/*
+ * The API has two error-body shapes and both are intentional: a handler that
+ * throws is serialized by expressErrorHandler (Common/Server/Utils/StartServer.ts)
+ * as { error }, while one that calls Response.sendErrorResponse answers with
+ * { message } -- /signup itself does both, throwing for a rejected password and
+ * calling sendErrorResponse for a disabled instance. Real clients never see the
+ * difference because HTTPErrorResponse (Common/Types/API/HTTPErrorResponse.ts)
+ * resolves the reason from "data", "message" and "error" in that order, so this
+ * reads the reason the same way instead of pinning one key.
+ */
+const readErrorMessage: (body: Record<string, unknown>) => string = (
+  body: Record<string, unknown>,
+): string => {
+  for (const key of ["data", "message", "error"]) {
+    const value: unknown = body[key];
+
+    if (typeof value === "string" && value) {
+      return value;
+    }
+  }
+
+  return "";
+};
+
 test.describe("Signup API password enforcement", () => {
   for (const password of [
     "sample",
@@ -279,7 +303,9 @@ test.describe("Signup API password enforcement", () => {
       });
       expect(response.status()).toBe(400);
       const body: Record<string, unknown> = await response.json();
-      expect(body["message"]).toMatch(/Password|less predictable password/);
+      expect(readErrorMessage(body)).toMatch(
+        /Password|less predictable password/,
+      );
       expect(body["token"]).toBeUndefined();
     });
   }
