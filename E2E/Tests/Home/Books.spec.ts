@@ -493,6 +493,7 @@ test.describe("Home: Books", () => {
     await books.click();
 
     await expect(page).toHaveURL(booksUrl);
+    await page.waitForLoadState("domcontentloaded");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Books for people who build.",
       { useInnerText: true },
@@ -510,6 +511,7 @@ test.describe("Home: Books", () => {
     await books.click();
 
     await expect(page).toHaveURL(booksUrl);
+    await page.waitForLoadState("domcontentloaded");
     await expect(
       page.getByRole("heading", {
         level: 2,
@@ -524,7 +526,7 @@ test.describe("Home: Books", () => {
   }: {
     page: Page;
   }) => {
-    await page.setViewportSize({ width: 768, height: 900 });
+    await page.setViewportSize({ width: 1024, height: 900 });
     await page.goto(booksUrl);
 
     for (const entry of [
@@ -546,7 +548,7 @@ test.describe("Home: Books", () => {
     }
   });
 
-  for (const width of [320, 390]) {
+  for (const width of [320, 390, 768]) {
     test(`the mobile menu opens and closes within ${width}px`, async ({
       page,
     }: {
@@ -622,8 +624,8 @@ test.describe("Home: Books", () => {
     });
   });
 
-  for (const width of [320, 390, 768, 1440]) {
-    test(`fits the page and its reading links at ${width}px`, async ({
+  for (const width of [320, 390, 768, 1024, 1440]) {
+    test(`fits the cover and usable reading links without clipping at ${width}px`, async ({
       page,
     }: {
       page: Page;
@@ -636,6 +638,30 @@ test.describe("Home: Books", () => {
 
       await expectNoHorizontalOverflow(page);
 
+      const viewportWidth: number = await page.evaluate((): number => {
+        return document.documentElement.clientWidth;
+      });
+      const logo: Locator = page
+        .getByRole("banner")
+        .getByRole("img", { name: "OneUptime logo", exact: true });
+      await expect(logo).toBeVisible();
+      await expect(logo).toBeInViewport({ ratio: 0.99 });
+      const logoBounds: { x: number; width: number } | null =
+        await logo.boundingBox();
+      expect(logoBounds).not.toBeNull();
+      expect(logoBounds!.width).toBeGreaterThanOrEqual(100);
+      expect(logoBounds!.x).toBeGreaterThanOrEqual(-1);
+      expect(logoBounds!.x + logoBounds!.width).toBeLessThanOrEqual(
+        viewportWidth + 1,
+      );
+
+      const cover: Locator = page.locator(
+        '#main-content img[src="/img/books/back-to-metal.jpg"]',
+      );
+      await cover.scrollIntoViewIfNeeded();
+      // Allow subpixel scroll rounding while catching clipping by the cover's frame.
+      await expect(cover).toBeInViewport({ ratio: 0.99 });
+
       const formats: Locator = page.locator("#reading-formats");
       await formats.scrollIntoViewIfNeeded();
       await expect(
@@ -644,6 +670,26 @@ test.describe("Home: Books", () => {
       await expect(
         formats.locator(`a[href="${bookUrl}Back-to-Metal.epub"]`),
       ).toBeVisible();
+
+      const readingLinks: Locator = page.locator(
+        `#inside-the-book a[href^="${bookUrl}m/"], #reading-formats a[href^="${bookUrl}"]`,
+      );
+      await expect(readingLinks).toHaveCount(8);
+      for (const link of await readingLinks.all()) {
+        await link.scrollIntoViewIfNeeded();
+        await expect(link).toBeInViewport({ ratio: 0.99 });
+
+        const bounds: { x: number; width: number; height: number } | null =
+          await link.boundingBox();
+        const description: string = (await link.textContent())?.trim() || "";
+        expect(bounds, description).not.toBeNull();
+        expect(bounds!.width, description).toBeGreaterThanOrEqual(44);
+        expect(bounds!.height, description).toBeGreaterThanOrEqual(44);
+        expect(bounds!.x, description).toBeGreaterThanOrEqual(-1);
+        expect(bounds!.x + bounds!.width, description).toBeLessThanOrEqual(
+          viewportWidth + 1,
+        );
+      }
     });
   }
 
