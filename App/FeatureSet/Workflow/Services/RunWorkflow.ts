@@ -48,10 +48,15 @@ import VMAPI from "Common/Server/Utils/VM/VMAPI";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
+import {
+  WORKFLOW_LOG_REDACTED_VALUE,
+  getSecretWorkflowVariableValues,
+  redactSecretsFromString,
+} from "../Utils/SecretRedaction";
 
 const AllComponents: Dictionary<ComponentMetadata> = loadAllComponentMetadata();
 
-export const WORKFLOW_LOG_REDACTED_VALUE: string = "[REDACTED]";
+export { WORKFLOW_LOG_REDACTED_VALUE };
 
 type SensitiveWorkflowField =
   | Pick<Argument, "id" | "isSensitive">
@@ -85,68 +90,6 @@ export function redactSensitiveComponentValuesForLogs(
 
   return loggableValues;
 }
-
-type GetSecretWorkflowVariableValuesFunction = (
-  variables: Array<WorkflowVariable>,
-) => Array<string>;
-
-/**
- * Build the replacement list once, with overlapping secrets ordered safely.
- *
- * A secret of `token` must not run before `token-with-suffix`, or the first
- * replacement leaves `-with-suffix` behind in the log. Empty values are
- * excluded because every string contains the empty string.
- */
-const getSecretWorkflowVariableValues: GetSecretWorkflowVariableValuesFunction =
-  (variables: Array<WorkflowVariable>): Array<string> => {
-    const values: Array<string> = variables
-      .filter((variable: WorkflowVariable) => {
-        const isSecret: unknown = variable.isSecret;
-
-        return (
-          (isSecret === true || isSecret === "true") &&
-          typeof variable.content === "string" &&
-          variable.content.length > 0
-        );
-      })
-      .map((variable: WorkflowVariable) => {
-        return variable.content as string;
-      });
-
-    return Array.from(new Set(values)).sort((first: string, second: string) => {
-      return second.length - first.length;
-    });
-  };
-
-type RedactSecretsFromStringFunction = (
-  value: string,
-  secrets: Array<string>,
-) => string;
-
-const redactSecretsFromString: RedactSecretsFromStringFunction = (
-  value: string,
-  secrets: Array<string>,
-): string => {
-  if (!value || secrets.length === 0) {
-    return value;
-  }
-
-  const escapedSecrets: Array<string> = secrets.map((secret: string) => {
-    return secret.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  });
-
-  /*
-   * One global expression replaces every occurrence without processing the
-   * replacement marker again. The alternatives are longest-first from
-   * getSecretWorkflowVariableValues, which prevents a shorter overlapping
-   * secret from exposing the tail of a longer one.
-   */
-  const secretPattern: RegExp = new RegExp(escapedSecrets.join("|"), "g");
-
-  return value.replace(secretPattern, () => {
-    return WORKFLOW_LOG_REDACTED_VALUE;
-  });
-};
 
 type RedactSecretValuesFunction = (
   value: JSONValue,

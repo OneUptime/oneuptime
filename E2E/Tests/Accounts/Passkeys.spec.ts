@@ -8,6 +8,7 @@ import {
   BrowserContextOptions,
   CDPSession,
   Page,
+  Locator,
   Request,
   Response,
   Route,
@@ -46,14 +47,17 @@ test.describe("Passkey account lifecycle", () => {
     process.env["E2E_PASSKEY_EMAIL"] ||
     `passkey-${randomUUID()}@oneuptime-e2e.invalid`;
   const passkeyName: string = "My laptop passkey";
+  const securityKeyName: string = "My USB security key";
   const loginUrl: string = `${origin}/accounts/login`;
-  const profileUrl: string = `${origin}/dashboard/user-profile/two-factor-auth`;
+  const profileUrl: string = `${origin}/dashboard/user-profile/passkeys`;
+  const twoFactorUrl: string = `${origin}/dashboard/user-profile/two-factor-auth`;
   const loginEndpoint: string = `${origin}/identity/passkey-login`;
   const optionsRoute: string = "**/identity/passkey-login-options";
   let context: BrowserContext;
   let page: Page;
   let client: CDPSession;
   let authenticatorId: string;
+  let securityAuthenticatorId: string;
   let projectId: string;
   let userId: string;
   let successfulAssertion: Record<string, unknown>;
@@ -230,6 +234,135 @@ test.describe("Passkey account lifecycle", () => {
     expect(device.credentials).toHaveLength(1);
     expect(device.credentials[0]!.isResidentCredential).toBe(true);
     await saveScreenshot("passkey-settings", test.info());
+  });
+
+  test("registers a security key on the separate two-factor page and keeps credential lists distinct", async () => {
+    await page
+      .getByRole("link", { name: /Two.factor authentication/i })
+      .click();
+    await expect(page).toHaveURL(twoFactorUrl);
+    await expect(
+      page.getByRole("button", { name: "Add Passkey", exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: /Authenticator apps/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /Backup codes/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Keep another way to sign in", { exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("row").filter({ hasText: passkeyName }),
+    ).toHaveCount(0);
+
+    const authenticator: { authenticatorId: string } = await client.send(
+      "WebAuthn.addVirtualAuthenticator",
+      {
+        options: {
+          protocol: "ctap2",
+          ctap2Version: "ctap2_1",
+          transport: "usb",
+          hasResidentKey: false,
+          hasUserVerification: false,
+          automaticPresenceSimulation: true,
+        },
+      },
+    );
+    securityAuthenticatorId = authenticator.authenticatorId;
+    await client.send("WebAuthn.setAutomaticPresenceSimulation", {
+      authenticatorId,
+      enabled: false,
+    });
+    try {
+      await page
+        .getByRole("button", { name: "Add Security Key", exact: true })
+        .click();
+      await page
+        .getByRole("textbox", { name: "Security key name" })
+        .fill(securityKeyName);
+      const optionsPromise: Promise<Response> = page.waitForResponse(
+        "**/user-webauthn/generate-registration-options",
+      );
+      const registrationPromise: Promise<Response> = page.waitForResponse(
+        "**/user-webauthn/verify-registration",
+      );
+      await page
+        .getByRole("button", { name: "Register Security Key", exact: true })
+        .click();
+      const optionsResponse: Response = await optionsPromise;
+      expect(optionsResponse.request().postDataJSON()).toMatchObject({
+        isPasskey: false,
+      });
+      expect((await registrationPromise).ok()).toBe(true);
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expect(
+        page.getByRole("row").filter({ hasText: securityKeyName }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("row").filter({ hasText: passkeyName }),
+      ).toHaveCount(0);
+      // Adding another method preserves the existing recovery codes.
+      await expect(page.getByTestId("backup-code")).toHaveCount(0);
+      const device: { credentials: Array<{ isResidentCredential: boolean }> } =
+        await client.send("WebAuthn.getCredentials", {
+          authenticatorId: securityAuthenticatorId,
+        });
+      expect(device.credentials).toHaveLength(1);
+      expect(device.credentials[0]!.isResidentCredential).toBe(false);
+      await saveScreenshot("two-factor-settings", test.info());
+      await page.setViewportSize({ width: 390, height: 844 });
+      await expect(
+        page.getByRole("button", { name: "Add Security Key", exact: true }),
+      ).toBeVisible();
+      expect(
+        await page.evaluate(() => {
+          return document.documentElement.scrollWidth <= window.innerWidth;
+        }),
+      ).toBe(true);
+      await saveScreenshot("two-factor-settings-mobile", test.info());
+      await page.setViewportSize({ width: 1440, height: 1000 });
+    } finally {
+      await client.send("WebAuthn.setAutomaticPresenceSimulation", {
+        authenticatorId,
+        enabled: true,
+      });
+      await client.send("WebAuthn.setAutomaticPresenceSimulation", {
+        authenticatorId: securityAuthenticatorId,
+        enabled: false,
+      });
+    }
+
+    await page.getByRole("link", { name: "Passkeys", exact: true }).click();
+    await expect(page).toHaveURL(profileUrl);
+    await expect(
+      page.getByRole("row").filter({ hasText: passkeyName }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("row").filter({ hasText: securityKeyName }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Add Security Key", exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: /Backup codes/i }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: /Authenticator apps/i }),
+    ).toHaveCount(0);
+    await saveScreenshot("passkey-settings-separated", test.info());
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(
+      page.getByRole("button", { name: "Add Passkey", exact: true }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(() => {
+        return document.documentElement.scrollWidth <= window.innerWidth;
+      }),
+    ).toBe(true);
+    await saveScreenshot("passkey-settings-mobile", test.info());
+    await page.setViewportSize({ width: 1440, height: 1000 });
   });
 
   test("signs in with a passkey without entering an email or password", async () => {
@@ -732,5 +865,59 @@ test.describe("Passkey account lifecycle", () => {
     await expect(page).toHaveURL(new RegExp(`/dashboard/${projectId}`), {
       timeout: 60000,
     });
+  });
+
+  test("enables two-factor authentication and signs in with the registered security key", async () => {
+    await page.goto(twoFactorUrl);
+    await expect(
+      page.getByRole("row").filter({ hasText: securityKeyName }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", {
+        name: "Enable two-factor authentication",
+        exact: true,
+      })
+      .click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Enable two-factor authentication?",
+      exact: true,
+    });
+    await dialog
+      .getByRole("button", {
+        name: "Enable two-factor authentication",
+        exact: true,
+      })
+      .click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByText("Enabled", { exact: true })).toBeVisible();
+    await saveScreenshot("two-factor-settings-enabled", test.info());
+
+    await signOut();
+    await page.locator('input[type="email"]').fill(email);
+    await page.locator('input[type="password"]').fill("sample");
+    await page.locator('input[type="password"]').press("Enter");
+    await expect(
+      page.getByText(securityKeyName, { exact: true }),
+    ).toBeVisible();
+    expect(
+      (await context.cookies()).some((cookie: { name: string }) => {
+        return cookie.name === "user-token";
+      }),
+    ).toBe(false);
+    await client.send("WebAuthn.setAutomaticPresenceSimulation", {
+      authenticatorId: securityAuthenticatorId,
+      enabled: true,
+    });
+    const authenticationPromise: Promise<Response> = page.waitForResponse(
+      "**/identity/verify-webauthn-auth",
+    );
+    await page.getByText(securityKeyName, { exact: true }).click();
+    expect((await authenticationPromise).ok()).toBe(true);
+    await expectSignedIn();
+    await page.goto(twoFactorUrl);
+    await expect(page.getByText("Enabled", { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("row").filter({ hasText: securityKeyName }),
+    ).toBeVisible();
   });
 });

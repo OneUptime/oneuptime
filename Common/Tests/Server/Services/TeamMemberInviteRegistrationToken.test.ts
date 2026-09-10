@@ -138,6 +138,9 @@ beforeEach(() => {
 
   // No existing membership - the duplicate-invite guard at the end of the hook.
   jest.spyOn(TeamMemberService, "findOneBy").mockResolvedValue(null);
+  jest
+    .spyOn(TeamMemberService, "getUniqueTeamMemberCountInProject")
+    .mockResolvedValue(0);
 
   jest
     .spyOn(ProjectService, "findOneById")
