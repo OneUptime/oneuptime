@@ -11,6 +11,9 @@ import URL from "../Types/API/URL";
 import Dictionary from "../Types/Dictionary";
 import APIException from "../Types/Exception/ApiException";
 import BadDataException from "../Types/Exception/BadDataException";
+import EgressGuardException, {
+  EgressFailureReason,
+} from "../Types/Exception/EgressGuardException";
 import { JSONArray, JSONObject } from "../Types/JSON";
 import RequestFailedDetails, {
   RequestFailedPhase,
@@ -1157,6 +1160,37 @@ export default class API {
     const errorCode: string | undefined = axiosError?.code;
     const rawErrorMessage: string =
       (error as Error)?.message || String(error) || "Unknown error";
+
+    /*
+     * The egress guard refuses a target BEFORE any socket is opened, and for
+     * tenant-facing callers it sanitizes its message down to one sentence that
+     * matches none of the patterns below. Left to the fall-through, every such
+     * failure was reported as phase "Unknown" with the sanitized sentence
+     * echoed back as its own explanation — which is exactly what a monitor
+     * incident showed for a host whose DNS had hiccuped. Classify it here
+     * instead, from the exception TYPE rather than from its text.
+     */
+    if (error instanceof EgressGuardException) {
+      return {
+        failedPhase: RequestFailedPhase.TargetResolution,
+        errorCode:
+          error.reason === EgressFailureReason.InvalidTarget
+            ? "INVALID_TARGET"
+            : "TARGET_UNREACHABLE",
+        /*
+         * One constant description for every unreachable reason. It names all
+         * the possibilities without saying which occurred, so it stays useful
+         * without telling a tenant on a shared probe whether a hostname
+         * resolved — that difference is the enumeration oracle the guard's
+         * sanitized message exists to close.
+         */
+        errorDescription:
+          error.reason === EgressFailureReason.InvalidTarget
+            ? `The monitor's target is not a valid HTTP or HTTPS destination, so no request was attempted. ${rawErrorMessage}`
+            : "The probe could not obtain a usable network address for this host, so no connection was attempted and the target was never contacted. Either DNS did not answer, answered with no records, or returned an address this probe is not allowed to dial. Check that the hostname resolves publicly and that its authoritative nameservers are healthy. If this monitor targets an internal host, run it from a self-hosted probe with PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true.",
+        rawErrorMessage,
+      };
+    }
 
     // Helper to determine the phase and description based on error code/message
     const lowerMessage: string = rawErrorMessage.toLowerCase();

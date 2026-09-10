@@ -17,6 +17,7 @@ import HttpMonitorRequest, {
   HTTP_MONITOR_MAX_REQUEST_BYTES,
   HTTP_MONITOR_MAX_RESPONSE_BYTES,
   HttpMonitorExecutionContext,
+  MONITOR_DNS_RESOLVE_BUDGET_IN_MS,
   PinnedHttpProxyAgent,
   PinnedHttpsProxyAgent,
   PreparedHttpMonitorRequest,
@@ -257,6 +258,7 @@ describe("HttpMonitorRequest.prepare", () => {
         targetLabel: "Monitor target",
         privateNetworkHint: PROBE_PRIVATE_NETWORK_HINT,
         includeResolvedAddressInError: false,
+        resolveTimeoutInMs: MONITOR_DNS_RESOLVE_BUDGET_IN_MS,
       },
     );
     expect(prepared.url.toString()).toBe(

@@ -1371,6 +1371,15 @@ ${contextBlock}
       );
     }
 
+    /*
+     * How many times the probe actually tried matters when reading a failure:
+     * "tried once" and "tried three times" describe very different levels of
+     * confidence, and the count was already collected but never shown.
+     */
+    if (probeResponse?.totalAttempts !== undefined) {
+      responseDetails.push(`- Attempts: ${probeResponse.totalAttempts}`);
+    }
+
     // Add Request Failed Details if available
     if (probeResponse?.requestFailedDetails) {
       const requestFailedDetails: RequestFailedDetails =
