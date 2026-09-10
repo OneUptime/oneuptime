@@ -1,22 +1,24 @@
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import { QueueJob } from "Common/Server/Infrastructure/Queue";
+
+export type WorkerJobFunction = (job?: QueueJob) => Promise<void>;
 
 export default class JobDictionary {
-  private static dictionary: Dictionary<PromiseVoidFunction> = {};
+  private static dictionary: Dictionary<WorkerJobFunction> = {};
 
   private static timeoutInMsDictionary: Dictionary<number> = {};
 
-  public static getJobFunction(name: string): PromiseVoidFunction {
+  public static getJobFunction(name: string): WorkerJobFunction {
     if (this.dictionary[name]) {
-      return this.dictionary[name] as PromiseVoidFunction;
+      return this.dictionary[name] as WorkerJobFunction;
     }
 
     throw new BadDataException("No job found with name: " + name);
   }
 
-  public static setJobFunction(name: string, job: PromiseVoidFunction): void {
+  public static setJobFunction(name: string, job: WorkerJobFunction): void {
     this.dictionary[name] = job;
   }
 

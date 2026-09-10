@@ -544,9 +544,10 @@ import LogDropFilterService, {
 import DetectionRuleService, {
   Service as DetectionRuleServiceType,
 } from "Common/Server/Services/DetectionRuleService";
-import GoogleSecOpsConnectionService, {
-  Service as GoogleSecOpsConnectionServiceType,
-} from "Common/Server/Services/GoogleSecOpsConnectionService";
+import GoogleSecOpsConnectionAPI from "Common/Server/API/GoogleSecOpsConnectionAPI";
+import GoogleSecOpsConnectionRunService, {
+  Service as GoogleSecOpsConnectionRunServiceType,
+} from "Common/Server/Services/GoogleSecOpsConnectionRunService";
 import ThreatIntelFeedService, {
   Service as ThreatIntelFeedServiceType,
 } from "Common/Server/Services/ThreatIntelFeedService";
@@ -1427,7 +1428,7 @@ import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
-import GoogleSecOpsConnection from "Common/Models/DatabaseModels/GoogleSecOpsConnection";
+import GoogleSecOpsConnectionRun from "Common/Models/DatabaseModels/GoogleSecOpsConnectionRun";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
@@ -3540,9 +3541,17 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<GoogleSecOpsConnection, GoogleSecOpsConnectionServiceType>(
-        GoogleSecOpsConnection,
-        GoogleSecOpsConnectionService,
+      new GoogleSecOpsConnectionAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        GoogleSecOpsConnectionRun,
+        GoogleSecOpsConnectionRunServiceType
+      >(
+        GoogleSecOpsConnectionRun,
+        GoogleSecOpsConnectionRunService,
       ).getRouter(),
     );
 

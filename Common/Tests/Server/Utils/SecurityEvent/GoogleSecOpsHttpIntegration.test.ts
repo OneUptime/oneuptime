@@ -1,3 +1,5 @@
+import { GoogleSecOpsRunResult } from "../../../../Types/SecurityEvent/GoogleSecOpsDiagnostics";
+import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import { generateKeyPairSync } from "crypto";
 import http, { IncomingMessage, Server, ServerResponse } from "http";
 import { AddressInfo } from "net";
@@ -66,8 +68,17 @@ const CLOSED_ALERT: JSONObject = {
   detection: [{ ruleName: "Closed detection", severity: "LOW" }],
   feedbackSummary: { status: "CLOSED" },
 };
+const NON_ALERTING_DETECTION: JSONObject = {
+  id: "detection-only",
+  detectionTime: "2026-09-08T01:30:00.000Z",
+  createdTime: "2026-09-09T04:16:00.000Z",
+  detection: [
+    { ruleName: "Detection without alert", alertState: "NOT_ALERTING" },
+  ],
+};
 const QUERY_FIELDS: Array<string> = [
   "alertListOptions.maxReturnedAlerts",
+  "includeNonAlertingDetections",
   "snapshotQuery",
   "timeRange.endTime",
   "timeRange.startTime",
@@ -205,6 +216,15 @@ describe("Google SecOps alerts HTTP integration", () => {
         rejectRequest(response, "Missing required field: snapshotQuery");
         return;
       }
+      if (
+        ![
+          "ALERTS_FEATURE_PREFERENCE_ENABLED",
+          "ALERTS_FEATURE_PREFERENCE_DISABLED",
+        ].includes(url.searchParams.get("includeNonAlertingDetections") || "")
+      ) {
+        rejectRequest(response, "Invalid includeNonAlertingDetections enum");
+        return;
+      }
       const startTime: number = Date.parse(
         url.searchParams.get("timeRange.startTime") || "",
       );
@@ -230,17 +250,26 @@ describe("Google SecOps alerts HTTP integration", () => {
       // Match-all must return closed alerts too; a status filter loses them.
       const closedAlerts: Array<JSONObject> =
         url.searchParams.get("snapshotQuery") === "" ? [CLOSED_ALERT] : [];
+      const allAlerts: Array<JSONObject> = [
+        OPEN_ALERT,
+        ...closedAlerts,
+        ...(url.searchParams.get("includeNonAlertingDetections") ===
+        "ALERTS_FEATURE_PREFERENCE_ENABLED"
+          ? [NON_ALERTING_DETECTION]
+          : []),
+      ];
+      const returnedAlerts: Array<JSONObject> = allAlerts.slice(0, count);
       response.writeHead(200, { "Content-Type": "application/json" });
       response.write(
-        `[${JSON.stringify({ alerts: { alerts: [OPEN_ALERT] }, progress: 0.5 })},`,
+        `[${JSON.stringify({ alerts: { alerts: returnedAlerts.slice(0, 1) }, progress: 0.5 })},`,
       );
       response.end(
         `${JSON.stringify({
-          alerts: { alerts: closedAlerts },
+          alerts: { alerts: returnedAlerts.slice(1) },
           complete: true,
           progress: 1,
-          baselineAlertsCount: 2,
-          filteredAlertsCount: 1 + closedAlerts.length,
+          baselineAlertsCount: allAlerts.length,
+          filteredAlertsCount: allAlerts.length,
         })}]`,
       );
     });
@@ -319,6 +348,11 @@ describe("Google SecOps alerts HTTP integration", () => {
   });
 
   beforeEach((): void => {
+    getJestSpyOn(Semaphore, "lock").mockResolvedValue({});
+    getJestSpyOn(Semaphore, "release").mockResolvedValue(undefined);
+    getJestSpyOn(GoogleSecOpsPoller, "findExistingEventUids").mockResolvedValue(
+      new Set(),
+    );
     alertsRequests = [];
     assertions = [];
     alertsErrorBody = null;
@@ -342,6 +376,62 @@ describe("Google SecOps alerts HTTP integration", () => {
     );
   });
 
+  test.each([true, false])(
+    "serializes the documented non-alerting detection preference %s over HTTP",
+    async (includeNonAlertingDetections: boolean): Promise<void> => {
+      const result: FetchAlertsResult = await makeClient().fetchDetectionAlerts(
+        {
+          startTime: new Date("2026-09-09T11:54:00Z"),
+          endTime: NOW,
+          includeNonAlertingDetections,
+        },
+      );
+      expect(
+        result.alerts.some((alert: JSONObject): boolean => {
+          return alert["id"] === "detection-only";
+        }),
+      ).toBe(includeNonAlertingDetections);
+      expect(
+        alertsRequests[0]!.searchParams.get("includeNonAlertingDetections"),
+      ).toBe(
+        includeNonAlertingDetections
+          ? "ALERTS_FEATURE_PREFERENCE_ENABLED"
+          : "ALERTS_FEATURE_PREFERENCE_DISABLED",
+      );
+    },
+  );
+
+  test("tests authentication and actual read permission over HTTP without ingestion", async (): Promise<void> => {
+    const item: GoogleSecOpsConnection = new GoogleSecOpsConnection();
+    item._id = "22222222-2222-4222-8222-222222222222";
+    item.projectId = PROJECT_ID;
+    item.region = "us";
+    item.instanceResourceName = INSTANCE;
+    item.serviceAccountJson = SERVICE_ACCOUNT_JSON;
+    getJestSpyOn(SecurityEventService, "insertJsonRows").mockResolvedValue(
+      undefined,
+    );
+    getJestSpyOn(
+      GoogleSecOpsConnectionService,
+      "updateOneById",
+    ).mockResolvedValue(undefined);
+    const result: GoogleSecOpsRunResult =
+      await GoogleSecOpsPoller.executeConnection(
+        item,
+        { type: "test" },
+        makeClient(),
+      );
+    expect(result.status).toBe("success");
+    expect(result.checks[1]?.status).toBe("success");
+    expect(result.checks[2]?.status).toBe("success");
+    expect(
+      alertsRequests[0]!.searchParams.get("alertListOptions.maxReturnedAlerts"),
+    ).toBe("1");
+    expect(assertions).toHaveLength(1);
+    expect(SecurityEventService.insertJsonRows).not.toHaveBeenCalled();
+    expect(GoogleSecOpsConnectionService.updateOneById).not.toHaveBeenCalled();
+  });
+
   test.each([undefined, 23])(
     "authenticates and requests all alert statuses with maxAlerts=%s",
     async (maxAlerts: number | undefined): Promise<void> => {
@@ -360,6 +450,7 @@ describe("Google SecOps alerts HTTP integration", () => {
       expect(alertsRequests).toHaveLength(1);
       expect([...alertsRequests[0]!.searchParams.entries()].sort()).toEqual([
         ["alertListOptions.maxReturnedAlerts", String(maxAlerts || 1000)],
+        ["includeNonAlertingDetections", "ALERTS_FEATURE_PREFERENCE_DISABLED"],
         ["snapshotQuery", ""],
         ["timeRange.endTime", NOW.toISOString()],
         ["timeRange.startTime", "2026-09-09T11:54:00.000Z"],
@@ -540,8 +631,16 @@ describe("Google SecOps alerts HTTP integration", () => {
         }),
       ).toBe(true);
       expect(updates).toHaveLength(2);
-      expect(updates[1]).toEqual({
+      expect(updates[1]).toMatchObject({
         lastPolledAt: currentTime,
+        lastSuccessfulPollAt: currentTime,
+        lastEventIngestedAt: currentTime,
+        lastPollResult: {
+          status: "success",
+          fetchedCount: 2,
+          ingestedCount: 2,
+          complete: true,
+        },
         cursor: currentTime.toISOString(),
         lastError: null,
       });

@@ -227,6 +227,10 @@ export default class GoogleSecOpsClient {
     }
   }
 
+  public async testAuthentication(): Promise<void> {
+    await this.getAccessToken();
+  }
+
   public static validateInstanceResourceName(name: string): void {
     if (!INSTANCE_REGEX.test(name || "")) {
       throw new BadDataException(
@@ -387,6 +391,7 @@ export default class GoogleSecOpsClient {
     startTime: Date;
     endTime: Date;
     maxAlerts?: number | undefined;
+    includeNonAlertingDetections?: boolean | undefined;
   }): Promise<FetchAlertsResult> {
     let accessToken: string = await this.getAccessToken();
 
@@ -403,6 +408,9 @@ export default class GoogleSecOpsClient {
       "timeRange.endTime": data.endTime.toISOString(),
       snapshotQuery: "",
       "alertListOptions.maxReturnedAlerts": String(maxReturnedAlerts),
+      includeNonAlertingDetections: data.includeNonAlertingDetections
+        ? "ALERTS_FEATURE_PREFERENCE_ENABLED"
+        : "ALERTS_FEATURE_PREFERENCE_DISABLED",
     });
 
     const url: string = `${this.getApiBaseUrl()}/legacy:legacyFetchAlertsView?${params.toString()}`;
@@ -520,15 +528,45 @@ export default class GoogleSecOpsClient {
     stepLabel: string,
   ): Promise<FetchResponseLike> {
     const controller: AbortController = new AbortController();
-    const timer: ReturnType<typeof setTimeout> = setTimeout((): void => {
-      controller.abort();
-    }, REQUEST_TIMEOUT_IN_MS);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout: Promise<never> = new Promise(
+      (
+        _resolve: (value: never | PromiseLike<never>) => void,
+        reject: (reason?: unknown) => void,
+      ): void => {
+        timer = setTimeout((): void => {
+          controller.abort();
+          reject(
+            new APIException(
+              `Google SecOps ${stepLabel} timed out after ${REQUEST_TIMEOUT_IN_SECONDS} seconds with no response.`,
+            ),
+          );
+        }, REQUEST_TIMEOUT_IN_MS);
+      },
+    );
 
     try {
-      return await this.fetchImplementation(url, {
-        ...init,
-        signal: controller.signal,
-      });
+      return await Promise.race([
+        (async (): Promise<FetchResponseLike> => {
+          const response: FetchResponseLike = await this.fetchImplementation(
+            url,
+            {
+              ...init,
+              signal: controller.signal,
+            },
+          );
+          // The deadline covers the streamed body as well as response headers.
+          const responseText: string = await response.text();
+          return {
+            ok: response.ok,
+            status: response.status,
+            text: async (): Promise<string> => {
+              return responseText;
+            },
+          };
+        })(),
+        timeout,
+      ]);
     } catch (error) {
       if (controller.signal.aborted) {
         throw new APIException(
@@ -690,21 +728,45 @@ export default class GoogleSecOpsClient {
       GoogleSecOpsClient.readLastBoolean(chunks, "complete") === true;
     const progress: number =
       GoogleSecOpsClient.readLastNumber(chunks, "progress") ?? 0;
-    const truncatedByCount: boolean =
-      GoogleSecOpsClient.readLastBoolean(chunks, "tooManyAlerts") === true;
-    const truncatedByBytes: boolean =
-      GoogleSecOpsClient.readLastBoolean(chunks, "memoryLimitExceeded") ===
-      true;
+    let truncatedByCount: boolean = chunks.some(
+      (chunk: JSONObject): boolean => {
+        return chunk["tooManyAlerts"] === true;
+      },
+    );
+    const truncatedByBytes: boolean = chunks.some(
+      (chunk: JSONObject): boolean => {
+        return chunk["memoryLimitExceeded"] === true;
+      },
+    );
     const baselineAlertsCount: number =
       GoogleSecOpsClient.readLastNumber(chunks, "baselineAlertsCount") ?? 0;
     const filteredAlertsCount: number =
       GoogleSecOpsClient.readLastNumber(chunks, "filteredAlertsCount") ?? 0;
 
+    /*
+     * Google's list ceiling can truncate the list without tooManyAlerts.
+     * snapshotQuery is empty, so every baseline match belongs in this result.
+     */
+    truncatedByCount =
+      truncatedByCount ||
+      Math.max(filteredAlertsCount, baselineAlertsCount) > alerts.length ||
+      (alerts.length >= maxReturnedAlerts &&
+        !chunks.some((chunk: JSONObject): boolean => {
+          return (
+            chunk["filteredAlertsCount"] !== undefined ||
+            chunk["baselineAlertsCount"] !== undefined
+          );
+        }));
+
     GoogleSecOpsClient.throwOnInBandValidationErrors(chunks);
 
     if (truncatedByCount) {
       logger.warn(
-        "GoogleSecOpsClient: Chronicle set tooManyAlerts — the window matched more alerts than it will return, and this endpoint has no pagination. Narrow the poll window.",
+        chunks.some((chunk: JSONObject): boolean => {
+          return chunk["tooManyAlerts"] === true;
+        })
+          ? "GoogleSecOpsClient: Chronicle set tooManyAlerts — the window matched more alerts than it will return, and this endpoint has no pagination. Narrow the poll window."
+          : "GoogleSecOpsClient: the returned alert list is smaller than its matched count or reached its ceiling without a total. This endpoint has no pagination. Narrow the poll window.",
       );
     }
 

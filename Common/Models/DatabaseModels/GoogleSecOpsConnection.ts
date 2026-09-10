@@ -16,6 +16,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import { JSONObject } from "../../Types/JSON";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
@@ -241,8 +242,60 @@ export default class GoogleSecOpsConnection extends BaseModel {
   })
   public pollIntervalInMinutes?: number = undefined;
 
+  @ColumnAccessControl({
+    create: adminPermissions,
+    read: readPermissions,
+    update: adminPermissions,
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    title: "Include Non-alerting Detections",
+    description:
+      "Include detections that have not been marked as alerts in Google SecOps.",
+    defaultValue: false,
+    canReadOnRelationQuery: true,
+  })
+  @Column({ type: ColumnType.Boolean, nullable: false, default: false })
+  public includeNonAlertingDetections?: boolean = undefined;
+
+  @ColumnAccessControl({ create: [], read: readPermissions, update: [] })
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "Last Successful Poll",
+    description:
+      "When a complete poll last finished successfully, including an empty result.",
+    canReadOnRelationQuery: true,
+  })
+  @Column({ type: ColumnType.Date, nullable: true })
+  public lastSuccessfulPollAt?: Date = undefined;
+
+  @ColumnAccessControl({ create: [], read: readPermissions, update: [] })
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "Last Event Imported",
+    description:
+      "When a new security event was last imported, independently of its detection time.",
+    canReadOnRelationQuery: true,
+  })
+  @Column({ type: ColumnType.Date, nullable: true })
+  public lastEventIngestedAt?: Date = undefined;
+
+  @ColumnAccessControl({ create: [], read: readPermissions, update: [] })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Last Poll Result",
+    description:
+      "The latest scheduled or on-demand poll result with counts and warnings.",
+  })
+  @Column({ type: ColumnType.JSON, nullable: true })
+  public lastPollResult?: JSONObject = undefined;
+
   /*
-   * Poller-owned state. Written only by the Workers cron.
+   * Poller-owned state. Written only by the connection worker.
    */
   @ColumnAccessControl({
     create: [],
@@ -274,7 +327,7 @@ export default class GoogleSecOpsConnection extends BaseModel {
     type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     description:
-      "Poll cursor: the newest detection timestamp already ingested, as an ISO string.",
+      "Poll cursor: the end of the last completely processed window, or the boundary retained for retry, as an ISO string.",
   })
   @Column({
     type: ColumnType.LongText,

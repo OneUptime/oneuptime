@@ -1,6 +1,6 @@
 import RunCron from "../../Utils/Cron";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import GoogleSecOpsPoller from "Common/Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsPoller";
+import GoogleSecOpsRunExecutor from "Common/Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsRunExecutor";
 
 /*
  * Google SecOps connector tick. Each run polls every enabled connection
@@ -16,6 +16,6 @@ RunCron(
     timeoutInMS: 10 * 60 * 1000,
   },
   async () => {
-    await GoogleSecOpsPoller.pollAllDueConnections();
+    await GoogleSecOpsRunExecutor.enqueueDueConnections();
   },
 );

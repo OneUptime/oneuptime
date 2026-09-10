@@ -202,6 +202,7 @@ import "./Jobs/Llm/EvaluateLlmCostBudgets";
 import "./Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";
 import "./Jobs/DetectionRules/EvaluateDetectionRules";
 import "./Jobs/SecurityEvents/PollGoogleSecOpsConnections";
+import "./Jobs/SecurityEvents/RunGoogleSecOpsConnection";
 import "./Jobs/ThreatIntel/PollThreatIntelFeeds";
 import "./Jobs/ThreatIntel/MatchThreatIntelIndicators";
 
@@ -324,8 +325,7 @@ import "./Jobs/InstanceUpdate/CheckForNewVersion";
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";
 import RunDatabaseMigrations from "./Utils/DataMigration";
 import RunStartupMigrations from "./Utils/StartupMigration";
-import JobDictionary from "./Utils/JobDictionary";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import runWorkerJob from "./Utils/RunWorkerJob";
 import Queue, { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import MarketingEventWebhook from "Common/Server/Utils/Marketing/MarketingEventWebhook";
@@ -456,14 +456,7 @@ const WorkersFeatureSet: FeatureSet = {
 
             logger.debug("Running Job: " + name, { service: "workers" });
 
-            const funcToRun: PromiseVoidFunction =
-              JobDictionary.getJobFunction(name);
-
-            const timeoutInMs: number = JobDictionary.getTimeoutInMs(name);
-
-            if (funcToRun) {
-              await QueueWorker.runJobWithTimeout(timeoutInMs, funcToRun);
-            }
+            await runWorkerJob(job);
           },
           { concurrency: WORKER_CONCURRENCY },
         );

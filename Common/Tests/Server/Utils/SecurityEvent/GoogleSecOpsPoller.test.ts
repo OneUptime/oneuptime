@@ -1,3 +1,4 @@
+import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import GoogleSecOpsConnection from "../../../../Models/DatabaseModels/GoogleSecOpsConnection";
 import GoogleSecOpsConnectionService from "../../../../Server/Services/GoogleSecOpsConnectionService";
 import OTelIngestService, {
@@ -107,6 +108,11 @@ describe("GoogleSecOpsPoller.pollConnection", () => {
   let insertedRows: Array<JSONObject>;
 
   beforeEach(() => {
+    getJestSpyOn(Semaphore, "lock").mockResolvedValue({});
+    getJestSpyOn(Semaphore, "release").mockResolvedValue(undefined);
+    getJestSpyOn(GoogleSecOpsPoller, "findExistingEventUids").mockResolvedValue(
+      new Set(),
+    );
     insertedRows = [];
 
     getJestSpyOn(
@@ -418,6 +424,11 @@ function stubUpdateOneByIdWithColumnLengthCheck(): ReturnType<
 
 describe("GoogleSecOpsPoller.pollAllDueConnections error bookkeeping", () => {
   beforeEach(() => {
+    getJestSpyOn(Semaphore, "lock").mockResolvedValue({});
+    getJestSpyOn(Semaphore, "release").mockResolvedValue(undefined);
+    getJestSpyOn(GoogleSecOpsPoller, "findExistingEventUids").mockResolvedValue(
+      new Set(),
+    );
     // Every test here drives an expected failure down the logging path.
     getJestSpyOn(logger, "error").mockImplementation((() => {
       return undefined;
