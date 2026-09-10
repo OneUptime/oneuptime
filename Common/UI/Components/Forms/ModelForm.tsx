@@ -51,7 +51,7 @@ import Permission, {
   UserPermission,
 } from "../../../Types/Permission";
 import Typeof from "../../../Types/Typeof";
-import React, { MutableRefObject, ReactElement, useState } from "react";
+import React, { MutableRefObject, ReactElement, useRef, useState } from "react";
 import useAsyncEffect from "use-async-effect";
 import Select from "../../../Types/BaseDatabase/Select";
 
@@ -131,6 +131,37 @@ const ModelForm: <TBaseModel extends BaseModel>(
   const [error, setError] = useState<string>("");
   const [itemToEdit, setItemToEdit] = useState<TBaseModel | null>(null);
   const model: TBaseModel = new props.modelType();
+
+  /*
+   * Almost every caller writes its `fields` as an inline array literal in JSX,
+   * so the array is a brand new identity on every render of the page holding
+   * the form - which makes the effect below re-run whenever ANY unrelated
+   * state on that page changes, including while the user is typing into this
+   * form. Two guards keep that from being destructive:
+   *
+   *  - `dropdownOptionsCache` remembers the options already fetched for a
+   *    given dropdown, so a re-run does not fire the same list request again.
+   *    Without it the invite-user form issued a Team list request per
+   *    keystroke.
+   *  - `fieldsRunGeneration` discards a slower earlier run, so an in-flight
+   *    request that resolves after a newer one cannot put stale fields back
+   *    or clear a loading flag the newer run still owns.
+   */
+  type DropdownOptionsCacheEntry = {
+    dropdownOptions: Array<DropdownOption>;
+    selectByAccessControlProps: Field<TBaseModel>["selectByAccessControlProps"];
+  };
+
+  /*
+   * Keyed on the model CONSTRUCTOR rather than on its name, so two models can
+   * never share an entry however they are named - a model with neither a
+   * tableName nor a singularName would otherwise key as the empty string.
+   */
+  const dropdownOptionsCache: MutableRefObject<
+    Map<unknown, Dictionary<DropdownOptionsCacheEntry>>
+  > = useRef<Map<unknown, Dictionary<DropdownOptionsCacheEntry>>>(new Map());
+
+  const fieldsRunGeneration: MutableRefObject<number> = useRef<number>(0);
 
   const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
 
@@ -242,6 +273,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
   };
 
   const setFormFields: PromiseVoidFunction = async (): Promise<void> => {
+    fieldsRunGeneration.current = fieldsRunGeneration.current + 1;
+    const generation: number = fieldsRunGeneration.current;
+
     let fieldsToSet: Fields<TBaseModel> = [];
 
     for (const field of props.fields) {
@@ -314,7 +348,12 @@ const ModelForm: <TBaseModel extends BaseModel>(
       }
     }
 
-    fieldsToSet = await fetchDropdownOptions(fieldsToSet);
+    fieldsToSet = await fetchDropdownOptions(fieldsToSet, generation);
+
+    if (generation !== fieldsRunGeneration.current) {
+      // A newer run started while this one was fetching. It owns the state now.
+      return;
+    }
 
     // if there are no fields to set, then show permission error. This is useful when there are no fields to show.
     if (fieldsToSet.length === 0 && props.fields.length > 0) {
@@ -441,15 +480,103 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
   type FetchDropdownOptionsFunction = (
     fields: Fields<TBaseModel>,
+    generation: number,
   ) => Promise<Fields<TBaseModel>>;
+
+  /*
+   * What a dropdown's options depend on, and nothing else: the model, and the
+   * two columns read off it. The request below takes no query and no closure
+   * state, so two fields with the same three always get the same list back -
+   * which is what makes caching them safe.
+   */
+  type GetCachedDropdownOptionsFunction = (
+    dropdownModal: NonNullable<Field<TBaseModel>["dropdownModal"]>,
+  ) => DropdownOptionsCacheEntry | undefined;
+
+  type SetCachedDropdownOptionsFunction = (
+    dropdownModal: NonNullable<Field<TBaseModel>["dropdownModal"]>,
+    entry: DropdownOptionsCacheEntry,
+  ) => void;
+
+  const getDropdownColumnsKey: (
+    dropdownModal: NonNullable<Field<TBaseModel>["dropdownModal"]>,
+  ) => string = (
+    dropdownModal: NonNullable<Field<TBaseModel>["dropdownModal"]>,
+  ): string => {
+    return `${dropdownModal.labelField}|${dropdownModal.valueField}`;
+  };
+
+  const getCachedDropdownOptions: GetCachedDropdownOptionsFunction = (
+    dropdownModal: NonNullable<Field<TBaseModel>["dropdownModal"]>,
+  ): DropdownOptionsCacheEntry | undefined => {
+    return dropdownOptionsCache.current.get(dropdownModal.type)?.[
+      getDropdownColumnsKey(dropdownModal)
+    ];
+  };
+
+  const setCachedDropdownOptions: SetCachedDropdownOptionsFunction = (
+    dropdownModal: NonNullable<Field<TBaseModel>["dropdownModal"]>,
+    entry: DropdownOptionsCacheEntry,
+  ): void => {
+    const byColumns: Dictionary<DropdownOptionsCacheEntry> =
+      dropdownOptionsCache.current.get(dropdownModal.type) || {};
+
+    byColumns[getDropdownColumnsKey(dropdownModal)] = entry;
+
+    dropdownOptionsCache.current.set(dropdownModal.type, byColumns);
+  };
 
   const fetchDropdownOptions: FetchDropdownOptionsFunction = async (
     fields: Fields<TBaseModel>,
+    generation: number,
   ): Promise<Fields<TBaseModel>> => {
+    /*
+     * Serve everything already fetched from the cache first, then work out
+     * whether anything is actually left to request. Flipping the loading flag
+     * for a run that has nothing to fetch used to blank the whole form (see
+     * the comment on the render guard below), so only flip it when a real
+     * request is about to go out.
+     */
+    const fieldsToFetch: Fields<TBaseModel> = [];
+
+    for (const field of fields) {
+      if (!field.dropdownModal || !field.dropdownModal.type) {
+        continue;
+      }
+
+      const cached: DropdownOptionsCacheEntry | undefined =
+        getCachedDropdownOptions(field.dropdownModal);
+
+      if (cached) {
+        field.dropdownOptions = cached.dropdownOptions;
+
+        if (cached.selectByAccessControlProps) {
+          field.selectByAccessControlProps = cached.selectByAccessControlProps;
+        }
+
+        continue;
+      }
+
+      fieldsToFetch.push(field);
+    }
+
+    if (fieldsToFetch.length === 0) {
+      /*
+       * Nothing to wait for. Clearing rather than just returning keeps the flag
+       * from being left on by an older run that lost the race and therefore
+       * declined to clear it - React bails out when it is already false.
+       */
+      if (generation === fieldsRunGeneration.current) {
+        setIsFetchingDropdownOptions(false);
+      }
+
+      return fields;
+    }
+
     setIsFetchingDropdownOptions(true);
 
     try {
-      for (const field of fields) {
+      for (const field of fieldsToFetch) {
         if (field.dropdownModal && field.dropdownModal.type) {
           const tempModel: BaseModel = new field.dropdownModal.type();
           const select: any = {
@@ -642,13 +769,21 @@ const ModelForm: <TBaseModel extends BaseModel>(
           } else {
             field.dropdownOptions = [];
           }
+
+          setCachedDropdownOptions(field.dropdownModal, {
+            dropdownOptions: (field.dropdownOptions ||
+              []) as Array<DropdownOption>,
+            selectByAccessControlProps: field.selectByAccessControlProps,
+          });
         }
       }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
 
-    setIsFetchingDropdownOptions(false);
+    if (generation === fieldsRunGeneration.current) {
+      setIsFetchingDropdownOptions(false);
+    }
 
     return fields;
   };
@@ -849,7 +984,26 @@ const ModelForm: <TBaseModel extends BaseModel>(
     }
   };
 
-  if (isFetching || isFetchingDropdownOptions) {
+  /*
+   * Only ever swap the form out for a loader while there is no form to show.
+   * Returning the loader over a form the user is already filling in unmounts
+   * BasicModelForm and everything under it, and a form's values live in that
+   * subtree - in BasicForm's refs and in each Input's own state, since Input
+   * is DOM-uncontrolled. So the remount silently threw the user's input away.
+   *
+   * That is what made inviting a user impossible: the invite form's Email field
+   * calls back into the page on every keystroke to check whether the address
+   * already has an account, the page re-renders with a fresh `fields` array
+   * literal, the effect above re-runs, and the form the user was typing into
+   * was destroyed and rebuilt empty.
+   *
+   * Once fields exist, options refresh in the background instead. The cache in
+   * fetchDropdownOptions means the usual re-run does not even reach the
+   * network, so in practice nothing about the form flickers at all.
+   */
+  const hasFieldsToRender: boolean = fields.length > 0;
+
+  if (isFetching || (isFetchingDropdownOptions && !hasFieldsToRender)) {
     return (
       <div className="row flex justify-center mt-20 mb-20">
         <Loader loaderType={LoaderType.Bar} color={VeryLightGray} size={200} />
