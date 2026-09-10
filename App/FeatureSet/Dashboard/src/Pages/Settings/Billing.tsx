@@ -780,7 +780,7 @@ const Settings: FunctionComponent<ComponentProps> = (
               onClose={() => {
                 setShowPaymentMethodModal(false);
               }}
-              submitButtonText={`Save payment method and enable paid usage`}
+              submitButtonText={`Save payment method`}
               error={modalError || ""}
               isBodyLoading={isModalLoading}
               submitButtonType={ButtonType.Submit}

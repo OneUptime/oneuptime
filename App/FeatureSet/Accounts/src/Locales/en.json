@@ -187,5 +187,13 @@
   "Password is required.": "Password is required.",
   "Password must be a string.": "Password must be a string.",
   "Account details": "Account details",
-  "Secure your account": "Secure your account"
+  "Secure your account": "Secure your account",
+  "Between {{minimum}} and {{maximum}} characters": "Between {{minimum}} and {{maximum}} characters",
+  "Avoid common or repeated patterns": "Avoid common or repeated patterns",
+  "Password length": "Password length",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / {{minimum}} characters minimum",
+  "Complete:": "Complete:",
+  "Incomplete:": "Incomplete:",
+  "Special character included (optional)": "Special character included (optional)",
+  "Special characters are optional. Try !, @, # or $.": "Special characters are optional. Try !, @, # or $."
 }

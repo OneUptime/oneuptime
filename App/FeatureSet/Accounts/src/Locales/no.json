@@ -187,5 +187,13 @@
   "Password is required.": "Passord er påkrevd.",
   "Password must be a string.": "Passordet må være en tekststreng.",
   "Account details": "Kontodetaljer",
-  "Secure your account": "Sikre kontoen din"
+  "Secure your account": "Sikre kontoen din",
+  "Between {{minimum}} and {{maximum}} characters": "Mellom {{minimum}} og {{maximum}} tegn",
+  "Avoid common or repeated patterns": "Unngå vanlige eller gjentatte mønstre",
+  "Password length": "Passordlengde",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / minst {{minimum}} tegn",
+  "Complete:": "Oppfylt:",
+  "Incomplete:": "Ikke oppfylt:",
+  "Special character included (optional)": "Spesialtegn inkludert (valgfritt)",
+  "Special characters are optional. Try !, @, # or $.": "Spesialtegn er valgfrie. Prøv !, @, # eller $."
 }

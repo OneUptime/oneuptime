@@ -34,6 +34,8 @@ import WebAuthnTestUtil, {
 import PasskeySettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/Passkeys";
 import TwoFactorSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/TwoFactorAuth";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
+import { ModalType } from "../../../UI/Components/ModelTable/BaseModelTable";
+import { FormType } from "../../../UI/Components/Forms/ModelForm";
 import UserWebAuthn from "../../../Models/DatabaseModels/UserWebAuthn";
 import UserTotpAuth from "../../../Models/DatabaseModels/UserTotpAuth";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -45,13 +47,15 @@ import Card from "../../../UI/Components/Card/Card";
 import EqualToOrNull from "../../../Types/BaseDatabase/EqualToOrNull";
 
 let mockRenderRealPasskeyTable: boolean = false;
+let mockRenderRealTotpTable: boolean = false;
 let mockCredentialTableProps: ModelTableProps<UserWebAuthn> | undefined;
 let mockTotpTableProps: ModelTableProps<UserTotpAuth> | undefined;
 
 /*
  * Keep the real page, enrollment modal, input and browser/API boundary. Only
  * registration cases replace unrelated model lists; header and management
- * cases use the real passkey table to verify shared UI and name-only updates.
+ * cases use the real credential and authenticator tables to verify shared UI,
+ * name-only updates, and create-versus-edit enrollment behavior.
  */
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
@@ -62,7 +66,10 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
       } else if (props.id === "totp-auth-table") {
         mockTotpTableProps = props as unknown as ModelTableProps<UserTotpAuth>;
       }
-      if (mockRenderRealPasskeyTable && props.modelType === UserWebAuthn) {
+      if (
+        (mockRenderRealPasskeyTable && props.modelType === UserWebAuthn) ||
+        (mockRenderRealTotpTable && props.id === "totp-auth-table")
+      ) {
         const ModelTable: typeof import("../../../UI/Components/ModelTable/ModelTable").default =
           (
             jest.requireActual(
@@ -177,10 +184,7 @@ const renderPage: (isPasskey?: boolean) => void = (
   );
 };
 
-const mockPasskeyTable: (items: Array<UserWebAuthn>) => void = (
-  items: Array<UserWebAuthn>,
-): void => {
-  mockRenderRealPasskeyTable = true;
+const mockTablePermissions: () => void = (): void => {
   jest
     .spyOn(PermissionUtil, "getAllPermissions")
     .mockReturnValue([Permission.CurrentUser]);
@@ -190,6 +194,13 @@ const mockPasskeyTable: (items: Array<UserWebAuthn>) => void = (
     _type: "UserGlobalAccessPermission",
   });
   jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(null);
+};
+
+const mockPasskeyTable: (items: Array<UserWebAuthn>) => void = (
+  items: Array<UserWebAuthn>,
+): void => {
+  mockRenderRealPasskeyTable = true;
+  mockTablePermissions();
   jest.spyOn(ModelAPI, "getList").mockResolvedValue({
     data: items,
     count: items.length,
@@ -252,6 +263,7 @@ const register: (isPasskey?: boolean) => Promise<void> = async (
 describe("Passkey settings registration", () => {
   beforeEach(() => {
     mockRenderRealPasskeyTable = false;
+    mockRenderRealTotpTable = false;
     mockCredentialTableProps = undefined;
     mockTotpTableProps = undefined;
     window.localStorage.clear();
@@ -873,9 +885,132 @@ describe("Passkey settings registration", () => {
     const openSetup: () => Promise<void> = async (): Promise<void> => {
       renderPage(false);
       await act(async () => {
-        await mockTotpTableProps!.onCreateSuccess!(createAuthenticator());
+        await mockTotpTableProps!.onCreateSuccess!(
+          createAuthenticator(),
+          ModalType.Create,
+        );
       });
     };
+
+    test.each([true, false])(
+      "renames an authenticator without reopening setup, then enrolls a new app: verified %s",
+      async (isVerified: boolean) => {
+        const storedAuthenticator: UserTotpAuth = createAuthenticator();
+        storedAuthenticator.isVerified = isVerified;
+        const newAuthenticator: UserTotpAuth = createAuthenticator();
+        newAuthenticator._id = "66666666-6666-4666-8666-666666666666";
+        newAuthenticator.name = "New phone";
+        newAuthenticator.isVerified = false;
+        backupCodes = ["ABCDE-12345"];
+        mockRenderRealTotpTable = true;
+        mockTablePermissions();
+        jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+          data: [storedAuthenticator],
+          count: 1,
+          skip: 0,
+          limit: 10,
+        });
+        jest.spyOn(ModelAPI, "getItem").mockResolvedValue(storedAuthenticator);
+        jest
+          .spyOn(ModelAPI, "createOrUpdate")
+          .mockResolvedValueOnce(new HTTPResponse<UserTotpAuth>(200, {}, {}))
+          .mockResolvedValueOnce(
+            new HTTPResponse<UserTotpAuth>(
+              200,
+              UserTotpAuth.toJSON(newAuthenticator, UserTotpAuth),
+              {},
+            ),
+          );
+        renderPage(false);
+
+        await click(await screen.findByRole("button", { name: "Rename" }));
+        const renameDialog: HTMLElement = await screen.findByRole("dialog", {
+          name: "Edit authenticator app",
+        });
+        const renameInput: HTMLElement = await within(renameDialog).findByRole(
+          "textbox",
+          { name: "App name" },
+        );
+        await waitFor(() => {
+          expect(renameInput).toHaveValue("My authenticator");
+        });
+        fireEvent.change(renameInput, { target: { value: "Renamed phone" } });
+        await click(
+          within(renameDialog).getByRole("button", { name: "Save Changes" }),
+        );
+        await waitFor(() => {
+          expect(ModelAPI.createOrUpdate).toHaveBeenCalledTimes(1);
+          expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+        });
+        const renameRequest: Parameters<typeof ModelAPI.createOrUpdate>[0] =
+          jest.mocked(ModelAPI.createOrUpdate).mock.calls[0]![0];
+        expect(renameRequest.formType).toBe(FormType.Update);
+        expect(renameRequest.model).toMatchObject({
+          _id: storedAuthenticator._id,
+          name: "Renamed phone",
+        });
+        const renamedAuthenticator: UserTotpAuth =
+          renameRequest.model as UserTotpAuth;
+        expect(renamedAuthenticator.isVerified).toBeUndefined();
+        expect(renamedAuthenticator.twoFactorOtpUrl).toBeUndefined();
+        expect(renamedAuthenticator.twoFactorSecret).toBeUndefined();
+        expect(ModelAPI.getItem).toHaveBeenCalledTimes(1);
+        expect(
+          screen.queryByTestId("authenticator-qr"),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.getByTestId("enrolment-backup-codes"),
+        ).toBeEmptyDOMElement();
+        expect(API.post).not.toHaveBeenCalled();
+
+        await click(
+          screen.getByRole("button", { name: "Add authenticator app" }),
+        );
+        const createDialog: HTMLElement = await screen.findByRole("dialog", {
+          name: "Add New authenticator app",
+        });
+        fireEvent.change(
+          within(createDialog).getByRole("textbox", { name: "App name" }),
+          { target: { value: "New phone" } },
+        );
+        await click(
+          within(createDialog).getByRole("button", {
+            name: "Add authenticator app",
+          }),
+        );
+        const setupDialog: HTMLElement = await screen.findByRole("dialog", {
+          name: "Set up New phone",
+        });
+        expect(
+          within(setupDialog).getByTestId("authenticator-qr"),
+        ).toHaveTextContent(newAuthenticator.twoFactorOtpUrl!);
+        const createRequest: Parameters<typeof ModelAPI.createOrUpdate>[0] =
+          jest.mocked(ModelAPI.createOrUpdate).mock.calls[1]![0];
+        expect(createRequest.formType).toBe(FormType.Create);
+        expect(createRequest.model).toMatchObject({ name: "New phone" });
+        expect(createRequest.model._id).toBeUndefined();
+        fireEvent.change(
+          within(setupDialog).getByRole("textbox", {
+            name: "Verification code",
+          }),
+          { target: { value: "012345" } },
+        );
+        await click(
+          within(setupDialog).getByRole("button", {
+            name: "Verify and finish",
+          }),
+        );
+        expect(posted).toHaveLength(1);
+        expect(posted[0]?.data).toEqual({
+          id: newAuthenticator._id,
+          code: "012345",
+        });
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+        expect(screen.getByTestId("enrolment-backup-codes")).toHaveTextContent(
+          "ABCDE-12345",
+        );
+      },
+    );
 
     test("opens QR setup immediately after adding an app with a labeled code input", async () => {
       await openSetup();
@@ -956,7 +1091,10 @@ describe("Passkey settings registration", () => {
       jest.spyOn(ModelAPI, "getItem").mockResolvedValue(authenticator);
       renderPage(false);
       await act(async () => {
-        await mockTotpTableProps!.onCreateSuccess!(createAuthenticator(false));
+        await mockTotpTableProps!.onCreateSuccess!(
+          createAuthenticator(false),
+          ModalType.Create,
+        );
       });
       expect(ModelAPI.getItem).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -984,7 +1122,10 @@ describe("Passkey settings registration", () => {
       });
       renderPage(false);
       act(() => {
-        void mockTotpTableProps!.onCreateSuccess!(createAuthenticator(false));
+        void mockTotpTableProps!.onCreateSuccess!(
+          createAuthenticator(false),
+          ModalType.Create,
+        );
       });
       expect(
         screen.getByRole("button", { name: "Verify and finish" }),

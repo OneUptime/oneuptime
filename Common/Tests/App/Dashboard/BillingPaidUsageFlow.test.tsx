@@ -398,7 +398,7 @@ describe("Billing page paid usage flow", () => {
       await screen.findByRole("button", { name: "Add Payment Method" }),
     );
     const save: HTMLElement = await screen.findByRole("button", {
-      name: "Save payment method and enable paid usage",
+      name: "Save payment method",
     });
     await waitFor(() => {
       expect(save).not.toBeDisabled();
@@ -447,7 +447,7 @@ describe("Billing page paid usage flow", () => {
       await screen.findByRole("button", { name: "Add Payment Method" }),
     );
     const save: HTMLElement = await screen.findByRole("button", {
-      name: "Save payment method and enable paid usage",
+      name: "Save payment method",
     });
     await waitFor(() => {
       expect(save).not.toBeDisabled();

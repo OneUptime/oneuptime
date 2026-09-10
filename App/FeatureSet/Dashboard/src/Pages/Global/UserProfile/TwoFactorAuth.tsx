@@ -17,6 +17,7 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import UserUtil from "Common/UI/Utils/User";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import Page from "Common/UI/Components/Page/Page";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -260,8 +261,11 @@ const TwoFactorAuth: FunctionComponent<
           pluralName="authenticator apps"
           onCreateSuccess={async (
             item: UserTotpAuth,
+            modalType?: ModalType,
           ): Promise<UserTotpAuth> => {
-            await openVerification(item);
+            if (modalType === ModalType.Create) {
+              await openVerification(item);
+            }
             return item;
           }}
           actionButtons={[

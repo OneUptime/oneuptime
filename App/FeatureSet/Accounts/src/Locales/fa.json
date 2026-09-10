@@ -187,5 +187,13 @@
   "Password is required.": "وارد کردن گذرواژه الزامی است.",
   "Password must be a string.": "گذرواژه باید یک رشتهٔ متنی باشد.",
   "Account details": "جزئیات حساب",
-  "Secure your account": "حساب خود را ایمن کنید"
+  "Secure your account": "حساب خود را ایمن کنید",
+  "Between {{minimum}} and {{maximum}} characters": "بین {{minimum}} و {{maximum}} نویسه",
+  "Avoid common or repeated patterns": "از الگوهای رایج یا تکراری خودداری کنید",
+  "Password length": "طول رمز عبور",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / حداقل {{minimum}} نویسه",
+  "Complete:": "رعایت شده:",
+  "Incomplete:": "رعایت نشده:",
+  "Special character included (optional)": "نویسهٔ ویژه دارد (اختیاری)",
+  "Special characters are optional. Try !, @, # or $.": "نویسه‌های ویژه اختیاری هستند. از !، @، # یا $ استفاده کنید."
 }

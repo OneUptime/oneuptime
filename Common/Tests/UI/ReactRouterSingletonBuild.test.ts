@@ -58,12 +58,22 @@ function renderSharedLink(nodeEnv: string): RenderResult {
 
   fs.copyFileSync(APP_LINK, path.join(root, "shared", "AppLink.tsx"));
   const entry: string = path.join(root, "public", "Entry.tsx");
+  /*
+   * The entry renders through react-dom/server.browser rather than the bare
+   * react-dom/server specifier. esbuild-config aliases "react-dom" to an
+   * absolute directory, and an esbuild alias rewrites subpaths too, so
+   * "react-dom/server" would become a plain file path and skip react-dom's
+   * exports map - landing on server.node.js, which imports "stream" and "util"
+   * and cannot resolve on the browser platform this config builds for.
+   * server.browser is the renderer that exports map picks for a browser build
+   * anyway, so this asks for it directly instead of relying on the alias.
+   */
   fs.writeFileSync(
     entry,
     `
       import React from "react";
       import { MemoryRouter } from "react-router-dom";
-      import { renderToStaticMarkup } from "react-dom/server";
+      import { renderToStaticMarkup } from "react-dom/server.browser";
       import AppLink from "../shared/AppLink";
 
       globalThis.routerFixtureMarkup = renderToStaticMarkup(

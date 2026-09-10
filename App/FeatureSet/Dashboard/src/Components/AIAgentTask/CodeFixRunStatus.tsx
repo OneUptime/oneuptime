@@ -40,6 +40,17 @@ const TASK_TYPE_LABEL: { [key in CodeFixTaskType]: string } = {
   [CodeFixTaskType.ImproveTracing]: "Improve Tracing",
   [CodeFixTaskType.FixPerformance]: "Fix Performance",
   [CodeFixTaskType.FixFromIncident]: "Fix from Incident",
+  /*
+   * The GitHub-triggered recipes name their GitHub subject rather than a
+   * OneUptime one: nothing in this product started them, so "the issue" or
+   * "the pull request" is the only handle the reader has on the row. They are
+   * spelled with the same verbs the app uses inside the thread it was
+   * mentioned in (implement/fix an issue, revise a pull request, review a
+   * pull request), and say GitHub because a repository can also be GitLab.
+   */
+  [CodeFixTaskType.GitHubIssueFix]: "Fix GitHub Issue",
+  [CodeFixTaskType.GitHubPullRequestRevision]: "Revise GitHub Pull Request",
+  [CodeFixTaskType.GitHubPullRequestReview]: "Review GitHub Pull Request",
 };
 
 export function getCodeFixTaskTypeLabel(taskType: string | undefined): string {

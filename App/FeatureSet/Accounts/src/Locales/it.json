@@ -187,5 +187,13 @@
   "Password is required.": "La password è obbligatoria.",
   "Password must be a string.": "La password deve essere una stringa di testo.",
   "Account details": "Dettagli dell’account",
-  "Secure your account": "Proteggi il tuo account"
+  "Secure your account": "Proteggi il tuo account",
+  "Between {{minimum}} and {{maximum}} characters": "Tra {{minimum}} e {{maximum}} caratteri",
+  "Avoid common or repeated patterns": "Evita sequenze comuni o ripetute",
+  "Password length": "Lunghezza della password",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / minimo {{minimum}} caratteri",
+  "Complete:": "Soddisfatto:",
+  "Incomplete:": "Non soddisfatto:",
+  "Special character included (optional)": "Carattere speciale incluso (facoltativo)",
+  "Special characters are optional. Try !, @, # or $.": "I caratteri speciali sono facoltativi. Prova !, @, # o $."
 }
