@@ -65,7 +65,7 @@ describe("two-factor authentication status", () => {
   test("loads the current user's status before offering an action", async () => {
     let finish: ((user: User) => void) | undefined;
     loadStatus.mockReturnValue(
-      new Promise<User>((resolve) => {
+      new Promise<User>((resolve: (user: User) => void) => {
         finish = resolve;
       }),
     );
@@ -171,7 +171,7 @@ describe("two-factor authentication status", () => {
   test("sends one enable request and waits for the server before changing status", async () => {
     let finish: (() => void) | undefined;
     enable.mockReturnValue(
-      new Promise<void>((resolve) => {
+      new Promise<void>((resolve: () => void) => {
         finish = resolve;
       }),
     );

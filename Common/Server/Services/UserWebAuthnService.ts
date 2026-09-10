@@ -461,8 +461,10 @@ export class Service extends DatabaseService<Model> {
           registrationInfo.credential.transports || [],
         ),
         isVerified: true,
-        // Use only the server-bound ceremony purpose, never a client assertion.
-        // Challenges created just before an upgrade retain the legacy unknown value.
+        /*
+         * Use only the server-bound ceremony purpose, never a client assertion.
+         * Challenges created just before an upgrade retain the legacy unknown value.
+         */
         isPasskey: storedChallenge.isPasskey,
         userId: data.props.userId,
       },
@@ -471,8 +473,10 @@ export class Service extends DatabaseService<Model> {
 
     await this.create({
       data: userWebAuthn,
-      // The credential and its purpose have been verified above. The purpose is
-      // read-only through CRUD; only this verified registration path writes it.
+      /*
+       * The credential and its purpose have been verified above. The purpose is
+       * read-only through CRUD; only this verified registration path writes it.
+       */
       props: { ...data.props, isRoot: true },
     });
   }

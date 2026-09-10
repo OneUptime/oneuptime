@@ -55,7 +55,9 @@ describe("backup code recovery experience", () => {
       [navigator, "clipboard", clipboardDescriptor],
       [window.URL, "createObjectURL", createObjectURLDescriptor],
       [window.URL, "revokeObjectURL", revokeObjectURLDescriptor],
-    ] as Array<[object, string, PropertyDescriptor | undefined]>) {
+    ] as unknown as Array<
+      [Record<string, unknown>, string, PropertyDescriptor | undefined]
+    >) {
       if (descriptor) {
         Object.defineProperty(target, property, descriptor);
       } else {
@@ -89,7 +91,7 @@ describe("backup code recovery experience", () => {
     [0, "No codes left", "Generate a new set to restore your recovery option"],
   ])(
     "explains the recovery state with %i unused codes",
-    async (unused, label, guidance) => {
+    async (unused: number, label: string, guidance: string) => {
       getStatus.mockResolvedValue(
         response({ total: 10, unused, generatedAt: null }),
       );
@@ -182,9 +184,14 @@ describe("backup code recovery experience", () => {
   test("rapid confirmation clicks send one request and keep a failure visible", async () => {
     let rejectGeneration: ((error: Error) => void) | undefined;
     generateCodes.mockReturnValue(
-      new Promise((_resolve, reject) => {
-        rejectGeneration = reject;
-      }),
+      new Promise(
+        (
+          _resolve: (value: unknown) => void,
+          reject: (reason?: unknown) => void,
+        ): void => {
+          rejectGeneration = reject;
+        },
+      ),
     );
     render(<BackupCodes />);
     await screen.findByRole("status", { name: "Backup code status" });
@@ -351,14 +358,19 @@ describe("backup code recovery experience", () => {
     expect(click).toHaveBeenCalledTimes(1);
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:backup-codes");
     expect(document.querySelector("a[download]")).toBeNull();
-    const content: string = await new Promise((resolve, reject) => {
-      const reader: FileReader = new FileReader();
-      reader.onload = (): void => {
-        resolve(String(reader.result));
-      };
-      reader.onerror = reject;
-      reader.readAsText(createObjectURL.mock.calls[0][0] as Blob);
-    });
+    const content: string = await new Promise<string>(
+      (
+        resolve: (value: string | PromiseLike<string>) => void,
+        reject: (reason?: unknown) => void,
+      ): void => {
+        const reader: FileReader = new FileReader();
+        reader.onload = (): void => {
+          resolve(String(reader.result));
+        };
+        reader.onerror = reject;
+        reader.readAsText(createObjectURL.mock.calls[0][0] as Blob);
+      },
+    );
     expect(content).toContain(CODES.join("\n"));
     expect(content).toContain(
       "Each code can be used once after entering your password.",

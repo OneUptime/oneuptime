@@ -524,9 +524,9 @@ describe("Passkey settings registration", () => {
     expect(
       screen.getByTestId("passkeys-table").getAttribute("data-refresh"),
     ).not.toBe(refreshBefore);
-    expect(screen.getByTestId("passkey-registration-success")).toHaveTextContent(
-      "Passkey added. Use it the next time you sign in.",
-    );
+    expect(
+      screen.getByTestId("passkey-registration-success"),
+    ).toHaveTextContent("Passkey added. Use it the next time you sign in.");
   });
 
   test("registers a security key as a second factor from the two-factor page", async () => {
@@ -534,7 +534,9 @@ describe("Passkey settings registration", () => {
     await register(false);
     expect(posted[0]?.data).toEqual({ isPasskey: false });
     expect(posted[1]?.data).toMatchObject({ name: "My laptop" });
-    expect(screen.getByTestId("passkey-registration-success")).toHaveTextContent(
+    expect(
+      screen.getByTestId("passkey-registration-success"),
+    ).toHaveTextContent(
       "Security key added. It is ready to use for two-factor authentication.",
     );
   });
@@ -731,7 +733,9 @@ describe("Passkey settings registration", () => {
     });
     expect(posted).toHaveLength(3);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.getByTestId("passkey-registration-success")).toHaveTextContent("Passkey added");
+    expect(
+      screen.getByTestId("passkey-registration-success"),
+    ).toHaveTextContent("Passkey added");
   });
 
   test("keeps verification visible until saving finishes and preserves returned recovery codes", async () => {
@@ -773,7 +777,9 @@ describe("Passkey settings registration", () => {
     expect(screen.getByTestId("enrolment-backup-codes")).toHaveTextContent(
       "ABCDE-12345",
     );
-    expect(screen.getByTestId("passkey-registration-success")).toHaveTextContent("Passkey added");
+    expect(
+      screen.getByTestId("passkey-registration-success"),
+    ).toHaveTextContent("Passkey added");
   });
 
   test.each([true, false])(
@@ -970,9 +976,11 @@ describe("Passkey settings registration", () => {
     test("cancels a pending QR load and ignores its late response", async () => {
       let finish: ((authenticator: UserTotpAuth) => void) | undefined;
       jest.spyOn(ModelAPI, "getItem").mockImplementation(() => {
-        return new Promise<UserTotpAuth>((resolve) => {
-          finish = resolve;
-        });
+        return new Promise<UserTotpAuth>(
+          (resolve: (authenticator: UserTotpAuth) => void) => {
+            finish = resolve;
+          },
+        );
       });
       renderPage(false);
       act(() => {
@@ -1028,9 +1036,11 @@ describe("Passkey settings registration", () => {
     test("prevents duplicate verification and waits for recovery codes before dismissal", async () => {
       let finish: ((response: HTTPResponse<JSONObject>) => void) | undefined;
       jest.spyOn(API, "post").mockImplementationOnce(() => {
-        return new Promise<HTTPResponse<JSONObject>>((resolve) => {
-          finish = resolve;
-        });
+        return new Promise<HTTPResponse<JSONObject>>(
+          (resolve: (response: HTTPResponse<JSONObject>) => void) => {
+            finish = resolve;
+          },
+        );
       });
       await openSetup();
       fireEvent.change(

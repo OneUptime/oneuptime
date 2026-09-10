@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class AddUserWebAuthnPurpose1789067310765 implements MigrationInterface {
-  name = "AddUserWebAuthnPurpose1789067310765";
+  public name = "AddUserWebAuthnPurpose1789067310765";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
