@@ -1,5 +1,10 @@
 import React from "react";
-import { renderHook, waitFor, act, cleanup } from "@testing-library/react-native";
+import {
+  renderHook,
+  waitFor,
+  act,
+  cleanup,
+} from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import {
@@ -95,8 +100,10 @@ function axiosError(httpStatus: number): unknown {
 const createdClients: QueryClient[] = [];
 
 afterEach(async (): Promise<void> => {
-  // Unmount observers first: their cleanup schedules GC, including for another
-  // user's deliberately seeded credential cache. Dispose only after assertions.
+  /*
+   * Unmount observers first: their cleanup schedules GC, including for another
+   * user's deliberately seeded credential cache. Dispose only after assertions.
+   */
   await cleanup();
   createdClients.splice(0).forEach((client: QueryClient): void => {
     client.clear();
@@ -107,8 +114,10 @@ function createClient(): QueryClient {
   const client: QueryClient = new QueryClient({
     defaultOptions: {
       queries: { retryDelay: 0 },
-      // MutationCache.clear() removes entries but does not cancel their GC
-      // timeout. Mutations do not need a post-observer lifetime in this suite.
+      /*
+       * MutationCache.clear() removes entries but does not cancel their GC
+       * timeout. Mutations do not need a post-observer lifetime in this suite.
+       */
       mutations: { retry: false, gcTime: 0 },
     },
   });
