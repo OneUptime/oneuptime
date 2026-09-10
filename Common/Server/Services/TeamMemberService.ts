@@ -1,5 +1,6 @@
 import DatabaseConfig from "../DatabaseConfig";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -174,18 +175,24 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         id: createBy.data.projectId!,
         select: {
           seatLimit: true,
-          paymentProviderSubscriptionSeats: true,
         },
         props: {
           isRoot: true,
         },
       });
 
+      // Billing can lag after a provider outage. Admission limits must use
+      // persisted memberships, including pending invitations.
+      const numberOfMembers: number =
+        project &&
+        (project.seatLimit || createBy.props.currentPlan === PlanType.Free)
+          ? await this.getUniqueTeamMemberCountInProject(projectId)
+          : 0;
+
       if (
         project &&
         project.seatLimit &&
-        project.paymentProviderSubscriptionSeats &&
-        project.paymentProviderSubscriptionSeats >= project.seatLimit
+        numberOfMembers >= project.seatLimit
       ) {
         throw new BadDataException(Errors.TeamMemberService.LIMIT_REACHED);
       }
@@ -193,8 +200,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       if (
         createBy.props.currentPlan === PlanType.Free &&
         project &&
-        project.paymentProviderSubscriptionSeats &&
-        project.paymentProviderSubscriptionSeats >= 1
+        numberOfMembers >= 1
       ) {
         throw new BadDataException(
           Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN,
@@ -535,7 +541,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       onCreate.createBy.data.projectId!,
     );
 
-    await this.updateSubscriptionSeatsByUniqueTeamMembersInProject(
+    await this.syncSubscriptionSeatsAfterMembershipChange(
       onCreate.createBy.data.projectId!,
     );
 
@@ -726,9 +732,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
 
     for (const item of onDelete.carryForward as Array<TeamMember>) {
       await this.refreshTokens(item.userId!, item.projectId!);
-      await this.updateSubscriptionSeatsByUniqueTeamMembersInProject(
-        item.projectId!,
-      );
+      await this.syncSubscriptionSeatsAfterMembershipChange(item.projectId!);
 
       /*
        * Before the notification settings go: the "removed from on-call
@@ -1269,6 +1273,27 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     });
   }
 
+  /**
+   * The membership write has already committed. A payment-provider outage
+   * must not report a failed invite or prevent removal cleanup. The scheduled
+   * seat reconciliation retries projects whose acknowledged count is stale.
+   */
+  @CaptureSpan()
+  private async syncSubscriptionSeatsAfterMembershipChange(
+    projectId: ObjectID,
+  ): Promise<void> {
+    try {
+      await this.updateSubscriptionSeatsByUniqueTeamMembersInProject(projectId);
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: projectId.toString(),
+        } as LogAttributes,
+      );
+    }
+  }
+
   @CaptureSpan()
   public async updateSubscriptionSeatsByUniqueTeamMembersInProject(
     projectId: ObjectID,
@@ -1277,30 +1302,60 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       return;
     }
 
-    const numberOfMembers: number =
-      await this.getUniqueTeamMemberCountInProject(projectId);
-    const project: Project | null = await ProjectService.findOneById({
-      id: projectId,
-      select: {
-        paymentProviderSubscriptionId: true,
-        paymentProviderPlanId: true,
-      },
-      props: {
-        isRoot: true,
-      },
+    // Serialize the request and worker paths, then read the latest count so
+    // an older synchronization cannot overwrite a newer seat quantity.
+    const mutex: SemaphoreMutex = await Semaphore.lock({
+      key: projectId.toString(),
+      namespace: "team-member-subscription-seats",
+      lockTimeout: 60000,
+      acquireTimeout: 5000,
     });
 
-    if (
-      project &&
-      project.paymentProviderSubscriptionId &&
-      project?.paymentProviderPlanId
-    ) {
+    try {
+      const project: Project | null = await ProjectService.findOneById({
+        id: projectId,
+        select: {
+          paymentProviderSubscriptionId: true,
+          paymentProviderPlanId: true,
+          paymentProviderSubscriptionSeats: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (
+        !project?.paymentProviderSubscriptionId ||
+        !project.paymentProviderPlanId
+      ) {
+        return;
+      }
+
       const plan: SubscriptionPlan | undefined =
-        SubscriptionPlan.getSubscriptionPlanById(
-          project?.paymentProviderPlanId,
-        );
+        SubscriptionPlan.getSubscriptionPlanById(project.paymentProviderPlanId);
 
       if (!plan) {
+        return;
+      }
+
+      const numberOfMembers: number =
+        await this.getUniqueTeamMemberCountInProject(projectId);
+
+      if (project.paymentProviderSubscriptionSeats === numberOfMembers) {
+        return;
+      }
+
+      // The provider may apply the quantity and then time out. Persist that
+      // uncertainty before calling it, so even a later return to the previous
+      // member count cannot make reconciliation mistake the seats for synced.
+      const invalidated: number = await ProjectService.updateSubscriptionSeats({
+        projectId: projectId,
+        subscriptionId: project.paymentProviderSubscriptionId,
+        planId: project.paymentProviderPlanId,
+        seats: null,
+      });
+
+      if (invalidated === 0) {
         return;
       }
 
@@ -1309,15 +1364,14 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         numberOfMembers,
       );
 
-      await ProjectService.updateOneById({
-        id: projectId,
-        data: {
-          paymentProviderSubscriptionSeats: numberOfMembers,
-        },
-        props: {
-          isRoot: true,
-        },
+      await ProjectService.updateSubscriptionSeats({
+        projectId: projectId,
+        subscriptionId: project.paymentProviderSubscriptionId,
+        planId: project.paymentProviderPlanId,
+        seats: numberOfMembers,
       });
+    } finally {
+      await Semaphore.release(mutex);
     }
   }
 

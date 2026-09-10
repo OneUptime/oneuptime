@@ -113,6 +113,7 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import PositiveNumber from "../../Types/PositiveNumber";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
+import { IsNull, UpdateResult } from "typeorm";
 
 export interface CurrentPlan {
   plan: PlanType | null;
@@ -2704,6 +2705,41 @@ These are no longer recorded against the project and have to be cancelled by han
     }
   }
 
+  /**
+   * Record seat synchronization state only for the subscription that was read.
+   * The normal update path locates rows first and then writes by id, which can
+   * overwrite a replacement subscription's state during a concurrent plan change.
+   */
+  @CaptureSpan()
+  public async updateSubscriptionSeats(data: {
+    projectId: ObjectID;
+    subscriptionId: string;
+    planId: string;
+    seats: number | null;
+  }): Promise<number> {
+    const result: UpdateResult = await this.getRepository().update(
+      {
+        _id: data.projectId.toString(),
+        paymentProviderSubscriptionId: data.subscriptionId,
+        paymentProviderPlanId: data.planId,
+        deletedAt: IsNull(),
+      },
+      {
+        paymentProviderSubscriptionSeats:
+          data.seats === null
+            ? () => {
+                return "NULL";
+              }
+            : data.seats,
+        version: () => {
+          return '"version" + 1';
+        },
+      },
+    );
+
+    return result.affected || 0;
+  }
+
   @CaptureSpan()
   public async reactiveSubscription(projectId: ObjectID): Promise<void> {
     logger.debug("Reactivating subscription for project " + projectId, {
@@ -2744,7 +2780,13 @@ These are no longer recorded against the project and have to be cancelled by han
       );
     }
 
-    if (!project.paymentProviderSubscriptionSeats) {
+    // A pending seat synchronization leaves the acknowledged count empty.
+    // Reactivation can still use the memberships already stored in the project.
+    const seats: number =
+      project.paymentProviderSubscriptionSeats ??
+      (await TeamMemberService.getUniqueTeamMemberCountInProject(projectId));
+
+    if (!seats) {
       throw new BadDataException(
         "Payment Provider subscription seats not found",
       );
@@ -2792,7 +2834,7 @@ These are no longer recorded against the project and have to be cancelled by han
       meteredSubscriptionId: project.paymentProviderMeteredSubscriptionId,
       serverMeteredPlans: AllMeteredPlans,
       newPlan: subscriptionPlan,
-      quantity: project.paymentProviderSubscriptionSeats,
+      quantity: seats,
       isYearly: SubscriptionPlan.isYearlyPlan(project.paymentProviderPlanId),
       endTrialAt: endTrialAt,
     });
