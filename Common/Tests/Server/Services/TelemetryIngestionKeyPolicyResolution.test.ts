@@ -4,6 +4,7 @@ import ObjectID from "../../../Types/ObjectID";
 import TelemetryIngestionKeyPolicy from "../../../Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
 import TelemetryIngestionKeyService from "../../../Server/Services/TelemetryIngestionKeyService";
+import PayAsYouGoBillingService from "../../../Server/Services/PayAsYouGoBillingService";
 
 // Payment eligibility is covered by the billing admission suites.
 jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
@@ -817,6 +818,69 @@ describe("TelemetryIngestionKeyService policy resolution", () => {
       expect(hookedUpdateOneById).not.toHaveBeenCalled();
       expect(hookedUpdateBy).not.toHaveBeenCalled();
       expect(findOneByMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  /*
+   * This path runs for every ingested batch, and it is the only caller
+   * allowed to answer from a cached denial. Without the flag, an unpaid
+   * project re-reads the payment provider once per batch - which is what held
+   * the whole Stripe account at its rate limit and took the billing page down
+   * with it. Nothing else asserts the flag is passed, so removing it here
+   * would be a silent regression back to that behaviour.
+   */
+  describe("billing admission", () => {
+    test("admits ingest with a denial that may be a few seconds stale", async () => {
+      const requirePayAsYouGo: jest.Mock =
+        PayAsYouGoBillingService.requirePayAsYouGo as unknown as jest.Mock;
+      requirePayAsYouGo.mockClear();
+
+      const token: string = ObjectID.generate().toString();
+      const projectId: ObjectID = ObjectID.generate();
+      installRows({
+        [token]: {
+          _id: ObjectID.generate(),
+          projectId: projectId,
+          isEnabled: true,
+        },
+      });
+
+      await TelemetryIngestionKeyService.getPolicyFromSecretKey(token);
+
+      expect(requirePayAsYouGo).toHaveBeenCalledTimes(1);
+      expect(requirePayAsYouGo).toHaveBeenCalledWith(
+        expect.objectContaining({ value: projectId.value }),
+        expect.objectContaining({ allowStaleDenial: true }),
+      );
+    });
+
+    test("re-checks billing on a policy cache hit, still allowing a stale denial", async () => {
+      const requirePayAsYouGo: jest.Mock =
+        PayAsYouGoBillingService.requirePayAsYouGo as unknown as jest.Mock;
+      requirePayAsYouGo.mockClear();
+
+      const token: string = ObjectID.generate().toString();
+      installRows({
+        [token]: {
+          _id: ObjectID.generate(),
+          projectId: ObjectID.generate(),
+          isEnabled: true,
+        },
+      });
+
+      await TelemetryIngestionKeyService.getPolicyFromSecretKey(token);
+      await TelemetryIngestionKeyService.getPolicyFromSecretKey(token);
+
+      /*
+       * A live key must not outlive billing eligibility, so the check runs on
+       * the cache hit too - which is exactly why it has to be cheap.
+       */
+      expect(requirePayAsYouGo).toHaveBeenCalledTimes(2);
+      for (const call of requirePayAsYouGo.mock.calls) {
+        expect(call[1]).toEqual(
+          expect.objectContaining({ allowStaleDenial: true }),
+        );
+      }
     });
   });
 });

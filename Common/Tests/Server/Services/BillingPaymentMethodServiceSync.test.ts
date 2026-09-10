@@ -3,6 +3,7 @@ import BillingService, {
   PaymentMethod,
 } from "../../../Server/Services/BillingService";
 import ProjectService from "../../../Server/Services/ProjectService";
+import PayAsYouGoBillingService from "../../../Server/Services/PayAsYouGoBillingService";
 import ObjectID from "../../../Types/ObjectID";
 import { getJestSpyOn } from "../../Spy";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
@@ -122,6 +123,43 @@ describe("BillingPaymentMethodService provider sync", () => {
      */
     await find();
     expect(getPaymentMethods).toHaveBeenCalledTimes(2);
+  });
+
+  /*
+   * This is what makes the admission path's denial cache safe to have at all.
+   * The billing page reads this table immediately after a card is added, so
+   * clearing the authorization here is what lets ingest be admitted on the
+   * next batch instead of at the end of the denial TTL. Nothing else asserts
+   * it, and dropping it would reintroduce a delay nobody would connect back
+   * to this line.
+   */
+  it("clears the project's cached authorization once the provider has been read", async () => {
+    const invalidate: jest.SpiedFunction<
+      typeof PayAsYouGoBillingService.invalidate
+    > = getJestSpyOn(PayAsYouGoBillingService, "invalidate").mockReturnValue(
+      undefined,
+    );
+
+    await find();
+
+    expect(invalidate).toHaveBeenCalledTimes(1);
+    expect(invalidate.mock.calls[0]![0]!.toString()).toBe(
+      PROJECT_ID.toString(),
+    );
+  });
+
+  it("does not clear the cached authorization when the provider read fails", async () => {
+    const invalidate: jest.SpiedFunction<
+      typeof PayAsYouGoBillingService.invalidate
+    > = getJestSpyOn(PayAsYouGoBillingService, "invalidate").mockReturnValue(
+      undefined,
+    );
+    getPaymentMethods.mockRejectedValueOnce(new Error("provider unreachable"));
+
+    await expect(find()).rejects.toThrow("provider unreachable");
+
+    // A failed read learned nothing, so it must not claim the cache is stale.
+    expect(invalidate).not.toHaveBeenCalled();
   });
 
   it("does not strand later callers when a provider read fails", async () => {
