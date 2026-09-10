@@ -21,6 +21,19 @@ interface ChapterPreview {
   path: string;
 }
 
+interface PrimaryActionStyle {
+  backgroundColor: string;
+  borderRadius: string;
+  color: string;
+  fontFamily: string;
+  fontWeight: string;
+}
+
+interface HeadingTypography {
+  fontFamily: string;
+  fontStyle: string;
+}
+
 const chapters: ChapterPreview[] = [
   {
     stage: "Decide",
@@ -74,6 +87,21 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport + 1);
 }
 
+async function primaryActionStyle(
+  locator: Locator,
+): Promise<PrimaryActionStyle> {
+  return locator.evaluate((element: HTMLElement): PrimaryActionStyle => {
+    const style: CSSStyleDeclaration = getComputedStyle(element);
+    return {
+      backgroundColor: style.backgroundColor,
+      borderRadius: style.borderRadius,
+      color: style.color,
+      fontFamily: style.fontFamily,
+      fontWeight: style.fontWeight,
+    };
+  });
+}
+
 test.describe("Home: Books", () => {
   test.skip(
     !IS_BILLING_ENABLED,
@@ -115,6 +143,71 @@ test.describe("Home: Books", () => {
     await expect(
       page.getByRole("link", { name: "Skip to main content" }),
     ).toHaveAttribute("href", "#main-content");
+  });
+
+  test("uses the marketing site's typography and primary action styling", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(BASE_URL.toString());
+    await page.evaluate(async (): Promise<void> => {
+      await document.fonts.ready;
+    });
+
+    const homeTypography: HeadingTypography = await page
+      .getByRole("heading", { level: 1 })
+      .evaluate((heading: HTMLElement): HeadingTypography => {
+        const style: CSSStyleDeclaration = getComputedStyle(heading);
+        return { fontFamily: style.fontFamily, fontStyle: style.fontStyle };
+      });
+    const homePrimaryStyle: PrimaryActionStyle = await primaryActionStyle(
+      page
+        .locator("#hero-section")
+        .getByRole("link", { name: "Get started free", exact: true }),
+    );
+
+    await page.goto(booksUrl);
+    await page.evaluate(async (): Promise<void> => {
+      await document.fonts.ready;
+    });
+
+    const bookHeadings: Array<HeadingTypography & { text: string }> = await page
+      .getByRole("main")
+      .locator("h1, h2, h3, h4, h5, h6")
+      .evaluateAll((headings: HTMLElement[]) => {
+        const textElements: Element[] = headings.flatMap(
+          (heading: HTMLElement): Element[] => {
+            return [heading, ...heading.querySelectorAll("span, em, strong")];
+          },
+        );
+        return textElements
+          .filter((element: Element): boolean => {
+            return (
+              Boolean(element.textContent?.trim()) &&
+              element.getAttribute("aria-hidden") !== "true"
+            );
+          })
+          .map((element: Element): HeadingTypography & { text: string } => {
+            const style: CSSStyleDeclaration = getComputedStyle(element);
+            return {
+              text: element.textContent?.trim() || "",
+              fontFamily: style.fontFamily,
+              fontStyle: style.fontStyle,
+            };
+          });
+      });
+
+    expect(bookHeadings.length).toBeGreaterThan(0);
+    for (const heading of bookHeadings) {
+      expect(heading, heading.text).toMatchObject({ ...homeTypography });
+    }
+    expect(
+      await primaryActionStyle(
+        page.getByRole("link", { name: "Read the book", exact: true }),
+      ),
+    ).toEqual(homePrimaryStyle);
   });
 
   test("publishes book-specific search and sharing metadata", async ({
