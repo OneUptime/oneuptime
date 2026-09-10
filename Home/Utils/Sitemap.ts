@@ -86,7 +86,8 @@ const PAGE_CONFIG: Record<string, SitemapPageConfig> = {
   "/docs": { priority: 0.7, changefreq: "weekly" },
   "/reference": { priority: 0.7, changefreq: "weekly" },
 
-  // Blog section
+  // Books and blog
+  "/books": { priority: 0.7, changefreq: "monthly" },
   "/blog": { priority: 0.7, changefreq: "daily" },
 
   // Community and legal

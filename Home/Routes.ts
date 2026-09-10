@@ -400,6 +400,17 @@ const HomeFeatureSet: FeatureSet = {
       });
     });
 
+    app.get("/books", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/books",
+        res.locals["homeUrl"] as string,
+      );
+      res.render(`${ViewsPath}/books.ejs`, {
+        enableGoogleTagManager: GoogleTagManagerEnabled,
+        seo,
+      });
+    });
+
     app.get(
       "/oss-friends",
       async (_req: ExpressRequest, res: ExpressResponse) => {
