@@ -1,4 +1,5 @@
 import { BillingService } from "../../../Server/Services/BillingService";
+import ServiceUnavailableException from "../../../Types/Exception/ServiceUnavailableException";
 import Errors from "../../../Server/Utils/Errors";
 import Sleep from "../../../Types/Sleep";
 import { getJestSpyOn } from "../../Spy";
@@ -21,6 +22,12 @@ jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
 });
 
 const CUSTOMER_ID: string = "cus_read_test";
+/*
+ * Mirrors the service's own constants. Kept here rather than exported so the
+ * test states the contract it is asserting instead of restating the code.
+ */
+const PAYMENT_READ_MAX_RETRIES: number = 4;
+const PAYMENT_READ_MAX_RETRY_DELAY_IN_MS: number = 8000;
 const PAYMENT_TYPES: Array<Stripe.PaymentMethodListParams.Type> = [
   "card",
   "sepa_debit",
@@ -136,10 +143,16 @@ describe("BillingService payment-method reads", () => {
   it("does not turn an unreadable bank-method list into missing payment authorization", async () => {
     const failure: Error = providerError(429);
     list.mockResolvedValueOnce({ data: [] }).mockRejectedValue(failure);
-    await expect(service.hasPaymentMethods(CUSTOMER_ID)).rejects.toBe(failure);
-    expect(list).toHaveBeenCalledTimes(5);
+    /*
+     * The answer that matters is "we could not tell", never `false` - a read
+     * that failed must not read as "this project has no payment method".
+     */
+    await expect(service.hasPaymentMethods(CUSTOMER_ID)).rejects.toThrow(
+      ServiceUnavailableException,
+    );
+    expect(list).toHaveBeenCalledTimes(1 + (PAYMENT_READ_MAX_RETRIES + 1));
     expect(list.mock.calls.slice(1)).toEqual(
-      Array.from({ length: 4 }, () => {
+      Array.from({ length: PAYMENT_READ_MAX_RETRIES + 1 }, () => {
         return [{ customer: CUSTOMER_ID, type: "sepa_debit", limit: 1 }];
       }),
     );
@@ -178,17 +191,26 @@ describe("BillingService payment-method reads", () => {
         expect(sleep.mock.calls).toEqual([[1250], [2500], [5000]]);
       });
 
-      it("propagates the exact error after exhausting 429 retries", async () => {
+      it("reports an unreachable provider after exhausting 429 retries", async () => {
         const failure: Error = providerError(429);
         request.mockRejectedValue(failure);
-        await expect(run()).rejects.toBe(failure);
-        expect(request).toHaveBeenCalledTimes(4);
-        expect(sleep).toHaveBeenCalledTimes(3);
+        /*
+         * A raw Stripe error is not an OneUptime Exception, so it used to
+         * reach the express handler's fallback and become an opaque
+         * 500 {"error":"Server Error"} - which told an operator, and the E2E
+         * diagnostic that prints the body, precisely nothing.
+         */
+        await expect(run()).rejects.toThrow(ServiceUnavailableException);
+        await expect(run()).rejects.toThrow(/payment provider/i);
+        expect(request).toHaveBeenCalledTimes(
+          2 * (PAYMENT_READ_MAX_RETRIES + 1),
+        );
+        expect(sleep).toHaveBeenCalledTimes(2 * PAYMENT_READ_MAX_RETRIES);
         expect(updateCustomer).not.toHaveBeenCalled();
       });
 
-      it.each([400, 401, 404, 500])(
-        "does not retry HTTP %s",
+      it.each([400, 401, 404])(
+        "does not retry HTTP %s, which a second attempt cannot fix",
         async (status: number) => {
           const failure: Error = providerError(status);
           request.mockRejectedValue(failure);
@@ -198,8 +220,40 @@ describe("BillingService payment-method reads", () => {
         },
       );
 
+      it.each([500, 502, 503])(
+        "retries HTTP %s, which is the provider failing rather than the request",
+        async (status: number) => {
+          const failure: Error = providerError(status);
+          request.mockRejectedValueOnce(failure);
+          await expect(run()).resolves.toBeDefined();
+          expect(request).toHaveBeenCalledTimes(2);
+          expect(sleep).toHaveBeenCalledTimes(1);
+        },
+      );
+
+      it("prefers the provider's Retry-After over its own backoff", async () => {
+        const failure: Error = Object.assign(providerError(429), {
+          headers: { "retry-after": "3" },
+        });
+        request.mockRejectedValueOnce(failure);
+        await expect(run()).resolves.toBeDefined();
+        // 3s from Retry-After beats the 1.25s first rung.
+        expect(sleep.mock.calls).toEqual([[3000]]);
+      });
+
+      it("never waits longer than the ceiling, whatever Retry-After asks for", async () => {
+        const failure: Error = Object.assign(providerError(429), {
+          headers: { "retry-after": "600" },
+        });
+        request.mockRejectedValueOnce(failure);
+        await expect(run()).resolves.toBeDefined();
+        expect(sleep.mock.calls).toEqual([
+          [PAYMENT_READ_MAX_RETRY_DELAY_IN_MS],
+        ]);
+      });
+
       it("keeps the next lookup fresh after a previous failure", async () => {
-        const failure: Error = providerError(500);
+        const failure: Error = providerError(400);
         request.mockRejectedValueOnce(failure);
         await expect(run()).rejects.toBe(failure);
         await expect(run()).resolves.toBeDefined();
