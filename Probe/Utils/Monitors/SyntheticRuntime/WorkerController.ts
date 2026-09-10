@@ -470,7 +470,8 @@ export default class WorkerController {
      */
     return Math.min(
       CONTROLLER_BOOTSTRAP_TOTAL_BUDGET_IN_MS,
-      this.getBootstrapTimeoutInMs(options) * this.getBootstrapAttempts(options),
+      this.getBootstrapTimeoutInMs(options) *
+        this.getBootstrapAttempts(options),
     );
   }
 
