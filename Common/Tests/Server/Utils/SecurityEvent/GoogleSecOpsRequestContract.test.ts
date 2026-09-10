@@ -68,6 +68,7 @@ const WINDOW_END: Date = new Date("2026-08-21T10:00:00.000Z");
  */
 const EXPECTED_QUERY_KEYS: Array<string> = [
   "alertListOptions.maxReturnedAlerts",
+  "includeNonAlertingDetections",
   "snapshotQuery",
   "timeRange.endTime",
   "timeRange.startTime",
@@ -434,7 +435,9 @@ describe("GoogleSecOpsClient alerts request parameters", () => {
      * the same class of 400 being fixed here.
      */
     expect(params.has("enableCache")).toBe(false);
-    expect(params.has("includeNonAlertingDetections")).toBe(false);
+    expect(params.get("includeNonAlertingDetections")).toBe(
+      "ALERTS_FEATURE_PREFERENCE_DISABLED",
+    );
   });
 });
 

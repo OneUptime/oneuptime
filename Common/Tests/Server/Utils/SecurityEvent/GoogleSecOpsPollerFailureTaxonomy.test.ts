@@ -1,3 +1,4 @@
+import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import { generateKeyPairSync } from "crypto";
 import GoogleSecOpsConnection from "../../../../Models/DatabaseModels/GoogleSecOpsConnection";
 import GoogleSecOpsConnectionService from "../../../../Server/Services/GoogleSecOpsConnectionService";
@@ -159,7 +160,8 @@ function makeConnection(): GoogleSecOpsConnection {
   connection.instanceResourceName = INSTANCE_RESOURCE_NAME;
   connection.serviceAccountJson = SERVICE_ACCOUNT_JSON;
   connection.pollIntervalInMinutes = 5;
-  // lastPolledAt left unset: never polled, therefore always due.
+  connection.cursor = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  // A saved cursor with no recent attempt is due and must survive failures.
   return connection;
 }
 
@@ -549,6 +551,11 @@ async function missingFieldRun(): Promise<PollRun> {
 
 describe("GoogleSecOpsPoller lastError failure taxonomy", () => {
   beforeEach(() => {
+    getJestSpyOn(Semaphore, "lock").mockResolvedValue({});
+    getJestSpyOn(Semaphore, "release").mockResolvedValue(undefined);
+    getJestSpyOn(GoogleSecOpsPoller, "findExistingEventUids").mockResolvedValue(
+      new Set(),
+    );
     // Every test here drives an expected failure down the logging path.
     getJestSpyOn(logger, "error").mockImplementation((() => {
       return undefined;
@@ -696,18 +703,15 @@ describe("GoogleSecOpsPoller lastError failure taxonomy", () => {
     expect(lastError).toBe(CLICKHOUSE_OUTAGE_MESSAGE);
 
     /*
-     * And the durability half. pollConnection writes lastPolledAt, cursor
-     * and a cleared lastError together at the very end, so a throw from
-     * insertJsonRows skips all three; the catch block's bookkeeping write
-     * carries lastPolledAt and lastError only. The cursor therefore stays
-     * where it was and the same window is re-fetched next tick, which is
-     * the correct outcome for alerts that were never durably ingested.
+     * Failed imports retain the saved cursor and persist their diagnostics,
+     * so the same window is retried with the original failure still visible.
      */
     expect(
       Object.prototype.hasOwnProperty.call(run.updates[0]!.data, "cursor"),
     ).toBe(false);
     expect(Object.keys(run.updates[0]!.data).sort()).toEqual([
       "lastError",
+      "lastPollResult",
       "lastPolledAt",
     ]);
   });

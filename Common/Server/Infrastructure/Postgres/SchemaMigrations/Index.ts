@@ -1,3 +1,4 @@
+import { AddGoogleSecOpsDiagnostics1789060959775 } from "./1789060959775-AddGoogleSecOpsDiagnostics";
 import { AddUserWebAuthnPurpose1789067310765 } from "./1789067310765-AddUserWebAuthnPurpose";
 import InitialMigration from "./1717605043663-InitialMigration";
 import { MigrationName1717678334852 } from "./1717678334852-MigrationName";
@@ -1170,4 +1171,5 @@ export default [
   AddVMwareTables1792000000000,
   AddGitHubCommandSettingsToCodeRepository1792100000000,
   AddUserWebAuthnPurpose1789067310765,
+  AddGoogleSecOpsDiagnostics1789060959775,
 ];

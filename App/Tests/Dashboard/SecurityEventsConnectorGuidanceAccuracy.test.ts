@@ -68,9 +68,9 @@ import nodePath from "path";
 /* Matches `new APIException(...)` with either a template or a plain string. */
 const CLIENT_API_EXCEPTION_PATTERN: RegExp =
   /new\s+APIException\(\s*(?:`([^`]*)`|"((?:[^"\\]|\\.)*)")/g;
-/* The same, for a source that throws plain Errors too — i.e. the poller. */
+/* The poller reports invalid connection configuration with BadDataException. */
 const THROWN_MESSAGE_PATTERN: RegExp =
-  /new\s+(?:APIException|Error)\(\s*(?:`([^`]*)`|"((?:[^"\\]|\\.)*)")/g;
+  /new\s+(?:APIException|BadDataException|Error)\(\s*(?:`([^`]*)`|"((?:[^"\\]|\\.)*)")/g;
 /*
  * Detects length-based cuts in diagnostic strings, whether the bound is
  * written inline or named. These would invalidate the full-error guidance.
@@ -418,8 +418,18 @@ const pollAllDueConnectionsBody: string = sliceBetween(
   "public static async pollAllDueConnections(",
   "public static async pollConnection(",
 );
-const pollConnectionBody: string = pollerSource.slice(
-  indexOfOrThrow(pollerSource, "public static async pollConnection("),
+const pollConnectionBody: string = sliceBetween(
+  pollerSource,
+  "public static async pollConnection(",
+  "public static async executeConnection(",
+);
+const executeUnlockedBody: string = sliceBetween(
+  pollerSource,
+  "private static async executeUnlocked(",
+  "private static async fetchWindows(",
+);
+const ingestBody: string = pollerSource.slice(
+  indexOfOrThrow(pollerSource, "private static async ingest("),
 );
 
 /*
@@ -986,45 +996,41 @@ describe("Every error prefix the guidance names is really produced", () => {
    * The third bucket's headline claim — "the alerts came back fine and the
    * failure was on OneUptime's side, usually writing them to the telemetry
    * store" — is only true if the telemetry-store write happens after a
-   * successful fetch AND is allowed to escape pollConnection so the
-   * poller's catch records it. pollConnection has exactly one try/catch,
-   * around alert normalization, and neither the fetch nor the insert is
-   * inside it.
+   * successful fetch. The shared execution path now records a structured
+   * failure and Last Error itself; pollConnection only rethrows an already
+   * recorded failure for its legacy caller.
    */
   test("a telemetry-store failure really reaches Last Error after a good fetch", () => {
-    const fetchIndex: number = pollConnectionBody.indexOf(
-      "client.fetchDetectionAlerts(",
+    const fetchIndex: number = executeUnlockedBody.indexOf(
+      "await this.fetchWindows(",
     );
-    const insertIndex: number = pollConnectionBody.indexOf(
-      "SecurityEventService.insertJsonRows(",
-    );
+    const insertIndex: number =
+      executeUnlockedBody.indexOf("await this.ingest(");
 
     expect(fetchIndex).toBeGreaterThan(-1);
     expect(insertIndex).toBeGreaterThan(fetchIndex);
 
-    const catchVariables: Array<string> = matchAllGroups(
-      CATCH_CLAUSE_PATTERN,
-      pollConnectionBody,
-    ).map((groups: Array<string>): string => {
-      return groups[1] as string;
-    });
-
-    expect(catchVariables).toEqual(["normalizeError"]);
-
     const [tryBlock]: Array<string> = extractBalancedBlocks(
-      pollConnectionBody,
+      executeUnlockedBody,
       "try {",
     );
     const [catchBlock]: Array<string> = extractBalancedBlocks(
-      pollConnectionBody,
-      "catch (normalizeError)",
+      executeUnlockedBody,
+      "catch (error)",
     );
 
-    for (const block of [tryBlock, catchBlock]) {
-      expect(block).toBeTruthy();
-      expect(block).not.toContain("insertJsonRows");
-      expect(block).not.toContain("fetchDetectionAlerts");
-    }
+    expect(tryBlock).toContain("await this.fetchWindows(");
+    expect(tryBlock).toContain("await this.ingest(");
+    expect(ingestBody).toContain("await SecurityEventService.insertJsonRows(");
+    expect(catchBlock).toContain('result.status = "failed"');
+    expect(catchBlock).toContain("result.error = redactLogString(");
+    expect(catchBlock).toContain("ConnectorErrorMessage.toMessage(");
+    expect(executeUnlockedBody).toContain("lastError: (result.error ||");
+    expect(executeUnlockedBody.indexOf("lastError:")).toBeGreaterThan(
+      insertIndex,
+    );
+    expect(pollConnectionBody).toContain("await this.executeConnection(");
+    expect(pollConnectionBody).toContain("throw new RecordedPollFailure(");
   });
 
   /*
@@ -1296,11 +1302,11 @@ describe('"Never" really means the poll was never attempted', () => {
   });
 
   /*
-   * The only way a connection leaves the loop unstamped is the not-due
-   * skip, and that runs before the attempt — so it can only preserve a
-   * previous state, never erase one.
+   * Not-due connections skip before an attempt. A shared executor failure
+   * is already stamped, so the legacy loop must preserve that detailed
+   * result instead of recording the same failure a second time.
    */
-  test("the only skip path runs before the poll is attempted", () => {
+  test("skip paths either precede the attempt or preserve a recorded failure", () => {
     const continueIndex: number =
       pollAllDueConnectionsBody.indexOf("continue;");
     const tryIndex: number = pollAllDueConnectionsBody.indexOf("try {");
@@ -1309,10 +1315,20 @@ describe('"Never" really means the poll was never attempted', () => {
     expect(tryIndex).toBeGreaterThan(-1);
     expect(continueIndex).toBeLessThan(tryIndex);
 
-    // And there is no second continue hiding after the try.
+    const [recordedFailureGuard]: Array<string> = extractBalancedBlocks(
+      pollAllDueConnectionsBody,
+      "if (error instanceof RecordedPollFailure)",
+    );
+    expect(recordedFailureGuard).toContain("continue;");
+    expect(pollAllDueConnectionsBody.split("continue;")).toHaveLength(3);
     expect(
-      pollAllDueConnectionsBody.indexOf("continue;", continueIndex + 1),
-    ).toBe(-1);
+      pollConnectionBody.indexOf("throw new RecordedPollFailure("),
+    ).toBeGreaterThan(
+      pollConnectionBody.indexOf("await this.executeConnection("),
+    );
+    expect(executeUnlockedBody.indexOf("lastError:")).toBeLessThan(
+      executeUnlockedBody.indexOf("return result;"),
+    );
   });
 
   /*

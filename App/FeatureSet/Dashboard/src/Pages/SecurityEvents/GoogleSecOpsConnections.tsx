@@ -5,7 +5,8 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Green, Red, Yellow, LightGray } from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
 import GoogleSecOpsConnection from "Common/Models/DatabaseModels/GoogleSecOpsConnection";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import Button, {
@@ -23,6 +24,8 @@ import PermissionGate, {
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import GoogleSecOpsDiagnostics from "../../Components/SecurityEvents/GoogleSecOpsDiagnostics";
+import { googleSecOpsHealth } from "../../Components/SecurityEvents/GoogleSecOpsDiagnosticsUtil";
 import React, {
   Fragment,
   FunctionComponent,
@@ -35,7 +38,7 @@ const ERROR_PREVIEW_LENGTH: number = 160;
 const documentationMarkdown: string = `
 ### How the Google SecOps Connector Works
 
-The managed connector polls your Google SecOps (Chronicle) tenant's **detection alerts** on the interval set here and ingests each one as a **Detection Finding** security event, attributed to a \`Google SecOps\` telemetry service. From there the findings behave like any other security event — searchable, correlatable, and available to detection rules, alerts and monitors.
+The managed connector polls your Google SecOps (Chronicle) tenant on the interval set here and ingests each matching detection as a **Detection Finding** security event, attributed to a \`Google SecOps\` telemetry service. Choose **Alerts only** or **Alerts and detections** explicitly. A rule detection does not necessarily create an alert. From there the findings are searchable, correlatable, and available to detection rules, alerts and monitors.
 
 - **Region** is your tenant's regional endpoint prefix (\`us\`, \`europe\`, ...). It is used to build the Chronicle API base URL.
 - **Instance Resource Name** comes from your SecOps **SIEM Settings → Profile** and looks like \`projects/{project}/locations/{location}/instances/{instance}\`.
@@ -46,10 +49,13 @@ The managed connector polls your Google SecOps (Chronicle) tenant's **detection 
 
 ### Reading Connector Health
 
-**Last Polled** and **Last Error** are how a connection tells you whether it is actually working.
+**Status** shows whether scheduled polling is enabled. **Health**, **Last Successful Poll**, and **Last Event Imported** describe the most recent polling outcome. **Last Polled** is the last attempt, which may have failed or returned zero detections.
 
 - **Last Polled: Never** means the poll job has not run for this connection yet. A connection created moments ago shows this until the next tick — but one that has sat at "Never" for longer than its poll interval is not being polled at all.
-- A recent **Last Polled** with an empty **Last Error** is a healthy connector.
+- **Test connection** verifies credentials and access to the detections API. It does not import events or verify the scheduler. **Run now** imports the next poll window immediately.
+- **Diagnostics** shows the exact requested time range, returned, imported, duplicate, rejected and failed counts, warnings, connection checks and recent run history. An empty result means Google returned no detections in that window and scope; it does not establish that a detection elsewhere is absent.
+- Use **Preview detections** to read a selected time range without importing. **Import this time range** imports up to 7 days of history after confirmation. Scheduled first polls look back 15 minutes. A stale cursor catches up in 24 hour windows; use historical import for detections before the first poll.
+- A detection's original time may be earlier than its creation time. **View events in this time range** opens the returned detection-time range so late-created detections are visible.
 - **Last Error** stores the complete error message with credentials redacted. Select **View Full Error** to read it or **Copy Error** to copy it for support. It is cleared on the next successful poll, so a value here describes the most recent attempt rather than a permanent state. Read the prefix first; only two prefixes carry an HTTP status, and a message without one is not evidence of a fault on OneUptime's side:
   - \`Google token exchange failed (HTTP ...)\` — the service-account credential was rejected at Google's OAuth endpoint, before Chronicle was reached. Usually a malformed, revoked, or wrong-project key.
   - \`Google token exchange returned ...\` — that same endpoint answered with something unusable (no access token, or a body that is not JSON), still before Chronicle. Usually a proxy or gateway in between.
@@ -60,7 +66,7 @@ The managed connector polls your Google SecOps (Chronicle) tenant's **detection 
   - A message matching none of the above is OneUptime's own failure: \`Google SecOps connection is missing id, projectId, region, instance, or credentials\` means this connection row is incomplete, and otherwise the alerts arrived and writing them to the telemetry store is what failed.
   - \`Google SecOps alerts fetch failed (HTTP 400)\` quoting \`Unknown name "pageSize": Cannot bind query parameter\` identifies an unsupported request parameter. Upstream **13.0.0** already replaced \`pageSize\` with \`alertListOptions.maxReturnedAlerts\`. Inspect the actual app and worker images, including custom builds and separately deployed workers, if this error still appears. Rotating the service-account key does not correct an unsupported query parameter. A successful OAuth token exchange confirms credential acceptance; the parameter rejection alone does not establish authentication or authorization.
 
-A disabled connection is skipped entirely, so neither field advances while it is off.
+Scheduled polls skip disabled connections. On-demand checks and imports remain available; **Run now** updates poll state even while the schedule is paused.
 
 Errors recorded before upgrading may already be truncated; a subsequent failed poll records the complete message.
 `;
@@ -80,6 +86,12 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
   const [currentlyViewingError, setCurrentlyViewingError] = useState<
     string | null
   >(null);
+  const [diagnosticsItem, setDiagnosticsItem] =
+    useState<GoogleSecOpsConnection | null>(null);
+  const [initialDiagnosticAction, setInitialDiagnosticAction] = useState<
+    "test" | "poll" | undefined
+  >(undefined);
+  const [refreshCounter, setRefreshCounter] = useState<number>(0);
 
   /*
    * Same reseller-telemetry gate as every other Security Events tab —
@@ -111,6 +123,19 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
     <Fragment>
       <ModelTable<GoogleSecOpsConnection>
         modelType={GoogleSecOpsConnection}
+        refreshToggle={String(refreshCounter)}
+        selectMoreFields={{
+          projectId: true,
+          createdAt: true,
+          isEnabled: true,
+          pollIntervalInMinutes: true,
+          lastPolledAt: true,
+          lastError: true,
+          lastPollResult: true,
+          lastSuccessfulPollAt: true,
+          lastEventIngestedAt: true,
+          includeNonAlertingDetections: true,
+        }}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
@@ -127,12 +152,12 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Google SecOps Connections",
           description:
-            "Managed pull connectors for Google SecOps (Chronicle). OneUptime polls each tenant's detection alerts on an interval and ingests them as Detection Finding security events.",
+            "Poll Google SecOps alerts and detections as Detection Finding security events. Test access, run a poll, and inspect import results on demand.",
         }}
         helpContent={{
           title: "How the Google SecOps Connector Works",
           description:
-            "What the connector polls, what it writes, and how to read Last Polled and Last Error",
+            "What the connector polls, how to test access, and how to inspect and import detections",
           markdown: documentationMarkdown,
         }}
         noItemsMessage={
@@ -146,6 +171,7 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
            */
           isEnabled: true,
           pollIntervalInMinutes: 5,
+          includeNonAlertingDetections: false,
         }}
         formFields={[
           {
@@ -204,10 +230,21 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
+              includeNonAlertingDetections: true,
+            },
+            title: "Alerts and detections",
+            description:
+              "Off: Alerts only. On: Alerts and detections, including rule matches that did not generate an alert.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+          {
+            field: {
               isEnabled: true,
             },
             title: "Enabled",
-            description: "Disabled connections are skipped by the poller.",
+            description:
+              "Disabled connections are skipped by scheduled polling. On-demand runs remain available.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -238,6 +275,50 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
         searchableFields={["name", "region"]}
         showViewIdButton={true}
         actionButtons={[
+          {
+            title: "Test connection",
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            disabled: !updateGate.isAllowed,
+            tooltip: updateGate.isAllowed
+              ? "Check credentials and Google SecOps API access."
+              : updateGate.disabledReason,
+            onClick: (
+              item: GoogleSecOpsConnection,
+              onCompleteAction: VoidFunction,
+            ): void => {
+              setInitialDiagnosticAction("test");
+              setDiagnosticsItem(item);
+              onCompleteAction();
+            },
+          },
+          {
+            title: "Run now",
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            disabled: !updateGate.isAllowed,
+            tooltip: updateGate.isAllowed
+              ? "Import the next poll window now."
+              : updateGate.disabledReason,
+            onClick: (
+              item: GoogleSecOpsConnection,
+              onCompleteAction: VoidFunction,
+            ): void => {
+              setInitialDiagnosticAction("poll");
+              setDiagnosticsItem(item);
+              onCompleteAction();
+            },
+          },
+          {
+            title: "Diagnostics",
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            onClick: (
+              item: GoogleSecOpsConnection,
+              onCompleteAction: VoidFunction,
+            ): void => {
+              setInitialDiagnosticAction(undefined);
+              setDiagnosticsItem(item);
+              onCompleteAction();
+            },
+          },
           {
             title: "Update Service Account JSON",
             buttonStyleType: ButtonStyleType.OUTLINE,
@@ -301,6 +382,44 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
+              lastPollResult: true,
+            },
+            title: "Health",
+            type: FieldType.JSON,
+            getElement: (item: GoogleSecOpsConnection): ReactElement => {
+              const health: string = googleSecOpsHealth(item);
+              const color: Color =
+                health === "Last poll succeeded" ||
+                health === "No detections returned"
+                  ? Green
+                  : health === "Last poll failed"
+                    ? Red
+                    : health === "Poll overdue" ||
+                        health === "Partial import" ||
+                        health === "Catching up"
+                      ? Yellow
+                      : LightGray;
+              return <Pill color={color} text={health} />;
+            },
+          },
+          {
+            field: {
+              includeNonAlertingDetections: true,
+            },
+            title: "Scope",
+            type: FieldType.Boolean,
+            getElement: (item: GoogleSecOpsConnection): ReactElement => {
+              return (
+                <span>
+                  {item.includeNonAlertingDetections
+                    ? "Alerts and detections"
+                    : "Alerts only"}
+                </span>
+              );
+            },
+          },
+          {
+            field: {
               region: true,
             },
             title: "Region",
@@ -319,6 +438,22 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
               lastPolledAt: true,
             },
             title: "Last Polled",
+            type: FieldType.DateTime,
+            noValueMessage: "Never",
+          },
+          {
+            field: {
+              lastSuccessfulPollAt: true,
+            },
+            title: "Last Successful Poll",
+            type: FieldType.DateTime,
+            noValueMessage: "Never",
+          },
+          {
+            field: {
+              lastEventIngestedAt: true,
+            },
+            title: "Last Event Imported",
             type: FieldType.DateTime,
             noValueMessage: "Never",
           },
@@ -366,6 +501,26 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
           },
         ]}
       />
+
+      {diagnosticsItem && (
+        <GoogleSecOpsDiagnostics
+          key={diagnosticsItem.id?.toString()}
+          connection={diagnosticsItem}
+          canRun={updateGate.isAllowed}
+          disabledReason={
+            updateGate.isAllowed ? undefined : updateGate.disabledReason
+          }
+          initialAction={initialDiagnosticAction}
+          onClose={(): void => {
+            setDiagnosticsItem(null);
+          }}
+          onUpdated={(): void => {
+            setRefreshCounter((value: number): number => {
+              return value + 1;
+            });
+          }}
+        />
+      )}
 
       {currentlyViewingError && (
         <Modal

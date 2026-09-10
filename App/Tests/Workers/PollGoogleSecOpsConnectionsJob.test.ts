@@ -13,7 +13,7 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
  * background worker isn't executing the Google SecOps poll job". That half of
  * their report was never wrong in principle - it just was not the whole story
  * (the actual outage was an unguarded lastError write that threw out of the
- * poll loop, covered by the GoogleSecOpsPoller / ConnectorErrorMessage
+ * poll loop, covered by the GoogleSecOpsRunExecutor / ConnectorErrorMessage
  * suites). But nothing in this repo pinned the scheduling half, and the
  * scheduling half is one line: `import "./Jobs/SecurityEvents/
  * PollGoogleSecOpsConnections"` in App/FeatureSet/Workers/Index.ts.
@@ -37,9 +37,8 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
  *      string that could drift away from it,
  *   3. importing the module really does put a runnable function and a timeout
  *      into JobDictionary - the dictionary the Worker consumer reads,
- *   4. that function delegates to GoogleSecOpsPoller.pollAllDueConnections,
- *      which is the entry point every poller test drives; without this link
- *      those suites prove nothing about production,
+ *   4. that function delegates to GoogleSecOpsRunExecutor.enqueueDueConnections,
+ *      which records each scheduled poll in the same run history as manual work,
  *   5. runOnStartup is false and the timeout is comfortably larger than one
  *      tick, so a slow poll is not killed mid-run.
  *
@@ -67,7 +66,7 @@ const mockAddJob: jest.Mock = jest.fn().mockResolvedValue(undefined);
  * whole security-event ingestion graph in, and so the delegation in test 4 is
  * observable rather than inferred.
  */
-const mockPollAllDueConnections: jest.Mock = jest.fn();
+const mockEnqueueDueConnections: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Infrastructure/Queue", () => {
   return {
@@ -92,12 +91,12 @@ jest.mock("Common/Server/Infrastructure/Queue", () => {
 });
 
 jest.mock(
-  "Common/Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsPoller",
+  "Common/Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsRunExecutor",
   () => {
     return {
       __esModule: true,
       default: {
-        pollAllDueConnections: mockPollAllDueConnections,
+        enqueueDueConnections: mockEnqueueDueConnections,
       },
     };
   },
@@ -122,7 +121,7 @@ jest.mock("Common/Server/Utils/Logger", () => {
  * still in their temporal dead zone. The job import is last of all - it is the
  * one whose side effect this whole file is about.
  */
-import GoogleSecOpsPoller from "Common/Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsPoller";
+import GoogleSecOpsRunExecutor from "Common/Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsRunExecutor";
 import logger from "Common/Server/Utils/Logger";
 import JobDictionary from "../../FeatureSet/Workers/Utils/JobDictionary";
 import "../../FeatureSet/Workers/Jobs/SecurityEvents/PollGoogleSecOpsConnections";
@@ -141,8 +140,8 @@ const mockedLogger: { error: jest.Mock } = logger as unknown as {
   error: jest.Mock;
 };
 
-const poller: { pollAllDueConnections: jest.Mock } =
-  GoogleSecOpsPoller as unknown as { pollAllDueConnections: jest.Mock };
+const poller: { enqueueDueConnections: jest.Mock } =
+  GoogleSecOpsRunExecutor as unknown as { enqueueDueConnections: jest.Mock };
 
 // --- Derived constants. -----------------------------------------------------
 
@@ -217,8 +216,8 @@ beforeEach(() => {
    * Only the poller is reset. mockAddJob deliberately is NOT: its calls were
    * all made at import time and are already snapshotted above.
    */
-  poller.pollAllDueConnections.mockReset();
-  poller.pollAllDueConnections.mockResolvedValue(undefined);
+  poller.enqueueDueConnections.mockReset();
+  poller.enqueueDueConnections.mockResolvedValue(undefined);
 });
 
 describe("PollGoogleSecOpsConnections - the job is wired into the worker at all", () => {
@@ -426,22 +425,22 @@ describe("PollGoogleSecOpsConnections - registration", () => {
 });
 
 describe("PollGoogleSecOpsConnections - what the registered function does", () => {
-  test("delegates to GoogleSecOpsPoller.pollAllDueConnections", async () => {
+  test("delegates to GoogleSecOpsRunExecutor.enqueueDueConnections", async () => {
     /*
      * The link that makes the poller suites mean something for production.
-     * Every GoogleSecOpsPoller test drives pollAllDueConnections directly; if
-     * the cron handler called anything else, all of that coverage would be
-     * describing code the worker never reaches.
+     * Scheduled work must use the same admission control, durable run history,
+     * and worker routing as manual operations. Calling the raw poller here
+     * would silently omit every scheduled attempt from diagnostics.
      */
     const jobFunction: PromiseVoidFunction =
       JobDictionary.getJobFunction(JOB_NAME);
 
     await jobFunction();
 
-    expect(poller.pollAllDueConnections).toHaveBeenCalledTimes(1);
+    expect(poller.enqueueDueConnections).toHaveBeenCalledTimes(1);
 
     // The poller owns its own query for due connections; the job passes nothing.
-    expect(poller.pollAllDueConnections.mock.calls[0]).toEqual([]);
+    expect(poller.enqueueDueConnections.mock.calls[0]).toEqual([]);
   });
 
   test("awaits the poll, so a failed tick is a failed job rather than a silent one", async () => {
@@ -454,7 +453,7 @@ describe("PollGoogleSecOpsConnections - what the registered function does", () =
      */
     const failure: Error = new Error("poll failed");
 
-    poller.pollAllDueConnections.mockRejectedValue(failure);
+    poller.enqueueDueConnections.mockRejectedValue(failure);
 
     const jobFunction: PromiseVoidFunction =
       JobDictionary.getJobFunction(JOB_NAME);

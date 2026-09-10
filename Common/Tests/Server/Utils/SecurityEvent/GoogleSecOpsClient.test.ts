@@ -2,13 +2,14 @@ import { generateKeyPairSync } from "crypto";
 import jwt from "jsonwebtoken";
 import GoogleSecOpsClient, {
   FetchAlertsResult,
+  FetchInitLike,
   FetchLike,
   FetchResponseLike,
 } from "../../../../Server/Utils/SecurityEvent/GoogleSecOps/GoogleSecOpsClient";
 import APIException from "../../../../Types/Exception/ApiException";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect, jest, test } from "@jest/globals";
 
 /*
  * The SecOps client is the trust boundary between customer-supplied
@@ -279,6 +280,7 @@ describe("GoogleSecOpsClient.fetchDetectionAlerts", () => {
 
     expect([...alertsUrl.searchParams.keys()].sort()).toEqual([
       "alertListOptions.maxReturnedAlerts",
+      "includeNonAlertingDetections",
       "snapshotQuery",
       "timeRange.endTime",
       "timeRange.startTime",
@@ -369,4 +371,69 @@ describe("GoogleSecOpsClient.fetchDetectionAlerts", () => {
       });
     }).toThrow(BadDataException);
   });
+});
+
+describe("Google SecOps HTTP deadlines", () => {
+  test.each(["token", "alerts"])(
+    "times out an unfinished %s response body after headers arrive",
+    async (phase: string): Promise<void> => {
+      jest.useFakeTimers();
+      try {
+        let announceBody: (() => void) | undefined;
+        const bodyStarted: Promise<void> = new Promise(
+          (resolve: () => void): void => {
+            announceBody = resolve;
+          },
+        );
+        let signal: AbortSignal | undefined;
+        const transport: FetchLike = async (
+          url: string,
+          init: FetchInitLike,
+        ): Promise<FetchResponseLike> => {
+          const isTarget: boolean =
+            phase === "token" ? url === TOKEN_URI : url !== TOKEN_URI;
+          if (isTarget) {
+            signal = init.signal;
+            return {
+              ok: true,
+              status: 200,
+              text: async (): Promise<string> => {
+                announceBody!();
+                return new Promise<string>((): void => {});
+              },
+            };
+          }
+          return {
+            ok: true,
+            status: 200,
+            text: async (): Promise<string> => {
+              return tokenResponse().body;
+            },
+          };
+        };
+        const api: GoogleSecOpsClient = new GoogleSecOpsClient({
+          region: "us",
+          instanceResourceName: INSTANCE,
+          serviceAccountJson: SERVICE_ACCOUNT_JSON,
+          fetchImplementation: transport,
+        });
+        const run: Promise<unknown> =
+          phase === "token"
+            ? api.testAuthentication()
+            : api.fetchDetectionAlerts({
+                startTime: new Date("2026-09-09T00:00:00Z"),
+                endTime: new Date("2026-09-10T00:00:00Z"),
+              });
+        const rejected: Promise<void> = expect(run).rejects.toThrow(
+          /timed out after 60 seconds/,
+        );
+        await bodyStarted;
+        jest.advanceTimersByTime(60000);
+        await rejected;
+        expect(signal?.aborted).toBe(true);
+      } finally {
+        jest.useRealTimers();
+      }
+    },
+  );
 });

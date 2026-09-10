@@ -6,6 +6,8 @@ import OTelIngestService, {
 } from "../../../../Server/Services/OpenTelemetryIngestService";
 import SecurityEventService from "../../../../Server/Services/SecurityEventService";
 import logger from "../../../../Server/Utils/Logger";
+import Semaphore from "../../../../Server/Infrastructure/Semaphore";
+import { GoogleSecOpsRunResult } from "../../../../Types/SecurityEvent/GoogleSecOpsDiagnostics";
 import GoogleSecOpsClient, {
   FetchAlertsResult,
   FetchLike,
@@ -419,6 +421,11 @@ function linesAboutConnection(lines: Array<string>): Array<string> {
 function stubPollPath(): PollHarness {
   const updates: Array<ConnectionUpdateCall> = [];
   const insertedBatches: Array<Array<JSONObject>> = [];
+  getJestSpyOn(Semaphore, "lock").mockResolvedValue({} as never);
+  getJestSpyOn(Semaphore, "release").mockResolvedValue(undefined as never);
+  getJestSpyOn(GoogleSecOpsPoller, "findExistingEventUids").mockResolvedValue(
+    new Set() as never,
+  );
 
   const telemetrySpy: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
     OTelIngestService,
@@ -462,10 +469,13 @@ function stubPollPath(): PollHarness {
 }
 
 function onlyUpdate(harness: PollHarness): JSONObject {
-  expect(harness.updates).toHaveLength(1);
+  expect(harness.updates.length).toBeGreaterThanOrEqual(1);
   expect(harness.updates[0]!.id.toString()).toBe(CONNECTION_ID.toString());
-
-  return harness.updates[0]!.data;
+  return (
+    harness.updates.find((update: ConnectionUpdateCall): boolean => {
+      return Boolean(update.data["lastPollResult"]);
+    })?.data || harness.updates[0]!.data
+  );
 }
 
 function rowsByEventUid(rows: Array<JSONObject>): Map<string, JSONObject> {
@@ -546,11 +556,13 @@ describe("GoogleSecOpsPoller over a real streaming response", () => {
     expect(second["classUid"]).toBe(DETECTION_FINDING_CLASS_UID);
 
     const written: JSONObject = onlyUpdate(harness);
-    expect(Object.keys(written).sort()).toEqual([
-      "cursor",
-      "lastError",
-      "lastPolledAt",
-    ]);
+    expect(written).toEqual(
+      expect.objectContaining({
+        cursor: expect.any(String),
+        lastPolledAt: expect.any(Date),
+        lastPollResult: expect.any(Object),
+      }),
+    );
     expect(written["lastError"]).toBeNull();
   });
 
@@ -573,7 +585,9 @@ describe("GoogleSecOpsPoller over a real streaming response", () => {
 
     const written: JSONObject = onlyUpdate(harness);
     expect(written["cursor"]).toBe(sent.endTime);
-    expect((written["lastPolledAt"] as Date).toISOString()).toBe(sent.endTime);
+    expect((written["lastPolledAt"] as Date).getTime()).toBeGreaterThanOrEqual(
+      Date.parse(sent.endTime),
+    );
 
     // ...and the window it closes really did start earlier than it ends.
     expect(new Date(sent.startTime).getTime()).toBeLessThan(
@@ -599,36 +613,29 @@ describe("GoogleSecOpsPoller over a real streaming response", () => {
     expect(harness.insertSpy).not.toHaveBeenCalled();
 
     const written: JSONObject = onlyUpdate(harness);
-    expect(Object.keys(written).sort()).toEqual([
-      "cursor",
-      "lastError",
-      "lastPolledAt",
-    ]);
+    expect(written).toEqual(
+      expect.objectContaining({
+        cursor: expect.any(String),
+        lastPolledAt: expect.any(Date),
+        lastPollResult: expect.any(Object),
+      }),
+    );
     expect(written["cursor"]).toBe(windowSentTo(requests).endTime);
     expect(written["lastError"]).toBeNull();
 
-    /*
-     * The count that separates this from the failure below has to be
-     * readable somewhere; "quiet" and "broken" looked identical for as
-     * long as it was not.
-     */
-    const quietWindowLine: RegExp = /fetched 0 alerts and ingested 0/;
-    const counted: Array<string> = linesAboutConnection(
-      harness.logs.debug,
-    ).filter((line: string): boolean => {
-      return quietWindowLine.test(line);
-    });
-    expect(counted).toHaveLength(1);
+    expect(written["lastPollResult"]).toEqual(
+      expect.objectContaining({
+        status: "empty",
+        fetchedCount: 0,
+        ingestedCount: 0,
+        complete: true,
+      }),
+    );
+    expect(written["lastSuccessfulPollAt"]).toBeInstanceOf(Date);
   });
 
-  test("truncation flags surface as warnings without failing the poll", async () => {
+  test("persistent truncation reports partial coverage and preserves the first window for retry", async () => {
     const harness: PollHarness = stubPollPath();
-
-    /*
-     * Chronicle capped the result server side. There is no pagination on
-     * this endpoint, so the dropped alerts are gone — the poll still
-     * succeeded, and the operator still has to be told.
-     */
     const { client, requests } = makeClient(
       streamingResponse([
         {
@@ -640,37 +647,25 @@ describe("GoogleSecOpsPoller over a real streaming response", () => {
         },
       ]),
     );
-
-    const ingested: number = await GoogleSecOpsPoller.pollConnection(
-      makeConnection(),
-      client,
-    );
-
-    expect(ingested).toBe(1);
+    const result: GoogleSecOpsRunResult =
+      await GoogleSecOpsPoller.executeConnection(
+        makeConnection(),
+        { type: "poll" },
+        client,
+      );
+    expect(result.status).toBe("partial");
+    expect(result.complete).toBe(false);
+    expect(result.ingestedCount).toBe(1);
     expect(harness.insertedBatches).toHaveLength(1);
-    expect(harness.insertedBatches[0]!).toHaveLength(1);
-
+    expect(result.requestCount).toBeGreaterThan(1);
+    expect(result.warnings.join(" ")).toMatch(/limited|truncated|limit/);
     const written: JSONObject = onlyUpdate(harness);
-    expect(written["cursor"]).toBe(windowSentTo(requests).endTime);
-    expect(written["lastError"]).toBeNull();
-
-    const warnings: Array<string> = linesAboutConnection(harness.logs.warn);
-
-    // Both truncations named, both against the window they happened in.
-    const truncatedByCountLine: RegExp = /no pagination/i;
-    const truncatedByBytesLine: RegExp = /memory limit/i;
-
-    const byCount: Array<string> = warnings.filter((line: string): boolean => {
-      return truncatedByCountLine.test(line);
-    });
-    const byBytes: Array<string> = warnings.filter((line: string): boolean => {
-      return truncatedByBytesLine.test(line);
-    });
-
-    expect(byCount).toHaveLength(1);
-    expect(byBytes).toHaveLength(1);
-    expect(byCount[0]!).toContain(windowSentTo(requests).endTime);
-    expect(byBytes[0]!).toContain(windowSentTo(requests).endTime);
+    expect(Date.parse(String(written["cursor"])) - MINUTE_IN_MS).toBe(
+      Date.parse(result.windowStart),
+    );
+    expect(written["lastError"]).toBeTruthy();
+    expect(written["lastSuccessfulPollAt"]).toBeUndefined();
+    expect(requests.length).toBeGreaterThan(2);
   });
 });
 
@@ -724,9 +719,13 @@ describe("GoogleSecOpsPoller cursor durability", () => {
      * No `cursor` key at all. Not "the same cursor" — the failure path
      * must not be in the business of writing the column.
      */
-    expect(Object.keys(written).sort()).toEqual(["lastError", "lastPolledAt"]);
+    expect(written["lastPollResult"]).toEqual(
+      expect.objectContaining({ complete: false }),
+    );
+    expect(written["lastSuccessfulPollAt"]).toBeUndefined();
     expect(written["lastPolledAt"]).toBeInstanceOf(Date);
     expect(connection.cursor).toBe(storedCursor);
+    expect(written["cursor"]).toBeUndefined();
 
     const lastError: unknown = written["lastError"];
     expect(typeof lastError).toBe("string");
@@ -755,7 +754,10 @@ describe("GoogleSecOpsPoller cursor durability", () => {
     await GoogleSecOpsPoller.pollAllDueConnections();
 
     const written: JSONObject = onlyUpdate(harness);
-    expect(Object.keys(written).sort()).toEqual(["lastError", "lastPolledAt"]);
+    expect(written["lastPollResult"]).toEqual(
+      expect.objectContaining({ complete: false }),
+    );
+    expect(written["lastSuccessfulPollAt"]).toBeUndefined();
     expect(written["lastError"]).toContain("socket hang up");
   });
 
@@ -796,15 +798,19 @@ describe("GoogleSecOpsPoller cursor durability", () => {
     expect(harness.insertSpy).not.toHaveBeenCalled();
 
     const written: JSONObject = onlyUpdate(harness);
-    expect(Object.keys(written).sort()).toEqual(["lastError", "lastPolledAt"]);
-
-    const heldCursorLine: RegExp = /normalized none of its 2 fetched alerts/;
-    const held: Array<string> = linesAboutConnection(harness.logs.warn).filter(
-      (line: string): boolean => {
-        return heldCursorLine.test(line);
-      },
+    expect(written["lastPollResult"]).toEqual(
+      expect.objectContaining({ complete: false }),
     );
-    expect(held).toHaveLength(1);
+    expect(written["lastSuccessfulPollAt"]).toBeUndefined();
+
+    const result: GoogleSecOpsRunResult = written[
+      "lastPollResult"
+    ] as unknown as GoogleSecOpsRunResult;
+    expect(result.status).toBe("partial");
+    expect(result.failedCount).toBe(2);
+    expect(Date.parse(String(written["cursor"])) - MINUTE_IN_MS).toBe(
+      Date.parse(result.windowStart),
+    );
   });
 
   /*
@@ -863,25 +869,17 @@ describe("GoogleSecOpsPoller cursor durability", () => {
       expect(row["severityName"]).not.toBe("Unknown");
     }
 
-    const discardedLine: RegExp = /discarded 1 of 2/;
-    const discarded: Array<string> = linesAboutConnection(
-      harness.logs.warn,
-    ).filter((line: string): boolean => {
-      return discardedLine.test(line);
-    });
-    expect(discarded).toHaveLength(1);
-
-    /*
-     * A refusal is deterministic: re-fetching the window would refuse the
-     * same object again forever, so unlike a normalization failure it must
-     * not hold the cursor.
-     */
     const written: JSONObject = onlyUpdate(harness);
-    expect(Object.keys(written).sort()).toEqual([
-      "cursor",
-      "lastError",
-      "lastPolledAt",
-    ]);
+    const result: GoogleSecOpsRunResult = written[
+      "lastPollResult"
+    ] as unknown as GoogleSecOpsRunResult;
+    expect(result.status).toBe("partial");
+    expect(result.rejectedCount).toBe(1);
+    expect(result.ingestedCount).toBe(1);
+    expect(result.warnings.join(" ")).toMatch(/discarded/);
+    expect(Date.parse(String(written["cursor"])) - MINUTE_IN_MS).toBe(
+      Date.parse(result.windowStart),
+    );
   });
 });
 
@@ -905,13 +903,13 @@ describe("GoogleSecOpsPoller ingest bookkeeping", () => {
     expect(ingested).toBe(2);
     expect(harness.insertedBatches[0]!).toHaveLength(ingested);
 
-    const countedLine: RegExp = /fetched 3 alerts and ingested 2/;
-    const counted: Array<string> = linesAboutConnection(
-      harness.logs.debug,
-    ).filter((line: string): boolean => {
-      return countedLine.test(line);
-    });
-    expect(counted).toHaveLength(1);
+    expect(onlyUpdate(harness)["lastPollResult"]).toEqual(
+      expect.objectContaining({
+        fetchedCount: 3,
+        ingestedCount: 2,
+        rejectedCount: 1,
+      }),
+    );
   });
 
   test("a multi-alert batch is written in a single insert", async () => {
@@ -1038,18 +1036,15 @@ describe("GoogleSecOpsPoller poll window arithmetic", () => {
     expect(durationInMs(garbage)).not.toBe(durationInMs(stale));
   });
 
-  test("an unreadable cursor is reported, quoting the value that could not be read", async () => {
+  test("an unreadable cursor is reported in persisted diagnostics", async () => {
     const harness: PollHarness = stubPollPath();
 
     await pollWindow("2026-13-45T99:99:99Z");
 
-    const warnings: Array<string> = linesAboutConnection(
-      harness.logs.warn,
-    ).filter((line: string): boolean => {
-      return line.includes(JSON.stringify("2026-13-45T99:99:99Z"));
-    });
-
-    expect(warnings).toHaveLength(1);
+    const result: GoogleSecOpsRunResult = onlyUpdate(harness)[
+      "lastPollResult"
+    ] as unknown as GoogleSecOpsRunResult;
+    expect(result.warnings.join(" ")).toMatch(/cursor is unreadable/);
   });
 
   test("a cursor in the future never produces an inverted time range", async () => {
@@ -1065,32 +1060,22 @@ describe("GoogleSecOpsPoller poll window arithmetic", () => {
     expect(future.startTime.getTime()).toBeLessThan(future.endTime.getTime());
     expect(durationInMs(future)).toBe(durationInMs(firstPoll));
 
-    expect(linesAboutConnection(harness.logs.warn).length).toBeGreaterThan(0);
+    expect(harness.logs.warn.join(" ")).toMatch(/cursor is in the future/);
   });
 
-  test("a stale cursor is truncated to the cap and the skipped gap is stated", async () => {
+  test("a stale cursor catches up from its original boundary without discarding the gap", async () => {
     const harness: PollHarness = stubPollPath();
-
-    const stale: RecordedWindow = await pollWindow(
-      new Date(Date.now() - 7 * DAY_IN_MS).toISOString(),
-    );
-
+    const cursor: string = new Date(Date.now() - 7 * DAY_IN_MS).toISOString();
+    const stale: RecordedWindow = await pollWindow(cursor);
     expect(durationInMs(stale)).toBe(DAY_IN_MS);
-
-    /*
-     * The alerts between the cursor and the cap are skipped and will never
-     * be fetched again. Truncating silently is how a connector comes back
-     * from an outage looking healthy with a day of detections missing, so
-     * the warning has to name the boundary the poll actually resumed from.
-     */
-    const warnings: Array<string> = linesAboutConnection(
-      harness.logs.warn,
-    ).filter((line: string): boolean => {
-      return line.includes(stale.startTime.toISOString());
-    });
-
-    expect(warnings).toHaveLength(1);
-    expect(warnings[0]!).toMatch(/skipped/i);
+    expect(stale.startTime.getTime()).toBe(Date.parse(cursor) - MINUTE_IN_MS);
+    expect(stale.endTime.getTime()).toBeLessThan(Date.now() - 5 * DAY_IN_MS);
+    const written: JSONObject = onlyUpdate(harness);
+    expect(written["cursor"]).toBe(stale.endTime.toISOString());
+    const result: GoogleSecOpsRunResult = written[
+      "lastPollResult"
+    ] as unknown as GoogleSecOpsRunResult;
+    expect(result.warnings.join(" ")).toMatch(/Catching up/);
   });
 });
 

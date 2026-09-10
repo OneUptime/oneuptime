@@ -601,7 +601,8 @@ describe("GoogleSecOpsClient truncation, completeness and the C3 self-check", ()
 
     expect(withinCeiling.alerts).toHaveLength(3);
     expect(atCeiling.errors).toEqual([]);
-    expect(atCeiling.warnings).toEqual([]);
+    expect(withinCeiling.truncatedByCount).toBe(true);
+    expect(atCeiling.warnings).toHaveLength(1);
 
     const overCeiling: CapturedLogs = captureLogs();
     const overrun: FetchAlertsResult = GoogleSecOpsClient.parseAlertsBody(
@@ -614,7 +615,8 @@ describe("GoogleSecOpsClient truncation, completeness and the C3 self-check", ()
     expect(overCeiling.errors).toHaveLength(1);
     expect(overCeiling.errors[0]!).toContain(String(overrun.alerts.length));
     expect(overCeiling.errors[0]!).toContain("2");
-    expect(overCeiling.warnings).toEqual([]);
+    expect(overrun.truncatedByCount).toBe(true);
+    expect(overCeiling.warnings).toHaveLength(1);
   });
 });
 
@@ -1309,6 +1311,7 @@ describe("the pageSize 400 reported from production", () => {
      */
     expect(Array.from(params.keys()).sort()).toEqual([
       "alertListOptions.maxReturnedAlerts",
+      "includeNonAlertingDetections",
       "snapshotQuery",
       "timeRange.endTime",
       "timeRange.startTime",

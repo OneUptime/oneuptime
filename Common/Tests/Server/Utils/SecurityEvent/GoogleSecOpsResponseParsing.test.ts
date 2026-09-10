@@ -651,3 +651,46 @@ describe("GoogleSecOpsClient.fetchDetectionAlerts response parsing", () => {
     expect(outcome.result).toBeNull();
   });
 });
+
+describe("Google SecOps count completeness diagnostics", () => {
+  test.each(["baselineAlertsCount", "filteredAlertsCount"])(
+    "detects missing returned records from %s without tooManyAlerts",
+    (count: string): void => {
+      const result: FetchAlertsResult = GoogleSecOpsClient.parseAlertsBody(
+        JSON.stringify([
+          {
+            alerts: { alerts: [{ id: "one" }] },
+            complete: true,
+            tooManyAlerts: false,
+            [count]: 2,
+          },
+        ]),
+      );
+      expect(result.truncatedByCount).toBe(true);
+    },
+  );
+  test("does not flag a fully accounted list at its requested ceiling", (): void => {
+    const result: FetchAlertsResult = GoogleSecOpsClient.parseAlertsBody(
+      JSON.stringify([
+        {
+          alerts: { alerts: [{ id: "one" }] },
+          complete: true,
+          baselineAlertsCount: 1,
+          filteredAlertsCount: 1,
+        },
+      ]),
+      1,
+    );
+    expect(result.truncatedByCount).toBe(false);
+  });
+  test("keeps truncation flags reported by earlier streamed chunks", (): void => {
+    const result: FetchAlertsResult = GoogleSecOpsClient.parseAlertsBody(
+      JSON.stringify([
+        { tooManyAlerts: true, memoryLimitExceeded: true },
+        { complete: true, tooManyAlerts: false, memoryLimitExceeded: false },
+      ]),
+    );
+    expect(result.truncatedByCount).toBe(true);
+    expect(result.truncatedByBytes).toBe(true);
+  });
+});
