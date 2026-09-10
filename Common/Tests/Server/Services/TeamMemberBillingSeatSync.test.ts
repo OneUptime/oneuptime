@@ -356,7 +356,7 @@ describe("TeamMemberService billing seat reconciliation", () => {
   );
 
   test("an unknown acknowledged count is synchronized", async () => {
-    project.paymentProviderSubscriptionSeats = undefined;
+    delete project.paymentProviderSubscriptionSeats;
 
     await TeamMemberService.updateSubscriptionSeatsByUniqueTeamMembersInProject(
       PROJECT_ID,
@@ -389,9 +389,9 @@ describe("TeamMemberService billing seat reconciliation", () => {
     if (reason === "missing project") {
       projectReadSpy.mockResolvedValue(null);
     } else if (reason === "missing subscription") {
-      project.paymentProviderSubscriptionId = undefined;
+      delete project.paymentProviderSubscriptionId;
     } else if (reason === "missing plan") {
-      project.paymentProviderPlanId = undefined;
+      delete project.paymentProviderPlanId;
     } else {
       jest
         .spyOn(SubscriptionPlan, "getSubscriptionPlanById")
@@ -516,7 +516,7 @@ describe("TeamMemberService billing seat reconciliation", () => {
     const pending: TeamMember = member();
     pending.userId = ObjectID.generate();
     const missingUser: TeamMember = member();
-    missingUser.userId = undefined;
+    delete missingUser.userId;
     jest
       .spyOn(TeamMemberService, "findBy")
       .mockResolvedValue([accepted, secondTeam, pending, missingUser]);
@@ -739,7 +739,7 @@ describe("completed membership writes during a billing outage", () => {
   });
 
   test("enforces the free-plan limit from persisted members when billing seats are missing", async () => {
-    project.paymentProviderSubscriptionSeats = undefined;
+    delete project.paymentProviderSubscriptionSeats;
     memberCountSpy.mockResolvedValue(1);
     const createBy: CreateBy<TeamMember> = invitation();
     createBy.props.currentPlan = PlanType.Free;
