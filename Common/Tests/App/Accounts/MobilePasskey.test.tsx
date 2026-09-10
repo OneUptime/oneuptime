@@ -280,7 +280,15 @@ describe("Mobile passkey browser page", () => {
         screen.getByText(/Passkey sign-in was canceled or timed out/),
       ).toBeVisible();
     });
-    expect(screen.getByTestId("mobile-passkey-sign-in")).toHaveFocus();
+    /*
+     * The page moves focus from an effect keyed on the notice, so it lands a
+     * commit after the text it is announced with. Waiting for the focus rather
+     * than for the message keeps this assertion about where focus ends up
+     * instead of about which of the two happens first.
+     */
+    await waitFor(() => {
+      return expect(screen.getByTestId("mobile-passkey-sign-in")).toHaveFocus();
+    });
     expect(API.post).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByTestId("mobile-passkey-sign-in"));
     await waitFor(() => {
