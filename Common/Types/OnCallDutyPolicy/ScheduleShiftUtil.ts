@@ -256,6 +256,35 @@ export default class ScheduleShiftUtil {
   }
 
   /*
+   * Grouping that keeps a shift inside ONE override window: the on-call user
+   * id, plus the override identity when the segment came from an override.
+   *
+   * This is what every surface that LABELS a shift as covered-by-override must
+   * group with. The default key is the user id alone, so a substitute who is
+   * ALSO on the roster has their own rostered segment and the segment they are
+   * covering folded into a single shift — and since a shift only inherits
+   * metadata from its FIRST segment, the merged shift would carry either a
+   * stale override or none at all. Either way the screen names the right person
+   * for the wrong reason: "Bob until 9pm", with nothing saying that half of that
+   * stretch is Bob covering for Alice.
+   *
+   * Unlike groupKeyByUserOverrideAndLayer this deliberately ignores the layer
+   * and the rotation period, so an ordinary hand-over inside one person's turn
+   * still reads as one shift. The only boundary it adds is the one the reader
+   * can see a reason for.
+   */
+  public static groupKeyByUserAndOverride(event: CalendarEvent): string {
+    const override: OverrideEventMeta | null =
+      UserOverrideUtil.getOverrideMeta(event);
+
+    if (!override) {
+      return event.title;
+    }
+
+    return `${event.title}|${override.originalUserId}@${override.overrideStartsAt.getTime()}-${override.overrideEndsAt.getTime()}`;
+  }
+
+  /*
    * Grouping that keeps a shift inside ONE layer, ONE override window and ONE
    * rotation period: the user id, plus the override identity (original user +
    * window) when the segment was produced by an override, plus the layer id

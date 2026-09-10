@@ -16,6 +16,17 @@ export interface OverrideEventMeta {
   overrideUserId: string;
   overrideStartsAt: Date;
   overrideEndsAt: Date;
+  /*
+   * Which override produced this segment: null/undefined for a GLOBAL override
+   * (one that applies through every on-call policy), the policy's id for a
+   * policy-scoped one. Carried on the segment so a renderer can say WHY the
+   * substitution is in force without having to reverse-map the segment back to
+   * the override record that made it - a lookup by (users + window) that cannot
+   * distinguish two overrides sharing both. It is the same distinction the user
+   * makes when creating one from the project's overrides page (global) versus a
+   * policy's own overrides tab (scoped).
+   */
+  onCallDutyPolicyId?: string | null | undefined;
 }
 
 /*
@@ -150,6 +161,11 @@ export default class UserOverrideUtil {
       overrideUserId: override.routeAlertsToUserId,
       overrideStartsAt: override.startsAt,
       overrideEndsAt: override.endsAt,
+      /*
+       * Normalise the record's absent/null policy to null so a consumer can
+       * test one value for "global" instead of three.
+       */
+      onCallDutyPolicyId: override.onCallDutyPolicyId || null,
     };
 
     segments.push({

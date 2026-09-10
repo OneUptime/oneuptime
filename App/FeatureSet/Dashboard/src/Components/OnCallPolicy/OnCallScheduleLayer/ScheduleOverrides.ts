@@ -59,6 +59,16 @@ export interface ScheduleOverrideResolution {
   attachedPolicyCount: number;
   // userId -> display info, for substitutes and the users they are covering.
   userInfoById: Dictionary<OverrideUserInfo>;
+  /*
+   * policyId -> policy name, for every POLICY-SCOPED override in `records`.
+   *
+   * A scoped override only re-routes alerts escalating through its own policy,
+   * which is a materially different promise from a global one - so a surface
+   * that shows the substitution has to be able to name the policy it is limited
+   * to. Absent for a policy the viewer cannot read; callers fall back to the
+   * unnamed "policy override" wording rather than claiming global reach.
+   */
+  policyNameById: Dictionary<string>;
 }
 
 /*
@@ -147,6 +157,10 @@ async function fetchOverrides(params: {
         overrideUserId: true,
         routeAlertsToUserId: true,
         onCallDutyPolicyId: true,
+        // Named on screen so a scoped override can say WHICH policy it covers.
+        onCallDutyPolicy: {
+          name: true,
+        },
         overrideUser: {
           name: true,
           email: true,
@@ -179,6 +193,7 @@ const NOTHING_TO_RESOLVE: ScheduleOverrideResolution = {
   policyContextState: PolicyContextState.PolicyAgnostic,
   attachedPolicyCount: 0,
   userInfoById: {},
+  policyNameById: {},
 };
 
 /*
@@ -294,7 +309,16 @@ export function useScheduleUserOverrides(
       }
 
       const userInfoById: Dictionary<OverrideUserInfo> = {};
+      const policyNameById: Dictionary<string> = {};
       for (const override of overrides) {
+        const overridePolicyId: string =
+          override.onCallDutyPolicyId?.toString() || "";
+        const overridePolicyName: string =
+          override.onCallDutyPolicy?.name?.toString() || "";
+        if (overridePolicyId && overridePolicyName) {
+          policyNameById[overridePolicyId] = overridePolicyName;
+        }
+
         const overriddenId: string = override.overrideUserId?.toString() || "";
         const substituteId: string =
           override.routeAlertsToUserId?.toString() || "";
@@ -342,6 +366,7 @@ export function useScheduleUserOverrides(
           : PolicyContextState.PolicyAgnostic,
         attachedPolicyCount,
         userInfoById,
+        policyNameById,
       });
     };
 

@@ -336,13 +336,34 @@ function renderPreview(): void {
  * question the user asked - "who is covering right now" - and not about whether
  * a name appears anywhere on a screen that also lists a whole week of shifts.
  */
-async function getOnCallNowText(): Promise<string> {
+async function getOnCallNowCard(): Promise<HTMLElement> {
   const heading: HTMLElement = await screen.findByText(/On call right now/i);
   const card: HTMLElement | null = heading.closest("div.rounded-xl");
   if (!card) {
     throw new Error("Could not find the 'On call right now' card");
   }
-  return card.textContent || "";
+  return card as HTMLElement;
+}
+
+async function getOnCallNowText(): Promise<string> {
+  return (await getOnCallNowCard()).textContent || "";
+}
+
+/*
+ * The card names the person on call AND, when they are a substitute, the person
+ * they are covering - so "which name is in this card" no longer distinguishes
+ * the two. This reads the headline name only: the one the card asserts is on
+ * call right now, as opposed to the one named inside the override strip.
+ */
+async function getOnCallNowHeadlineName(): Promise<string> {
+  const card: HTMLElement = await getOnCallNowCard();
+  const headline: HTMLElement | null = card.querySelector(
+    "div.text-base.font-semibold",
+  );
+  if (!headline) {
+    throw new Error("Could not find the on-call name in the card");
+  }
+  return headline.textContent || "";
 }
 
 describe("Schedule preview reflects the overrides that alert routing applies (issue #3411)", () => {
@@ -369,7 +390,14 @@ describe("Schedule preview reflects the overrides that alert routing applies (is
       { timeout: 10000 },
     );
 
-    expect(await getOnCallNowText()).not.toContain(USER_A_NAME);
+    /*
+     * The overridden user must not be presented as the person on call - that
+     * was the original bug. They ARE named in the card, but only inside the
+     * override strip that explains whose shift this was; naming them there is
+     * the point of that strip.
+     */
+    expect(await getOnCallNowHeadlineName()).toBe(USER_B_NAME);
+    expect(await getOnCallNowText()).toContain(`Covering for ${USER_A_NAME}`);
   });
 
   test("the calendar grid relabels the overridden window to the substitute", async () => {
