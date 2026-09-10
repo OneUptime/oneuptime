@@ -35,29 +35,10 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorBoundary from "Common/UI/Components/ErrorBoundary";
 import { RoutesProps } from "./Types/RoutesProps";
 
-// Static page imports
+// Keep the landing and recovery pages available in the initial bundle.
 import Welcome from "./Pages/Onboarding/Welcome";
 import Home from "./Pages/Home/Home";
-import AICopilot from "./Pages/AICopilot/AICopilot";
-import Sso from "./Pages/Onboarding/SSO";
-import NotOperationalMonitors from "./Pages/Home/NotOperationalMonitors";
-import HomeActiveAlerts from "./Pages/Home/ActiveAlerts";
-import OngoingScheduledEvents from "./Pages/Home/OngoingScheduledMaintenance";
-import HomeActiveEpisodes from "./Pages/Home/ActiveEpisodes";
-import HomeActiveIncidentEpisodes from "./Pages/Home/ActiveIncidentEpisodes";
-import SettingsDangerZone from "./Pages/Settings/DangerZone";
 import Logout from "./Pages/Logout/Logout";
-import UserProfilePicture from "./Pages/Global/UserProfile/Picture";
-import UserProfileOverview from "./Pages/Global/UserProfile/Index";
-import UserProfilePassword from "./Pages/Global/UserProfile/Password";
-import UseTwoFactorAuth from "./Pages/Global/UserProfile/TwoFactorAuth";
-import UserProfileDelete from "./Pages/Global/UserProfile/DeleteAccount";
-import ProjectInvitations from "./Pages/Global/ProjectInvitations";
-import ActiveIncidents from "./Pages/Global/ActiveIncidents";
-import ActiveAlerts from "./Pages/Global/ActiveAlerts";
-import ActiveAlertEpisodes from "./Pages/Global/ActiveAlertEpisodes";
-import ActiveIncidentEpisodes from "./Pages/Global/ActiveIncidentEpisodes";
-import MyOnCallPolicies from "./Pages/Global/MyOnCallPolicies";
 import PageNotFound from "./Pages/PageNotFound/PageNotFound";
 
 /*
@@ -74,6 +55,67 @@ import PageNotFound from "./Pages/PageNotFound/PageNotFound";
 type LazyRoutes = React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
 >;
+
+// Secondary pages download only when their route is opened.
+const AICopilot: LazyRoutes = lazy(() => {
+  return import("./Pages/AICopilot/AICopilot");
+});
+const Sso: LazyRoutes = lazy(() => {
+  return import("./Pages/Onboarding/SSO");
+});
+const NotOperationalMonitors: LazyRoutes = lazy(() => {
+  return import("./Pages/Home/NotOperationalMonitors");
+});
+const HomeActiveAlerts: LazyRoutes = lazy(() => {
+  return import("./Pages/Home/ActiveAlerts");
+});
+const OngoingScheduledEvents: LazyRoutes = lazy(() => {
+  return import("./Pages/Home/OngoingScheduledMaintenance");
+});
+const HomeActiveEpisodes: LazyRoutes = lazy(() => {
+  return import("./Pages/Home/ActiveEpisodes");
+});
+const HomeActiveIncidentEpisodes: LazyRoutes = lazy(() => {
+  return import("./Pages/Home/ActiveIncidentEpisodes");
+});
+const SettingsDangerZone: React.LazyExoticComponent<
+  typeof import("./Pages/Settings/DangerZone").default
+> = lazy(() => {
+  return import("./Pages/Settings/DangerZone");
+});
+const UserProfilePicture: LazyRoutes = lazy(() => {
+  return import("./Pages/Global/UserProfile/Picture");
+});
+const UserProfileOverview: LazyRoutes = lazy(() => {
+  return import("./Pages/Global/UserProfile/Index");
+});
+const UserProfilePassword: LazyRoutes = lazy(() => {
+  return import("./Pages/Global/UserProfile/Password");
+});
+const UseTwoFactorAuth: LazyRoutes = lazy(() => {
+  return import("./Pages/Global/UserProfile/TwoFactorAuth");
+});
+const UserProfileDelete: LazyRoutes = lazy(() => {
+  return import("./Pages/Global/UserProfile/DeleteAccount");
+});
+const ProjectInvitations: LazyRoutes = lazy(() => {
+  return import("./Pages/Global/ProjectInvitations");
+});
+const ActiveIncidents: LazyRoutes = lazy(() => {
+  return import("./Pages/Global/ActiveIncidents");
+});
+const ActiveAlerts: LazyRoutes = lazy(() => {
+  return import("./Pages/Global/ActiveAlerts");
+});
+const ActiveAlertEpisodes: LazyRoutes = lazy(() => {
+  return import("./Pages/Global/ActiveAlertEpisodes");
+});
+const ActiveIncidentEpisodes: LazyRoutes = lazy(() => {
+  return import("./Pages/Global/ActiveIncidentEpisodes");
+});
+const MyOnCallPolicies: LazyRoutes = lazy(() => {
+  return import("./Pages/Global/MyOnCallPolicies");
+});
 
 const InitRoutes: React.LazyExoticComponent<
   React.FunctionComponent<RoutesProps>
