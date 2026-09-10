@@ -11,11 +11,8 @@
  */
 
 /*
- * Six is the number every existing OneUptime password form already enforces
- * (Accounts sign-up, Accounts reset-password, the user profile, the status
- * page). It is stated here rather than raised so that adopting this module
- * cannot lock out anyone whose current password was accepted under the old
- * inline rule.
+ * Keep the existing minimum for password-management flows. New account
+ * signup uses the stronger policy below.
  */
 export const MINIMUM_PASSWORD_LENGTH: number = 6;
 
@@ -27,6 +24,74 @@ export const MINIMUM_PASSWORD_LENGTH: number = 6;
  * matters.
  */
 export const MAXIMUM_PASSWORD_LENGTH: number = 100;
+
+export const MINIMUM_SIGNUP_PASSWORD_LENGTH: number = 15;
+
+const COMMON_SIGNUP_PASSWORDS: Set<string> = new Set([
+  "password",
+  "oneuptime",
+  "letmein",
+  "iloveyou",
+  "welcome",
+  "admin",
+  "changeme",
+]);
+
+const REPEATED_SIGNUP_PASSWORD_PATTERN: RegExp = /^(.{1,14})\1+$/u;
+
+/** New accounts use a stronger policy; existing credentials remain valid. */
+export function getSignupPasswordValidationError(
+  password: unknown,
+): string | null {
+  if (password === undefined || password === null || password === "") {
+    return "Password is required.";
+  }
+
+  if (typeof password !== "string") {
+    return "Password must be a string.";
+  }
+
+  if (password.trim().length === 0) {
+    return "Password cannot be blank.";
+  }
+
+  // Count Unicode characters, including emoji, once each. Never alter the secret.
+  const length: number = Array.from(password).length;
+
+  if (length < MINIMUM_SIGNUP_PASSWORD_LENGTH) {
+    return `Password must be at least ${MINIMUM_SIGNUP_PASSWORD_LENGTH} characters.`;
+  }
+
+  if (length > MAXIMUM_PASSWORD_LENGTH) {
+    return `Password cannot be more than ${MAXIMUM_PASSWORD_LENGTH} characters.`;
+  }
+
+  // Comparison only: padding, punctuation and casing do not rescue an obvious pattern.
+  const comparable: string =
+    password.toLowerCase().replace(/[\s\p{P}\p{Sc}\p{Sm}\p{Sk}]/gu, "") ||
+    password.toLowerCase().replace(/\s/gu, "");
+  const sequences: Array<string> = [
+    "0123456789",
+    "abcdefghijklmnopqrstuvwxyz",
+    "qwertyuiopasdfghjklzxcvbnm",
+  ];
+  const isSequence: boolean = sequences.some((sequence: string): boolean => {
+    return (
+      sequence.repeat(10).includes(comparable) ||
+      Array.from(sequence).reverse().join("").repeat(10).includes(comparable)
+    );
+  });
+
+  if (
+    REPEATED_SIGNUP_PASSWORD_PATTERN.test(comparable) ||
+    COMMON_SIGNUP_PASSWORDS.has(comparable.replace(/\d+$/u, "")) ||
+    isSequence
+  ) {
+    return "Choose a less predictable password. Try a few unrelated words.";
+  }
+
+  return null;
+}
 
 /**
  * Why this password is unacceptable, or null if it is fine.

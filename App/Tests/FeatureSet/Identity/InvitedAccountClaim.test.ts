@@ -431,7 +431,10 @@ describe("Identity /signup - claiming an invited account without the invitation"
      */
     await invoke(
       "/signup",
-      signupBody({ email: VICTIM_EMAIL, password: "attacker-chosen" }),
+      signupBody({
+        email: VICTIM_EMAIL,
+        password: "attacker-chosen-passphrase",
+      }),
     );
 
     expectNothingHappened();
@@ -440,7 +443,10 @@ describe("Identity /signup - claiming an invited account without the invitation"
   it("does not consult the token service at all when no token is supplied", async () => {
     await invoke(
       "/signup",
-      signupBody({ email: VICTIM_EMAIL, password: "attacker-chosen" }),
+      signupBody({
+        email: VICTIM_EMAIL,
+        password: "attacker-chosen-passphrase",
+      }),
     );
 
     expect(consumeRegistrationToken).not.toHaveBeenCalled();
@@ -455,7 +461,7 @@ describe("Identity /signup - claiming an invited account without the invitation"
       "/signup",
       signupBody({
         email: VICTIM_EMAIL,
-        password: "attacker-chosen",
+        password: "attacker-chosen-passphrase",
         registrationToken: "not-a-uuid",
       }),
     );
@@ -469,7 +475,7 @@ describe("Identity /signup - claiming an invited account without the invitation"
       "/signup",
       signupBody({
         email: VICTIM_EMAIL,
-        password: "attacker-chosen",
+        password: "attacker-chosen-passphrase",
         registrationToken: "",
       }),
     );
@@ -490,7 +496,7 @@ describe("Identity /signup - claiming an invited account without the invitation"
       "/signup",
       signupBody({
         email: VICTIM_EMAIL,
-        password: "attacker-chosen",
+        password: "attacker-chosen-passphrase",
         registrationToken: VALID_TOKEN,
       }),
     );
@@ -508,7 +514,7 @@ describe("Identity /signup - claiming an invited account without the invitation"
       "/signup",
       signupBody({
         email: VICTIM_EMAIL,
-        password: "attacker-chosen",
+        password: "attacker-chosen-passphrase",
         registrationToken: VALID_TOKEN,
       }),
     );
@@ -523,7 +529,10 @@ describe("Identity /signup - claiming an invited account without the invitation"
   it("sends the link to the invited address instead of answering the caller with it", async () => {
     await invoke(
       "/signup",
-      signupBody({ email: VICTIM_EMAIL, password: "attacker-chosen" }),
+      signupBody({
+        email: VICTIM_EMAIL,
+        password: "attacker-chosen-passphrase",
+      }),
     );
 
     expect(sendCompleteRegistrationEmail).toHaveBeenCalledTimes(1);
@@ -538,7 +547,10 @@ describe("Identity /signup - claiming an invited account without the invitation"
   it("answers with the bland check-your-email response and no account", async () => {
     await invoke(
       "/signup",
-      signupBody({ email: VICTIM_EMAIL, password: "attacker-chosen" }),
+      signupBody({
+        email: VICTIM_EMAIL,
+        password: "attacker-chosen-passphrase",
+      }),
     );
 
     expect(sendEntityResponse).toHaveBeenCalledTimes(1);
@@ -555,7 +567,10 @@ describe("Identity /signup - claiming an invited account without the invitation"
   it("never puts a registration token in the response", async () => {
     await invoke(
       "/signup",
-      signupBody({ email: VICTIM_EMAIL, password: "attacker-chosen" }),
+      signupBody({
+        email: VICTIM_EMAIL,
+        password: "attacker-chosen-passphrase",
+      }),
     );
 
     /*
@@ -581,7 +596,10 @@ describe("Identity /signup - claiming an invited account without the invitation"
      */
     await invoke(
       "/signup",
-      signupBody({ email: VICTIM_EMAIL, password: "attacker-chosen" }),
+      signupBody({
+        email: VICTIM_EMAIL,
+        password: "attacker-chosen-passphrase",
+      }),
     );
 
     expect(userUpdateOneByIdAndFetch).not.toHaveBeenCalled();
@@ -598,7 +616,7 @@ describe("Identity /signup - the invited person following their own invitation",
       "/signup",
       signupBody({
         email: VICTIM_EMAIL,
-        password: "alice-chosen",
+        password: "alice-chosen-passphrase",
         registrationToken: VALID_TOKEN,
       }),
     );
@@ -617,7 +635,7 @@ describe("Identity /signup - the invited person following their own invitation",
       "/signup",
       signupBody({
         email: VICTIM_EMAIL,
-        password: "alice-chosen",
+        password: "alice-chosen-passphrase",
         registrationToken: VALID_TOKEN,
       }),
     );
@@ -633,7 +651,7 @@ describe("Identity /signup - the invited person following their own invitation",
       "/signup",
       signupBody({
         email: VICTIM_EMAIL,
-        password: "alice-chosen",
+        password: "alice-chosen-passphrase",
         registrationToken: VALID_TOKEN,
       }),
     );
@@ -646,7 +664,7 @@ describe("Identity /signup - the invited person following their own invitation",
       "/signup",
       signupBody({
         email: VICTIM_EMAIL,
-        password: "alice-chosen",
+        password: "alice-chosen-passphrase",
         registrationToken: VALID_TOKEN,
       }),
     );
@@ -660,7 +678,7 @@ describe("Identity /signup - the invited person following their own invitation",
       "/signup",
       signupBody({
         email: VICTIM_EMAIL,
-        password: "alice-chosen",
+        password: "alice-chosen-passphrase",
         registrationToken: VALID_TOKEN,
       }),
     );
@@ -675,7 +693,10 @@ describe("Identity /signup - the paths that must not have changed", () => {
 
     await invoke(
       "/signup",
-      signupBody({ email: VICTIM_EMAIL, password: "attacker-chosen" }),
+      signupBody({
+        email: VICTIM_EMAIL,
+        password: "attacker-chosen-passphrase",
+      }),
     );
 
     expect(sendErrorResponse).toHaveBeenCalledTimes(1);
@@ -694,7 +715,7 @@ describe("Identity /signup - the paths that must not have changed", () => {
       "/signup",
       signupBody({
         email: VICTIM_EMAIL,
-        password: "attacker-chosen",
+        password: "attacker-chosen-passphrase",
         registrationToken: VALID_TOKEN,
       }),
     );
@@ -721,7 +742,10 @@ describe("Identity /signup - the paths that must not have changed", () => {
 
     await invoke(
       "/signup",
-      signupBody({ email: "newcomer@example.com", password: "hunter2" }),
+      signupBody({
+        email: "newcomer@example.com",
+        password: "violet river lantern",
+      }),
     );
 
     expect(userCreateUserOnSignup).toHaveBeenCalledTimes(1);
@@ -748,7 +772,10 @@ describe("Identity /signup - the paths that must not have changed", () => {
 
     await invoke(
       "/signup",
-      signupBody({ email: "newcomer@example.com", password: "hunter2" }),
+      signupBody({
+        email: "newcomer@example.com",
+        password: "violet river lantern",
+      }),
     );
 
     expect(createEmailVerificationToken).toHaveBeenCalledTimes(1);

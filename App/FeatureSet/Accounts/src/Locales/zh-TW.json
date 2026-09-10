@@ -176,5 +176,16 @@
     "returnToApp": "返回應用程式",
     "cancel": "取消並返回應用程式",
     "setup": "在網頁控制台的「使用者個人資料 → 通行金鑰和雙重驗證」中建立通行金鑰。"
-  }
+  },
+  "Use at least {{minimum}} characters.": "請至少使用 {{minimum}} 個字元。",
+  "Try a few unrelated words.": "試著組合幾個互不相關的詞。",
+  "Password meets requirements": "密碼符合要求",
+  "Password must be at least 15 characters.": "密碼必須至少包含 15 個字元。",
+  "Password cannot be more than 100 characters.": "密碼不能超過 100 個字元。",
+  "Choose a less predictable password. Try a few unrelated words.": "請選擇更難猜測的密碼。試著組合幾個互不相關的詞。",
+  "Password cannot be blank.": "密碼不能僅包含空白字元。",
+  "Password is required.": "請輸入密碼。",
+  "Password must be a string.": "密碼必須是字串。",
+  "Account details": "帳戶資訊",
+  "Secure your account": "保護你的帳戶"
 }

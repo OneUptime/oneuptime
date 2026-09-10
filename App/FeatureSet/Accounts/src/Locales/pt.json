@@ -176,5 +176,16 @@
     "returnToApp": "Voltar ao aplicativo",
     "cancel": "Cancelar e voltar ao aplicativo",
     "setup": "Crie uma chave de acesso em Perfil do usuário → Chaves de acesso e autenticação de dois fatores no painel web."
-  }
+  },
+  "Use at least {{minimum}} characters.": "Use pelo menos {{minimum}} caracteres.",
+  "Try a few unrelated words.": "Experimente algumas palavras sem relação entre si.",
+  "Password meets requirements": "A senha atende aos requisitos",
+  "Password must be at least 15 characters.": "A senha deve ter pelo menos 15 caracteres.",
+  "Password cannot be more than 100 characters.": "A senha não pode ter mais de 100 caracteres.",
+  "Choose a less predictable password. Try a few unrelated words.": "Escolha uma senha menos previsível. Experimente algumas palavras sem relação entre si.",
+  "Password cannot be blank.": "A senha não pode conter apenas espaços.",
+  "Password is required.": "A senha é obrigatória.",
+  "Password must be a string.": "A senha deve ser uma sequência de texto.",
+  "Account details": "Detalhes da conta",
+  "Secure your account": "Proteja sua conta"
 }

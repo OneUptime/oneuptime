@@ -176,5 +176,16 @@
     "returnToApp": "Tillbaka till appen",
     "cancel": "Avbryt och återgå till appen",
     "setup": "Skapa en nyckel under Användarprofil → Nycklar och tvåfaktorsautentisering i webbpanelen."
-  }
+  },
+  "Use at least {{minimum}} characters.": "Använd minst {{minimum}} tecken.",
+  "Try a few unrelated words.": "Prova några ord utan koppling till varandra.",
+  "Password meets requirements": "Lösenordet uppfyller kraven",
+  "Password must be at least 15 characters.": "Lösenordet måste innehålla minst 15 tecken.",
+  "Password cannot be more than 100 characters.": "Lösenordet får inte innehålla fler än 100 tecken.",
+  "Choose a less predictable password. Try a few unrelated words.": "Välj ett mindre förutsägbart lösenord. Prova några ord utan koppling till varandra.",
+  "Password cannot be blank.": "Lösenordet får inte bara innehålla blanksteg.",
+  "Password is required.": "Lösenord krävs.",
+  "Password must be a string.": "Lösenordet måste vara en textsträng.",
+  "Account details": "Kontouppgifter",
+  "Secure your account": "Skydda ditt konto"
 }

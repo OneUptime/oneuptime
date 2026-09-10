@@ -176,5 +176,16 @@
     "returnToApp": "Terug naar de app",
     "cancel": "Annuleren en terug naar de app",
     "setup": "Maak een toegangssleutel via Gebruikersprofiel → Toegangssleutels en tweefactorauthenticatie in het webdashboard."
-  }
+  },
+  "Use at least {{minimum}} characters.": "Gebruik minimaal {{minimum}} tekens.",
+  "Try a few unrelated words.": "Probeer een paar woorden die niets met elkaar te maken hebben.",
+  "Password meets requirements": "Het wachtwoord voldoet aan de vereisten",
+  "Password must be at least 15 characters.": "Het wachtwoord moet minimaal 15 tekens bevatten.",
+  "Password cannot be more than 100 characters.": "Het wachtwoord mag niet langer zijn dan 100 tekens.",
+  "Choose a less predictable password. Try a few unrelated words.": "Kies een minder voorspelbaar wachtwoord. Probeer een paar woorden die niets met elkaar te maken hebben.",
+  "Password cannot be blank.": "Het wachtwoord mag niet alleen uit spaties bestaan.",
+  "Password is required.": "Een wachtwoord is verplicht.",
+  "Password must be a string.": "Het wachtwoord moet een tekenreeks zijn.",
+  "Account details": "Accountgegevens",
+  "Secure your account": "Beveilig je account"
 }

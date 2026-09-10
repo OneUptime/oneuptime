@@ -450,13 +450,13 @@ describe("Identity /signup - passwordless-account takeover via dropped email pre
     expect(userCreateUserOnSignup).not.toHaveBeenCalled();
     expect(result.nextError).toBeInstanceOf(BadDataException);
     expect((result.nextError as unknown as Exception).message).toBe(
-      "Email is required.",
+      "Password is required.",
     );
   });
 
   it("rejects a payload carrying only a password", async () => {
     const result: InvokeResult = await invoke("/signup", {
-      data: { password: "attacker-chosen" },
+      data: { password: "attacker-chosen-passphrase" },
     });
 
     expect(userFindOneBy).not.toHaveBeenCalled();
@@ -466,7 +466,7 @@ describe("Identity /signup - passwordless-account takeover via dropped email pre
 
   it("rejects an empty-string email", async () => {
     const result: InvokeResult = await invoke("/signup", {
-      data: { email: "", password: "attacker-chosen" },
+      data: { email: "", password: "attacker-chosen-passphrase" },
     });
 
     expect(userFindOneBy).not.toHaveBeenCalled();
@@ -483,7 +483,7 @@ describe("Identity /signup - passwordless-account takeover via dropped email pre
     userCreateUserOnSignup.mockResolvedValue(null);
 
     await invoke("/signup", {
-      data: { email: "new-user@example.com", password: "hunter2" },
+      data: { email: "new-user@example.com", password: "violet river lantern" },
     });
 
     expect(userFindOneBy).toHaveBeenCalledTimes(1);

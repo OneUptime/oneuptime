@@ -176,5 +176,16 @@
     "returnToApp": "Tilbake til appen",
     "cancel": "Avbryt og gå tilbake til appen",
     "setup": "Opprett en tilgangsnøkkel under Brukerprofil → Tilgangsnøkler og tofaktorautentisering i nettdashbordet."
-  }
+  },
+  "Use at least {{minimum}} characters.": "Bruk minst {{minimum}} tegn.",
+  "Try a few unrelated words.": "Prøv noen ord uten sammenheng med hverandre.",
+  "Password meets requirements": "Passordet oppfyller kravene",
+  "Password must be at least 15 characters.": "Passordet må inneholde minst 15 tegn.",
+  "Password cannot be more than 100 characters.": "Passordet kan ikke inneholde mer enn 100 tegn.",
+  "Choose a less predictable password. Try a few unrelated words.": "Velg et mindre forutsigbart passord. Prøv noen ord uten sammenheng med hverandre.",
+  "Password cannot be blank.": "Passordet kan ikke bare inneholde mellomrom.",
+  "Password is required.": "Passord er påkrevd.",
+  "Password must be a string.": "Passordet må være en tekststreng.",
+  "Account details": "Kontodetaljer",
+  "Secure your account": "Sikre kontoen din"
 }

@@ -105,7 +105,7 @@
   },
   "register": {
     "title": "Create your OneUptime account",
-    "subtitle": "Join thousands of business that use OneUptime to help them stay online all the time.",
+    "subtitle": "Join thousands of businesses that use OneUptime to help them stay online all the time.",
     "noCreditCard": "No credit card required.",
     "submitButton": "Sign Up",
     "haveAccountPrompt": "Already have an account?",
@@ -176,5 +176,16 @@
     "returnToApp": "Return to app",
     "cancel": "Cancel and return to app",
     "setup": "Create a passkey in User Profile → Passkeys & Two Factor Auth in the web dashboard."
-  }
+  },
+  "Use at least {{minimum}} characters.": "Use at least {{minimum}} characters.",
+  "Try a few unrelated words.": "Try a few unrelated words.",
+  "Password meets requirements": "Password meets requirements",
+  "Password must be at least 15 characters.": "Password must be at least 15 characters.",
+  "Password cannot be more than 100 characters.": "Password cannot be more than 100 characters.",
+  "Choose a less predictable password. Try a few unrelated words.": "Choose a less predictable password. Try a few unrelated words.",
+  "Password cannot be blank.": "Password cannot be blank.",
+  "Password is required.": "Password is required.",
+  "Password must be a string.": "Password must be a string.",
+  "Account details": "Account details",
+  "Secure your account": "Secure your account"
 }

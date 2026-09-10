@@ -12,10 +12,11 @@ import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, ObjectType } from "Common/Types/JSON";
 import HashedString from "Common/Types/HashedString";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
+import { getSignupPasswordValidationError } from "Common/Types/Password";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import {
   AppVersion,
@@ -468,7 +469,7 @@ router.post(
          * Check if this user has been invited to a project.
          * If so, allow them to sign up even if signup is disabled.
          */
-        const data: JSONObject = req.body["data"] as JSONObject;
+        const data: JSONObject = req.body?.["data"] as JSONObject;
         const emailForInviteCheck: string | undefined = data?.["email"] as
           | string
           | undefined;
@@ -511,22 +512,42 @@ router.post(
       }
 
       const miscDataProps: JSONObject =
-        (req.body["miscDataProps"] as JSONObject) || {};
+        (req.body?.["miscDataProps"] as JSONObject) || {};
 
       await CaptchaUtil.verifyCaptcha({
         token:
           (miscDataProps["captchaToken"] as string | undefined) ||
-          (req.body["captchaToken"] as string | undefined),
+          (req.body?.["captchaToken"] as string | undefined),
         remoteIp: getClientIp(req) || null,
       });
 
-      const data: JSONObject = req.body["data"];
+      const data: JSONObject = req.body?.["data"];
+      const suppliedPassword: unknown = data?.["password"];
+
+      /*
+       * Model forms send a HashedString envelope; direct clients may send text.
+       * Validate the raw value before deserialization or spending an invitation.
+       */
+      const password: unknown =
+        suppliedPassword &&
+        typeof suppliedPassword === "object" &&
+        !Array.isArray(suppliedPassword) &&
+        (suppliedPassword as JSONObject)["_type"] === ObjectType.HashedString
+          ? (suppliedPassword as JSONObject)["value"]
+          : suppliedPassword;
+      const passwordValidationError: string | null =
+        getSignupPasswordValidationError(password);
+
+      if (passwordValidationError) {
+        throw new BadDataException(passwordValidationError);
+      }
 
       /* Creating a type that is a partial of the TBaseModel type. */
       const partialUser: User = BaseModel.fromJSON(
         data as JSONObject,
         User,
       ) as User;
+      partialUser.password = new HashedString(password as string);
 
       /*
        * A missing email would drop the predicate below and resolve `alreadySavedUser` to the
