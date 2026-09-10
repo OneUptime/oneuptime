@@ -38,13 +38,14 @@ import PermissionUtil from "../../../UI/Utils/Permission";
 import Permission from "../../../Types/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
+import Card from "../../../UI/Components/Card/Card";
 
 let mockRenderRealPasskeyTable: boolean = false;
 
 /*
  * Keep the real page, enrollment modal, input and browser/API boundary. Only
- * registration cases replace unrelated model lists; management cases use the
- * real passkey table and edit form to verify the name-only update boundary.
+ * registration cases replace unrelated model lists; header and management
+ * cases use the real passkey table to verify shared UI and name-only updates.
  */
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
@@ -61,11 +62,12 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
       }
       return (
         <section data-testid={props.id} data-refresh={props.refreshToggle}>
-          <h2>{props.cardProps?.title}</h2>
-          <p>{props.cardProps?.description}</p>
-          {props.cardProps?.rightElement}
-          {props.topContent}
-          {props.noItemsMessage}
+          <Card {...props.cardProps}>
+            <>
+              {props.topContent}
+              {props.noItemsMessage}
+            </>
+          </Card>
         </section>
       );
     },
@@ -133,6 +135,29 @@ const renderPage: () => void = (): void => {
       />
     </MemoryRouter>,
   );
+};
+
+const mockPasskeyTable: (items: Array<UserWebAuthn>) => void = (
+  items: Array<UserWebAuthn>,
+): void => {
+  mockRenderRealPasskeyTable = true;
+  jest
+    .spyOn(PermissionUtil, "getAllPermissions")
+    .mockReturnValue([Permission.CurrentUser]);
+  jest.spyOn(PermissionUtil, "getGlobalPermissions").mockReturnValue({
+    projectIds: [],
+    globalPermissions: [Permission.CurrentUser],
+    _type: "UserGlobalAccessPermission",
+  });
+  jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(null);
+  jest
+    .spyOn(ModelAPI, "getList")
+    .mockResolvedValue({
+      data: items,
+      count: items.length,
+      skip: 0,
+      limit: 10,
+    });
 };
 
 const click: (element: HTMLElement) => Promise<void> = async (
@@ -236,22 +261,95 @@ describe("Passkey settings registration", () => {
     expect(
       screen.getByText("Two factor authentication is disabled"),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(/whether two factor authentication is on or off/),
-    ).toBeInTheDocument();
     expect(screen.getAllByRole("heading")[0]).toHaveTextContent("Passkeys");
   });
 
-  test("explains first-time setup, password fallback and second-step security keys", () => {
+  test("shows a simple empty state and explains password fallback and second-step security keys", () => {
     renderPage();
-    expect(screen.getByText("Add your first passkey")).toBeVisible();
-    expect(screen.getByText(/choose "Sign in with a passkey"/)).toBeVisible();
+    expect(
+      screen.getByText("No passkeys or security keys found."),
+    ).toBeVisible();
     expect(screen.getByText(/keep your password available/)).toBeVisible();
     expect(screen.getByText(/save your backup codes below/)).toBeVisible();
     expect(
       screen.getByText(/as a second step after your password/),
     ).toBeVisible();
   });
+
+  test.each([false, true])(
+    "uses the shared table header and standard add action when a saved passkey is present: %s",
+    async (hasPasskey: boolean) => {
+      const storedKey: UserWebAuthn = new UserWebAuthn();
+      storedKey._id = "44444444-4444-4444-8444-444444444444";
+      storedKey.name = "My laptop";
+      storedKey.createdAt = new Date("2026-09-08T12:00:00.000Z");
+      storedKey.isVerified = true;
+      mockPasskeyTable(hasPasskey ? [storedKey] : []);
+      renderPage();
+
+      expect(
+        await screen.findByText(
+          hasPasskey ? "My laptop" : "No passkeys or security keys found.",
+        ),
+      ).toBeVisible();
+      const heading: HTMLElement = screen.getByRole("heading", {
+        name: "Passkeys",
+        exact: true,
+      });
+      const card: HTMLElement = heading.closest(
+        '[data-testid="card"]',
+      ) as HTMLElement;
+      expect(card).toBeInTheDocument();
+      expect(within(card).getAllByRole("heading")).toHaveLength(1);
+      expect(within(card).getAllByTestId("card-description")).toHaveLength(1);
+      expect(within(card).getByTestId("card-description")).toHaveTextContent(
+        "Use your fingerprint, face, screen lock, or security key to sign in.",
+      );
+      expect(
+        within(card).queryByText(
+          /whether two factor authentication is on or off/,
+        ),
+      ).not.toBeInTheDocument();
+      expect(
+        within(card).queryByText("Add your first passkey"),
+      ).not.toBeInTheDocument();
+
+      const addPasskey: HTMLElement = within(card).getByRole("button", {
+        name: "Add Passkey",
+        exact: true,
+      });
+      expect(addPasskey).toHaveAttribute("data-testid", "card-button");
+      expect(addPasskey).toHaveClass(
+        "bg-white",
+        "border-gray-300",
+        "text-gray-700",
+      );
+      expect(addPasskey).not.toHaveClass("bg-indigo-600");
+      expect(addPasskey).toBeEnabled();
+
+      await click(within(card).getByRole("button", { name: "More options" }));
+      const listCallsBeforeRefresh: number = jest.mocked(ModelAPI.getList).mock
+        .calls.length;
+      await click(within(card).getByRole("menuitem", { name: "Refresh" }));
+      await waitFor(() => {
+        expect(ModelAPI.getList).toHaveBeenCalledTimes(
+          listCallsBeforeRefresh + 1,
+        );
+      });
+
+      await click(addPasskey);
+      const dialog: HTMLElement = screen.getByRole("dialog", {
+        name: "Add Passkey",
+      });
+      expect(
+        within(dialog).getByRole("textbox", { name: "Passkey name" }),
+      ).toBeVisible();
+      expect(
+        within(dialog).getByRole("button", { name: "Create Passkey" }),
+      ).toBeVisible();
+      expect(API.post).not.toHaveBeenCalled();
+    },
+  );
 
   test("labels the name input, associates its hint and supports keyboard submission", async () => {
     renderPage();
@@ -558,24 +656,12 @@ describe("Passkey settings registration", () => {
   });
 
   test("lets the owner rename a key without updating credential or verification fields", async () => {
-    mockRenderRealPasskeyTable = true;
     const storedKey: UserWebAuthn = new UserWebAuthn();
     storedKey._id = "44444444-4444-4444-8444-444444444444";
     storedKey.name = "Old laptop";
     storedKey.createdAt = new Date("2026-09-08T12:00:00.000Z");
     storedKey.isVerified = true;
-    jest
-      .spyOn(PermissionUtil, "getAllPermissions")
-      .mockReturnValue([Permission.CurrentUser]);
-    jest.spyOn(PermissionUtil, "getGlobalPermissions").mockReturnValue({
-      projectIds: [],
-      globalPermissions: [Permission.CurrentUser],
-      _type: "UserGlobalAccessPermission",
-    });
-    jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(null);
-    jest
-      .spyOn(ModelAPI, "getList")
-      .mockResolvedValue({ data: [storedKey], count: 1, skip: 0, limit: 10 });
+    mockPasskeyTable([storedKey]);
     jest.spyOn(ModelAPI, "getItem").mockResolvedValue(storedKey);
     jest
       .spyOn(ModelAPI, "createOrUpdate")

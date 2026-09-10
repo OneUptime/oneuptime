@@ -188,7 +188,9 @@ test.describe("Passkey account lifecycle", () => {
       return cookie.name === "user-id";
     })!.value;
     await page.goto(profileUrl);
-    await page.getByTestId("add-passkey").click();
+    await page
+      .getByRole("button", { name: "Add Passkey", exact: true })
+      .click();
     await page
       .getByTestId("modal")
       .locator('input[type="text"]')
