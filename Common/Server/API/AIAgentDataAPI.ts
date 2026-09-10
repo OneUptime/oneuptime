@@ -81,6 +81,56 @@ export default class AIAgentDataAPI {
     return this.router;
   }
 
+  /*
+   * The task recipe a repository-token request belongs to, when that recipe is
+   * exempt from the per-repository open-PR cap — otherwise null.
+   *
+   * Derived from the run, never from the request. `taskId` names a task; it
+   * does not assert anything about it, and a task in another project answers
+   * null exactly as a missing one does. An absent taskId also answers null, so
+   * an older worker that does not send one keeps the cap in full.
+   */
+  private static async getCapExemptTaskType(data: {
+    aiAgent: CodeFixAgentIdentity;
+    taskId: string | undefined;
+    projectId: ObjectID | undefined;
+  }): Promise<CodeFixTaskType | null> {
+    if (!data.taskId || !data.projectId) {
+      return null;
+    }
+
+    let taskId: ObjectID;
+
+    try {
+      taskId = new ObjectID(data.taskId);
+    } catch {
+      return null;
+    }
+
+    const run: AIRun | null = await AIRunService.findOneById({
+      id: taskId,
+      select: { _id: true, projectId: true, codeFixTaskType: true },
+      props: { isRoot: true },
+    });
+
+    if (
+      !run ||
+      !run.projectId ||
+      run.projectId.toString() !== data.projectId.toString() ||
+      CodeFixAgentAuth.deniesAccessToProject(data.aiAgent, run.projectId)
+    ) {
+      return null;
+    }
+
+    const taskType: CodeFixTaskType = CodeFixTaskTypeHelper.fromDatabaseValue(
+      run.codeFixTaskType,
+    );
+
+    return CodeFixTaskTypeHelper.opensNewPullRequest(taskType)
+      ? null
+      : taskType;
+  }
+
   private initRoutes(): void {
     /*
      * Server-mediated LLM completion for the in-house code-fix agent (B4
@@ -1191,12 +1241,37 @@ export default class AIAgentDataAPI {
            * token is the agent's only way to clone and push — a repo at its
            * cap physically cannot receive another AI branch or PR. The
            * worker records this message as the run's failure guidance.
+           *
+           * Exempt: recipes that cannot ADD to the review queue. The cap
+           * bounds how many unreviewed AI pull requests a human has to wade
+           * through, and a GitHub revision pushes to a pull request that is
+           * already open and already counted, while a review writes nothing
+           * at all. Applying the cap to those would mean a repository at its
+           * cap could never have its existing AI pull requests improved or
+           * reviewed — the exact work that clears the cap.
+           *
+           * The exemption is derived from the RUN, never from the request: a
+           * caller cannot ask to skip the cap, it can only name a task, and
+           * the task must be in the agent's own project.
            */
-          const openPrCap: OpenPullRequestCapDecision =
-            await OpenPullRequestCap.checkForRepository({
-              codeRepositoryId,
-              configuredLimit: codeRepository.maxOpenFixPullRequests ?? null,
+          const capExemptTaskType: CodeFixTaskType | null =
+            await AIAgentDataAPI.getCapExemptTaskType({
+              aiAgent,
+              taskId: data["taskId"] as string | undefined,
+              projectId: codeRepository.projectId,
             });
+
+          const openPrCap: OpenPullRequestCapDecision = capExemptTaskType
+            ? {
+                allowed: true,
+                limit: 0,
+                paused: false,
+                openCount: 0,
+              }
+            : await OpenPullRequestCap.checkForRepository({
+                codeRepositoryId,
+                configuredLimit: codeRepository.maxOpenFixPullRequests ?? null,
+              });
 
           if (!openPrCap.allowed) {
             return Response.sendErrorResponse(

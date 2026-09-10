@@ -42,6 +42,7 @@ import AIAgentTaskAPI from "Common/Server/API/AIAgentTaskAPI";
 import AIAgentTaskLogAPI from "Common/Server/API/AIAgentTaskLogAPI";
 import AIAgentTaskPullRequestAPI from "Common/Server/API/AIAgentTaskPullRequestAPI";
 import AIAgentDataAPI from "Common/Server/API/AIAgentDataAPI";
+import AIAgentGitHubAPI from "Common/Server/API/AIAgentGitHubAPI";
 import CodeFixRunAPI from "Common/Server/API/CodeFixRunAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import DataSourceAPI from "Common/Server/API/DataSourceAPI";
@@ -5001,6 +5002,12 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new AIAgentDataAPI().getRouter(),
+    );
+
+    // The agent worker's protocol for GitHub-triggered runs.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new AIAgentGitHubAPI().getRouter(),
     );
 
     // Code Fix Runs (dashboard reads of CodeFix AIRuns + their event trails)

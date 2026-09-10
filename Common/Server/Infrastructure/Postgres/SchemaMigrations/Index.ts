@@ -581,6 +581,7 @@ import { AddMacAddressToNetworkDevice1791700000000 } from "./1791700000000-AddMa
 import { SplitWebAuthnChallengeByPurpose1791800000000 } from "./1791800000000-SplitWebAuthnChallengeByPurpose";
 import { AddSeverityAndStateToNotificationEmailRollup1791900000000 } from "./1791900000000-AddSeverityAndStateToNotificationEmailRollup";
 import { AddVMwareTables1792000000000 } from "./1792000000000-AddVMwareTables";
+import { AddGitHubCommandSettingsToCodeRepository1792100000000 } from "./1792100000000-AddGitHubCommandSettingsToCodeRepository";
 
 export default [
   InitialMigration,
@@ -1166,4 +1167,5 @@ export default [
   SplitWebAuthnChallengeByPurpose1791800000000,
   AddSeverityAndStateToNotificationEmailRollup1791900000000,
   AddVMwareTables1792000000000,
+  AddGitHubCommandSettingsToCodeRepository1792100000000,
 ];

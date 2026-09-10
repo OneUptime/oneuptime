@@ -399,6 +399,13 @@ export default class GitHubUtil extends HostedCodeRepository {
         contents?: "read" | "write";
         pull_requests?: "read" | "write";
         /*
+         * Issue READ/WRITE for the interactive app: GitHub routes pull
+         * request CONVERSATION comments through the issues API, so posting
+         * the app's acknowledgement on a pull request needs this scope just
+         * as much as answering a mention on an issue does.
+         */
+        issues?: "read" | "write";
+        /*
          * Check-run READ access for the Tier 1 CI verification sweep. The
          * GitHub App must have the "Checks: Read-only" permission configured
          * or requesting this scope fails with 422 — callers that can degrade

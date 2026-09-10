@@ -40,14 +40,16 @@ In the "Permissions & events" section, configure the following permissions:
 
 **Repository Permissions:**
 
-| Permission      | Access Level | Purpose                                                      |
-| --------------- | ------------ | ------------------------------------------------------------ |
-| Contents        | Read & Write | Read repository files, push branches (required for AI Agent) |
-| Pull requests   | Read & Write | Create and manage pull requests                              |
-| Issues          | Read & Write | Read and comment on issues                                   |
-| Commit statuses | Read         | Check build/CI status                                        |
-| Actions         | Read         | Read GitHub Actions workflow runs and logs                   |
-| Metadata        | Read         | Basic repository metadata (required)                         |
+| Permission      | Access Level | Purpose                                                                                                 |
+| --------------- | ------------ | ------------------------------------------------------------------------------------------------------- |
+| Contents        | Read & Write | Read repository files, push branches (required for AI Agent)                                            |
+| Pull requests   | Read & Write | Create and manage pull requests, and post reviews                                                       |
+| Issues          | Read & Write | Read issues, and post the app's comments — **including on pull requests**, whose conversation GitHub routes through the issues API |
+| Commit statuses | Read         | Check build/CI status                                                                                   |
+| Actions         | Read         | Read GitHub Actions workflow runs and logs                                                              |
+| Metadata        | Read         | Basic repository metadata (required)                                                                    |
+
+**Issues: Read & write is what makes the app interactive.** Without it, mentions are received and then fail silently when the app tries to answer — GitHub serves pull request conversation comments from the issues API, so this single permission gates every reply the app writes. See [Working with OneUptime from GitHub](/docs/ai/github-app).
 
 **Organization Permissions (if using with organizations):**
 
@@ -63,7 +65,23 @@ In the "Permissions & events" section, configure the following permissions:
 
 ### Step 3: Subscribe to Webhook Events
 
-OneUptime uses the GitHub App's `installation` and `installation_repositories` events to synchronize installation and repository access. GitHub Apps automatically receive these events. The current handler acknowledges other events, including **Pull request**, **Push**, and **Workflow run**, without additional processing; subscribing to them does not enable notifications or CI/CD automation.
+OneUptime uses two sets of events, and they do different jobs.
+
+**Repository synchronisation** — `installation` and `installation_repositories`. GitHub Apps receive these automatically; they keep the set of connected repositories in step with what the app is installed on.
+
+**The interactive app** — these must be subscribed to explicitly, and each one enables a specific way of handing work to the app:
+
+| Event                           | What it enables                                                       |
+| ------------------------------- | --------------------------------------------------------------------- |
+| **Issue comment**               | `@mention` commands on issues **and** on pull requests                |
+| **Issues**                      | assigning an issue to the app, and the repository's trigger label     |
+| **Pull request**                | requesting a review from the app                                      |
+| **Pull request review**         | a mention written in the body of a submitted review                   |
+| **Pull request review comment** | a mention on an inline comment in the diff                            |
+
+If none of these are subscribed, the GitHub App still connects repositories and still opens fix pull requests from OneUptime — it simply never responds to anything written in GitHub. That is the most common cause of "the bot ignores me". See [Working with OneUptime from GitHub](/docs/ai/github-app) for what the commands are and who is allowed to issue them.
+
+Other events (**Push**, **Workflow run**) are acknowledged and ignored; subscribing to them does not enable notifications or CI/CD automation.
 
 ### Step 4: Set Installation Access
 

@@ -28,6 +28,9 @@ import {
   ImproveTracingTaskHandler,
   FixFromIncidentTaskHandler,
   FixPerformanceTaskHandler,
+  GitHubIssueFixTaskHandler,
+  GitHubPullRequestRevisionTaskHandler,
+  GitHubPullRequestReviewTaskHandler,
 } from "./TaskHandlers/Index";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
@@ -213,6 +216,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       registry.register(new ImproveTracingTaskHandler());
       registry.register(new FixFromIncidentTaskHandler());
       registry.register(new FixPerformanceTaskHandler());
+      registry.register(new GitHubIssueFixTaskHandler());
+      registry.register(new GitHubPullRequestRevisionTaskHandler());
+      registry.register(new GitHubPullRequestReviewTaskHandler());
 
       if (capabilities.canRunCodeFixTasks) {
         logger.info(
