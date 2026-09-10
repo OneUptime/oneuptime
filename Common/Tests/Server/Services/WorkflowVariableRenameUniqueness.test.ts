@@ -4,6 +4,7 @@ import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import WorkflowVariable from "../../../Models/DatabaseModels/WorkflowVariable";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -42,6 +43,9 @@ const WORKFLOW_ID: ObjectID = new ObjectID(
 const VARIABLE_ID: ObjectID = new ObjectID(
   "aaaa3333-3333-4333-8333-333333333333",
 );
+const USER_ID: ObjectID = new ObjectID(
+  "aaaa5555-5555-4555-8555-555555555555",
+);
 const OTHER_VARIABLE_ID: ObjectID = new ObjectID(
   "aaaa4444-4444-4444-8444-444444444444",
 );
@@ -64,6 +68,7 @@ type MakeVariableOptions = {
   name: string;
   workflowId?: ObjectID | undefined;
   projectId?: ObjectID | undefined;
+  isSecret?: boolean | string | undefined;
 };
 
 function makeVariable(options: MakeVariableOptions): WorkflowVariable {
@@ -77,6 +82,10 @@ function makeVariable(options: MakeVariableOptions): WorkflowVariable {
     variable.workflowId = options.workflowId;
   }
 
+  if (options.isSecret !== undefined) {
+    (variable as unknown as { isSecret?: unknown }).isSecret = options.isSecret;
+  }
+
   return variable;
 }
 
@@ -87,48 +96,96 @@ function makeVariable(options: MakeVariableOptions): WorkflowVariable {
  */
 function makeUpdateBy(
   data: Partial<WorkflowVariable>,
+  props?: Record<string, unknown> | undefined,
 ): UpdateBy<WorkflowVariable> {
   return {
     query: { _id: VARIABLE_ID.toString() },
     data: data,
     limit: 1,
     skip: 0,
-    props: { isRoot: true },
+    props: props || { isRoot: true },
   } as unknown as UpdateBy<WorkflowVariable>;
 }
 
 /*
  * Stub the two reads the hook makes. findBy answers "which rows does this
  * update touch"; countBy answers "does the new name already exist in that row's
- * scope". Returning the countBy query as well lets the scoping assertions below
- * inspect what was actually asked for, which is the part that is easy to get
- * wrong and impossible to see from a pass/fail alone.
+ * scope". Both calls are recorded WHOLE - query, select and props - because
+ * every assertion worth making here is about what was asked for rather than
+ * about what a stub chose to answer.
  */
-type CountByCall = { query: Record<string, unknown> };
+type RecordedCall = {
+  query: Record<string, unknown>;
+  select?: Record<string, unknown> | undefined;
+  props?: Record<string, unknown> | undefined;
+  limit?: unknown;
+};
 
 function stubReads(options: {
   itemsBeingUpdated: Array<WorkflowVariable>;
   conflictCount: number;
-}): { countByCalls: Array<CountByCall> } {
-  const countByCalls: Array<CountByCall> = [];
+}): { countByCalls: Array<RecordedCall>; findByCalls: Array<RecordedCall> } {
+  const countByCalls: Array<RecordedCall> = [];
+  const findByCalls: Array<RecordedCall> = [];
+
+  function record(call: unknown): RecordedCall {
+    const typed: RecordedCall = call as RecordedCall;
+
+    return {
+      query: typed.query,
+      select: typed.select,
+      props: typed.props,
+      limit: typed.limit,
+    };
+  }
 
   jest
     .spyOn(WorkflowVariableService, "findBy")
-    .mockImplementation(async (): Promise<Array<WorkflowVariable>> => {
-      return options.itemsBeingUpdated;
-    });
+    .mockImplementation(
+      async (findBy: unknown): Promise<Array<WorkflowVariable>> => {
+        findByCalls.push(record(findBy));
+        return options.itemsBeingUpdated;
+      },
+    );
 
   jest
     .spyOn(WorkflowVariableService, "countBy")
     .mockImplementation(async (countBy: unknown): Promise<PositiveNumber> => {
-      countByCalls.push({
-        query: (countBy as { query: Record<string, unknown> }).query,
-      });
-
+      countByCalls.push(record(countBy));
       return new PositiveNumber(options.conflictCount);
     });
 
-  return { countByCalls };
+  return { countByCalls, findByCalls };
+}
+
+/*
+ * QueryHelper builds TypeORM Raw() operators, so a query value is a
+ * FindOperator carrying the SQL fragment it will emit and the parameter bound
+ * into it. Asserting "it is defined" would accept the exact inversion of every
+ * one of these predicates, so the tests below read the operator instead.
+ */
+type RawOperator = {
+  type?: string | undefined;
+  getSql?: ((alias: string) => string) | undefined;
+  objectLiteralParameters?: Record<string, unknown> | undefined;
+};
+
+function sqlOf(value: unknown, alias: string): string {
+  const operator: RawOperator = value as RawOperator;
+
+  if (!operator || typeof operator.getSql !== "function") {
+    throw new Error(
+      `Expected a Raw() operator for "${alias}", got ${JSON.stringify(value)}`,
+    );
+  }
+
+  return operator.getSql(alias).replace(/\s+/g, " ");
+}
+
+function paramsOf(value: unknown): Array<unknown> {
+  const operator: RawOperator = value as RawOperator;
+
+  return Object.values(operator?.objectLiteralParameters || {});
 }
 
 describe("WorkflowVariableService rename uniqueness", () => {
@@ -227,6 +284,43 @@ describe("WorkflowVariableService rename uniqueness", () => {
     });
   });
 
+  describe("which rows the guard inspects", () => {
+    /*
+     * The hook resolves the update's own query to real rows before it can judge
+     * anything, and every part of that read matters: the query decides which
+     * rows, isRoot lets it see rows the caller cannot read, the select supplies
+     * the scope the lookup is built from, and the limit is what lets the
+     * multi-row guard below see all of them. A stub that answers regardless of
+     * its arguments would hide all four.
+     */
+    test("reads exactly the rows this update targets, as root, with the scope columns", async () => {
+      const { findByCalls } = stubReads({
+        itemsBeingUpdated: [
+          makeVariable({ name: "OldName", workflowId: WORKFLOW_ID }),
+        ],
+        conflictCount: 0,
+      });
+
+      await hook()(makeUpdateBy({ name: "NewName" }));
+
+      expect(findByCalls).toHaveLength(1);
+
+      const call: RecordedCall = findByCalls[0]!;
+
+      expect(call.query).toEqual({ _id: VARIABLE_ID.toString() });
+      expect(call.props).toEqual({ isRoot: true });
+      expect(call.select).toEqual(
+        expect.objectContaining({
+          _id: true,
+          name: true,
+          projectId: true,
+          workflowId: true,
+        }),
+      );
+      expect(call.limit).toBe(LIMIT_PER_PROJECT);
+    });
+  });
+
   describe("the scope the conflict is looked up in", () => {
     test("a workflow-local rename is checked against that workflow only", async () => {
       const { countByCalls } = stubReads({
@@ -240,14 +334,34 @@ describe("WorkflowVariableService rename uniqueness", () => {
 
       expect(countByCalls).toHaveLength(1);
 
-      const query: Record<string, unknown> = countByCalls[0]!.query;
+      const call: RecordedCall = countByCalls[0]!;
+      const query: Record<string, unknown> = call.query;
 
       expect(query["projectId"]).toBe(PROJECT_ID);
       expect(query["workflowId"]).toBe(WORKFLOW_ID);
-      // The row must not collide with itself.
-      expect(query["_id"]).toBeDefined();
-      // Case-insensitive: a Raw() expression, not the bare string.
-      expect(query["name"]).not.toBe("NewName");
+
+      /*
+       * As root: the conflicting row can easily be one the caller cannot read -
+       * read access is permission- and label-gated - and a count that cannot
+       * see it reports zero and waves the duplicate through.
+       */
+      expect(call.props).toEqual({ isRoot: true });
+
+      /*
+       * The row must be excluded from its own lookup. Asserting the operator
+       * rather than its presence, because `equalTo` would also be "defined" -
+       * and would make the row collide with itself, refusing every rename.
+       */
+      expect(sqlOf(query["_id"], "_id")).toContain("!=");
+      expect(paramsOf(query["_id"])).toContain(VARIABLE_ID.toString());
+
+      /*
+       * Case-insensitive, on the NEW name. A lookup built from the old name
+       * asks "does anything else already have my current name", answers no, and
+       * lets the rename land on top of an existing variable.
+       */
+      expect(sqlOf(query["name"], "name")).toContain("LOWER");
+      expect(paramsOf(query["name"])).toContain("newname");
     });
 
     /*
@@ -256,7 +370,8 @@ describe("WorkflowVariableService rename uniqueness", () => {
      * clause altogether and compare a global variable against every
      * workflow-local variable in the project - which would reject renames that
      * are perfectly legal, and is exactly the shape of bug that makes people
-     * give up and go back to delete-and-recreate.
+     * give up and go back to delete-and-recreate. IS NOT NULL would do the same
+     * thing, which is why the SQL is read rather than merely required to exist.
      */
     test("a global rename is checked against the project's global variables, not every workflow's", async () => {
       const { countByCalls } = stubReads({
@@ -271,9 +386,11 @@ describe("WorkflowVariableService rename uniqueness", () => {
       const query: Record<string, unknown> = countByCalls[0]!.query;
 
       expect(query["projectId"]).toBe(PROJECT_ID);
-      // An IS NULL expression, not undefined and not a workflow id.
-      expect(query["workflowId"]).toBeDefined();
-      expect(query["workflowId"]).not.toBe(WORKFLOW_ID);
+
+      const workflowSql: string = sqlOf(query["workflowId"], "workflowId");
+
+      expect(workflowSql).toContain("IS NULL");
+      expect(workflowSql).not.toContain("IS NOT NULL");
     });
 
     test("the row's own project scopes the lookup, not the caller's", async () => {
@@ -287,6 +404,28 @@ describe("WorkflowVariableService rename uniqueness", () => {
       await hook()(makeUpdateBy({ name: "NewName" }));
 
       expect(countByCalls[0]!.query["projectId"]).toBe(OTHER_PROJECT_ID);
+    });
+
+    /*
+     * projectId is non-nullable on the table, so a row without one means the
+     * select or the row is wrong. Dropping the clause would count the name
+     * across every project on the instance and refuse legitimate renames, so
+     * the guard refuses rather than answering the wrong question.
+     */
+    test("refuses rather than issuing an unscoped lookup when the row has no project", async () => {
+      const orphan: WorkflowVariable = makeVariable({ name: "OldName" });
+      delete orphan.projectId;
+
+      const { countByCalls } = stubReads({
+        itemsBeingUpdated: [orphan],
+        conflictCount: 0,
+      });
+
+      await expect(hook()(makeUpdateBy({ name: "NewName" }))).rejects.toThrow(
+        BadDataException,
+      );
+
+      expect(countByCalls).toHaveLength(0);
     });
   });
 
@@ -309,6 +448,18 @@ describe("WorkflowVariableService rename uniqueness", () => {
       ).resolves.toBeDefined();
 
       expect(countByCalls).toHaveLength(0);
+
+      /*
+       * The zero above is only meaningful next to a one: a hook that had been
+       * deleted outright would also never call countBy. A genuine rename
+       * through the same stubs proves the short-circuit is a short-circuit
+       * rather than an absence.
+       */
+      await expect(
+        hook()(makeUpdateBy({ name: "GenuinelyDifferent" })),
+      ).rejects.toThrow(BadDataException);
+
+      expect(countByCalls).toHaveLength(1);
     });
 
     test("changing only the casing of the row's own name is allowed", async () => {
@@ -330,6 +481,285 @@ describe("WorkflowVariableService rename uniqueness", () => {
       ).resolves.toBeDefined();
 
       expect(countByCalls).toHaveLength(0);
+    });
+
+    /*
+     * The other half of case-insensitivity, and the one that matters more: a
+     * DIFFERENT row already holding the name in another case is a real
+     * collision, because the lookup lowercases both sides. The short-circuit
+     * above must not swallow it.
+     */
+    test("still refuses a rename that collides with another row only by casing", async () => {
+      const { countByCalls } = stubReads({
+        itemsBeingUpdated: [
+          makeVariable({ name: "OldName", workflowId: WORKFLOW_ID }),
+        ],
+        conflictCount: 1,
+      });
+
+      await expect(hook()(makeUpdateBy({ name: "APIToken" }))).rejects.toThrow(
+        /already exists on this workflow/,
+      );
+
+      expect(paramsOf(countByCalls[0]!.query["name"])).toContain("apitoken");
+    });
+
+    /*
+     * A blank name is a write to the column, not the absence of one. Two rows
+     * blanked in the same workflow would both become "" and collide like any
+     * other duplicate, so the guard has to run rather than treat it as "no
+     * rename".
+     */
+    test("treats a blanked name as a rename rather than skipping the guard", async () => {
+      const { countByCalls } = stubReads({
+        itemsBeingUpdated: [
+          makeVariable({ name: "OldName", workflowId: WORKFLOW_ID }),
+        ],
+        conflictCount: 1,
+      });
+
+      await expect(hook()(makeUpdateBy({ name: "" }))).rejects.toThrow(
+        BadDataException,
+      );
+
+      expect(countByCalls).toHaveLength(1);
+    });
+
+    /*
+     * An update that does not carry the column at all IS exempt, and must stay
+     * so - that is every content-only and description-only save.
+     */
+    test("an update carrying no name at all still skips the guard", async () => {
+      const { findByCalls } = stubReads({
+        itemsBeingUpdated: [
+          makeVariable({ name: "OldName", workflowId: WORKFLOW_ID }),
+        ],
+        conflictCount: 1,
+      });
+
+      await expect(
+        hook()(makeUpdateBy({ description: "Just a note" })),
+      ).resolves.toBeDefined();
+
+      expect(findByCalls).toHaveLength(0);
+    });
+  });
+
+  /*
+   * _updateBy calls this hook BEFORE ModelPermission.checkUpdateQueryPermissions,
+   * which is the step that appends the project clause. A hook reading
+   * unscoped-as-root would therefore answer questions about another project's
+   * rows - and its refusal messages say whether a variable is global and
+   * whether a name is taken there - before any authorization had run. So the
+   * hook applies the tenant scope itself.
+   */
+  describe("tenant scoping, which the permission layer has not applied yet", () => {
+    test("narrows the lookup to the calling project", async () => {
+      const { findByCalls } = stubReads({
+        itemsBeingUpdated: [],
+        conflictCount: 0,
+      });
+
+      await hook()(
+        makeUpdateBy(
+          { name: "NewName" },
+          { userId: USER_ID, tenantId: PROJECT_ID },
+        ),
+      );
+
+      expect(findByCalls[0]!.query).toEqual({
+        _id: VARIABLE_ID.toString(),
+        projectId: PROJECT_ID,
+      });
+    });
+
+    /*
+     * The oracle this closes: a variable id belonging to a project the caller
+     * cannot see resolves to no rows, so the hook says nothing at all and the
+     * permission layer refuses the update on its own terms.
+     */
+    test("says nothing about a row outside the calling project", async () => {
+      const { countByCalls } = stubReads({
+        itemsBeingUpdated: [],
+        conflictCount: 1,
+      });
+
+      await expect(
+        hook()(
+          makeUpdateBy(
+            { name: "STRIPE_SECRET_KEY" },
+            { userId: USER_ID, tenantId: OTHER_PROJECT_ID },
+          ),
+        ),
+      ).resolves.toBeDefined();
+
+      expect(countByCalls).toHaveLength(0);
+    });
+
+    /*
+     * Internal callers run as root with no tenant. Scoping those to a tenant
+     * they do not have would silently stop the guard from working at all.
+     */
+    test("leaves a root call with no tenant unscoped", async () => {
+      const { findByCalls } = stubReads({
+        itemsBeingUpdated: [],
+        conflictCount: 0,
+      });
+
+      await hook()(makeUpdateBy({ name: "NewName" }));
+
+      expect(findByCalls[0]!.query).toEqual({ _id: VARIABLE_ID.toString() });
+    });
+  });
+
+  /*
+   * isSecret is a one-way flag, and the service is the only place that can say
+   * so - a ColumnAccessControl list cannot express "you may set this but not
+   * clear it".
+   *
+   * Clearing it is the direction that exposes something. `content` is
+   * unreadable through the API by anyone, and this flag is what keeps its value
+   * out of the run logs - so a caller who may write a variable but not read it
+   * could otherwise clear the flag, trigger a run, and read the value out of a
+   * log it had been redacted from.
+   */
+  describe("the secret flag is a ratchet", () => {
+    test("lets a variable be marked secret", async () => {
+      stubReads({
+        itemsBeingUpdated: [
+          makeVariable({ name: "Token", workflowId: WORKFLOW_ID }),
+        ],
+        conflictCount: 0,
+      });
+
+      await expect(
+        hook()(makeUpdateBy({ isSecret: "true" } as Partial<WorkflowVariable>)),
+      ).resolves.toBeDefined();
+    });
+
+    test("refuses to un-mark a variable that is secret", async () => {
+      stubReads({
+        itemsBeingUpdated: [
+          makeVariable({
+            name: "Token",
+            workflowId: WORKFLOW_ID,
+            isSecret: true,
+          }),
+        ],
+        conflictCount: 0,
+      });
+
+      await expect(
+        hook()(
+          makeUpdateBy({ isSecret: "false" } as Partial<WorkflowVariable>),
+        ),
+      ).rejects.toThrow(BadDataException);
+
+      await expect(
+        hook()(
+          makeUpdateBy({
+            isSecret: false,
+          } as unknown as Partial<WorkflowVariable>),
+        ),
+      ).rejects.toThrow(/cannot be un-marked/);
+    });
+
+    /*
+     * The flag comes back from Postgres as a real boolean and can arrive from a
+     * request body as the string "true". RunWorkflow reads it exactly this way
+     * (getSecretWorkflowVariableValues), and a guard that disagreed with the
+     * redaction it protects would be worse than no guard.
+     */
+    test("reads the string form of the flag the way the run logs do", async () => {
+      stubReads({
+        itemsBeingUpdated: [
+          makeVariable({
+            name: "Token",
+            workflowId: WORKFLOW_ID,
+            isSecret: "true",
+          }),
+        ],
+        conflictCount: 0,
+      });
+
+      await expect(
+        hook()(
+          makeUpdateBy({
+            isSecret: false,
+          } as unknown as Partial<WorkflowVariable>),
+        ),
+      ).rejects.toThrow(BadDataException);
+    });
+
+    test("leaves a variable that was never secret alone", async () => {
+      stubReads({
+        itemsBeingUpdated: [
+          makeVariable({
+            name: "Token",
+            workflowId: WORKFLOW_ID,
+            isSecret: false,
+          }),
+        ],
+        conflictCount: 0,
+      });
+
+      await expect(
+        hook()(
+          makeUpdateBy({ isSecret: "false" } as Partial<WorkflowVariable>),
+        ),
+      ).resolves.toBeDefined();
+    });
+
+    test("an update that does not mention the flag reads nothing", async () => {
+      const { findByCalls } = stubReads({
+        itemsBeingUpdated: [
+          makeVariable({
+            name: "Token",
+            workflowId: WORKFLOW_ID,
+            isSecret: true,
+          }),
+        ],
+        conflictCount: 0,
+      });
+
+      await expect(
+        hook()(makeUpdateBy({ content: "rotated-token" })),
+      ).resolves.toBeDefined();
+
+      expect(findByCalls).toHaveLength(0);
+    });
+  });
+
+  /*
+   * sanitizeUpdateData passes plain objects straight through, so `name` is
+   * whatever the request body said it was. Without the type check this reached
+   * newName.toLowerCase() and became a 500 with a stack trace rather than a 400
+   * naming the field.
+   */
+  describe("a name that is not text", () => {
+    test("is refused as bad data rather than crashing the request", async () => {
+      const { findByCalls } = stubReads({
+        itemsBeingUpdated: [
+          makeVariable({ name: "OldName", workflowId: WORKFLOW_ID }),
+        ],
+        conflictCount: 0,
+      });
+
+      await expect(
+        hook()(
+          makeUpdateBy({
+            name: { $ne: null },
+          } as unknown as Partial<WorkflowVariable>),
+        ),
+      ).rejects.toThrow(BadDataException);
+
+      await expect(
+        hook()(
+          makeUpdateBy({ name: 42 } as unknown as Partial<WorkflowVariable>),
+        ),
+      ).rejects.toThrow(/must be text/);
+
+      expect(findByCalls).toHaveLength(0);
     });
   });
 

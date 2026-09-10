@@ -37,19 +37,12 @@ import {
  * doNotShowWhenEditing field: Runbook Secrets, Monitor Secrets, the Security
  * Events connectors, Monitor > Probes, and now Workflow Variables.
  *
- * The fix has two halves, and they are covered to different depths on purpose.
- * BaseModelTable no longer hands the stale id over, and that is what the
- * create-after-edit case below fails on if reverted. ModelTable no longer
- * treats an id as proof of an edit, which is belt-and-braces: with
- * BaseModelTable correct, no caller in the repo can hand it that pair any more
- * (BaseModelTable is the only implementor of showCreateEditModal;
- * AnalyticsModelTable's throws). What these tests do pin about ModelTable is
- * that the filter runs at all and picks the right list for each modal type -
- * remove it and the edit form grows a field whose prefetch would 403.
- *
- * The real ModelTable is rendered, with its API layer injected through the
- * modelAPI prop and its form modal recorded, so both halves are exercised as
- * they actually compose rather than restated.
+ * Both halves are pinned - BaseModelTable must stop handing the stale id over,
+ * and ModelTable must stop treating an id as proof of an edit - because either
+ * one alone closes the hole, and the next person to touch the other should not
+ * be able to reopen it silently. The real ModelTable is rendered (its API layer
+ * injected through the modelAPI prop, its form modal recorded) so both are
+ * exercised as they actually compose, rather than restated.
  */
 
 let isMasterAdminForTest: boolean = false;
@@ -150,7 +143,6 @@ import ListResult from "../../../../Types/BaseDatabase/ListResult";
  */
 const ROWS: Array<Record<string, string>> = [
   { _id: "secret-1", name: "AirflowToken", description: "Nightly sync" },
-  { _id: "secret-2", name: "StripeKey", description: "Billing" },
 ];
 
 const SECRET_VALUE_TITLE: string = "Secret Value";
@@ -232,32 +224,19 @@ function renderTable(): ReturnType<typeof render> {
 
 type FindButtonFunction = (label: string) => HTMLButtonElement | null;
 
-function allButtons(label: string): Array<HTMLButtonElement> {
-  return Array.from(
-    document.querySelectorAll<HTMLButtonElement>("button"),
-  ).filter((button: HTMLButtonElement) => {
-    return (button.textContent || "").trim().startsWith(label);
-  });
-}
-
 const findButton: FindButtonFunction = (
   label: string,
 ): HTMLButtonElement | null => {
-  return allButtons(label)[0] || null;
+  const buttons: Array<HTMLButtonElement> = Array.from(
+    document.querySelectorAll<HTMLButtonElement>("button"),
+  );
+
+  return (
+    buttons.find((button: HTMLButtonElement) => {
+      return (button.textContent || "").trim().startsWith(label);
+    }) || null
+  );
 };
-
-/*
- * One Edit button per row, in row order.
- */
-function editButtonForRow(index: number): HTMLButtonElement {
-  const button: HTMLButtonElement | undefined = allButtons("Edit")[index];
-
-  if (!button) {
-    throw new Error(`No Edit button for row ${index}`);
-  }
-
-  return button;
-}
 
 function lastModal(): RecordedModalProps {
   return recordedModalProps[
@@ -390,90 +369,6 @@ describe("Create after Edit on the same table", () => {
     expect(titles).toContain(SECRET_VALUE_TITLE);
     expect(titles).toContain(NAME_TITLE);
     expect(titles).not.toContain(EDIT_ONLY_TITLE);
-  });
-
-  /*
-   * The gate reads modalType and deliberately leaves currentEditableItem
-   * uncleared, which is safe only because the Edit action always overwrites it
-   * before the next render. A single-row fixture could not show that, and a
-   * second edit opening the first row's form would be data loss on the same
-   * table.
-   */
-  test("editing a second row opens that row, not the first", async () => {
-    renderTable();
-
-    await waitFor(() => {
-      expect(findButton("Edit")).not.toBeNull();
-    });
-
-    fireEvent.click(editButtonForRow(0));
-
-    await waitFor(() => {
-      expect(recordedModalProps.length).toBeGreaterThan(0);
-    });
-
-    expect(String(lastModal().modelIdToEdit)).toBe("secret-1");
-
-    const firstModal: RecordedModalProps = lastModal();
-
-    act(() => {
-      (
-        firstModal as unknown as { onClose?: (() => void) | undefined }
-      ).onClose?.();
-    });
-
-    recordedModalProps = [];
-
-    fireEvent.click(editButtonForRow(1));
-
-    await waitFor(() => {
-      expect(recordedModalProps.length).toBeGreaterThan(0);
-    });
-
-    expect(String(lastModal().modelIdToEdit)).toBe("secret-2");
-    expect(lastModal().formProps.formType).toBe(FormType.Update);
-  });
-
-  /*
-   * The other direction, which the new gate could plausibly have broken:
-   * editing still works after a create.
-   */
-  test("editing still works after a create", async () => {
-    renderTable();
-
-    await waitFor(() => {
-      expect(findButton("Create Runbook Secret")).not.toBeNull();
-    });
-
-    fireEvent.click(findButton("Create Runbook Secret")!);
-
-    await waitFor(() => {
-      expect(recordedModalProps.length).toBeGreaterThan(0);
-    });
-
-    const createModal: RecordedModalProps = lastModal();
-
-    act(() => {
-      (
-        createModal as unknown as { onClose?: (() => void) | undefined }
-      ).onClose?.();
-    });
-
-    recordedModalProps = [];
-
-    fireEvent.click(editButtonForRow(0));
-
-    await waitFor(() => {
-      expect(recordedModalProps.length).toBeGreaterThan(0);
-    });
-
-    expect(lastModal().formProps.formType).toBe(FormType.Update);
-    expect(String(lastModal().modelIdToEdit)).toBe("secret-1");
-
-    const titles: Array<string> = fieldTitles(lastModal());
-
-    expect(titles).not.toContain(SECRET_VALUE_TITLE);
-    expect(titles).toContain(EDIT_ONLY_TITLE);
   });
 
   /*

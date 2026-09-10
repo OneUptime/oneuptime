@@ -71,6 +71,19 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
    */
   const [contentDraft, setContentDraft] = useState<string>("");
 
+  /*
+   * Bumped once, after the table's first successful fetch. The permission
+   * snapshot rides in on an API response header, so on the first paint after a
+   * fresh sign-in or a project switch it is still empty - and the gate below
+   * would then resolve to "not allowed, no reason" and hide the action for the
+   * life of the page. BaseModelTable's own Edit and Delete gates recover on
+   * their own because it re-derives them whenever its data changes; this one is
+   * computed here, so this component has to re-render for the same thing to
+   * happen. One bump is enough: by the time a list request has come back, the
+   * header it came with has been read.
+   */
+  const [hasFetchedOnce, setHasFetchedOnce] = useState<boolean>(false);
+
   const isGlobal: boolean = !props.workflowId;
 
   /*
@@ -100,6 +113,14 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
         }}
         isDeleteable={true}
         isEditable={true}
+        /*
+         * Named for what it actually edits. Plain "Edit" is the verb a user
+         * reaches for when they want to change a variable's value, and the one
+         * button that cannot do it - content is not on that form and the modal
+         * has no room to say so. Sitting next to "Update Content", this splits
+         * the two without either needing an explanation.
+         */
+        editButtonText="Edit Details"
         isCreateable={true}
         name="Workflows"
         isViewable={false}
@@ -131,6 +152,11 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
             : "No workflow variables found."
         }
         showViewIdButton={true}
+        onFetchSuccess={() => {
+          if (!hasFetchedOnce) {
+            setHasFetchedOnce(true);
+          }
+        }}
         actionButtons={[
           {
             title: "Update Content",
@@ -148,7 +174,7 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
             },
             disabled: !updateGate.isAllowed,
             tooltip: updateGate.isAllowed
-              ? "Replace this variable's content. The stored content is never returned by the API, so changing it needs its own door."
+              ? "Replace this variable's content. Once saved, a variable's content cannot be retrieved, so it is replaced here rather than edited."
               : updateGate.disabledReason,
             onClick: (
               item: WorkflowVariable,
@@ -175,9 +201,17 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Workflow Name",
+            /*
+             * The rename warning is not decoration. Nothing links a workflow's
+             * graph to the variable row it names: the builder's linter checks
+             * that a reference is well formed but leaves its existence to the
+             * API, and at run time VMAPI skips a reference it cannot resolve -
+             * so a workflow left pointing at the old name posts the literal
+             * braces and still reports Success.
+             */
             description: isGlobal
-              ? "Workflows refer to this variable as {{global.variables.name}}. Renaming it does not update workflows that already refer to the old name."
-              : "Workflows refer to this variable as {{local.variables.name}}. Renaming it does not update workflows that already refer to the old name.",
+              ? "Workflows refer to this variable by name, as {{global.variables.THIS_NAME}}. Renaming it does not update workflows that already refer to the old name."
+              : "Workflows refer to this variable by name, as {{local.variables.THIS_NAME}}. Renaming it does not update workflows that already refer to the old name.",
             validation: {
               minLength: 2,
               noSpaces: true,
@@ -198,8 +232,15 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
               isSecret: true,
             },
             title: "Secret",
+            /*
+             * The copy this replaces asked "Should this be encrypted in the
+             * Database?", which was not true of this column - content carries
+             * no `encrypted: true` and the DDL is a plain text column. Somebody
+             * reading it while turning the toggle on would come away believing
+             * a database dump was no longer a credential exposure.
+             */
             description:
-              "Is this variable secret or secure? Should this be encrypted in the Database?",
+              "Keep this variable's content out of workflow run logs - every run replaces it with [REDACTED] before the log is saved. It applies to future runs only, and it cannot be turned off again once saved.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -347,7 +388,7 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
                 },
                 title: "Content",
                 description:
-                  "The new content of this variable. The stored content is never returned by the API, so it cannot be shown here — what you type replaces it outright.",
+                  "The new content of this variable. The stored content cannot be retrieved, so it is not shown here — what you type replaces it outright.",
                 fieldType: FormFieldSchemaType.LongText,
                 required: true,
                 placeholder: "Content of the variable",

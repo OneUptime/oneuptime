@@ -140,6 +140,9 @@ type ActionButtonEntry = {
 
 type CapturedTableProps = {
   isEditable?: boolean | undefined;
+  editButtonText?: string | undefined;
+  filters?: Array<{ field?: Record<string, unknown> | undefined }> | undefined;
+  selectMoreFields?: Record<string, unknown> | undefined;
   isCreateable?: boolean | undefined;
   isDeleteable?: boolean | undefined;
   query?: Record<string, unknown> | undefined;
@@ -166,6 +169,7 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 type CapturedModalProps = {
   title: string;
   error?: string | undefined;
+  isLoading?: boolean | undefined;
   description?: string | undefined;
   onClose?: (() => void) | undefined;
   onSubmit?: ((data: Record<string, unknown>) => void) | undefined;
@@ -203,6 +207,9 @@ const WORKFLOW_ID: ObjectID = new ObjectID(
 );
 const VARIABLE_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
+);
+const OTHER_VARIABLE_ID: ObjectID = new ObjectID(
+  "44444444-4444-4444-8444-444444444444",
 );
 
 type Page = "global" | "local";
@@ -266,17 +273,26 @@ function updateContentButton(): ActionButtonEntry {
   return button;
 }
 
-function makeVariable(): WorkflowVariable {
+function makeVariable(
+  id?: ObjectID | null | undefined,
+  name?: string | undefined,
+): WorkflowVariable {
   const variable: WorkflowVariable = new WorkflowVariable();
-  variable._id = VARIABLE_ID.toString();
-  variable.name = "AirflowToken";
+
+  if (id !== null) {
+    variable._id = (id || VARIABLE_ID).toString();
+  }
+
+  variable.name = name || "AirflowToken";
   return variable;
 }
 
-function openUpdateContentModal(): void {
+function openUpdateContentModal(
+  variable?: WorkflowVariable | undefined,
+): void {
   act(() => {
     updateContentButton().onClick(
-      makeVariable(),
+      variable || makeVariable(),
       (): void => {
         // onCompleteAction
       },
@@ -365,13 +381,43 @@ describe.each(PAGES)("the %s workflow variables table", (page: Page) => {
     ).toEqual([]);
   });
 
+  /*
+   * "Edit" is the verb a user reaches for when they want to change a variable's
+   * value, and it is the one button that cannot. Naming it for what it edits is
+   * what makes the neighbouring Update Content action findable.
+   */
+  test("names the Edit button for what it actually edits", () => {
+    renderPage(page);
+
+    expect(table().editButtonText).toBe("Edit Details");
+  });
+
+  /*
+   * The copy this replaces asked "Should this be encrypted in the Database?".
+   * content carries no `encrypted: true` and its DDL is a plain text column, so
+   * somebody turning the toggle on would come away believing a database dump
+   * was no longer a credential exposure.
+   */
+  test("the Secret toggle describes redaction, not encryption", () => {
+    renderPage(page);
+
+    const description: string = formField("isSecret").description || "";
+
+    expect(description.toLowerCase()).not.toContain("encrypt");
+    expect(description).toContain("[REDACTED]");
+    expect(description.toLowerCase()).toContain("run logs");
+  });
+
   test("warns on the name field that renaming does not rewrite references", () => {
     renderPage(page);
 
     const description: string = formField("name").description || "";
 
-    expect(description).toContain("variables.name");
+    expect(description).toContain(
+      page === "global" ? "global.variables." : "local.variables.",
+    );
     expect(description.toLowerCase()).toContain("renaming");
+    expect(description.toLowerCase()).toContain("old name");
   });
 
   describe("the Update Content action", () => {
@@ -505,6 +551,82 @@ describe.each(PAGES)("the %s workflow variables table", (page: Page) => {
       expect(modal().formProps.initialValues).toEqual({});
     });
 
+    /*
+     * makeVariable defaulted to one id, so "the row that was clicked" could not
+     * be told apart from "whichever row was opened first" - which is the exact
+     * class of stale-selection bug this change fixes in BaseModelTable. Rotating
+     * a credential onto the wrong variable would be invisible: content is never
+     * read back, so it would surface only as a workflow authenticating with the
+     * wrong token.
+     */
+    test("writes the second variable when the second one was clicked", async () => {
+      renderPage(page);
+
+      openUpdateContentModal(makeVariable(VARIABLE_ID, "First"));
+
+      act(() => {
+        modal().onClose?.();
+      });
+
+      openUpdateContentModal(makeVariable(OTHER_VARIABLE_ID, "Second"));
+
+      expect(modal().description).toContain("Second");
+
+      await act(async () => {
+        modal().onSubmit?.({ content: "second-token" });
+      });
+
+      const call: Record<string, unknown> = updateById.mock
+        .calls[0]?.[0] as Record<string, unknown>;
+
+      expect(String(call["id"])).toBe(OTHER_VARIABLE_ID.toString());
+    });
+
+    /*
+     * BasicFormModal unmounts its form while isLoading is true. A flag left
+     * stuck on turns the error state into a modal with a message, no field to
+     * retry in, and nothing the user typed - reachable only by reloading.
+     */
+    test("stops loading whether the write succeeds or fails", async () => {
+      renderPage(page);
+      openUpdateContentModal();
+
+      updateById.mockRejectedValue(new Error("Not authorized."));
+
+      await act(async () => {
+        modal().onSubmit?.({ content: "rotated-token" });
+      });
+
+      expect(modal().isLoading).toBe(false);
+
+      updateById.mockResolvedValue(undefined);
+
+      await act(async () => {
+        modal().onSubmit?.({ content: "rotated-token" });
+      });
+
+      expect(screen.queryByTestId("update-content-modal")).toBeNull();
+    });
+
+    /*
+     * The guard that replaced a bare non-null assertion on the id. It must fail
+     * loudly and leave the modal usable rather than firing a request at an
+     * undefined id.
+     */
+    test("refuses to write a variable that has no id", async () => {
+      renderPage(page);
+      openUpdateContentModal(makeVariable(null));
+
+      await act(async () => {
+        modal().onSubmit?.({ content: "rotated-token" });
+      });
+
+      expect(updateById).not.toHaveBeenCalled();
+      expect(screen.queryByTestId("update-content-modal")).not.toBeNull();
+      expect(modal().error).toContain("no id");
+      expect(modal().isLoading).toBe(false);
+    });
+
     test("clears the error when reopened", async () => {
       renderPage(page);
       openUpdateContentModal();
@@ -628,6 +750,18 @@ describe("the content column never travels back to the browser", () => {
       expect(Object.keys(column.field || {})).not.toContain("content");
     }
 
+    /*
+     * A filter on content would fail the list request the same way a column
+     * would; selectMoreFields is injected straight into the select, so that one
+     * would succeed and ship every variable's value to the browser.
+     */
+    for (const filter of table().filters || []) {
+      expect(Object.keys(filter.field || {})).not.toContain("content");
+    }
+
+    expect(Object.keys(table().selectMoreFields || {})).not.toContain(
+      "content",
+    );
     expect(table().searchableFields || []).not.toContain("content");
 
     openUpdateContentModal();
