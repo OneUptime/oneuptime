@@ -9,6 +9,7 @@ import * as Linking from "expo-linking";
 import * as SplashScreen from "expo-splash-screen";
 import { useTheme } from "../theme";
 import { useAuth } from "../hooks/useAuth";
+import { useProject } from "../hooks/useProject";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { useBiometric } from "../hooks/useBiometric";
 import { processPendingNotification } from "../notifications/handlers";
@@ -58,6 +59,7 @@ const linking: React.ComponentProps<typeof NavigationContainer>["linking"] = {
 export default function RootNavigator(): React.JSX.Element {
   const { theme } = useTheme();
   const { isAuthenticated, isLoading, needsServerUrl } = useAuth();
+  const { activeProject } = useProject();
   const navigationRef: ReturnType<typeof useNavigationContainerRef> =
     useNavigationContainerRef();
   const biometric: ReturnType<typeof useBiometric> = useBiometric();
@@ -170,6 +172,11 @@ export default function RootNavigator(): React.JSX.Element {
 
   return (
     <NavigationContainer
+      /*
+       * A new container retires every old project route and replays pages onReady.
+       * Keying only Tab.Navigator lets React Navigation reuse its parent state.
+       */
+      key={activeProject?._id ?? "no-project"}
       ref={navigationRef}
       theme={navigationTheme}
       linking={linking}

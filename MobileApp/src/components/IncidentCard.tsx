@@ -53,40 +53,56 @@ export default function IncidentCard({
       style={({ pressed }: { pressed: boolean }) => {
         return {
           marginBottom: 12,
-          opacity: pressed ? 0.7 : muted ? 0.5 : 1,
+          opacity: pressed ? 0.7 : 1,
         };
       }}
       onPress={onPress}
       accessibilityRole="button"
+      accessibilityHint="Open details and response actions"
       accessibilityLabel={`Incident ${incident.incidentNumberWithPrefix || incident.incidentNumber}, ${incident.title}. State: ${incident.currentIncidentState?.name ?? "unknown"}. Severity: ${incident.incidentSeverity?.name ?? "unknown"}.`}
     >
       <View
         style={{
-          borderRadius: 24,
+          borderRadius: 16,
           overflow: "hidden",
           backgroundColor: theme.colors.backgroundElevated,
           borderWidth: 1,
-          borderColor: theme.colors.borderGlass,
+          borderColor: muted
+            ? theme.colors.borderSubtle
+            : theme.colors.borderDefault,
           shadowColor: "#000",
-          shadowOpacity: 0.22,
-          shadowOffset: { width: 0, height: 8 },
-          shadowRadius: 14,
-          elevation: 5,
+          shadowOpacity: 0.06,
+          shadowOffset: { width: 0, height: 2 },
+          shadowRadius: 6,
+          elevation: 1,
         }}
       >
         <View
           style={{
             height: 3,
-            backgroundColor: theme.colors.borderSubtle,
+            backgroundColor: stateColor,
             opacity: 1,
           }}
         />
         <View style={{ padding: 16 }}>
+          {projectName ? (
+            <View
+              style={{
+                alignSelf: "flex-start",
+                marginBottom: 12,
+                maxWidth: "100%",
+              }}
+            >
+              <ProjectBadge name={projectName} />
+            </View>
+          ) : null}
           <View
             style={{
               flexDirection: "row",
               justifyContent: "space-between",
               alignItems: "center",
+              flexWrap: "wrap",
+              gap: 8,
               marginBottom: 10,
             }}
           >
@@ -94,10 +110,11 @@ export default function IncidentCard({
               style={{
                 flexDirection: "row",
                 alignItems: "center",
+                flexWrap: "wrap",
+                maxWidth: "100%",
                 gap: 8,
               }}
             >
-              {projectName ? <ProjectBadge name={projectName} /> : null}
               <View
                 style={{
                   flexDirection: "row",
@@ -110,13 +127,13 @@ export default function IncidentCard({
               >
                 <Ionicons
                   name="warning-outline"
-                  size={10}
+                  size={14}
                   color={theme.colors.textSecondary}
                   style={{ marginRight: 4 }}
                 />
                 <Text
                   style={{
-                    fontSize: 10,
+                    fontSize: 13,
                     fontWeight: "600",
                     color: theme.colors.textSecondary,
                     letterSpacing: 0.3,
@@ -137,7 +154,7 @@ export default function IncidentCard({
               >
                 <Text
                   style={{
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: "bold",
                     color: theme.colors.textPrimary,
                     letterSpacing: 0.2,
@@ -151,11 +168,11 @@ export default function IncidentCard({
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Ionicons
                 name="time-outline"
-                size={12}
+                size={14}
                 color={theme.colors.textTertiary}
                 style={{ marginRight: 4 }}
               />
-              <Text style={{ fontSize: 12, color: theme.colors.textTertiary }}>
+              <Text style={{ fontSize: 13, color: theme.colors.textTertiary }}>
                 {timeString}
               </Text>
             </View>
@@ -170,14 +187,15 @@ export default function IncidentCard({
           >
             <Text
               style={{
-                fontSize: 16,
+                fontSize: 18,
+                lineHeight: 25,
                 fontWeight: "600",
                 flex: 1,
                 paddingRight: 8,
                 color: theme.colors.textPrimary,
                 letterSpacing: -0.2,
               }}
-              numberOfLines={2}
+              numberOfLines={3}
             >
               {incident.title}
             </Text>
@@ -219,7 +237,7 @@ export default function IncidentCard({
                 />
                 <Text
                   style={{
-                    fontSize: 11,
+                    fontSize: 14,
                     fontWeight: "600",
                     color: stateColor,
                   }}
@@ -242,7 +260,7 @@ export default function IncidentCard({
               >
                 <Text
                   style={{
-                    fontSize: 11,
+                    fontSize: 14,
                     fontWeight: "600",
                     color: severityColor,
                   }}
@@ -277,20 +295,20 @@ export default function IncidentCard({
               >
                 <Ionicons
                   name="pulse-outline"
-                  size={12}
+                  size={14}
                   color={theme.colors.textSecondary}
                 />
               </View>
               <View style={{ flex: 1 }}>
                 <Text
-                  style={{ fontSize: 12, color: theme.colors.textSecondary }}
+                  style={{ fontSize: 13, color: theme.colors.textSecondary }}
                   numberOfLines={1}
                 >
                   {monitorNames}
                 </Text>
                 <Text
                   style={{
-                    fontSize: 11,
+                    fontSize: 14,
                     marginTop: 2,
                     color: theme.colors.textTertiary,
                   }}

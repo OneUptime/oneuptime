@@ -1,5 +1,10 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react-native";
+import {
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+} from "@testing-library/react-native";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 import HomeScreen from "./HomeScreen";
 import { useAllProjectCounts } from "../hooks/useAllProjectCounts";
@@ -50,6 +55,7 @@ const mockOnCall: { current: OnCallState } = {
 };
 
 const mockProjects: { current: ProjectItem[] } = { current: [] };
+const mockNavigate: jest.Mock = jest.fn();
 
 const mockProjectLoadError: { current: Error | null } = { current: null };
 
@@ -79,7 +85,7 @@ jest.mock("../hooks/useNow", () => {
 
 jest.mock("../hooks/useProject", () => {
   return {
-    useProject: () => {
+    useActiveProject: () => {
       return {
         projectList: mockProjects.current,
         isLoadingProjects: false,
@@ -109,7 +115,7 @@ jest.mock("../hooks/useHaptics", () => {
 jest.mock("@react-navigation/native", () => {
   return {
     useNavigation: () => {
-      return { navigate: jest.fn() };
+      return { navigate: mockNavigate };
     },
     useFocusEffect: () => {
       return undefined;
@@ -200,6 +206,84 @@ function onCallOnDuty(): OnCallState {
   });
 }
 
+describe("Home shortcuts open the view their labels promise", () => {
+  beforeEach(() => {
+    mockProjects.current = [makeProject()];
+    mockProjectLoadError.current = null;
+    mockCounts.current = countsWith();
+    mockOnCall.current = onCallOnDuty();
+  });
+
+  test.each([
+    [
+      "Active Incidents",
+      "Incidents",
+      "IncidentsList",
+      { initialSegment: "incidents", initialFilter: "active" },
+    ],
+    [
+      "Active Alerts",
+      "Alerts",
+      "AlertsList",
+      { initialSegment: "alerts", initialFilter: "active" },
+    ],
+    [
+      "Incident Episodes",
+      "Incidents",
+      "IncidentsList",
+      { initialSegment: "episodes", initialFilter: "active" },
+    ],
+    [
+      "Alert Episodes",
+      "Alerts",
+      "AlertsList",
+      { initialSegment: "episodes", initialFilter: "active" },
+    ],
+    ["Inoperational", "Monitors", "MonitorsList", { initialFilter: "issues" }],
+    ["Disabled", "Monitors", "MonitorsList", { initialFilter: "disabled" }],
+    ["Total Monitors", "Monitors", "MonitorsList", { initialFilter: "all" }],
+  ])(
+    "%s opens its matching segment and filter",
+    async (
+      label: string,
+      tab: string,
+      destination: string,
+      params: Record<string, string>,
+    ) => {
+      await render(<HomeScreen />);
+      await fireEvent.press(
+        screen.getByRole("button", { name: `0 ${label}. Tap to view.` }),
+      );
+      expect(mockNavigate).toHaveBeenCalledWith(tab, {
+        screen: destination,
+        params,
+      });
+    },
+  );
+
+  test("the final card has a full tab bar and breathing room below it", async () => {
+    await render(<HomeScreen />);
+    expect(
+      screen.getByTestId("home-scroll").props.contentContainerStyle
+        .paddingBottom,
+    ).toBeGreaterThanOrEqual(124);
+  });
+
+  test("SSO recovery preserves Settings as the back destination", async () => {
+    mockProjects.current = [makeProject({ requireSsoForLogin: true })];
+    await render(<HomeScreen />);
+    const recovery: ReturnType<typeof screen.getByRole> =
+      await screen.findByRole("button", {
+        name: "Some projects require SSO authentication. Tap to authenticate.",
+      });
+    await fireEvent.press(recovery);
+    expect(mockNavigate).toHaveBeenCalledWith("Settings", {
+      screen: "ProjectsList",
+      initial: false,
+    });
+  });
+});
+
 describe("A stat card never claims a count it does not have", () => {
   beforeEach(() => {
     mockProjects.current = [makeProject()];
@@ -284,7 +368,7 @@ describe("A stat card never claims a count it does not have", () => {
     expect(screen.queryByText("4")).toBeNull();
   });
 
-  test("the total across the top is withheld with the cards", async () => {
+  test("all seven individual counts are withheld while loading", async () => {
     /*
      * The headline number is a sum of four counts that are all still 0 by
      * fallback, which made it the most confident "nothing is happening" on the
@@ -295,7 +379,7 @@ describe("A stat card never claims a count it does not have", () => {
     await render(<HomeScreen />);
 
     await waitFor(() => {
-      expect(screen.getAllByText("--")).toHaveLength(8);
+      expect(screen.getAllByText("--")).toHaveLength(7);
     });
   });
 
@@ -319,8 +403,9 @@ describe("A stat card never claims a count it does not have", () => {
     expect(screen.getByLabelText("5 Disabled. Tap to view.")).toBeTruthy();
     expect(screen.getByLabelText("6 Inoperational. Tap to view.")).toBeTruthy();
 
-    /* 1 + 2 + 3 + 4, the headline total. */
-    expect(screen.getByText("10")).toBeTruthy();
+    // Related episodes are not added to their incidents as a misleading total.
+    expect(screen.queryByText("Total active items")).toBeNull();
+    expect(screen.getByText("Incident Episodes")).toBeTruthy();
     expect(screen.queryByText("--")).toBeNull();
   });
 });

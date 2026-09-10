@@ -73,6 +73,14 @@ const mockRefetchEpisodes: jest.Mock = jest.fn(async () => {
 });
 const mockChangeIncidentState: jest.Mock = jest.fn();
 const mockNavigate: jest.Mock = jest.fn();
+const mockRoute: {
+  params:
+    | {
+        initialSegment?: "incidents" | "episodes";
+        initialFilter?: "all" | "active" | "resolved";
+      }
+    | undefined;
+} = { params: undefined };
 const mockSuccessFeedback: jest.Mock = jest.fn();
 const mockErrorFeedback: jest.Mock = jest.fn();
 
@@ -131,8 +139,19 @@ jest.mock("../hooks/useHaptics", () => {
   };
 });
 
+jest.mock("../hooks/useScreenPadding", () => {
+  return {
+    useScreenPadding: () => {
+      return 248;
+    },
+  };
+});
+
 jest.mock("@react-navigation/native", () => {
   return {
+    useRoute: () => {
+      return mockRoute;
+    },
     useNavigation: () => {
       return { navigate: mockNavigate };
     },
@@ -236,6 +255,51 @@ function activeEpisode(): ProjectIncidentEpisodeItem {
     projectName: "Acme Production",
   };
 }
+
+test("the search limit follows the loaded segment, even when a search has no matches", async () => {
+  mockIncidents.current = incidentsWith({
+    items: Array.from(
+      { length: 100 },
+      (_: unknown, index: number): ProjectIncidentItem => {
+        return wrapIncident(makeIncident({ _id: `recent-incident-${index}` }));
+      },
+    ),
+  });
+  const view: Awaited<ReturnType<typeof render>> = await render(
+    <IncidentsScreen />,
+    { wrapper: createQueryWrapper(createTestQueryClient()) },
+  );
+  expect(
+    screen.getByText("Search covers the 100 most recent incidents."),
+  ).toBeTruthy();
+  await fireEvent.changeText(
+    screen.getByLabelText("Search incidents and episodes"),
+    "no matching record",
+  );
+  expect(
+    screen.getByText("Search covers the 100 most recent incidents."),
+  ).toBeTruthy();
+  await fireEvent.press(screen.getByRole("tab", { name: "Episodes" }));
+  expect(screen.queryByText(/Search covers the 100 most recent/)).toBeNull();
+  mockEpisodes.current = episodesWith({
+    items: Array.from(
+      { length: 100 },
+      (_: unknown, index: number): ProjectIncidentEpisodeItem => {
+        return {
+          ...activeEpisode(),
+          item: makeIncidentEpisode({ _id: `recent-episode-${index}` }),
+        };
+      },
+    ),
+  });
+  await view.rerender(<IncidentsScreen />);
+  expect(
+    screen.getByText("Search covers the 100 most recent episodes."),
+  ).toBeTruthy();
+  expect(
+    screen.queryByText("Search covers the 100 most recent incidents."),
+  ).toBeNull();
+});
 
 function incidentsWith(
   overrides: Partial<IncidentsState> = {},
@@ -412,6 +476,7 @@ async function swipeToAcknowledge(label: string): Promise<void> {
 }
 
 beforeEach(() => {
+  mockRoute.params = undefined;
   mockIncidents.current = incidentsWith();
   mockEpisodes.current = episodesWith();
   mockStates.current = statesWith();
@@ -481,7 +546,7 @@ describe("What the screen shows when nothing came back", () => {
     });
 
     expect(
-      screen.getByText("Incidents assigned to you will appear here."),
+      screen.getByText("Incidents in this project will appear here."),
     ).toBeTruthy();
   });
 
@@ -1007,5 +1072,87 @@ describe("Swiping a row to acknowledge it", () => {
 
     expect(mockChangeIncidentState).not.toHaveBeenCalled();
     expect(mockAlertDialog).not.toHaveBeenCalled();
+  });
+});
+
+describe("Searching and filtering the response inbox", () => {
+  beforeEach(() => {
+    mockIncidents.current = incidentsWith({
+      items: [activeIncident(), resolvedIncident()],
+    });
+    mockEpisodes.current = episodesWith({ items: [activeEpisode()] });
+  });
+
+  test("search combines title and project words regardless of case", async () => {
+    await renderIncidentsScreen();
+    await fireEvent.changeText(
+      screen.getByLabelText("Search incidents and episodes"),
+      "CHECKOUT acme",
+    );
+    expect(screen.getByLabelText(ACTIVE_INCIDENT_LABEL)).toBeTruthy();
+    expect(screen.queryByText("Search latency spike")).toBeNull();
+  });
+
+  test("a reference search works with the resolved filter and can be cleared", async () => {
+    await renderIncidentsScreen();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Resolved only" }),
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("Search incidents and episodes"),
+      "#8",
+    );
+    expect(screen.getByText("Search latency spike")).toBeTruthy();
+    expect(screen.queryByLabelText(ACTIVE_INCIDENT_LABEL)).toBeNull();
+    await fireEvent.changeText(
+      screen.getByLabelText("Search incidents and episodes"),
+      "no matching title",
+    );
+    expect(screen.getByText("No matching incidents")).toBeTruthy();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Clear filters" }),
+    );
+    expect(screen.getByLabelText(ACTIVE_INCIDENT_LABEL)).toBeTruthy();
+    expect(screen.getByText("Search latency spike")).toBeTruthy();
+    expect(
+      screen.getByLabelText("Search incidents and episodes").props.value,
+    ).toBe("");
+  });
+
+  test("a Home shortcut opens episodes directly and supports project search", async () => {
+    mockRoute.params = { initialSegment: "episodes", initialFilter: "active" };
+    await renderIncidentsScreen();
+    await fireEvent.changeText(
+      screen.getByLabelText("Search incidents and episodes"),
+      "acme",
+    );
+    expect(screen.getByText("Rolling checkout outage")).toBeTruthy();
+    expect(screen.queryByLabelText(ACTIVE_INCIDENT_LABEL)).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Active only" }).props
+        .accessibilityState.selected,
+    ).toBe(true);
+  });
+
+  test("inbox, episode and empty results keep enough bottom space for the navigation", async () => {
+    await renderIncidentsScreen();
+    expect(
+      screen.getByTestId("response-list").props.contentContainerStyle
+        .paddingBottom,
+    ).toBe(248);
+    await fireEvent.press(screen.getByText("Episodes"));
+    expect(
+      screen.getByTestId("response-list").props.contentContainerStyle
+        .paddingBottom,
+    ).toBe(248);
+    await fireEvent.changeText(
+      screen.getByLabelText("Search incidents and episodes"),
+      "not here",
+    );
+    expect(screen.getByText("No matching episodes")).toBeTruthy();
+    expect(
+      screen.getByTestId("response-list").props.contentContainerStyle
+        .paddingBottom,
+    ).toBe(248);
   });
 });

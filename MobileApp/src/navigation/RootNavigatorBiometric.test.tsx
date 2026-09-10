@@ -25,6 +25,14 @@ import {
 import { consumeInitialSsoCallbackUrl } from "../sso/deepLink";
 import { unregisterPushToken } from "../hooks/pushTokenUtils";
 
+jest.mock("../hooks/useProject", () => {
+  return {
+    useProject: () => {
+      return { activeProject: null };
+    },
+  };
+});
+
 /*
  * The biometric lock is the last thing between a found or borrowed handset and
  * a live on-call session, and RootNavigator is the only thing that decides

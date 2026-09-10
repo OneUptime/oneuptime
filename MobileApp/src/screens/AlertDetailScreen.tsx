@@ -9,9 +9,9 @@ import {
   Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import { useScreenPadding } from "../hooks/useScreenPadding";
 import {
   useAlertDetail,
   useAlertStates,
@@ -42,6 +42,7 @@ type Props = NativeStackScreenProps<AlertsStackParamList, "AlertDetail">;
 export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
   const { alertId, projectId } = route.params;
   const { theme } = useTheme();
+  const bottomPadding: number = useScreenPadding();
   const queryClient: QueryClient = useQueryClient();
 
   const {
@@ -142,11 +143,16 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
 
   if (isLoading) {
     return (
-      <View
+      <ScrollView
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+        contentContainerStyle={{
+          padding: 20,
+          paddingBottom: bottomPadding,
+          flexGrow: 1,
+        }}
       >
         <SkeletonCard variant="detail" />
-      </View>
+      </ScrollView>
     );
   }
 
@@ -173,8 +179,13 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
   if (!alert) {
     if (isError) {
       return (
-        <View
+        <ScrollView
           style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+          contentContainerStyle={{
+            padding: 20,
+            paddingBottom: bottomPadding,
+            flexGrow: 1,
+          }}
         >
           <EmptyState
             title="Something went wrong"
@@ -185,20 +196,25 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
               return refetchAlert();
             }}
           />
-        </View>
+        </ScrollView>
       );
     }
 
     return (
-      <View
+      <ScrollView
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+        contentContainerStyle={{
+          padding: 20,
+          paddingBottom: bottomPadding,
+          flexGrow: 1,
+        }}
       >
         <EmptyState
           title="Alert not found"
           subtitle="This alert no longer exists, or it is not part of this project."
           icon="alerts"
         />
-      </View>
+      </ScrollView>
     );
   }
 
@@ -220,8 +236,12 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
   });
 
   const currentStateId: string | undefined = alert.currentAlertState?._id;
-  const isResolved: boolean = resolveState?._id === currentStateId;
-  const isAcknowledged: boolean = acknowledgeState?._id === currentStateId;
+  const isResolved: boolean = Boolean(
+    resolveState && resolveState._id === currentStateId,
+  );
+  const isAcknowledged: boolean = Boolean(
+    acknowledgeState && acknowledgeState._id === currentStateId,
+  );
   const rootCauseTextRaw: string = toPlainText(alert.rootCause);
   const rootCauseText: string | undefined =
     rootCauseTextRaw.trim() || undefined;
@@ -230,7 +250,9 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
   return (
     <ScrollView
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
+      testID="detail-scroll"
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
       refreshControl={
         <RefreshControl
           refreshing={false}
@@ -242,31 +264,19 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
       {/* Header card */}
       <View
         style={{
-          borderRadius: 24,
+          borderRadius: 16,
           overflow: "hidden",
           marginBottom: 20,
           backgroundColor: theme.colors.backgroundElevated,
           borderWidth: 1,
           borderColor: theme.colors.borderGlass,
           shadowColor: "#000",
-          shadowOpacity: 0.28,
-          shadowOffset: { width: 0, height: 10 },
-          shadowRadius: 18,
-          elevation: 7,
+          shadowOpacity: 0.06,
+          shadowOffset: { width: 0, height: 2 },
+          shadowRadius: 6,
+          elevation: 1,
         }}
       >
-        <LinearGradient
-          colors={[stateColor + "26", "transparent"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            position: "absolute",
-            top: -50,
-            left: -10,
-            right: -10,
-            height: 190,
-          }}
-        />
         <View
           style={{
             height: 3,
@@ -276,7 +286,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
         <View style={{ padding: 20 }}>
           <Text
             style={{
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: "600",
               marginBottom: 8,
               color: stateColor,
@@ -287,7 +297,8 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
 
           <Text
             style={{
-              fontSize: 24,
+              fontSize: 28,
+              lineHeight: 36,
               fontWeight: "bold",
               color: theme.colors.textPrimary,
               letterSpacing: -0.6,
@@ -310,7 +321,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
                   flexDirection: "row",
                   alignItems: "center",
                   paddingHorizontal: 10,
-                  paddingVertical: 4,
+                  paddingVertical: 6,
                   borderRadius: 6,
                   backgroundColor: stateColor + "14",
                 }}
@@ -326,7 +337,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
                 />
                 <Text
                   style={{
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: "600",
                     color: stateColor,
                   }}
@@ -342,14 +353,14 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
                   flexDirection: "row",
                   alignItems: "center",
                   paddingHorizontal: 10,
-                  paddingVertical: 4,
+                  paddingVertical: 6,
                   borderRadius: 6,
                   backgroundColor: severityColor + "14",
                 }}
               >
                 <Text
                   style={{
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: "600",
                     color: severityColor,
                   }}
@@ -362,7 +373,156 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
         </View>
       </View>
 
-      {/* Description */}
+      <View style={{ marginBottom: 20 }}>
+        <Text
+          accessibilityLiveRegion="polite"
+          style={{
+            color: theme.colors.textSecondary,
+            fontSize: 15,
+            lineHeight: 23,
+          }}
+        >
+          {isResolved
+            ? "This alert is resolved. Review the context and team notes below."
+            : isAcknowledged
+              ? "A responder has acknowledged this alert. Resolve it once recovery is confirmed."
+              : "Acknowledge to let your team know you are responding. Resolve once recovery is confirmed."}
+        </Text>
+      </View>
+
+      {!isResolved ? (
+        <View style={{ marginBottom: 24 }}>
+          <SectionHeader title="Actions" iconName="flash-outline" />
+          <View
+            style={{
+              borderRadius: 16,
+              padding: 12,
+              backgroundColor: theme.colors.backgroundElevated,
+              borderWidth: 1,
+              borderColor: theme.colors.borderGlass,
+            }}
+          >
+            <View style={{ flexDirection: "row" }}>
+              {!isAcknowledged && !isResolved && acknowledgeState ? (
+                <View style={{ flex: 1 }}>
+                  <Pressable
+                    style={{
+                      flexDirection: "row",
+                      paddingVertical: 12,
+                      borderRadius: 12,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minHeight: 48,
+                      backgroundColor: theme.colors.stateAcknowledged,
+                    }}
+                    onPress={() => {
+                      return handleStateChange(
+                        acknowledgeState._id,
+                        acknowledgeState.name,
+                      );
+                    }}
+                    disabled={changingState}
+                    accessibilityState={{
+                      disabled: changingState,
+                      busy: changingState,
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Acknowledge alert"
+                  >
+                    {changingState ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={theme.colors.backgroundPrimary}
+                      />
+                    ) : (
+                      <>
+                        <Ionicons
+                          name="checkmark-circle-outline"
+                          size={17}
+                          color={theme.colors.backgroundPrimary}
+                          style={{ marginRight: 6 }}
+                        />
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            fontWeight: "bold",
+                            color: theme.colors.backgroundPrimary,
+                          }}
+                        >
+                          Acknowledge
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                </View>
+              ) : null}
+
+              {resolveState ? (
+                <View
+                  style={{
+                    flex: 1,
+                    marginLeft:
+                      !isAcknowledged && !isResolved && acknowledgeState
+                        ? 12
+                        : 0,
+                  }}
+                >
+                  <Pressable
+                    style={{
+                      flexDirection: "row",
+                      paddingVertical: 12,
+                      borderRadius: 12,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minHeight: 48,
+                      backgroundColor: theme.colors.stateResolved,
+                    }}
+                    onPress={() => {
+                      return handleStateChange(
+                        resolveState._id,
+                        resolveState.name,
+                      );
+                    }}
+                    disabled={changingState}
+                    accessibilityState={{
+                      disabled: changingState,
+                      busy: changingState,
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Resolve alert"
+                  >
+                    {changingState ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={theme.colors.backgroundPrimary}
+                      />
+                    ) : (
+                      <>
+                        <Ionicons
+                          name="checkmark-done-outline"
+                          size={17}
+                          color={theme.colors.backgroundPrimary}
+                          style={{ marginRight: 6 }}
+                        />
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            fontWeight: "bold",
+                            color: theme.colors.backgroundPrimary,
+                          }}
+                        >
+                          Resolve
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                </View>
+              ) : null}
+            </View>
+          </View>
+        </View>
+      ) : null}
+
       {descriptionText ? (
         <View style={{ marginBottom: 24 }}>
           <SectionHeader title="Description" iconName="document-text-outline" />
@@ -401,16 +561,18 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
             <View style={{ flexDirection: "row", marginBottom: 12 }}>
               <Text
                 style={{
-                  fontSize: 13,
+                  fontSize: 14,
                   width: 90,
-                  color: theme.colors.textTertiary,
+                  flexShrink: 0,
+                  color: theme.colors.textSecondary,
                 }}
               >
                 Created
               </Text>
               <Text
                 style={{
-                  fontSize: 13,
+                  fontSize: 14,
+                  flexShrink: 1,
                   color: theme.colors.textPrimary,
                 }}
               >
@@ -422,16 +584,18 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
               <View style={{ flexDirection: "row" }}>
                 <Text
                   style={{
-                    fontSize: 13,
+                    fontSize: 14,
                     width: 90,
-                    color: theme.colors.textTertiary,
+                    flexShrink: 0,
+                    color: theme.colors.textSecondary,
                   }}
                 >
                   Monitor
                 </Text>
                 <Text
                   style={{
-                    fontSize: 13,
+                    fontSize: 14,
+                    flexShrink: 1,
                     color: theme.colors.textPrimary,
                   }}
                 >
@@ -443,127 +607,6 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
         </View>
       </View>
 
-      {/* State Change Actions */}
-      {!isResolved ? (
-        <View style={{ marginBottom: 24 }}>
-          <SectionHeader title="Actions" iconName="flash-outline" />
-          <View
-            style={{
-              borderRadius: 16,
-              padding: 12,
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderGlass,
-            }}
-          >
-            <View style={{ flexDirection: "row" }}>
-              {!isAcknowledged && !isResolved && acknowledgeState ? (
-                <View style={{ flex: 1 }}>
-                  <Pressable
-                    style={{
-                      flexDirection: "row",
-                      paddingVertical: 12,
-                      borderRadius: 12,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      minHeight: 48,
-                      backgroundColor: theme.colors.stateAcknowledged,
-                    }}
-                    onPress={() => {
-                      return handleStateChange(
-                        acknowledgeState._id,
-                        acknowledgeState.name,
-                      );
-                    }}
-                    disabled={changingState}
-                    accessibilityRole="button"
-                    accessibilityLabel="Acknowledge alert"
-                  >
-                    {changingState ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <>
-                        <Ionicons
-                          name="checkmark-circle-outline"
-                          size={17}
-                          color="#FFFFFF"
-                          style={{ marginRight: 6 }}
-                        />
-                        <Text
-                          style={{
-                            fontSize: 14,
-                            fontWeight: "bold",
-                            color: "#FFFFFF",
-                          }}
-                        >
-                          Acknowledge
-                        </Text>
-                      </>
-                    )}
-                  </Pressable>
-                </View>
-              ) : null}
-
-              {resolveState ? (
-                <View
-                  style={{
-                    flex: 1,
-                    marginLeft:
-                      !isAcknowledged && !isResolved && acknowledgeState
-                        ? 12
-                        : 0,
-                  }}
-                >
-                  <Pressable
-                    style={{
-                      flexDirection: "row",
-                      paddingVertical: 12,
-                      borderRadius: 12,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      minHeight: 48,
-                      backgroundColor: theme.colors.stateResolved,
-                    }}
-                    onPress={() => {
-                      return handleStateChange(
-                        resolveState._id,
-                        resolveState.name,
-                      );
-                    }}
-                    disabled={changingState}
-                    accessibilityRole="button"
-                    accessibilityLabel="Resolve alert"
-                  >
-                    {changingState ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <>
-                        <Ionicons
-                          name="checkmark-done-outline"
-                          size={17}
-                          color="#FFFFFF"
-                          style={{ marginRight: 6 }}
-                        />
-                        <Text
-                          style={{
-                            fontSize: 14,
-                            fontWeight: "bold",
-                            color: "#FFFFFF",
-                          }}
-                        >
-                          Resolve
-                        </Text>
-                      </>
-                    )}
-                  </Pressable>
-                </View>
-              ) : null}
-            </View>
-          </View>
-        </View>
-      ) : null}
-
-      {/* Activity Feed */}
       {feed && feed.length > 0 ? (
         <View style={{ marginBottom: 24 }}>
           <SectionHeader title="Activity Feed" iconName="list-outline" />

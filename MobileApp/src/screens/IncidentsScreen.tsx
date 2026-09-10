@@ -1,18 +1,27 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   View,
   SectionList,
   ScrollView,
   RefreshControl,
   Text,
+  Pressable,
   Alert,
   SectionListRenderItemInfo,
   DefaultSectionT,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  type RouteProp,
+} from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import { useScreenPadding } from "../hooks/useScreenPadding";
+import ScreenIntro from "../components/ScreenIntro";
+import SearchField from "../components/SearchField";
+import { matchesSearch } from "../utils/search";
 import { useAllProjectIncidents } from "../hooks/useAllProjectIncidents";
 import { useAllProjectIncidentEpisodes } from "../hooks/useAllProjectIncidentEpisodes";
 import { useAllProjectIncidentStates } from "../hooks/useAllProjectIncidentStates";
@@ -35,6 +44,7 @@ import { QueryClient, useQueryClient } from "@tanstack/react-query";
 const PAGE_SIZE: number = 20;
 
 type Segment = "incidents" | "episodes";
+type StateFilter = "all" | "active" | "resolved";
 
 type NavProp = NativeStackNavigationProp<
   IncidentsStackParamList,
@@ -68,14 +78,14 @@ function SectionHeader({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        paddingBottom: 8,
-        paddingTop: 4,
+        paddingBottom: 12,
+        paddingTop: 8,
         backgroundColor: theme.colors.backgroundPrimary,
       }}
     >
       <Ionicons
         name={isActive ? "flame" : "checkmark-done"}
-        size={13}
+        size={18}
         color={
           isActive ? theme.colors.severityCritical : theme.colors.textTertiary
         }
@@ -83,9 +93,8 @@ function SectionHeader({
       />
       <Text
         style={{
-          fontSize: 12,
+          fontSize: 15,
           fontWeight: "600",
-          textTransform: "uppercase",
           color: isActive
             ? theme.colors.textPrimary
             : theme.colors.textTertiary,
@@ -107,7 +116,7 @@ function SectionHeader({
       >
         <Text
           style={{
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: "bold",
             color: isActive
               ? theme.colors.severityCritical
@@ -123,11 +132,30 @@ function SectionHeader({
 
 export default function IncidentsScreen(): React.JSX.Element {
   const { theme } = useTheme();
+  const bottomPadding: number = useScreenPadding();
+  const [search, setSearch] = useState("");
+  const [stateFilter, setStateFilter] = useState<StateFilter>("all");
+  const [refreshing, setRefreshing] = useState(false);
   const navigation: NavProp = useNavigation<NavProp>();
+  const route: RouteProp<IncidentsStackParamList, "IncidentsList"> =
+    useRoute<RouteProp<IncidentsStackParamList, "IncidentsList">>();
 
   const [segment, setSegment] = useState<Segment>("incidents");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [visibleEpisodeCount, setVisibleEpisodeCount] = useState(PAGE_SIZE);
+
+  useEffect(() => {
+    if (route.params?.initialSegment) {
+      setSegment(route.params.initialSegment);
+      setVisibleCount(PAGE_SIZE);
+      setVisibleEpisodeCount(PAGE_SIZE);
+    }
+    if (route.params?.initialFilter) {
+      setStateFilter(route.params.initialFilter);
+      setVisibleCount(PAGE_SIZE);
+      setVisibleEpisodeCount(PAGE_SIZE);
+    }
+  }, [route.params]);
 
   const {
     items: allIncidents,
@@ -157,10 +185,34 @@ export default function IncidentsScreen(): React.JSX.Element {
     return ids;
   }, [statesMap]);
 
+  const filteredIncidents: ProjectIncidentItem[] = useMemo(() => {
+    return allIncidents.filter((wrapped: ProjectIncidentItem) => {
+      return matchesSearch(search, [
+        wrapped.item.title,
+        wrapped.item._id,
+        wrapped.item.incidentNumber,
+        wrapped.item.incidentNumberWithPrefix,
+        wrapped.projectName,
+      ]);
+    });
+  }, [allIncidents, search]);
+
+  const filteredEpisodes: ProjectIncidentEpisodeItem[] = useMemo(() => {
+    return allEpisodes.filter((wrapped: ProjectIncidentEpisodeItem) => {
+      return matchesSearch(search, [
+        wrapped.item.title,
+        wrapped.item._id,
+        wrapped.item.episodeNumber,
+        wrapped.item.episodeNumberWithPrefix,
+        wrapped.projectName,
+      ]);
+    });
+  }, [allEpisodes, search]);
+
   const incidentSections: IncidentSection[] = useMemo(() => {
     const active: ProjectIncidentItem[] = [];
     const resolved: ProjectIncidentItem[] = [];
-    for (const wrapped of allIncidents) {
+    for (const wrapped of filteredIncidents) {
       const stateId: string | undefined =
         wrapped.item.currentIncidentState?._id;
       if (stateId && resolvedStateIds.has(stateId)) {
@@ -170,14 +222,14 @@ export default function IncidentsScreen(): React.JSX.Element {
       }
     }
     const sections: IncidentSection[] = [];
-    if (active.length > 0) {
+    if (active.length > 0 && stateFilter !== "resolved") {
       sections.push({
         title: "Active",
         isActive: true,
         data: active.slice(0, visibleCount),
       });
     }
-    if (resolved.length > 0) {
+    if (resolved.length > 0 && stateFilter !== "active") {
       sections.push({
         title: "Resolved",
         isActive: false,
@@ -185,12 +237,12 @@ export default function IncidentsScreen(): React.JSX.Element {
       });
     }
     return sections;
-  }, [allIncidents, resolvedStateIds, visibleCount]);
+  }, [filteredIncidents, resolvedStateIds, visibleCount, stateFilter]);
 
   const episodeSections: EpisodeSection[] = useMemo(() => {
     const active: ProjectIncidentEpisodeItem[] = [];
     const resolved: ProjectIncidentEpisodeItem[] = [];
-    for (const wrapped of allEpisodes) {
+    for (const wrapped of filteredEpisodes) {
       const stateId: string | undefined =
         wrapped.item.currentIncidentState?._id;
       if (stateId && resolvedStateIds.has(stateId)) {
@@ -200,14 +252,14 @@ export default function IncidentsScreen(): React.JSX.Element {
       }
     }
     const sections: EpisodeSection[] = [];
-    if (active.length > 0) {
+    if (active.length > 0 && stateFilter !== "resolved") {
       sections.push({
         title: "Active",
         isActive: true,
         data: active.slice(0, visibleEpisodeCount),
       });
     }
-    if (resolved.length > 0) {
+    if (resolved.length > 0 && stateFilter !== "active") {
       sections.push({
         title: "Resolved",
         isActive: false,
@@ -215,19 +267,24 @@ export default function IncidentsScreen(): React.JSX.Element {
       });
     }
     return sections;
-  }, [allEpisodes, resolvedStateIds, visibleEpisodeCount]);
+  }, [filteredEpisodes, resolvedStateIds, visibleEpisodeCount, stateFilter]);
 
-  const totalIncidentCount: number = allIncidents.length;
-  const totalEpisodeCount: number = allEpisodes.length;
+  const totalIncidentCount: number = filteredIncidents.length;
+  const totalEpisodeCount: number = filteredEpisodes.length;
 
   const onRefresh: () => Promise<void> = useCallback(async () => {
     lightImpact();
-    if (segment === "incidents") {
-      setVisibleCount(PAGE_SIZE);
-      await refetch();
-    } else {
-      setVisibleEpisodeCount(PAGE_SIZE);
-      await refetchEpisodes();
+    setRefreshing(true);
+    try {
+      if (segment === "incidents") {
+        setVisibleCount(PAGE_SIZE);
+        await refetch();
+      } else {
+        setVisibleEpisodeCount(PAGE_SIZE);
+        await refetchEpisodes();
+      }
+    } finally {
+      setRefreshing(false);
     }
   }, [refetch, refetchEpisodes, lightImpact, segment]);
 
@@ -324,21 +381,139 @@ export default function IncidentsScreen(): React.JSX.Element {
 
   const showError: boolean = segment === "incidents" ? isError : episodesError;
 
+  const hasFilters: boolean = search.trim().length > 0 || stateFilter !== "all";
+  const resetFilters: () => void = () => {
+    setSearch("");
+    setStateFilter("all");
+    setVisibleCount(PAGE_SIZE);
+    setVisibleEpisodeCount(PAGE_SIZE);
+  };
+  const listHeader: React.JSX.Element = (
+    <View style={{ marginBottom: 24 }}>
+      <ScreenIntro
+        compact
+        title="Incident inbox"
+        description={
+          segment === "incidents"
+            ? "Triage and respond to incidents."
+            : "Respond to related incidents together."
+        }
+      />
+      <View style={{ marginHorizontal: 0 }}>
+        <SegmentedControl
+          style={{ marginHorizontal: 0, marginTop: 0 }}
+          segments={[
+            { key: "incidents" as const, label: "Incidents" },
+            { key: "episodes" as const, label: "Episodes" },
+          ]}
+          selected={segment}
+          onSelect={(next: Segment) => {
+            setSegment(next);
+            setVisibleCount(PAGE_SIZE);
+            setVisibleEpisodeCount(PAGE_SIZE);
+          }}
+        />
+      </View>
+      <View style={{ marginTop: 12 }}>
+        <SearchField
+          value={search}
+          onChangeText={(value: string) => {
+            setSearch(value);
+            setVisibleCount(PAGE_SIZE);
+            setVisibleEpisodeCount(PAGE_SIZE);
+          }}
+          placeholder="Search title or ID"
+          accessibilityLabel="Search incidents and episodes"
+        />
+        {(segment === "incidents" ? allIncidents.length : allEpisodes.length) >=
+        100 ? (
+          <Text
+            style={{
+              marginTop: 10,
+              fontSize: 14,
+              lineHeight: 21,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            Search covers the 100 most recent{" "}
+            {segment === "incidents" ? "incidents" : "episodes"}.
+          </Text>
+        ) : null}
+      </View>
+      <View
+        style={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: 8,
+          marginTop: 12,
+        }}
+      >
+        {(
+          [
+            { key: "all", label: "All states" },
+            { key: "active", label: "Active only" },
+            { key: "resolved", label: "Resolved only" },
+          ] as const
+        ).map((filter: { key: StateFilter; label: string }) => {
+          const selected: boolean = stateFilter === filter.key;
+          return (
+            <Pressable
+              key={filter.key}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              accessibilityLabel={filter.label}
+              onPress={() => {
+                setStateFilter(filter.key);
+                setVisibleCount(PAGE_SIZE);
+                setVisibleEpisodeCount(PAGE_SIZE);
+              }}
+              style={{
+                minHeight: 48,
+                justifyContent: "center",
+                paddingHorizontal: 14,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: selected
+                  ? theme.colors.actionPrimary
+                  : theme.colors.borderDefault,
+                backgroundColor: selected
+                  ? theme.colors.iconBackground
+                  : theme.colors.backgroundElevated,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: "600",
+                  color: selected
+                    ? theme.colors.actionPrimary
+                    : theme.colors.textSecondary,
+                }}
+              >
+                {filter.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+
   if (showLoading) {
     return (
       <View
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
-        <ScrollView contentInsetAdjustmentBehavior="automatic">
-          <SegmentedControl
-            segments={[
-              { key: "incidents" as const, label: "Incidents" },
-              { key: "episodes" as const, label: "Episodes" },
-            ]}
-            selected={segment}
-            onSelect={setSegment}
-          />
-          <View style={{ padding: 16 }}>
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={{
+            padding: 20,
+            paddingBottom: bottomPadding,
+            flexGrow: 1,
+          }}
+        >
+          {listHeader}
+          <View>
             <SkeletonCard />
             <SkeletonCard />
             <SkeletonCard />
@@ -361,15 +536,15 @@ export default function IncidentsScreen(): React.JSX.Element {
       <View
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
-        <ScrollView contentInsetAdjustmentBehavior="automatic">
-          <SegmentedControl
-            segments={[
-              { key: "incidents" as const, label: "Incidents" },
-              { key: "episodes" as const, label: "Episodes" },
-            ]}
-            selected={segment}
-            onSelect={setSegment}
-          />
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={{
+            padding: 20,
+            paddingBottom: bottomPadding,
+            flexGrow: 1,
+          }}
+        >
+          {listHeader}
           <EmptyState
             title="Something went wrong"
             subtitle={
@@ -393,22 +568,18 @@ export default function IncidentsScreen(): React.JSX.Element {
           sections={incidentSections}
           style={{ flex: 1 }}
           contentInsetAdjustmentBehavior="automatic"
-          ListHeaderComponent={
-            <SegmentedControl
-              segments={[
-                { key: "incidents" as const, label: "Incidents" },
-                { key: "episodes" as const, label: "Episodes" },
-              ]}
-              selected={segment}
-              onSelect={setSegment}
-            />
-          }
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          testID="response-list"
+          ListHeaderComponent={listHeader}
           keyExtractor={(wrapped: ProjectIncidentItem) => {
             return `${wrapped.projectId}-${wrapped.item._id}`;
           }}
-          contentContainerStyle={
-            incidentSections.length === 0 ? { flex: 1 } : { padding: 16 }
-          }
+          contentContainerStyle={{
+            padding: 20,
+            paddingBottom: bottomPadding,
+            flexGrow: 1,
+          }}
           renderSectionHeader={(params: {
             section: DefaultSectionT & IncidentSection;
           }) => {
@@ -454,7 +625,6 @@ export default function IncidentsScreen(): React.JSX.Element {
               >
                 <IncidentCard
                   incident={wrapped.item}
-                  projectName={wrapped.projectName}
                   muted={isResolved}
                   onPress={() => {
                     return handlePress(wrapped);
@@ -465,14 +635,20 @@ export default function IncidentsScreen(): React.JSX.Element {
           }}
           ListEmptyComponent={
             <EmptyState
-              title="No incidents"
-              subtitle="Incidents assigned to you will appear here."
+              title={hasFilters ? "No matching incidents" : "No incidents"}
+              subtitle={
+                hasFilters
+                  ? "Try another search or clear your filters to see more."
+                  : "Incidents in this project will appear here."
+              }
+              actionLabel={hasFilters ? "Clear filters" : undefined}
+              onAction={hasFilters ? resetFilters : undefined}
               icon="incidents"
             />
           }
           stickySectionHeadersEnabled={false}
           refreshControl={
-            <RefreshControl refreshing={false} onRefresh={onRefresh} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
@@ -482,22 +658,18 @@ export default function IncidentsScreen(): React.JSX.Element {
           sections={episodeSections}
           style={{ flex: 1 }}
           contentInsetAdjustmentBehavior="automatic"
-          ListHeaderComponent={
-            <SegmentedControl
-              segments={[
-                { key: "incidents" as const, label: "Incidents" },
-                { key: "episodes" as const, label: "Episodes" },
-              ]}
-              selected={segment}
-              onSelect={setSegment}
-            />
-          }
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          testID="response-list"
+          ListHeaderComponent={listHeader}
           keyExtractor={(wrapped: ProjectIncidentEpisodeItem) => {
             return `${wrapped.projectId}-${wrapped.item._id}`;
           }}
-          contentContainerStyle={
-            episodeSections.length === 0 ? { flex: 1 } : { padding: 16 }
-          }
+          contentContainerStyle={{
+            padding: 20,
+            paddingBottom: bottomPadding,
+            flexGrow: 1,
+          }}
           renderSectionHeader={(params: {
             section: DefaultSectionT & EpisodeSection;
           }) => {
@@ -521,7 +693,6 @@ export default function IncidentsScreen(): React.JSX.Element {
               <EpisodeCard
                 episode={wrapped.item}
                 type="incident"
-                projectName={wrapped.projectName}
                 muted={isResolved}
                 onPress={() => {
                   return handleEpisodePress(wrapped);
@@ -531,14 +702,22 @@ export default function IncidentsScreen(): React.JSX.Element {
           }}
           ListEmptyComponent={
             <EmptyState
-              title="No incident episodes"
-              subtitle="Incident episodes will appear here."
+              title={
+                hasFilters ? "No matching episodes" : "No incident episodes"
+              }
+              subtitle={
+                hasFilters
+                  ? "Try another search or clear your filters to see more."
+                  : "Incident episodes will appear here."
+              }
+              actionLabel={hasFilters ? "Clear filters" : undefined}
+              onAction={hasFilters ? resetFilters : undefined}
               icon="episodes"
             />
           }
           stickySectionHeadersEnabled={false}
           refreshControl={
-            <RefreshControl refreshing={false} onRefresh={onRefresh} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}

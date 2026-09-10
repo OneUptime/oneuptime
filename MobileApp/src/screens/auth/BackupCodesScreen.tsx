@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Share } from "react-native";
+import { View, Text, TouchableOpacity, Share, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { useTheme } from "../../theme";
@@ -7,6 +7,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { generateBackupCodes } from "../../api/auth";
 import { AuthStackParamList } from "../../navigation/types";
 import GradientButton from "../../components/GradientButton";
+import AuthLayout, { AuthStep } from "../../components/AuthLayout";
 import { getFriendlyErrorMessage } from "../../utils/error";
 import {
   rememberBackupCodeOfferSkipped,
@@ -181,6 +182,9 @@ export default function BackupCodesScreen(): React.JSX.Element {
 
       return (
         <View
+          accessible
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
           style={{
             flexDirection: "row",
             alignItems: "flex-start",
@@ -194,7 +198,7 @@ export default function BackupCodesScreen(): React.JSX.Element {
             style={{ marginRight: 6, marginTop: 2 }}
           />
           <Text
-            style={{ fontSize: 13, flex: 1, color: theme.colors.statusError }}
+            style={{ fontSize: 14, flex: 1, color: theme.colors.statusError }}
           >
             {error}
           </Text>
@@ -205,6 +209,11 @@ export default function BackupCodesScreen(): React.JSX.Element {
   const renderShowCodes: () => React.JSX.Element = (): React.JSX.Element => {
     return (
       <View>
+        <AuthStep
+          number={1}
+          title="Save your recovery codes"
+          description="Keep a copy in a password manager or another safe place."
+        />
         <View
           style={{
             flexDirection: "row",
@@ -225,8 +234,8 @@ export default function BackupCodesScreen(): React.JSX.Element {
           <Text
             style={{
               flex: 1,
-              fontSize: 13,
-              lineHeight: 19,
+              fontSize: 14,
+              lineHeight: 21,
               color: theme.colors.textSecondary,
             }}
           >
@@ -258,9 +267,10 @@ export default function BackupCodesScreen(): React.JSX.Element {
                 testID="backup-code-value"
                 selectable={true}
                 style={{
-                  fontSize: 15,
+                  fontSize: 16,
+                  fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
                   letterSpacing: 1.5,
-                  paddingVertical: 4,
+                  paddingVertical: 8,
                   color: theme.colors.textPrimary,
                 }}
               >
@@ -279,8 +289,12 @@ export default function BackupCodesScreen(): React.JSX.Element {
           />
         </View>
 
+        <View style={{ marginTop: 24 }}>
+          <AuthStep number={2} title="Confirm you have saved them" />
+        </View>
         <TouchableOpacity
           accessibilityRole="checkbox"
+          accessibilityLabel="I have saved these codes somewhere safe."
           accessibilityState={{ checked: hasSavedCodes }}
           testID="backup-codes-saved-checkbox"
           onPress={() => {
@@ -289,7 +303,14 @@ export default function BackupCodesScreen(): React.JSX.Element {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            marginTop: 22,
+            minHeight: 56,
+            padding: 16,
+            borderRadius: 16,
+            backgroundColor: theme.colors.backgroundSecondary,
+            borderWidth: 1,
+            borderColor: hasSavedCodes
+              ? theme.colors.actionPrimary
+              : theme.colors.borderDefault,
           }}
         >
           <Ionicons
@@ -346,8 +367,8 @@ export default function BackupCodesScreen(): React.JSX.Element {
           <Text
             style={{
               flex: 1,
-              fontSize: 13,
-              lineHeight: 19,
+              fontSize: 14,
+              lineHeight: 21,
               color: theme.colors.textSecondary,
             }}
           >
@@ -378,7 +399,13 @@ export default function BackupCodesScreen(): React.JSX.Element {
           accessibilityRole="button"
           testID="skip-backup-codes"
           onPress={skip}
-          style={{ marginTop: 18, alignItems: "center" }}
+          disabled={isGenerating}
+          style={{
+            marginTop: 8,
+            minHeight: 48,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
         >
           <Text style={{ fontSize: 14, color: theme.colors.textTertiary }}>
             Skip for now
@@ -389,39 +416,16 @@ export default function BackupCodesScreen(): React.JSX.Element {
   };
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
-      keyboardShouldPersistTaps="handled"
+    <AuthLayout
+      title={isShowingCodes ? "Save Your Backup Codes" : "Set Up Backup Codes"}
+      eyebrow="KEEP ACCESS TO YOUR ACCOUNT"
+      description={
+        isShowingCodes
+          ? "Use one of these to sign in if you ever lose access to your authenticator app."
+          : "One last thing before you continue."
+      }
     >
-      <View style={{ paddingHorizontal: 28, paddingVertical: 32 }}>
-        <Text
-          style={{
-            fontSize: 24,
-            fontWeight: "bold",
-            textAlign: "center",
-            color: theme.colors.textPrimary,
-          }}
-        >
-          {isShowingCodes ? "Save Your Backup Codes" : "Set Up Backup Codes"}
-        </Text>
-        <Text
-          style={{
-            fontSize: 14,
-            marginTop: 6,
-            marginBottom: 26,
-            textAlign: "center",
-            lineHeight: 20,
-            color: theme.colors.textSecondary,
-          }}
-        >
-          {isShowingCodes
-            ? "Use one of these to sign in if you ever lose access to your authenticator app."
-            : "One last thing before you continue."}
-        </Text>
-
-        {isShowingCodes ? renderShowCodes() : renderOffer()}
-      </View>
-    </ScrollView>
+      {isShowingCodes ? renderShowCodes() : renderOffer()}
+    </AuthLayout>
   );
 }

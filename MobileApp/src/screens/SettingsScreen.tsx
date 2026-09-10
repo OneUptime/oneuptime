@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, Switch, Pressable } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  Switch,
+  Pressable,
+  Alert,
+  type ViewStyle,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import Constants from "expo-constants";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
@@ -13,8 +21,9 @@ import {
 } from "../hooks/useCriticalAlerts";
 import { useHaptics } from "../hooks/useHaptics";
 import { useOnCallCalendarFeedAvailability } from "../hooks/useOnCallCalendarFeedAvailability";
+import { useScreenPadding } from "../hooks/useScreenPadding";
 import { getServerUrl } from "../storage/serverUrl";
-import Logo from "../components/Logo";
+import ScreenIntro from "../components/ScreenIntro";
 import type { SettingsStackParamList } from "../navigation/types";
 
 type SettingsNavigationProp = NativeStackNavigationProp<
@@ -22,140 +31,161 @@ type SettingsNavigationProp = NativeStackNavigationProp<
   "SettingsList"
 >;
 
-const APP_VERSION: string = "1.0.0";
-
 interface SettingsRowProps {
   label: string;
+  description?: string;
   value?: string;
-  valueBelowLabel?: string;
   onPress?: () => void;
   rightElement?: React.ReactNode;
   destructive?: boolean;
-  isLast?: boolean;
-  iconName?: keyof typeof Ionicons.glyphMap;
+  iconName: keyof typeof Ionicons.glyphMap;
   testID?: string;
 }
 
 function SettingsRow({
   label,
+  description,
   value,
-  valueBelowLabel,
   onPress,
   rightElement,
   destructive,
-  isLast,
   iconName,
   testID,
 }: SettingsRowProps): React.JSX.Element {
   const { theme } = useTheme();
-
   const content: React.JSX.Element = (
     <View
       style={{
-        paddingHorizontal: 16,
-        minHeight: 52,
-        justifyContent: "center",
-        ...(!isLast
-          ? {
-              borderBottomWidth: 1,
-              borderBottomColor: theme.colors.borderSubtle,
-            }
-          : {}),
+        padding: 18,
+        minHeight: 72,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 14,
       }}
     >
       <View
         style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
+          width: 40,
+          height: 40,
+          borderRadius: 12,
           alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: destructive
+            ? theme.colors.statusErrorBg
+            : theme.colors.iconBackground,
         }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-          {iconName ? (
-            <View
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 8,
-                alignItems: "center",
-                justifyContent: "center",
-                marginRight: 12,
-                backgroundColor: destructive
-                  ? theme.colors.statusErrorBg
-                  : theme.colors.iconBackground,
-              }}
-            >
-              <Ionicons
-                name={iconName}
-                size={15}
-                color={
-                  destructive
-                    ? theme.colors.actionDestructive
-                    : theme.colors.actionPrimary
-                }
-              />
-            </View>
-          ) : null}
-          <Text
-            style={{
-              fontSize: 15,
-              fontWeight: "500",
-              paddingVertical: 12,
-              color: destructive
-                ? theme.colors.actionDestructive
-                : theme.colors.textPrimary,
-            }}
-          >
-            {label}
-          </Text>
-        </View>
-        {rightElement ??
-          (value ? (
-            <Text style={{ fontSize: 14, color: theme.colors.textTertiary }}>
-              {value}
-            </Text>
-          ) : onPress ? (
-            <Ionicons
-              name="chevron-forward"
-              size={18}
-              color={theme.colors.textTertiary}
-            />
-          ) : null)}
+        <Ionicons
+          name={iconName}
+          size={20}
+          color={
+            destructive
+              ? theme.colors.actionDestructive
+              : theme.colors.actionPrimary
+          }
+        />
       </View>
-      {valueBelowLabel ? (
+      <View style={{ flex: 1 }}>
         <Text
           style={{
-            fontSize: 13,
-            color: theme.colors.textTertiary,
-            paddingBottom: 12,
-            marginTop: -4,
+            fontSize: 16,
+            lineHeight: 23,
+            fontWeight: "600",
+            color: destructive
+              ? theme.colors.actionDestructive
+              : theme.colors.textPrimary,
           }}
-          numberOfLines={1}
-          ellipsizeMode="tail"
         >
-          {valueBelowLabel}
+          {label}
         </Text>
-      ) : null}
+        {description ? (
+          <Text
+            style={{
+              fontSize: 14,
+              lineHeight: 21,
+              marginTop: 4,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            {description}
+          </Text>
+        ) : null}
+        {value ? (
+          <Text
+            selectable
+            style={{
+              fontSize: 14,
+              lineHeight: 21,
+              marginTop: 4,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            {value}
+          </Text>
+        ) : null}
+      </View>
+      {rightElement ??
+        (onPress ? (
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={theme.colors.textTertiary}
+          />
+        ) : null)}
     </View>
   );
+  const surface: ViewStyle = {
+    borderWidth: 1,
+    borderColor: theme.colors.borderDefault,
+    borderRadius: 16,
+    backgroundColor: theme.colors.backgroundSecondary,
+  };
+  return onPress ? (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={description}
+      onPress={onPress}
+      style={({ pressed }: { pressed: boolean }) => {
+        return [surface, { opacity: pressed ? 0.7 : 1 }];
+      }}
+    >
+      {content}
+    </Pressable>
+  ) : (
+    <View testID={testID} style={surface}>
+      {content}
+    </View>
+  );
+}
 
-  if (onPress) {
-    return (
-      <Pressable
-        testID={testID}
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        onPress={onPress}
-        style={({ pressed }: { pressed: boolean }) => {
-          return { opacity: pressed ? 0.7 : 1 };
+function SettingsSection({
+  title,
+  children,
+  testID,
+}: {
+  title: string;
+  children: React.ReactNode;
+  testID?: string;
+}): React.JSX.Element {
+  const { theme } = useTheme();
+  return (
+    <View testID={testID} style={{ marginBottom: 28 }}>
+      <Text
+        accessibilityRole="header"
+        style={{
+          fontSize: 18,
+          fontWeight: "700",
+          color: theme.colors.textPrimary,
+          marginBottom: 12,
         }}
       >
-        {content}
-      </Pressable>
-    );
-  }
-
-  return <View testID={testID}>{content}</View>;
+        {title}
+      </Text>
+      {children}
+    </View>
+  );
 }
 
 export default function SettingsScreen(): React.JSX.Element {
@@ -168,6 +198,7 @@ export default function SettingsScreen(): React.JSX.Element {
   const calendarFeed: ReturnType<typeof useOnCallCalendarFeedAvailability> =
     useOnCallCalendarFeedAvailability();
   const { selectionFeedback } = useHaptics();
+  const paddingBottom: number = useScreenPadding();
   const [serverUrl, setServerUrlState] = useState("");
 
   useEffect(() => {
@@ -192,224 +223,65 @@ export default function SettingsScreen(): React.JSX.Element {
     }
   };
 
+  const confirmLogout: () => void = (): void => {
+    Alert.alert(
+      "Log out of OneUptime?",
+      "You will need to sign in again to access your workspace.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Log Out",
+          style: "destructive",
+          onPress: () => {
+            void logout();
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <ScrollView
+      testID="settings-scroll"
       contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
+      contentContainerStyle={{ padding: 20, paddingBottom }}
     >
-      {/* Header */}
-      <View
-        style={{
-          borderRadius: 24,
-          overflow: "hidden",
-          padding: 20,
-          marginBottom: 24,
-          backgroundColor: theme.colors.backgroundElevated,
-          borderWidth: 1,
-          borderColor: theme.colors.borderGlass,
-          shadowColor: "#000",
-          shadowOpacity: 0.28,
-          shadowOffset: { width: 0, height: 10 },
-          shadowRadius: 18,
-          elevation: 7,
-        }}
-      >
-        <LinearGradient
-          colors={[
-            theme.colors.accentGradientStart + "24",
-            theme.colors.accentGradientEnd + "08",
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            position: "absolute",
-            top: -60,
-            left: -10,
-            right: -10,
-            height: 190,
-          }}
-        />
+      <ScreenIntro
+        title="Settings"
+        eyebrow="YOUR WORKSPACE"
+        description="Make OneUptime work the way you do."
+      />
 
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <View
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 16,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: "#000000",
-              borderWidth: 1,
-              borderColor: "#1F1F1F",
-            }}
-          >
-            <Logo size={52} />
-          </View>
-
-          <View style={{ marginLeft: 12, flex: 1 }}>
-            <Text
-              style={{
-                fontSize: 20,
-                fontWeight: "bold",
-                color: theme.colors.textPrimary,
-                letterSpacing: -0.3,
-              }}
-            >
-              Preferences
-            </Text>
-            <Text
-              style={{
-                fontSize: 12,
-                marginTop: 2,
-                color: theme.colors.textSecondary,
-                letterSpacing: 0.2,
-              }}
-            >
-              Personalize your OneUptime experience
-            </Text>
-          </View>
-        </View>
-
-        <View
-          style={{
-            marginTop: 16,
-            borderRadius: 10,
-            backgroundColor: theme.colors.backgroundTertiary,
-            borderWidth: 1,
-            borderColor: theme.colors.borderSubtle,
-            paddingHorizontal: 12,
-            paddingVertical: 10,
-          }}
-        >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: "600",
-                textTransform: "uppercase",
-                color: theme.colors.textTertiary,
-                letterSpacing: 1,
-              }}
-            >
-              Connected to
-            </Text>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-              }}
-            >
-              <View
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: theme.colors.statusSuccess,
-                  marginRight: 5,
-                }}
-              />
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: "600",
-                  color: theme.colors.statusSuccess,
-                }}
-              >
-                Online
-              </Text>
-            </View>
-          </View>
-          <Text
-            style={{
-              fontSize: 13,
-              fontWeight: "500",
-              color: theme.colors.textSecondary,
-              marginTop: 6,
-            }}
-            numberOfLines={1}
-            ellipsizeMode="middle"
-          >
-            {serverUrl || "oneuptime.com"}
-          </Text>
-        </View>
-      </View>
-
-      {/* Notifications */}
       {criticalAlerts.isSupported ? (
-        <View style={{ marginBottom: 24 }}>
-          <Text
-            style={{
-              fontSize: 12,
-              fontWeight: "600",
-              textTransform: "uppercase",
-              marginBottom: 8,
-              marginLeft: 4,
-              color: theme.colors.textTertiary,
-              letterSpacing: 0.8,
-            }}
-          >
-            Notifications
-          </Text>
-          <View
-            style={{
-              borderRadius: 16,
-              overflow: "hidden",
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderGlass,
-            }}
-          >
-            <SettingsRow
-              label="Critical On-Call Alerts"
-              iconName="notifications-outline"
-              isLast
-              rightElement={
-                <Switch
-                  value={criticalAlerts.isEnabled}
-                  onValueChange={handleCriticalAlertsToggle}
-                  disabled={criticalAlerts.isBusy}
-                  trackColor={{
-                    false: theme.colors.backgroundTertiary,
-                    true: theme.colors.actionPrimary,
-                  }}
-                  thumbColor="#FFFFFF"
-                />
-              }
-            />
-          </View>
-          <Text
-            style={{
-              fontSize: 12,
-              marginTop: 6,
-              marginLeft: 4,
-              lineHeight: 16,
-              color: theme.colors.textTertiary,
-            }}
-          >
-            Play a sound for on-call pages even when this device is silenced or
-            in Do Not Disturb. Only urgent on-call notifications override silent
-            mode.
-          </Text>
-          {/*
-            The error is the actionable half of this setting: on Android it is
-            what tells a responder they still have to grant Do Not Disturb
-            access before the switch will stay on, and on iOS which Settings
-            screen to visit.
-          */}
+        <SettingsSection title="Notifications">
+          <SettingsRow
+            label="Critical On-Call Alerts"
+            iconName="notifications-outline"
+            description="Play a sound for on-call pages even when this device is silenced or in Do Not Disturb. Only urgent on-call notifications override silent mode."
+            rightElement={
+              <Switch
+                accessibilityLabel="Critical On-Call Alerts"
+                accessibilityHint="Allow urgent on-call notifications to override silent mode."
+                value={criticalAlerts.isEnabled}
+                onValueChange={handleCriticalAlertsToggle}
+                disabled={criticalAlerts.isBusy}
+                trackColor={{
+                  false: theme.colors.backgroundTertiary,
+                  true: theme.colors.actionPrimary,
+                }}
+                thumbColor="#FFFFFF"
+              />
+            }
+          />
           {criticalAlerts.error ? (
             <Text
+              accessibilityRole="alert"
+              accessibilityLiveRegion="polite"
               style={{
-                fontSize: 12,
-                marginTop: 6,
-                marginLeft: 4,
-                lineHeight: 16,
+                fontSize: 14,
+                marginTop: 12,
+                lineHeight: 21,
                 color: theme.colors.statusError,
               }}
             >
@@ -417,464 +289,101 @@ export default function SettingsScreen(): React.JSX.Element {
             </Text>
           ) : criticalAlerts.isEnabled && criticalAlerts.statusMessage ? (
             <Text
+              accessibilityLiveRegion="polite"
               style={{
-                fontSize: 12,
-                marginTop: 6,
-                marginLeft: 4,
-                lineHeight: 16,
+                fontSize: 14,
+                marginTop: 12,
+                lineHeight: 21,
                 color: theme.colors.statusSuccess,
               }}
             >
               {criticalAlerts.statusMessage}
             </Text>
           ) : null}
-        </View>
+        </SettingsSection>
       ) : null}
 
-      {/* Security */}
       {biometric.isAvailable ? (
-        <View style={{ marginBottom: 24 }}>
-          <Text
-            style={{
-              fontSize: 12,
-              fontWeight: "600",
-              textTransform: "uppercase",
-              marginBottom: 8,
-              marginLeft: 4,
-              color: theme.colors.textTertiary,
-              letterSpacing: 0.8,
-            }}
-          >
-            Security
-          </Text>
-          <View
-            style={{
-              borderRadius: 16,
-              overflow: "hidden",
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderGlass,
-            }}
-          >
-            <SettingsRow
-              label="Biometrics Login"
-              iconName="finger-print-outline"
-              isLast
-              rightElement={
-                <Switch
-                  value={biometric.isEnabled}
-                  onValueChange={handleBiometricToggle}
-                  trackColor={{
-                    false: theme.colors.backgroundTertiary,
-                    true: theme.colors.actionPrimary,
-                  }}
-                  thumbColor="#FFFFFF"
-                />
-              }
-            />
-          </View>
-          <Text
-            style={{
-              fontSize: 12,
-              marginTop: 6,
-              marginLeft: 4,
-              lineHeight: 16,
-              color: theme.colors.textTertiary,
-            }}
-          >
-            Require biometrics to unlock the app
-          </Text>
-        </View>
+        <SettingsSection title="Security">
+          <SettingsRow
+            label="Biometrics Login"
+            description="Require biometrics to unlock the app"
+            iconName="finger-print-outline"
+            rightElement={
+              <Switch
+                accessibilityLabel="Biometrics Login"
+                accessibilityHint="Require your fingerprint, face, or device passcode when opening OneUptime."
+                value={biometric.isEnabled}
+                onValueChange={handleBiometricToggle}
+                trackColor={{
+                  false: theme.colors.backgroundTertiary,
+                  true: theme.colors.actionPrimary,
+                }}
+                thumbColor="#FFFFFF"
+              />
+            }
+          />
+        </SettingsSection>
       ) : null}
 
-      {/* Server */}
-      <View style={{ marginBottom: 24 }}>
-        <Text
-          style={{
-            fontSize: 12,
-            fontWeight: "600",
-            textTransform: "uppercase",
-            marginBottom: 8,
-            marginLeft: 4,
-            color: theme.colors.textTertiary,
-            letterSpacing: 0.8,
-          }}
-        >
-          Server
-        </Text>
-        <View
-          style={{
-            borderRadius: 16,
-            overflow: "hidden",
-            backgroundColor: theme.colors.backgroundElevated,
-            borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
-            padding: 16,
-          }}
-        >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginBottom: 12,
-            }}
-          >
-            <View
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 8,
-                alignItems: "center",
-                justifyContent: "center",
-                marginRight: 10,
-                backgroundColor: theme.colors.iconBackground,
-              }}
-            >
-              <Ionicons
-                name="globe-outline"
-                size={15}
-                color={theme.colors.actionPrimary}
-              />
-            </View>
-            <Text
-              style={{
-                fontSize: 15,
-                fontWeight: "500",
-                color: theme.colors.textPrimary,
-                flex: 1,
-              }}
-            >
-              Server URL
-            </Text>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-                borderRadius: 9999,
-                backgroundColor: theme.colors.statusSuccessBg,
-              }}
-            >
-              <View
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: theme.colors.statusSuccess,
-                  marginRight: 5,
-                }}
-              />
-              <Text
-                style={{
-                  fontSize: 10,
-                  fontWeight: "600",
-                  color: theme.colors.statusSuccess,
-                  letterSpacing: 0.2,
-                }}
-              >
-                Connected
-              </Text>
-            </View>
-          </View>
-
-          <View
-            style={{
-              borderRadius: 10,
-              backgroundColor: theme.colors.backgroundTertiary,
-              borderWidth: 1,
-              borderColor: theme.colors.borderSubtle,
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 13,
-                fontWeight: "500",
-                color: theme.colors.textSecondary,
-                fontFamily: undefined,
-              }}
-              numberOfLines={1}
-              ellipsizeMode="middle"
-            >
-              {serverUrl || "oneuptime.com"}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* On-Call */}
       {calendarFeed.isAvailable ? (
-        <View testID="settings-section-oncall" style={{ marginBottom: 24 }}>
-          <Text
-            style={{
-              fontSize: 12,
-              fontWeight: "600",
-              textTransform: "uppercase",
-              marginBottom: 8,
-              marginLeft: 4,
-              color: theme.colors.textTertiary,
-              letterSpacing: 0.8,
+        <SettingsSection title="On-Call" testID="settings-section-oncall">
+          <SettingsRow
+            testID="settings-row-calendar-feed"
+            label="Calendar feed"
+            description="Subscribe to your on-call shifts from Google, Outlook or Apple Calendar"
+            iconName="calendar-outline"
+            onPress={() => {
+              navigation.navigate("OnCallCalendarFeed");
             }}
-          >
-            On-Call
-          </Text>
-          <View
-            style={{
-              borderRadius: 16,
-              overflow: "hidden",
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderGlass,
-            }}
-          >
-            <SettingsRow
-              testID="settings-row-calendar-feed"
-              label="Calendar feed"
-              iconName="calendar-outline"
-              onPress={() => {
-                navigation.navigate("OnCallCalendarFeed");
-              }}
-              isLast
-            />
-          </View>
-          <Text
-            style={{
-              fontSize: 12,
-              marginTop: 6,
-              marginLeft: 4,
-              lineHeight: 16,
-              color: theme.colors.textTertiary,
-            }}
-          >
-            Subscribe to your on-call shifts from Google, Outlook or Apple
-            Calendar
-          </Text>
-        </View>
+          />
+        </SettingsSection>
       ) : null}
 
-      {/* Projects */}
-      <View style={{ marginBottom: 24 }}>
+      <SettingsSection title="Projects">
+        <SettingsRow
+          label="Manage Projects"
+          description="View projects and authenticate with SSO providers"
+          iconName="business-outline"
+          onPress={() => {
+            navigation.navigate("ProjectsList");
+          }}
+        />
+      </SettingsSection>
+
+      <SettingsSection title="Server">
+        <SettingsRow
+          label="Server URL"
+          value={serverUrl || "Loading server…"}
+          description="The OneUptime instance you are signed in to."
+          iconName="globe-outline"
+        />
+      </SettingsSection>
+
+      <SettingsSection title="Account">
+        <SettingsRow
+          label="Log Out"
+          description="Sign out of this device."
+          iconName="log-out-outline"
+          onPress={confirmLogout}
+          destructive
+        />
+      </SettingsSection>
+
+      <View style={{ alignItems: "center", paddingTop: 8, gap: 8 }}>
+        <Text style={{ fontSize: 14, color: theme.colors.textSecondary }}>
+          OneUptime · Version {Constants.expoConfig?.version || "unknown"}
+        </Text>
         <Text
           style={{
-            fontSize: 12,
-            fontWeight: "600",
-            textTransform: "uppercase",
-            marginBottom: 8,
-            marginLeft: 4,
+            fontSize: 14,
+            lineHeight: 21,
             color: theme.colors.textTertiary,
-            letterSpacing: 0.8,
+            textAlign: "center",
           }}
         >
-          Projects
+          Built with care by the open source community.
         </Text>
-        <View
-          style={{
-            borderRadius: 16,
-            overflow: "hidden",
-            backgroundColor: theme.colors.backgroundElevated,
-            borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
-          }}
-        >
-          <SettingsRow
-            label="Manage Projects"
-            iconName="business-outline"
-            onPress={() => {
-              navigation.navigate("ProjectsList");
-            }}
-            isLast
-          />
-        </View>
-        <Text
-          style={{
-            fontSize: 12,
-            marginTop: 6,
-            marginLeft: 4,
-            lineHeight: 16,
-            color: theme.colors.textTertiary,
-          }}
-        >
-          View projects and authenticate with SSO providers
-        </Text>
-      </View>
-
-      {/* Account */}
-      <View style={{ marginBottom: 24 }}>
-        <Text
-          style={{
-            fontSize: 12,
-            fontWeight: "600",
-            textTransform: "uppercase",
-            marginBottom: 8,
-            marginLeft: 4,
-            color: theme.colors.textTertiary,
-            letterSpacing: 0.8,
-          }}
-        >
-          Account
-        </Text>
-        <View
-          style={{
-            borderRadius: 16,
-            overflow: "hidden",
-            backgroundColor: theme.colors.backgroundElevated,
-            borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
-          }}
-        >
-          <SettingsRow
-            label="Log Out"
-            iconName="log-out-outline"
-            onPress={logout}
-            destructive
-            isLast
-          />
-        </View>
-      </View>
-
-      {/* About */}
-      <View style={{ marginBottom: 24 }}>
-        <Text
-          style={{
-            fontSize: 12,
-            fontWeight: "600",
-            textTransform: "uppercase",
-            marginBottom: 8,
-            marginLeft: 4,
-            color: theme.colors.textTertiary,
-            letterSpacing: 0.8,
-          }}
-        >
-          About
-        </Text>
-        <View
-          style={{
-            borderRadius: 16,
-            overflow: "hidden",
-            backgroundColor: theme.colors.backgroundElevated,
-            borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
-          }}
-        >
-          <SettingsRow
-            label="Version"
-            iconName="information-circle-outline"
-            value={APP_VERSION}
-            isLast
-          />
-        </View>
-      </View>
-
-      {/* Footer */}
-      <View style={{ paddingTop: 8, paddingBottom: 8 }}>
-        <View
-          style={{
-            borderRadius: 16,
-            overflow: "hidden",
-            paddingHorizontal: 16,
-            paddingVertical: 16,
-            backgroundColor: theme.colors.backgroundElevated,
-            borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
-          }}
-        >
-          <View
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 3,
-              backgroundColor: theme.colors.actionPrimary,
-              opacity: 0.45,
-            }}
-          />
-
-          <View
-            style={{ alignItems: "center", marginTop: 4, marginBottom: 10 }}
-          >
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-            >
-              <View
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 9999,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: theme.colors.iconBackground,
-                }}
-              >
-                <Ionicons
-                  name="heart-outline"
-                  size={16}
-                  color={theme.colors.actionPrimary}
-                />
-              </View>
-              <View
-                style={{
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                  borderRadius: 9999,
-                  backgroundColor: theme.colors.iconBackground,
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 10,
-                    fontWeight: "600",
-                    color: theme.colors.textSecondary,
-                    letterSpacing: 0.4,
-                  }}
-                >
-                  OPEN SOURCE
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "600",
-              color: theme.colors.textPrimary,
-              textAlign: "center",
-            }}
-          >
-            Thank you for supporting open source software.
-          </Text>
-          <Text
-            style={{
-              fontSize: 12,
-              marginTop: 8,
-              lineHeight: 20,
-              color: theme.colors.textSecondary,
-              textAlign: "center",
-            }}
-          >
-            Built and maintained by contributors around the world.
-          </Text>
-
-          <View style={{ alignItems: "center", marginTop: 12 }}>
-            <View
-              style={{
-                paddingHorizontal: 10,
-                paddingVertical: 4,
-                borderRadius: 9999,
-                backgroundColor: theme.colors.backgroundTertiary,
-                borderWidth: 1,
-                borderColor: theme.colors.borderSubtle,
-              }}
-            >
-              <Text style={{ fontSize: 11, color: theme.colors.textTertiary }}>
-                Licensed under Apache 2.0
-              </Text>
-            </View>
-          </View>
-        </View>
       </View>
     </ScrollView>
   );

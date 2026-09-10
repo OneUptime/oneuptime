@@ -1,17 +1,26 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   View,
   SectionList,
   ScrollView,
   RefreshControl,
   Text,
+  Pressable,
   SectionListRenderItemInfo,
   DefaultSectionT,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  type RouteProp,
+} from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import { useScreenPadding } from "../hooks/useScreenPadding";
+import ScreenIntro from "../components/ScreenIntro";
+import SearchField from "../components/SearchField";
+import { matchesSearch } from "../utils/search";
 import { useAllProjectMonitors } from "../hooks/useAllProjectMonitors";
 import { useHaptics } from "../hooks/useHaptics";
 import MonitorCard from "../components/MonitorCard";
@@ -21,6 +30,7 @@ import type { MonitorsStackParamList } from "../navigation/types";
 import type { ProjectMonitorItem } from "../api/types";
 
 const PAGE_SIZE: number = 20;
+type MonitorFilter = "all" | "issues" | "operational" | "disabled";
 
 type NavProp = NativeStackNavigationProp<
   MonitorsStackParamList,
@@ -29,7 +39,7 @@ type NavProp = NativeStackNavigationProp<
 
 interface MonitorSection {
   title: string;
-  isActive: boolean;
+  kind: "issues" | "operational" | "disabled" | "unknown";
   data: ProjectMonitorItem[];
 }
 
@@ -86,13 +96,12 @@ function SummaryPill({
       </Text>
       <Text
         style={{
-          fontSize: 10,
+          fontSize: 13,
           fontWeight: "600",
           color: theme.colors.textTertiary,
           marginTop: 2,
           letterSpacing: 0.2,
         }}
-        numberOfLines={1}
       >
         {label}
       </Text>
@@ -109,10 +118,10 @@ function MonitorSummary({
   return (
     <View
       style={{
-        marginHorizontal: 16,
+        marginHorizontal: 0,
         marginTop: 8,
         marginBottom: 12,
-        borderRadius: 18,
+        borderRadius: 16,
         backgroundColor: theme.colors.backgroundElevated,
         borderWidth: 1,
         borderColor: theme.colors.borderGlass,
@@ -128,7 +137,7 @@ function MonitorSummary({
       >
         <SummaryPill
           count={counts.operational}
-          label="Operational"
+          label="Healthy"
           iconName="checkmark-circle"
           color={theme.colors.oncallActive}
         />
@@ -141,7 +150,7 @@ function MonitorSummary({
         />
         <SummaryPill
           count={counts.inoperational}
-          label="Inoperational"
+          label="Has issues"
           iconName="close-circle"
           color={theme.colors.severityCritical}
         />
@@ -166,13 +175,22 @@ function MonitorSummary({
 function SectionHeader({
   title,
   count,
-  isActive,
+  kind,
 }: {
   title: string;
   count: number;
-  isActive: boolean;
+  kind: MonitorSection["kind"];
 }): React.JSX.Element {
   const { theme } = useTheme();
+  const isActive: boolean = kind === "issues";
+  const iconName: keyof typeof Ionicons.glyphMap =
+    kind === "issues"
+      ? "alert-circle"
+      : kind === "operational"
+        ? "checkmark-circle"
+        : kind === "disabled"
+          ? "pause-circle"
+          : "help-circle";
   return (
     <View
       style={{
@@ -184,7 +202,7 @@ function SectionHeader({
       }}
     >
       <Ionicons
-        name={isActive ? "alert-circle" : "checkmark-circle"}
+        name={iconName}
         size={13}
         color={
           isActive ? theme.colors.severityCritical : theme.colors.textTertiary
@@ -193,9 +211,8 @@ function SectionHeader({
       />
       <Text
         style={{
-          fontSize: 12,
+          fontSize: 15,
           fontWeight: "600",
-          textTransform: "uppercase",
           color: isActive
             ? theme.colors.textPrimary
             : theme.colors.textTertiary,
@@ -217,7 +234,7 @@ function SectionHeader({
       >
         <Text
           style={{
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: "bold",
             color: isActive
               ? theme.colors.severityCritical
@@ -233,9 +250,22 @@ function SectionHeader({
 
 export default function MonitorsScreen(): React.JSX.Element {
   const { theme } = useTheme();
+  const bottomPadding: number = useScreenPadding();
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<MonitorFilter>("all");
+  const [refreshing, setRefreshing] = useState(false);
   const navigation: NavProp = useNavigation<NavProp>();
+  const route: RouteProp<MonitorsStackParamList, "MonitorsList"> =
+    useRoute<RouteProp<MonitorsStackParamList, "MonitorsList">>();
 
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  useEffect(() => {
+    if (route.params?.initialFilter) {
+      setFilter(route.params.initialFilter);
+      setVisibleCount(PAGE_SIZE);
+    }
+  }, [route.params]);
 
   const {
     items: allMonitors,
@@ -248,26 +278,55 @@ export default function MonitorsScreen(): React.JSX.Element {
   const { monitorSections, counts } = useMemo(() => {
     const issues: ProjectMonitorItem[] = [];
     const operational: ProjectMonitorItem[] = [];
+    const disabled: ProjectMonitorItem[] = [];
+    const unknown: ProjectMonitorItem[] = [];
     let disabledCount: number = 0;
     let inoperationalCount: number = 0;
+    let operationalCount: number = 0;
 
     for (const wrapped of allMonitors) {
-      const statusName: string =
-        wrapped.item.currentMonitorStatus?.name?.toLowerCase() ?? "";
       const isDisabled: boolean = wrapped.item.disableActiveMonitoring === true;
-
+      // Status names are editable. Only the server's semantic flag establishes health.
+      const operationalState: boolean | undefined =
+        wrapped.item.currentMonitorStatus?.isOperationalState;
+      const hasIssue: boolean = operationalState === false;
+      const isHealthy: boolean = operationalState === true && !isDisabled;
       if (isDisabled) {
         disabledCount++;
-        issues.push(wrapped);
-      } else if (
-        statusName === "offline" ||
-        statusName === "degraded" ||
-        statusName === "down"
-      ) {
+      }
+      if (hasIssue) {
         inoperationalCount++;
+      }
+      if (isHealthy) {
+        operationalCount++;
+      }
+
+      if (
+        !matchesSearch(search, [
+          wrapped.item.name,
+          wrapped.item._id,
+          wrapped.item.monitorType,
+          wrapped.projectName,
+        ])
+      ) {
+        continue;
+      }
+      if (
+        (filter === "issues" && !hasIssue) ||
+        (filter === "operational" && !isHealthy) ||
+        (filter === "disabled" && !isDisabled)
+      ) {
+        continue;
+      }
+
+      if (isDisabled) {
+        disabled.push(wrapped);
+      } else if (hasIssue) {
         issues.push(wrapped);
-      } else {
+      } else if (isHealthy) {
         operational.push(wrapped);
+      } else {
+        unknown.push(wrapped);
       }
     }
 
@@ -275,35 +334,53 @@ export default function MonitorsScreen(): React.JSX.Element {
     if (issues.length > 0) {
       sections.push({
         title: "Issues",
-        isActive: true,
+        kind: "issues",
         data: issues.slice(0, visibleCount),
+      });
+    }
+    if (unknown.length > 0) {
+      sections.push({
+        title: "Status unknown",
+        kind: "unknown",
+        data: unknown.slice(0, visibleCount),
+      });
+    }
+    if (disabled.length > 0) {
+      sections.push({
+        title: "Disabled monitors",
+        kind: "disabled",
+        data: disabled.slice(0, visibleCount),
       });
     }
     if (operational.length > 0) {
       sections.push({
-        title: "Operational",
-        isActive: false,
+        title: "Healthy",
+        kind: "operational",
         data: operational.slice(0, visibleCount),
       });
     }
-
     return {
       monitorSections: sections,
       counts: {
         total: allMonitors.length,
-        operational: operational.length,
+        operational: operationalCount,
         inoperational: inoperationalCount,
         disabled: disabledCount,
       },
     };
-  }, [allMonitors, visibleCount]);
+  }, [allMonitors, visibleCount, search, filter]);
 
   const totalCount: number = allMonitors.length;
 
   const onRefresh: () => Promise<void> = useCallback(async () => {
     lightImpact();
     setVisibleCount(PAGE_SIZE);
-    await refetch();
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
   }, [refetch, lightImpact]);
 
   const loadMore: () => void = useCallback(() => {
@@ -324,13 +401,123 @@ export default function MonitorsScreen(): React.JSX.Element {
     [navigation],
   );
 
+  const hasFilters: boolean = search.trim().length > 0 || filter !== "all";
+  const listHeader: React.JSX.Element = (
+    <View style={{ marginBottom: 24 }}>
+      <ScreenIntro
+        compact
+        title="Service health"
+        description="Check availability and explore what changed."
+      />
+      {totalCount > 0 ? <MonitorSummary counts={counts} /> : null}
+      <SearchField
+        value={search}
+        onChangeText={(value: string) => {
+          setSearch(value);
+          setVisibleCount(PAGE_SIZE);
+        }}
+        placeholder="Search name or ID"
+        accessibilityLabel="Search monitors"
+      />
+      {allMonitors.length >= 100 ? (
+        <Text
+          style={{
+            marginTop: 10,
+            fontSize: 14,
+            lineHeight: 21,
+            color: theme.colors.textSecondary,
+          }}
+        >
+          Search covers the 100 most recent monitors.
+        </Text>
+      ) : null}
+      <View
+        style={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: 8,
+          marginTop: 12,
+        }}
+      >
+        {(
+          [
+            { key: "all", label: "All monitors" },
+            { key: "issues", label: "Has issues" },
+            { key: "operational", label: "Healthy" },
+            { key: "disabled", label: "Disabled only" },
+          ] as const
+        ).map((option: { key: MonitorFilter; label: string }) => {
+          const selected: boolean = filter === option.key;
+          return (
+            <Pressable
+              key={option.key}
+              accessibilityRole="button"
+              accessibilityLabel={option.label}
+              accessibilityState={{ selected }}
+              onPress={() => {
+                setFilter(option.key);
+                setVisibleCount(PAGE_SIZE);
+              }}
+              style={{
+                minHeight: 48,
+                paddingHorizontal: 14,
+                justifyContent: "center",
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: selected
+                  ? theme.colors.actionPrimary
+                  : theme.colors.borderDefault,
+                backgroundColor: selected
+                  ? theme.colors.iconBackground
+                  : theme.colors.backgroundElevated,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: "600",
+                  color: selected
+                    ? theme.colors.actionPrimary
+                    : theme.colors.textSecondary,
+                }}
+              >
+                {option.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      {filter === "issues" ? (
+        <Text
+          style={{
+            marginTop: 12,
+            fontSize: 14,
+            lineHeight: 21,
+            color: theme.colors.textSecondary,
+          }}
+        >
+          Includes disabled monitors whose last reported status was
+          non-operational.
+        </Text>
+      ) : null}
+    </View>
+  );
+
   if (isLoading && allMonitors.length === 0) {
     return (
       <View
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
-        <ScrollView contentInsetAdjustmentBehavior="automatic">
-          <View style={{ padding: 16 }}>
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={{
+            padding: 20,
+            paddingBottom: bottomPadding,
+            flexGrow: 1,
+          }}
+        >
+          {listHeader}
+          <View>
             <SkeletonCard />
             <SkeletonCard />
             <SkeletonCard />
@@ -345,7 +532,15 @@ export default function MonitorsScreen(): React.JSX.Element {
       <View
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
-        <ScrollView contentInsetAdjustmentBehavior="automatic">
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={{
+            padding: 20,
+            paddingBottom: bottomPadding,
+            flexGrow: 1,
+          }}
+        >
+          {listHeader}
           <EmptyState
             title="Something went wrong"
             subtitle="Failed to load monitors. Pull to refresh or try again."
@@ -366,15 +561,18 @@ export default function MonitorsScreen(): React.JSX.Element {
         sections={monitorSections}
         style={{ flex: 1 }}
         contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        testID="monitor-list"
         keyExtractor={(wrapped: ProjectMonitorItem) => {
           return `${wrapped.projectId}-${wrapped.item._id}`;
         }}
-        contentContainerStyle={
-          monitorSections.length === 0 ? { flex: 1 } : { padding: 16 }
-        }
-        ListHeaderComponent={
-          totalCount > 0 ? <MonitorSummary counts={counts} /> : null
-        }
+        contentContainerStyle={{
+          padding: 20,
+          paddingBottom: bottomPadding,
+          flexGrow: 1,
+        }}
+        ListHeaderComponent={listHeader}
         renderSectionHeader={(params: {
           section: DefaultSectionT & MonitorSection;
         }) => {
@@ -382,7 +580,7 @@ export default function MonitorsScreen(): React.JSX.Element {
             <SectionHeader
               title={params.section.title}
               count={params.section.data.length}
-              isActive={params.section.isActive}
+              kind={params.section.kind}
             />
           );
         }}
@@ -393,11 +591,10 @@ export default function MonitorsScreen(): React.JSX.Element {
           ProjectMonitorItem,
           DefaultSectionT & MonitorSection
         >) => {
-          const isOperational: boolean = !section.isActive;
+          const isOperational: boolean = section.kind === "operational";
           return (
             <MonitorCard
               monitor={wrapped.item}
-              projectName={wrapped.projectName}
               muted={isOperational}
               onPress={() => {
                 return handlePress(wrapped);
@@ -407,14 +604,28 @@ export default function MonitorsScreen(): React.JSX.Element {
         }}
         ListEmptyComponent={
           <EmptyState
-            title="No monitors"
-            subtitle="Monitors from your projects will appear here."
+            title={hasFilters ? "No matching monitors" : "No monitors"}
+            subtitle={
+              hasFilters
+                ? "Try another search or clear your filters to see more."
+                : "Monitors in this project will appear here."
+            }
+            actionLabel={hasFilters ? "Clear filters" : undefined}
+            onAction={
+              hasFilters
+                ? () => {
+                    setSearch("");
+                    setFilter("all");
+                    setVisibleCount(PAGE_SIZE);
+                  }
+                : undefined
+            }
             icon="monitors"
           />
         }
         stickySectionHeadersEnabled={false}
         refreshControl={
-          <RefreshControl refreshing={false} onRefresh={onRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}

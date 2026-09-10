@@ -60,9 +60,20 @@ jobs:
           cache: npm
           cache-dependency-path: '**/package-lock.json'
       - run: cd MobileApp && npm install
-      - name: Export Web Bundle
+      - name: Install browser for responsive UI tests
+        run: cd MobileApp && npx playwright install --with-deps chromium
+      - name: Verify responsive screens and project switching
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd MobileApp && npx expo export --platform web
+          command: cd MobileApp && npm run test-ui
+      - name: Upload UI screenshots and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-ui-report
+          path: |
+            MobileApp/playwright-report
+            MobileApp/test-results
+          retention-days: 7

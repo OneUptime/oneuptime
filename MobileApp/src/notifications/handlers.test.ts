@@ -70,6 +70,7 @@ interface RecordedNavigation {
 interface FakeNavigationContainer {
   ref: unknown;
   navigations: Array<RecordedNavigation>;
+  initialRouteOverrides: Array<boolean | undefined>;
   mount: (routeNames: Array<string> | null) => void;
 }
 
@@ -89,6 +90,7 @@ function createNavigationContainer(
 ): FakeNavigationContainer {
   let routeNames: Array<string> | null = initialRouteNames;
   const navigations: Array<RecordedNavigation> = [];
+  const initialRouteOverrides: Array<boolean | undefined> = [];
 
   return {
     ref: {
@@ -103,8 +105,13 @@ function createNavigationContainer(
       },
       navigate: (
         routeName: string,
-        options: { screen: string; params: Record<string, unknown> },
+        options: {
+          screen: string;
+          params: Record<string, unknown>;
+          initial?: boolean;
+        },
       ): void => {
+        initialRouteOverrides.push(options.initial);
         navigations.push({
           routeName: routeName,
           screen: options.screen,
@@ -113,6 +120,7 @@ function createNavigationContainer(
       },
     },
     navigations: navigations,
+    initialRouteOverrides,
     mount: (nextRouteNames: Array<string> | null): void => {
       routeNames = nextRouteNames;
     },
@@ -548,4 +556,27 @@ describe("a payload that cannot be shown never displaces one that can", () => {
       },
     ]);
   });
+});
+
+describe("A notification keeps a useful Back destination", () => {
+  test.each([
+    "incident",
+    "alert",
+    "incident-episode",
+    "alert-episode",
+    "monitor",
+  ])(
+    "%s opens above its project list instead of replacing the stack's initial screen",
+    (entityType: string) => {
+      const handlers: HandlersModule = loadHandlers();
+      const container: FakeNavigationContainer =
+        createNavigationContainer(MAIN_TAB_ROUTES);
+      handlers.setNavigationRef(container.ref);
+      handlers.handleNotificationResponse(
+        tap({ entityType, entityId: "entity-1", projectId: "project-1" }),
+      );
+      expect(container.navigations).toHaveLength(1);
+      expect(container.initialRouteOverrides).toEqual([false]);
+    },
+  );
 });

@@ -74,28 +74,30 @@ export default function RosterScheduleCard({
     <View
       testID={`roster-card-${schedule._id}`}
       style={{
-        borderRadius: 18,
-        padding: 16,
+        borderRadius: 16,
+        padding: 18,
         backgroundColor: theme.colors.backgroundElevated,
         borderWidth: 1,
-        borderColor: theme.colors.borderGlass,
+        borderColor: isCovered
+          ? theme.colors.borderSubtle
+          : theme.colors.severityWarning + "66",
       }}
     >
       <View style={{ flexDirection: "row", alignItems: "center" }}>
         <View style={{ flex: 1 }}>
           <Text
             style={{
-              fontSize: 15,
+              fontSize: 17,
               fontWeight: "600",
               color: theme.colors.textPrimary,
             }}
-            numberOfLines={1}
+            numberOfLines={2}
           >
             {schedule.name}
           </Text>
           <Text
             style={{
-              fontSize: 12,
+              fontSize: 14,
               marginTop: 2,
               color: theme.colors.textTertiary,
             }}
@@ -116,7 +118,7 @@ export default function RosterScheduleCard({
           >
             <Text
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: "700",
                 letterSpacing: 0.5,
                 color: theme.colors.oncallActive,
@@ -133,15 +135,19 @@ export default function RosterScheduleCard({
             accessibilityRole="button"
             accessibilityLabel={`Share team calendar link for ${schedule.name}`}
             disabled={isSharingCalendar}
+            accessibilityState={{
+              disabled: isSharingCalendar,
+              busy: isSharingCalendar,
+            }}
             onPress={() => {
               onShareCalendar(entry);
             }}
             hitSlop={8}
             style={({ pressed }: { pressed: boolean }) => {
               return {
-                width: 30,
-                height: 30,
-                borderRadius: 10,
+                width: 48,
+                height: 48,
+                borderRadius: 14,
                 marginLeft: 8,
                 alignItems: "center",
                 justifyContent: "center",
@@ -158,7 +164,7 @@ export default function RosterScheduleCard({
             ) : (
               <Ionicons
                 name="share-outline"
-                size={15}
+                size={20}
                 color={theme.colors.actionPrimary}
               />
             )}
@@ -178,8 +184,8 @@ export default function RosterScheduleCard({
       >
         <View
           style={{
-            width: 34,
-            height: 34,
+            width: 44,
+            height: 44,
             borderRadius: 12,
             alignItems: "center",
             justifyContent: "center",
@@ -197,7 +203,7 @@ export default function RosterScheduleCard({
         <View style={{ flex: 1 }}>
           <Text
             style={{
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: "600",
               letterSpacing: 0.6,
               textTransform: "uppercase",
@@ -208,12 +214,12 @@ export default function RosterScheduleCard({
           </Text>
           <Text
             style={{
-              fontSize: 14,
+              fontSize: 17,
               fontWeight: "600",
               marginTop: 2,
               color: isCovered ? theme.colors.textPrimary : accent,
             }}
-            numberOfLines={1}
+            numberOfLines={2}
           >
             {isCovered
               ? displayNameForUser(schedule.currentUserOnRoster)
@@ -225,7 +231,7 @@ export default function RosterScheduleCard({
           <View style={{ alignItems: "flex-end", marginLeft: 10 }}>
             <Text
               style={{
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: "600",
                 letterSpacing: 0.6,
                 textTransform: "uppercase",
@@ -236,7 +242,7 @@ export default function RosterScheduleCard({
             </Text>
             <Text
               style={{
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: "600",
                 marginTop: 2,
                 color: theme.colors.textSecondary,
@@ -264,12 +270,12 @@ export default function RosterScheduleCard({
           />
           <Text
             style={{
-              fontSize: 12,
+              fontSize: 14,
+              lineHeight: 21,
               marginLeft: 6,
               flex: 1,
               color: theme.colors.textSecondary,
             }}
-            numberOfLines={1}
           >
             {`Next: ${displayNameForUser(schedule.nextUserOnRoster)}${
               nextStartLabel ? ` · ${nextStartLabel}` : ""

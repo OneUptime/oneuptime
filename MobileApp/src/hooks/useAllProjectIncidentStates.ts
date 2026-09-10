@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQueries, UseQueryResult } from "@tanstack/react-query";
-import { useProject } from "./useProject";
+import { useActiveProject } from "./useProject";
 import { fetchIncidentStates } from "../api/incidents";
 import type { IncidentState, ProjectItem } from "../api/types";
 
@@ -11,7 +11,7 @@ interface UseAllProjectIncidentStatesResult {
 }
 
 export function useAllProjectIncidentStates(): UseAllProjectIncidentStatesResult {
-  const { projectList, isLoadingProjects } = useProject();
+  const { projectList, isLoadingProjects } = useActiveProject();
 
   const queries: UseQueryResult<IncidentState[], Error>[] = useQueries({
     queries: projectList.map((project: ProjectItem) => {

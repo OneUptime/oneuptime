@@ -86,12 +86,11 @@ export default function OverrideCard({
     <View
       testID={`override-card-${override._id}`}
       style={{
-        borderRadius: 18,
-        padding: 16,
+        borderRadius: 16,
+        padding: 18,
         backgroundColor: theme.colors.backgroundElevated,
         borderWidth: 1,
         borderColor: theme.colors.borderGlass,
-        opacity: state === "past" ? 0.7 : 1,
       }}
     >
       <View
@@ -111,7 +110,7 @@ export default function OverrideCard({
         >
           <Text
             style={{
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: "700",
               letterSpacing: 0.6,
               color: accent,
@@ -127,6 +126,7 @@ export default function OverrideCard({
             accessibilityRole="button"
             accessibilityLabel={`Cancel override: ${sentence}`}
             disabled={isCancelling}
+            accessibilityState={{ disabled: isCancelling, busy: isCancelling }}
             onPress={() => {
               onCancel(override);
             }}
@@ -135,7 +135,10 @@ export default function OverrideCard({
               alignItems: "center",
               paddingHorizontal: 10,
               paddingVertical: 6,
-              borderRadius: 10,
+              minHeight: 48,
+              minWidth: 88,
+              justifyContent: "center",
+              borderRadius: 12,
               borderWidth: 1,
               borderColor: theme.colors.borderDefault,
               opacity: isCancelling ? 0.5 : 1,
@@ -155,7 +158,7 @@ export default function OverrideCard({
                 />
                 <Text
                   style={{
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: "600",
                     marginLeft: 5,
                     color: theme.colors.actionDestructive,
@@ -171,10 +174,10 @@ export default function OverrideCard({
 
       <Text
         style={{
-          fontSize: 15,
+          fontSize: 18,
           fontWeight: "600",
           marginTop: 12,
-          lineHeight: 21,
+          lineHeight: 26,
           color: theme.colors.textPrimary,
         }}
       >
@@ -196,12 +199,12 @@ export default function OverrideCard({
           />
           <Text
             style={{
-              fontSize: 12,
+              fontSize: 14,
+              lineHeight: 21,
               marginLeft: 6,
               flex: 1,
               color: theme.colors.textSecondary,
             }}
-            numberOfLines={2}
           >
             {window}
             {endsIn ? ` · ends ${endsIn}` : ""}
@@ -223,12 +226,13 @@ export default function OverrideCard({
         />
         <Text
           style={{
-            fontSize: 12,
+            fontSize: 14,
+            lineHeight: 21,
             marginLeft: 6,
             flex: 1,
             color: theme.colors.textTertiary,
           }}
-          numberOfLines={1}
+          numberOfLines={2}
         >
           {override.onCallDutyPolicy?.name
             ? `${override.projectName} · ${override.onCallDutyPolicy.name}`

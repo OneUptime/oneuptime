@@ -1,6 +1,15 @@
-import React from "react";
-import { View, Platform, useWindowDimensions } from "react-native";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import React, { useContext } from "react";
+import { View } from "react-native";
+import {
+  SafeAreaInsetsContext,
+  type EdgeInsets,
+} from "react-native-safe-area-context";
+import { getTabBarBottom, layout } from "../theme/layout";
+import {
+  createBottomTabNavigator,
+  type BottomTabBarButtonProps,
+} from "@react-navigation/bottom-tabs";
+import { PlatformPressable } from "@react-navigation/elements";
 import { Ionicons } from "@expo/vector-icons";
 import { MainTabParamList } from "./types";
 import HomeScreen from "../screens/HomeScreen";
@@ -10,6 +19,8 @@ import AlertsStackNavigator from "./AlertsStackNavigator";
 import OnCallStackNavigator from "./OnCallStackNavigator";
 import SettingsStackNavigator from "./SettingsStackNavigator";
 import { useTheme } from "../theme";
+import ProjectSwitcher from "../components/ProjectSwitcher";
+import ProjectNavigationSync from "./ProjectNavigationSync";
 
 const Tab: ReturnType<typeof createBottomTabNavigator<MainTabParamList>> =
   createBottomTabNavigator<MainTabParamList>();
@@ -28,238 +39,240 @@ function TabIcon({
   accentColor: string;
 }): React.JSX.Element {
   return (
-    <View style={{ alignItems: "center", justifyContent: "center" }}>
+    <View
+      style={{
+        alignItems: "center",
+        justifyContent: "center",
+        width: 42,
+        height: 30,
+        borderRadius: 12,
+        backgroundColor: focused ? accentColor + "20" : "transparent",
+      }}
+    >
       <Ionicons name={focused ? focusedName : name} size={22} color={color} />
-      {focused ? (
-        <View
-          style={{
-            width: 4,
-            height: 4,
-            borderRadius: 9999,
-            marginTop: 2,
-            backgroundColor: accentColor,
-          }}
-        />
-      ) : null}
     </View>
   );
 }
 
 export default function MainTabNavigator(): React.JSX.Element {
   const { theme } = useTheme();
-  const { width } = useWindowDimensions();
-  const isMobileWidth: boolean = width < 768;
+  const insets: EdgeInsets | null = useContext(SafeAreaInsetsContext);
 
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: theme.colors.backgroundPrimary,
-          borderBottomWidth: 1,
-          borderBottomColor: theme.colors.borderSubtle,
-        },
-        headerShadowVisible: false,
-        headerTintColor: theme.colors.textPrimary,
-        headerTitleStyle: {
-          fontWeight: "700",
-          fontSize: 18,
-          letterSpacing: -0.4,
-        },
-        tabBarStyle: {
-          position: "absolute",
-          left: 14,
-          right: 14,
-          bottom: Platform.OS === "ios" ? 14 : 10,
-          backgroundColor: theme.colors.backgroundElevated,
-          borderTopWidth: 0,
-          borderWidth: 1,
-          borderColor: theme.colors.borderGlass,
-          borderRadius: 22,
-          height: Platform.OS === "ios" ? 78 : 68,
-          paddingBottom: Platform.OS === "ios" ? 18 : 10,
-          paddingTop: 10,
-          shadowColor: "#000000",
-          shadowOpacity: 0.35,
-          shadowOffset: { width: 0, height: 8 },
-          shadowRadius: 18,
-          elevation: 16,
-        },
-        tabBarActiveTintColor: theme.colors.actionPrimary,
-        tabBarInactiveTintColor: theme.colors.textTertiary,
-        tabBarShowLabel: !isMobileWidth,
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: "600",
-          marginTop: 1,
-          letterSpacing: 0.2,
-        },
-        tabBarItemStyle: {
-          borderRadius: 14,
-          marginHorizontal: 2,
-          paddingVertical: 2,
-        },
-      }}
-    >
-      {/*
-       * Every tab names itself for the screen reader, because none of them can
-       * inherit a name from what is on screen.
-       *
-       * `tabBarShowLabel` above is false below 768pt - which is every phone
-       * this app ships to - so on a handset a tab is an icon and nothing else.
-       * React Navigation only invents an accessibility label from the route on
-       * iOS; on Android it leaves it undefined, and an icon-only pressable
-       * with no label is a control TalkBack can announce only as "tab,
-       * selected". Six of those in a row is a tab bar a blind responder cannot
-       * navigate, on the one app whose whole purpose is reaching Incidents
-       * fast at 3am.
-       *
-       * Stating it also makes both platforms say the same thing, rather than
-       * leaving iOS on a fallback that Android has no equivalent of.
-       */}
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{
-          tabBarAccessibilityLabel: "Home",
-          tabBarIcon: ({
-            color,
-            focused,
-          }: {
-            color: string;
-            focused: boolean;
-          }) => {
+    <>
+      <ProjectNavigationSync />
+      <Tab.Navigator
+        screenOptions={{
+          headerTitle: () => {
+            return <ProjectSwitcher />;
+          },
+          headerStyle: {
+            backgroundColor: theme.colors.backgroundPrimary,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.colors.borderSubtle,
+          },
+          headerShadowVisible: false,
+          headerTintColor: theme.colors.textPrimary,
+          headerTitleStyle: {
+            fontWeight: "700",
+            fontSize: 18,
+            letterSpacing: -0.4,
+          },
+          tabBarStyle: {
+            position: "absolute",
+            left: 8,
+            right: 8,
+            bottom: getTabBarBottom(insets?.bottom ?? 0),
+            backgroundColor: theme.colors.backgroundElevated,
+            borderTopWidth: 0,
+            borderWidth: 1,
+            borderColor: theme.colors.borderGlass,
+            borderRadius: 20,
+            height: layout.tabBarHeight,
+            paddingBottom: 8,
+            paddingTop: 8,
+            shadowColor: "#000000",
+            shadowOpacity: 0.35,
+            shadowOffset: { width: 0, height: 8 },
+            shadowRadius: 18,
+            elevation: 16,
+          },
+          tabBarActiveTintColor: theme.colors.actionPrimary,
+          tabBarInactiveTintColor: theme.colors.textTertiary,
+          tabBarShowLabel: true,
+          tabBarLabelPosition: "below-icon",
+          tabBarHideOnKeyboard: true,
+          tabBarButton: (props: BottomTabBarButtonProps) => {
             return (
-              <TabIcon
-                name="home-outline"
-                focusedName="home"
-                color={color}
-                focused={focused}
-                accentColor={theme.colors.actionPrimary}
+              <PlatformPressable
+                {...props}
+                style={[props.style, { paddingHorizontal: 0 }]}
               />
             );
           },
-        }}
-      />
-      <Tab.Screen
-        name="Monitors"
-        component={MonitorsStackNavigator}
-        options={{
-          headerShown: false,
-          tabBarAccessibilityLabel: "Monitors",
-          tabBarIcon: ({
-            color,
-            focused,
-          }: {
-            color: string;
-            focused: boolean;
-          }) => {
-            return (
-              <TabIcon
-                name="pulse-outline"
-                focusedName="pulse"
-                color={color}
-                focused={focused}
-                accentColor={theme.colors.actionPrimary}
-              />
-            );
+          tabBarLabelStyle: {
+            fontSize: 10,
+            fontWeight: "600",
+            marginTop: 1,
+            letterSpacing: 0.2,
+          },
+          tabBarItemStyle: {
+            borderRadius: 14,
+            marginHorizontal: 0,
+            minHeight: 48,
+            paddingVertical: 2,
           },
         }}
-      />
-      <Tab.Screen
-        name="Incidents"
-        component={IncidentsStackNavigator}
-        options={{
-          headerShown: false,
-          tabBarAccessibilityLabel: "Incidents",
-          tabBarIcon: ({
-            color,
-            focused,
-          }: {
-            color: string;
-            focused: boolean;
-          }) => {
-            return (
-              <TabIcon
-                name="warning-outline"
-                focusedName="warning"
-                color={color}
-                focused={focused}
-                accentColor={theme.colors.actionPrimary}
-              />
-            );
-          },
-        }}
-      />
-      <Tab.Screen
-        name="Alerts"
-        component={AlertsStackNavigator}
-        options={{
-          headerShown: false,
-          tabBarAccessibilityLabel: "Alerts",
-          tabBarIcon: ({
-            color,
-            focused,
-          }: {
-            color: string;
-            focused: boolean;
-          }) => {
-            return (
-              <TabIcon
-                name="alert-circle-outline"
-                focusedName="alert-circle"
-                color={color}
-                focused={focused}
-                accentColor={theme.colors.actionPrimary}
-              />
-            );
-          },
-        }}
-      />
-      <Tab.Screen
-        name="OnCall"
-        component={OnCallStackNavigator}
-        options={{
-          headerShown: false,
-          title: "On-Call",
-          tabBarAccessibilityLabel: "On-Call",
-          tabBarIcon: ({
-            color,
-            focused,
-          }: {
-            color: string;
-            focused: boolean;
-          }) => {
-            return (
-              <TabIcon
-                name="call-outline"
-                focusedName="call"
-                color={color}
-                focused={focused}
-                accentColor={theme.colors.actionPrimary}
-              />
-            );
-          },
-        }}
-      />
-      <Tab.Screen
-        name="Settings"
-        component={SettingsStackNavigator}
-        options={{
-          headerShown: false,
-          tabBarAccessibilityLabel: "Settings",
-          tabBarIcon: (props: { color: string; focused: boolean }) => {
-            return (
-              <TabIcon
-                name="settings-outline"
-                focusedName="settings"
-                color={props.color}
-                focused={props.focused}
-                accentColor={theme.colors.actionPrimary}
-              />
-            );
-          },
-        }}
-      />
-    </Tab.Navigator>
+      >
+        {/*
+         * Visible labels stay on at phone widths; explicit accessible names
+         * keep VoiceOver and TalkBack consistent as well.
+         */}
+        <Tab.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{
+            tabBarAccessibilityLabel: "Home",
+            tabBarIcon: ({
+              color,
+              focused,
+            }: {
+              color: string;
+              focused: boolean;
+            }) => {
+              return (
+                <TabIcon
+                  name="home-outline"
+                  focusedName="home"
+                  color={color}
+                  focused={focused}
+                  accentColor={theme.colors.actionPrimary}
+                />
+              );
+            },
+          }}
+        />
+        <Tab.Screen
+          name="Monitors"
+          component={MonitorsStackNavigator}
+          options={{
+            headerShown: false,
+            tabBarAccessibilityLabel: "Monitors",
+            tabBarIcon: ({
+              color,
+              focused,
+            }: {
+              color: string;
+              focused: boolean;
+            }) => {
+              return (
+                <TabIcon
+                  name="pulse-outline"
+                  focusedName="pulse"
+                  color={color}
+                  focused={focused}
+                  accentColor={theme.colors.actionPrimary}
+                />
+              );
+            },
+          }}
+        />
+        <Tab.Screen
+          name="Incidents"
+          component={IncidentsStackNavigator}
+          options={{
+            headerShown: false,
+            tabBarAccessibilityLabel: "Incidents",
+            tabBarIcon: ({
+              color,
+              focused,
+            }: {
+              color: string;
+              focused: boolean;
+            }) => {
+              return (
+                <TabIcon
+                  name="warning-outline"
+                  focusedName="warning"
+                  color={color}
+                  focused={focused}
+                  accentColor={theme.colors.actionPrimary}
+                />
+              );
+            },
+          }}
+        />
+        <Tab.Screen
+          name="Alerts"
+          component={AlertsStackNavigator}
+          options={{
+            headerShown: false,
+            tabBarAccessibilityLabel: "Alerts",
+            tabBarIcon: ({
+              color,
+              focused,
+            }: {
+              color: string;
+              focused: boolean;
+            }) => {
+              return (
+                <TabIcon
+                  name="alert-circle-outline"
+                  focusedName="alert-circle"
+                  color={color}
+                  focused={focused}
+                  accentColor={theme.colors.actionPrimary}
+                />
+              );
+            },
+          }}
+        />
+        <Tab.Screen
+          name="OnCall"
+          component={OnCallStackNavigator}
+          options={{
+            headerShown: false,
+            title: "On-Call",
+            tabBarAccessibilityLabel: "On-Call",
+            tabBarIcon: ({
+              color,
+              focused,
+            }: {
+              color: string;
+              focused: boolean;
+            }) => {
+              return (
+                <TabIcon
+                  name="call-outline"
+                  focusedName="call"
+                  color={color}
+                  focused={focused}
+                  accentColor={theme.colors.actionPrimary}
+                />
+              );
+            },
+          }}
+        />
+        <Tab.Screen
+          name="Settings"
+          component={SettingsStackNavigator}
+          options={{
+            headerShown: false,
+            tabBarAccessibilityLabel: "Settings",
+            tabBarIcon: (props: { color: string; focused: boolean }) => {
+              return (
+                <TabIcon
+                  name="settings-outline"
+                  focusedName="settings"
+                  color={props.color}
+                  focused={props.focused}
+                  accentColor={theme.colors.actionPrimary}
+                />
+              );
+            },
+          }}
+        />
+      </Tab.Navigator>
+    </>
   );
 }

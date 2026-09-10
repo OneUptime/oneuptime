@@ -6,7 +6,7 @@ import {
   UseMutationResult,
   UseQueryResult,
 } from "@tanstack/react-query";
-import { useProject } from "./useProject";
+import { useActiveProject } from "./useProject";
 import {
   createOnCallOverride,
   deleteOnCallOverride,
@@ -53,8 +53,7 @@ export interface UseOnCallOverridesResult {
 }
 
 /**
- * Project-wide user overrides across every readable project, split by whether
- * they are in force.
+ * User overrides for the selected project, split by whether they are in force.
  *
  * The split is the point of the screen. "Who is covering me right now" and
  * "what have I booked for next Tuesday" are different questions, and a single
@@ -64,7 +63,7 @@ export interface UseOnCallOverridesResult {
 export function useOnCallOverrides(
   now: number = Date.now(),
 ): UseOnCallOverridesResult {
-  const { projectList } = useProject();
+  const { projectList } = useActiveProject();
   const queryClient: ReturnType<typeof useQueryClient> = useQueryClient();
 
   const query: UseQueryResult<OnCallOverrideItem[], Error> = useQuery({
@@ -73,6 +72,12 @@ export function useOnCallOverrides(
     queryFn: async (): Promise<OnCallOverrideItem[]> => {
       const authorizedProjects: ProjectItem[] =
         await getAuthorizedProjects(projectList);
+
+      if (projectList.length > 0 && authorizedProjects.length === 0) {
+        throw new Error(
+          "Sign in with SSO for the selected project to view coverage.",
+        );
+      }
 
       const results: PromiseSettledResult<OnCallOverrideItem[]>[] =
         await Promise.allSettled(
@@ -85,6 +90,15 @@ export function useOnCallOverrides(
         );
 
       const all: OnCallOverrideItem[] = [];
+
+      if (
+        results.length > 0 &&
+        results.every((result: PromiseSettledResult<OnCallOverrideItem[]>) => {
+          return result.status === "rejected";
+        })
+      ) {
+        throw new Error("Could not load coverage for the selected project.");
+      }
 
       results.forEach((result: PromiseSettledResult<OnCallOverrideItem[]>) => {
         if (result.status === "fulfilled") {
@@ -108,6 +122,11 @@ export function useOnCallOverrides(
   const createMutation: UseMutationResult<void, Error, CreateOverrideInput> =
     useMutation({
       mutationFn: async (input: CreateOverrideInput): Promise<void> => {
+        if (input.projectId !== projectList[0]?._id) {
+          throw new Error(
+            "The selected project changed. Open coverage again before confirming.",
+          );
+        }
         await createOnCallOverride(input);
       },
       onSuccess: invalidate,
@@ -116,6 +135,11 @@ export function useOnCallOverrides(
   const cancelMutation: UseMutationResult<void, Error, OnCallOverrideItem> =
     useMutation({
       mutationFn: async (override: OnCallOverrideItem): Promise<void> => {
+        if (override.projectId !== projectList[0]?._id) {
+          throw new Error(
+            "The selected project changed. Open coverage again before cancelling.",
+          );
+        }
         await deleteOnCallOverride(override.projectId, override._id);
       },
       onSuccess: invalidate,

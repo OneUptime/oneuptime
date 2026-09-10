@@ -307,6 +307,39 @@ describe("WhoIsOnCallScreen", () => {
     expect(screen.queryByTestId("roster-card-s2")).toBeNull();
   });
 
+  test("combines person search with coverage filters without changing the overall summary", async (): Promise<void> => {
+    mockSchedules.current.schedules = [
+      entry("covered", "Primary", { _id: "priya", name: "Priya Rao" }),
+      entry("gap", "Secondary", null),
+    ];
+    await render(<WhoIsOnCallScreen />);
+    expect(screen.getByText("1 of 2 schedules covered")).toBeTruthy();
+    await fireEvent.press(screen.getByText("Needs cover (1)"));
+    expect(screen.queryByTestId("roster-card-covered")).toBeNull();
+    expect(screen.getByTestId("roster-card-gap")).toBeTruthy();
+    await fireEvent.changeText(screen.getByTestId("roster-search"), "Priya");
+    expect(screen.getByText("No schedules match that search.")).toBeTruthy();
+    expect(screen.getByText("1 of 2 schedules covered")).toBeTruthy();
+    await fireEvent.press(screen.getByText("On call (1)"));
+    expect(screen.getByTestId("roster-card-covered")).toBeTruthy();
+    expect(screen.queryByTestId("roster-card-gap")).toBeNull();
+    expect(
+      screen.getByTestId("who-is-on-call-scroll").props.contentContainerStyle
+        .paddingBottom,
+    ).toBeGreaterThanOrEqual(124);
+  });
+
+  test("explains when the needs-cover filter has no gaps", async (): Promise<void> => {
+    mockSchedules.current.schedules = [
+      entry("covered", "Primary", { _id: "priya", name: "Priya Rao" }),
+    ];
+    await render(<WhoIsOnCallScreen />);
+    await fireEvent.press(screen.getByText("Needs cover (0)"));
+    expect(
+      screen.getByText("No coverage gaps. Every schedule has someone on call."),
+    ).toBeTruthy();
+  });
+
   test("says nothing matched rather than looking empty", async (): Promise<void> => {
     mockSchedules.current.schedules = [
       entry("s1", "Primary", { _id: "user-2", name: "Priya Rao" }),

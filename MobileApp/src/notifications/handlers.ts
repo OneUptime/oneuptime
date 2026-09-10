@@ -3,6 +3,16 @@ import type { NotificationResponse } from "expo-notifications";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let navigationRef: any = null;
 let pendingNotificationData: NotificationData | null = null;
+export type ProjectNavigationResult = "ready" | "switching" | "unavailable";
+let projectNavigationGuard:
+  | ((projectId: string) => ProjectNavigationResult)
+  | null = null;
+
+export function setProjectNavigationGuard(
+  guard: ((projectId: string) => ProjectNavigationResult) | null,
+): void {
+  projectNavigationGuard = guard;
+}
 
 export function setNavigationRef(ref: unknown): void {
   navigationRef = ref;
@@ -74,24 +84,28 @@ function executeNavigation(data: NotificationData): void {
     case "incident":
       navigationRef.navigate("Incidents", {
         screen: "IncidentDetail",
+        initial: false,
         params: { incidentId: data.entityId, projectId },
       });
       break;
     case "alert":
       navigationRef.navigate("Alerts", {
         screen: "AlertDetail",
+        initial: false,
         params: { alertId: data.entityId, projectId },
       });
       break;
     case "incident-episode":
       navigationRef.navigate("Incidents", {
         screen: "IncidentEpisodeDetail",
+        initial: false,
         params: { episodeId: data.entityId, projectId },
       });
       break;
     case "alert-episode":
       navigationRef.navigate("Alerts", {
         screen: "AlertEpisodeDetail",
+        initial: false,
         params: { episodeId: data.entityId, projectId },
       });
       break;
@@ -104,6 +118,7 @@ function executeNavigation(data: NotificationData): void {
        */
       navigationRef.navigate("Monitors", {
         screen: "MonitorDetail",
+        initial: false,
         params: { monitorId: data.entityId, projectId },
       });
       break;
@@ -148,7 +163,8 @@ function navigateToEntity(data: NotificationData): void {
     return;
   }
 
-  executeNavigation(data);
+  pendingNotificationData = data;
+  processPendingNotification();
 }
 
 export function processPendingNotification(): void {
@@ -169,7 +185,15 @@ export function processPendingNotification(): void {
     return;
   }
 
+  const projectResult: ProjectNavigationResult =
+    projectNavigationGuard?.(data.projectId ?? "") ?? "ready";
+  if (projectResult === "switching") {
+    return;
+  }
   pendingNotificationData = null;
+  if (projectResult === "unavailable") {
+    return;
+  }
   executeNavigation(data);
 }
 

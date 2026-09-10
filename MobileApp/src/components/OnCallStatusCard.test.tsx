@@ -159,6 +159,23 @@ describe("OnCallStatusCard while loading", () => {
 
     expect(screen.getByText("Checking your duty status")).toBeTruthy();
     expect(screen.queryByText("You're not on call")).toBeNull();
+    expect(screen.queryByText("OFF CALL")).toBeNull();
+    expect(screen.getByText("CHECKING")).toBeTruthy();
+  });
+
+  test("hides stale handoff information while status is being established", async (): Promise<void> => {
+    await render(
+      <OnCallStatusCard
+        now={NOW}
+        summary={summary({
+          isOnCall: true,
+          nextHandoffAt: new Date(NOW + HOUR).toISOString(),
+        })}
+        isLoading
+      />,
+    );
+    expect(screen.queryByText("ON CALL")).toBeNull();
+    expect(screen.queryByText("Handoff")).toBeNull();
   });
 });
 

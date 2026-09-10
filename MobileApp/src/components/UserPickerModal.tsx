@@ -1,16 +1,19 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
   Modal,
   Pressable,
   ScrollView,
-  TextInput,
+  KeyboardAvoidingView,
+  Platform,
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import type { ProjectUserItem } from "../api/types";
+import SearchField from "./SearchField";
+import { useScreenPadding } from "../hooks/useScreenPadding";
 
 interface UserPickerModalProps {
   visible: boolean;
@@ -71,7 +74,13 @@ export default function UserPickerModal({
   onClose,
 }: UserPickerModalProps): React.JSX.Element {
   const { theme } = useTheme();
+  const paddingBottom: number = useScreenPadding({ tabBar: false });
   const [searchTerm, setSearchTerm] = useState<string>("");
+  useEffect(() => {
+    if (!visible) {
+      setSearchTerm("");
+    }
+  }, [visible]);
 
   const visibleUsers: ProjectUserItem[] = useMemo(() => {
     return filterUsers(users, searchTerm, excludeUserId);
@@ -84,7 +93,8 @@ export default function UserPickerModal({
       transparent={true}
       onRequestClose={onClose}
     >
-      <View
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{
           flex: 1,
           justifyContent: "flex-end",
@@ -97,7 +107,7 @@ export default function UserPickerModal({
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
             paddingTop: 20,
-            paddingBottom: 32,
+            paddingBottom,
             backgroundColor: theme.colors.backgroundElevated,
             borderTopWidth: 1,
             borderColor: theme.colors.borderGlass,
@@ -127,7 +137,12 @@ export default function UserPickerModal({
               accessibilityRole="button"
               accessibilityLabel="Close user picker"
               onPress={onClose}
-              style={{ padding: 4 }}
+              style={{
+                minWidth: 48,
+                minHeight: 48,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
               <Ionicons
                 name="close"
@@ -138,24 +153,11 @@ export default function UserPickerModal({
           </View>
 
           <View style={{ paddingHorizontal: 20, marginBottom: 12 }}>
-            <TextInput
+            <SearchField
               testID="user-picker-search"
               placeholder="Search by name or email"
-              placeholderTextColor={theme.colors.textTertiary}
               value={searchTerm}
               onChangeText={setSearchTerm}
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={{
-                height: 44,
-                borderRadius: 12,
-                paddingHorizontal: 14,
-                fontSize: 14,
-                color: theme.colors.textPrimary,
-                backgroundColor: theme.colors.backgroundTertiary,
-                borderWidth: 1,
-                borderColor: theme.colors.borderSubtle,
-              }}
             />
           </View>
 
@@ -178,7 +180,11 @@ export default function UserPickerModal({
               </Text>
             </View>
           ) : (
-            <ScrollView style={{ paddingHorizontal: 20 }}>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              style={{ paddingHorizontal: 20 }}
+              contentContainerStyle={{ paddingBottom: 16 }}
+            >
               {visibleUsers.map((user: ProjectUserItem) => {
                 const isSelected: boolean = user.userId === selectedUserId;
 
@@ -187,6 +193,7 @@ export default function UserPickerModal({
                     key={user.userId}
                     testID={`user-option-${user.userId}`}
                     accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
                     accessibilityLabel={`Select ${user.name || user.email}`}
                     onPress={() => {
                       onSelect(user);
@@ -245,7 +252,7 @@ export default function UserPickerModal({
             </ScrollView>
           )}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

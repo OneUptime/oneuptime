@@ -93,21 +93,42 @@ MobileApp/
 ## Auth Flow
 
 ```
-ServerUrlScreen → LoginScreen → MainTabNavigator (Home, Incidents, Alerts, Settings)
+ServerUrlScreen → LoginScreen → MainTabNavigator (Home, Monitors, Incidents, Alerts, On-Call, Settings)
 ```
 
 - Access tokens are refreshed automatically on 401 responses.
 - Logout clears all stored tokens and returns to the login screen.
 
+## Project Navigation
+
+The app shows one project at a time. Tap the project name in the header to
+switch projects. Home, monitors, incidents, alerts, on-call schedules, pages,
+coverage and calendar links all follow that selection.
+
+The last selected project is remembered for the signed-in account and server.
+The app restores the selection before loading project data; if that membership
+is no longer available, it selects an available project. Switching projects
+returns to Home and clears the previous project's open detail screens and forms.
+Operational requests and query caches are scoped to the selected project.
+
+Project membership management remains under Settings. Projects that require
+SSO must be authenticated before their operational data can be read; an
+inaccessible project is not treated as an empty incident list or an off-call
+status.
+
 ## Tests
 
 ```bash
-npm test
+npm run test-file -- --runTestsByPath src/screens/OnCallOverviewScreen.test.tsx
 ```
 
-Jest with the `jest-expo` preset. Tests live next to the code they cover
+Run only the suites relevant to your changes. Jest runs each selected suite
+with both `jest-expo/ios` and `jest-expo/android`. Tests live next to the code they cover
 (`src/**/*.test.ts[x]`); shared native-module mocks are in
 `src/__tests__/setup.ts`.
+
+See [UI redesign and visual testing](docs/UI_REDESIGN.md) for browser journeys,
+screenshot capture, project isolation checks and the limits of browser previews.
 
 ## On-Call
 
@@ -119,37 +140,54 @@ handset, in this order:
    that names you directly has no shift window, so the card says "standing
    assignment — no scheduled handoff" rather than borrowing a boundary from an
    unrelated schedule.
-2. **Who else is on?** _Who's On Call_ lists every schedule across every
-   project with the person on it now, who is next, and when they swap.
+2. **Who else is on?** _Who's On Call_ lists the selected project's schedules
+   with the person on each now, who is next, and when they swap.
    Schedules with **nobody** on call are pulled to the top — they are the only
-   rows on that screen that are a problem.
+   rows on that screen that are a problem. Search matches schedules and people;
+   the coverage filters narrow the list to gaps or covered schedules.
 3. **Can somebody take this?** _Cover for me_ creates a project-wide
    `OnCallDutyPolicyUserOverride` that starts now and runs for a preset number
    of hours. The same sheet works in reverse ("I'll take over") for picking up
-   a teammate's pages.
+   a teammate's pages. _Get cover_ on an individual shift pre-fills that shift's
+   time window. The form shows the selected project and reads back the routing
+   and duration before confirmation.
 
-Two supporting screens round it out: **Overrides**, which splits cover
-arrangements into in-effect / scheduled / ended and can cancel one, and
-**Pages Sent To Me**, the notification log filtered down to what was never
-acknowledged.
+**Coverage** splits arrangements into active, scheduled and ended; cancellation
+requires confirmation. **My pages** highlights unanswered notifications and
+opens the corresponding incident, alert or episode. **My policies** explains
+the assignments that can currently page you. **Calendar sync** creates a private
+subscription link for your shifts in the selected project.
+
+Scrollable screens reserve space for the entire bottom navigation bar, the
+device's safe area and an additional 40 points of breathing room. The coverage
+form keeps the same clearance because its nested modal can leave the tab bar
+visible.
 
 ### Where the data comes from
 
 | Screen                            | Endpoint                                                                                     |
 | --------------------------------- | -------------------------------------------------------------------------------------------- |
 | Duty status, standing assignments | `GET /api/on-call-duty-policy/current-on-duty-escalation-policies`                           |
-| Shifts, roster, handoff times     | `POST /api/on-call-duty-policy-schedule/get-list`                                            |
+| Materialized shifts               | `GET /api/on-call-calendar/my-shifts` with the selected project's `tenantid` header          |
+| Roster and fallback handoff times | `POST /api/on-call-duty-policy-schedule/get-list`                                            |
 | Overrides                         | `POST /api/on-call-duty-policy-user-override/get-list`, `POST`/`DELETE` on the same resource |
 | Teammate picker                   | `POST /api/team-member/get-list`                                                             |
 | Pages sent to me                  | `POST /api/user-notification-log/get-list`                                                   |
+| Personal calendar subscription    | `GET /api/on-call-calendar/feed/current`, `POST /api/on-call-calendar/feed/rotate`           |
 
-Two things about that table are worth knowing before changing this code:
+Keep these distinctions when changing the data flow:
 
-- **Shift boundaries only exist on the schedule roster.** `rosterHandoffAt`,
-  `rosterStartAt`, `rosterNextStartAt` and `rosterNextHandoffAt` are the only
-  place the server says when a shift ends. The assignments endpoint knows
+- **The shift list and duty summary have different sources.** `/my-shifts`
+  supplies materialized shift windows, including cover and policy-specific
+  shifts. The schedule roster supplies `rosterHandoffAt`, `rosterStartAt`,
+  `rosterNextStartAt` and `rosterNextHandoffAt` for the summary and fallback
+  list when materialized shifts are unavailable. The assignments endpoint knows
   _whether_ you are on duty (and accounts for overrides); it says nothing about
   when it stops.
+- **Every operational read uses the selected project.** Use `useActiveProject`
+  for data views. Reserve `useProject`'s full membership list for the global
+  switcher and project management. Coverage mutations reject a draft or row
+  belonging to another project.
 - **The notification log is scoped server-side.** `UserOnCallLog` grants read
   through the auto-granted `CurrentUser` permission, which the server converts
   into a `userId` row filter. The app neither sends nor can send a user id

@@ -1,8 +1,8 @@
 import React, { useCallback } from "react";
 import { View, Text, ScrollView, RefreshControl } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import { useScreenPadding } from "../hooks/useScreenPadding";
 import {
   useMonitorDetail,
   useMonitorStatusTimeline,
@@ -19,6 +19,7 @@ import SkeletonCard from "../components/SkeletonCard";
 import SectionHeader from "../components/SectionHeader";
 import MarkdownContent from "../components/MarkdownContent";
 import MonitorSummaryView from "../components/MonitorSummaryView";
+import EmptyState from "../components/EmptyState";
 
 type Props = NativeStackScreenProps<MonitorsStackParamList, "MonitorDetail">;
 
@@ -53,10 +54,12 @@ export default function MonitorDetailScreen({
 }: Props): React.JSX.Element {
   const { monitorId, projectId } = route.params;
   const { theme } = useTheme();
+  const bottomPadding: number = useScreenPadding();
 
   const {
     data: monitor,
     isLoading,
+    isError,
     refetch: refetchMonitor,
   } = useMonitorDetail(projectId, monitorId);
   const { data: statusTimeline, refetch: refetchTimeline } =
@@ -81,28 +84,47 @@ export default function MonitorDetailScreen({
 
   if (isLoading) {
     return (
-      <View
+      <ScrollView
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+        contentContainerStyle={{
+          padding: 20,
+          paddingBottom: bottomPadding,
+          flexGrow: 1,
+        }}
       >
         <SkeletonCard variant="detail" />
-      </View>
+      </ScrollView>
     );
   }
 
   if (!monitor) {
     return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: theme.colors.backgroundPrimary,
+      <ScrollView
+        style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+        contentContainerStyle={{
+          padding: 20,
+          paddingBottom: bottomPadding,
+          flexGrow: 1,
         }}
       >
-        <Text style={{ fontSize: 15, color: theme.colors.textSecondary }}>
-          Monitor not found.
-        </Text>
-      </View>
+        <EmptyState
+          title={isError ? "Something went wrong" : "Monitor not found."}
+          subtitle={
+            isError
+              ? "We could not load this monitor. Check your connection and try again."
+              : "This monitor no longer exists, or it is not part of this project."
+          }
+          icon="monitors"
+          actionLabel={isError ? "Retry" : undefined}
+          onAction={
+            isError
+              ? () => {
+                  return refetchMonitor();
+                }
+              : undefined
+          }
+        />
+      </ScrollView>
     );
   }
 
@@ -116,7 +138,9 @@ export default function MonitorDetailScreen({
   return (
     <ScrollView
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
+      testID="detail-scroll"
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
       refreshControl={
         <RefreshControl
           refreshing={false}
@@ -128,31 +152,19 @@ export default function MonitorDetailScreen({
       {/* Header card */}
       <View
         style={{
-          borderRadius: 24,
+          borderRadius: 16,
           overflow: "hidden",
           marginBottom: 20,
           backgroundColor: theme.colors.backgroundElevated,
           borderWidth: 1,
           borderColor: theme.colors.borderGlass,
           shadowColor: "#000",
-          shadowOpacity: 0.28,
-          shadowOffset: { width: 0, height: 10 },
-          shadowRadius: 18,
-          elevation: 7,
+          shadowOpacity: 0.06,
+          shadowOffset: { width: 0, height: 2 },
+          shadowRadius: 6,
+          elevation: 1,
         }}
       >
-        <LinearGradient
-          colors={[statusColor + "26", "transparent"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            position: "absolute",
-            top: -50,
-            left: -10,
-            right: -10,
-            height: 190,
-          }}
-        />
         <View
           style={{
             height: 3,
@@ -164,7 +176,7 @@ export default function MonitorDetailScreen({
         <View style={{ padding: 20 }}>
           <Text
             style={{
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: "600",
               marginBottom: 8,
               color: theme.colors.textSecondary,
@@ -175,7 +187,8 @@ export default function MonitorDetailScreen({
 
           <Text
             style={{
-              fontSize: 24,
+              fontSize: 28,
+              lineHeight: 36,
               fontWeight: "bold",
               color: theme.colors.textPrimary,
               letterSpacing: -0.6,
@@ -198,7 +211,7 @@ export default function MonitorDetailScreen({
                   flexDirection: "row",
                   alignItems: "center",
                   paddingHorizontal: 10,
-                  paddingVertical: 4,
+                  paddingVertical: 6,
                   borderRadius: 6,
                   backgroundColor: theme.colors.backgroundTertiary,
                 }}
@@ -214,9 +227,9 @@ export default function MonitorDetailScreen({
                 />
                 <Text
                   style={{
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: "600",
-                    color: theme.colors.textTertiary,
+                    color: theme.colors.textSecondary,
                   }}
                 >
                   Disabled
@@ -228,7 +241,7 @@ export default function MonitorDetailScreen({
                   flexDirection: "row",
                   alignItems: "center",
                   paddingHorizontal: 10,
-                  paddingVertical: 4,
+                  paddingVertical: 6,
                   borderRadius: 6,
                   backgroundColor: statusColor + "14",
                 }}
@@ -244,7 +257,7 @@ export default function MonitorDetailScreen({
                 />
                 <Text
                   style={{
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: "600",
                     color: statusColor,
                   }}
@@ -258,6 +271,37 @@ export default function MonitorDetailScreen({
       </View>
 
       {/* Description */}
+      {isDisabled ? (
+        <View
+          style={{
+            padding: 16,
+            marginBottom: 24,
+            borderRadius: 16,
+            backgroundColor: theme.colors.backgroundTertiary,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 16,
+              fontWeight: "600",
+              color: theme.colors.textPrimary,
+              marginBottom: 4,
+            }}
+          >
+            Monitoring is paused
+          </Text>
+          <Text
+            style={{
+              fontSize: 15,
+              lineHeight: 23,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            Active checks are disabled. The last recorded status may not reflect
+            this service&apos;s current health.
+          </Text>
+        </View>
+      ) : null}
       {descriptionText ? (
         <View style={{ marginBottom: 24 }}>
           <SectionHeader title="Description" iconName="document-text-outline" />
@@ -300,16 +344,18 @@ export default function MonitorDetailScreen({
             <View style={{ flexDirection: "row", marginBottom: 12 }}>
               <Text
                 style={{
-                  fontSize: 13,
+                  fontSize: 14,
                   width: 90,
-                  color: theme.colors.textTertiary,
+                  flexShrink: 0,
+                  color: theme.colors.textSecondary,
                 }}
               >
                 Type
               </Text>
               <Text
                 style={{
-                  fontSize: 13,
+                  fontSize: 14,
+                  flexShrink: 1,
                   color: theme.colors.textPrimary,
                 }}
               >
@@ -320,16 +366,17 @@ export default function MonitorDetailScreen({
             <View style={{ flexDirection: "row", marginBottom: 12 }}>
               <Text
                 style={{
-                  fontSize: 13,
+                  fontSize: 14,
                   width: 90,
-                  color: theme.colors.textTertiary,
+                  flexShrink: 0,
+                  color: theme.colors.textSecondary,
                 }}
               >
                 Status
               </Text>
               <Text
                 style={{
-                  fontSize: 13,
+                  fontSize: 14,
                   color: isDisabled ? theme.colors.textTertiary : statusColor,
                 }}
               >
@@ -342,16 +389,18 @@ export default function MonitorDetailScreen({
             <View style={{ flexDirection: "row" }}>
               <Text
                 style={{
-                  fontSize: 13,
+                  fontSize: 14,
                   width: 90,
-                  color: theme.colors.textTertiary,
+                  flexShrink: 0,
+                  color: theme.colors.textSecondary,
                 }}
               >
                 Created
               </Text>
               <Text
                 style={{
-                  fontSize: 13,
+                  fontSize: 14,
+                  flexShrink: 1,
                   color: theme.colors.textPrimary,
                 }}
               >
@@ -403,7 +452,7 @@ export default function MonitorDetailScreen({
                     <View style={{ flex: 1 }}>
                       <Text
                         style={{
-                          fontSize: 13,
+                          fontSize: 14,
                           fontWeight: "600",
                           color: entryColor,
                         }}
@@ -421,8 +470,8 @@ export default function MonitorDetailScreen({
                     </View>
                     <Text
                       style={{
-                        fontSize: 11,
-                        color: theme.colors.textTertiary,
+                        fontSize: 14,
+                        color: theme.colors.textSecondary,
                         marginLeft: 8,
                       }}
                     >

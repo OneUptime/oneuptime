@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
-import { useProject } from "./useProject";
-import { fetchAllAlertEpisodes } from "../api/alertEpisodes";
+import { useActiveProject } from "./useProject";
+import { fetchAlertEpisodes } from "../api/alertEpisodes";
 import type {
+  ProjectItem,
   ListResponse,
   AlertEpisodeItem,
   ProjectAlertEpisodeItem,
-  ProjectItem,
 } from "../api/types";
 
 const FETCH_LIMIT: number = 100;
@@ -18,69 +18,56 @@ interface UseAllProjectAlertEpisodesResult {
   refetch: () => Promise<void>;
 }
 
+/** The public name is retained for callers; only the selected project is queried. */
 export function useAllProjectAlertEpisodes(): UseAllProjectAlertEpisodesResult {
-  const { projectList, isLoadingProjects } = useProject();
-
+  const { projectList, isLoadingProjects } = useActiveProject();
+  const project: ProjectItem | undefined = projectList[0];
+  const projectId: string | undefined = project?._id;
   const query: UseQueryResult<ListResponse<AlertEpisodeItem>, Error> = useQuery(
     {
-      queryKey: ["alert-episodes", "all-projects"],
+      queryKey: ["alert-episodes", projectId],
       queryFn: () => {
-        return fetchAllAlertEpisodes({ skip: 0, limit: FETCH_LIMIT });
+        if (!projectId) {
+          return Promise.resolve({
+            data: [],
+            count: 0,
+            skip: 0,
+            limit: FETCH_LIMIT,
+          });
+        }
+        return fetchAlertEpisodes(projectId, { skip: 0, limit: FETCH_LIMIT });
       },
-      enabled: projectList.length > 0,
+      enabled: Boolean(projectId) && !isLoadingProjects,
+      placeholderData: undefined,
     },
   );
 
-  const projectMap: Map<string, string> = useMemo(() => {
-    const map: Map<string, string> = new Map();
-    projectList.forEach((p: ProjectItem) => {
-      map.set(p._id, p.name);
-    });
-    return map;
-  }, [projectList]);
-
   const items: ProjectAlertEpisodeItem[] = useMemo(() => {
     const rows: AlertEpisodeItem[] | undefined = query.data?.data;
-    /*
-     * A 200 whose body is not the list envelope - a proxy or an error page
-     * answering with {}, or a response whose `data` came back null - reaches
-     * here with no rows array. Calling .map on that throws inside a useMemo,
-     * which happens during render, so the screen unmounts into a red box
-     * instead of showing its empty state. Anything that is not an array is
-     * treated as no rows.
-     */
-    if (!Array.isArray(rows)) {
+    if (!project || !Array.isArray(rows)) {
       return [];
     }
-    return rows.map((item: AlertEpisodeItem): ProjectAlertEpisodeItem => {
-      const pid: string = item.projectId ?? "";
-      return {
-        item,
-        projectId: pid,
-        projectName: projectMap.get(pid) ?? "",
-      };
-    });
-  }, [query.data, projectMap]);
+    return rows
+      .filter((item: AlertEpisodeItem) => {
+        return !item.projectId || item.projectId === project._id;
+      })
+      .map((item: AlertEpisodeItem): ProjectAlertEpisodeItem => {
+        return {
+          item,
+          projectId: project._id,
+          projectName: project.name,
+        };
+      });
+  }, [query.data, project]);
 
   const refetch: () => Promise<void> = async (): Promise<void> => {
-    await query.refetch();
+    if (projectId) {
+      await query.refetch();
+    }
   };
 
   return {
     items,
-    /*
-     * Loading means "the answer is still coming", and for this hook the answer
-     * depends on two requests. The project list has to arrive first, because
-     * the query above stays disabled until there is a project to ask about,
-     * so while the list is in flight this hook has nothing yet and says so.
-     *
-     * `query.isLoading` and not `query.isPending`: in react-query v5 pending
-     * only means "no data", so a disabled query is pending FOREVER. Reporting
-     * that as loading left a responder with no projects - a brand new account,
-     * or one whose project fetch failed - staring at a skeleton that could
-     * never resolve, with nothing to retry. isLoading is pending AND fetching,
-     * so it is true only while a request is genuinely out.
-     */
     isLoading: isLoadingProjects || query.isLoading,
     isError: query.isError,
     refetch,

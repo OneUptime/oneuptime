@@ -1,5 +1,5 @@
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
-import { useProject } from "./useProject";
+import { useActiveProject } from "./useProject";
 import { fetchOnCallSchedules } from "../api/onCallSchedules";
 import { getAuthorizedProjects, projectListKey } from "./authorizedProjects";
 import type {
@@ -16,15 +16,11 @@ export interface UseOnCallSchedulesResult {
 }
 
 /**
- * Every on-call schedule in every project the user can read, each carrying the
- * project it came from.
- *
- * One project failing does not empty the screen - `allSettled` keeps the rest.
- * A responder with four projects, one of which is mid-outage, still needs to
- * see the three schedules that answered.
+ * Schedules for the selected project, with its identity in the cache key.
+ * A failed or SSO-locked read is unknown coverage, never an empty roster.
  */
 export function useOnCallSchedules(): UseOnCallSchedulesResult {
-  const { projectList } = useProject();
+  const { projectList } = useActiveProject();
 
   const query: UseQueryResult<ProjectOnCallScheduleItem[], Error> = useQuery({
     queryKey: ["oncall", "schedules", projectListKey(projectList)],
@@ -32,6 +28,12 @@ export function useOnCallSchedules(): UseOnCallSchedulesResult {
     queryFn: async (): Promise<ProjectOnCallScheduleItem[]> => {
       const authorizedProjects: ProjectItem[] =
         await getAuthorizedProjects(projectList);
+
+      if (projectList.length > 0 && authorizedProjects.length === 0) {
+        throw new Error(
+          "Sign in with SSO for the selected project to view its roster.",
+        );
+      }
 
       const results: PromiseSettledResult<ProjectOnCallScheduleItem[]>[] =
         await Promise.allSettled(
@@ -54,6 +56,17 @@ export function useOnCallSchedules(): UseOnCallSchedulesResult {
         );
 
       const all: ProjectOnCallScheduleItem[] = [];
+
+      if (
+        results.length > 0 &&
+        results.every(
+          (result: PromiseSettledResult<ProjectOnCallScheduleItem[]>) => {
+            return result.status === "rejected";
+          },
+        )
+      ) {
+        throw new Error("Could not load the selected project's roster.");
+      }
 
       results.forEach(
         (result: PromiseSettledResult<ProjectOnCallScheduleItem[]>) => {

@@ -1,7 +1,15 @@
 import React, { type ReactNode } from "react";
-import { renderHook, act, waitFor } from "@testing-library/react-native";
+import {
+  renderHook,
+  act,
+  waitFor,
+  type RenderHookResult,
+} from "@testing-library/react-native";
 import { describe, expect, test, beforeEach } from "@jest/globals";
-import { ProjectProvider, useProject } from "./useProject";
+import { ProjectProvider, useProject, useActiveProject } from "./useProject";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { setServerUrl } from "../storage/serverUrl";
+import { clearTokens } from "../storage/keychain";
 import { fetchProjects } from "../api/projects";
 import type { ListResponse, ProjectItem } from "../api/types";
 import { makeListResponse, makeProject } from "../__tests__/testSupport";
@@ -25,11 +33,13 @@ import { makeListResponse, makeProject } from "../__tests__/testSupport";
 interface MockAuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
+  user: { _id: string } | null;
 }
 
 const mockAuthState: MockAuthState = {
   isAuthenticated: true,
   isLoading: false,
+  user: { _id: "responder-a" },
 };
 
 jest.mock("./useAuth", () => {
@@ -75,14 +85,309 @@ interface ProjectWrapperProps {
   children: ReactNode;
 }
 
+type ProjectSnapshot = {
+  all: ReturnType<typeof useProject>;
+  scoped: ReturnType<typeof useActiveProject>;
+};
+type ProjectHook = RenderHookResult<ProjectSnapshot, unknown>;
+type ScopedProjectHook = RenderHookResult<
+  ReturnType<typeof useActiveProject>,
+  unknown
+>;
+
 function ProjectWrapper({ children }: ProjectWrapperProps): React.JSX.Element {
   return <ProjectProvider>{children}</ProjectProvider>;
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  await clearTokens();
+  await AsyncStorage.clear();
   fetchProjectsMock.mockReset();
   mockAuthState.isAuthenticated = true;
   mockAuthState.isLoading = false;
+  mockAuthState.user = { _id: "responder-a" };
+});
+
+describe("A single remembered project", () => {
+  const first: ProjectItem = makeProject({ _id: "project-a", name: "Acme" });
+  const second: ProjectItem = makeProject({ _id: "project-b", name: "Beta" });
+
+  async function mountProjects(): Promise<ProjectHook> {
+    fetchProjectsMock.mockResolvedValue(makeListResponse([first, second]));
+    const hook: ProjectHook = await renderHook(
+      () => {
+        return { all: useProject(), scoped: useActiveProject() };
+      },
+      { wrapper: ProjectWrapper },
+    );
+    await waitFor(() => {
+      return expect(hook.result.current.all.isLoadingProjects).toBe(false);
+    });
+    return hook;
+  }
+
+  test("defaults to one membership and changes every scoped consumer together", async () => {
+    const { result } = await mountProjects();
+    expect(result.current.all.projectList).toEqual([first, second]);
+    expect(result.current.scoped.projectList).toEqual([first]);
+    await act(() => {
+      result.current.all.selectProject(second._id);
+    });
+    expect(result.current.all.activeProject).toEqual(second);
+    expect(result.current.scoped.projectList).toEqual([second]);
+    expect(result.current.all.projectList).toHaveLength(2);
+  });
+
+  test("rejects an aggregate or a project outside the account's memberships", async () => {
+    const { result } = await mountProjects();
+    await act(() => {
+      result.current.all.selectProject("all");
+      result.current.all.selectProject("another-account-project");
+    });
+    expect(result.current.scoped.projectList).toEqual([first]);
+  });
+
+  test("cold reopening restores the last choice before publishing any project to consumers", async () => {
+    const original: ProjectHook = await mountProjects();
+    await act(() => {
+      original.result.current.all.selectProject(second._id);
+    });
+    await original.unmount();
+    const seen: string[] = [];
+    const reopened: ScopedProjectHook = await renderHook(
+      () => {
+        const scoped: ReturnType<typeof useActiveProject> = useActiveProject();
+        if (scoped.activeProject) {
+          seen.push(scoped.activeProject._id);
+        }
+        return scoped;
+      },
+      { wrapper: ProjectWrapper },
+    );
+    await waitFor(() => {
+      return expect(reopened.result.current.isLoadingProjects).toBe(false);
+    });
+    expect(reopened.result.current.activeProject).toEqual(second);
+    expect(seen.length).toBeGreaterThan(0);
+    expect(
+      seen.every((id: string) => {
+        return id === second._id;
+      }),
+    ).toBe(true);
+  });
+
+  test("a real cold restore with user null waits for token identity and restores that account's choice", async () => {
+    const original: ProjectHook = await mountProjects();
+    await act(() => {
+      original.result.current.all.selectProject(second._id);
+    });
+    await original.unmount();
+    await clearTokens();
+    mockAuthState.user = null;
+    const token: string = `header.${Buffer.from(JSON.stringify({ userId: "responder-a" })).toString("base64url")}.signature`;
+    const storedTokens: string = JSON.stringify({
+      accessToken: token,
+      refreshToken: "refresh",
+      refreshTokenExpiresAt: "2099-01-01",
+    });
+    await AsyncStorage.setItem("com.oneuptime.oncall.tokens", storedTokens);
+    const tokenRead: Deferred<string | null> = createDeferred<string | null>();
+    const getItemMock: jest.MockedFunction<typeof AsyncStorage.getItem> =
+      AsyncStorage.getItem as jest.MockedFunction<typeof AsyncStorage.getItem>;
+    const originalGet: typeof AsyncStorage.getItem =
+      getItemMock.getMockImplementation()!;
+    getItemMock.mockImplementation((key: string) => {
+      return key === "com.oneuptime.oncall.tokens"
+        ? tokenRead.promise
+        : originalGet(key);
+    });
+    fetchProjectsMock.mockClear();
+    const seen: string[] = [];
+    try {
+      const restored: ScopedProjectHook = await renderHook(
+        () => {
+          const scoped: ReturnType<typeof useActiveProject> =
+            useActiveProject();
+          if (scoped.activeProject) {
+            seen.push(scoped.activeProject._id);
+          }
+          return scoped;
+        },
+        { wrapper: ProjectWrapper },
+      );
+      expect(restored.result.current.isLoadingProjects).toBe(true);
+      expect(restored.result.current.projectList).toEqual([]);
+      expect(fetchProjectsMock).not.toHaveBeenCalled();
+      await act(async () => {
+        tokenRead.resolve(storedTokens);
+      });
+      await waitFor(() => {
+        return expect(restored.result.current.activeProject).toEqual(second);
+      });
+      expect(
+        seen.every((id: string) => {
+          return id === second._id;
+        }),
+      ).toBe(true);
+    } finally {
+      tokenRead.resolve(storedTokens);
+      getItemMock.mockImplementation(originalGet);
+    }
+  });
+
+  test("a delayed earlier disk write cannot overwrite a later selection", async () => {
+    const original: ProjectHook = await mountProjects();
+    const delayed: Deferred<void> = createDeferred<void>();
+    const setItemMock: jest.MockedFunction<typeof AsyncStorage.setItem> =
+      AsyncStorage.setItem as jest.MockedFunction<typeof AsyncStorage.setItem>;
+    const originalSet: typeof AsyncStorage.setItem =
+      setItemMock.getMockImplementation()!;
+    setItemMock.mockImplementation(async (key: string, value: string) => {
+      if (key.startsWith("oneuptime_active_project:") && value === second._id) {
+        await delayed.promise;
+      }
+      await originalSet(key, value);
+    });
+    try {
+      await act(() => {
+        original.result.current.all.selectProject(second._id);
+      });
+      await act(() => {
+        original.result.current.all.selectProject(first._id);
+      });
+      expect(original.result.current.all.activeProject).toEqual(first);
+      await act(async () => {
+        delayed.resolve();
+      });
+      await original.unmount();
+      const restored: ProjectHook = await mountProjects();
+      expect(restored.result.current.all.activeProject).toEqual(first);
+    } finally {
+      delayed.resolve();
+      setItemMock.mockImplementation(originalSet);
+    }
+  });
+
+  test("rapid switches are stored in order and the final choice survives reopening", async () => {
+    const original: ProjectHook = await mountProjects();
+    await act(() => {
+      original.result.current.all.selectProject(second._id);
+      original.result.current.all.selectProject(first._id);
+      original.result.current.all.selectProject(second._id);
+    });
+    await original.unmount();
+    const reopened: ProjectHook = await mountProjects();
+    expect(reopened.result.current.all.activeProject).toEqual(second);
+  });
+
+  test("a revoked saved project falls back to a remaining membership and persists the fallback", async () => {
+    const original: ProjectHook = await mountProjects();
+    await act(() => {
+      original.result.current.all.selectProject(second._id);
+    });
+    fetchProjectsMock.mockResolvedValue(makeListResponse([first]));
+    await act(async () => {
+      await original.result.current.all.refreshProjects();
+    });
+    expect(original.result.current.scoped.projectList).toEqual([first]);
+    await original.unmount();
+    const reopened: ProjectHook = await mountProjects();
+    expect(reopened.result.current.all.activeProject).toEqual(first);
+  });
+
+  test("a refresh never overwrites a project picked while its response was pending", async () => {
+    const hook: ProjectHook = await mountProjects();
+    const inFlight: Deferred<ListResponse<ProjectItem>> =
+      createDeferred<ListResponse<ProjectItem>>();
+    fetchProjectsMock.mockReturnValueOnce(inFlight.promise);
+    let refresh: Promise<void> | undefined;
+    await act(() => {
+      refresh = hook.result.current.all.refreshProjects();
+    });
+    await act(() => {
+      hook.result.current.all.selectProject(second._id);
+    });
+    await act(async () => {
+      inFlight.resolve(makeListResponse([first, second]));
+      await refresh;
+    });
+    expect(hook.result.current.scoped.projectList).toEqual([second]);
+  });
+
+  test("accounts with overlapping project IDs never inherit each other's preference", async () => {
+    const original: ProjectHook = await mountProjects();
+    await act(() => {
+      original.result.current.all.selectProject(second._id);
+    });
+    await original.unmount();
+    mockAuthState.user = { _id: "responder-b" };
+    const other: ProjectHook = await mountProjects();
+    expect(other.result.current.all.activeProject).toEqual(first);
+    await other.unmount();
+    mockAuthState.user = { _id: "responder-a" };
+    const restored: ProjectHook = await mountProjects();
+    expect(restored.result.current.all.activeProject).toEqual(second);
+  });
+
+  test("the same account on a different server has an independent preference", async () => {
+    await setServerUrl("https://first.example.com");
+    const original: ProjectHook = await mountProjects();
+    await act(() => {
+      original.result.current.all.selectProject(second._id);
+    });
+    await original.unmount();
+    await setServerUrl("https://second.example.com");
+    const other: ProjectHook = await mountProjects();
+    expect(other.result.current.all.activeProject).toEqual(first);
+    await other.unmount();
+    await setServerUrl("https://first.example.com");
+    const restored: ProjectHook = await mountProjects();
+    expect(restored.result.current.all.activeProject).toEqual(second);
+  });
+
+  test("signing out clears visible tenant data and retains only the account-scoped preference", async () => {
+    const original: ProjectHook = await mountProjects();
+    await act(() => {
+      original.result.current.all.selectProject(second._id);
+    });
+    mockAuthState.isAuthenticated = false;
+    mockAuthState.user = null;
+    await original.rerender(undefined);
+    expect(original.result.current.scoped.projectList).toEqual([]);
+    expect(original.result.current.all.activeProject).toBeNull();
+    await original.unmount();
+    mockAuthState.isAuthenticated = true;
+    mockAuthState.user = { _id: "responder-a" };
+    const reopened: ProjectHook = await mountProjects();
+    expect(reopened.result.current.all.activeProject).toEqual(second);
+  });
+
+  test("an account change hides the previous tenant before the new request completes", async () => {
+    const hook: ProjectHook = await mountProjects();
+    const inFlight: Deferred<ListResponse<ProjectItem>> =
+      createDeferred<ListResponse<ProjectItem>>();
+    fetchProjectsMock.mockReturnValueOnce(inFlight.promise);
+    mockAuthState.user = { _id: "responder-b" };
+    await hook.rerender(undefined);
+    expect(hook.result.current.scoped.projectList).toEqual([]);
+    expect(hook.result.current.all.activeProject).toBeNull();
+    await act(async () => {
+      inFlight.resolve(makeListResponse([second]));
+    });
+    await waitFor(() => {
+      return expect(hook.result.current.all.activeProject).toEqual(second);
+    });
+  });
+
+  test("when membership becomes empty there is no active project to query", async () => {
+    const hook: ProjectHook = await mountProjects();
+    fetchProjectsMock.mockResolvedValue(makeListResponse([]));
+    await act(async () => {
+      await hook.result.current.all.refreshProjects();
+    });
+    expect(hook.result.current.scoped.projectList).toEqual([]);
+    expect(hook.result.current.all.activeProject).toBeNull();
+  });
 });
 
 describe("ProjectProvider on a successful load", () => {

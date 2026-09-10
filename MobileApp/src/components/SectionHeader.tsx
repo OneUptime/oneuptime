@@ -41,12 +41,13 @@ export default function SectionHeader({
         />
       </View>
       <Text
+        accessibilityRole="header"
         style={{
-          fontSize: 12,
-          fontWeight: "600",
-          textTransform: "uppercase",
-          color: theme.colors.textSecondary,
-          letterSpacing: 1,
+          fontSize: 18,
+          fontWeight: "700",
+          flex: 1,
+          color: theme.colors.textPrimary,
+          letterSpacing: -0.3,
         }}
       >
         {title}

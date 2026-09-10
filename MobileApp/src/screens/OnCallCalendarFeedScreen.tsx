@@ -3,7 +3,6 @@ import {
   View,
   Text,
   ScrollView,
-  Pressable,
   Platform,
   Linking,
   Share,
@@ -12,11 +11,12 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { useScreenPadding } from "../hooks/useScreenPadding";
+import ScreenIntro from "../components/ScreenIntro";
 import { useHaptics } from "../hooks/useHaptics";
-import { useProject } from "../hooks/useProject";
+import { useActiveProject } from "../hooks/useProject";
 import { useNow } from "../hooks/useNow";
 import { useOnCallCalendarFeed } from "../hooks/useOnCallCalendarFeed";
-import { getAuthorizedProjects } from "../hooks/authorizedProjects";
 import { getServerUrl } from "../storage/serverUrl";
 import { copyToClipboard } from "../utils/clipboard";
 import { getFriendlyErrorMessage } from "../utils/error";
@@ -55,53 +55,15 @@ type FeedNotice = { kind: "success" | "error"; text: string } | null;
 
 export default function OnCallCalendarFeedScreen(): React.JSX.Element {
   const { theme } = useTheme();
+  const bottomPadding: number = useScreenPadding();
   const { lightImpact, successFeedback, errorFeedback, selectionFeedback } =
     useHaptics();
   const now: number = useNow();
-  const { projectList } = useProject();
+  const { projectList } = useActiveProject();
 
-  const [projectId, setProjectId] = useState<string | null>(null);
+  const projectId: string | null = projectList[0]?._id ?? null;
   const [serverUrl, setServerUrl] = useState<string>("");
   const [notice, setNotice] = useState<FeedNotice>(null);
-
-  /*
-   * Which project to open on.
-   *
-   * Not simply the first one: a project that enforces SSO answers 406 until
-   * the handset has completed that login, and picking it by default would
-   * greet the user with a failure they did not ask for (and record a fresh
-   * SSO denial against the project on the way). `getAuthorizedProjects` is
-   * the same filter every other per-project query in the app runs through.
-   * If none of them are authorized the first project is still used - the
-   * screen then explains the SSO refusal, which beats showing nothing.
-   */
-  useEffect((): (() => void) => {
-    let cancelled: boolean = false;
-
-    if (projectId || projectList.length === 0) {
-      return (): void => {
-        cancelled = true;
-      };
-    }
-
-    const fallbackProjectId: string = projectList[0]!._id;
-
-    getAuthorizedProjects(projectList)
-      .then((authorized: ProjectItem[]) => {
-        if (!cancelled) {
-          setProjectId(authorized[0]?._id ?? fallbackProjectId);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setProjectId(fallbackProjectId);
-        }
-      });
-
-    return (): void => {
-      cancelled = true;
-    };
-  }, [projectId, projectList]);
 
   useEffect((): void => {
     getServerUrl().then(setServerUrl);
@@ -234,69 +196,6 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
      */
     await shareLink();
   };
-
-  const renderProjectPicker: () => React.JSX.Element | null =
-    (): React.JSX.Element | null => {
-      if (projectList.length <= 1) {
-        return null;
-      }
-
-      return (
-        <View style={{ marginBottom: 24 }}>
-          <SectionHeader title="Project" iconName="folder-open-outline" />
-          <View style={{ gap: 8 }}>
-            {projectList.map((project: ProjectItem) => {
-              const isSelected: boolean = project._id === projectId;
-
-              return (
-                <Pressable
-                  key={project._id}
-                  testID={`feed-project-${project._id}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Show calendar link for ${project.name}`}
-                  onPress={() => {
-                    selectionFeedback();
-                    setNotice(null);
-                    setProjectId(project._id);
-                  }}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    paddingVertical: 14,
-                    paddingHorizontal: 16,
-                    borderRadius: 14,
-                    backgroundColor: theme.colors.backgroundElevated,
-                    borderWidth: 1,
-                    borderColor: isSelected
-                      ? theme.colors.oncallActive + "55"
-                      : theme.colors.borderGlass,
-                  }}
-                >
-                  <Text
-                    style={{
-                      flex: 1,
-                      fontSize: 14,
-                      fontWeight: "600",
-                      color: theme.colors.textPrimary,
-                    }}
-                    numberOfLines={1}
-                  >
-                    {project.name}
-                  </Text>
-                  {isSelected ? (
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={18}
-                      color={theme.colors.oncallActive}
-                    />
-                  ) : null}
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-      );
-    };
 
   const renderNotice: () => React.JSX.Element | null =
     (): React.JSX.Element | null => {
@@ -433,6 +332,23 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
 
     return (
       <View testID="feed-active">
+        <View style={{ marginBottom: 20 }}>
+          <SectionHeader
+            title="Your subscription"
+            iconName="calendar-outline"
+          />
+          <Text
+            style={{
+              fontSize: 14,
+              lineHeight: 21,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            {Platform.OS === "ios"
+              ? "Open Calendar to subscribe, or copy the link into another calendar app."
+              : "Share the link with yourself, then add it to Google Calendar or Outlook on a computer."}
+          </Text>
+        </View>
         {!status.isEnabled ? (
           <View testID="feed-disabled" style={{ marginBottom: 16 }}>
             <InfoCard tone="warning">
@@ -471,7 +387,7 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
           <View
             testID="feed-link-box"
             style={{
-              borderRadius: 14,
+              borderRadius: 16,
               paddingHorizontal: 14,
               paddingVertical: 12,
               backgroundColor: theme.colors.backgroundTertiary,
@@ -481,7 +397,7 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
           >
             <Text
               style={{
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: "600",
                 letterSpacing: 0.6,
                 textTransform: "uppercase",
@@ -509,7 +425,7 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
         <Text
           testID="feed-fetch-status"
           style={{
-            fontSize: 12,
+            fontSize: 14,
             marginTop: 10,
             marginLeft: 4,
             color: theme.colors.textTertiary,
@@ -531,8 +447,8 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
                 <Text
                   testID="ios-subscribe-hint"
                   style={{
-                    fontSize: 12,
-                    lineHeight: 17,
+                    fontSize: 14,
+                    lineHeight: 21,
                     marginHorizontal: 4,
                     color: theme.colors.textTertiary,
                   }}
@@ -544,8 +460,8 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
               <Text
                 testID="android-subscribe-hint"
                 style={{
-                  fontSize: 13,
-                  lineHeight: 19,
+                  fontSize: 14,
+                  lineHeight: 21,
                   marginHorizontal: 4,
                   marginBottom: 2,
                   color: theme.colors.textSecondary,
@@ -632,8 +548,8 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
 
         <Text
           style={{
-            fontSize: 12,
-            lineHeight: 17,
+            fontSize: 14,
+            lineHeight: 21,
             marginTop: 12,
             marginHorizontal: 4,
             color: theme.colors.textTertiary,
@@ -642,18 +558,38 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
           {PLANNING_ONLY_COPY}
         </Text>
 
-        <GradientButton
-          testID="regenerate-feed"
-          label="Regenerate link"
-          icon="refresh-outline"
-          variant="secondary"
-          loading={feed.isRotating}
-          onPress={() => {
-            lightImpact();
-            confirmRegenerate();
+        <View
+          style={{
+            marginTop: 28,
+            paddingTop: 20,
+            borderTopWidth: 1,
+            borderTopColor: theme.colors.borderSubtle,
           }}
-          style={{ marginTop: 20 }}
-        />
+        >
+          <SectionHeader title="Manage your link" iconName="key-outline" />
+          <Text
+            style={{
+              fontSize: 14,
+              lineHeight: 21,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            Generate a replacement if this private link was shared by mistake.
+            You will need to subscribe again.
+          </Text>
+          <GradientButton
+            testID="regenerate-feed"
+            label="Regenerate link"
+            icon="refresh-outline"
+            variant="secondary"
+            loading={feed.isRotating}
+            onPress={() => {
+              lightImpact();
+              confirmRegenerate();
+            }}
+            style={{ marginTop: 20 }}
+          />
+        </View>
       </View>
     );
   };
@@ -663,7 +599,7 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
       testID="calendar-feed-scroll"
       contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom: 56 }}
+      contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
       refreshControl={
         <RefreshControl
           refreshing={false}
@@ -672,9 +608,13 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
         />
       }
     >
+      <ScreenIntro
+        title="Calendar sync"
+        description="Plan ahead with your on-call shifts in the calendar you already use."
+      />
       <View
         style={{
-          borderRadius: 18,
+          borderRadius: 16,
           padding: 18,
           marginBottom: 24,
           backgroundColor: theme.colors.backgroundElevated,
@@ -703,7 +643,7 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
           <Text
             style={{
               flex: 1,
-              fontSize: 16,
+              fontSize: 18,
               fontWeight: "700",
               color: theme.colors.textPrimary,
             }}
@@ -713,8 +653,8 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
         </View>
         <Text
           style={{
-            fontSize: 13,
-            lineHeight: 19,
+            fontSize: 15,
+            lineHeight: 22,
             marginTop: 10,
             color: theme.colors.textSecondary,
           }}
@@ -725,7 +665,18 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
         </Text>
       </View>
 
-      {renderProjectPicker()}
+      {projectList[0] ? (
+        <Text
+          testID="calendar-project-name"
+          style={{
+            fontSize: 14,
+            color: theme.colors.textSecondary,
+            marginBottom: 20,
+          }}
+        >
+          Project: {projectList[0].name}
+        </Text>
+      ) : null}
 
       {renderBody()}
     </ScrollView>
@@ -766,8 +717,8 @@ function InfoCard({
     <View
       testID={testID}
       style={{
-        borderRadius: 14,
-        padding: 14,
+        borderRadius: 16,
+        padding: 16,
         backgroundColor: background,
         borderWidth: 1,
         borderColor: border,
@@ -776,8 +727,8 @@ function InfoCard({
     >
       <Text
         style={{
-          fontSize: 13,
-          lineHeight: 19,
+          fontSize: 14,
+          lineHeight: 21,
           color: tone === "info" ? theme.colors.textSecondary : color,
         }}
       >

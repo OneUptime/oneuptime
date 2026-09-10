@@ -29,7 +29,7 @@ const mockProjects: { current: ProjectItem[] } = { current: PROJECTS };
 
 jest.mock("./useProject", () => {
   return {
-    useProject: () => {
+    useActiveProject: () => {
       return {
         projectList: mockProjects.current,
         isLoadingProjects: false,
@@ -327,13 +327,14 @@ describe("useOnCallOverrides writes", () => {
     });
   });
 
-  test("cancels by the override's OWN project, not the first one", async (): Promise<void> => {
+  test("cancels the override in the selected project", async (): Promise<void> => {
     /*
      * The list is merged across projects, so the row being cancelled may well
      * belong to a different tenant than the one at the top of the list. Using
      * anything but the row's own projectId here would send the delete to a
      * tenant that does not contain it.
      */
+    mockProjects.current = [PROJECTS[1]!];
     const result: { current: UseOnCallOverridesResult } =
       await renderOverrides();
 
@@ -351,5 +352,38 @@ describe("useOnCallOverrides writes", () => {
       "project-2",
       "override-9",
     );
+  });
+
+  test("refuses a stale override from another project before sending a delete", async (): Promise<void> => {
+    mockProjects.current = [PROJECTS[0]!];
+    const result: { current: UseOnCallOverridesResult } =
+      await renderOverrides();
+    await expect(
+      result.current.cancelOverride({
+        ...override(
+          "stale",
+          "2026-03-03T09:00:00.000Z",
+          "2026-03-03T18:00:00.000Z",
+        ),
+        projectId: "project-2",
+      }),
+    ).rejects.toThrow("The selected project changed");
+    expect(overridesApi.deleteOnCallOverride).not.toHaveBeenCalled();
+  });
+
+  test("refuses a stale coverage draft from another project before creating it", async (): Promise<void> => {
+    mockProjects.current = [PROJECTS[0]!];
+    const result: { current: UseOnCallOverridesResult } =
+      await renderOverrides();
+    await expect(
+      result.current.createOverride({
+        projectId: "project-2",
+        overrideUserId: "me",
+        routeAlertsToUserId: "priya",
+        startsAt: new Date(NOW),
+        endsAt: new Date(NOW + 3600000),
+      }),
+    ).rejects.toThrow("The selected project changed");
+    expect(overridesApi.createOnCallOverride).not.toHaveBeenCalled();
   });
 });

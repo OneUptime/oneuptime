@@ -65,7 +65,7 @@ jest.mock("@react-navigation/native", () => {
 
 jest.mock("../hooks/useProject", () => {
   return {
-    useProject: () => {
+    useActiveProject: () => {
       return {
         projectList: mockProjects.current,
         isLoadingProjects: false,
@@ -214,6 +214,25 @@ describe("CreateOnCallOverrideScreen window", () => {
     expect(hours).toBe(4);
   });
 
+  test("announces the selected duration and keeps confirmation above the safe area", async (): Promise<void> => {
+    await render(<CreateOnCallOverrideScreen />);
+    expect(
+      screen.getByTestId("duration-4").props.accessibilityState.selected,
+    ).toBe(true);
+    await fireEvent.press(screen.getByTestId("duration-8"));
+    expect(
+      screen.getByTestId("duration-8").props.accessibilityState.selected,
+    ).toBe(true);
+    expect(
+      screen.getByTestId("duration-4").props.accessibilityState.selected,
+    ).toBe(false);
+    expect(
+      screen.getByTestId("create-override-scroll").props.contentContainerStyle
+        .paddingBottom,
+    ).toBeGreaterThanOrEqual(124);
+    expect(screen.getByText("Review your coverage")).toBeTruthy();
+  });
+
   test("a chosen preset changes the window", async (): Promise<void> => {
     await render(<CreateOnCallOverrideScreen />);
 
@@ -247,40 +266,39 @@ describe("CreateOnCallOverrideScreen project scope", () => {
     expect(lastCreateInput().projectId).toBe("project-1");
   });
 
-  test("sends the chosen project when the responder switches", async (): Promise<void> => {
+  test("creates coverage in the globally selected project", async (): Promise<void> => {
+    mockProjects.current = [PROJECTS[1]!];
     await render(<CreateOnCallOverrideScreen />);
-
-    await fireEvent.press(screen.getByTestId("project-option-project-2"));
+    expect(screen.queryByTestId("project-option-project-1")).toBeNull();
     await pickTeammate();
     await fireEvent.press(screen.getByTestId("submit-override"));
-
     expect(lastCreateInput().projectId).toBe("project-2");
   });
-
-  test("switching project clears the teammate, because the list changed", async (): Promise<void> => {
-    /*
-     * The picker lists one project's members. Keeping a selection across a
-     * project change would submit somebody the new project does not contain -
-     * rejected server-side, after the user had stopped reading.
-     */
-    await render(<CreateOnCallOverrideScreen />);
-
+  test("changing the global project clears the selected teammate", async (): Promise<void> => {
+    const rendered: Awaited<ReturnType<typeof render>> = await render(
+      <CreateOnCallOverrideScreen />,
+    );
     await pickTeammate();
-    expect(screen.getByText("Priya Rao")).toBeTruthy();
-
-    await fireEvent.press(screen.getByTestId("project-option-project-2"));
+    mockProjects.current = [PROJECTS[1]!];
+    await rendered.rerender(<CreateOnCallOverrideScreen />);
     await fireEvent.press(screen.getByTestId("submit-override"));
-
     expect(mockCreateOverride).not.toHaveBeenCalled();
     expect(screen.getByText("Choose a teammate.")).toBeTruthy();
   });
-
   test("hides the project list when there is only one project", async (): Promise<void> => {
     mockProjects.current = [PROJECTS[0]!];
 
     await render(<CreateOnCallOverrideScreen />);
 
     expect(screen.queryByTestId("project-option-project-1")).toBeNull();
+  });
+
+  test("names the project even when there is no project choice", async (): Promise<void> => {
+    mockProjects.current = [PROJECTS[0]!];
+    await render(<CreateOnCallOverrideScreen />);
+    expect(screen.getByTestId("coverage-project-name")).toHaveTextContent(
+      PROJECTS[0]!.name,
+    );
   });
 });
 
@@ -383,7 +401,7 @@ describe("CreateOnCallOverrideScreen prefilled from a shift", () => {
   beforeEach(() => {
     mockCreateOverride.mockClear();
     mockGoBack.mockClear();
-    mockProjects.current = PROJECTS;
+    mockProjects.current = [PROJECTS[1]!];
     mockUsers.current = USERS;
     mockUserId.current = ME;
     mockRouteParams.current = prefill();
@@ -485,37 +503,26 @@ describe("CreateOnCallOverrideScreen prefilled from a shift", () => {
     expect(screen.getByText("That shift has already ended.")).toBeTruthy();
   });
 
-  test("a prefill with no project shows the picker instead of choosing silently", async (): Promise<void> => {
-    /*
-     * The picker is hidden for a prefill because the prefill settles the
-     * project. When it does not - a shift that arrived without one - the
-     * screen used to substitute the first project in the list with the picker
-     * still hidden, and the override was created somewhere the shift is not.
-     * Showing the picker turns that into a visible choice.
-     */
+  test("refuses a shift without a project instead of substituting the active project", async (): Promise<void> => {
     mockRouteParams.current = prefill({ projectId: "" });
-
     await render(<CreateOnCallOverrideScreen />);
-
-    expect(screen.getByTestId("project-option-project-1")).toBeTruthy();
-    expect(screen.getByTestId("project-option-project-2")).toBeTruthy();
-  });
-
-  test("a prefill naming a project this user is not in shows the picker", async (): Promise<void> => {
-    mockRouteParams.current = prefill({ projectId: "project-not-mine" });
-
-    await render(<CreateOnCallOverrideScreen />);
-
-    expect(screen.getByTestId("project-option-project-1")).toBeTruthy();
-
-    /* And the substituted project is the one it says it is. */
-    await fireEvent.press(screen.getByTestId("project-option-project-2"));
     await pickTeammate();
     await fireEvent.press(screen.getByTestId("submit-override"));
-
-    expect(lastCreateInput().projectId).toBe("project-2");
+    expect(mockCreateOverride).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(/This shift belongs to another project/),
+    ).toBeTruthy();
   });
-
+  test("refuses a shift from a different project before making a request", async (): Promise<void> => {
+    mockRouteParams.current = prefill({ projectId: "project-not-mine" });
+    await render(<CreateOnCallOverrideScreen />);
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+    expect(mockCreateOverride).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(/This shift belongs to another project/),
+    ).toBeTruthy();
+  });
   test("unreadable params degrade to the ordinary sheet", async (): Promise<void> => {
     mockRouteParams.current = prefill({ startsAt: "garbage" });
 
@@ -525,18 +532,14 @@ describe("CreateOnCallOverrideScreen prefilled from a shift", () => {
     expect(screen.getByTestId("duration-4")).toBeTruthy();
   });
 
-  test("with no params the sheet behaves exactly as before", async (): Promise<void> => {
+  test("an ordinary coverage form stays in the selected project", async (): Promise<void> => {
     mockRouteParams.current = undefined;
-
     await render(<CreateOnCallOverrideScreen />);
-
     expect(screen.queryByTestId("prefilled-shift")).toBeNull();
     expect(screen.getByText("I'll take over")).toBeTruthy();
-    expect(screen.getByTestId("project-option-project-1")).toBeTruthy();
-
+    expect(screen.queryByTestId("project-option-project-1")).toBeNull();
     await pickTeammate();
     await fireEvent.press(screen.getByTestId("submit-override"));
-
-    expect(lastCreateInput().projectId).toBe("project-1");
+    expect(lastCreateInput().projectId).toBe("project-2");
   });
 });

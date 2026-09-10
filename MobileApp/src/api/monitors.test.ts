@@ -189,7 +189,7 @@ describe("fetchMonitors", () => {
     expect(requestSort()).toEqual({ createdAt: "DESC" });
   });
 
-  test("selects the current status together with its colour", async () => {
+  test("selects the current status colour and semantic health flag", async () => {
     /*
      * The list row paints a status pill from currentMonitorStatus.color. Ask
      * for the relation without its color and the pill falls back to a neutral
@@ -202,6 +202,7 @@ describe("fetchMonitors", () => {
       _id: true,
       name: true,
       color: true,
+      isOperationalState: true,
     });
   });
 
@@ -268,6 +269,16 @@ describe("fetchMonitorById", () => {
     await fetchMonitorById(PROJECT_ID, MONITOR_ID);
 
     expect(requestQuery()).toEqual({ _id: MONITOR_ID });
+  });
+
+  test("detail status includes the same semantic health flag as list rows", async () => {
+    await fetchMonitorById(PROJECT_ID, MONITOR_ID);
+    expect(requestSelect()["currentMonitorStatus"]).toEqual({
+      _id: true,
+      name: true,
+      color: true,
+      isOperationalState: true,
+    });
   });
 
   test("carries the tenantid even though the id already identifies the row", async () => {

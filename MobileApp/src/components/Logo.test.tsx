@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { render, screen } from "@testing-library/react-native";
 import { describe, expect, test } from "@jest/globals";
 import Logo from "./Logo";
@@ -54,6 +54,75 @@ describe("How large the logo is drawn", () => {
 });
 
 describe("What the logo is made of", () => {
+  test("co-mounted navigation screens have independent SVG glyph IDs and references", async () => {
+    await render(
+      <View>
+        <View testID="first-logo">
+          <Logo />
+        </View>
+        <View testID="second-logo">
+          <Logo />
+        </View>
+      </View>,
+    );
+    const first: RenderedElement = screen.getByTestId("first-logo")
+      .children[0] as RenderedElement;
+    const second: RenderedElement = screen.getByTestId("second-logo")
+      .children[0] as RenderedElement;
+    const firstXml: string = first.props.xml as string;
+    const secondXml: string = second.props.xml as string;
+    const firstIds: string[] = Array.from(
+      firstXml.matchAll(/id="([^"]+)"/g),
+      (match: RegExpMatchArray): string => {
+        return match[1]!;
+      },
+    );
+    const secondIds: string[] = Array.from(
+      secondXml.matchAll(/id="([^"]+)"/g),
+      (match: RegExpMatchArray): string => {
+        return match[1]!;
+      },
+    );
+    expect(firstIds.length).toBeGreaterThan(0);
+    expect(secondIds.length).toBe(firstIds.length);
+    expect(
+      firstIds.some((id: string): boolean => {
+        return secondIds.includes(id);
+      }),
+    ).toBe(false);
+    for (const xml of [firstXml, secondXml]) {
+      const ids: Set<string> = new Set(
+        Array.from(
+          xml.matchAll(/id="([^"]+)"/g),
+          (match: RegExpMatchArray): string => {
+            return match[1]!;
+          },
+        ),
+      );
+      const references: string[] = Array.from(
+        xml.matchAll(/xlink:href="#([^"]+)"/g),
+        (match: RegExpMatchArray): string => {
+          return match[1]!;
+        },
+      );
+      expect(references.length).toBeGreaterThan(0);
+      expect(
+        references.every((id: string): boolean => {
+          return ids.has(id);
+        }),
+      ).toBe(true);
+    }
+  });
+
+  test("resizing a mounted logo keeps its glyph references stable", async () => {
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      <Logo size={32} />,
+    );
+    const initial: string = svg().props.xml as string;
+    await view.rerender(<Logo size={64} />);
+    expect(svg().props.xml).toBe(initial);
+  });
+
   test("the artwork travels with the app rather than being fetched", async () => {
     /*
      * The assertion is on the markup being present and complete, because that

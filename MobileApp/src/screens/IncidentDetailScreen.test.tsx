@@ -74,6 +74,14 @@ const mockIncidentNotes: { current: IncidentNotesState } = {
   current: {} as IncidentNotesState,
 };
 
+jest.mock("../hooks/useScreenPadding", () => {
+  return {
+    useScreenPadding: () => {
+      return 248;
+    },
+  };
+});
+
 jest.mock("../hooks/useIncidentDetail", () => {
   return {
     useIncidentDetail: () => {
@@ -996,5 +1004,61 @@ describe("The activity feed", () => {
 
     expect(screen.getByText("Checkout is down")).toBeTruthy();
     expect(screen.queryByText("Activity Feed")).toBeNull();
+  });
+});
+
+describe("Readable response controls and bottom reachability", () => {
+  beforeEach(() => {
+    mockIncidentDetail.current = queryState<IncidentItem | null>({
+      data: makeLoadedIncident({ description: "Context for the responder" }),
+    });
+    mockIncidentStates.current = queryState<IncidentState[]>({
+      data: [TRIAGE_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE],
+    });
+    mockIncidentTimeline.current = queryState<StateTimelineItem[]>();
+    mockIncidentFeed.current = queryState<FeedItem[]>({ data: [] });
+    mockIncidentNotes.current = queryState<NoteItem[]>({ data: [] });
+  });
+
+  test("response actions are placed before context so they are immediately discoverable", async () => {
+    await renderScreen(createTestQueryClient());
+    const headings: string[] = screen
+      .getAllByText(/^(Actions|Description)$/)
+      .map((element: ReturnType<typeof screen.getByText>) => {
+        return String(element.props.children);
+      });
+    expect(headings).toEqual(["Actions", "Description"]);
+    expect(
+      screen.getByText(
+        "Acknowledge to let your team know you are responding. Resolve once recovery is confirmed.",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Acknowledge incident" }),
+    ).toBeTruthy();
+  });
+
+  test("resolved incidents explain the next step and retain reachable team notes", async () => {
+    mockIncidentDetail.current = queryState<IncidentItem | null>({
+      data: makeLoadedIncident({
+        currentIncidentState: makeNamedEntityWithColor({
+          _id: RESOLVED_STATE._id,
+          name: RESOLVED_STATE.name,
+        }),
+      }),
+    });
+    await renderScreen(createTestQueryClient());
+    expect(
+      screen.getByText(
+        "This incident is resolved. Review the context and team notes below.",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Resolve incident" }),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("detail-scroll").props.contentContainerStyle
+        .paddingBottom,
+    ).toBe(248);
   });
 });

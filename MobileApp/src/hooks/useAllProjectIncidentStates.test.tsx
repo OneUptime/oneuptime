@@ -1,5 +1,4 @@
-import { renderHook, waitFor } from "@testing-library/react-native";
-import type { QueryClient } from "@tanstack/react-query";
+import { act, renderHook, waitFor } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 import { useAllProjectIncidentStates } from "./useAllProjectIncidentStates";
 import { fetchIncidentStates } from "../api/incidents";
@@ -11,178 +10,124 @@ import {
   makeProject,
 } from "../__tests__/testSupport";
 
-/*
- * statesMap is not decoration. The Incidents screen reads it to decide which
- * state an Acknowledge or Resolve button should move an incident INTO, and to
- * decide whether a row belongs under Active or under Resolved. A project
- * missing from the map is a project whose incidents cannot be acted on.
- *
- * Two ways that map used to be wrong for a reason the screen could not see:
- *
- *   - Before the project list arrives there are no per-project queries at all,
- *     and `some()` over an empty array is false. The hook therefore announced
- *     itself loaded, with an empty map, on its first render.
- *   - A project whose state request FAILED is absent from the map in exactly
- *     the same way as a project that genuinely has no states. Nothing in the
- *     result told the two apart, so a failure quietly rendered as "there is
- *     nothing to act on here".
- *
- * The successful rows are deliberately asserted too: the fix is allowed to add
- * a failure signal, not to reshape what the screen already reads.
- */
-
-jest.mock("../api/incidents", () => {
-  return {
-    fetchIncidentStates: jest.fn(),
-  };
-});
-
-interface MockProjectContext {
-  projectList: ProjectItem[];
-  isLoadingProjects: boolean;
-  refreshProjects: () => Promise<void>;
-}
-
-const mockProjectContext: MockProjectContext = {
-  projectList: [],
-  isLoadingProjects: false,
-  refreshProjects: async (): Promise<void> => {
-    return undefined;
-  },
-};
-
+const mockContext: { projectList: ProjectItem[]; isLoadingProjects: boolean } =
+  { projectList: [], isLoadingProjects: false };
 jest.mock("./useProject", () => {
   return {
-    useProject: () => {
-      return mockProjectContext;
+    useActiveProject: () => {
+      return mockContext;
     },
   };
 });
-
-const fetchIncidentStatesMock: jest.MockedFunction<typeof fetchIncidentStates> =
-  fetchIncidentStates as jest.MockedFunction<typeof fetchIncidentStates>;
+jest.mock("../api/incidents", () => {
+  return { fetchIncidentStates: jest.fn() };
+});
+const fetchMock: jest.MockedFunction<typeof fetchIncidentStates> =
+  jest.mocked(fetchIncidentStates);
 
 beforeEach(() => {
-  fetchIncidentStatesMock.mockReset();
-  mockProjectContext.projectList = [];
-  mockProjectContext.isLoadingProjects = false;
+  mockContext.projectList = [];
+  mockContext.isLoadingProjects = false;
+  fetchMock.mockReset();
 });
 
-describe("useAllProjectIncidentStates", () => {
-  test("stays loading while the project list is still being fetched", async () => {
-    /*
-     * An empty map reported as settled is what the acknowledge/resolve buttons
-     * read as "this incident has nowhere to go". While the project list is in
-     * flight the honest answer is "not yet", not "nothing".
-     */
-    mockProjectContext.projectList = [];
-    mockProjectContext.isLoadingProjects = true;
-    const client: QueryClient = createTestQueryClient();
-
+describe("Selected-project incident response states", () => {
+  test("project discovery stays loading without making a state request", async () => {
+    mockContext.isLoadingProjects = true;
     const { result } = await renderHook(
       () => {
         return useAllProjectIncidentStates();
       },
-      { wrapper: createQueryWrapper(client) },
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
     );
-
     expect(result.current.isLoading).toBe(true);
     expect(result.current.statesMap.size).toBe(0);
-    expect(fetchIncidentStatesMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  test("settles once the project list has come back empty", async () => {
-    /*
-     * The complementary half: a responder in no projects must not be left
-     * under a skeleton forever. Without this, "wait on the project list" could
-     * be satisfied by never finishing.
-     */
-    mockProjectContext.projectList = [];
-    mockProjectContext.isLoadingProjects = false;
-    const client: QueryClient = createTestQueryClient();
-
+  test("no selected project settles without any states", async () => {
     const { result } = await renderHook(
       () => {
         return useAllProjectIncidentStates();
       },
-      { wrapper: createQueryWrapper(client) },
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
     );
-
     expect(result.current.isLoading).toBe(false);
     expect(result.current.isError).toBe(false);
+    expect(result.current.statesMap.size).toBe(0);
   });
 
-  test("keys each project's states under that project's id", async () => {
-    const productionStates: IncidentState[] = [
+  test("only the selected project's states are queried and made actionable", async () => {
+    mockContext.projectList = [makeProject()];
+    const states: IncidentState[] = [
       makeIncidentState(),
-      makeIncidentState({
-        _id: "incident-state-2",
-        name: "Resolved",
-        isResolvedState: true,
-        isCreatedState: false,
-        order: 3,
-      }),
+      makeIncidentState({ _id: "resolved-a", isResolvedState: true }),
     ];
-    const stagingStates: IncidentState[] = [
-      makeIncidentState({ _id: "incident-state-9", name: "Acknowledged" }),
-    ];
-    mockProjectContext.projectList = [
-      makeProject(),
-      makeProject({ _id: "project-2", name: "Acme Staging" }),
-    ];
-    fetchIncidentStatesMock.mockImplementation(async (projectId: string) => {
-      return projectId === "project-1" ? productionStates : stagingStates;
-    });
-    const client: QueryClient = createTestQueryClient();
-
+    fetchMock.mockResolvedValue(states);
     const { result } = await renderHook(
       () => {
         return useAllProjectIncidentStates();
       },
-      { wrapper: createQueryWrapper(client) },
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
     );
-
     await waitFor(() => {
-      return expect(result.current.statesMap.size).toBe(2);
+      expect(result.current.statesMap.size).toBe(1);
     });
-    expect(result.current.statesMap.get("project-1")).toEqual(productionStates);
-    expect(result.current.statesMap.get("project-2")).toEqual(stagingStates);
-    expect(result.current.isLoading).toBe(false);
-    expect(result.current.isError).toBe(false);
+    expect(result.current.statesMap.get("project-1")).toEqual(states);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith("project-1");
   });
 
-  test("reports a failed project as an error rather than as a project with no states", async () => {
-    /*
-     * project-2 is absent from the map either way - that part is unchanged,
-     * because the screen already copes with a project it has no states for.
-     * What changes is that the absence is now attributable: isError is the
-     * only thing separating "we could not ask" from "there is nothing here",
-     * and the buttons that page a human are drawn off that distinction.
-     */
-    const productionStates: IncidentState[] = [makeIncidentState()];
-    mockProjectContext.projectList = [
-      makeProject(),
-      makeProject({ _id: "project-2", name: "Acme Staging" }),
-    ];
-    fetchIncidentStatesMock.mockImplementation(async (projectId: string) => {
-      if (projectId === "project-2") {
-        throw new Error("500 from /api/incident-state/get-list");
-      }
-      return productionStates;
+  test("switching projects removes the previous response actions while new states load", async () => {
+    mockContext.projectList = [makeProject()];
+    fetchMock.mockResolvedValueOnce([makeIncidentState({ _id: "old-action" })]);
+    let release: (states: IncidentState[]) => void = () => {
+      return undefined;
+    };
+    fetchMock.mockReturnValueOnce(
+      new Promise((resolve: (value: IncidentState[]) => void) => {
+        release = resolve;
+      }),
+    );
+    const { result, rerender } = await renderHook(
+      () => {
+        return useAllProjectIncidentStates();
+      },
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
+    );
+    await waitFor(() => {
+      expect(result.current.statesMap.size).toBe(1);
     });
-    const client: QueryClient = createTestQueryClient();
+    mockContext.projectList = [
+      makeProject({ _id: "project-2", name: "Staging" }),
+    ];
+    await rerender(undefined);
+    expect(result.current.statesMap.has("project-1")).toBe(false);
+    expect(result.current.isLoading).toBe(true);
+    await act(async () => {
+      release([makeIncidentState({ _id: "new-action" })]);
+    });
+    await waitFor(() => {
+      expect(result.current.statesMap.get("project-2")?.[0]?._id).toBe(
+        "new-action",
+      );
+    });
+    expect(fetchMock).toHaveBeenLastCalledWith("project-2");
+  });
 
+  test("a state request failure is distinguishable from a project with no states", async () => {
+    mockContext.projectList = [makeProject()];
+    fetchMock.mockRejectedValue(new Error("Offline"));
     const { result } = await renderHook(
       () => {
         return useAllProjectIncidentStates();
       },
-      { wrapper: createQueryWrapper(client) },
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
     );
-
     await waitFor(() => {
-      return expect(result.current.isError).toBe(true);
+      expect(result.current.isError).toBe(true);
     });
-    expect(result.current.statesMap.get("project-1")).toEqual(productionStates);
-    expect(result.current.statesMap.has("project-2")).toBe(false);
+    expect(result.current.statesMap.size).toBe(0);
+    expect(result.current.isLoading).toBe(false);
   });
 });

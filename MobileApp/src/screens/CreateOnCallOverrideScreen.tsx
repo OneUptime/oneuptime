@@ -8,8 +8,10 @@ import {
 } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import { useScreenPadding } from "../hooks/useScreenPadding";
+import ScreenIntro from "../components/ScreenIntro";
 import { useHaptics } from "../hooks/useHaptics";
-import { useProject } from "../hooks/useProject";
+import { useActiveProject } from "../hooks/useProject";
 import { useProjectUsers } from "../hooks/useProjectUsers";
 import { useCurrentUserId } from "../hooks/useCurrentUserId";
 import { useOnCallOverrides } from "../hooks/useOnCallOverrides";
@@ -31,7 +33,7 @@ import type {
   CreateOnCallOverrideParams,
   OnCallStackParamList,
 } from "../navigation/types";
-import type { ProjectItem, ProjectUserItem } from "../api/types";
+import type { ProjectUserItem } from "../api/types";
 
 type CreateOverrideNavProp = NativeStackNavigationProp<
   OnCallStackParamList,
@@ -86,6 +88,7 @@ export function readPrefilledWindow(
  */
 export default function CreateOnCallOverrideScreen(): React.JSX.Element {
   const { theme } = useTheme();
+  const bottomPadding: number = useScreenPadding();
   const { successFeedback, errorFeedback, selectionFeedback } = useHaptics();
   const navigation: CreateOverrideNavProp =
     useNavigation<CreateOverrideNavProp>();
@@ -96,7 +99,7 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
       return readPrefilledWindow(prefill);
     }, [prefill]);
 
-  const { projectList } = useProject();
+  const { projectList } = useActiveProject();
   const currentUserId: string | null = useCurrentUserId();
   const overrides: ReturnType<typeof useOnCallOverrides> = useOnCallOverrides();
 
@@ -106,33 +109,11 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
    * somebody else; the segmented control is not offered in that case.
    */
   const [direction, setDirection] = useState<OverrideDirection>("cover-me");
-  const [projectId, setProjectId] = useState<string | null>(
-    prefill?.projectId || null,
-  );
+  const projectId: string | null = projectList[0]?._id ?? null;
   const [counterpart, setCounterpart] = useState<ProjectUserItem | null>(null);
   const [durationHours, setDurationHours] = useState<number>(4);
   const [isPickerOpen, setIsPickerOpen] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect((): void => {
-    if (!projectId && projectList.length > 0) {
-      setProjectId(projectList[0]!._id);
-    }
-  }, [projectId, projectList]);
-
-  /*
-   * A prefill normally settles the project, which is why the picker below is
-   * hidden for one. "Normally" is doing work there: a prefill can arrive
-   * naming a project this user is not in, or none at all, and the effect
-   * above then silently substitutes the first project in the list. Showing
-   * the picker in that case turns a silent substitution into a visible
-   * choice.
-   */
-  const isPrefilledProjectKnown: boolean = projectList.some(
-    (project: ProjectItem) => {
-      return project._id === prefill?.projectId;
-    },
-  );
 
   const projectUsers: ReturnType<typeof useProjectUsers> =
     useProjectUsers(projectId);
@@ -192,6 +173,14 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
   const onSubmit: () => Promise<void> = async (): Promise<void> => {
     setError(null);
 
+    if (prefill && prefill.projectId !== projectId) {
+      setError(
+        "This shift belongs to another project. Return to On call and choose a shift in the selected project.",
+      );
+      errorFeedback();
+      return;
+    }
+
     const result: BuildOverrideResult = buildOverrideRequest(
       {
         direction,
@@ -227,15 +216,19 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
         testID="create-override-scroll"
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: theme.colors.backgroundPrimary }}
-        contentContainerStyle={{ padding: 20, paddingBottom: 56 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
         keyboardShouldPersistTaps="handled"
       >
+        <ScreenIntro
+          title={prefilledWindow ? "Cover this shift" : "Arrange coverage"}
+          description="Choose a teammate and a time window. Review where pages will go before confirming."
+        />
         {prefilledWindow ? (
           <View
             testID="prefilled-shift"
             style={{
               padding: 16,
-              borderRadius: 18,
+              borderRadius: 16,
               backgroundColor: theme.colors.backgroundElevated,
               borderWidth: 1,
               borderColor: theme.colors.oncallActive + "55",
@@ -243,7 +236,7 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
           >
             <Text
               style={{
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: "600",
                 letterSpacing: 0.6,
                 textTransform: "uppercase",
@@ -254,18 +247,19 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
             </Text>
             <Text
               style={{
-                fontSize: 15,
+                fontSize: 18,
                 fontWeight: "600",
                 marginTop: 6,
                 color: theme.colors.textPrimary,
               }}
-              numberOfLines={1}
+              numberOfLines={2}
             >
               {prefill?.scheduleName ?? "On-call shift"}
             </Text>
             <Text
               style={{
-                fontSize: 13,
+                fontSize: 15,
+                lineHeight: 22,
                 marginTop: 4,
                 color: theme.colors.textSecondary,
               }}
@@ -277,80 +271,56 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
             </Text>
           </View>
         ) : (
-          <SegmentedControl<OverrideDirection>
-            segments={[
-              { key: "cover-me", label: "Cover for me" },
-              { key: "take-over", label: "I'll take over" },
-            ]}
-            selected={direction}
-            onSelect={(key: OverrideDirection) => {
-              selectionFeedback();
-              setDirection(key);
-              setError(null);
-            }}
-          />
+          <View>
+            <SectionHeader
+              title="1. Choose the direction"
+              iconName="swap-horizontal-outline"
+            />
+            <SegmentedControl<OverrideDirection>
+              style={{ marginHorizontal: 0, marginTop: 0 }}
+              segments={[
+                { key: "cover-me", label: "Cover for me" },
+                { key: "take-over", label: "I'll take over" },
+              ]}
+              selected={direction}
+              onSelect={(key: OverrideDirection) => {
+                selectionFeedback();
+                setDirection(key);
+                setError(null);
+              }}
+            />
+          </View>
         )}
 
-        {projectList.length > 1 && (!prefill || !isPrefilledProjectKnown) ? (
-          <View style={{ marginTop: 24 }}>
-            <SectionHeader title="Project" iconName="folder-open-outline" />
-            <View style={{ gap: 8 }}>
-              {projectList.map((project: ProjectItem) => {
-                const isSelected: boolean = project._id === projectId;
-
-                return (
-                  <Pressable
-                    key={project._id}
-                    testID={`project-option-${project._id}`}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Select project ${project.name}`}
-                    onPress={() => {
-                      selectionFeedback();
-                      setProjectId(project._id);
-                      setError(null);
-                    }}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      paddingVertical: 14,
-                      paddingHorizontal: 16,
-                      borderRadius: 14,
-                      backgroundColor: theme.colors.backgroundElevated,
-                      borderWidth: 1,
-                      borderColor: isSelected
-                        ? theme.colors.oncallActive + "55"
-                        : theme.colors.borderGlass,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        flex: 1,
-                        fontSize: 14,
-                        fontWeight: "600",
-                        color: theme.colors.textPrimary,
-                      }}
-                      numberOfLines={1}
-                    >
-                      {project.name}
-                    </Text>
-                    {isSelected ? (
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={18}
-                        color={theme.colors.oncallActive}
-                      />
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        ) : null}
+        <View
+          style={{
+            marginTop: 20,
+            flexDirection: "row",
+            gap: 8,
+            alignItems: "center",
+          }}
+        >
+          <Ionicons
+            name="folder-open-outline"
+            size={16}
+            color={theme.colors.textSecondary}
+          />
+          <Text
+            testID="coverage-project-name"
+            style={{ fontSize: 14, color: theme.colors.textSecondary, flex: 1 }}
+          >
+            {projectList[0]?.name ?? "No project available"}
+          </Text>
+        </View>
 
         <View style={{ marginTop: 24 }}>
           <SectionHeader
             title={
-              direction === "cover-me" ? "Route pages to" : "Take over from"
+              prefilledWindow
+                ? "Who will cover this shift?"
+                : direction === "cover-me"
+                  ? "2. Who will cover for you?"
+                  : "2. Who are you covering for?"
             }
             iconName="person-outline"
           />
@@ -370,7 +340,8 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
               alignItems: "center",
               paddingVertical: 16,
               paddingHorizontal: 16,
-              borderRadius: 14,
+              minHeight: 64,
+              borderRadius: 16,
               backgroundColor: theme.colors.backgroundElevated,
               borderWidth: 1,
               borderColor: theme.colors.borderGlass,
@@ -378,20 +349,20 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
           >
             <Ionicons
               name="person-circle-outline"
-              size={20}
-              color={theme.colors.textSecondary}
+              size={28}
+              color={theme.colors.actionPrimary}
             />
             <Text
               style={{
                 flex: 1,
-                fontSize: 14,
+                fontSize: 16,
                 fontWeight: counterpart ? "600" : "400",
                 marginLeft: 10,
                 color: counterpart
                   ? theme.colors.textPrimary
                   : theme.colors.textTertiary,
               }}
-              numberOfLines={1}
+              numberOfLines={2}
             >
               {counterpart ? counterpartName : "Choose a teammate"}
             </Text>
@@ -405,7 +376,21 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
 
         {prefilledWindow ? null : (
           <View style={{ marginTop: 24 }}>
-            <SectionHeader title="For how long" iconName="time-outline" />
+            <SectionHeader
+              title="3. How long do you need?"
+              iconName="time-outline"
+            />
+            <Text
+              style={{
+                fontSize: 14,
+                color: theme.colors.textSecondary,
+                lineHeight: 21,
+                marginBottom: 12,
+              }}
+            >
+              Coverage starts as soon as you confirm. Your usual routing resumes
+              automatically when it ends.
+            </Text>
             <View
               style={{
                 flexDirection: "row",
@@ -423,6 +408,7 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
                       testID={`duration-${preset.hours}`}
                       accessibilityRole="button"
                       accessibilityLabel={`Override lasts ${preset.label}`}
+                      accessibilityState={{ selected: isSelected }}
                       onPress={() => {
                         selectionFeedback();
                         setDurationHours(preset.hours);
@@ -431,22 +417,26 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
                       style={{
                         paddingVertical: 10,
                         paddingHorizontal: 16,
-                        borderRadius: 9999,
+                        minHeight: 48,
+                        minWidth: 72,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: 12,
                         backgroundColor: isSelected
-                          ? theme.colors.oncallActiveBg
+                          ? theme.colors.iconBackground
                           : theme.colors.backgroundElevated,
                         borderWidth: 1,
                         borderColor: isSelected
-                          ? theme.colors.oncallActive + "55"
+                          ? theme.colors.actionPrimary
                           : theme.colors.borderGlass,
                       }}
                     >
                       <Text
                         style={{
-                          fontSize: 13,
+                          fontSize: 15,
                           fontWeight: "600",
                           color: isSelected
-                            ? theme.colors.oncallActive
+                            ? theme.colors.actionPrimary
                             : theme.colors.textSecondary,
                         }}
                       >
@@ -464,29 +454,30 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
           testID="override-preview"
           style={{
             marginTop: 24,
-            padding: 16,
-            borderRadius: 18,
-            backgroundColor: theme.colors.backgroundElevated,
+            padding: 20,
+            borderRadius: 16,
+            backgroundColor: theme.colors.iconBackground,
             borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
+            borderColor: theme.colors.actionPrimary + "55",
           }}
         >
           <Text
             style={{
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: "600",
               letterSpacing: 0.6,
               textTransform: "uppercase",
               color: theme.colors.textTertiary,
             }}
           >
-            Summary
+            Review your coverage
           </Text>
           <Text
             style={{
-              fontSize: 14,
-              lineHeight: 20,
-              marginTop: 6,
+              fontSize: 17,
+              fontWeight: "600",
+              lineHeight: 25,
+              marginTop: 10,
               color: theme.colors.textPrimary,
             }}
           >
@@ -495,7 +486,8 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
           {endsAtLabel ? (
             <Text
               style={{
-                fontSize: 12,
+                fontSize: 14,
+                lineHeight: 21,
                 marginTop: 6,
                 color: theme.colors.textSecondary,
               }}
@@ -537,7 +529,7 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
 
         <GradientButton
           testID="submit-override"
-          label="Create override"
+          label="Confirm coverage"
           icon="swap-horizontal-outline"
           loading={overrides.isCreating}
           onPress={onSubmit}

@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react-native";
+import { render, screen, fireEvent } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 import MonitorDetailScreen from "./MonitorDetailScreen";
 import {
@@ -74,6 +74,14 @@ const mockProbesQuery: { current: FakeQuery<MonitorProbeItem[]> } = {
 const mockFeedQuery: { current: FakeQuery<FeedItem[]> } = {
   current: queryState<FeedItem[]>(),
 };
+
+jest.mock("../hooks/useScreenPadding", () => {
+  return {
+    useScreenPadding: () => {
+      return 248;
+    },
+  };
+});
 
 jest.mock("../hooks/useMonitorDetail", () => {
   return {
@@ -205,23 +213,13 @@ describe("When the monitor could not be loaded", () => {
     expect(screen.queryByLabelText("Loading content")).toBeNull();
   });
 
-  test("a failed request leaves the responder on a settled screen, not a spinner", async () => {
-    /*
-     * A rejected query keeps `data` undefined, so this lands on the same
-     * branch as a deleted monitor. What is pinned here is only that the
-     * screen settles: it does not sit spinning forever, and it does not
-     * render half a monitor out of the sections that did load.
-     */
+  test("a failed request offers retry without claiming the monitor was deleted", async () => {
     mockMonitorQuery.current = queryState<MonitorItem>({ isError: true });
-    mockTimelineQuery.current = queryState<MonitorStatusTimelineItem[]>({
-      data: [makeTimelineEntry()],
-    });
-
     await renderScreen();
-
-    expect(screen.getByText("Monitor not found.")).toBeTruthy();
-    expect(screen.queryByLabelText("Loading content")).toBeNull();
-    expect(screen.queryByText("Status History")).toBeNull();
+    expect(screen.queryByText("Monitor not found.")).toBeNull();
+    expect(screen.getByText("Something went wrong")).toBeTruthy();
+    await fireEvent.press(screen.getByRole("button", { name: "Retry" }));
+    expect(mockMonitorQuery.current.refetch).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -611,5 +609,34 @@ describe("Everything landing at once", () => {
     expect(screen.getByText("Activity Feed")).toBeTruthy();
     expect(screen.getByText("Connection refused")).toBeTruthy();
     expect(screen.getByText("Monitor went offline")).toBeTruthy();
+  });
+});
+
+describe("Monitor status guidance", () => {
+  test("disabled checks are explained so the last status is not mistaken for current health", async () => {
+    mockMonitorQuery.current = queryState<MonitorItem>({
+      data: makeMonitor({ disableActiveMonitoring: true }),
+    });
+    await renderScreen();
+    expect(screen.getByText("Monitoring is paused")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Active checks are disabled. The last recorded status may not reflect this service's current health.",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("detail-scroll").props.contentContainerStyle
+        .paddingBottom,
+    ).toBe(248);
+  });
+
+  test("a background failure preserves the last available monitor details", async () => {
+    mockMonitorQuery.current = queryState<MonitorItem>({
+      data: makeMonitor(),
+      isError: true,
+    });
+    await renderScreen();
+    expect(screen.getByText("api.example.com")).toBeTruthy();
+    expect(screen.queryByText("Something went wrong")).toBeNull();
   });
 });

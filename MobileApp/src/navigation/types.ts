@@ -1,3 +1,5 @@
+import type { NavigatorScreenParams } from "@react-navigation/native";
+
 export type AuthStackParamList = {
   ServerUrl: undefined;
   Login: undefined;
@@ -31,11 +33,11 @@ export type AuthStackParamList = {
 
 export type MainTabParamList = {
   Home: undefined;
-  Monitors: undefined;
-  Incidents: undefined;
-  Alerts: undefined;
-  OnCall: undefined;
-  Settings: undefined;
+  Monitors: NavigatorScreenParams<MonitorsStackParamList> | undefined;
+  Incidents: NavigatorScreenParams<IncidentsStackParamList> | undefined;
+  Alerts: NavigatorScreenParams<AlertsStackParamList> | undefined;
+  OnCall: NavigatorScreenParams<OnCallStackParamList> | undefined;
+  Settings: NavigatorScreenParams<SettingsStackParamList> | undefined;
 };
 
 /*
@@ -105,18 +107,30 @@ export type OnCallStackParamList = {
 };
 
 export type IncidentsStackParamList = {
-  IncidentsList: undefined;
+  IncidentsList:
+    | {
+        initialSegment?: "incidents" | "episodes";
+        initialFilter?: "all" | "active" | "resolved";
+      }
+    | undefined;
   IncidentDetail: { incidentId: string; projectId: string };
   IncidentEpisodeDetail: { episodeId: string; projectId: string };
 };
 
 export type AlertsStackParamList = {
-  AlertsList: undefined;
+  AlertsList:
+    | {
+        initialSegment?: "alerts" | "episodes";
+        initialFilter?: "all" | "active" | "resolved";
+      }
+    | undefined;
   AlertDetail: { alertId: string; projectId: string };
   AlertEpisodeDetail: { episodeId: string; projectId: string };
 };
 
 export type MonitorsStackParamList = {
-  MonitorsList: undefined;
+  MonitorsList:
+    | { initialFilter?: "all" | "issues" | "operational" | "disabled" }
+    | undefined;
   MonitorDetail: { monitorId: string; projectId: string };
 };

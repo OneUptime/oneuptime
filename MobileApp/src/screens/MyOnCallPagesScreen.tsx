@@ -4,6 +4,8 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useTheme } from "../theme";
+import { useScreenPadding } from "../hooks/useScreenPadding";
+import ScreenIntro from "../components/ScreenIntro";
 import { useHaptics } from "../hooks/useHaptics";
 import { useMyOnCallPages } from "../hooks/useMyOnCallPages";
 import OnCallPageCard, {
@@ -38,6 +40,7 @@ type PageFilter = "all" | "unacknowledged";
  */
 export default function MyOnCallPagesScreen(): React.JSX.Element {
   const { theme } = useTheme();
+  const bottomPadding: number = useScreenPadding();
   const { lightImpact, selectionFeedback } = useHaptics();
   const navigation: MyPagesNavProp = useNavigation<MyPagesNavProp>();
 
@@ -68,7 +71,8 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
   /*
    * The incident and alert detail screens live in sibling tabs, so the jump
    * goes through the tab navigator. Without the parent hop this silently does
-   * nothing - the route names are not on this stack.
+   * nothing - the route names are not on this stack. Keep the sibling stack's
+   * initial inbox route so Back also works when this is its first visit.
    */
   const openPage: (page: OnCallPageItem) => void = (
     page: OnCallPageItem,
@@ -90,6 +94,7 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
     if (subject.kind === "incident") {
       parent.navigate("Incidents", {
         screen: "IncidentDetail",
+        initial: false,
         params: { incidentId: subject.id, projectId: page.projectId },
       } as never);
       return;
@@ -98,6 +103,7 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
     if (subject.kind === "incident-episode") {
       parent.navigate("Incidents", {
         screen: "IncidentEpisodeDetail",
+        initial: false,
         params: { episodeId: subject.id, projectId: page.projectId },
       } as never);
       return;
@@ -106,6 +112,7 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
     if (subject.kind === "alert") {
       parent.navigate("Alerts", {
         screen: "AlertDetail",
+        initial: false,
         params: { alertId: subject.id, projectId: page.projectId },
       } as never);
       return;
@@ -114,6 +121,7 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
     if (subject.kind === "alert-episode") {
       parent.navigate("Alerts", {
         screen: "AlertEpisodeDetail",
+        initial: false,
         params: { episodeId: subject.id, projectId: page.projectId },
       } as never);
     }
@@ -126,7 +134,7 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
       >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={{ padding: 20, paddingBottom: 56 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
         >
           <SkeletonCard lines={3} />
           <SkeletonCard lines={3} />
@@ -169,8 +177,60 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}>
+    <ScrollView
+      testID="my-pages-scroll"
+      contentInsetAdjustmentBehavior="automatic"
+      style={{ backgroundColor: theme.colors.backgroundPrimary }}
+      contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
+      refreshControl={
+        <RefreshControl
+          refreshing={false}
+          onRefresh={onRefresh}
+          tintColor={theme.colors.actionPrimary}
+        />
+      }
+    >
+      <ScreenIntro
+        title="My pages"
+        description="Recent notifications sent to you. Open a page to review its incident or alert."
+      />
+      <View
+        style={{
+          padding: 18,
+          marginBottom: 20,
+          borderRadius: 16,
+          backgroundColor:
+            unacknowledgedCount > 0
+              ? theme.colors.severityWarningBg
+              : theme.colors.oncallActiveBg,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 20,
+            fontWeight: "700",
+            color: theme.colors.textPrimary,
+          }}
+        >
+          {unacknowledgedCount === 0
+            ? "All listed pages acknowledged"
+            : `${unacknowledgedCount} ${unacknowledgedCount === 1 ? "page needs" : "pages need"} a response`}
+        </Text>
+        <Text
+          style={{
+            fontSize: 14,
+            lineHeight: 21,
+            marginTop: 6,
+            color: theme.colors.textSecondary,
+          }}
+        >
+          {unacknowledgedCount === 0
+            ? "You can review your notification history below."
+            : "Use the unacknowledged filter to focus on pages that have not been answered."}
+        </Text>
+      </View>
       <SegmentedControl<PageFilter>
+        style={{ marginHorizontal: 0, marginTop: 0 }}
         segments={[
           { key: "all", label: `All (${pages.length})` },
           {
@@ -185,22 +245,11 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
         }}
       />
 
-      <ScrollView
-        testID="my-pages-scroll"
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={{ padding: 20, paddingBottom: 56, gap: 12 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={false}
-            onRefresh={onRefresh}
-            tintColor={theme.colors.actionPrimary}
-          />
-        }
-      >
+      <View style={{ marginTop: 20, gap: 12 }}>
         {visiblePages.length === 0 ? (
           <View
             style={{
-              borderRadius: 18,
+              borderRadius: 16,
               padding: 18,
               backgroundColor: theme.colors.backgroundElevated,
               borderWidth: 1,
@@ -214,7 +263,7 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
                 color: theme.colors.textSecondary,
               }}
             >
-              Every page sent to you has been acknowledged.
+              Every page in this list has been acknowledged.
             </Text>
           </View>
         ) : (
@@ -224,7 +273,7 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
             );
           })
         )}
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollView>
   );
 }

@@ -465,6 +465,14 @@ describe("While the probe is in flight", () => {
     await finishProbe(true);
   });
 
+  test("the keyboard cannot start a second connection while validation is pending", async () => {
+    await startProbe();
+    expect(screen.getByLabelText("Server URL").props.editable).toBe(false);
+    await fireEvent(urlField(), "submitEditing");
+    expect(mockValidateServerUrl).toHaveBeenCalledTimes(1);
+    await finishProbe(true);
+  });
+
   test("nothing is stored until the probe has answered", async () => {
     await startProbe();
 

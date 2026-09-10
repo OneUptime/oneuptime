@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  act,
   render,
   screen,
   fireEvent,
@@ -57,63 +56,9 @@ const mockServerUrl: { current: string } = {
 };
 const mockShare: jest.Mock = jest.fn();
 
-/*
- * The project the screen opens on is chosen asynchronously (the SSO filter
- * reads stored tokens), so the tests can hold that choice open and look at
- * what the screen shows while it is undecided.
- */
-interface DeferredProjects {
-  promise: Promise<ProjectItem[]>;
-  resolve: (projects: ProjectItem[]) => void;
-}
-
-const mockAuthorized: {
-  current: ProjectItem[] | null;
-  deferred: DeferredProjects | null;
-  calls: number;
-} = { current: null, deferred: null, calls: 0 };
-
-function deferAuthorizedProjects(): DeferredProjects {
-  let resolve: (projects: ProjectItem[]) => void = (): void => {
-    return undefined;
-  };
-
-  const promise: Promise<ProjectItem[]> = new Promise(
-    (resolvePromise: (projects: ProjectItem[]) => void) => {
-      resolve = resolvePromise;
-    },
-  );
-
-  const deferred: DeferredProjects = { promise, resolve };
-  mockAuthorized.deferred = deferred;
-
-  return deferred;
-}
-
-jest.mock("../hooks/authorizedProjects", () => {
-  const actual: Record<string, unknown> = jest.requireActual(
-    "../hooks/authorizedProjects",
-  ) as Record<string, unknown>;
-
-  return {
-    ...actual,
-    getAuthorizedProjects: (
-      projects: ProjectItem[],
-    ): Promise<ProjectItem[]> => {
-      mockAuthorized.calls += 1;
-
-      if (mockAuthorized.deferred) {
-        return mockAuthorized.deferred.promise;
-      }
-
-      return Promise.resolve(mockAuthorized.current ?? projects);
-    },
-  };
-});
-
 jest.mock("../hooks/useProject", () => {
   return {
-    useProject: () => {
+    useActiveProject: () => {
       return {
         projectList: mockProjects.current,
         isLoadingProjects: false,
@@ -250,9 +195,6 @@ async function waitForLinks(): Promise<void> {
 describe("OnCallCalendarFeedScreen", () => {
   beforeEach(() => {
     mockProjects.current = PROJECTS;
-    mockAuthorized.current = null;
-    mockAuthorized.deferred = null;
-    mockAuthorized.calls = 0;
     mockFeed.current = feedState();
     mockFeedByProject.current = null;
     mockFeedCalls.projectIds = [];
@@ -270,6 +212,20 @@ describe("OnCallCalendarFeedScreen", () => {
   afterEach(() => {
     alertSpy.mockRestore();
   });
+  test("separates subscription from link management and reserves bottom navigation space", async (): Promise<void> => {
+    await render(<OnCallCalendarFeedScreen />);
+    await waitForLinks();
+    expect(screen.getByText("Your subscription")).toBeTruthy();
+    expect(screen.getByText("Manage your link")).toBeTruthy();
+    expect(
+      screen.getByTestId("calendar-feed-scroll").props.contentContainerStyle
+        .paddingBottom,
+    ).toBeGreaterThanOrEqual(124);
+    expect(screen.getByTestId("calendar-project-name")).toHaveTextContent(
+      "Project: Acme",
+    );
+    expect(screen.queryByTestId("feed-project-project-2")).toBeNull();
+  });
 
   test("asks for the first project's feed by default", async (): Promise<void> => {
     await render(<OnCallCalendarFeedScreen />);
@@ -279,69 +235,39 @@ describe("OnCallCalendarFeedScreen", () => {
     });
   });
 
-  test("opens on the first project the app is allowed to query", async (): Promise<void> => {
-    /*
-     * A project that enforces SSO answers 406 until this handset has
-     * completed that login - and asking anyway records a denial against it.
-     * The fan-out hooks all run through the same filter; so does this screen.
-     */
-    mockAuthorized.current = [PROJECTS[1]!];
-
+  test("uses the globally selected project without an independent project picker", async (): Promise<void> => {
+    mockProjects.current = [PROJECTS[1]!];
     await render(<OnCallCalendarFeedScreen />);
-
-    await waitFor(() => {
-      expect(mockFeedCalls.projectIds).toContain("project-2");
-    });
-
+    await waitForLinks();
+    expect(mockFeedCalls.projectIds).toContain("project-2");
     expect(mockFeedCalls.projectIds).not.toContain("project-1");
+    expect(screen.getByTestId("calendar-project-name")).toHaveTextContent(
+      "Project: Globex",
+    );
   });
 
-  test("falls back to the first project when none of them are authorized", async (): Promise<void> => {
-    /* Better to ask and explain the refusal than to show nothing at all. */
-    mockAuthorized.current = [];
-
-    await render(<OnCallCalendarFeedScreen />);
-
-    await waitFor(() => {
-      expect(mockFeedCalls.projectIds).toContain("project-1");
+  test("an inaccessible selected project does not fall through to another project", async (): Promise<void> => {
+    mockProjects.current = [PROJECTS[0]!];
+    mockFeed.current = feedState({
+      status: null,
+      isError: true,
+      isSsoRequired: true,
     });
+    await render(<OnCallCalendarFeedScreen />);
+    expect(screen.getByTestId("feed-sso-required")).toBeTruthy();
+    expect(mockFeedCalls.projectIds).not.toContain("project-2");
   });
 
-  test("shows a skeleton, not an error, while the project is being chosen", async (): Promise<void> => {
-    /*
-     * The regression this pins: with no project chosen yet the hook reports
-     * "not loading" (it has nothing to load), and the screen fell through to
-     * "Could not load your calendar link. An unknown error occurred." before
-     * it had asked the server anything.
-     */
-    const deferred: DeferredProjects = deferAuthorizedProjects();
-
-    /*
-     * Exactly what the hook reports with no project to ask about: it is not
-     * pending (it never started), it has no status and it has no error.
-     */
-    mockFeedByProject.current = (
-      projectId: string | null,
-    ): UseOnCallCalendarFeedResult => {
-      return projectId
-        ? feedState()
-        : feedState({ status: null, isLoading: false });
-    };
-
-    await render(<OnCallCalendarFeedScreen />);
-
+  test("shows a skeleton while the selected project's feed is loading", async (): Promise<void> => {
+    mockFeed.current = feedState({ status: null, isLoading: true });
+    const rendered: Awaited<ReturnType<typeof render>> = await render(
+      <OnCallCalendarFeedScreen />,
+    );
     expect(screen.getByTestId("feed-loading")).toBeTruthy();
     expect(screen.queryByTestId("feed-error")).toBeNull();
-    expect(screen.queryByText(/An unknown error occurred/)).toBeNull();
-    expect(mockFeedCalls.projectIds).not.toContain("project-1");
-
-    await act(async (): Promise<void> => {
-      deferred.resolve(PROJECTS);
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId("feed-active")).toBeTruthy();
-    });
+    mockFeed.current = feedState();
+    await rendered.rerender(<OnCallCalendarFeedScreen />);
+    await waitForLinks();
   });
 
   test("an SSO-locked project is explained, not reported as a failed request", async (): Promise<void> => {
@@ -364,14 +290,16 @@ describe("OnCallCalendarFeedScreen", () => {
     expect(screen.getByTestId("retry-feed")).toBeTruthy();
   });
 
-  test("switching project asks for that project's feed", async (): Promise<void> => {
-    await render(<OnCallCalendarFeedScreen />);
-
-    await fireEvent.press(screen.getByTestId("feed-project-project-2"));
-
-    await waitFor(() => {
-      expect(mockFeedCalls.projectIds).toContain("project-2");
-    });
+  test("a global project change requests that project's feed", async (): Promise<void> => {
+    const rendered: Awaited<ReturnType<typeof render>> = await render(
+      <OnCallCalendarFeedScreen />,
+    );
+    mockProjects.current = [PROJECTS[1]!];
+    await rendered.rerender(<OnCallCalendarFeedScreen />);
+    expect(mockFeedCalls.projectIds.at(-1)).toBe("project-2");
+    expect(screen.getByTestId("calendar-project-name")).toHaveTextContent(
+      "Project: Globex",
+    );
   });
 
   test("hides the project picker with a single project", async (): Promise<void> => {

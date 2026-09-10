@@ -1,11 +1,11 @@
-import { renderHook, waitFor } from "@testing-library/react-native";
+import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type { QueryClient } from "@tanstack/react-query";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 import { useAllProjectCounts } from "./useAllProjectCounts";
-import { fetchAllIncidents } from "../api/incidents";
-import { fetchAllAlerts } from "../api/alerts";
-import { fetchAllIncidentEpisodes } from "../api/incidentEpisodes";
-import { fetchAllAlertEpisodes } from "../api/alertEpisodes";
+import { fetchIncidents } from "../api/incidents";
+import { fetchAlerts } from "../api/alerts";
+import { fetchIncidentEpisodes } from "../api/incidentEpisodes";
+import { fetchAlertEpisodes } from "../api/alertEpisodes";
 import {
   fetchMonitorCount,
   fetchDisabledMonitorCount,
@@ -44,25 +44,25 @@ import {
 
 jest.mock("../api/incidents", () => {
   return {
-    fetchAllIncidents: jest.fn(),
+    fetchIncidents: jest.fn(),
   };
 });
 
 jest.mock("../api/alerts", () => {
   return {
-    fetchAllAlerts: jest.fn(),
+    fetchAlerts: jest.fn(),
   };
 });
 
 jest.mock("../api/incidentEpisodes", () => {
   return {
-    fetchAllIncidentEpisodes: jest.fn(),
+    fetchIncidentEpisodes: jest.fn(),
   };
 });
 
 jest.mock("../api/alertEpisodes", () => {
   return {
-    fetchAllAlertEpisodes: jest.fn(),
+    fetchAlertEpisodes: jest.fn(),
   };
 });
 
@@ -90,24 +90,24 @@ const mockProjectContext: MockProjectContext = {
 
 jest.mock("./useProject", () => {
   return {
-    useProject: () => {
-      return mockProjectContext;
+    useActiveProject: () => {
+      return {
+        ...mockProjectContext,
+        projectList: mockProjectContext.projectList.slice(0, 1),
+      };
     },
   };
 });
 
-const fetchAllIncidentsMock: jest.MockedFunction<typeof fetchAllIncidents> =
-  fetchAllIncidents as jest.MockedFunction<typeof fetchAllIncidents>;
-const fetchAllAlertsMock: jest.MockedFunction<typeof fetchAllAlerts> =
-  fetchAllAlerts as jest.MockedFunction<typeof fetchAllAlerts>;
-const fetchAllIncidentEpisodesMock: jest.MockedFunction<
-  typeof fetchAllIncidentEpisodes
-> = fetchAllIncidentEpisodes as jest.MockedFunction<
-  typeof fetchAllIncidentEpisodes
->;
-const fetchAllAlertEpisodesMock: jest.MockedFunction<
-  typeof fetchAllAlertEpisodes
-> = fetchAllAlertEpisodes as jest.MockedFunction<typeof fetchAllAlertEpisodes>;
+const fetchIncidentsMock: jest.MockedFunction<typeof fetchIncidents> =
+  fetchIncidents as jest.MockedFunction<typeof fetchIncidents>;
+const fetchAlertsMock: jest.MockedFunction<typeof fetchAlerts> =
+  fetchAlerts as jest.MockedFunction<typeof fetchAlerts>;
+const fetchIncidentEpisodesMock: jest.MockedFunction<
+  typeof fetchIncidentEpisodes
+> = fetchIncidentEpisodes as jest.MockedFunction<typeof fetchIncidentEpisodes>;
+const fetchAlertEpisodesMock: jest.MockedFunction<typeof fetchAlertEpisodes> =
+  fetchAlertEpisodes as jest.MockedFunction<typeof fetchAlertEpisodes>;
 const fetchMonitorCountMock: jest.MockedFunction<typeof fetchMonitorCount> =
   fetchMonitorCount as jest.MockedFunction<typeof fetchMonitorCount>;
 const fetchDisabledMonitorCountMock: jest.MockedFunction<
@@ -149,25 +149,23 @@ function neverResolves(): Promise<ListResponse<MonitorItem>> {
 }
 
 /**
- * Arm the four whole-account queries so a test can concentrate on the monitor
+ * Arm the four selected-project queries so a test can concentrate on the monitor
  * fan-out without every count being undefined for unrelated reasons.
  */
-function armAccountWideCounts(): void {
-  fetchAllIncidentsMock.mockResolvedValue(makeListResponse([], { count: 3 }));
-  fetchAllAlertsMock.mockResolvedValue(makeListResponse([], { count: 4 }));
-  fetchAllIncidentEpisodesMock.mockResolvedValue(
+function armProjectCounts(): void {
+  fetchIncidentsMock.mockResolvedValue(makeListResponse([], { count: 3 }));
+  fetchAlertsMock.mockResolvedValue(makeListResponse([], { count: 4 }));
+  fetchIncidentEpisodesMock.mockResolvedValue(
     makeListResponse([], { count: 1 }),
   );
-  fetchAllAlertEpisodesMock.mockResolvedValue(
-    makeListResponse([], { count: 2 }),
-  );
+  fetchAlertEpisodesMock.mockResolvedValue(makeListResponse([], { count: 2 }));
 }
 
 beforeEach(() => {
-  fetchAllIncidentsMock.mockReset();
-  fetchAllAlertsMock.mockReset();
-  fetchAllIncidentEpisodesMock.mockReset();
-  fetchAllAlertEpisodesMock.mockReset();
+  fetchIncidentsMock.mockReset();
+  fetchAlertsMock.mockReset();
+  fetchIncidentEpisodesMock.mockReset();
+  fetchAlertEpisodesMock.mockReset();
   fetchMonitorCountMock.mockReset();
   fetchDisabledMonitorCountMock.mockReset();
   fetchInoperationalMonitorCountMock.mockReset();
@@ -178,7 +176,7 @@ beforeEach(() => {
 describe("useAllProjectCounts reports loading over the whole fan-out", () => {
   test("finishes loading for a responder who belongs to no projects", async () => {
     /*
-     * The four whole-account queries are disabled when there are no projects,
+     * The four selected-project queries are disabled when there are no projects,
      * and a disabled query is `isPending` for as long as it exists. Reading
      * isPending therefore left Home under a skeleton that could never resolve
      * for a brand new account - or for an account whose project fetch failed -
@@ -196,8 +194,8 @@ describe("useAllProjectCounts reports loading over the whole fan-out", () => {
     );
 
     expect(result.current.isLoading).toBe(false);
-    expect(fetchAllIncidentsMock).not.toHaveBeenCalled();
-    expect(fetchAllAlertsMock).not.toHaveBeenCalled();
+    expect(fetchIncidentsMock).not.toHaveBeenCalled();
+    expect(fetchAlertsMock).not.toHaveBeenCalled();
   });
 
   test("stays loading while the project list itself is being re-fetched", async () => {
@@ -209,7 +207,7 @@ describe("useAllProjectCounts reports loading over the whole fan-out", () => {
      * they cover is being rewritten underneath them.
      */
     mockProjectContext.projectList = [makeProject()];
-    armAccountWideCounts();
+    armProjectCounts();
     fetchMonitorCountMock.mockResolvedValue(countResponse(5));
     fetchDisabledMonitorCountMock.mockResolvedValue(countResponse(1));
     fetchInoperationalMonitorCountMock.mockResolvedValue(countResponse(2));
@@ -244,7 +242,7 @@ describe("useAllProjectCounts reports loading over the whole fan-out", () => {
      * dashboard that has visibly finished loading has no reason to doubt it.
      */
     mockProjectContext.projectList = [makeProject()];
-    armAccountWideCounts();
+    armProjectCounts();
     fetchMonitorCountMock.mockResolvedValue(countResponse(5));
     fetchDisabledMonitorCountMock.mockReturnValue(neverResolves());
     fetchInoperationalMonitorCountMock.mockResolvedValue(countResponse(2));
@@ -270,7 +268,7 @@ describe("useAllProjectCounts reports loading over the whole fan-out", () => {
      * inoperational count of 0 is the screen saying nothing is down.
      */
     mockProjectContext.projectList = [makeProject()];
-    armAccountWideCounts();
+    armProjectCounts();
     fetchMonitorCountMock.mockResolvedValue(countResponse(5));
     fetchDisabledMonitorCountMock.mockResolvedValue(countResponse(1));
     fetchInoperationalMonitorCountMock.mockReturnValue(neverResolves());
@@ -299,7 +297,7 @@ describe("useAllProjectCounts reports loading over the whole fan-out", () => {
       makeProject(),
       makeProject({ _id: "project-2", name: "Acme Staging" }),
     ];
-    armAccountWideCounts();
+    armProjectCounts();
     fetchMonitorCountMock.mockResolvedValue(countResponse(5));
     fetchDisabledMonitorCountMock.mockResolvedValue(countResponse(1));
     fetchInoperationalMonitorCountMock.mockResolvedValue(countResponse(2));
@@ -319,15 +317,15 @@ describe("useAllProjectCounts reports loading over the whole fan-out", () => {
     expect(result.current.alertCount).toBe(4);
     expect(result.current.incidentEpisodeCount).toBe(1);
     expect(result.current.alertEpisodeCount).toBe(2);
-    expect(result.current.monitorCount).toBe(10);
-    expect(result.current.disabledMonitorCount).toBe(2);
-    expect(result.current.inoperationalMonitorCount).toBe(4);
+    expect(result.current.monitorCount).toBe(5);
+    expect(result.current.disabledMonitorCount).toBe(1);
+    expect(result.current.inoperationalMonitorCount).toBe(2);
     expect(result.current.isError).toBe(false);
   });
 });
 
 describe("useAllProjectCounts distinguishes a failed count from a real zero", () => {
-  test("reports an error when a whole-account count request fails", async () => {
+  test("reports an error when a selected-project count request fails", async () => {
     /*
      * alertCount is 0 here for the worst possible reason. Without isError the
      * screen has no way to know that, and the card reads exactly like a quiet
@@ -335,8 +333,8 @@ describe("useAllProjectCounts distinguishes a failed count from a real zero", ()
      * beside them, it does not invent a sentinel inside them.
      */
     mockProjectContext.projectList = [makeProject()];
-    armAccountWideCounts();
-    fetchAllAlertsMock.mockRejectedValue(
+    armProjectCounts();
+    fetchAlertsMock.mockRejectedValue(
       new Error("500 from /api/alert/get-list"),
     );
     fetchMonitorCountMock.mockResolvedValue(countResponse(5));
@@ -368,12 +366,12 @@ describe("useAllProjectCounts distinguishes a failed count from a real zero", ()
       makeProject(),
       makeProject({ _id: "project-2", name: "Acme Staging" }),
     ];
-    armAccountWideCounts();
+    armProjectCounts();
     fetchMonitorCountMock.mockResolvedValue(countResponse(5));
     fetchDisabledMonitorCountMock.mockResolvedValue(countResponse(1));
     fetchInoperationalMonitorCountMock.mockImplementation(
       async (projectId: string) => {
-        if (projectId === "project-2") {
+        if (projectId === "project-1") {
           throw new Error("500 from /api/monitor/get-list");
         }
         return countResponse(2);
@@ -391,6 +389,111 @@ describe("useAllProjectCounts distinguishes a failed count from a real zero", ()
     await waitFor(() => {
       return expect(result.current.isError).toBe(true);
     });
-    expect(result.current.inoperationalMonitorCount).toBe(2);
+    expect(result.current.inoperationalMonitorCount).toBe(0);
+  });
+});
+
+describe("Counts stay within the selected project", () => {
+  test("each response count and monitor count receives exactly the selected tenant", async () => {
+    mockProjectContext.projectList = [
+      makeProject(),
+      makeProject({ _id: "project-2" }),
+    ];
+    armProjectCounts();
+    fetchMonitorCountMock.mockResolvedValue(countResponse(5));
+    fetchDisabledMonitorCountMock.mockResolvedValue(countResponse(1));
+    fetchInoperationalMonitorCountMock.mockResolvedValue(countResponse(2));
+    const { result } = await renderHook(
+      () => {
+        return useAllProjectCounts();
+      },
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
+    );
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+    for (const fetchMock of [
+      fetchIncidentsMock,
+      fetchAlertsMock,
+      fetchIncidentEpisodesMock,
+      fetchAlertEpisodesMock,
+    ]) {
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith("project-1", {
+        skip: 0,
+        limit: 1,
+        unresolvedOnly: true,
+      });
+    }
+    for (const fetchMock of [
+      fetchMonitorCountMock,
+      fetchDisabledMonitorCountMock,
+      fetchInoperationalMonitorCountMock,
+    ]) {
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith("project-1");
+    }
+  });
+
+  test("switching project removes old counts while the newly selected project loads", async () => {
+    mockProjectContext.projectList = [makeProject()];
+    armProjectCounts();
+    fetchMonitorCountMock.mockResolvedValue(countResponse(5));
+    fetchDisabledMonitorCountMock.mockResolvedValue(countResponse(1));
+    fetchInoperationalMonitorCountMock.mockResolvedValue(countResponse(2));
+    const { result, rerender } = await renderHook(
+      () => {
+        return useAllProjectCounts();
+      },
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
+    );
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+    expect(result.current.incidentCount).toBe(3);
+    let release: (value: ReturnType<typeof countResponse>) => void = () => {
+      return undefined;
+    };
+    fetchMonitorCountMock.mockReturnValueOnce(
+      new Promise(
+        (resolve: (value: ReturnType<typeof countResponse>) => void) => {
+          release = resolve;
+        },
+      ),
+    );
+    fetchIncidentsMock.mockResolvedValueOnce(
+      makeListResponse([], { count: 9 }),
+    );
+    mockProjectContext.projectList = [makeProject({ _id: "project-2" })];
+    await rerender(undefined);
+    expect(result.current.monitorCount).toBe(0);
+    expect(result.current.isLoading).toBe(true);
+    await act(async () => {
+      release(countResponse(11));
+    });
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+    expect(result.current.monitorCount).toBe(11);
+    expect(result.current.incidentCount).toBe(9);
+    expect(fetchIncidentsMock).toHaveBeenLastCalledWith("project-2", {
+      skip: 0,
+      limit: 1,
+      unresolvedOnly: true,
+    });
+  });
+
+  test("manual refresh without a selected project makes no API calls", async () => {
+    const { result } = await renderHook(
+      () => {
+        return useAllProjectCounts();
+      },
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
+    );
+    await act(async () => {
+      await result.current.refetch();
+    });
+    expect(fetchIncidentsMock).not.toHaveBeenCalled();
+    expect(fetchMonitorCountMock).not.toHaveBeenCalled();
   });
 });

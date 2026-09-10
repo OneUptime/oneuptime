@@ -44,8 +44,8 @@ export default function EmptyState({
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        paddingHorizontal: 40,
-        paddingVertical: 112,
+        paddingHorizontal: 24,
+        paddingVertical: 48,
       }}
     >
       <View
@@ -66,6 +66,7 @@ export default function EmptyState({
       </View>
 
       <Text
+        accessibilityRole="header"
         style={{
           fontSize: 20,
           fontWeight: "bold",

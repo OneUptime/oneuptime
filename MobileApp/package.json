@@ -10,6 +10,7 @@
     "compile": "tsc --noEmit",
     "test": "jest",
     "test-file": "jest --runInBand",
+    "test-ui": "expo export --platform web --output-dir dist-ui && playwright test --config playwright.config.js",
     "coverage": "jest --coverage",
     "prebuild": "npx expo prebuild --clean",
     "android:build": "npx eas-cli build --platform android --profile production",
@@ -62,6 +63,7 @@
     "tailwindcss": "^3.4.19"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@testing-library/react-native": "^14.0.1",
     "@types/jest": "^29.5.14",
     "@types/react": "~19.1.0",

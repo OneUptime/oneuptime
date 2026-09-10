@@ -78,6 +78,14 @@ const mockAlertNotes: { current: AlertNotesState } = {
   current: {} as AlertNotesState,
 };
 
+jest.mock("../hooks/useScreenPadding", () => {
+  return {
+    useScreenPadding: () => {
+      return 248;
+    },
+  };
+});
+
 jest.mock("../hooks/useAlertDetail", () => {
   return {
     useAlertDetail: () => {
@@ -953,5 +961,59 @@ describe("The activity feed", () => {
 
     expect(screen.getByText("Disk almost full")).toBeTruthy();
     expect(screen.queryByText("Activity Feed")).toBeNull();
+  });
+});
+
+describe("Readable response controls and bottom reachability", () => {
+  beforeEach(() => {
+    mockAlertDetail.current = queryState<AlertItem | null>({
+      data: makeLoadedAlert({ description: "Context for the responder" }),
+    });
+    mockAlertStates.current = queryState<AlertState[]>({
+      data: [TRIAGE_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE],
+    });
+    mockAlertTimeline.current = queryState<StateTimelineItem[]>();
+    mockAlertFeed.current = queryState<FeedItem[]>({ data: [] });
+    mockAlertNotes.current = queryState<NoteItem[]>({ data: [] });
+  });
+
+  test("response actions are placed before context so they are immediately discoverable", async () => {
+    await renderScreen(createTestQueryClient());
+    const headings: string[] = screen
+      .getAllByText(/^(Actions|Description)$/)
+      .map((element: ReturnType<typeof screen.getByText>) => {
+        return String(element.props.children);
+      });
+    expect(headings).toEqual(["Actions", "Description"]);
+    expect(
+      screen.getByText(
+        "Acknowledge to let your team know you are responding. Resolve once recovery is confirmed.",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Acknowledge alert" }),
+    ).toBeTruthy();
+  });
+
+  test("resolved alerts explain the next step and retain reachable team notes", async () => {
+    mockAlertDetail.current = queryState<AlertItem | null>({
+      data: makeLoadedAlert({
+        currentAlertState: makeNamedEntityWithColor({
+          _id: RESOLVED_STATE._id,
+          name: RESOLVED_STATE.name,
+        }),
+      }),
+    });
+    await renderScreen(createTestQueryClient());
+    expect(
+      screen.getByText(
+        "This alert is resolved. Review the context and team notes below.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Resolve alert" })).toBeNull();
+    expect(
+      screen.getByTestId("detail-scroll").props.contentContainerStyle
+        .paddingBottom,
+    ).toBe(248);
   });
 });

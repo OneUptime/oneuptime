@@ -56,16 +56,19 @@ export default function GradientButton({
          * moment they ask what it is doing.
          */
         accessibilityLabel={label}
+        accessibilityState={{ disabled: isDisabled, busy: loading }}
         onPress={onPress}
         disabled={isDisabled}
         style={[
           {
-            height: 50,
-            borderRadius: 12,
+            minHeight: 52,
+            paddingHorizontal: 16,
+            paddingVertical: 14,
+            borderRadius: 14,
             alignItems: "center" as const,
             justifyContent: "center" as const,
             overflow: "hidden" as const,
-            backgroundColor: "transparent",
+            backgroundColor: theme.colors.backgroundTertiary,
             borderWidth: 1,
             borderColor: theme.colors.borderDefault,
             opacity: isDisabled ? 0.5 : 1,
@@ -108,12 +111,15 @@ export default function GradientButton({
       accessibilityRole="button"
       /* Named explicitly for the reason given on the secondary variant above. */
       accessibilityLabel={label}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
       onPress={onPress}
       disabled={isDisabled}
       style={[
         {
-          height: 50,
-          borderRadius: 12,
+          minHeight: 52,
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+          borderRadius: 14,
           overflow: "hidden" as const,
           alignItems: "center" as const,
           justifyContent: "center" as const,
@@ -121,10 +127,10 @@ export default function GradientButton({
           backgroundColor: theme.colors.actionPrimary,
           opacity: isDisabled ? 0.5 : 1,
           shadowColor: theme.colors.actionPrimary,
-          shadowOpacity: 0.3,
+          shadowOpacity: 0,
           shadowOffset: { width: 0, height: 4 },
           shadowRadius: 12,
-          elevation: 4,
+          elevation: 0,
         },
         style,
       ]}

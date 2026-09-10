@@ -96,6 +96,20 @@ function resultWith(
 }
 
 describe("When the responder is on duty", () => {
+  test("explains assignment types and leaves room after the final policy", async (): Promise<void> => {
+    mockOnCallPolicies.current = resultWith({
+      projects: [makeProjectAssignments()],
+      totalAssignments: 1,
+    });
+    await render(<MyOnCallPoliciesScreen />);
+    expect(
+      screen.getByText(/Direct assignments page you personally/),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("oncall-policies-scroll").props.contentContainerStyle
+        .paddingBottom,
+    ).toBeGreaterThanOrEqual(124);
+  });
   beforeEach(() => {
     mockOnCallPolicies.current = resultWith({
       projects: [makeProjectAssignments()],
@@ -117,7 +131,7 @@ describe("When the responder is on duty", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/on duty for 1 assignment across 1 project\./i),
+        screen.getByText(/on duty for 1 assignment in the selected project\./i),
       ).toBeTruthy();
     });
   });

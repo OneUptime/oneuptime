@@ -255,6 +255,47 @@ describe("An authentication that succeeds", () => {
 });
 
 describe("An authentication that does not succeed", () => {
+  test("a native prompt failure leaves an explained retry and never unlocks", async () => {
+    const onSuccess: MockedFunction<() => void> = jest.fn<() => void>();
+    mockAuthenticateAsync.mockRejectedValueOnce(
+      new Error("Native prompt unavailable"),
+    );
+    await renderLockScreen(onSuccess);
+    await screen.findByText(
+      "The unlock prompt could not open. Tap Unlock to try again.",
+    );
+    expect(onSuccess).not.toHaveBeenCalled();
+    await pressUnlock();
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+  });
+
+  test("a pending OS prompt cannot be opened again by the unlock control", async () => {
+    let finish: ((value: AuthenticationResult) => void) | undefined;
+    mockAuthenticateAsync.mockImplementationOnce(() => {
+      return new Promise((resolve: (value: AuthenticationResult) => void) => {
+        finish = resolve;
+      });
+    });
+    const onSuccess: MockedFunction<() => void> = jest.fn<() => void>();
+    await renderLockScreen(onSuccess);
+    const button: ReturnType<typeof screen.getByRole> = screen.getByRole(
+      "button",
+      { name: "Unlock" },
+    );
+    expect(button.props.accessibilityState.disabled).toBe(true);
+    await fireEvent.press(button);
+    expect(mockAuthenticateAsync).toHaveBeenCalledTimes(1);
+    await act(() => {
+      finish?.(CANCELLED);
+    });
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "Unlock" }).props.accessibilityState
+        .disabled,
+    ).toBe(false);
+    expect(screen.getByText(/Your app is still locked/)).toBeTruthy();
+  });
+
   test("a rejected face or finger does not unlock the app", async () => {
     const onSuccess: MockedFunction<() => void> = jest.fn<() => void>();
 

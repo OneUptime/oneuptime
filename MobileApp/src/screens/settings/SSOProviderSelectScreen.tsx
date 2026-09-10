@@ -9,6 +9,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../../theme";
+import { useScreenPadding } from "../../hooks/useScreenPadding";
+import ScreenIntro from "../../components/ScreenIntro";
 import { getServerUrl } from "../../storage/serverUrl";
 import { buildSsoLoginUrl, isProjectScopedKind } from "../../sso/providerUrl";
 import {
@@ -34,6 +36,7 @@ export default function SSOProviderSelectScreen({
   navigation,
 }: Props): React.JSX.Element {
   const { theme } = useTheme();
+  const paddingBottom: number = useScreenPadding();
   const { projectId, projectName, providers } = route.params;
   const [authenticatingId, setAuthenticatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -125,6 +128,11 @@ export default function SSOProviderSelectScreen({
               key={provider._id}
               accessibilityRole="button"
               accessibilityLabel={provider.name}
+              accessibilityHint="Opens your provider in a secure browser and returns you here after sign-in."
+              accessibilityState={{
+                disabled: authenticatingId !== null,
+                busy: isAuthenticating,
+              }}
               onPress={() => {
                 return handleSelectProvider(provider);
               }}
@@ -145,7 +153,7 @@ export default function SSOProviderSelectScreen({
                   flexDirection: "row",
                   alignItems: "center",
                   paddingHorizontal: 16,
-                  paddingVertical: 14,
+                  paddingVertical: 20,
                 }}
               >
                 <View
@@ -182,7 +190,8 @@ export default function SSOProviderSelectScreen({
                   {provider.description ? (
                     <Text
                       style={{
-                        fontSize: 13,
+                        fontSize: 14,
+                        lineHeight: 21,
                         marginTop: 3,
                         color: theme.colors.textSecondary,
                       }}
@@ -217,10 +226,10 @@ export default function SSOProviderSelectScreen({
   ): React.JSX.Element => {
     return (
       <Text
+        accessibilityRole="header"
         style={{
-          fontSize: 12,
+          fontSize: 16,
           fontWeight: "600",
-          textTransform: "uppercase",
           marginBottom: 8,
           marginLeft: 4,
           color: theme.colors.textTertiary,
@@ -234,16 +243,22 @@ export default function SSOProviderSelectScreen({
 
   return (
     <ScrollView
+      testID="sso-provider-scroll"
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
+      contentContainerStyle={{ padding: 20, paddingBottom }}
     >
+      <ScreenIntro
+        title="Choose your provider"
+        eyebrow="PROJECT SIGN-IN"
+        description="Continue with the account your team uses for work."
+      />
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
           marginBottom: 20,
           padding: 16,
-          borderRadius: 14,
+          borderRadius: 16,
           backgroundColor: theme.colors.backgroundElevated,
           borderWidth: 1,
           borderColor: theme.colors.borderGlass,
@@ -289,8 +304,34 @@ export default function SSOProviderSelectScreen({
         </View>
       </View>
 
+      <Text
+        style={{
+          fontSize: 14,
+          lineHeight: 21,
+          color: theme.colors.textSecondary,
+          marginBottom: 24,
+        }}
+      >
+        A secure browser will open for sign-in. You will return to your projects
+        when you are done.
+      </Text>
+      {authenticatingId ? (
+        <Text
+          accessibilityLiveRegion="polite"
+          style={{
+            fontSize: 15,
+            lineHeight: 23,
+            color: theme.colors.actionPrimary,
+            marginBottom: 16,
+          }}
+        >
+          Continue signing in with your provider in the browser…
+        </Text>
+      ) : null}
       {error ? (
         <View
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
           style={{
             flexDirection: "row",
             alignItems: "flex-start",

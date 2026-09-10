@@ -1,5 +1,7 @@
 import React from "react";
-import { Dimensions, Platform, StyleSheet, type ViewStyle } from "react-native";
+import { Dimensions, StyleSheet, type ViewStyle } from "react-native";
+import { SafeAreaInsetsContext } from "react-native-safe-area-context";
+import { getScreenBottomPadding } from "../theme/layout";
 import {
   NavigationContainer,
   createNavigationContainerRef,
@@ -10,6 +12,31 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import { describe, expect, test, jest, afterEach } from "@jest/globals";
 import MainTabNavigator from "./MainTabNavigator";
 import type { MainTabParamList } from "./types";
+
+jest.mock("./ProjectNavigationSync", () => {
+  return {
+    __esModule: true,
+    default: () => {
+      return null;
+    },
+  };
+});
+jest.mock("../components/ProjectSwitcher", () => {
+  const ReactModule: typeof React = jest.requireActual("react");
+  const { Text } = jest.requireActual(
+    "react-native",
+  ) as typeof import("react-native");
+  return {
+    __esModule: true,
+    default: () => {
+      return ReactModule.createElement(
+        Text,
+        { accessibilityRole: "header" },
+        "Project Alpha",
+      );
+    },
+  };
+});
 
 /*
  * The tab bar is the only way into five of the six things this app does, so
@@ -165,9 +192,9 @@ const EVERY_DECLARED_TAB: Record<keyof MainTabParamList, TabExpectation> = {
 
 const DECLARED_TAB_NAMES: Array<string> = Object.keys(EVERY_DECLARED_TAB);
 
-async function renderTabs(): Promise<
-  NavigationContainerRefWithCurrent<MainTabParamList>
-> {
+async function renderTabs(
+  bottomInset: number = 0,
+): Promise<NavigationContainerRefWithCurrent<MainTabParamList>> {
   const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
     createNavigationContainerRef<MainTabParamList>();
 
@@ -177,9 +204,13 @@ async function renderTabs(): Promise<
    * tree half-mounted and the navigation ref unattached.
    */
   await render(
-    <NavigationContainer ref={navigationRef}>
-      <MainTabNavigator />
-    </NavigationContainer>,
+    <SafeAreaInsetsContext.Provider
+      value={{ top: 44, bottom: bottomInset, left: 0, right: 0 }}
+    >
+      <NavigationContainer ref={navigationRef}>
+        <MainTabNavigator />
+      </NavigationContainer>
+    </SafeAreaInsetsContext.Provider>,
   );
 
   return navigationRef;
@@ -293,7 +324,7 @@ describe("The header each tab is given", () => {
   test("Home wears the tab navigator's own header", async () => {
     await renderTabs();
 
-    expect(screen.getByRole("heading", { name: "Home" })).toBeTruthy();
+    expect(screen.getByRole("header", { name: "Project Alpha" })).toBeTruthy();
   });
 
   test("a tab that owns a stack is left to draw its own header", async () => {
@@ -330,19 +361,25 @@ describe("How wide the device is", () => {
     } as never);
   }
 
-  test("a phone shows icons only, and still names them", async () => {
-    /*
-     * Under 768pt the written labels are dropped for room. That is a
-     * deliberate choice and it is fine - as long as the name survives for the
-     * people who cannot see the icon, which is the pair of assertions here.
-     */
-    pretendTheScreenIs(390);
+  test.each([320, 360, 390, 430])(
+    "a %dpt phone shows readable labels for every destination",
+    async (width: number) => {
+      /*
+       * Written labels remain on every phone size. Accessible names and
+       * visible text must agree so people do not need to memorize the icons.
+       */
+      pretendTheScreenIs(width);
 
-    await renderTabs();
+      await renderTabs();
 
-    expect(screen.queryByText("Monitors")).toBeNull();
-    expect(screen.getByLabelText("Monitors")).toBeTruthy();
-  });
+      expect(screen.getByText("Monitors")).toBeTruthy();
+      expect(screen.getByText("Incidents")).toBeTruthy();
+      expect(screen.getByText("Alerts")).toBeTruthy();
+      expect(screen.getByText("On-Call")).toBeTruthy();
+      expect(screen.getByText("Settings")).toBeTruthy();
+      expect(screen.getByLabelText("Monitors")).toBeTruthy();
+    },
+  );
 
   test("a tablet has room to write the labels out", async () => {
     pretendTheScreenIs(1024);
@@ -355,32 +392,34 @@ describe("How wide the device is", () => {
 });
 
 describe("The tab bar this platform gets", () => {
-  test("it stands clear of the system gesture area by this platform's amount", async () => {
-    /*
-     * The bar floats above the content rather than sitting on the bottom edge,
-     * so it has to be lifted past whatever the OS puts down there: the home
-     * indicator on iOS, the shorter navigation area on Android. Collapsing the
-     * two to one number puts the bar under the system's own control on one of
-     * them, and this is the assertion that says which is which.
-     *
-     * Platform.OS is inlined by babel-preset-expo per Jest project, so each
-     * project checks its own numbers and neither can satisfy the other's.
-     */
-    const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
-      await renderTabs();
+  test.each([0, 16, 24, 34, 48])(
+    "it clears a %dpt system gesture area and leaves 40pt after the last item",
+    async (bottomInset: number) => {
+      /*
+       * The bar floats above the content rather than sitting on the bottom edge,
+       * so it has to be lifted past whatever the OS puts down there: the home
+       * indicator on iOS, the shorter navigation area on Android. Collapsing the
+       * two to one number puts the bar under the system's own control on one of
+       * them, and this is the assertion that says which is which.
+       *
+       * Platform.OS is inlined by babel-preset-expo per Jest project, so each
+       * project checks its own numbers and neither can satisfy the other's.
+       */
+      const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+        await renderTabs(bottomInset);
 
-    const tabBarStyle: ViewStyle = currentTabBarStyle(navigationRef);
+      const tabBarStyle: ViewStyle = currentTabBarStyle(navigationRef);
 
-    if (Platform.OS === "ios") {
-      expect(tabBarStyle.bottom).toBe(14);
-      expect(tabBarStyle.height).toBe(78);
-      expect(tabBarStyle.paddingBottom).toBe(18);
-    } else {
-      expect(tabBarStyle.bottom).toBe(10);
-      expect(tabBarStyle.height).toBe(68);
-      expect(tabBarStyle.paddingBottom).toBe(10);
-    }
-  });
+      expect(tabBarStyle.bottom).toBe(Math.max(bottomInset, 12));
+      expect(tabBarStyle.height).toBe(72);
+      expect(tabBarStyle.paddingBottom).toBe(8);
+      expect(
+        getScreenBottomPadding(bottomInset) -
+          Number(tabBarStyle.bottom) -
+          Number(tabBarStyle.height),
+      ).toBe(40);
+    },
+  );
 
   test("it floats, on both platforms", async () => {
     const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
@@ -389,7 +428,7 @@ describe("The tab bar this platform gets", () => {
     const tabBarStyle: ViewStyle = currentTabBarStyle(navigationRef);
 
     expect(tabBarStyle.position).toBe("absolute");
-    expect(tabBarStyle.left).toBe(14);
-    expect(tabBarStyle.right).toBe(14);
+    expect(tabBarStyle.left).toBe(8);
+    expect(tabBarStyle.right).toBe(8);
   });
 });

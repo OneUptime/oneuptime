@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
-import { useProject } from "./useProject";
+import { useActiveProject } from "./useProject";
 import { fetchCurrentOnDutyEscalationPolicies } from "../api/onCallPolicies";
 import { getGlobalSsoToken, getSsoTokens } from "../storage/ssoTokens";
 import type {
@@ -108,7 +108,7 @@ function toAssignments(
 }
 
 export function useAllProjectOnCallPolicies(): UseAllProjectOnCallPoliciesResult {
-  const { projectList, isLoadingProjects } = useProject();
+  const { projectList, isLoadingProjects } = useActiveProject();
 
   const query: UseQueryResult<OnCallDutyAcrossProjects, Error> = useQuery({
     queryKey: [
@@ -136,6 +136,12 @@ export function useAllProjectOnCallPolicies(): UseAllProjectOnCallPoliciesResult
           );
         },
       );
+
+      if (projectList.length > 0 && authenticatedProjects.length === 0) {
+        throw new Error(
+          "Sign in with SSO for the selected project to view your on-call duty.",
+        );
+      }
 
       const results: PromiseSettledResult<ProjectOnCallAssignments | null>[] =
         await Promise.allSettled(
@@ -191,13 +197,8 @@ export function useAllProjectOnCallPolicies(): UseAllProjectOnCallPoliciesResult
        * failedProjectCount so the screen can show what it has and say what it
        * could not reach.
        *
-       * Projects filtered out above for pending SSO are deliberately NOT part
-       * of this. Not having completed SSO is a state the app already knows
-       * about and already offers a fix for (the sign-in affordance on Home) -
-       * counting it as a failure would replace an actionable prompt with a
-       * dead end, and would put the whole screen into an error state that
-       * refetching cannot clear. Only projects we actually asked, and that
-       * actually did not answer, count as "could not establish".
+       * An SSO-locked selected project is rejected above. Its absence must
+       * never be presented as a successful empty duty list.
        */
       if (results.length > 0 && failedProjectCount === results.length) {
         throw new Error(
