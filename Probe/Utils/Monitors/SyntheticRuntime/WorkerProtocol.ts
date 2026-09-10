@@ -1,4 +1,9 @@
 import crypto from "crypto";
+import {
+  SYNTHETIC_RUNTIME_FAULT_KIND,
+  SyntheticRuntimeFaultKind,
+  isSyntheticRuntimeFault,
+} from "./SyntheticRuntimeFault";
 
 export const SYNTHETIC_WORKER_PROTOCOL_VERSION: 1 = 1 as const;
 export const SYNTHETIC_WORKER_START_MESSAGE_TYPE: "oneuptime.synthetic.start" =
@@ -35,6 +40,12 @@ export interface SyntheticWorkerFailureEnvelope {
   readonly error: {
     readonly message: string;
     readonly stack?: string | undefined;
+    /*
+     * Present only when the worker failed to start itself, as opposed to the
+     * tenant's script failing. The supervisor needs to tell the two apart
+     * after the Error object itself has been flattened for IPC.
+     */
+    readonly kind?: SyntheticRuntimeFaultKind | undefined;
   };
 }
 
@@ -160,6 +171,9 @@ export function createWorkerFailureEnvelope(data: {
         MAX_ERROR_MESSAGE_LENGTH,
       ),
       ...(stack ? { stack } : {}),
+      ...(isSyntheticRuntimeFault(data.error)
+        ? { kind: SYNTHETIC_RUNTIME_FAULT_KIND }
+        : {}),
     },
   };
 }
@@ -210,8 +224,13 @@ export function isWorkerResultEnvelope<Result>(data: {
   }
 
   const error: Record<string, unknown> = data.value["error"];
-  const expectedErrorKeys: string[] =
-    error["stack"] === undefined ? ["message"] : ["message", "stack"];
+  const expectedErrorKeys: string[] = ["message"];
+  if (error["stack"] !== undefined) {
+    expectedErrorKeys.push("stack");
+  }
+  if (error["kind"] !== undefined) {
+    expectedErrorKeys.push("kind");
+  }
 
   return (
     hasExactKeys(error, expectedErrorKeys) &&
@@ -220,6 +239,8 @@ export function isWorkerResultEnvelope<Result>(data: {
     error["message"].length <= MAX_ERROR_MESSAGE_LENGTH &&
     (error["stack"] === undefined ||
       (typeof error["stack"] === "string" &&
-        error["stack"].length <= MAX_ERROR_STACK_LENGTH))
+        error["stack"].length <= MAX_ERROR_STACK_LENGTH)) &&
+    (error["kind"] === undefined ||
+      error["kind"] === SYNTHETIC_RUNTIME_FAULT_KIND)
   );
 }

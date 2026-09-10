@@ -388,6 +388,12 @@ services:
   probe-1:
     restart: always
     network_mode: host
+    # Chromium keeps its shared-memory segments in /dev/shm, and Docker gives a
+    # container 64MB of it by default. Several concurrent synthetic browsers at
+    # a desktop viewport exhaust that, and a browser that cannot allocate
+    # shared memory does not fail cleanly -- its renderer or network service
+    # wedges, and the synthetic runtime's first navigation never completes.
+    shm_size: ${GLOBAL_PROBE_1_SHM_SIZE:-512m}
     # The probe remains root so its trusted supervisor can assign a unique UID
     # to every synthetic execution. Drop everything except the capabilities it
     # needs to prepare, terminate, and clean up those workers (plus NET_RAW for
@@ -447,6 +453,12 @@ services:
   probe-2:
     restart: always
     network_mode: host
+    # Chromium keeps its shared-memory segments in /dev/shm, and Docker gives a
+    # container 64MB of it by default. Several concurrent synthetic browsers at
+    # a desktop viewport exhaust that, and a browser that cannot allocate
+    # shared memory does not fail cleanly -- its renderer or network service
+    # wedges, and the synthetic runtime's first navigation never completes.
+    shm_size: ${GLOBAL_PROBE_2_SHM_SIZE:-512m}
     cap_drop:
       - ALL
     cap_add:

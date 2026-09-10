@@ -946,6 +946,179 @@ describe("SyntheticRuntime WorkerController", () => {
     expect(result.returnValue).toEqual({ data: [1, 2, 3] });
   });
 
+  test("recovers in a real browser when the first bootstrap navigation stalls", async () => {
+    /*
+     * The customer-reported failure, reproduced against a real Chromium: the
+     * controller page's navigation never comes back, and the check dies with
+     *
+     *   page.goto: Timeout 30000ms exceeded.
+     *   Call log: - navigating to "https://synthetic-runtime.oneuptime.invalid/<id>",
+     *             waiting until "domcontentloaded"
+     *
+     * The stall is injected rather than provoked -- a healthy browser will not
+     * wedge on demand -- but everything after it is real: a real second page
+     * in the same real context, and the tenant's script actually running.
+     */
+    const browserContext: BrowserContext = await browser.newContext({
+      viewport: { width: 800, height: 600 },
+    });
+    await browserContext.route(`${TARGET_URL}**`, async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "text/html; charset=utf-8",
+        body: "<!doctype html><title>Synthetic target</title><main>ready</main>",
+      });
+    });
+    const page: Page = await browserContext.newPage();
+
+    const openedPages: Page[] = [];
+    const realNewPage: () => Promise<Page> =
+      browserContext.newPage.bind(browserContext);
+    let stalledOnce: boolean = false;
+
+    const contextWithOneStall: BrowserContext = new Proxy(browserContext, {
+      get(
+        target: BrowserContext,
+        property: string | symbol,
+        receiver: unknown,
+      ) {
+        if (property !== "newPage") {
+          return Reflect.get(target, property, receiver);
+        }
+
+        return async (): Promise<Page> => {
+          const created: Page = await realNewPage();
+          openedPages.push(created);
+
+          if (stalledOnce) {
+            return created;
+          }
+          stalledOnce = true;
+
+          return new Proxy(created, {
+            get(
+              pageTarget: Page,
+              pageProperty: string | symbol,
+              pageReceiver: unknown,
+            ) {
+              if (pageProperty !== "goto") {
+                return Reflect.get(pageTarget, pageProperty, pageReceiver);
+              }
+
+              return async (url: string): Promise<never> => {
+                const error: Error = new Error(
+                  [
+                    "page.goto: Timeout 30000ms exceeded.",
+                    "Call log:",
+                    `  - navigating to "${url}", waiting until "domcontentloaded"`,
+                  ].join("\n"),
+                );
+                error.name = "TimeoutError";
+                throw error;
+              };
+            },
+          });
+        };
+      },
+    }) as BrowserContext;
+
+    try {
+      const result: SandboxExecutionResult = await WorkerController.execute({
+        browserContext: contextWithOneStall,
+        page,
+        code: `
+          await page.goto(${JSON.stringify(TARGET_URL)});
+          const text = await page.locator("main").innerText();
+          return { data: { text } };
+        `,
+        browserType: "Chromium",
+        screenSizeType: "Desktop",
+        args: {},
+        timeoutInMs: 10_000,
+      });
+
+      expect(result.scriptError).toBeUndefined();
+      expect(result.returnValue).toEqual({ data: { text: "ready" } });
+      // One page for the stalled attempt, one for the attempt that worked.
+      expect(openedPages).toHaveLength(2);
+      expect(openedPages[0]!.isClosed()).toBe(true);
+    } finally {
+      await browserContext.close();
+    }
+  });
+
+  test("reports a probe-side fault, not a script error, when every bootstrap attempt stalls", async () => {
+    const browserContext: BrowserContext = await browser.newContext({
+      viewport: { width: 800, height: 600 },
+    });
+    const page: Page = await browserContext.newPage();
+    const realNewPage: () => Promise<Page> =
+      browserContext.newPage.bind(browserContext);
+
+    const alwaysStalling: BrowserContext = new Proxy(browserContext, {
+      get(
+        target: BrowserContext,
+        property: string | symbol,
+        receiver: unknown,
+      ) {
+        if (property !== "newPage") {
+          return Reflect.get(target, property, receiver);
+        }
+
+        return async (): Promise<Page> => {
+          const created: Page = await realNewPage();
+          return new Proxy(created, {
+            get(
+              pageTarget: Page,
+              pageProperty: string | symbol,
+              pageReceiver: unknown,
+            ) {
+              if (pageProperty !== "goto") {
+                return Reflect.get(pageTarget, pageProperty, pageReceiver);
+              }
+              return async (): Promise<never> => {
+                const error: Error = new Error(
+                  "page.goto: Timeout 30000ms exceeded.",
+                );
+                error.name = "TimeoutError";
+                throw error;
+              };
+            },
+          });
+        };
+      },
+    }) as BrowserContext;
+
+    try {
+      const error: Error = await WorkerController.execute({
+        browserContext: alwaysStalling,
+        page,
+        code: "return { data: true };",
+        browserType: "Chromium",
+        screenSizeType: "Desktop",
+        args: {},
+        timeoutInMs: 10_000,
+        bootstrapAttempts: 2,
+        bootstrapTimeoutInMs: 1000,
+      }).then(
+        (): never => {
+          throw new Error("Expected the bootstrap to fail.");
+        },
+        (caught: Error): Error => {
+          return caught;
+        },
+      );
+
+      expect((error as { kind?: string }).kind).toBe("probe-runtime");
+      expect(error.message).not.toContain(
+        "synthetic-runtime.oneuptime.invalid",
+      );
+      expect(error.message).toContain("could not start on this probe");
+    } finally {
+      await browserContext.close();
+    }
+  });
+
   test("uses the same copy-only runtime in Firefox", async () => {
     const firefoxBrowser: Browser = await firefox.launch({ headless: true });
     const firefoxContext: BrowserContext = await firefoxBrowser.newContext();

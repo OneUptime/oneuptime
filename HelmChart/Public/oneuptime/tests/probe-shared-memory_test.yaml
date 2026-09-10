@@ -1,0 +1,110 @@
+# Chromium keeps its shared-memory segments in /dev/shm. A container gets 64Mi
+# of it by default, which is not enough for syntheticMonitorMaxConcurrency
+# browsers at a 1920x1080 viewport -- and running out of it does not surface as
+# a clean browser error. The browser process starts, launchPersistentContext
+# resolves, pages open, and then the synthetic runtime's first navigation
+# simply never completes, which reaches the customer as a 30-second page.goto
+# timeout on an internal URL.
+#
+# These render assertions exist because that failure is invisible in a
+# deployment that "works": the volume is either there or the probe is one busy
+# night away from the bug.
+suite: probe shared memory
+templates:
+  - templates/probe.yaml
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: gives every probe a memory-backed /dev/shm larger than the 64Mi default
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: dshm
+            mountPath: /dev/shm
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: dshm
+            emptyDir:
+              medium: Memory
+              sizeLimit: 512Mi
+
+  - it: keeps the temporary-storage volume alongside it
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: synthetic-runtime-tmp
+            mountPath: /tmp
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: synthetic-runtime-tmp
+            emptyDir:
+              sizeLimit: "2Gi"
+
+  - it: honours a per-probe shared-memory override
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      probes.one.syntheticMonitorSharedMemorySizeLimit: 1Gi
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: dshm
+            emptyDir:
+              medium: Memory
+              sizeLimit: 1Gi
+
+  - it: keeps shared memory sized independently of the temporary-storage limit
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      probes.one.syntheticMonitorTempStorageSizeLimit: 8Gi
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: dshm
+            emptyDir:
+              medium: Memory
+              sizeLimit: 512Mi
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: synthetic-runtime-tmp
+            emptyDir:
+              sizeLimit: "8Gi"
+
+  - it: keeps extra volumes from displacing either of them
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      probes.one.extraVolumes:
+        - name: custom
+          emptyDir: {}
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: dshm
+            emptyDir:
+              medium: Memory
+              sizeLimit: 512Mi
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: custom
+            emptyDir: {}

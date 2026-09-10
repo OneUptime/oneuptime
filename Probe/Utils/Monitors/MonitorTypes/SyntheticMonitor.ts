@@ -21,13 +21,38 @@ import LocalFile from "Common/Server/Utils/LocalFile";
 import os from "os";
 import path from "path";
 import { SYNTHETIC_MONITOR_WORKER_STARTUP_ALLOWANCE_IN_MS } from "../SyntheticRuntime/Limits";
-import ProcessRunner from "../SyntheticRuntime/ProcessRunner";
+import ProcessRunner, {
+  SyntheticProcessRunnerError,
+} from "../SyntheticRuntime/ProcessRunner";
+import { isSyntheticRuntimeFault } from "../SyntheticRuntime/SyntheticRuntimeFault";
+import { SYNTHETIC_RUNTIME_CONTROLLER_HOST } from "../SyntheticRuntime/ControllerOrigin";
 import {
   SyntheticMonitorWorkerConfig,
   SyntheticMonitorWorkerProxy,
   SyntheticMonitorWorkerResult,
   isSyntheticMonitorWorkerResult,
 } from "../SyntheticRuntime/SyntheticMonitorWorkerTypes";
+
+/*
+ * A failure of the probe's own runtime is not the tenant's failure, so it is
+ * retried whatever the tenant set Retry Count On Error to -- that setting is
+ * about their script, and they should not have to raise it to absorb our
+ * browser failing to start. One extra attempt is enough: the stall this
+ * covers is transient by nature (a saturated probe, a wedged page), and the
+ * retry runs a whole fresh worker process and browser, so it is not free.
+ */
+const SYNTHETIC_RUNTIME_FAULT_RETRY_ATTEMPTS: number = 1;
+const SYNTHETIC_RUNTIME_FAULT_RETRY_DELAY_IN_MS: number = 2000;
+const RETRY_DELAY_IN_MS: number = 1000;
+
+interface SyntheticMonitorAttempt {
+  response: SyntheticMonitorResponse;
+  /*
+   * True when the check never got as far as the tenant's script: the browser,
+   * the controller page, or the sandbox failed to start.
+   */
+  isRuntimeFault: boolean;
+}
 
 export interface SyntheticMonitorOptions {
   monitorId?: ObjectID | undefined;
@@ -89,54 +114,70 @@ export default class SyntheticMonitor {
     attemptHistory?: Array<RetryAttempt>;
   }): Promise<SyntheticMonitorResponse | null> {
     const currentRetry: number = options.currentRetry || 0;
-    const maxRetries: number = options.retryCountOnError;
     const attemptHistory: Array<RetryAttempt> = options.attemptHistory || [];
 
-    const result: SyntheticMonitorResponse | null =
+    const attempt: SyntheticMonitorAttempt =
       await this.executeByBrowserAndScreenSize({
         script: options.script,
         browserType: options.browserType,
         screenSizeType: options.screenSizeType,
       });
+    const result: SyntheticMonitorResponse = attempt.response;
 
-    if (result) {
-      attemptHistory.push({
-        attemptNumber: currentRetry + 1,
-        scriptError: result.scriptError,
-        executionTimeInMS: result.executionTimeInMS,
-      });
-    }
+    /*
+     * Two different budgets, and the larger wins: what the tenant asked for
+     * when THEIR script fails, and our own floor when the probe's runtime is
+     * what failed. Without the second one, the customer-visible failure this
+     * whole path exists to prevent -- a transient bootstrap stall reported as
+     * their script erroring -- reaches them on the very first attempt,
+     * because Retry Count On Error defaults to zero.
+     */
+    const maxRetries: number = attempt.isRuntimeFault
+      ? Math.max(
+          options.retryCountOnError,
+          SYNTHETIC_RUNTIME_FAULT_RETRY_ATTEMPTS,
+        )
+      : options.retryCountOnError;
+
+    attemptHistory.push({
+      attemptNumber: currentRetry + 1,
+      scriptError: result.scriptError,
+      executionTimeInMS: result.executionTimeInMS,
+    });
 
     // If there's an error and we haven't exceeded retry count, retry
-    if (result?.scriptError && currentRetry < maxRetries) {
+    if (result.scriptError && currentRetry < maxRetries) {
       logger.debug(
-        `Synthetic Monitor script error, retrying (${currentRetry + 1}/${maxRetries}): ${result.scriptError}`,
+        `Synthetic Monitor ${attempt.isRuntimeFault ? "runtime fault" : "script error"}, retrying (${currentRetry + 1}/${maxRetries}): ${result.scriptError}`,
       );
 
       // Wait a bit before retrying
       await new Promise((resolve: (value: void) => void) => {
-        setTimeout(resolve, 1000);
+        setTimeout(
+          resolve,
+          attempt.isRuntimeFault
+            ? SYNTHETIC_RUNTIME_FAULT_RETRY_DELAY_IN_MS
+            : RETRY_DELAY_IN_MS,
+        );
       });
 
       return this.executeWithRetry({
         script: options.script,
         browserType: options.browserType,
         screenSizeType: options.screenSizeType,
-        retryCountOnError: maxRetries,
+        retryCountOnError: options.retryCountOnError,
         currentRetry: currentRetry + 1,
         attemptHistory: attemptHistory,
       });
     }
 
-    if (result) {
-      result.totalAttempts = attemptHistory.length;
-      /*
-       * Per-attempt history is only useful when more than one attempt occurred.
-       * Skip populating it for clean single-attempt runs to keep the log payload small.
-       */
-      if (attemptHistory.length > 1) {
-        result.retryAttempts = attemptHistory;
-      }
+    result.totalAttempts = attemptHistory.length;
+    /*
+     * Per-attempt history is only useful when more than one attempt occurred.
+     * Skip populating it for clean single-attempt runs to keep the log payload small.
+     */
+    if (attemptHistory.length > 1) {
+      result.retryAttempts = attemptHistory;
     }
 
     return result;
@@ -146,7 +187,7 @@ export default class SyntheticMonitor {
     script: string;
     browserType: BrowserType;
     screenSizeType: ScreenSizeType;
-  }): Promise<SyntheticMonitorResponse | null> {
+  }): Promise<SyntheticMonitorAttempt> {
     if (!options) {
       // this should never happen
       options = {
@@ -234,12 +275,57 @@ export default class SyntheticMonitor {
         scriptResult.scriptError = result.scriptError;
       }
     } catch (err: unknown) {
+      if (this.isRuntimeFault(err)) {
+        /*
+         * Ours, not theirs: no EXTERNAL_FAULT here, and the worker-side stack
+         * is logged separately so the probe operator still gets the Playwright
+         * detail that the tenant-facing message deliberately leaves out.
+         */
+        logger.error(
+          `Synthetic Monitor runtime fault (browser: ${options.browserType}, screen size: ${options.screenSizeType}): ${(err as Error).message}`,
+        );
+        const detail: string | undefined = this.getRuntimeFaultDetail(err);
+        if (detail) {
+          logger.error(detail);
+        }
+
+        scriptResult.scriptError = (err as Error).message;
+        return { response: scriptResult, isRuntimeFault: true };
+      }
+
       logger.error(err);
       scriptResult.scriptError =
         (err as Error)?.message || (err as Error).toString();
     }
 
-    return scriptResult;
+    return { response: scriptResult, isRuntimeFault: false };
+  }
+
+  /**
+   * Did the check fail before the tenant's script ever ran?
+   *
+   * The fault is raised inside the worker process, so by the time it gets
+   * here the Error object itself is gone -- the supervisor rebuilt it from
+   * the IPC failure envelope, which carries the marker across (see
+   * WorkerProtocol). Both shapes are accepted because a fault raised on this
+   * side of the fork never crosses that boundary at all.
+   */
+  private static isRuntimeFault(error: unknown): boolean {
+    if (isSyntheticRuntimeFault(error)) {
+      return true;
+    }
+
+    return error instanceof SyntheticProcessRunnerError && Boolean(error.kind);
+  }
+
+  private static getRuntimeFaultDetail(error: unknown): string | undefined {
+    if (error instanceof SyntheticProcessRunnerError) {
+      return error.remoteStack;
+    }
+    if (isSyntheticRuntimeFault(error)) {
+      return error.internalDetail;
+    }
+    return undefined;
   }
 
   private static getViewportHeightAndWidth(options: {
@@ -423,9 +509,19 @@ export default class SyntheticMonitor {
           server: proxyUrl,
         };
 
-        if (NO_PROXY.length > 0) {
-          proxy.bypass = NO_PROXY.join(",");
-        }
+        /*
+         * The sentinel controller origin is always bypassed, ahead of whatever
+         * the operator configured. Interception fulfils that navigation before
+         * the network stack is reached, so in practice the proxy never sees it
+         * -- but "in practice" is an ordering assumption inside Chromium, and
+         * the cost of not relying on it is one entry in a list. A corporate
+         * proxy asked to reach a host that cannot resolve does not fail fast;
+         * it hangs, and the runtime bootstrap is exactly where that is least
+         * affordable.
+         */
+        proxy.bypass = [SYNTHETIC_RUNTIME_CONTROLLER_HOST, ...NO_PROXY].join(
+          ",",
+        );
 
         // Extract username and password if present in proxy URL
         try {
