@@ -19,6 +19,11 @@ import logger from "Common/Server/Utils/Logger";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
+import {
+  getSecretValuesForRedaction,
+  getSecretWorkflowVariableValues,
+  redactSecretsFromString,
+} from "../Utils/SecretRedaction";
 
 export default class QueueWorkflow {
   public static async removeWorkflow(workflowId: ObjectID): Promise<void> {
@@ -300,6 +305,8 @@ export default class QueueWorkflow {
         select: {
           name: true,
           content: true,
+          // Needed to scrub secrets out of the schedule error below.
+          isSecret: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -316,6 +323,8 @@ export default class QueueWorkflow {
         select: {
           name: true,
           content: true,
+          // Needed to scrub secrets out of the schedule error below.
+          isSecret: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -345,6 +354,7 @@ export default class QueueWorkflow {
       rawSchedule,
       localVariableMap,
       globalVariableMap,
+      getSecretWorkflowVariableValues([...localVariables, ...globalVariables]),
     );
   }
 
@@ -357,12 +367,44 @@ export default class QueueWorkflow {
    * Returns the concrete cron on success, or a human-readable `error` when the
    * pattern is still unresolved (a referenced variable is missing) or is not a
    * valid cron expression.
+   *
+   * `secretValues` are the contents of the secret workflow variables in scope.
+   * The returned `error` quotes the resolved schedule, and the caller writes it
+   * straight into a WorkflowLog row that anyone with workflow read permission
+   * can read — so a secret substituted into the schedule would otherwise be
+   * published in plaintext by the act of being invalid. They are scrubbed from
+   * the message the same way RunWorkflow scrubs the run log. The returned
+   * `cron` is never scrubbed: it is handed to BullMQ, not to a reader.
+   *
+   * A very short secret ("0", say) will also blank out innocent occurrences of
+   * that text in the message. A mangled error beats a leaked secret, and this
+   * matches how the run log has always behaved.
    */
   public static buildScheduleCronFromVariables(
     rawSchedule: string,
     localVariables: Record<string, string>,
     globalVariables: Record<string, string>,
+    secretValues: Array<string> = [],
   ): { cron: string; error: string | null } {
+    /*
+     * Normalized here rather than at the call site so a unit test (and any
+     * future caller) can pass raw values in any order and still get the
+     * longest-first ordering overlapping secrets depend on.
+     */
+    const secrets: Array<string> = getSecretValuesForRedaction(secretValues);
+
+    type FailureFunction = (
+      cron: string,
+      error: string,
+    ) => { cron: string; error: string | null };
+
+    const failure: FailureFunction = (
+      cron: string,
+      error: string,
+    ): { cron: string; error: string | null } => {
+      return { cron: cron, error: redactSecretsFromString(error, secrets) };
+    };
+
     const storageMap: {
       local: { variables: Record<string, string> };
       global: { variables: Record<string, string> };
@@ -381,19 +423,19 @@ export default class QueueWorkflow {
       );
     } catch (err) {
       logger.error(err);
-      return {
-        cron: rawSchedule,
-        error: `Failed to resolve schedule variables for "${rawSchedule}".`,
-      };
+      return failure(
+        rawSchedule,
+        `Failed to resolve schedule variables for "${rawSchedule}".`,
+      );
     }
 
     resolved = (resolved || "").toString().trim();
 
     if (CronTab.isVariableExpression(resolved)) {
-      return {
-        cron: resolved,
-        error: `The schedule "${rawSchedule}" references a variable that could not be resolved. Make sure the referenced workflow or global variable exists and contains a valid cron expression.`,
-      };
+      return failure(
+        resolved,
+        `The schedule "${rawSchedule}" references a variable that could not be resolved. Make sure the referenced workflow or global variable exists and contains a valid cron expression.`,
+      );
     }
 
     const validationError: string | null = CronTab.getValidationError(resolved);
@@ -402,10 +444,10 @@ export default class QueueWorkflow {
       const resolvedNote: string =
         resolved === rawSchedule ? "" : ` (resolved to "${resolved}")`;
 
-      return {
-        cron: resolved,
-        error: `The schedule "${rawSchedule}"${resolvedNote} is not a valid cron expression. ${validationError}`,
-      };
+      return failure(
+        resolved,
+        `The schedule "${rawSchedule}"${resolvedNote} is not a valid cron expression. ${validationError}`,
+      );
     }
 
     return {
