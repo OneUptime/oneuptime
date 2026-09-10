@@ -36,6 +36,7 @@
     "projectTeams": "Equipes",
     "projectTeam": "Equipe",
     "projectSubscription": "Assinatura",
+    "projectSupport": "Suporte",
     "settings": "Configurações",
     "authentication": "Autenticação",
     "emailSettings": "Configurações de e-mail",
@@ -94,6 +95,8 @@
     "teams": "Equipes",
     "billing": "Cobrança",
     "subscription": "Assinatura",
+    "support": "Suporte",
+    "customerSupportAccess": "Acesso do suporte ao cliente",
     "advanced": "Avançado",
     "overview": "Visão geral",
     "projects": "Projetos",
@@ -334,6 +337,16 @@
       "amountTooLarge": "O valor não pode ser maior que {{max}} USD em um único ajuste.",
       "amountTooPrecise": "O valor não pode ter mais de duas casas decimais.",
       "reasonRequired": "Por favor, informe um motivo para este ajuste."
+    },
+    "projectSupport": {
+      "title": "Acesso do suporte ao cliente",
+      "cardTitle": "Acesso do suporte ao cliente",
+      "cardDescription": "Se o suporte ao cliente da OneUptime pode aceder a este projeto para resolução de problemas. É o mesmo botão que o cliente tem nas definições do seu projeto.",
+      "editButton": "Editar o acesso do suporte ao cliente",
+      "fieldLabel": "Permitir que o suporte ao cliente aceda ao projeto",
+      "fieldDescription": "Quando ativado, o suporte ao cliente da OneUptime pode abrir este projeto para investigar um problema. Desative-o novamente assim que a investigação terminar.",
+      "consentWarning": "Ative isto apenas quando o cliente tiver pedido ao suporte para analisar o seu projeto. O cliente pode ativá-lo e desativá-lo nas definições do projeto, pelo que é preferível pedir-lhe que o faça, e desative-o quando a investigação terminar.",
+      "billingDisabled": "A faturação não está ativada nesta instância, pelo que não existe uma equipa de suporte ao cliente da OneUptime a quem conceder acesso. Esta definição aplica-se apenas à edição alojada da OneUptime."
     },
     "projectUsers": {
       "title": "Project Users",

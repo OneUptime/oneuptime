@@ -36,6 +36,7 @@
     "projectTeams": "팀",
     "projectTeam": "팀",
     "projectSubscription": "구독",
+    "projectSupport": "지원",
     "settings": "설정",
     "authentication": "인증",
     "emailSettings": "이메일 설정",
@@ -94,6 +95,8 @@
     "teams": "팀",
     "billing": "결제",
     "subscription": "구독",
+    "support": "지원",
+    "customerSupportAccess": "고객 지원 액세스",
     "advanced": "고급",
     "overview": "개요",
     "projects": "프로젝트",
@@ -334,6 +337,16 @@
       "amountTooLarge": "한 번의 조정에서 금액은 {{max}} USD를 초과할 수 없습니다.",
       "amountTooPrecise": "금액은 소수점 이하 두 자리를 초과할 수 없습니다.",
       "reasonRequired": "이 조정에 대한 사유를 입력하세요."
+    },
+    "projectSupport": {
+      "title": "고객 지원 액세스",
+      "cardTitle": "고객 지원 액세스",
+      "cardDescription": "OneUptime 고객 지원팀이 문제 해결을 위해 이 프로젝트에 액세스할 수 있는지 여부입니다. 고객이 프로젝트 설정에서 사용하는 것과 동일한 스위치입니다.",
+      "editButton": "고객 지원 액세스 편집",
+      "fieldLabel": "고객 지원팀의 프로젝트 액세스 허용",
+      "fieldDescription": "활성화하면 OneUptime 고객 지원팀이 문제를 조사하기 위해 이 프로젝트를 열 수 있습니다. 조사가 끝나면 다시 비활성화하세요.",
+      "consentWarning": "고객이 지원팀에 프로젝트를 살펴봐 달라고 요청한 경우에만 켜세요. 고객은 프로젝트 설정에서 직접 켜고 끌 수 있으므로 가급적 고객에게 요청하고, 조사가 끝나면 다시 꺼 주세요.",
+      "billingDisabled": "이 인스턴스에는 청구가 활성화되어 있지 않으므로 액세스를 부여할 OneUptime 고객 지원팀이 없습니다. 이 설정은 OneUptime 호스팅 버전에만 적용됩니다."
     },
     "projectUsers": {
       "title": "Project Users",

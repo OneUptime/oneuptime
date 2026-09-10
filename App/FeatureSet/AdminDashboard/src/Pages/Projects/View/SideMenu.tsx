@@ -82,6 +82,30 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
         <></>
       )}
 
+      {/*
+       * There is no OneUptime customer support team to grant access to on a
+       * self-hosted install, so this section is hosted-only for the same
+       * reason the subscription section above it is.
+       */}
+      {BILLING_ENABLED ? (
+        <SideMenuSection title={t("sideMenu.support")}>
+          <SideMenuItem
+            link={{
+              title: t("sideMenu.customerSupportAccess"),
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.PROJECT_SUPPORT] as Route,
+                {
+                  modelId: props.modelId,
+                },
+              ),
+            }}
+            icon={IconProp.Help}
+          />
+        </SideMenuSection>
+      ) : (
+        <></>
+      )}
+
       <SideMenuSection title={t("sideMenu.advanced")}>
         <SideMenuItem
           link={{

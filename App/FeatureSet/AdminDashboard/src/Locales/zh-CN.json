@@ -36,6 +36,7 @@
     "projectTeams": "团队",
     "projectTeam": "团队",
     "projectSubscription": "订阅",
+    "projectSupport": "支持",
     "settings": "设置",
     "authentication": "认证",
     "emailSettings": "电子邮件设置",
@@ -94,6 +95,8 @@
     "teams": "团队",
     "billing": "账单",
     "subscription": "订阅",
+    "support": "支持",
+    "customerSupportAccess": "客户支持访问权限",
     "advanced": "高级",
     "overview": "概览",
     "projects": "项目",
@@ -334,6 +337,16 @@
       "amountTooLarge": "单次调整的金额不能超过 {{max}} USD。",
       "amountTooPrecise": "金额的小数位不能超过两位。",
       "reasonRequired": "请输入本次调整的原因。"
+    },
+    "projectSupport": {
+      "title": "客户支持访问权限",
+      "cardTitle": "客户支持访问权限",
+      "cardDescription": "OneUptime 客户支持团队是否可以访问此项目以进行故障排查。这与客户在其项目设置中看到的是同一个开关。",
+      "editButton": "编辑客户支持访问权限",
+      "fieldLabel": "允许客户支持访问该项目",
+      "fieldDescription": "启用后，OneUptime 客户支持团队可以打开此项目以调查问题。调查结束后请再次关闭。",
+      "consentWarning": "仅在客户请求支持团队查看其项目时才开启。客户可以在项目设置中自行开启和关闭，因此最好请客户自行操作，并在调查结束后将其关闭。",
+      "billingDisabled": "此实例未启用计费，因此没有可授予访问权限的 OneUptime 客户支持团队。此设置仅适用于 OneUptime 托管版。"
     },
     "projectUsers": {
       "title": "Project Users",

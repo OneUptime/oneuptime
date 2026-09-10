@@ -36,6 +36,7 @@
     "projectTeams": "團隊",
     "projectTeam": "團隊",
     "projectSubscription": "訂閱",
+    "projectSupport": "支援",
     "settings": "設定",
     "authentication": "驗證",
     "emailSettings": "電子郵件設定",
@@ -94,6 +95,8 @@
     "teams": "團隊",
     "billing": "帳單",
     "subscription": "訂閱",
+    "support": "支援",
+    "customerSupportAccess": "客戶支援存取權",
     "advanced": "進階",
     "overview": "概覽",
     "projects": "專案",
@@ -334,6 +337,16 @@
       "amountTooLarge": "單次調整的金額不得超過 {{max}} USD。",
       "amountTooPrecise": "金額的小數位數不得超過兩位。",
       "reasonRequired": "請輸入此次調整的原因。"
+    },
+    "projectSupport": {
+      "title": "客戶支援存取權",
+      "cardTitle": "客戶支援存取權",
+      "cardDescription": "OneUptime 客戶支援團隊是否可以存取此專案以進行疑難排解。這與客戶在其專案設定中看到的是同一個開關。",
+      "editButton": "編輯客戶支援存取權",
+      "fieldLabel": "允許客戶支援存取此專案",
+      "fieldDescription": "啟用後，OneUptime 客戶支援團隊可以開啟此專案以調查問題。調查結束後請再次關閉。",
+      "consentWarning": "僅在客戶要求支援團隊查看其專案時才開啟。客戶可以在專案設定中自行開啟與關閉，因此最好請客戶自行操作，並在調查結束後將其關閉。",
+      "billingDisabled": "此執行個體未啟用計費，因此沒有可授予存取權的 OneUptime 客戶支援團隊。此設定僅適用於 OneUptime 託管版。"
     },
     "projectUsers": {
       "title": "Project Users",

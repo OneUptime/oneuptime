@@ -36,6 +36,7 @@
     "projectTeams": "Team",
     "projectTeam": "Team",
     "projectSubscription": "Abbonamento",
+    "projectSupport": "Assistenza",
     "settings": "Impostazioni",
     "authentication": "Autenticazione",
     "emailSettings": "Impostazioni e-mail",
@@ -94,6 +95,8 @@
     "teams": "Team",
     "billing": "Fatturazione",
     "subscription": "Abbonamento",
+    "support": "Assistenza",
+    "customerSupportAccess": "Accesso dell'assistenza clienti",
     "advanced": "Avanzato",
     "overview": "Panoramica",
     "projects": "Progetti",
@@ -334,6 +337,16 @@
       "amountTooLarge": "L'importo non può superare {{max}} USD per singola rettifica.",
       "amountTooPrecise": "L'importo non può avere più di due cifre decimali.",
       "reasonRequired": "Inserisci un motivo per questa rettifica."
+    },
+    "projectSupport": {
+      "title": "Accesso dell'assistenza clienti",
+      "cardTitle": "Accesso dell'assistenza clienti",
+      "cardDescription": "Indica se l'assistenza clienti di OneUptime può accedere a questo progetto per la risoluzione dei problemi. È lo stesso interruttore che il cliente ha nelle impostazioni del proprio progetto.",
+      "editButton": "Modifica l'accesso dell'assistenza clienti",
+      "fieldLabel": "Consenti all'assistenza clienti di accedere al progetto",
+      "fieldDescription": "Se abilitato, l'assistenza clienti di OneUptime può aprire questo progetto per indagare su un problema. Disattivalo di nuovo al termine dell'indagine.",
+      "consentWarning": "Attivalo solo quando il cliente ha chiesto all'assistenza di esaminare il proprio progetto. Il cliente può attivarlo e disattivarlo da solo nelle impostazioni del progetto, quindi è preferibile chiederglielo, e disattivalo al termine dell'indagine.",
+      "billingDisabled": "La fatturazione non è abilitata su questa istanza, quindi non esiste un team di assistenza clienti OneUptime a cui concedere l'accesso. Questa impostazione si applica solo all'edizione ospitata di OneUptime."
     },
     "projectUsers": {
       "title": "Project Users",

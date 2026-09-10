@@ -36,6 +36,7 @@
     "projectTeams": "Team",
     "projectTeam": "Team",
     "projectSubscription": "Prenumeration",
+    "projectSupport": "Support",
     "settings": "Inställningar",
     "authentication": "Autentisering",
     "emailSettings": "E-postinställningar",
@@ -94,6 +95,8 @@
     "teams": "Team",
     "billing": "Fakturering",
     "subscription": "Prenumeration",
+    "support": "Support",
+    "customerSupportAccess": "Åtkomst för kundsupport",
     "advanced": "Avancerat",
     "overview": "Översikt",
     "projects": "Projekt",
@@ -334,6 +337,16 @@
       "amountTooLarge": "Beloppet får inte överstiga {{max}} USD i en enskild justering.",
       "amountTooPrecise": "Beloppet får inte ha fler än två decimaler.",
       "reasonRequired": "Ange en orsak till den här justeringen."
+    },
+    "projectSupport": {
+      "title": "Åtkomst för kundsupport",
+      "cardTitle": "Åtkomst för kundsupport",
+      "cardDescription": "Om OneUptimes kundsupport får åtkomst till det här projektet för felsökning. Det är samma reglage som kunden har i sina egna projektinställningar.",
+      "editButton": "Redigera åtkomst för kundsupport",
+      "fieldLabel": "Låt kundsupport komma åt projektet",
+      "fieldDescription": "När detta är aktiverat kan OneUptimes kundsupport öppna projektet för att undersöka ett problem. Stäng av det igen när undersökningen är klar.",
+      "consentWarning": "Aktivera detta endast när kunden har bett supporten att titta på sitt projekt. Kunden kan själv slå på och av det i projektinställningarna, så be helst kunden att göra det, och stäng av det igen när undersökningen är klar.",
+      "billingDisabled": "Fakturering är inte aktiverad på den här instansen, så det finns inget OneUptime-kundsupportteam att ge åtkomst till. Den här inställningen gäller endast den värdbaserade utgåvan av OneUptime."
     },
     "projectUsers": {
       "title": "Project Users",
