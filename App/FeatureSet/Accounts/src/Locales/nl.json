@@ -187,5 +187,13 @@
   "Password is required.": "Een wachtwoord is verplicht.",
   "Password must be a string.": "Het wachtwoord moet een tekenreeks zijn.",
   "Account details": "Accountgegevens",
-  "Secure your account": "Beveilig je account"
+  "Secure your account": "Beveilig je account",
+  "Between {{minimum}} and {{maximum}} characters": "Tussen {{minimum}} en {{maximum}} tekens",
+  "Avoid common or repeated patterns": "Vermijd veelvoorkomende of herhaalde patronen",
+  "Password length": "Wachtwoordlengte",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / minimaal {{minimum}} tekens",
+  "Complete:": "Voldaan:",
+  "Incomplete:": "Niet voldaan:",
+  "Special character included (optional)": "Speciaal teken toegevoegd (optioneel)",
+  "Special characters are optional. Try !, @, # or $.": "Speciale tekens zijn optioneel. Probeer !, @, # of $."
 }

@@ -187,5 +187,13 @@
   "Password is required.": "请输入密码。",
   "Password must be a string.": "密码必须是字符串。",
   "Account details": "账户信息",
-  "Secure your account": "保护你的账户"
+  "Secure your account": "保护你的账户",
+  "Between {{minimum}} and {{maximum}} characters": "{{minimum}} 至 {{maximum}} 个字符",
+  "Avoid common or repeated patterns": "避免常见或重复的模式",
+  "Password length": "密码长度",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} 个字符 / 至少 {{minimum}} 个字符",
+  "Complete:": "已满足：",
+  "Incomplete:": "未满足：",
+  "Special character included (optional)": "已包含特殊字符（可选）",
+  "Special characters are optional. Try !, @, # or $.": "特殊字符为可选项。可以尝试 !、@、# 或 $。"
 }
