@@ -23,6 +23,7 @@
 export const projectIndependentRoutes: Array<string> = [
   "/dashboard/user-profile/overview",
   "/dashboard/user-profile/password-management",
+  "/dashboard/user-profile/passkeys",
   "/dashboard/user-profile/two-factor-auth",
   "/dashboard/user-profile/profile-picture",
   "/dashboard/user-profile/delete-account",

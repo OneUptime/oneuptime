@@ -168,6 +168,17 @@ const readCode: ReadCodeFunction = (parts: Array<string>): string => {
 
 const backupCodesSource: string = readCode(BACKUP_CODES_COMPONENT);
 const twoFactorPageSource: string = readCode(TWO_FACTOR_AUTH_PAGE);
+const passkeysPageSource: string = readCode([
+  "Pages",
+  "Global",
+  "UserProfile",
+  "Passkeys.tsx",
+]);
+const webAuthnSource: string = readCode([
+  "Components",
+  "TwoFactorAuth",
+  "WebAuthnCredentials.tsx",
+]);
 
 type CountOccurrencesFunction = (source: string, needle: string) => number;
 
@@ -370,15 +381,17 @@ const componentPropsBlock: string = blockAfter(
  * keeps each assertion inside its own handler regardless of declaration order;
  * another enrolment flow cannot satisfy a missing recovery-code read.
  */
-const profileSyntax: ts.SourceFile = ts.createSourceFile(
-  "TwoFactorAuth.tsx",
-  twoFactorPageSource,
-  ts.ScriptTarget.Latest,
-  true,
-  ts.ScriptKind.TSX,
-);
-
-const handlerForRoute: (route: string) => string = (route: string): string => {
+const handlerForRoute: (source: string, route: string) => string = (
+  source: string,
+  route: string,
+): string => {
+  const profileSyntax: ts.SourceFile = ts.createSourceFile(
+    "Enrollment.tsx",
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX,
+  );
   const handlers: Array<string> = [];
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
     if (ts.isStringLiteralLike(node) && node.text === route) {
@@ -408,15 +421,19 @@ const handlerForRoute: (route: string) => string = (route: string): string => {
   return handlers[0]!;
 };
 
-const totpValidateHandler: string = handlerForRoute("/user-totp-auth/validate");
+const totpValidateHandler: string = handlerForRoute(
+  twoFactorPageSource,
+  "/user-totp-auth/validate",
+);
 
 const webAuthnVerifyHandler: string = handlerForRoute(
+  webAuthnSource,
   "/user-webauthn/verify-registration",
 );
 
 const readBackupCodesBody: string = blockAfter(
   twoFactorPageSource,
-  "const readBackupCodesFromResponse: ReadBackupCodesFunction",
+  "const readBackupCodesFromResponse:",
 );
 
 const backupCodesTag: string = openingTagOf(twoFactorPageSource, "BackupCodes");
@@ -457,7 +474,7 @@ describe("the pieces of the card were located", () => {
   test("the two modals, the card and the two callbacks were all found", () => {
     expect(codesModalTag).toContain('title="Your backup codes"');
     expect(confirmModalTag).toContain('title="Regenerate backup codes?"');
-    expect(cardTag).toContain('title="Backup Codes"');
+    expect(cardTag).toContain('title="Backup codes"');
 
     expect(cardButtonClickBody).toContain("setGenerateError");
     expect(mountEffectBody).toContain("loadStatus");
@@ -559,7 +576,7 @@ describe("the card is actually mounted on the profile page", () => {
       'id="totp-auth-table"',
     );
     const webAuthnIndex: number = twoFactorPageSource.indexOf(
-      'id="webauthn-table"',
+      "<WebAuthnCredentials",
     );
     const backupCodesIndex: number =
       twoFactorPageSource.indexOf("<BackupCodes");
@@ -796,14 +813,11 @@ describe("the 'shown once' modal cannot be dismissed without acknowledging", () 
   test("the modal says, on screen, that this is the only viewing", () => {
     /*
      * The mechanical guards above stop an accidental dismissal; this is what
-     * stops a deliberate one made in ignorance. It is a WARNING alert rather
-     * than body copy because the user has to read it before they decide the
-     * dialog is finished with them.
+     * stops a deliberate one made in ignorance. The highlighted notice keeps
+     * the one-time viewing explanation beside the codes themselves.
      */
-    expect(codesModalBody).toContain("AlertType.WARNING");
-    expect(codesModalBody).toContain(
-      'strongTitle="This is the only time these codes will be shown."',
-    );
+    expect(codesModalBody).toContain('role="note"');
+    expect(codesModalBody).toContain("These codes are shown only once.");
   });
 });
 
@@ -885,7 +899,7 @@ describe("a confirmation guards regeneration when codes already exist", () => {
      * genuinely matters gets dismissed without reading.
      */
     expect(cardTag).toMatch(
-      /title: isKnownToHaveNoCodes\s*\?\s*"Generate Backup Codes"\s*:\s*"Regenerate Backup Codes"/,
+      /title: isKnownToHaveNoCodes\s*\?\s*"Generate backup codes"\s*:\s*"Regenerate codes"/,
     );
   });
 });
@@ -899,9 +913,9 @@ describe("the codes can be both copied and downloaded", () => {
      * folder they never tidy. The two failure modes are different people, so
      * the two controls are both needed.
      */
-    expect(codesModalBody).toContain("<CopyTextButton");
-    expect(codesModalBody).toContain(
-      'textToBeCopied={generatedCodes.join("\\n")}',
+    expect(codesModalBody).toContain("onClick={copyCodes}");
+    expect(backupCodesSource).toContain(
+      'Clipboard.copyToClipboard(generatedCodes.join("\\n"))',
     );
   });
 
@@ -938,7 +952,7 @@ describe("the codes can be both copied and downloaded", () => {
      * the card itself would silently copy an empty string -- and the user
      * would have no way to tell until the day they tried to use it.
      */
-    const copyIndex: number = backupCodesSource.indexOf("<CopyTextButton");
+    const copyIndex: number = backupCodesSource.indexOf("onClick={copyCodes}");
     const downloadIndex: number = backupCodesSource.indexOf(
       "onClick={downloadCodes}",
     );
@@ -1261,8 +1275,17 @@ describe("the profile page reads the codes out of BOTH enrolment responses", () 
      * refresh path later will quietly skip.
      */
     expect(totpValidateHandler).toMatch(
-      /if \(response instanceof HTTPErrorResponse\)\s*\{\s*throw response;\s*\}\s*readBackupCodesFromResponse\(response\);\s*setTableRefreshToggle\(/,
+      /if \(response instanceof HTTPErrorResponse\)\s*\{\s*throw response;\s*\}\s*readBackupCodesFromResponse\(response\);/,
     );
+    const readIndex: number = totpValidateHandler.indexOf(
+      "readBackupCodesFromResponse(",
+    );
+    expect(
+      totpValidateHandler.indexOf("setShowVerificationModal(false)"),
+    ).toBeGreaterThan(readIndex);
+    expect(
+      totpValidateHandler.indexOf("setTableRefreshToggle("),
+    ).toBeGreaterThan(readIndex);
   });
 
   test("the security key route hands its response to the helper too", () => {
@@ -1290,7 +1313,7 @@ describe("the profile page reads the codes out of BOTH enrolment responses", () 
     expect(refreshIndex).toBeGreaterThan(readIndex);
   });
 
-  test("those are the only two reads, and the only two writes", () => {
+  test("each enrollment route reads its response once and the page clears codes only on acknowledgement", () => {
     /*
      * Two calls, matching the two routes that mint. A third would be a route
      * reading a response that never carries codes -- harmless -- or, far worse,
@@ -1303,10 +1326,44 @@ describe("the profile page reads the codes out of BOTH enrolment responses", () 
      */
     expect(
       countOccurrences(twoFactorPageSource, "readBackupCodesFromResponse("),
-    ).toBe(2);
+    ).toBe(1);
+    expect(
+      countOccurrences(webAuthnSource, "readBackupCodesFromResponse("),
+    ).toBe(1);
     expect(
       countOccurrences(twoFactorPageSource, "setEnrolmentBackupCodes("),
     ).toBe(2);
+  });
+
+  test.each([twoFactorPageSource, passkeysPageSource])(
+    "both pages hand WebAuthn enrollment codes to the save-once component",
+    (source: string) => {
+      const credentialsTag: string = openingTagOf(
+        source,
+        "WebAuthnCredentials",
+      );
+      const codesTag: string = openingTagOf(source, "BackupCodes");
+      expect(credentialsTag).toContain(
+        "onBackupCodes={setEnrolmentBackupCodes}",
+      );
+      expect(codesTag).toContain("codesFromEnrolment={enrolmentBackupCodes}");
+      expect(codesTag).toMatch(
+        /onEnrolmentCodesAcknowledged=\{\(\) => \{\s*setEnrolmentBackupCodes\(\[\]\);\s*\}\}/,
+      );
+      const readWebAuthnCodes: string = blockAfter(
+        webAuthnSource,
+        "const readBackupCodesFromResponse:",
+      );
+      expect(readWebAuthnCodes).toContain('response.data["backupCodes"]');
+      expect(readWebAuthnCodes).toContain("props.onBackupCodes(codes)");
+    },
+  );
+
+  test("passkey enrollment keeps the acknowledgement dialog available while reserving recovery management for the two-factor page", () => {
+    expect(openingTagOf(passkeysPageSource, "BackupCodes")).toContain(
+      "hideCard={true}",
+    );
+    expect(backupCodesTag).not.toContain("hideCard={true}");
   });
 
   test("the codes reach the card, and are dropped when it says so", () => {

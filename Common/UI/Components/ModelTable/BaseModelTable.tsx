@@ -261,7 +261,10 @@ export interface BaseTableProps<
   onBeforeCreate?:
     | ((item: TBaseModel, miscDataProps: JSONObject) => Promise<TBaseModel>)
     | undefined;
-  onCreateSuccess?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
+  // Runs after both create and edit; modalType identifies which form was saved.
+  onCreateSuccess?:
+    | ((item: TBaseModel, modalType?: ModalType) => Promise<TBaseModel>)
+    | undefined;
   createVerb?: string;
   showAs?: ShowAs | undefined;
   singularName?: string | undefined;
@@ -4622,7 +4625,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             setCurrentPageNumber(1);
             await fetchItems();
             if (props.onCreateSuccess) {
-              await props.onCreateSuccess(item);
+              await props.onCreateSuccess(item, modalType);
             }
 
             return Promise.resolve();

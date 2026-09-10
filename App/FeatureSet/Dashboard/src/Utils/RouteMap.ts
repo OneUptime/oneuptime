@@ -1696,6 +1696,7 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.USER_PROFILE_PASSWORD]: new Route(
     `/dashboard/user-profile/password-management`,
   ),
+  [PageMap.USER_PASSKEYS]: new Route(`/dashboard/user-profile/passkeys`),
   [PageMap.USER_TWO_FACTOR_AUTH]: new Route(
     `/dashboard/user-profile/two-factor-auth`,
   ),
@@ -6212,6 +6213,8 @@ export class RouteUtil {
       route.toString() ===
         RouteMap[PageMap.USER_PROFILE_PASSWORD]?.toString() ||
       route.toString() === RouteMap[PageMap.USER_PROFILE_PICTURE]?.toString() ||
+      route.toString() === RouteMap[PageMap.USER_PASSKEYS]?.toString() ||
+      route.toString() === RouteMap[PageMap.USER_TWO_FACTOR_AUTH]?.toString() ||
       route.toString() === RouteMap[PageMap.USER_PROFILE_DELETE]?.toString() ||
       route.toString() === RouteMap[PageMap.PROJECT_INVITATIONS]?.toString() ||
       route.toString() === RouteMap[PageMap.ACTIVE_INCIDENTS]?.toString() ||
