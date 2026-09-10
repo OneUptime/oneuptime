@@ -183,7 +183,50 @@ A typical incident-response loop an agent can run:
 | `/mcp`        | GET    | Without an SSE `Accept` header: friendly JSON discovery payload. With one: `405` (no standalone SSE stream in stateless mode). |
 | `/mcp`        | DELETE | No-op (stateless — nothing to terminate)                                  |
 | `/mcp/tools`  | GET    | REST listing of available tools                                           |
-| `/mcp/health` | GET    | Health check                                                              |
+| `/mcp/health` | GET    | Health check, including the protocol versions this build speaks           |
+
+## Protocol compatibility
+
+The server negotiates rather than rejects, so a client does not have to match the
+MCP SDK bundled in the App container exactly.
+
+**Protocol version.** The `MCP-Protocol-Version` request header is negotiated down
+to the highest version both sides support. A header sent twice is read as its
+first value — Node collapses repeated headers into one comma-joined string, and
+a version never contains a comma:
+
+- a version the server supports is used as-is;
+- a version *newer* than anything the server knows about (for example a client on
+  a newer revision of the spec) is negotiated down to the server's latest — the
+  same answer `initialize` gives;
+- a version *older* than everything the server supports, or one that is not a
+  `YYYY-MM-DD` version at all, has no common ground. The request is answered with
+  `400` and a JSON-RPC error that names the requested version and lists the
+  supported ones, instead of failing silently at the transport layer.
+
+An unusable header on an `initialize` request is dropped rather than rejected,
+because that request negotiates the version in its body. A header that is
+present but *blank* is dropped too: an empty string is not the same as an absent
+header to the SDK, which would otherwise reject it like any other unknown
+version.
+
+`GET /mcp` and `GET /mcp/health` both list the supported versions, so a failing
+handshake can be diagnosed without reading container logs.
+
+**Response format.** A POST is answered with whatever the client's `Accept` header
+allows: `text/event-stream` when the client asks for it by name or via the
+`text/*` range (what spec-compliant MCP clients do), and a plain
+`application/json` body otherwise — including for `Accept: application/json`, an
+`application/*` or `*/*` wildcard, or no `Accept` header at all. Both are valid
+replies to a POST under the MCP spec. A client that accepts neither gets a `406`
+naming the media types the endpoint can produce.
+
+**Diagnostics.** Negotiation logs describe the *client*: they are built from a
+snapshot taken before the headers are rewritten, so they report what was
+actually sent rather than the values this server normalised them to. Every field
+in them — header values and the JSON-RPC method alike — is stripped of control
+characters and length-capped, so a caller cannot forge log lines or flood the
+log through them. The API key is never logged.
 
 ## Self-hosting
 
