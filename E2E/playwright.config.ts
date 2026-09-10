@@ -25,6 +25,13 @@ export default defineConfig({
    * 90 minutes is roughly 2.5x a healthy run (~37 min), so a genuinely slow
    * but working suite still finishes, while a broken one reports inside the
    * hour with its artifacts intact.
+   *
+   * That headroom has not been re-measured since the suite reached 618 tests:
+   * the run that last hit this ceiling spent 87 of its 90 minutes inside
+   * hanging beforeAll hooks and only ~2 of them running tests, so it says
+   * nothing about how long the working suite takes. Read a trip of this
+   * ceiling as a hang until the run's own timings say otherwise - raising it
+   * only buys a slower red.
    */
   globalTimeout: 90 * 60 * 1000,
   expect: {
@@ -50,8 +57,33 @@ export default defineConfig({
   reporter: "html",
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
+    /*
+     * Actions stay bounded by the enclosing test timeout alone. A submit
+     * button that sits disabled while the backend works is a normal wait here
+     * - registerAndCreateProject allows project creation two minutes - so a
+     * global ceiling on click()/fill() would fail tests that are only slow.
+     */
     actionTimeout: 0,
+    /*
+     * Navigations, unlike actions, need a ceiling of their own. Playwright
+     * Test pushes both of these settings onto every context made from the
+     * `browser` fixture - including the browser.newPage() our beforeAll hooks
+     * call - and reads 0 as "wait forever", so leaving this unset means a
+     * page.goto() or waitForURL() can only end when the enclosing hook does.
+     * That is how one broken precondition erased a whole run: signup stopped
+     * accepting the password registerAndCreateProject typed, and the
+     * waitForURL after it then sat on each spec's 300-600s beforeAll budget,
+     * three times over at workers=1 with retries=2. Fifteen such hangs took
+     * 87 of the 90 minutes below, and 467 of the 618 tests never ran.
+     * Passkeys.spec.ts hit the identical failure in 31s rather than 300s
+     * because it is the only spec that sets its own page default - this makes
+     * that the rule. Two minutes because that is the budget the suite already
+     * argues for out loud: 81 setDefaultNavigationTimeout calls across the
+     * Home specs, every one of them 120000. Picking anything less would put
+     * the default below what the suite's own slowest pages say they need. A
+     * per-call timeout still overrides it either way.
+     */
+    navigationTimeout: 120 * 1000,
     /* Base URL to use in actions like `await page.goto('/')`. */
     // baseURL: 'http://localhost:3000',
 
