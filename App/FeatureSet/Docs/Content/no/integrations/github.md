@@ -4,7 +4,7 @@
 
 Denne integrasjonen er **utgående**: OneUptime kaller [GitHub REST API](https://docs.github.com/en/rest/issues/issues). Den bruker en OneUptime **[Arbeidsflyt](/docs/workflows/index)** med en **Hendelse → On Create**-trigger og en **API-komponent**.
 
-> **Ser du etter den dypere GitHub-tilkoblingen?** OneUptime har også en innebygd **GitHub App**-integrasjon for tilkobling av kodelagre (brukt av AI-agenten og kodefunksjoner). Den konfigureres med miljøvariabler, ikke arbeidsflyter — se [GitHub-integrasjon (selvhostet)](/docs/self-hosted/github-integration). Denne siden handler spesifikt om _å opprette saker fra hendelser_.
+> **Ser du etter den dypere GitHub-tilkoblingen?** OneUptime har også en innebygd **GitHub App**-integrasjon for tilkobling av kodelagre (brukt av AI-agenten og kodefunksjoner). Du kan snakke med den appen i repositoriet ditt — nevn den i en sak eller en pull request, så implementerer, reviderer eller gjennomgår den; se [Arbeide med OneUptime fra GitHub](/docs/ai/github-app), og [GitHub-integrasjon (selvhostet)](/docs/self-hosted/github-integration) for å installere den. Denne siden handler spesifikt om _å opprette saker fra hendelser_.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -74,6 +74,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [Oversikt over integrasjoner](/docs/integrations/index) — mønstre og autentiserings-juksearket.
 - [GitLab](/docs/integrations/gitlab) — det samme for GitLab.
 - [GitHub-integrasjon (selvhostet)](/docs/self-hosted/github-integration) — den innebygde GitHub App-tilkoblingen.
+- [Arbeide med OneUptime fra GitHub](/docs/ai/github-app) — å gi GitHub App-en kommandoer fra en sak eller en pull request.
 
 ## Nettverkstilgang for selvhostede installasjoner
 

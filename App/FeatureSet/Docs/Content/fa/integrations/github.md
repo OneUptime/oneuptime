@@ -4,7 +4,7 @@
 
 این یکپارچه‌سازی **خروجی** است: OneUptime [REST API مربوط به GitHub](https://docs.github.com/en/rest/issues/issues) را فراخوانی می‌کند. از یک **[گردش کاری](/docs/workflows/index)** در OneUptime با تریگر **Incident → On Create** و یک **مؤلفه API** استفاده می‌کند.
 
-> **دنبال اتصال عمیق‌تر GitHub هستید؟** OneUptime یک یکپارچه‌سازی بومی **GitHub App** هم برای وصل کردن مخازن کد دارد (که عامل هوش مصنوعی و قابلیت‌های کد از آن استفاده می‌کنند). آن با متغیرهای محیطی پیکربندی می‌شود، نه با گردش کاری — [یکپارچه‌سازی GitHub (خودمیزبان)](/docs/self-hosted/github-integration) را ببینید. این صفحه به‌طور مشخص درباره _ثبت issue از روی حادثه_ است.
+> **دنبال اتصال عمیق‌تر GitHub هستید؟** OneUptime یک یکپارچه‌سازی بومی **GitHub App** هم برای وصل کردن مخازن کد دارد (که عامل هوش مصنوعی و قابلیت‌های کد از آن استفاده می‌کنند). می‌توانید در خودِ مخزنتان با آن برنامه حرف بزنید — روی یک issue یا درخواست ادغام نامش را ببرید و پیاده‌سازی، بازنگری یا بازبینی می‌کند؛ [کار با OneUptime از درون GitHub](/docs/ai/github-app) را ببینید، و برای نصبش [یکپارچه‌سازی GitHub (خودمیزبان)](/docs/self-hosted/github-integration) را. این صفحه به‌طور مشخص درباره _ثبت issue از روی حادثه_ است.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -74,6 +74,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [نمای کلی یکپارچه‌سازی‌ها](/docs/integrations/index) — الگوها و راهنمای سریع احراز هویت.
 - [GitLab](/docs/integrations/gitlab) — همین ایده برای GitLab.
 - [یکپارچه‌سازی GitHub (خودمیزبان)](/docs/self-hosted/github-integration) — اتصال بومی GitHub App.
+- [کار با OneUptime از درون GitHub](/docs/ai/github-app) — فرمان دادن به GitHub App از دل یک issue یا درخواست ادغام.
 
 ## دسترسی شبکه برای استقرارهای خودمیزبان
 

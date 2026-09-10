@@ -37,15 +37,33 @@ Im Abschnitt „Berechtigungen & Ereignisse" konfigurieren Sie die folgenden Ber
 | Berechtigung    | Zugriffsebene     | Zweck                                                                 |
 | --------------- | ----------------- | --------------------------------------------------------------------- |
 | Contents        | Lesen & Schreiben | Repository-Dateien lesen, Branches pushen (für KI-Agent erforderlich) |
-| Pull requests   | Lesen & Schreiben | Pull Requests erstellen und verwalten                                 |
-| Issues          | Lesen & Schreiben | Issues lesen und kommentieren                                         |
+| Pull requests   | Lesen & Schreiben | Pull Requests erstellen und verwalten sowie Reviews veröffentlichen   |
+| Issues          | Lesen & Schreiben | Issues lesen und die Kommentare der App veröffentlichen — **auch auf Pull Requests**, deren Konversation GitHub über die Issues-API ausliefert |
 | Commit statuses | Lesen             | Build-/CI-Status prüfen                                               |
 | Actions         | Lesen             | GitHub Actions Workflow-Läufe und Logs lesen                          |
 | Metadata        | Lesen             | Grundlegende Repository-Metadaten (erforderlich)                      |
 
+**Erst „Issues: Lesen & Schreiben" macht die App interaktiv.** Ohne diese Berechtigung werden Erwähnungen zwar empfangen, scheitern aber stillschweigend, sobald die App antworten will — GitHub liefert die Konversationskommentare von Pull Requests über die Issues-API aus, sodass diese eine Berechtigung darüber entscheidet, ob die App überhaupt etwas schreiben kann. Siehe [Mit OneUptime aus GitHub heraus arbeiten](/docs/ai/github-app).
+
 ### Schritt 3: Webhook-Ereignisse abonnieren
 
-OneUptime synchronisiert Installation und Repository-Zugriff über `installation` und `installation_repositories`, die GitHub Apps automatisch erhalten. Andere Ereignisse wie **Pull request**, **Push** und **Workflow run** werden derzeit nur bestätigt; ihr Abonnement aktiviert keine Benachrichtigungen oder CI/CD-Automatisierung.
+OneUptime verwendet zwei Gruppen von Ereignissen, und sie haben unterschiedliche Aufgaben.
+
+**Repository-Synchronisierung** — `installation` und `installation_repositories`. GitHub Apps erhalten diese automatisch; sie halten die Menge der verbundenen Repositories mit dem in Einklang, worauf die App installiert ist.
+
+**Die interaktive App** — diese Ereignisse müssen Sie ausdrücklich abonnieren, und jedes einzelne davon aktiviert einen bestimmten Weg, der App Arbeit zu übergeben:
+
+| Ereignis                        | Was es ermöglicht                                                     |
+| ------------------------------- | --------------------------------------------------------------------- |
+| **Issue comment**               | `@mention`-Befehle in Issues **und** in Pull Requests                 |
+| **Issues**                      | ein Issue der App zuweisen und das Trigger-Label des Repositories      |
+| **Pull request**                | ein Review bei der App anfordern                                       |
+| **Pull request review**         | eine Erwähnung im Text eines abgeschickten Reviews                     |
+| **Pull request review comment** | eine Erwähnung in einem Inline-Kommentar im Diff                       |
+
+Ist keines davon abonniert, verbindet die GitHub App weiterhin Repositories und öffnet weiterhin Korrektur-Pull-Requests aus OneUptime heraus — sie reagiert nur nie auf das, was in GitHub geschrieben wird. Das ist die häufigste Ursache für „der Bot ignoriert mich". Welche Befehle es gibt und wer sie erteilen darf, steht unter [Mit OneUptime aus GitHub heraus arbeiten](/docs/ai/github-app).
+
+Andere Ereignisse (**Push**, **Workflow run**) werden nur bestätigt und ignoriert; ihr Abonnement aktiviert keine Benachrichtigungen oder CI/CD-Automatisierung.
 
 ### Schritt 8: OneUptime-Umgebungsvariablen konfigurieren
 

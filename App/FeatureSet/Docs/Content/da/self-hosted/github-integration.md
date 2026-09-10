@@ -37,11 +37,13 @@ I afsnittet "Tilladelser og hændelser" skal du konfigurere følgende tilladelse
 | Tilladelse       | Adgangsniveau | Formål                                                 |
 | ---------------- | ------------- | ------------------------------------------------------ |
 | Indhold          | Læs og skriv  | Læs repository-filer, push grene (kræves til AI Agent) |
-| Pull requests    | Læs og skriv  | Opret og administrer pull requests                     |
-| Issues           | Læs og skriv  | Læs og kommenter på issues                             |
+| Pull requests    | Læs og skriv  | Opret og administrer pull requests, og post reviews    |
+| Issues           | Læs og skriv  | Læs issues, og post appens kommentarer — **også på pull requests**, hvis samtaler GitHub leverer gennem issues-API'et |
 | Commit-statusser | Læs           | Kontroller build/CI-status                             |
 | Actions          | Læs           | Læs GitHub Actions-workflow-kørsler og logs            |
 | Metadata         | Læs           | Grundlæggende repository-metadata (påkrævet)           |
+
+**Issues: Læs og skriv er det, der gør appen interaktiv.** Uden den bliver omtaler modtaget og fejler så lydløst, når appen forsøger at svare — GitHub leverer kommentarer i pull request-samtaler fra issues-API'et, så denne ene tilladelse er det, der styrer hvert eneste svar, appen skriver. Se [Arbejd med OneUptime fra GitHub](/docs/ai/github-app).
 
 **Organisations-tilladelser (hvis du bruger med organisationer):**
 
@@ -57,7 +59,23 @@ I afsnittet "Tilladelser og hændelser" skal du konfigurere følgende tilladelse
 
 ### Trin 3: Abonnér på webhook-hændelser
 
-OneUptime synkroniserer installation og repository-adgang via `installation` og `installation_repositories`, som GitHub Apps automatisk modtager. Andre hændelser, herunder **Pull request**, **Push** og **Workflow run**, kvitteres kun; abonnement aktiverer ikke notifikationer eller CI/CD-automatisering.
+OneUptime bruger to sæt hændelser, og de gør hver sit.
+
+**Repository-synkronisering** — `installation` og `installation_repositories`. GitHub Apps modtager dem automatisk; de holder sættet af forbundne repositories i takt med det, appen er installeret på.
+
+**Den interaktive app** — dem skal du abonnere eksplicit på, og hver enkelt aktiverer en bestemt måde at overdrage arbejde til appen på:
+
+| Hændelse                        | Hvad den aktiverer                                                |
+| ------------------------------- | ----------------------------------------------------------------- |
+| **Issue comment**               | `@mention`-kommandoer på issues **og** på pull requests           |
+| **Issues**                      | tildeling af et issue til appen og repositoryets triggerlabel     |
+| **Pull request**                | anmodning om et review fra appen                                  |
+| **Pull request review**         | en omtale skrevet i teksten på et indsendt review                 |
+| **Pull request review comment** | en omtale på en inline-kommentar i diffen                         |
+
+Er der ikke abonneret på nogen af dem, forbinder GitHub Appen stadig repositories og åbner stadig rettelses-pull requests fra OneUptime — den svarer bare aldrig på noget, der bliver skrevet i GitHub. Det er den hyppigste årsag til "botten ignorerer mig". Se [Arbejd med OneUptime fra GitHub](/docs/ai/github-app) for, hvad kommandoerne er, og hvem der må bruge dem.
+
+Andre hændelser (**Push**, **Workflow run**) kvitteres og ignoreres; abonnement aktiverer ikke notifikationer eller CI/CD-automatisering.
 
 ### Trin 4: Angiv installationsadgang
 

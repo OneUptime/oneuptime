@@ -2318,6 +2318,13 @@ microsoftTeamsApp:
   #   tenantIdKey: tenantId
 
 # GitHub Example Configuration
+#
+# `name` must match the app's real name on GitHub: its mention handle is derived
+# from it (lowercased, spaces to hyphens), so an app named "Acme AI" is
+# addressed as "@acme-ai". Answering mentions also needs the "Issues:
+# Read & write" permission and a subscription to the Issue comment, Issues,
+# Pull request, Pull request review and Pull request review comment events —
+# see https://oneuptime.com/docs/self-hosted/github-integration
 # gitHubApp:
 #   id: "123456"
 #   name: "my-github-app"

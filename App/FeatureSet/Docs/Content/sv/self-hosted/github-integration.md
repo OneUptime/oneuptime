@@ -37,11 +37,13 @@ I avsnittet "Permissions & events", konfigurera följande behörigheter:
 | Behörighet      | Åtkomstnivå   | Syfte                                                  |
 | --------------- | ------------- | ------------------------------------------------------ |
 | Contents        | Läs och skriv | Läs repositoriefiler, push-grenar (krävs för AI-agent) |
-| Pull requests   | Läs och skriv | Skapa och hantera pull requests                        |
-| Issues          | Läs och skriv | Läs och kommentera ärenden                             |
+| Pull requests   | Läs och skriv | Skapa och hantera pull requests, och publicera granskningar |
+| Issues          | Läs och skriv | Läs ärenden och publicera appens kommentarer — **även på pull requests**, vars konversation GitHub dirigerar via issues-API:et |
 | Commit statuses | Läs           | Kontrollera bygge/CI-status                            |
 | Actions         | Läs           | Läs GitHub Actions-arbetsflödeskörningar och loggar    |
 | Metadata        | Läs           | Grundläggande repositoriemetadata (obligatorisk)       |
+
+**Issues: Läs och skriv är det som gör appen interaktiv.** Utan den tas omnämnanden emot och misslyckas sedan tyst när appen försöker svara — GitHub levererar kommentarerna i pull request-konversationer från issues-API:et, så den här enda behörigheten styr varje svar appen skriver. Se [Arbeta med OneUptime från GitHub](/docs/ai/github-app).
 
 **Organisationsbehörigheter (om du använder med organisationer):**
 
@@ -57,7 +59,23 @@ I avsnittet "Permissions & events", konfigurera följande behörigheter:
 
 ### Steg 3: Prenumerera på webhook-händelser
 
-OneUptime synkroniserar installation och repositoryåtkomst via `installation` och `installation_repositories`, som GitHub Apps får automatiskt. Andra händelser, inklusive **Pull request**, **Push** och **Workflow run**, kvitteras bara; prenumerationen aktiverar inga aviseringar eller CI/CD-automatisering.
+OneUptime använder två uppsättningar händelser, och de gör olika saker.
+
+**Repositoriesynkronisering** — `installation` och `installation_repositories`. GitHub Apps får dessa automatiskt; de håller uppsättningen anslutna repositorier i takt med var appen faktiskt är installerad.
+
+**Den interaktiva appen** — dessa måste du prenumerera på explicit, och var och en av dem aktiverar ett bestämt sätt att lämna över arbete till appen:
+
+| Händelse                        | Vad den aktiverar                                               |
+| ------------------------------- | ---------------------------------------------------------------- |
+| **Issue comment**               | `@mention`-kommandon på ärenden **och** på pull requests        |
+| **Issues**                      | att tilldela appen ett ärende, och repositoriets utlösaretikett |
+| **Pull request**                | att begära en granskning från appen                             |
+| **Pull request review**         | ett omnämnande skrivet i brödtexten på en inskickad granskning  |
+| **Pull request review comment** | ett omnämnande på en inline-kommentar i diffen                  |
+
+Om ingen av dem är påslagen ansluter GitHub App:en fortfarande repositorier och öppnar fortfarande fix-pull requests från OneUptime — den svarar bara aldrig på något som skrivs i GitHub. Det är den vanligaste orsaken till att "boten ignorerar mig". Se [Arbeta med OneUptime från GitHub](/docs/ai/github-app) för vilka kommandona är och vem som får utfärda dem.
+
+Andra händelser (**Push**, **Workflow run**) kvitteras och ignoreras; prenumerationen aktiverar inga aviseringar eller CI/CD-automatisering.
 
 ### Steg 4: Ange installationsåtkomst
 

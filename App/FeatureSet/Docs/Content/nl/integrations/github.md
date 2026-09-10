@@ -4,7 +4,7 @@ Open automatisch een [GitHub](https://github.com)-issue wanneer een OneUptime-in
 
 Deze integratie is **outbound**: OneUptime roept de [GitHub REST API](https://docs.github.com/en/rest/issues/issues) aan. Ze maakt gebruik van een OneUptime **[Workflow](/docs/workflows/index)** met een **Incident → On Create**-trigger en een **API-component**.
 
-> **Op zoek naar de diepere GitHub-verbinding?** OneUptime heeft ook een native **GitHub App**-integratie voor het koppelen van coderepositories (gebruikt door de AI-agent en codefuncties). Die wordt geconfigureerd met omgevingsvariabelen, niet met workflows — zie [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration). Deze pagina gaat specifiek over _issues aanmaken vanuit incidenten_.
+> **Op zoek naar de diepere GitHub-verbinding?** OneUptime heeft ook een native **GitHub App**-integratie voor het koppelen van coderepositories (gebruikt door de AI-agent en codefuncties). Je kunt in je repository tegen die app praten — vermeld hem in een issue of pull request en hij implementeert, herziet of beoordeelt; zie [Werken met OneUptime vanuit GitHub](/docs/ai/github-app), en [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) om hem te installeren. Deze pagina gaat specifiek over _issues aanmaken vanuit incidenten_.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -74,6 +74,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [Integraties – Overzicht](/docs/integrations/index) — patronen en het authenticatie-spiekbriefje.
 - [GitLab](/docs/integrations/gitlab) — hetzelfde idee voor GitLab.
 - [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) — de native GitHub App-verbinding.
+- [Werken met OneUptime vanuit GitHub](/docs/ai/github-app) — de GitHub App aansturen vanuit een issue of pull request.
 
 ## Netwerktoegang voor zelfgehoste implementaties
 

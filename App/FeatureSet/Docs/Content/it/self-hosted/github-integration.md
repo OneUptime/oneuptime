@@ -37,11 +37,13 @@ Nella sezione "Permissions & events", configurare i seguenti permessi:
 | Permesso        | Livello di Accesso  | Scopo                                                                       |
 | --------------- | ------------------- | --------------------------------------------------------------------------- |
 | Contents        | Lettura e Scrittura | Leggere i file del repository, fare push di branch (richiesto per AI Agent) |
-| Pull requests   | Lettura e Scrittura | Creare e gestire pull request                                               |
-| Issues          | Lettura e Scrittura | Leggere e commentare sulle issue                                            |
+| Pull requests   | Lettura e Scrittura | Creare e gestire pull request e pubblicare revisioni                        |
+| Issues          | Lettura e Scrittura | Leggere le issue e pubblicare i commenti dell'app — **anche sulle pull request**, la cui conversazione GitHub instrada attraverso l'API delle issue |
 | Commit statuses | Lettura             | Controllare lo stato build/CI                                               |
 | Actions         | Lettura             | Leggere i run e i log dei workflow GitHub Actions                           |
 | Metadata        | Lettura             | Metadati base del repository (richiesto)                                    |
+
+**Il permesso Issues in Lettura e Scrittura è ciò che rende interattiva l'app.** Senza di esso le menzioni vengono ricevute e poi falliscono in silenzio nel momento in cui l'app prova a rispondere — GitHub serve i commenti delle conversazioni delle pull request dall'API delle issue, quindi è questo singolo permesso a governare ogni risposta che l'app scrive. Vedi [Lavorare con OneUptime da GitHub](/docs/ai/github-app).
 
 **Permessi Organizzazione (se si usa con le organizzazioni):**
 
@@ -57,7 +59,23 @@ Nella sezione "Permissions & events", configurare i seguenti permessi:
 
 ### Fase 3: Iscriversi agli Eventi Webhook
 
-OneUptime sincronizza installazione e accesso ai repository con `installation` e `installation_repositories`, ricevuti automaticamente dalle GitHub Apps. Gli altri eventi, inclusi **Pull request**, **Push** e **Workflow run**, vengono solo confermati; sottoscriverli non attiva notifiche né automazione CI/CD.
+OneUptime usa due gruppi di eventi, che svolgono compiti diversi.
+
+**Sincronizzazione dei repository** — `installation` e `installation_repositories`. Le GitHub Apps li ricevono automaticamente; mantengono l'elenco dei repository connessi allineato a quelli su cui l'app è installata.
+
+**App interattiva** — questi vanno sottoscritti esplicitamente, e ognuno abilita un modo specifico di affidare lavoro all'app:
+
+| Evento                          | Cosa abilita                                                      |
+| ------------------------------- | ----------------------------------------------------------------- |
+| **Issue comment**               | comandi `@mention` sulle issue **e** sulle pull request           |
+| **Issues**                      | assegnare una issue all'app, e l'etichetta trigger del repository |
+| **Pull request**                | richiedere una revisione all'app                                  |
+| **Pull request review**         | una menzione scritta nel corpo di una revisione inviata           |
+| **Pull request review comment** | una menzione su un commento inline nel diff                       |
+
+Se non ne viene sottoscritto nessuno, la GitHub App continua a connettere i repository e continua ad aprire pull request di fix da OneUptime — semplicemente non risponde mai a nulla di ciò che viene scritto su GitHub. È la causa più comune di "il bot mi ignora". Vedi [Lavorare con OneUptime da GitHub](/docs/ai/github-app) per sapere quali sono i comandi e chi è autorizzato a impartirli.
+
+Gli altri eventi (**Push**, **Workflow run**) vengono confermati e ignorati; sottoscriverli non attiva notifiche né automazione CI/CD.
 
 ### Fase 4: Impostare l'Accesso di Installazione
 

@@ -37,11 +37,13 @@ Dans la section « Permissions & événements », configurez les permissions sui
 | Permission        | Niveau d'accès     | Objectif                                                                  |
 | ----------------- | ------------------ | ------------------------------------------------------------------------- |
 | Contenu           | Lecture & Écriture | Lire les fichiers du dépôt, pousser des branches (requis pour l'agent IA) |
-| Pull requests     | Lecture & Écriture | Créer et gérer les pull requests                                          |
-| Issues            | Lecture & Écriture | Lire et commenter les issues                                              |
+| Pull requests     | Lecture & Écriture | Créer et gérer les pull requests, et publier des revues de code           |
+| Issues            | Lecture & Écriture | Lire les issues et publier les commentaires de l'application — **y compris sur les pull requests**, dont GitHub fait transiter la conversation par l'API des issues |
 | Statuts de commit | Lecture            | Vérifier le statut de build/CI                                            |
 | Actions           | Lecture            | Lire les exécutions et journaux des workflows GitHub Actions              |
 | Métadonnées       | Lecture            | Métadonnées de base du dépôt (requis)                                     |
+
+**C'est la permission Issues : Lecture & Écriture qui rend l'application interactive.** Sans elle, les mentions sont bien reçues, puis échouent silencieusement au moment où l'application tente de répondre — GitHub sert les commentaires de conversation des pull requests depuis l'API des issues, si bien que cette seule permission conditionne chaque réponse écrite par l'application. Voir [Utiliser OneUptime depuis GitHub](/docs/ai/github-app).
 
 **Permissions d'organisation (si utilisé avec des organisations) :**
 
@@ -57,7 +59,23 @@ Dans la section « Permissions & événements », configurez les permissions sui
 
 ### Étape 3 : S'abonner aux événements de webhook
 
-OneUptime synchronise installation et accès aux dépôts avec `installation` et `installation_repositories`, que les GitHub Apps reçoivent automatiquement. Les autres événements, dont **Pull request**, **Push** et **Workflow run**, sont seulement acquittés ; s’y abonner n’active ni notifications ni automatisation CI/CD.
+OneUptime utilise deux ensembles d'événements, qui ne remplissent pas le même rôle.
+
+**Synchronisation des dépôts** — `installation` et `installation_repositories`. Les GitHub Apps les reçoivent automatiquement ; ils maintiennent la liste des dépôts connectés en phase avec les dépôts sur lesquels l'application est installée.
+
+**L'application interactive** — il faut s'abonner explicitement à ces événements, et chacun active une manière précise de confier du travail à l'application :
+
+| Événement                       | Ce qu'il active                                                       |
+| ------------------------------- | --------------------------------------------------------------------- |
+| **Issue comment**               | les commandes `@mention` sur les issues **et** sur les pull requests   |
+| **Issues**                      | l'assignation d'une issue à l'application, et le label déclencheur du dépôt |
+| **Pull request**                | la demande de revue adressée à l'application                          |
+| **Pull request review**         | une mention écrite dans le corps d'une revue soumise                  |
+| **Pull request review comment** | une mention sur un commentaire en ligne dans le diff                  |
+
+Si vous ne vous abonnez à aucun d'entre eux, la GitHub App continue de connecter les dépôts et d'ouvrir des pull requests de correction depuis OneUptime — elle ne répond simplement jamais à ce qui est écrit dans GitHub. C'est la cause la plus fréquente du « le bot m'ignore ». Voir [Utiliser OneUptime depuis GitHub](/docs/ai/github-app) pour savoir quelles sont les commandes et qui a le droit de les émettre.
+
+Les autres événements (**Push**, **Workflow run**) sont acquittés puis ignorés ; s'y abonner n'active ni notifications ni automatisation CI/CD.
 
 ### Étape 4 : Définir l'accès à l'installation
 

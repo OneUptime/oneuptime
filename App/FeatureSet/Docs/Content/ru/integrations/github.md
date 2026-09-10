@@ -4,7 +4,7 @@
 
 Эта интеграция является **исходящей**: OneUptime вызывает [GitHub REST API](https://docs.github.com/en/rest/issues/issues). Используется OneUptime **[Workflow](/docs/workflows/index)** с триггером **Incident → On Create** и компонентом **API**.
 
-> **Ищете более глубокую интеграцию с GitHub?** У OneUptime также есть нативная интеграция **GitHub App** для подключения репозиториев кода (используется ИИ-агентом и функциями работы с кодом). Она настраивается через переменные окружения, а не через рабочие процессы — см. [Интеграция с GitHub (self-hosted)](/docs/self-hosted/github-integration). Эта страница посвящена исключительно _созданию задач на основе инцидентов_.
+> **Ищете более глубокую интеграцию с GitHub?** У OneUptime также есть нативная интеграция **GitHub App** для подключения репозиториев кода (используется ИИ-агентом и функциями работы с кодом). С этим приложением можно разговаривать прямо в репозитории — упомяните его в задаче или в pull request, и оно реализует, доработает или отревьюит; см. [Работа с OneUptime из GitHub](/docs/ai/github-app), а про его установку — [Интеграция с GitHub (self-hosted)](/docs/self-hosted/github-integration). Эта страница посвящена исключительно _созданию задач на основе инцидентов_.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -74,6 +74,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [Обзор интеграций](/docs/integrations/index) — паттерны и шпаргалка по аутентификации.
 - [GitLab](/docs/integrations/gitlab) — та же идея для GitLab.
 - [Интеграция с GitHub (self-hosted)](/docs/self-hosted/github-integration) — нативное подключение GitHub App.
+- [Работа с OneUptime из GitHub](/docs/ai/github-app) — как командовать GitHub App из задачи или pull request.
 
 ## Сетевой доступ для самостоятельных развертываний
 
