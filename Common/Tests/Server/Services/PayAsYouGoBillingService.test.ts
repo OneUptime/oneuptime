@@ -126,6 +126,94 @@ describe("PayAsYouGoBillingService", () => {
     expect(hasPaymentMethods).toHaveBeenCalledTimes(2);
   });
 
+  /*
+   * The telemetry admission path re-checks billing for every ingested batch.
+   * With denials uncached that was a payment-provider read per batch for every
+   * unpaid project, which is enough to hold the whole Stripe account at its
+   * rate limit and take the billing page down with it.
+   */
+  describe("denial caching on the admission path", () => {
+    it("still reads through a denial for ordinary callers", async () => {
+      hasPaymentMethods.mockResolvedValue(false);
+      await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(false);
+      hasPaymentMethods.mockResolvedValue(true);
+      await expect(service.canUsePayAsYouGo(PROJECT_ID)).resolves.toBe(true);
+      expect(hasPaymentMethods).toHaveBeenCalledTimes(2);
+    });
+
+    it("answers a repeat admission check from the cached denial", async () => {
+      hasPaymentMethods.mockResolvedValue(false);
+      await expect(
+        service.canUsePayAsYouGo(PROJECT_ID, { allowStaleDenial: true }),
+      ).resolves.toBe(false);
+      await expect(
+        service.canUsePayAsYouGo(PROJECT_ID, { allowStaleDenial: true }),
+      ).resolves.toBe(false);
+      await expect(
+        service.canUsePayAsYouGo(PROJECT_ID, { allowStaleDenial: true }),
+      ).resolves.toBe(false);
+      // One provider read for three admission checks, not three.
+      expect(hasPaymentMethods).toHaveBeenCalledTimes(1);
+    });
+
+    it("stops trusting a denial after ten seconds", async () => {
+      const now: jest.SpyInstance = getJestSpyOn(Date, "now").mockReturnValue(
+        100_000,
+      );
+      hasPaymentMethods.mockResolvedValue(false);
+      await service.canUsePayAsYouGo(PROJECT_ID, { allowStaleDenial: true });
+      await service.canUsePayAsYouGo(PROJECT_ID, { allowStaleDenial: true });
+      expect(hasPaymentMethods).toHaveBeenCalledTimes(1);
+
+      now.mockReturnValue(110_001);
+      hasPaymentMethods.mockResolvedValue(true);
+      await expect(
+        service.canUsePayAsYouGo(PROJECT_ID, { allowStaleDenial: true }),
+      ).resolves.toBe(true);
+      expect(hasPaymentMethods).toHaveBeenCalledTimes(2);
+    });
+
+    it("honours a card added a moment ago once the payment methods are re-read", async () => {
+      hasPaymentMethods.mockResolvedValue(false);
+      await expect(
+        service.canUsePayAsYouGo(PROJECT_ID, { allowStaleDenial: true }),
+      ).resolves.toBe(false);
+
+      /*
+       * What BillingPaymentMethodService does after syncing the project's
+       * payment methods from the provider - which is what the billing page
+       * triggers immediately after a card is added.
+       */
+      service.invalidate(PROJECT_ID);
+      hasPaymentMethods.mockResolvedValue(true);
+
+      await expect(
+        service.canUsePayAsYouGo(PROJECT_ID, { allowStaleDenial: true }),
+      ).resolves.toBe(true);
+      expect(hasPaymentMethods).toHaveBeenCalledTimes(2);
+    });
+
+    it("keeps a cached denial project-scoped", async () => {
+      hasPaymentMethods.mockResolvedValue(false);
+      await service.canUsePayAsYouGo(PROJECT_ID, { allowStaleDenial: true });
+      await service.canUsePayAsYouGo(OTHER_PROJECT_ID, {
+        allowStaleDenial: true,
+      });
+      expect(hasPaymentMethods).toHaveBeenCalledTimes(2);
+    });
+
+    it("still refuses admission from a cached denial", async () => {
+      hasPaymentMethods.mockResolvedValue(false);
+      await expect(
+        service.requirePayAsYouGo(PROJECT_ID, { allowStaleDenial: true }),
+      ).rejects.toBeInstanceOf(PaymentRequiredException);
+      await expect(
+        service.requirePayAsYouGo(PROJECT_ID, { allowStaleDenial: true }),
+      ).rejects.toBeInstanceOf(PaymentRequiredException);
+      expect(hasPaymentMethods).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("caches positive admission checks for at most sixty seconds", async () => {
     const now: jest.SpyInstance = getJestSpyOn(Date, "now").mockReturnValue(
       100_000,
