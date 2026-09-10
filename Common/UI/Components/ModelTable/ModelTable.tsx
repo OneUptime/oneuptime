@@ -303,15 +303,23 @@ const ModelTable: <TBaseModel extends BaseModel>(
                   fields:
                     props.formFields?.filter(
                       (field: ModelField<TBaseModel>) => {
-                        // If the field has doNotShowWhenEditing set to true, then don't show it when editing
+                        /*
+                         * On the modal's own type, which is what these two flags
+                         * are about, rather than on modelIdToEdit - every other
+                         * branch in this function already reads modalType, and
+                         * an id that outlived the edit it belonged to used to be
+                         * enough to make a create form hide its create-only
+                         * fields.
+                         */
+                        if (modalType === ModalType.Create) {
+                          // If the field has doNotShowWhenCreating set to true, then don't show it when creating
 
-                        if (modelIdToEdit) {
-                          return !field.doNotShowWhenEditing;
+                          return !field.doNotShowWhenCreating;
                         }
 
-                        // If the field has doNotShowWhenCreating set to true, then don't show it when creating
+                        // If the field has doNotShowWhenEditing set to true, then don't show it when editing
 
-                        return !field.doNotShowWhenCreating;
+                        return !field.doNotShowWhenEditing;
                       },
                     ) || [],
                   steps: props.formSteps || [],

@@ -344,7 +344,28 @@ export default class WorkflowVariable extends BaseModel {
       Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
     ],
-    update: [],
+    /*
+     * Same list as name, description and content. isSecret decides one thing
+     * only - whether RunWorkflow redacts this variable's value out of the run
+     * logs (getSecretWorkflowVariableValues in
+     * App/FeatureSet/Workflow/Services/RunWorkflow.ts). It is not an encryption
+     * switch and nothing is re-encrypted when it flips, so leaving it
+     * create-only bought no safety in the direction that matters: it only meant
+     * a variable saved without the toggle kept leaking its value into every run
+     * log until someone deleted and recreated it.
+     *
+     * The other direction does matter, and this list does not govern it.
+     * `content` is unreadable through the API by anyone, so a caller who may
+     * write a variable but not read it could clear this flag, trigger a run and
+     * read the value out of the log. WorkflowVariableService.onBeforeUpdate
+     * therefore lets a variable be marked secret but refuses to un-mark one -
+     * a ratchet the column ACL has no way to express.
+     */
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditWorkflowVariable,
+    ],
   })
   @TableColumn({
     required: true,
