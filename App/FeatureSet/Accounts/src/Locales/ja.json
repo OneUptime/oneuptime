@@ -185,5 +185,7 @@
   "Choose a less predictable password. Try a few unrelated words.": "推測されにくいパスワードを選んでください。関連のない単語をいくつか組み合わせてみてください。",
   "Password cannot be blank.": "パスワードを空白のみにすることはできません。",
   "Password is required.": "パスワードは必須です。",
-  "Password must be a string.": "パスワードは文字列で入力してください。"
+  "Password must be a string.": "パスワードは文字列で入力してください。",
+  "Account details": "アカウント情報",
+  "Secure your account": "アカウントのセキュリティ"
 }

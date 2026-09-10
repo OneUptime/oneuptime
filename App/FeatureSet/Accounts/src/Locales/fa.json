@@ -185,5 +185,7 @@
   "Choose a less predictable password. Try a few unrelated words.": "گذرواژه‌ای انتخاب کنید که حدس زدن آن سخت‌تر باشد. چند واژهٔ نامرتبط را امتحان کنید.",
   "Password cannot be blank.": "گذرواژه نمی‌تواند فقط شامل فاصله باشد.",
   "Password is required.": "وارد کردن گذرواژه الزامی است.",
-  "Password must be a string.": "گذرواژه باید یک رشتهٔ متنی باشد."
+  "Password must be a string.": "گذرواژه باید یک رشتهٔ متنی باشد.",
+  "Account details": "جزئیات حساب",
+  "Secure your account": "حساب خود را ایمن کنید"
 }

@@ -185,5 +185,7 @@
   "Choose a less predictable password. Try a few unrelated words.": "請選擇更難猜測的密碼。試著組合幾個互不相關的詞。",
   "Password cannot be blank.": "密碼不能僅包含空白字元。",
   "Password is required.": "請輸入密碼。",
-  "Password must be a string.": "密碼必須是字串。"
+  "Password must be a string.": "密碼必須是字串。",
+  "Account details": "帳戶資訊",
+  "Secure your account": "保護你的帳戶"
 }

@@ -185,5 +185,7 @@
   "Choose a less predictable password. Try a few unrelated words.": "Выберите менее предсказуемый пароль. Попробуйте несколько не связанных между собой слов.",
   "Password cannot be blank.": "Пароль не может состоять только из пробелов.",
   "Password is required.": "Необходимо указать пароль.",
-  "Password must be a string.": "Пароль должен быть строкой."
+  "Password must be a string.": "Пароль должен быть строкой.",
+  "Account details": "Данные учетной записи",
+  "Secure your account": "Защитите свою учетную запись"
 }

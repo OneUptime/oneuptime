@@ -105,7 +105,7 @@
   },
   "register": {
     "title": "Create your OneUptime account",
-    "subtitle": "Join thousands of business that use OneUptime to help them stay online all the time.",
+    "subtitle": "Join thousands of businesses that use OneUptime to help them stay online all the time.",
     "noCreditCard": "No credit card required.",
     "submitButton": "Sign Up",
     "haveAccountPrompt": "Already have an account?",
@@ -185,5 +185,7 @@
   "Choose a less predictable password. Try a few unrelated words.": "Choose a less predictable password. Try a few unrelated words.",
   "Password cannot be blank.": "Password cannot be blank.",
   "Password is required.": "Password is required.",
-  "Password must be a string.": "Password must be a string."
+  "Password must be a string.": "Password must be a string.",
+  "Account details": "Account details",
+  "Secure your account": "Secure your account"
 }

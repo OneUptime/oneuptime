@@ -173,6 +173,33 @@ describe("Signup password requirements", () => {
     );
   });
 
+  test("introduces the account details and password controls with clear headings", async () => {
+    await renderPage();
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: "Create your OneUptime account",
+      }),
+    ).toBeVisible();
+    const details: HTMLElement = screen.getByRole("heading", {
+      level: 3,
+      name: "Account details",
+    });
+    const security: HTMLElement = screen.getByRole("heading", {
+      level: 3,
+      name: "Secure your account",
+    });
+    expect(
+      details.compareDocumentPosition(security) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      security.compareDocumentPosition(screen.getByLabelText("Password")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.getByLabelText("Confirm Password")).toBeVisible();
+  });
+
   test("updates feedback while typing and removes success when weakened or cleared", async () => {
     await renderPage();
     await setField("password", "river");
@@ -267,6 +294,9 @@ describe("Signup password requirements", () => {
     expect(screen.getByRole("status")).not.toHaveTextContent(
       "Password meets requirements",
     );
+    expect(screen.getByTestId("password")).toHaveAccessibleDescription(
+      "Choose a less predictable password. Try a few unrelated words.",
+    );
   });
 
   test("validates a weak password on blur", async () => {
@@ -278,6 +308,38 @@ describe("Signup password requirements", () => {
     expect(errorMessages()).toContain(
       "Password must be at least 15 characters.",
     );
+    expect(ModelAPI.createOrUpdate).not.toHaveBeenCalled();
+  });
+
+  test("shows one accessible password error after blur and clears it when corrected", async () => {
+    await renderPage();
+    await setField("password", "PasswordPassword");
+    const password: HTMLElement = screen.getByTestId("password");
+    const requirements: HTMLElement = screen.getByRole("status");
+    const message: string =
+      "Choose a less predictable password. Try a few unrelated words.";
+
+    await act(async () => {
+      fireEvent.blur(password);
+    });
+
+    expect(screen.getAllByText(message, { exact: true })).toHaveLength(1);
+    expect(errorMessages()).toEqual([message]);
+    expect(requirements).toContainElement(screen.getByTestId("error-message"));
+    expect(password).toHaveAttribute("aria-invalid", "true");
+    expect(password).toHaveAttribute("aria-describedby", requirements.id);
+    expect(password).toHaveAccessibleDescription(message);
+
+    await setField("password", VALID_PASSWORD);
+
+    await waitFor(() => {
+      expect(errorMessages()).toEqual([]);
+      expect(requirements).toHaveTextContent("Password meets requirements");
+      expect(password).not.toHaveAttribute("aria-invalid");
+      expect(password).toHaveAccessibleDescription(
+        "Password meets requirements",
+      );
+    });
     expect(ModelAPI.createOrUpdate).not.toHaveBeenCalled();
   });
 
@@ -306,9 +368,11 @@ describe("Signup password requirements", () => {
     async (_label: string, password: string) => {
       await renderPage();
       await fillForm(password);
-      expect(screen.getByRole("status")).toHaveTextContent(
-        "Password meets requirements",
-      );
+      await waitFor(() => {
+        expect(screen.getByRole("status")).toHaveTextContent(
+          "Password meets requirements",
+        );
+      });
       await submit();
       expect(errorMessages()).toEqual([]);
       await waitFor(() => {
@@ -408,6 +472,9 @@ describe("Signup password requirements", () => {
     expect(ModelAPI.createOrUpdate).toHaveBeenCalledTimes(1);
     expect(LoginUtil.login).not.toHaveBeenCalled();
     expect(screen.getByTestId("password")).toHaveValue(VALID_PASSWORD);
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Password meets requirements",
+    );
     await submit();
     expect(errorMessages()).toEqual([]);
     await waitFor(() => {

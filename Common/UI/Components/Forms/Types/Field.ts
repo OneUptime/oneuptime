@@ -130,7 +130,12 @@ export default interface Field<TEntity> {
     | undefined;
   radioButtonOptions?: Array<RadioButton>;
   footerElement?: ReactElement | undefined;
-  getFooterElement?: (values: FormValues<TEntity>) => ReactElement | undefined;
+  getFooterElement?: (
+    values: FormValues<TEntity>,
+    error?: string,
+  ) => ReactElement | undefined;
+  // For Input fields: render errors in the footer linked by ariaDescribedby.
+  errorMessageInFooter?: boolean | undefined;
   id?: string | undefined;
   getCustomElement?: (
     values: FormValues<TEntity>,

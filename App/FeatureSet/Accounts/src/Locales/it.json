@@ -185,5 +185,7 @@
   "Choose a less predictable password. Try a few unrelated words.": "Scegli una password meno prevedibile. Prova con alcune parole non correlate.",
   "Password cannot be blank.": "La password non può contenere solo spazi.",
   "Password is required.": "La password è obbligatoria.",
-  "Password must be a string.": "La password deve essere una stringa di testo."
+  "Password must be a string.": "La password deve essere una stringa di testo.",
+  "Account details": "Dettagli dell’account",
+  "Secure your account": "Proteggi il tuo account"
 }

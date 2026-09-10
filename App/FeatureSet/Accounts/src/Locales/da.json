@@ -185,5 +185,7 @@
   "Choose a less predictable password. Try a few unrelated words.": "Vælg en mindre forudsigelig adgangskode. Prøv et par ord uden relation til hinanden.",
   "Password cannot be blank.": "Adgangskoden må ikke kun indeholde mellemrum.",
   "Password is required.": "Adgangskode er påkrævet.",
-  "Password must be a string.": "Adgangskoden skal være en tekststreng."
+  "Password must be a string.": "Adgangskoden skal være en tekststreng.",
+  "Account details": "Kontooplysninger",
+  "Secure your account": "Beskyt din konto"
 }

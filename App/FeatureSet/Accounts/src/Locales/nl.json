@@ -185,5 +185,7 @@
   "Choose a less predictable password. Try a few unrelated words.": "Kies een minder voorspelbaar wachtwoord. Probeer een paar woorden die niets met elkaar te maken hebben.",
   "Password cannot be blank.": "Het wachtwoord mag niet alleen uit spaties bestaan.",
   "Password is required.": "Een wachtwoord is verplicht.",
-  "Password must be a string.": "Het wachtwoord moet een tekenreeks zijn."
+  "Password must be a string.": "Het wachtwoord moet een tekenreeks zijn.",
+  "Account details": "Accountgegevens",
+  "Secure your account": "Beveilig je account"
 }

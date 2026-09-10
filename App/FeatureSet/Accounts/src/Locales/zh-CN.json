@@ -185,5 +185,7 @@
   "Choose a less predictable password. Try a few unrelated words.": "请选择更难猜测的密码。试试组合几个互不相关的词。",
   "Password cannot be blank.": "密码不能仅包含空白字符。",
   "Password is required.": "请输入密码。",
-  "Password must be a string.": "密码必须是字符串。"
+  "Password must be a string.": "密码必须是字符串。",
+  "Account details": "账户信息",
+  "Secure your account": "保护你的账户"
 }

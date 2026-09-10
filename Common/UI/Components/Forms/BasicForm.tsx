@@ -770,6 +770,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                     {field.getFooterElement &&
                                       field.getFooterElement(
                                         refCurrentValue.current,
+                                        touched[fieldName]
+                                          ? errors[fieldName] || undefined
+                                          : undefined,
                                       )}
                                   </div>
                                 </Fragment>

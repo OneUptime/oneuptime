@@ -185,5 +185,7 @@
   "Choose a less predictable password. Try a few unrelated words.": "Välj ett mindre förutsägbart lösenord. Prova några ord utan koppling till varandra.",
   "Password cannot be blank.": "Lösenordet får inte bara innehålla blanksteg.",
   "Password is required.": "Lösenord krävs.",
-  "Password must be a string.": "Lösenordet måste vara en textsträng."
+  "Password must be a string.": "Lösenordet måste vara en textsträng.",
+  "Account details": "Kontouppgifter",
+  "Secure your account": "Skydda ditt konto"
 }

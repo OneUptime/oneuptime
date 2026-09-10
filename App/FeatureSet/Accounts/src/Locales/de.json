@@ -185,5 +185,7 @@
   "Choose a less predictable password. Try a few unrelated words.": "Wählen Sie ein weniger vorhersehbares Passwort. Versuchen Sie es mit einigen nicht zusammenhängenden Wörtern.",
   "Password cannot be blank.": "Das Passwort darf nicht nur aus Leerzeichen bestehen.",
   "Password is required.": "Ein Passwort ist erforderlich.",
-  "Password must be a string.": "Das Passwort muss eine Zeichenfolge sein."
+  "Password must be a string.": "Das Passwort muss eine Zeichenfolge sein.",
+  "Account details": "Kontodetails",
+  "Secure your account": "Sichern Sie Ihr Konto"
 }

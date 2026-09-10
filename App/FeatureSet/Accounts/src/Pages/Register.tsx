@@ -168,6 +168,7 @@ const RegisterPage: () => JSX.Element = () => {
         email: true,
       },
       fieldType: FormFieldSchemaType.Email,
+      sectionTitle: t("Account details"),
       placeholder: "jeff@example.com",
       required: true,
       disabled: Boolean(initialValues && initialValues["email"]),
@@ -254,6 +255,9 @@ const RegisterPage: () => JSX.Element = () => {
         password: true,
       },
       fieldType: FormFieldSchemaType.Password,
+      sectionTitle: t("Secure your account"),
+      spanFullRow: true,
+      errorMessageInFooter: true,
       customValidation: (values: FormValues<User>): string | null => {
         const message: string | null = getSignupPasswordValidationError(
           getFormPasswordValue(values.password),
@@ -267,12 +271,16 @@ const RegisterPage: () => JSX.Element = () => {
             })
           : null;
       },
-      getFooterElement: (values: FormValues<User>): React.ReactElement => {
+      getFooterElement: (
+        values: FormValues<User>,
+        error?: string,
+      ): React.ReactElement => {
         const password: unknown = getFormPasswordValue(values.password);
         return (
           <PasswordRequirements
             id={passwordRequirementsId}
             password={typeof password === "string" ? password : ""}
+            error={error}
           />
         );
       },
@@ -306,6 +314,7 @@ const RegisterPage: () => JSX.Element = () => {
         });
       },
       fieldType: FormFieldSchemaType.Password,
+      spanFullRow: true,
       autoComplete: "new-password",
       placeholder: t("common.confirmPassword"),
       title: t("common.confirmPassword"),
@@ -397,26 +406,23 @@ const RegisterPage: () => JSX.Element = () => {
   }
 
   return (
-    <div className="flex min-h-full flex-col justify-center py-6 px-4 sm:py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-full flex-col justify-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
       <div className="w-full max-w-md mx-auto lg:max-w-2xl">
         <img
           className="mx-auto h-10 w-auto sm:h-12"
           src={OneUptimeLogo}
           alt="OneUptime"
         />
-        <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
+        <h1 className="mt-5 text-center text-2xl font-semibold tracking-tight text-gray-900 sm:mt-6 sm:text-3xl">
           {t("register.title")}
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
+        </h1>
+        <p className="mx-auto mt-3 max-w-md text-center text-sm leading-6 text-gray-600">
           {t("register.subtitle")}
-        </p>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          {t("register.noCreditCard")}
         </p>
       </div>
 
       <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto lg:max-w-2xl">
-        <div className="bg-white py-6 px-4 shadow-sm sm:shadow rounded-lg sm:py-8 sm:px-10">
+        <div className="rounded-xl border border-gray-200 bg-white px-4 py-6 shadow-sm sm:px-8 sm:py-8">
           <ModelForm<User>
             modelType={User}
             id="register-form"
@@ -549,13 +555,16 @@ const RegisterPage: () => JSX.Element = () => {
               });
             }}
           />
+          <p className="mt-4 text-center text-xs leading-5 text-gray-500">
+            {t("register.noCreditCard")}
+          </p>
         </div>
         <div className="mt-4 sm:mt-5 text-center text-gray-500">
-          <p className="text-muted mb-0 text-sm sm:text-base">
+          <p className="text-sm text-gray-600">
             {t("register.haveAccountPrompt")}{" "}
             <Link
               to={new Route("/accounts/login")}
-              className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
+              className="font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer"
             >
               {t("register.loginLink")}
             </Link>

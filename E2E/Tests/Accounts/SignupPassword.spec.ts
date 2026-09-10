@@ -78,16 +78,18 @@ test.describe("Signup password feedback", () => {
       await page.getByTestId("password").fill(password);
       await page.getByTestId("confirmPassword").fill(password);
       await page.getByTestId("Sign Up").click();
-      await expect(
-        page
-          .getByText(
-            password === "sample"
-              ? "Password must be at least 15 characters."
-              : "Choose a less predictable password. Try a few unrelated words.",
-            { exact: true },
-          )
-          .first(),
-      ).toBeVisible();
+      const warning: Locator = page.getByText(
+        password === "sample"
+          ? "Password must be at least 15 characters."
+          : "Choose a less predictable password. Try a few unrelated words.",
+        { exact: true },
+      );
+      await expect(warning).toHaveCount(1);
+      await expect(warning).toBeVisible();
+      await expect(page.getByTestId("password")).toHaveAttribute(
+        "aria-invalid",
+        "true",
+      );
       expect(submissions).toBe(0);
     });
   }
@@ -149,24 +151,31 @@ test.describe("Signup password feedback", () => {
     ).toBeVisible();
   });
 
-  test("keeps guidance readable on a phone", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(registrationUrl);
-    await page.getByTestId("password").fill(passphrase);
-    await page.getByRole("status").scrollIntoViewIfNeeded();
-    await expect(page.getByRole("status")).toHaveText(
-      "Password meets requirements",
-    );
-    expect(
-      await page.evaluate(() => {
-        return document.documentElement.scrollWidth <= window.innerWidth;
-      }),
-    ).toBe(true);
-  });
+  for (const width of [320, 390]) {
+    test(`keeps password feedback readable on a ${width}px phone`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 844 });
+      await page.goto(registrationUrl);
+
+      for (const password of ["PasswordPassword", passphrase]) {
+        await page.getByTestId("password").fill(password);
+        await page.getByRole("status").scrollIntoViewIfNeeded();
+        await expect(page.getByRole("status")).toContainText(
+          password === passphrase
+            ? "Password meets requirements"
+            : "Choose a less predictable password.",
+        );
+        expect(
+          await page.evaluate(() => {
+            return document.documentElement.scrollWidth <= window.innerWidth;
+          }),
+        ).toBe(true);
+      }
+    });
+  }
 });
 
 test.describe("Signup API password enforcement", () => {
