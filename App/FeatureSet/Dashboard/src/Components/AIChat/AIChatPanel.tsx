@@ -19,6 +19,7 @@ import React, {
 import EventName from "../../Utils/EventName";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import AIChatUnavailableView from "./AIChatUnavailableView";
 import ChatActivityFeed from "./ChatActivityFeed";
 import ChatDownloadMenu from "./ChatDownloadMenu";
 import ChatHomeView from "./ChatHomeView";
@@ -369,13 +370,14 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
            */
           className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
         >
-          {!chat.isConversationView && (
+          {chat.unavailableReason && (
+            <AIChatUnavailableView reason={chat.unavailableReason} />
+          )}
+
+          {!chat.unavailableReason && !chat.isConversationView && (
             <ChatHomeView
               conversations={chat.conversations}
               isSending={chat.isSending}
-              showNoProviderNotice={
-                chat.providersLoaded && chat.providers.length === 0
-              }
               pageContext={chat.pageContext}
               isPageContextAttached={chat.isPageContextAttached}
               onOpenConversation={chat.openConversation}
@@ -388,7 +390,7 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
             />
           )}
 
-          {chat.isConversationView && (
+          {!chat.unavailableReason && chat.isConversationView && (
             <div className="px-4 py-6">
               {chat.messages.length === 0 && !chat.isWorking && (
                 <div className="flex justify-center py-10">
@@ -429,33 +431,35 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
           )}
         </div>
 
-        {/* Composer */}
-        <ChatInput
-          value={chat.inputValue}
-          onChange={chat.setInputValue}
-          canSend={
-            !chat.isSending && !chat.isWorking && !chat.isAwaitingApproval
-          }
-          isWorking={chat.isWorking}
-          isStopping={chat.isCancelling}
-          onStop={
-            chat.isWorking && !chat.isAwaitingApproval
-              ? () => {
-                  chat.cancelRun().catch(() => {
-                    // handled in the hook
-                  });
-                }
-              : undefined
-          }
-          leading={composerLeading}
-          contextChip={contextChip}
-          placeholder={composerPlaceholder}
-          onSend={() => {
-            chat.sendMessage().catch(() => {
-              // handled in the hook
-            });
-          }}
-        />
+        {/* Composer — withheld entirely while AI is switched off. */}
+        {!chat.unavailableReason && (
+          <ChatInput
+            value={chat.inputValue}
+            onChange={chat.setInputValue}
+            canSend={
+              !chat.isSending && !chat.isWorking && !chat.isAwaitingApproval
+            }
+            isWorking={chat.isWorking}
+            isStopping={chat.isCancelling}
+            onStop={
+              chat.isWorking && !chat.isAwaitingApproval
+                ? () => {
+                    chat.cancelRun().catch(() => {
+                      // handled in the hook
+                    });
+                  }
+                : undefined
+            }
+            leading={composerLeading}
+            contextChip={contextChip}
+            placeholder={composerPlaceholder}
+            onSend={() => {
+              chat.sendMessage().catch(() => {
+                // handled in the hook
+              });
+            }}
+          />
+        )}
       </div>
     </div>
   );

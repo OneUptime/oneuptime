@@ -25,6 +25,10 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { isAIAccessibleOnCurrentPlan } from "../AI/AIPlanGate";
+import AIChatUnavailableReason, {
+  getAIChatUnavailableReason,
+} from "./AIChatAvailability";
 import PageContextUtil, { DashboardPageContext } from "./PageContext";
 
 // The thumbs rating a user can put on an assistant answer.
@@ -68,6 +72,14 @@ export interface UseAiChat {
    * latter fails open and shows the normal home).
    */
   providersLoaded: boolean;
+  /*
+   * Why Ask AI cannot take a question right now — the project's plan, its
+   * `enableAi` kill switch, or a project with no LLM provider at all. Null
+   * when AI is usable, and null while the answer is still unknown: this
+   * decides what the user is TOLD, so it fails open (see
+   * getAIChatUnavailableReason).
+   */
+  unavailableReason: AIChatUnavailableReason | null;
   selectedProviderId: string | undefined;
   setSelectedProviderId: (id: string | undefined) => void;
   selectedProvider: ChatProvider | undefined;
@@ -140,6 +152,12 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
   const [error, setError] = useState<string>("");
   const [providers, setProviders] = useState<Array<ChatProvider>>([]);
   const [providersLoaded, setProvidersLoaded] = useState<boolean>(false);
+  /*
+   * Project.enableAi, as reported by the providers endpoint. Starts true so a
+   * surface that has not asked yet (or asked and was refused) behaves exactly
+   * as it did before, rather than accusing a healthy project of having AI off.
+   */
+  const [isProjectAIEnabled, setIsProjectAIEnabled] = useState<boolean>(true);
   const [selectedProviderId, setSelectedProviderId] = useState<
     string | undefined
   >(undefined);
@@ -194,6 +212,14 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     },
   );
 
+  const unavailableReason: AIChatUnavailableReason | null =
+    getAIChatUnavailableReason({
+      isAccessibleOnPlan: isAIAccessibleOnCurrentPlan(),
+      isProjectAIEnabled: isProjectAIEnabled,
+      hasLoadedProviders: providersLoaded,
+      providerCount: providers.length,
+    });
+
   const activeConversationTitle: string =
     conversations
       .find((conversation: AIConversation) => {
@@ -237,6 +263,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
 
         setProviders(list);
         setProvidersLoaded(true);
+        setIsProjectAIEnabled(data["isAIEnabledForProject"] !== false);
 
         // Default the picker to the project's resolved provider on first load.
         const defaultProviderId: string | undefined =
@@ -710,7 +737,13 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     async (contentOverride?: string): Promise<void> => {
       const content: string = (contentOverride ?? inputValue).trim();
 
-      if (!content || isSending || isWorking) {
+      /*
+       * `unavailableReason` is a refusal the server would make anyway — the
+       * send-message route reads the same kill switch. Stopping here keeps the
+       * hook from optimistically rendering a question that is already known to
+       * be unanswerable, whatever a surface does with its composer.
+       */
+      if (!content || isSending || isWorking || unavailableReason) {
         return;
       }
 
@@ -796,7 +829,14 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
       setIsSending(false);
       setIsAwaitingResponse(false);
     },
-    [inputValue, isSending, isWorking, fetchConversations, fetchMessages],
+    [
+      inputValue,
+      isSending,
+      isWorking,
+      unavailableReason,
+      fetchConversations,
+      fetchMessages,
+    ],
   );
 
   const respondToApproval: (
@@ -983,6 +1023,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     setError,
     providers,
     providersLoaded,
+    unavailableReason,
     selectedProviderId,
     setSelectedProviderId,
     selectedProvider,
