@@ -8,6 +8,7 @@ import User from "../../../Models/DatabaseModels/User";
 import UserWebAuthn from "../../../Models/DatabaseModels/UserWebAuthn";
 import Email from "../../../Types/Email";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
 import { getJestSpyOn } from "../../Spy";
 import {
   generateAuthenticationOptions,
@@ -499,6 +500,16 @@ describe("UserWebAuthnService passkeys", () => {
     },
   );
 
+  test("exposes credential purpose to its owner without allowing client writes", () => {
+    expect(
+      new UserWebAuthn().getColumnAccessControlFor("isPasskey"),
+    ).toMatchObject({
+      create: [],
+      read: [Permission.CurrentUser],
+      update: [],
+    });
+  });
+
   test("requests discoverable and verified credentials when registering a passkey", async () => {
     const result: any = await UserWebAuthnService.generateRegistrationOptions({
       userId: USER_ID,
@@ -517,7 +528,11 @@ describe("UserWebAuthnService passkeys", () => {
     expect(result.options.challenge).toBe(CHALLENGE);
     expect(client.set).toHaveBeenCalledWith(
       `webauthn-registration-${USER_ID.toString()}`,
-      JSON.stringify({ challenge: CHALLENGE, requireUserVerification: true }),
+      JSON.stringify({
+        challenge: CHALLENGE,
+        requireUserVerification: true,
+        isPasskey: true,
+      }),
       "EX",
       300,
     );
@@ -594,10 +609,46 @@ describe("UserWebAuthnService passkeys", () => {
         counter: "12",
         transports: '["internal","hybrid"]',
         isVerified: true,
+        isPasskey: true,
         userId: USER_ID,
       }),
+      props: { userId: USER_ID, isRoot: true },
+    });
+  });
+
+  test.each([true, false])(
+    "persists server-bound purpose %s despite client tampering",
+    async (isPasskey: boolean) => {
+      await UserWebAuthnService.generateRegistrationOptions({
+        userId: USER_ID,
+        isPasskey,
+      });
+      await UserWebAuthnService.verifyRegistration({
+        credential: { isPasskey: !isPasskey },
+        name: "My credential",
+        props: { userId: USER_ID },
+      });
+      expect(createCredential).toHaveBeenCalledWith({
+        data: expect.objectContaining({ isPasskey, userId: USER_ID }),
+        props: { userId: USER_ID, isRoot: true },
+      });
+    },
+  );
+
+  test("preserves unknown purpose for challenges created before an upgrade", async () => {
+    cache.set(`webauthn-registration-${USER_ID.toString()}`, {
+      value: JSON.stringify({
+        challenge: CHALLENGE,
+        requireUserVerification: false,
+      }),
+      expiresAt: now + 300000,
+    });
+    await UserWebAuthnService.verifyRegistration({
+      credential: { isPasskey: true },
+      name: "Existing credential",
       props: { userId: USER_ID },
     });
+    expect(createCredential.mock.calls[0]?.[0].data.isPasskey).toBeUndefined();
   });
 
   test.each([

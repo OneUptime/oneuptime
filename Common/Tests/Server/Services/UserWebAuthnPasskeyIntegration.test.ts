@@ -270,6 +270,7 @@ describe("passkey registration and login with real WebAuthn verification", () =>
       props: { userId: USER_ID },
     });
     expect(savedCredential.counter).toBe("5");
+    expect(savedCredential.isPasskey).toBe(true);
     expect(savedCredential.transports).toBe('["internal","hybrid"]');
     const login: any =
       await UserWebAuthnService.generatePasskeyAuthenticationOptions();
@@ -309,6 +310,7 @@ describe("passkey registration and login with real WebAuthn verification", () =>
       props: { userId: USER_ID },
     });
     expect(persistCredential).toHaveBeenCalledTimes(1);
+    expect(savedCredential.isPasskey).toBe(false);
   });
 
   test.each([

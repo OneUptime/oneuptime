@@ -23,6 +23,7 @@ import { MemoryRouter } from "react-router-dom";
 import API from "../../../UI/Utils/API/API";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import UserUtil from "../../../UI/Utils/User";
+import Navigation from "../../../UI/Utils/Navigation";
 import ObjectID from "../../../Types/ObjectID";
 import Route from "../../../Types/API/Route";
 import { JSONObject } from "../../../Types/JSON";
@@ -30,27 +31,38 @@ import UiAnalytics from "../../../UI/Utils/Analytics";
 import WebAuthnTestUtil, {
   registrationOptions,
 } from "../../Utils/WebAuthnTestUtil";
-import PasskeySettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/TwoFactorAuth";
+import PasskeySettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/Passkeys";
+import TwoFactorSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/TwoFactorAuth";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
 import UserWebAuthn from "../../../Models/DatabaseModels/UserWebAuthn";
+import UserTotpAuth from "../../../Models/DatabaseModels/UserTotpAuth";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import Permission from "../../../Types/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
+import Card from "../../../UI/Components/Card/Card";
+import EqualToOrNull from "../../../Types/BaseDatabase/EqualToOrNull";
 
 let mockRenderRealPasskeyTable: boolean = false;
+let mockCredentialTableProps: ModelTableProps<UserWebAuthn> | undefined;
+let mockTotpTableProps: ModelTableProps<UserTotpAuth> | undefined;
 
 /*
  * Keep the real page, enrollment modal, input and browser/API boundary. Only
- * registration cases replace unrelated model lists; management cases use the
- * real passkey table and edit form to verify the name-only update boundary.
+ * registration cases replace unrelated model lists; header and management
+ * cases use the real passkey table to verify shared UI and name-only updates.
  */
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
     __esModule: true,
     default: (props: ModelTableProps<UserWebAuthn>): React.ReactElement => {
-      if (mockRenderRealPasskeyTable && props.id === "webauthn-table") {
+      if (props.modelType === UserWebAuthn) {
+        mockCredentialTableProps = props;
+      } else if (props.id === "totp-auth-table") {
+        mockTotpTableProps = props as unknown as ModelTableProps<UserTotpAuth>;
+      }
+      if (mockRenderRealPasskeyTable && props.modelType === UserWebAuthn) {
         const ModelTable: typeof import("../../../UI/Components/ModelTable/ModelTable").default =
           (
             jest.requireActual(
@@ -61,11 +73,12 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
       }
       return (
         <section data-testid={props.id} data-refresh={props.refreshToggle}>
-          <h2>{props.cardProps?.title}</h2>
-          <p>{props.cardProps?.description}</p>
-          {props.cardProps?.rightElement}
-          {props.topContent}
-          {props.noItemsMessage}
+          <Card {...props.cardProps}>
+            <>
+              {props.topContent}
+              {props.noItemsMessage}
+            </>
+          </Card>
         </section>
       );
     },
@@ -74,27 +87,35 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 jest.mock("../../../UI/Components/Page/Page", () => {
   return {
     __esModule: true,
-    default: (props: { children: React.ReactNode }): React.ReactElement => {
-      return <div>{props.children}</div>;
+    default: (props: {
+      children: React.ReactNode;
+      sideMenu: React.ReactNode;
+    }): React.ReactElement => {
+      return (
+        <div>
+          {props.sideMenu}
+          {props.children}
+        </div>
+      );
     },
   };
 });
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/SideMenu",
+  "../../../../App/FeatureSet/Dashboard/src/Components/TwoFactorAuth/TwoFactorStatus",
   () => {
     return {
       __esModule: true,
-      default: (): null => {
-        return null;
+      default: (): React.ReactElement => {
+        return <p>Two factor authentication is disabled</p>;
       },
     };
   },
 );
-jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
+jest.mock("../../../UI/Components/QR/QR", () => {
   return {
     __esModule: true,
-    default: (): React.ReactElement => {
-      return <p>Two factor authentication is disabled</p>;
+    default: (props: { text: string }): React.ReactElement => {
+      return <div data-testid="authenticator-qr">{props.text}</div>;
     },
   };
 });
@@ -105,11 +126,15 @@ jest.mock(
       __esModule: true,
       default: (props: {
         codesFromEnrolment: Array<string>;
+        hideCard?: boolean;
       }): React.ReactElement => {
         return (
-          <div data-testid="enrolment-backup-codes">
-            {props.codesFromEnrolment.join(",")}
-          </div>
+          <>
+            {!props.hideCard && <h2>Backup codes</h2>}
+            <div data-testid="enrolment-backup-codes">
+              {props.codesFromEnrolment.join(",")}
+            </div>
+          </>
         );
       },
     };
@@ -123,16 +148,54 @@ type PostedRequest = {
 let posted: Array<PostedRequest> = [];
 let backupCodes: Array<string> = [];
 
-const renderPage: () => void = (): void => {
+const renderPage: (isPasskey?: boolean) => void = (
+  isPasskey: boolean = true,
+): void => {
+  const SettingsPage: typeof PasskeySettings = isPasskey
+    ? PasskeySettings
+    : TwoFactorSettings;
+  const pageRoute: Route = new Route(
+    isPasskey
+      ? "/dashboard/user-profile/passkeys"
+      : "/dashboard/user-profile/two-factor-auth",
+  );
+  Navigation.setLocation({
+    pathname: pageRoute.toString(),
+    search: "",
+    hash: "",
+    state: null,
+    key: "security-settings-test",
+  });
   render(
-    <MemoryRouter>
-      <PasskeySettings
-        pageRoute={new Route("/user-profile/two-factor-auth")}
+    <MemoryRouter initialEntries={[pageRoute.toString()]}>
+      <SettingsPage
+        pageRoute={pageRoute}
         currentProject={null}
         hasPaymentMethod={false}
       />
     </MemoryRouter>,
   );
+};
+
+const mockPasskeyTable: (items: Array<UserWebAuthn>) => void = (
+  items: Array<UserWebAuthn>,
+): void => {
+  mockRenderRealPasskeyTable = true;
+  jest
+    .spyOn(PermissionUtil, "getAllPermissions")
+    .mockReturnValue([Permission.CurrentUser]);
+  jest.spyOn(PermissionUtil, "getGlobalPermissions").mockReturnValue({
+    projectIds: [],
+    globalPermissions: [Permission.CurrentUser],
+    _type: "UserGlobalAccessPermission",
+  });
+  jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(null);
+  jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+    data: items,
+    count: items.length,
+    skip: 0,
+    limit: 10,
+  });
 };
 
 const click: (element: HTMLElement) => Promise<void> = async (
@@ -189,6 +252,8 @@ const register: (isPasskey?: boolean) => Promise<void> = async (
 describe("Passkey settings registration", () => {
   beforeEach(() => {
     mockRenderRealPasskeyTable = false;
+    mockCredentialTableProps = undefined;
+    mockTotpTableProps = undefined;
     window.localStorage.clear();
     PermissionGate.clearPermissionPropsCache();
     TableFilterUrlState.resetClaimedKeys();
@@ -227,31 +292,171 @@ describe("Passkey settings registration", () => {
     jest.restoreAllMocks();
   });
 
-  test("makes passkeys available even when two factor authentication is disabled", () => {
+  test("keeps passwordless sign-in on a dedicated passkeys page", () => {
     renderPage();
     expect(screen.getByRole("button", { name: "Add Passkey" })).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: "Add Security Key" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Two factor authentication is disabled"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: /Backup codes/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: /Authenticator apps/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Passkeys", exact: true }),
+    ).toBeVisible();
+    expect(mockCredentialTableProps?.query).toEqual({
+      userId: UserUtil.getUserId(),
+      isPasskey: new EqualToOrNull("true"),
+    });
+  });
+
+  test("offers security keys and authenticator apps together on the two-factor page", () => {
+    renderPage(false);
     expect(
       screen.getByRole("button", { name: "Add Security Key" }),
     ).toBeEnabled();
     expect(
-      screen.getByText("Two factor authentication is disabled"),
-    ).toBeInTheDocument();
+      screen.queryByRole("button", { name: "Add Passkey" }),
+    ).not.toBeInTheDocument();
     expect(
-      screen.getByText(/whether two factor authentication is on or off/),
-    ).toBeInTheDocument();
-    expect(screen.getAllByRole("heading")[0]).toHaveTextContent("Passkeys");
+      screen.getByRole("heading", { name: /Authenticator apps/i }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: /Backup codes/i }),
+    ).toBeVisible();
+    expect(mockCredentialTableProps?.query).toEqual({
+      userId: UserUtil.getUserId(),
+      isPasskey: new EqualToOrNull("false"),
+    });
   });
 
-  test("explains first-time setup, password fallback and second-step security keys", () => {
+  test.each([true, false])(
+    "provides distinct navigation and removes the old advice panel: passkeys %s",
+    (isPasskey: boolean) => {
+      renderPage(isPasskey);
+      expect(
+        screen.getByRole("link", { name: "Passkeys", exact: true }),
+      ).toHaveAttribute("href", "/dashboard/user-profile/passkeys");
+      expect(
+        screen.getByRole("link", { name: /Two.factor authentication/i }),
+      ).toHaveAttribute("href", "/dashboard/user-profile/two-factor-auth");
+      expect(
+        screen.queryByText("Keep another way to sign in"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/keep your password available/),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/save your backup codes below/),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Passkeys & Two Factor Auth"),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  test("shows a concise empty state for passkeys", () => {
     renderPage();
-    expect(screen.getByText("Add your first passkey")).toBeVisible();
-    expect(screen.getByText(/choose "Sign in with a passkey"/)).toBeVisible();
-    expect(screen.getByText(/keep your password available/)).toBeVisible();
-    expect(screen.getByText(/save your backup codes below/)).toBeVisible();
+    expect(screen.getByText("No passkeys added yet.")).toBeVisible();
     expect(
-      screen.getByText(/as a second step after your password/),
-    ).toBeVisible();
+      screen.queryByText("No passkeys or security keys found."),
+    ).not.toBeInTheDocument();
   });
+
+  test.each([false, true])(
+    "uses the shared table header and standard add action when a saved passkey is present: %s",
+    async (hasPasskey: boolean) => {
+      const storedKey: UserWebAuthn = new UserWebAuthn();
+      storedKey._id = "44444444-4444-4444-8444-444444444444";
+      storedKey.name = "My laptop";
+      storedKey.createdAt = new Date("2026-09-08T12:00:00.000Z");
+      storedKey.isVerified = true;
+      storedKey.isPasskey = true;
+      mockPasskeyTable(hasPasskey ? [storedKey] : []);
+      renderPage();
+
+      expect(
+        await screen.findByText(
+          hasPasskey ? "My laptop" : "No passkeys added yet.",
+        ),
+      ).toBeVisible();
+      const heading: HTMLElement = screen.getByRole("heading", {
+        name: "Passkeys",
+        exact: true,
+      });
+      const card: HTMLElement = heading.closest(
+        '[data-testid="card"]',
+      ) as HTMLElement;
+      expect(card).toBeInTheDocument();
+      expect(within(card).getAllByRole("heading")).toHaveLength(1);
+      expect(within(card).getAllByTestId("card-description")).toHaveLength(1);
+      expect(within(card).getByTestId("card-description")).toHaveTextContent(
+        "Sign in without a password using your fingerprint, face, screen lock, or a compatible security key.",
+      );
+      expect(
+        within(card).queryByText(
+          /whether two factor authentication is on or off/,
+        ),
+      ).not.toBeInTheDocument();
+      expect(
+        within(card).queryByText("Add your first passkey"),
+      ).not.toBeInTheDocument();
+
+      const addPasskey: HTMLElement = within(card).getByRole("button", {
+        name: "Add Passkey",
+        exact: true,
+      });
+      expect(addPasskey).toHaveAttribute("data-testid", "card-button");
+      expect(addPasskey).toHaveClass(
+        "bg-white",
+        "border-gray-300",
+        "text-gray-700",
+      );
+      expect(addPasskey).not.toHaveClass("bg-indigo-600");
+      expect(addPasskey).toBeEnabled();
+
+      await click(addPasskey);
+      const dialog: HTMLElement = screen.getByRole("dialog", {
+        name: "Add Passkey",
+      });
+      expect(
+        within(dialog).getByRole("textbox", { name: "Passkey name" }),
+      ).toBeVisible();
+      expect(
+        within(dialog).getByRole("button", { name: "Create Passkey" }),
+      ).toBeVisible();
+      expect(API.post).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each([true, false])(
+    "keeps existing credentials manageable when their original purpose is unknown: passkeys %s",
+    async (isPasskey: boolean) => {
+      const storedKey: UserWebAuthn = new UserWebAuthn();
+      storedKey._id = "44444444-4444-4444-8444-444444444444";
+      storedKey.name = "Existing device";
+      storedKey.isVerified = true;
+      mockPasskeyTable([storedKey]);
+      renderPage(isPasskey);
+      expect(await screen.findByText("Existing device")).toBeVisible();
+      expect(screen.getByText("Existing credential")).toBeVisible();
+      expect(
+        screen.getByText(/Existing credentials appear on both security pages/),
+      ).toBeVisible();
+      expect(
+        screen.getByRole("button", { name: "Rename", exact: true }),
+      ).toBeEnabled();
+      expect(
+        screen.getByRole("button", { name: "Delete", exact: true }),
+      ).toBeEnabled();
+    },
+  );
 
   test("labels the name input, associates its hint and supports keyboard submission", async () => {
     renderPage();
@@ -294,7 +499,7 @@ describe("Passkey settings registration", () => {
   test("requests a discoverable passkey, verifies registration and refreshes management", async () => {
     renderPage();
     const refreshBefore: string | null = screen
-      .getByTestId("webauthn-table")
+      .getByTestId("passkeys-table")
       .getAttribute("data-refresh");
     await register();
     expect(posted[0]?.data).toEqual({ isPasskey: true });
@@ -317,55 +522,69 @@ describe("Passkey settings registration", () => {
       screen.queryByRole("button", { name: "Create Passkey" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByTestId("webauthn-table").getAttribute("data-refresh"),
+      screen.getByTestId("passkeys-table").getAttribute("data-refresh"),
     ).not.toBe(refreshBefore);
-    expect(screen.getByRole("alert")).toHaveTextContent(
+    expect(screen.getByTestId("passkey-registration-success")).toHaveTextContent(
       "Passkey added. Use it the next time you sign in.",
     );
   });
 
-  test("preserves separate legacy security key MFA registration", async () => {
-    renderPage();
+  test("registers a security key as a second factor from the two-factor page", async () => {
+    renderPage(false);
     await register(false);
     expect(posted[0]?.data).toEqual({ isPasskey: false });
     expect(posted[1]?.data).toMatchObject({ name: "My laptop" });
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Security key added. It is ready to use for two factor authentication.",
+    expect(screen.getByTestId("passkey-registration-success")).toHaveTextContent(
+      "Security key added. It is ready to use for two-factor authentication.",
     );
   });
 
-  test("passes newly minted recovery codes to their save-once UI", async () => {
-    backupCodes = ["ABCDE-12345", "FGHIJ-67890"];
-    renderPage();
-    await register();
-    expect(screen.getByTestId("enrolment-backup-codes")).toHaveTextContent(
-      "ABCDE-12345,FGHIJ-67890",
-    );
-  });
+  test.each([true, false])(
+    "passes newly minted recovery codes to their save-once UI: passkey %s",
+    async (isPasskey: boolean) => {
+      backupCodes = ["ABCDE-12345", "FGHIJ-67890"];
+      renderPage(isPasskey);
+      await register(isPasskey);
+      expect(screen.getByTestId("enrolment-backup-codes")).toHaveTextContent(
+        "ABCDE-12345,FGHIJ-67890",
+      );
+    },
+  );
 
-  test("keeps cancellation recoverable without posting verification", async () => {
-    jest
-      .spyOn(navigator.credentials, "create")
-      .mockRejectedValueOnce(new DOMException("Canceled", "NotAllowedError"));
-    renderPage();
-    await register();
-    expect(
-      screen.getByText(
-        "Passkey registration was canceled or timed out. Try again when you are ready.",
-      ),
-    ).toBeInTheDocument();
-    expect(posted).toHaveLength(1);
-    expect(
-      screen.getByRole("button", { name: "Create Passkey" }),
-    ).toBeEnabled();
-    expect(screen.getByTestId("passkey-name")).toHaveValue("My laptop");
-    await click(screen.getByRole("button", { name: "Create Passkey" }));
-    await waitFor(() => {
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    });
-    expect(posted).toHaveLength(3);
-    expect(posted[2]?.data).toMatchObject({ name: "My laptop" });
-  });
+  test.each([true, false])(
+    "keeps cancellation recoverable without posting verification: passkey %s",
+    async (isPasskey: boolean) => {
+      jest
+        .spyOn(navigator.credentials, "create")
+        .mockRejectedValueOnce(new DOMException("Canceled", "NotAllowedError"));
+      renderPage(isPasskey);
+      await register(isPasskey);
+      expect(
+        screen.getByText(
+          isPasskey
+            ? "Passkey registration was canceled or timed out. Try again when you are ready."
+            : "Security key registration was canceled or timed out. Try again when you are ready.",
+        ),
+      ).toBeInTheDocument();
+      expect(posted).toHaveLength(1);
+      expect(
+        screen.getByRole("button", {
+          name: isPasskey ? "Create Passkey" : "Register Security Key",
+        }),
+      ).toBeEnabled();
+      expect(screen.getByTestId("passkey-name")).toHaveValue("My laptop");
+      await click(
+        screen.getByRole("button", {
+          name: isPasskey ? "Create Passkey" : "Register Security Key",
+        }),
+      );
+      await waitFor(() => {
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      });
+      expect(posted).toHaveLength(3);
+      expect(posted[2]?.data).toMatchObject({ name: "My laptop" });
+    },
+  );
 
   test("explains duplicate authenticators", async () => {
     jest
@@ -512,7 +731,7 @@ describe("Passkey settings registration", () => {
     });
     expect(posted).toHaveLength(3);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent("Passkey added");
+    expect(screen.getByTestId("passkey-registration-success")).toHaveTextContent("Passkey added");
   });
 
   test("keeps verification visible until saving finishes and preserves returned recovery codes", async () => {
@@ -554,87 +773,297 @@ describe("Passkey settings registration", () => {
     expect(screen.getByTestId("enrolment-backup-codes")).toHaveTextContent(
       "ABCDE-12345",
     );
-    expect(screen.getByRole("alert")).toHaveTextContent("Passkey added");
+    expect(screen.getByTestId("passkey-registration-success")).toHaveTextContent("Passkey added");
   });
 
-  test("lets the owner rename a key without updating credential or verification fields", async () => {
-    mockRenderRealPasskeyTable = true;
-    const storedKey: UserWebAuthn = new UserWebAuthn();
-    storedKey._id = "44444444-4444-4444-8444-444444444444";
-    storedKey.name = "Old laptop";
-    storedKey.createdAt = new Date("2026-09-08T12:00:00.000Z");
-    storedKey.isVerified = true;
-    jest
-      .spyOn(PermissionUtil, "getAllPermissions")
-      .mockReturnValue([Permission.CurrentUser]);
-    jest.spyOn(PermissionUtil, "getGlobalPermissions").mockReturnValue({
-      projectIds: [],
-      globalPermissions: [Permission.CurrentUser],
-      _type: "UserGlobalAccessPermission",
-    });
-    jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(null);
-    jest
-      .spyOn(ModelAPI, "getList")
-      .mockResolvedValue({ data: [storedKey], count: 1, skip: 0, limit: 10 });
-    jest.spyOn(ModelAPI, "getItem").mockResolvedValue(storedKey);
-    jest
-      .spyOn(ModelAPI, "createOrUpdate")
-      .mockResolvedValue(
-        new HTTPResponse<UserWebAuthn>(
-          200,
-          UserWebAuthn.toJSON(storedKey, UserWebAuthn),
-          {},
-        ),
-      );
-    renderPage();
-    const rename: HTMLElement = await screen.findByRole("button", {
-      name: "Rename",
-    });
-    expect(
-      screen.getByRole("columnheader", { name: /Date added/ }),
-    ).toBeVisible();
-    expect(
-      screen.queryByRole("columnheader", { name: /Is Verified/ }),
-    ).not.toBeInTheDocument();
-    await click(rename);
-    const dialog: HTMLElement = await screen.findByRole("dialog", {
-      name: "Edit Passkey or Security Key",
-    });
-    const input: HTMLElement = await within(dialog).findByRole("textbox", {
-      name: "Name",
-    });
-    await waitFor(() => {
-      expect(input).toHaveValue("Old laptop");
-    });
-    expect(within(dialog).getAllByRole("textbox")).toHaveLength(1);
-    fireEvent.change(input, { target: { value: "   " } });
-    await click(within(dialog).getByRole("button", { name: "Save Changes" }));
-    expect(
-      await within(dialog).findByText("Enter a name to recognize this key."),
-    ).toBeVisible();
-    expect(ModelAPI.createOrUpdate).not.toHaveBeenCalled();
-    fireEvent.change(input, { target: { value: "Work laptop" } });
-    await click(within(dialog).getByRole("button", { name: "Save Changes" }));
-    await waitFor(() => {
-      expect(ModelAPI.createOrUpdate).toHaveBeenCalledTimes(1);
-    });
-    expect(ModelAPI.createOrUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        modelType: UserWebAuthn,
-        model: expect.objectContaining({
-          _id: storedKey._id,
-          name: "Work laptop",
+  test.each([true, false])(
+    "lets the owner rename a key without updating credential or verification fields: passkey %s",
+    async (isPasskey: boolean) => {
+      const storedKey: UserWebAuthn = new UserWebAuthn();
+      storedKey._id = "44444444-4444-4444-8444-444444444444";
+      storedKey.name = "Old laptop";
+      storedKey.createdAt = new Date("2026-09-08T12:00:00.000Z");
+      storedKey.isVerified = true;
+      storedKey.isPasskey = isPasskey;
+      mockPasskeyTable([storedKey]);
+      jest.spyOn(ModelAPI, "getItem").mockResolvedValue(storedKey);
+      jest
+        .spyOn(ModelAPI, "createOrUpdate")
+        .mockResolvedValue(
+          new HTTPResponse<UserWebAuthn>(
+            200,
+            UserWebAuthn.toJSON(storedKey, UserWebAuthn),
+            {},
+          ),
+        );
+      renderPage(isPasskey);
+      const rename: HTMLElement = await screen.findByRole("button", {
+        name: "Rename",
+      });
+      expect(
+        screen.getByRole("columnheader", { name: /Date added/ }),
+      ).toBeVisible();
+      expect(
+        screen.queryByRole("columnheader", { name: /Is Verified/ }),
+      ).not.toBeInTheDocument();
+      await click(rename);
+      const dialog: HTMLElement = await screen.findByRole("dialog", {
+        name: isPasskey ? "Edit passkey" : "Edit security key",
+      });
+      const input: HTMLElement = await within(dialog).findByRole("textbox", {
+        name: "Name",
+      });
+      await waitFor(() => {
+        expect(input).toHaveValue("Old laptop");
+      });
+      expect(within(dialog).getAllByRole("textbox")).toHaveLength(1);
+      fireEvent.change(input, { target: { value: "   " } });
+      await click(within(dialog).getByRole("button", { name: "Save Changes" }));
+      expect(
+        await within(dialog).findByText("Enter a name to recognize this key."),
+      ).toBeVisible();
+      expect(ModelAPI.createOrUpdate).not.toHaveBeenCalled();
+      fireEvent.change(input, { target: { value: "Work laptop" } });
+      await click(within(dialog).getByRole("button", { name: "Save Changes" }));
+      await waitFor(() => {
+        expect(ModelAPI.createOrUpdate).toHaveBeenCalledTimes(1);
+      });
+      expect(ModelAPI.createOrUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          modelType: UserWebAuthn,
+          model: expect.objectContaining({
+            _id: storedKey._id,
+            name: "Work laptop",
+          }),
         }),
-      }),
+      );
+      const savedModel: UserWebAuthn = jest.mocked(ModelAPI.createOrUpdate).mock
+        .calls[0]![0].model as UserWebAuthn;
+      expect(savedModel.credentialId).toBeUndefined();
+      expect(savedModel.publicKey).toBeUndefined();
+      expect(savedModel.counter).toBeUndefined();
+      expect(savedModel.transports).toBeUndefined();
+      expect(savedModel.isVerified).toBeUndefined();
+      expect(savedModel.isPasskey).toBeUndefined();
+      expect(savedModel.createdAt).toBeUndefined();
+      expect(API.post).not.toHaveBeenCalled();
+    },
+  );
+
+  describe("authenticator app setup", () => {
+    const createAuthenticator: (withUrl?: boolean) => UserTotpAuth = (
+      withUrl: boolean = true,
+    ): UserTotpAuth => {
+      const authenticator: UserTotpAuth = new UserTotpAuth();
+      authenticator._id = "55555555-5555-4555-8555-555555555555";
+      authenticator.name = "My authenticator";
+      if (withUrl) {
+        authenticator.twoFactorOtpUrl =
+          "otpauth://totp/OneUptime?secret=TESTONLY";
+      }
+      return authenticator;
+    };
+
+    const openSetup: () => Promise<void> = async (): Promise<void> => {
+      renderPage(false);
+      await act(async () => {
+        await mockTotpTableProps!.onCreateSuccess!(createAuthenticator());
+      });
+    };
+
+    test("opens QR setup immediately after adding an app with a labeled code input", async () => {
+      await openSetup();
+      const dialog: HTMLElement = screen.getByRole("dialog", {
+        name: "Set up My authenticator",
+      });
+      expect(within(dialog).getByTestId("authenticator-qr")).toHaveTextContent(
+        "otpauth://totp/OneUptime?secret=TESTONLY",
+      );
+      const code: HTMLElement = within(dialog).getByRole("textbox", {
+        name: "Verification code",
+      });
+      expect(code).toHaveAttribute("autocomplete", "one-time-code");
+      expect(code).toHaveAttribute("inputmode", "numeric");
+      expect(code).toHaveAccessibleDescription(
+        /Codes refresh every 30 seconds/,
+      );
+      expect(API.post).not.toHaveBeenCalled();
+    });
+
+    test.each(["", "12345", "abcdef"])(
+      "rejects an invalid verification code before posting: %s",
+      async (code: string) => {
+        await openSetup();
+        fireEvent.change(
+          screen.getByRole("textbox", { name: "Verification code" }),
+          { target: { value: code } },
+        );
+        await click(screen.getByRole("button", { name: "Verify and finish" }));
+        expect(
+          screen.getByText(
+            "Enter the 6-digit code from your authenticator app.",
+          ),
+        ).toBeVisible();
+        expect(
+          screen.getByRole("textbox", { name: "Verification code" }),
+        ).toBeInvalid();
+        expect(API.post).not.toHaveBeenCalled();
+      },
     );
-    const savedModel: UserWebAuthn = jest.mocked(ModelAPI.createOrUpdate).mock
-      .calls[0]![0].model as UserWebAuthn;
-    expect(savedModel.credentialId).toBeUndefined();
-    expect(savedModel.publicKey).toBeUndefined();
-    expect(savedModel.counter).toBeUndefined();
-    expect(savedModel.transports).toBeUndefined();
-    expect(savedModel.isVerified).toBeUndefined();
-    expect(savedModel.createdAt).toBeUndefined();
-    expect(API.post).not.toHaveBeenCalled();
+
+    test("verifies a code with leading zeroes and preserves newly generated backup codes before closing", async () => {
+      backupCodes = ["ABCDE-12345", "FGHIJ-67890"];
+      await openSetup();
+      const refreshBefore: string | null = screen
+        .getByTestId("totp-auth-table")
+        .getAttribute("data-refresh");
+      fireEvent.change(
+        screen.getByRole("textbox", { name: "Verification code" }),
+        { target: { value: "012345" } },
+      );
+      fireEvent.keyDown(
+        screen.getByRole("textbox", { name: "Verification code" }),
+        { key: "Enter" },
+      );
+      await waitFor(() => {
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      });
+      expect(posted).toHaveLength(1);
+      expect(posted[0]?.url).toContain("/user-totp-auth/validate");
+      expect(posted[0]?.data).toEqual({
+        id: "55555555-5555-4555-8555-555555555555",
+        code: "012345",
+      });
+      expect(screen.getByTestId("enrolment-backup-codes")).toHaveTextContent(
+        "ABCDE-12345,FGHIJ-67890",
+      );
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Authenticator app added",
+      );
+      expect(
+        screen.getByTestId("totp-auth-table").getAttribute("data-refresh"),
+      ).not.toBe(refreshBefore);
+    });
+
+    test("fetches a missing QR code when creation only returns the authenticator id", async () => {
+      const authenticator: UserTotpAuth = createAuthenticator();
+      jest.spyOn(ModelAPI, "getItem").mockResolvedValue(authenticator);
+      renderPage(false);
+      await act(async () => {
+        await mockTotpTableProps!.onCreateSuccess!(createAuthenticator(false));
+      });
+      expect(ModelAPI.getItem).toHaveBeenCalledWith(
+        expect.objectContaining({
+          modelType: UserTotpAuth,
+          id: authenticator.id,
+          select: { _id: true, name: true, twoFactorOtpUrl: true },
+        }),
+      );
+      expect(screen.getByTestId("authenticator-qr")).toHaveTextContent(
+        authenticator.twoFactorOtpUrl!,
+      );
+      expect(
+        screen.getByRole("button", { name: "Verify and finish" }),
+      ).toBeEnabled();
+    });
+
+    test("cancels a pending QR load and ignores its late response", async () => {
+      let finish: ((authenticator: UserTotpAuth) => void) | undefined;
+      jest.spyOn(ModelAPI, "getItem").mockImplementation(() => {
+        return new Promise<UserTotpAuth>((resolve) => {
+          finish = resolve;
+        });
+      });
+      renderPage(false);
+      act(() => {
+        void mockTotpTableProps!.onCreateSuccess!(createAuthenticator(false));
+      });
+      expect(
+        screen.getByRole("button", { name: "Verify and finish" }),
+      ).toBeDisabled();
+      await click(screen.getByRole("button", { name: "Cancel" }));
+      expect(
+        jest.mocked(ModelAPI.getItem).mock.calls[0]![0].requestOptions
+          ?.apiRequestOptions?.signal?.aborted,
+      ).toBe(true);
+      await act(async () => {
+        finish!(createAuthenticator());
+      });
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("authenticator-qr")).not.toBeInTheDocument();
+      expect(API.post).not.toHaveBeenCalled();
+    });
+
+    test("keeps an expired code error visible and permits a new code", async () => {
+      jest
+        .spyOn(API, "post")
+        .mockRejectedValueOnce(new Error("The verification code has expired."));
+      await openSetup();
+      fireEvent.change(
+        screen.getByRole("textbox", { name: "Verification code" }),
+        { target: { value: "123456" } },
+      );
+      await click(screen.getByRole("button", { name: "Verify and finish" }));
+      expect(
+        screen.getByText("The verification code has expired."),
+      ).toBeVisible();
+      expect(
+        screen.getByRole("textbox", { name: "Verification code" }),
+      ).toHaveValue("123456");
+      expect(
+        screen.getByRole("button", { name: "Verify and finish" }),
+      ).toBeEnabled();
+      expect(
+        screen.getByTestId("enrolment-backup-codes"),
+      ).toBeEmptyDOMElement();
+      fireEvent.change(
+        screen.getByRole("textbox", { name: "Verification code" }),
+        { target: { value: "654321" } },
+      );
+      await click(screen.getByRole("button", { name: "Verify and finish" }));
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(posted[0]?.data).toMatchObject({ code: "654321" });
+    });
+
+    test("prevents duplicate verification and waits for recovery codes before dismissal", async () => {
+      let finish: ((response: HTTPResponse<JSONObject>) => void) | undefined;
+      jest.spyOn(API, "post").mockImplementationOnce(() => {
+        return new Promise<HTTPResponse<JSONObject>>((resolve) => {
+          finish = resolve;
+        });
+      });
+      await openSetup();
+      fireEvent.change(
+        screen.getByRole("textbox", { name: "Verification code" }),
+        { target: { value: "123456" } },
+      );
+      const submit: HTMLElement = screen.getByRole("button", {
+        name: "Verify and finish",
+      });
+      act(() => {
+        fireEvent.click(submit);
+        fireEvent.click(submit);
+      });
+      expect(API.post).toHaveBeenCalledTimes(1);
+      expect(submit).toBeDisabled();
+      expect(
+        screen.queryByRole("button", { name: "Cancel" }),
+      ).not.toBeInTheDocument();
+      await keyboard("{Escape}");
+      expect(screen.getByRole("dialog")).toBeVisible();
+      await act(async () => {
+        finish!(
+          new HTTPResponse<JSONObject>(
+            200,
+            { backupCodes: ["ABCDE-12345"] },
+            {},
+          ),
+        );
+      });
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.getByTestId("enrolment-backup-codes")).toHaveTextContent(
+        "ABCDE-12345",
+      );
+    });
   });
 });

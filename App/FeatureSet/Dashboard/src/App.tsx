@@ -92,7 +92,10 @@ const UserProfileOverview: LazyRoutes = lazy(() => {
 const UserProfilePassword: LazyRoutes = lazy(() => {
   return import("./Pages/Global/UserProfile/Password");
 });
-const UseTwoFactorAuth: LazyRoutes = lazy(() => {
+const UserPasskeys: LazyRoutes = lazy(() => {
+  return import("./Pages/Global/UserProfile/Passkeys");
+});
+const UserTwoFactorAuth: LazyRoutes = lazy(() => {
   return import("./Pages/Global/UserProfile/TwoFactorAuth");
 });
 const UserProfileDelete: LazyRoutes = lazy(() => {
@@ -846,9 +849,19 @@ const App: () => JSX.Element = () => {
             />
 
             <PageRoute
+              path={RouteMap[PageMap.USER_PASSKEYS]?.toString() || ""}
+              element={
+                <UserPasskeys
+                  {...commonPageProps}
+                  pageRoute={RouteMap[PageMap.USER_PASSKEYS] as Route}
+                />
+              }
+            />
+
+            <PageRoute
               path={RouteMap[PageMap.USER_TWO_FACTOR_AUTH]?.toString() || ""}
               element={
-                <UseTwoFactorAuth
+                <UserTwoFactorAuth
                   {...commonPageProps}
                   pageRoute={RouteMap[PageMap.USER_TWO_FACTOR_AUTH] as Route}
                 />

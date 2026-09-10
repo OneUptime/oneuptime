@@ -31,6 +31,7 @@ const PASSKEY_CHALLENGE_PREFIX: string = "webauthn-passkey-login-";
 interface RegistrationChallenge {
   challenge: string;
   requireUserVerification: boolean;
+  isPasskey?: boolean;
 }
 
 /*
@@ -355,6 +356,7 @@ export class Service extends DatabaseService<Model> {
         challenge: options.challenge,
         requireUserVerification:
           data.isPasskey === true || WEBAUTHN_REQUIRE_USER_VERIFICATION,
+        isPasskey: data.isPasskey === true,
       }),
     );
 
@@ -459,6 +461,9 @@ export class Service extends DatabaseService<Model> {
           registrationInfo.credential.transports || [],
         ),
         isVerified: true,
+        // Use only the server-bound ceremony purpose, never a client assertion.
+        // Challenges created just before an upgrade retain the legacy unknown value.
+        isPasskey: storedChallenge.isPasskey,
         userId: data.props.userId,
       },
       Model,
@@ -466,7 +471,9 @@ export class Service extends DatabaseService<Model> {
 
     await this.create({
       data: userWebAuthn,
-      props: data.props,
+      // The credential and its purpose have been verified above. The purpose is
+      // read-only through CRUD; only this verified registration path writes it.
+      props: { ...data.props, isRoot: true },
     });
   }
 

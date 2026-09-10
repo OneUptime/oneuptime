@@ -1,13 +1,13 @@
 import Card from "Common/UI/Components/Card/Card";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
+import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import API from "Common/UI/Utils/API/API";
+import Clipboard from "Common/UI/Utils/Clipboard";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -58,6 +58,9 @@ export interface BackupCodeStatus {
 }
 
 export interface ComponentProps {
+  // Passkey enrollment can return recovery codes without displaying this card.
+  hideCard?: boolean | undefined;
+
   /*
    * A set the SERVER minted while the user was setting a factor up, handed
    * down so this card can raise its show-once modal for it.
@@ -107,10 +110,27 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
    * mistake on this page that cannot be undone by trying again.
    */
   const [hasSavedCodes, setHasSavedCodes] = React.useState<boolean>(false);
+  const [hasCopiedCodes, setHasCopiedCodes] = React.useState<boolean>(false);
+  const [copyError, setCopyError] = React.useState<string>("");
+  const copyFeedbackTimeout: React.MutableRefObject<ReturnType<
+    typeof setTimeout
+  > | null> = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (copyFeedbackTimeout.current) {
+        clearTimeout(copyFeedbackTimeout.current);
+      }
+    };
+  }, []);
 
   type LoadStatusFunction = () => Promise<void>;
 
   const loadStatus: LoadStatusFunction = async (): Promise<void> => {
+    if (props.hideCard) {
+      return;
+    }
+
     setIsStatusLoading(true);
     setStatusError("");
 
@@ -134,6 +154,8 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
         generatedAt: generatedAt ? OneUptimeDate.fromString(generatedAt) : null,
       });
     } catch (err) {
+      // A stale empty status must never skip confirmation for a newer set.
+      setStatus(null);
       setStatusError(API.getFriendlyErrorMessage(err as Error));
     }
 
@@ -142,7 +164,7 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
 
   useAsyncEffect(async () => {
     await loadStatus();
-  }, []);
+  }, [props.hideCard]);
 
   /*
    * Raise the modal for a set the enrolment just minted.
@@ -166,6 +188,8 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
 
     setHasSavedCodes(false);
     setGeneratedCodes(props.codesFromEnrolment || []);
+    setHasCopiedCodes(false);
+    setCopyError("");
 
     await loadStatus();
   }, [enrolmentCodesKey]);
@@ -219,6 +243,8 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
       setShowConfirmModal(false);
       setHasSavedCodes(false);
       setGeneratedCodes(codes);
+      setHasCopiedCodes(false);
+      setCopyError("");
 
       await loadStatus();
     } catch (err) {
@@ -231,17 +257,41 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
 
   type DownloadCodesFunction = () => void;
 
+  const copyCodes: () => Promise<void> = async (): Promise<void> => {
+    if (!generatedCodes) {
+      return;
+    }
+
+    setCopyError("");
+    setHasCopiedCodes(false);
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("Clipboard unavailable");
+      }
+      await Clipboard.copyToClipboard(generatedCodes.join("\n"));
+      setHasCopiedCodes(true);
+      if (copyFeedbackTimeout.current) {
+        clearTimeout(copyFeedbackTimeout.current);
+      }
+      copyFeedbackTimeout.current = setTimeout(() => {
+        setHasCopiedCodes(false);
+      }, 2000);
+    } catch {
+      setCopyError("Could not copy the codes. Download them instead.");
+    }
+  };
+
   const downloadCodes: DownloadCodesFunction = (): void => {
     if (!generatedCodes) {
       return;
     }
 
     const content: string = [
-      "OneUptime two factor authentication backup codes",
+      "OneUptime two-factor authentication backup codes",
       `Generated: ${OneUptimeDate.getCurrentDateAsFormattedString()}`,
       "",
-      "Each code can be used once. Keep this file somewhere safe and",
-      "separate from the device that runs your authenticator app.",
+      "Each code can be used once after entering your password.",
+      "Keep this file somewhere safe, separate from your authenticator or security key.",
       "",
       ...generatedCodes,
       "",
@@ -271,48 +321,90 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
       return <ErrorMessage message={statusError} />;
     }
 
-    if (!status || status.total === 0) {
+    if (!status) {
+      return <></>;
+    }
+
+    if (status.total === 0) {
       return (
-        <Alert
-          type={AlertType.WARNING}
-          strongTitle="You have no backup codes."
-          title="Without them, losing your authenticator app or security key means an administrator has to reset two factor authentication on your account before you can sign in again."
-        />
+        <div
+          className="flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4"
+          role="status"
+          aria-label="Backup code status"
+        >
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500"
+            aria-hidden="true"
+          >
+            <Icon icon={IconProp.Key} className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-900">
+              Set up your recovery option
+            </p>
+            <p className="mt-1 text-sm leading-6 text-gray-500">
+              Generate backup codes so you can sign in if you lose access to
+              your authenticator app or security key.
+            </p>
+          </div>
+        </div>
       );
     }
 
-    if (status.unused === 0) {
-      return (
-        <Alert
-          type={AlertType.DANGER}
-          strongTitle="You have used all of your backup codes."
-          title="Generate a new set now. Until you do, you have no way back into this account if your authenticator app or security key becomes unavailable."
-        />
-      );
-    }
+    const isExhausted: boolean = status.unused === 0;
+    const isLow: boolean = status.unused <= LOW_CODE_THRESHOLD;
+    const tone: string = isExhausted
+      ? "border-red-100 bg-red-50 text-red-700"
+      : isLow
+        ? "border-amber-100 bg-amber-50 text-amber-700"
+        : "border-emerald-100 bg-emerald-50 text-emerald-700";
 
     return (
-      <div>
-        <Alert
-          type={
-            status.unused <= LOW_CODE_THRESHOLD
-              ? AlertType.WARNING
-              : AlertType.SUCCESS
-          }
-          strongTitle={`${status.unused} of ${status.total} backup codes remaining.`}
-          title={
-            status.unused <= LOW_CODE_THRESHOLD
-              ? "You are running low. Generate a new set so you do not run out."
-              : "Each code can be used once."
-          }
-        />
-        {status.generatedAt && (
-          <p className="text-sm text-gray-500 mt-2">
-            {`Generated ${OneUptimeDate.getDateAsLocalFormattedString(
-              status.generatedAt,
-            )}.`}
-          </p>
-        )}
+      <div
+        className="rounded-lg border border-gray-200 bg-gray-50 p-4"
+        role="status"
+        aria-label="Backup code status"
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${tone}`}
+              aria-hidden="true"
+            >
+              <Icon
+                icon={isLow ? IconProp.ShieldExclamation : IconProp.ShieldCheck}
+                className="h-5 w-5"
+              />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">{`${status.unused} of ${status.total} backup codes remaining`}</p>
+              <p className="mt-1 text-sm leading-6 text-gray-500">
+                {isExhausted
+                  ? "All codes have been used. Generate a new set to restore your recovery option."
+                  : isLow
+                    ? "You are running low. Generate a new set before you run out."
+                    : "Each code can be used once in place of your second factor."}
+              </p>
+            </div>
+          </div>
+          <span
+            className={`inline-flex w-fit shrink-0 items-center rounded-full border px-2.5 py-1 text-xs font-medium ${tone}`}
+          >
+            {isExhausted
+              ? "No codes left"
+              : isLow
+                ? "Running low"
+                : "Ready to use"}
+          </span>
+        </div>
+        <div className="mt-4 flex flex-col gap-2 border-t border-gray-200 pt-3 text-xs leading-5 text-gray-500 sm:flex-row sm:justify-between">
+          <span>
+            Store your codes in a password manager or another safe place.
+          </span>
+          {status.generatedAt && (
+            <span>{`Generated ${OneUptimeDate.getDateAsLocalFormattedString(status.generatedAt)}`}</span>
+          )}
+        </div>
       </div>
     );
   };
@@ -332,83 +424,91 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
 
   return (
     <>
-      <Card
-        title="Backup Codes"
-        description="Single-use codes that sign you in when your authenticator app or security key is not available. Keep them somewhere other than the device that generates your codes."
-        buttons={[
-          {
-            title: isKnownToHaveNoCodes
-              ? "Generate Backup Codes"
-              : "Regenerate Backup Codes",
-            buttonStyle: isKnownToHaveNoCodes
-              ? ButtonStyleType.PRIMARY
-              : ButtonStyleType.NORMAL,
-            icon: IconProp.Key,
-            /*
-             * `isLoading` as well as `disabled`. Without it the button stays
-             * live for the whole round trip -- `isStatusLoading` is false
-             * throughout, because the status is not re-read until the
-             * generation has already returned -- so a second click lands on an
-             * enabled button and starts a second, racing regeneration.
-             */
-            disabled: isStatusLoading || isGenerating,
-            isLoading: isGenerating,
-            onClick: () => {
-              setGenerateError("");
-
+      {!props.hideCard && (
+        <Card
+          title="Backup codes"
+          description="Your recovery option when you cannot use your authenticator app or security key."
+          buttons={[
+            {
+              title: isKnownToHaveNoCodes
+                ? "Generate backup codes"
+                : "Regenerate codes",
+              buttonStyle: isKnownToHaveNoCodes
+                ? ButtonStyleType.PRIMARY
+                : ButtonStyleType.NORMAL,
+              icon: isKnownToHaveNoCodes ? IconProp.Key : IconProp.Refresh,
               /*
-               * The confirmation exists only when there is nothing to destroy.
-               * A first-time user has no codes to invalidate, so asking "are
-               * you sure?" would be a dialog with one sensible answer -- but
-               * anything short of KNOWING that gets the warning, because the
-               * cost of a needless dialog is a click and the cost of a missing
-               * one is ten codes.
+               * `isLoading` as well as `disabled`. Without it the button stays
+               * live for the whole round trip -- `isStatusLoading` is false
+               * throughout, because the status is not re-read until the
+               * generation has already returned -- so a second click lands on an
+               * enabled button and starts a second, racing regeneration.
                */
-              if (!isKnownToHaveNoCodes) {
-                setShowConfirmModal(true);
-                return;
-              }
+              disabled: isStatusLoading || isGenerating,
+              isLoading: isGenerating,
+              onClick: () => {
+                setGenerateError("");
 
-              generate().catch(() => {
-                // Surfaced through `generateError` by `generate` itself.
-              });
+                /*
+                 * The confirmation exists only when there is nothing to destroy.
+                 * A first-time user has no codes to invalidate, so asking "are
+                 * you sure?" would be a dialog with one sensible answer -- but
+                 * anything short of KNOWING that gets the warning, because the
+                 * cost of a needless dialog is a click and the cost of a missing
+                 * one is ten codes.
+                 */
+                if (!isKnownToHaveNoCodes) {
+                  setShowConfirmModal(true);
+                  return;
+                }
+
+                generate().catch(() => {
+                  // Surfaced through `generateError` by `generate` itself.
+                });
+              },
             },
-          },
-        ]}
-      >
-        <div>
-          {renderStatus()}
+          ]}
+        >
+          <div>
+            {renderStatus()}
 
-          {/*
-           * The ONLY render site for `generateError` outside the confirmation
-           * modal, and the one that matters most. A first-time user never
-           * opens that modal -- there is nothing to confirm -- so before this
-           * existed, a failed generation set an error string that nothing on
-           * screen could show: the card still read "You have no backup codes"
-           * and the button did nothing visible, on the one page in the
-           * product where having no backup codes is what the user came to
-           * fix.
-           */}
-          {generateError && (
-            <div className="mt-3">
-              <ErrorMessage message={generateError} />
-            </div>
-          )}
-        </div>
-      </Card>
+            {/*
+             * The ONLY render site for `generateError` outside the confirmation
+             * modal, and the one that matters most. A first-time user never
+             * opens that modal -- there is nothing to confirm -- so before this
+             * existed, a failed generation set an error string that nothing on
+             * screen could show: the card still read "You have no backup codes"
+             * and the button did nothing visible, on the one page in the
+             * product where having no backup codes is what the user came to
+             * fix.
+             */}
+            {generateError && (
+              <div className="mt-3">
+                <ErrorMessage message={generateError} />
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
 
       {showConfirmModal && (
         <ConfirmModal
           title="Regenerate backup codes?"
-          description="Every backup code you are currently holding will stop working immediately, including any you have written down or printed. You will be shown a new set once, and only once."
+          description="Your current codes will stop working immediately, including any you have written down or printed. Save the new set before closing the next window."
           submitButtonText="Regenerate"
           submitButtonType={ButtonStyleType.DANGER}
           isLoading={isGenerating}
           error={generateError || undefined}
-          onClose={() => {
-            setShowConfirmModal(false);
-            setGenerateError("");
-          }}
+          onClose={
+            isGenerating
+              ? undefined
+              : () => {
+                  if (!isGeneratingRef.current) {
+                    setShowConfirmModal(false);
+                    setGenerateError("");
+                  }
+                }
+          }
           onSubmit={() => {
             generate().catch(() => {
               // Surfaced through `generateError` by `generate` itself.
@@ -420,6 +520,7 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
       {generatedCodes && (
         <Modal
           title="Your backup codes"
+          description="Save these codes to keep a way back into your account."
           modalWidth={ModalWidth.Medium}
           submitButtonText="Done"
           /*
@@ -442,53 +543,100 @@ const BackupCodes: FunctionComponent<ComponentProps> = (
           }}
         >
           <div>
-            <Alert
-              type={AlertType.WARNING}
-              strongTitle="This is the only time these codes will be shown."
-              title="Save them somewhere safe before you close this window. If you lose them, you can generate a new set -- but the codes below will be gone."
-            />
+            <div
+              className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4"
+              role="note"
+            >
+              <span
+                className="mt-0.5 shrink-0 text-amber-600"
+                aria-hidden="true"
+              >
+                <Icon icon={IconProp.ShieldExclamation} className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-sm font-medium text-amber-900">
+                  These codes are shown only once.
+                </p>
+                <p className="mt-1 text-sm leading-6 text-amber-800">
+                  Save them in a password manager or download a copy. Each code
+                  works once, after your password.
+                </p>
+              </div>
+            </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-2 rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div
+              className="mt-5 grid grid-cols-1 gap-2 rounded-xl border border-gray-200 bg-gray-50 p-3 sm:grid-cols-2 sm:p-4"
+              aria-label="Backup codes"
+            >
               {generatedCodes.map((code: string, index: number) => {
                 return (
                   <div
                     key={index}
-                    className="font-mono text-sm tracking-wider text-gray-900"
-                    data-testid="backup-code"
+                    className="flex items-center gap-3 rounded-md border border-gray-200 bg-white px-3 py-2.5"
                   >
-                    {code}
+                    <span
+                      className="w-4 shrink-0 select-none text-xs tabular-nums text-gray-400"
+                      aria-hidden="true"
+                    >
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <code
+                      className="select-all break-all font-mono text-sm font-medium tracking-wider text-gray-900"
+                      data-testid="backup-code"
+                    >
+                      {code}
+                    </code>
                   </div>
                 );
               })}
             </div>
 
-            <div className="mt-4 flex items-center gap-3">
-              <CopyTextButton
-                textToBeCopied={generatedCodes.join("\n")}
-                size="sm"
-                variant="soft"
-                label="Copy codes"
-                copiedLabel="Copied"
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <Button
+                title={hasCopiedCodes ? "Copied" : "Copy codes"}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                icon={hasCopiedCodes ? IconProp.Check : IconProp.Copy}
+                className={`min-h-10 !ml-0 ${hasCopiedCodes ? "!border-emerald-200 !bg-emerald-50 !text-emerald-700" : ""}`}
+                onClick={copyCodes}
               />
               <Button
                 title="Download as .txt"
                 buttonStyle={ButtonStyleType.OUTLINE}
                 icon={IconProp.Download}
+                className="min-h-10 !ml-0"
                 onClick={downloadCodes}
               />
             </div>
 
-            <label className="mt-5 flex items-start gap-2 cursor-pointer">
+            <div
+              aria-live="polite"
+              className={copyError ? "mt-2 text-sm" : "text-sm"}
+            >
+              {hasCopiedCodes && (
+                <span className="sr-only">
+                  Backup codes copied to clipboard.
+                </span>
+              )}
+              {copyError && (
+                <p className="text-red-600" role="alert">
+                  {copyError}
+                </p>
+              )}
+            </div>
+
+            <label
+              className={`mt-5 flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${hasSavedCodes ? "border-indigo-200 bg-indigo-50" : "border-gray-200 bg-white hover:bg-gray-50"}`}
+            >
               <input
                 type="checkbox"
                 data-testid="backup-codes-saved-checkbox"
-                className="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600"
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-500"
                 checked={hasSavedCodes}
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                   setHasSavedCodes(event.target.checked);
                 }}
               />
-              <span className="text-sm text-gray-700">
+              <span className="text-sm font-medium text-gray-700">
                 I have saved these codes somewhere safe.
               </span>
             </label>
