@@ -1357,6 +1357,20 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     ],
   },
 
+  "/books": {
+    title: "Books | Back to Metal | OneUptime",
+    description:
+      "Explore books from OneUptime. Read Back to Metal by Nawaz Dhandala, a practical guide to moving from the cloud to bare metal and owning your infrastructure.",
+    canonicalPath: "/books",
+    ogImage: "/img/books/books-social.jpg",
+    twitterCard: "summary_large_image",
+    pageType: "other",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Books", url: "/books" },
+    ],
+  },
+
   "/oss-friends": {
     title: "OSS Friends | Open Source Partners | OneUptime",
     description:

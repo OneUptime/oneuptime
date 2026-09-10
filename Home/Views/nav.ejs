@@ -55,7 +55,7 @@
 
           <div onmouseenter="showSolutionsMenu()" onmouseover="showSolutionsMenu()" onmouseleave="hideSolutionsMenu()"
             class="absolute z-20 -ml-4 pt-3 w-screen max-w-4xl transform px-2 sm:px-0 lg:left-1/2 lg:ml-0 lg:-translate-x-1/2"
-            id="solutions-menu" style="visibility: collapse; opacity: 0;">
+            id="solutions-menu" hidden style="visibility: collapse; opacity: 0;">
             <div class="overflow-hidden rounded-2xl shadow-2xl ring-1 ring-gray-900/5 bg-white">
               <div class="flex">
                 <!-- Left Column - Dark Featured Section -->
@@ -295,7 +295,7 @@
             </svg>
           </button>
 
-          <div onmouseenter="showResourcesMenu()" onmouseover="showResourcesMenu()" onmouseleave="hideResourcesMenu()" id="resources-menu"
+          <div onmouseenter="showResourcesMenu()" onmouseover="showResourcesMenu()" onmouseleave="hideResourcesMenu()" id="resources-menu" hidden
             class="absolute right-0 z-20 pt-3 w-screen max-w-3xl transform px-2 sm:px-0"
             style="visibility: collapse; opacity: 0;">
             <div class="overflow-hidden rounded-2xl shadow-2xl ring-1 ring-gray-900/5 bg-white">
@@ -361,6 +361,17 @@
                         <div>
                           <p class="text-sm font-medium text-gray-900 group-hover:text-gray-700">Blog</p>
                           <p class="text-xs text-gray-500">News & insights</p>
+                        </div>
+                      </a>
+                      <a href="/books" class="group flex items-center gap-3 p-2.5 -mx-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div class="w-8 h-8 rounded-md bg-amber-50 flex items-center justify-center flex-shrink-0">
+                          <svg class="h-4 w-4 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path>
+                          </svg>
+                        </div>
+                        <div>
+                          <p class="text-sm font-medium text-gray-900 group-hover:text-gray-700">Books</p>
+                          <p class="text-xs text-gray-500">Ideas for better infrastructure</p>
                         </div>
                       </a>
                       <a href="https://status.oneuptime.com" target="_blank" class="group flex items-center gap-3 p-2.5 -mx-2.5 rounded-lg hover:bg-gray-50 transition-colors">
@@ -484,7 +495,7 @@
         To: "opacity-0 scale-95"
     -->
 
-  <div id="mobile-menu" class="absolute inset-x-0 top-0 origin-top-right transform p-2 transition md:hidden z-20"
+  <div id="mobile-menu" hidden class="absolute inset-x-0 top-0 origin-top-right transform p-2 transition md:hidden z-20"
     style="visibility: collapse;">
     <div class="divide-y-2 divide-gray-50 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5">
       <div class="px-5 pt-5 pb-6">
@@ -802,6 +813,8 @@
           <a href="/trust" class="text-base font-medium text-gray-900 hover:text-gray-700">Trust Center</a>
 
           <a href="/support" class="text-base font-medium text-gray-900 hover:text-gray-700">Support</a>
+
+          <a href="/books" class="text-base font-medium text-gray-900 hover:text-gray-700">Books</a>
         </div>
         <div>
           <a href="/accounts/register"
@@ -1241,11 +1254,14 @@
   let solutionsMenuTimer = null;
   let resourcesMenuTimer = null;
 
+  // Closed panels must leave layout so they cannot create invisible overflow.
   function closeMobileMenu() {
+    document.getElementById("mobile-menu").hidden = true;
     document.getElementById("mobile-menu").style.visibility = "collapse";
   }
 
   function openMobileMenu() {
+    document.getElementById("mobile-menu").hidden = false;
     document.getElementById("mobile-menu").style.visibility = "visible";
   }
 
@@ -1513,6 +1529,7 @@
       solutionsMenuTimer = null;
     }
     var menu = document.getElementById("solutions-menu");
+    menu.hidden = false;
     menu.style.visibility = "visible";
     menu.style.opacity = "1";
   }
@@ -1523,6 +1540,7 @@
     }
     solutionsMenuTimer = setTimeout(() => {
       var menu = document.getElementById("solutions-menu");
+      menu.hidden = true;
       menu.style.opacity = "0";
       menu.style.visibility = "collapse";
       solutionsMenuTimer = null;
@@ -1535,6 +1553,7 @@
       resourcesMenuTimer = null;
     }
     var menu = document.getElementById("resources-menu");
+    menu.hidden = false;
     menu.style.visibility = "visible";
     menu.style.opacity = "1";
   }
@@ -1545,6 +1564,7 @@
     }
     resourcesMenuTimer = setTimeout(() => {
       var menu = document.getElementById("resources-menu");
+      menu.hidden = true;
       menu.style.opacity = "0";
       menu.style.visibility = "collapse";
       resourcesMenuTimer = null;
