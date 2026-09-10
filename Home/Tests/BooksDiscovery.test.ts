@@ -134,9 +134,7 @@ describe("Books navigation", () => {
       navHtml.indexOf('id="mobile-menu"'),
     );
 
-    expect(desktopResources).toMatch(
-      /href="\/books"[^>]*>[\s\S]*?>Books<\/p>/,
-    );
+    expect(desktopResources).toMatch(/href="\/books"[^>]*>[\s\S]*?>Books<\/p>/);
     expect(desktopResources).toContain("Ideas for better infrastructure");
   });
 
@@ -160,9 +158,7 @@ describe("Books navigation", () => {
 
   test("keeps collection links internal and in the same tab", () => {
     const links: string[] =
-      `${navHtml}${footerHtml}`.match(
-        /<a\b[^>]*href="\/books"[^>]*>/g,
-      ) || [];
+      `${navHtml}${footerHtml}`.match(/<a\b[^>]*href="\/books"[^>]*>/g) || [];
 
     expect(links).toHaveLength(3);
     for (const link of links) {
