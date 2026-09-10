@@ -43,9 +43,7 @@ const WORKFLOW_ID: ObjectID = new ObjectID(
 const VARIABLE_ID: ObjectID = new ObjectID(
   "aaaa3333-3333-4333-8333-333333333333",
 );
-const USER_ID: ObjectID = new ObjectID(
-  "aaaa5555-5555-4555-8555-555555555555",
-);
+const USER_ID: ObjectID = new ObjectID("aaaa5555-5555-4555-8555-555555555555");
 const OTHER_VARIABLE_ID: ObjectID = new ObjectID(
   "aaaa4444-4444-4444-8444-444444444444",
 );

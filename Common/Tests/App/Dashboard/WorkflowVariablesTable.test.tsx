@@ -287,9 +287,7 @@ function makeVariable(
   return variable;
 }
 
-function openUpdateContentModal(
-  variable?: WorkflowVariable | undefined,
-): void {
+function openUpdateContentModal(variable?: WorkflowVariable | undefined): void {
   act(() => {
     updateContentButton().onClick(
       variable || makeVariable(),

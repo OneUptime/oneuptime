@@ -139,6 +139,7 @@ const DeleteAccount: FunctionComponent<
           type={AlertType.DANGER}
           strongTitle="DANGER ZONE"
           title="Deleting your account is permanent and cannot be undone. All your personal data will be removed."
+          className="mb-5"
         />
 
         {isLoading && <ComponentLoader />}
