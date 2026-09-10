@@ -135,6 +135,19 @@ describe("books.ejs", () => {
     expect(elementsIn(html, "footer")).toHaveLength(1);
   });
 
+  test("provides a focusable main destination for the shared skip link", () => {
+    const mainElement: RenderedElement = elementsIn(html, "main")[0]!;
+    const skipLinks: Array<RenderedElement> = linkedElements(
+      html,
+      "#main-content",
+    );
+
+    expect(attributeValue(mainElement.attributes, "id")).toBe("main-content");
+    expect(attributeValue(mainElement.attributes, "tabindex")).toBe("-1");
+    expect(skipLinks).toHaveLength(1);
+    expect(textIn(skipLinks[0]!.body)).toBe("Skip to main content");
+  });
+
   test("has one descriptive page heading and a separate book heading", () => {
     const headings: Array<RenderedElement> = elementsIn(html, "h1");
 

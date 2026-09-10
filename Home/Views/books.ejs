@@ -26,100 +26,114 @@
 <body>
     <%- include('nav') -%>
 
-    <main id="main-content" class="books-page">
+    <main id="main-content" class="books-page" tabindex="-1">
         <div class="books-container">
             <section class="books-intro" aria-labelledby="books-heading">
                 <div>
                     <p class="books-eyebrow"><span class="books-mark" aria-hidden="true"></span> The OneUptime library</p>
-                    <h1 id="books-heading">Books for people<br>who <span>build.</span></h1>
+                    <h1 id="books-heading">Books for people who <span>build.</span></h1>
                 </div>
                 <div class="books-intro-note">
-                    <p>Good infrastructure starts with understanding it. Go deeper with practical books from the people behind OneUptime.</p>
+                    <p>Practical books from the people behind OneUptime. Made for your next big idea.</p>
                     <a class="books-text-link" href="#featured-book">Find your next read <span aria-hidden="true">↘</span></a>
                 </div>
             </section>
 
             <article id="featured-book" class="books-feature" aria-labelledby="book-title">
                 <div class="books-feature-topline">
-                    <span><span class="books-status-dot" aria-hidden="true"></span> Featured book</span>
-                    <span>Infrastructure / 001</span>
+                    <span><span class="books-feature-number">01</span> Featured book</span>
+                    <span>A OneUptime publication</span>
                 </div>
                 <div class="books-feature-grid">
                     <div class="books-cover-stage">
-                        <div class="books-orbit books-orbit-outer" aria-hidden="true"></div>
-                        <div class="books-orbit books-orbit-inner" aria-hidden="true"></div>
+                        <span class="books-stage-label" aria-hidden="true">The infrastructure collection</span>
                         <div class="books-cover">
                             <img src="/img/books/back-to-metal.jpg" alt="Back to Metal book cover by Nawaz Dhandala" width="1600" height="2560" fetchpriority="high">
                         </div>
-                        <span class="books-cover-caption" aria-hidden="true">Less abstraction. More understanding.</span>
+                        <span class="books-cover-caption" aria-hidden="true">A little less abstraction. A lot more understanding.</span>
                     </div>
                     <div class="books-feature-copy">
-                        <p class="books-eyebrow books-eyebrow-light">From the makers of OneUptime</p>
-                        <h2 id="book-title">Back to Metal</h2>
+                        <p class="books-eyebrow books-book-category">Infrastructure &amp; engineering</p>
+                        <h2 id="book-title">Back to <span>Metal</span></h2>
                         <p class="books-subtitle">How a company leaves the cloud,<br class="books-desktop-break"> one move at a time</p>
-                        <p class="books-description">A practical guide to moving from AWS, Google Cloud, or Azure to dedicated servers you rent or own. Work through the economics, the hardware, the migration, and the reality of running it all.</p>
-                        <p class="books-author">By <strong>Nawaz Dhandala</strong></p>
+                        <p class="books-author">By <strong>Nawaz Dhandala</strong><span aria-hidden="true">·</span> From the makers of OneUptime</p>
+                        <p class="books-description">A practical guide to moving from AWS, Google Cloud, or Azure to dedicated servers you rent or own.</p>
                         <div class="books-actions">
                             <a href="https://backtometal.oneuptime.com/" class="books-button">Read the book <span aria-hidden="true">↗</span></a>
-                            <a href="#inside-the-book" class="books-text-link books-text-link-light">Explore the book <span aria-hidden="true">↓</span></a>
+                            <a href="#inside-the-book" class="books-text-link books-explore-link">Explore the book <span aria-hidden="true">↓</span></a>
                         </div>
                         <p class="books-free-note">Free to read. Open to everyone.</p>
+                        <dl class="books-facts">
+                            <div><dt>20</dt><dd>practical moves</dd></div>
+                            <div><dt>5</dt><dd>clear stages</dd></div>
+                            <div><dt>PDF &amp; EPUB</dt><dd>yours to keep</dd></div>
+                        </dl>
                     </div>
                 </div>
-                <dl class="books-facts">
-                    <div><dt>20</dt><dd>Practical moves</dd></div>
-                    <div><dt>5</dt><dd>Stages, from decision to operations</dd></div>
-                    <div><dt>Yours.</dt><dd>The infrastructure. The understanding.</dd></div>
-                </dl>
             </article>
 
             <section id="inside-the-book" class="books-inside" aria-labelledby="books-inside-heading">
                 <div class="books-section-heading">
                     <div>
                         <p class="books-eyebrow">Inside Back to Metal</p>
-                        <h2 id="books-inside-heading">A big move.<br>One clear step at a time.</h2>
+                        <h2 id="books-inside-heading">From the first question<br>to the day after.</h2>
                     </div>
-                    <p>From the first look at your cloud bill to the first night on call. Explore a chapter from each of the book’s five stages.</p>
+                    <p>The economics. The hardware. The migration. The reality of running it all. Start with a chapter from each of the book’s five stages.</p>
                 </div>
                 <ol class="books-chapters">
                     <li>
                         <a href="https://backtometal.oneuptime.com/m/01-the-bill-and-the-three-lines-that-are-most-of-it.html">
-                            <div class="books-chapter-top"><span>01 / Decide</span><span aria-hidden="true">↗</span></div>
-                            <h3>Make the case.</h3>
+                            <span class="books-chapter-number" aria-hidden="true">01</span>
+                            <div class="books-chapter-body">
+                                <span class="books-chapter-stage">Decide <span aria-hidden="true">/</span> Move 01</span>
+                                <h3>The bill, and the three lines that are most of it</h3>
+                            </div>
                             <p>Understand the bill before you change the infrastructure.</p>
-                            <div class="books-chapter-preview"><span>Move 01</span><span>The bill, and the three lines that are most of it</span></div>
+                            <span class="books-chapter-arrow" aria-hidden="true">↗</span>
                         </a>
                     </li>
                     <li>
                         <a href="https://backtometal.oneuptime.com/m/07-a-cage-not-a-data-centre.html">
-                            <div class="books-chapter-top"><span>02 / Buy</span><span aria-hidden="true">↗</span></div>
-                            <h3>Find your footing.</h3>
+                            <span class="books-chapter-number" aria-hidden="true">02</span>
+                            <div class="books-chapter-body">
+                                <span class="books-chapter-stage">Buy <span aria-hidden="true">/</span> Move 07</span>
+                                <h3>A cage, not a data centre</h3>
+                            </div>
                             <p>Get to know the physical home of your next platform.</p>
-                            <div class="books-chapter-preview"><span>Move 07</span><span>A cage, not a data centre</span></div>
+                            <span class="books-chapter-arrow" aria-hidden="true">↗</span>
                         </a>
                     </li>
                     <li>
                         <a href="https://backtometal.oneuptime.com/m/11-the-platform-your-workloads-need.html">
-                            <div class="books-chapter-top"><span>03 / Build</span><span aria-hidden="true">↗</span></div>
-                            <h3>Build the foundation.</h3>
+                            <span class="books-chapter-number" aria-hidden="true">03</span>
+                            <div class="books-chapter-body">
+                                <span class="books-chapter-stage">Build <span aria-hidden="true">/</span> Move 11</span>
+                                <h3>The platform your workloads need</h3>
+                            </div>
                             <p>Shape a platform around the workloads you actually run.</p>
-                            <div class="books-chapter-preview"><span>Move 11</span><span>The platform your workloads need</span></div>
+                            <span class="books-chapter-arrow" aria-hidden="true">↗</span>
                         </a>
                     </li>
                     <li>
                         <a href="https://backtometal.oneuptime.com/m/16-postgres-the-one-that-matters.html">
-                            <div class="books-chapter-top"><span>04 / Move</span><span aria-hidden="true">↗</span></div>
-                            <h3>Make the crossing.</h3>
+                            <span class="books-chapter-number" aria-hidden="true">04</span>
+                            <div class="books-chapter-body">
+                                <span class="books-chapter-stage">Move <span aria-hidden="true">/</span> Move 16</span>
+                                <h3>Postgres, the one that matters</h3>
+                            </div>
                             <p>Work through the cutover of your most important data.</p>
-                            <div class="books-chapter-preview"><span>Move 16</span><span>Postgres, the one that matters</span></div>
+                            <span class="books-chapter-arrow" aria-hidden="true">↗</span>
                         </a>
                     </li>
                     <li>
                         <a href="https://backtometal.oneuptime.com/m/19-backups-you-have-restored-and-the-pager.html">
-                            <div class="books-chapter-top"><span>05 / Run</span><span aria-hidden="true">↗</span></div>
-                            <h3>Own the day after.</h3>
+                            <span class="books-chapter-number" aria-hidden="true">05</span>
+                            <div class="books-chapter-body">
+                                <span class="books-chapter-stage">Run <span aria-hidden="true">/</span> Move 19</span>
+                                <h3>Backups you have restored, and the pager</h3>
+                            </div>
                             <p>Turn a successful migration into a platform you can operate.</p>
-                            <div class="books-chapter-preview"><span>Move 19</span><span>Backups you have restored, and the pager</span></div>
+                            <span class="books-chapter-arrow" aria-hidden="true">↗</span>
                         </a>
                     </li>
                 </ol>
@@ -128,8 +142,8 @@
             <section id="reading-formats" class="books-formats" aria-labelledby="books-formats-heading">
                 <div class="books-formats-intro">
                     <p class="books-eyebrow">Your next chapter</p>
-                    <h2 id="books-formats-heading">Read it your way.</h2>
-                    <p>At your desk. On your reader. Wherever you do your best thinking.</p>
+                    <h2 id="books-formats-heading">A good read.<br>Anywhere you are.</h2>
+                    <p>The whole book is free. Choose your format, find a quiet moment, and make it yours.</p>
                 </div>
                 <div class="books-format-links">
                     <a href="https://backtometal.oneuptime.com/">

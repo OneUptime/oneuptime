@@ -280,6 +280,108 @@ test.describe("Home: Books", () => {
     ).toBeVisible();
   });
 
+  test("keyboard readers can skip the navigation and continue through the main content", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(booksUrl);
+    await page.keyboard.press("Tab");
+
+    const skip: Locator = page.getByRole("link", {
+      name: "Skip to main content",
+      exact: true,
+    });
+    await expect(skip).toBeFocused();
+    await expect(skip).toBeVisible();
+    await expect(skip).toBeInViewport({ ratio: 1 });
+    const skipDimensions: { width: number; height: number } | null =
+      await skip.boundingBox();
+    expect(skipDimensions?.width).toBeGreaterThan(1);
+    expect(skipDimensions?.height).toBeGreaterThan(1);
+
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(`${booksUrl}#main-content`);
+    const main: Locator = page.getByRole("main");
+    await expect(main).toBeFocused();
+
+    await page.keyboard.press("Tab");
+    await expect(main.getByRole("link").first()).toBeFocused();
+  });
+
+  test("respects the reader's reduced-motion preference", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto(booksUrl);
+    await page
+      .getByRole("link", { name: "Read the book", exact: true })
+      .hover();
+
+    const motionElements: string[] = await page
+      .getByRole("main")
+      .evaluate((main: HTMLElement): string[] => {
+        return [...main.querySelectorAll("*")]
+          .filter((element: Element): boolean => {
+            const style: CSSStyleDeclaration = getComputedStyle(element);
+            const hasTransition: boolean = style.transitionDuration
+              .split(",")
+              .some((duration: string): boolean => {
+                return parseFloat(duration) > 0;
+              });
+            const hasAnimation: boolean =
+              style.animationName !== "none" &&
+              style.animationDuration
+                .split(",")
+                .some((duration: string): boolean => {
+                  return parseFloat(duration) > 0;
+                });
+            return hasTransition || hasAnimation;
+          })
+          .map((element: Element): string => {
+            return `${element.tagName.toLowerCase()}.${element.className}`;
+          });
+      });
+    expect(motionElements).toEqual([]);
+  });
+
+  for (const viewport of [
+    { width: 1366, height: 768 },
+    { width: 390, height: 844 },
+  ]) {
+    test(`the book identity and reading action fit the first viewport at ${viewport.width}x${viewport.height}`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize(viewport);
+      await page.goto(booksUrl);
+      await page.evaluate(async (): Promise<void> => {
+        await document.fonts.ready;
+      });
+
+      const main: Locator = page.getByRole("main");
+      for (const content of [
+        main.getByRole("heading", {
+          level: 2,
+          name: "Back to Metal",
+          exact: true,
+        }),
+        main.getByText("Nawaz Dhandala", { exact: true }),
+        main.getByRole("link", { name: "Read the book", exact: true }),
+      ]) {
+        await expect(content).toBeInViewport({ ratio: 1 });
+      }
+      expect(
+        await page.evaluate((): number => {
+          return window.scrollY;
+        }),
+      ).toBe(0);
+    });
+  }
+
   test("the desktop Resources menu links to Books", async ({
     page,
   }: {
