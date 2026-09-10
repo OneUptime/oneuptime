@@ -264,6 +264,20 @@ export class PinnedHttpsProxyAgent extends HttpsProxyAgent<string> {
   }
 }
 
+/*
+ * Total budget for the pre-flight name resolution of a monitor target.
+ *
+ * It has to sit ABOVE the resolver budget the probe itself is configured with,
+ * or the guard cuts the lookup off before the resolver has finished its own
+ * failover and a reachable host is reported down. The Helm chart ships
+ * timeout:2 + attempts:2 over a cluster resolver plus two fallback
+ * nameservers, so a single getaddrinfo can legitimately take ~12s before it
+ * succeeds on a fallback — the very resilience those fallbacks exist to
+ * provide. This is only a hang guard; the real per-check bound is the
+ * monitor's own execution-context deadline, which reports an honest timeout.
+ */
+export const MONITOR_DNS_RESOLVE_BUDGET_IN_MS: number = 15000;
+
 export default class HttpMonitorRequest {
   /*
    * Prepare exactly ONE network hop. Callers invoke this again for retries,
@@ -303,6 +317,7 @@ export default class HttpMonitorRequest {
         targetLabel: "Monitor target",
         privateNetworkHint: PROBE_PRIVATE_NETWORK_HINT,
         includeResolvedAddressInError: false,
+        resolveTimeoutInMs: MONITOR_DNS_RESOLVE_BUDGET_IN_MS,
       });
     } finally {
       if (shouldTimeDnsLookup) {

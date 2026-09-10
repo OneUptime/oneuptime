@@ -3,6 +3,10 @@ import http from "http";
 import https from "https";
 import net from "net";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import EgressGuardException, {
+  EgressFailureReason,
+} from "../../../Types/Exception/EgressGuardException";
+import logger from "../Logger";
 
 /*
  * SSRF egress guard for outbound connections whose target is chosen by a
@@ -80,6 +84,21 @@ export interface EgressGuardOptions {
    * requests set it to false and receive one indistinguishable failure.
    */
   includeResolvedAddressInError?: boolean | undefined;
+  /*
+   * TOTAL wall-clock budget for name resolution, across every attempt. It is a
+   * safety net against a wedged resolver, not a latency policy: callers with
+   * their own deadline (probe monitors have an execution-context timeout) pass
+   * a value above the resolver's own configured budget so the resolver's
+   * nameserver failover is allowed to finish, and let their deadline do the
+   * real bounding. Defaults to DEFAULT_DNS_RESOLVE_BUDGET_IN_MS.
+   */
+  resolveTimeoutInMs?: number | undefined;
+  /*
+   * How many getaddrinfo attempts to make inside the budget above. Retrying
+   * absorbs the transient resolver failures (EAI_AGAIN, a nameserver
+   * restarting) that otherwise surface as a hard "target is down".
+   */
+  resolveAttempts?: number | undefined;
 }
 
 export interface PinnedAgents {
@@ -112,7 +131,23 @@ export interface AddressVerdict {
   isPrivateNetwork?: boolean | undefined;
 }
 
-const DNS_LOOKUP_TIMEOUT_IN_MS: number = 5000;
+/*
+ * Total resolution budget. Chosen so existing callers see no change in
+ * worst-case latency versus the single 5s lookup this replaced — the retries
+ * below fit INSIDE the same budget rather than extending it.
+ */
+export const DEFAULT_DNS_RESOLVE_BUDGET_IN_MS: number = 5000;
+
+/*
+ * getaddrinfo fails transiently far more often than a host actually
+ * disappears — EAI_AGAIN under resolver load is the classic case, and it is
+ * why the Helm chart ships fallback nameservers. One shot at it turned every
+ * such blip into a monitor-down incident.
+ */
+export const DEFAULT_DNS_RESOLVE_ATTEMPTS: number = 3;
+
+// Short enough that three attempts still fit comfortably in a 5s budget.
+const DNS_RESOLVE_RETRY_DELAY_IN_MS: number = 150;
 
 interface Ipv4Range {
   base: number;
@@ -485,8 +520,9 @@ export default class DataSourceEgressGuard {
     return { blocked: true, reason: "not a valid IP address" };
   }
 
-  private static async defaultResolve(
+  private static async lookupOnce(
     hostname: string,
+    timeoutInMs: number,
   ): Promise<Array<ResolvedAddress>> {
     /*
      * dns.lookup (getaddrinfo) rather than dns.resolve so /etc/hosts and
@@ -506,7 +542,7 @@ export default class DataSourceEgressGuard {
       (_resolve: (value: never) => void, reject: (error: Error) => void) => {
         timeoutHandle = setTimeout(() => {
           reject(new BadDataException(`DNS lookup timed out for ${hostname}`));
-        }, DNS_LOOKUP_TIMEOUT_IN_MS);
+        }, timeoutInMs);
       },
     );
 
@@ -517,6 +553,77 @@ export default class DataSourceEgressGuard {
         clearTimeout(timeoutHandle);
       }
     }
+  }
+
+  /*
+   * Resolve with a bounded number of retries inside ONE total budget.
+   *
+   * A resolver that answers "no" instantly (NXDOMAIN, SERVFAIL, EAI_AGAIN) is
+   * retried within milliseconds, which is exactly the case that used to turn a
+   * momentary blip into an incident. A resolver that HANGS consumes the budget
+   * on its first attempt and is not retried, so the worst case is unchanged
+   * from the single lookup this replaced.
+   */
+  private static async defaultResolve(
+    hostname: string,
+    options?: EgressGuardOptions,
+  ): Promise<Array<ResolvedAddress>> {
+    const budgetInMs: number = Math.max(
+      1,
+      options?.resolveTimeoutInMs ?? DEFAULT_DNS_RESOLVE_BUDGET_IN_MS,
+    );
+    const maxAttempts: number = Math.max(
+      1,
+      options?.resolveAttempts ?? DEFAULT_DNS_RESOLVE_ATTEMPTS,
+    );
+
+    const startedAt: number = Date.now();
+
+    /*
+     * Keep the FIRST failure, not the last. Attempt one gets the whole budget,
+     * so its error is either the real resolver errno or a genuine full-budget
+     * timeout; a later attempt runs on whatever is left and can time out
+     * generically, burying the diagnosis. That errno is the entire value here
+     * — for detail-permitted callers it IS the user-facing message, and for a
+     * probe it is all the operator log has to go on.
+     */
+    let firstError: unknown = undefined;
+
+    for (let attempt: number = 1; attempt <= maxAttempts; attempt++) {
+      const remainingInMs: number = budgetInMs - (Date.now() - startedAt);
+
+      if (remainingInMs <= 0) {
+        break;
+      }
+
+      try {
+        return await this.lookupOnce(hostname, remainingInMs);
+      } catch (error) {
+        if (firstError === undefined) {
+          firstError = error;
+        }
+      }
+
+      /*
+       * Only sleep when another attempt can still start AND finish inside the
+       * budget; otherwise the delay is pure added latency on a failure.
+       */
+      const budgetLeftInMs: number = budgetInMs - (Date.now() - startedAt);
+      if (
+        attempt >= maxAttempts ||
+        budgetLeftInMs <= DNS_RESOLVE_RETRY_DELAY_IN_MS
+      ) {
+        break;
+      }
+
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, DNS_RESOLVE_RETRY_DELAY_IN_MS);
+      });
+    }
+
+    throw (
+      firstError ?? new BadDataException(`DNS lookup timed out for ${hostname}`)
+    );
   }
 
   /*
@@ -533,7 +640,10 @@ export default class DataSourceEgressGuard {
     const label: string = options?.targetLabel || DEFAULT_TARGET_LABEL;
 
     if (!hostname) {
-      throw new BadDataException(`${label} host is required.`);
+      throw new EgressGuardException(
+        `${label} host is required.`,
+        EgressFailureReason.InvalidTarget,
+      );
     }
 
     // Literal [::1] style hosts arrive with brackets from URL parsing.
@@ -542,10 +652,15 @@ export default class DataSourceEgressGuard {
     if (net.isIP(bareHostname) !== 0) {
       const verdict: AddressVerdict = this.checkAddress(bareHostname, options);
       if (verdict.blocked) {
-        throw new BadDataException(
+        /*
+         * A literal IP is echoed back with full detail on purpose: it tells
+         * the caller only what the caller itself typed.
+         */
+        throw new EgressGuardException(
           `${label} host ${bareHostname} is not allowed: ${verdict.reason}.${
             verdict.isPrivateNetwork ? options?.privateNetworkHint || "" : ""
           }`,
+          EgressFailureReason.AddressBlocked,
         );
       }
       return [{ address: bareHostname, family: net.isIP(bareHostname) }];
@@ -554,7 +669,7 @@ export default class DataSourceEgressGuard {
     const resolveFunction: EgressResolveFunction =
       options?.resolveFunction ||
       ((host: string) => {
-        return this.defaultResolve(host);
+        return this.defaultResolve(host, options);
       });
 
     let addresses: Array<ResolvedAddress> = [];
@@ -562,25 +677,40 @@ export default class DataSourceEgressGuard {
       addresses = await resolveFunction(bareHostname);
     } catch (error) {
       if (options?.includeResolvedAddressInError === false) {
-        throw new BadDataException(
+        /*
+         * The cause is destroyed for the caller by design, so log it here:
+         * this is the only place an operator can still learn whether a
+         * monitor failed on DNS or on address policy.
+         */
+        logger.debug(
+          `EgressGuard: could not resolve ${bareHostname} - ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+        throw new EgressGuardException(
           `${label} host ${bareHostname} could not be reached.`,
+          EgressFailureReason.Unreachable,
         );
       }
-      throw new BadDataException(
+      throw new EgressGuardException(
         `Could not resolve ${label.toLowerCase()} host ${bareHostname}: ${
           error instanceof Error ? error.message : String(error)
         }`,
+        EgressFailureReason.ResolutionFailed,
       );
     }
 
     if (addresses.length === 0) {
       if (options?.includeResolvedAddressInError === false) {
-        throw new BadDataException(
+        logger.debug(`EgressGuard: ${bareHostname} resolved to no addresses.`);
+        throw new EgressGuardException(
           `${label} host ${bareHostname} could not be reached.`,
+          EgressFailureReason.Unreachable,
         );
       }
-      throw new BadDataException(
+      throw new EgressGuardException(
         `Could not resolve ${label.toLowerCase()} host ${bareHostname}.`,
+        EgressFailureReason.ResolutionFailed,
       );
     }
 
@@ -591,14 +721,24 @@ export default class DataSourceEgressGuard {
       );
       if (verdict.blocked) {
         if (options?.includeResolvedAddressInError === false) {
-          throw new BadDataException(
+          logger.debug(
+            `EgressGuard: ${bareHostname} resolved to a blocked address - ${verdict.reason}.`,
+          );
+          /*
+           * Reported as Unreachable, NOT AddressBlocked. Sharing one reason
+           * with the DNS branches above is what stops a tenant on a shared
+           * probe from using the difference to enumerate internal names.
+           */
+          throw new EgressGuardException(
             `${label} host ${bareHostname} could not be reached.`,
+            EgressFailureReason.Unreachable,
           );
         }
-        throw new BadDataException(
+        throw new EgressGuardException(
           `${label} host ${bareHostname} resolves to ${resolved.address}, which is not allowed: ${verdict.reason}.${
             verdict.isPrivateNetwork ? options?.privateNetworkHint || "" : ""
           }`,
+          EgressFailureReason.AddressBlocked,
         );
       }
     }
@@ -618,24 +758,29 @@ export default class DataSourceEgressGuard {
     const label: string = options?.targetLabel || DEFAULT_TARGET_LABEL;
 
     if (!urlString) {
-      throw new BadDataException(`${label} URL is required.`);
+      throw new EgressGuardException(
+        `${label} URL is required.`,
+        EgressFailureReason.InvalidTarget,
+      );
     }
 
     let url: URL;
     try {
       url = new URL(urlString);
     } catch {
-      throw new BadDataException(
+      throw new EgressGuardException(
         `Invalid ${label.toLowerCase()} URL: ${urlString}`,
+        EgressFailureReason.InvalidTarget,
       );
     }
 
     if (url.protocol !== "http:" && url.protocol !== "https:") {
-      throw new BadDataException(
+      throw new EgressGuardException(
         `${label} URL must use http or https (got ${url.protocol.replace(
           ":",
           "",
         )}).`,
+        EgressFailureReason.InvalidTarget,
       );
     }
 

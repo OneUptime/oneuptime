@@ -8,6 +8,7 @@ import ExternalStatusPageMonitorResponse, {
 } from "Common/Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import ExternalStatusPageProviderType from "Common/Types/Monitor/ExternalStatusPageProviderType";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import EgressGuardException from "Common/Types/Exception/EgressGuardException";
 import TimeoutException from "Common/Types/Exception/TimeoutException";
 import Headers from "Common/Types/API/Headers";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
@@ -516,11 +517,24 @@ export default class ExternalStatusPageMonitorUtil {
         return await ExternalStatusPageMonitorUtil.fetch(config, options);
       }
 
-      // Check if the probe is online
-      if (
-        !ExternalStatusPageMonitorUtil.isFailClosedError(err) &&
-        !options.isOnlineCheckRequest
-      ) {
+      /*
+       * Check if the probe is online.
+       *
+       * An egress-guard refusal that is about REACHING the target (DNS, or an
+       * address policy) is a network failure like any other and must not be
+       * believed on its own — a probe whose own resolver has died would
+       * otherwise report every status page as unreachable. It reaches this
+       * catch as an EgressGuardException, which extends BadDataException and
+       * so would fail closed here; the same carve-out is made in
+       * WebsiteMonitor and ApiMonitor. A structurally invalid target still
+       * fails closed, because that is the tenant's configuration.
+       */
+      const shouldVerifyProbeIsOnline: boolean =
+        err instanceof EgressGuardException
+          ? err.isTargetUnreachable()
+          : !ExternalStatusPageMonitorUtil.isFailClosedError(err);
+
+      if (shouldVerifyProbeIsOnline && !options.isOnlineCheckRequest) {
         if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
           logger.error(
             `ExternalStatusPageMonitor - Probe is not online. Cannot fetch ${options?.monitorId?.toString()} ${config.statusPageUrl} - ERROR: ${err}`,

@@ -14,6 +14,7 @@ import API from "Common/Utils/API";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import { AxiosError } from "axios";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import EgressGuardException from "Common/Types/Exception/EgressGuardException";
 import TimeoutException from "Common/Types/Exception/TimeoutException";
 import { HttpTimingCollector } from "../../HttpTimingAgents";
 import HttpMonitorRequest, {
@@ -296,11 +297,30 @@ export default class WebsiteMonitor {
       const statusCodeForAttempt: number | undefined =
         err instanceof AxiosError ? err.response?.status : undefined;
 
+      /*
+       * A sanitized guard refusal must not report how long it took. The two
+       * branches it merges do measurably different amounts of work — a DNS
+       * failure is retried inside the guard, an address-policy rejection
+       * follows one successful lookup — and this number is shipped to the
+       * tenant on probeAttempts. Reporting it would hand back, as a plain
+       * integer, exactly the "did this hostname resolve?" bit the merged
+       * message exists to withhold. Zero matches the top-level
+       * responseTimeInMS these same paths already report for the same reason.
+       *
+       * This closes the REPORTED channel only. A determined tenant can still
+       * time checks externally, as they could before any of this; equalizing
+       * that would mean padding every refusal out to the full DNS budget.
+       */
+      const isSanitizedGuardRefusal: boolean =
+        err instanceof EgressGuardException && err.isTargetUnreachable();
+
       options.attempts.push({
         attemptNumber: options.currentRetryCount || 1,
         attemptedAt,
         responseReceivedAt,
-        responseTimeInMs: responseReceivedAt.getTime() - attemptedAt.getTime(),
+        responseTimeInMs: isSanitizedGuardRefusal
+          ? 0
+          : responseReceivedAt.getTime() - attemptedAt.getTime(),
         responseCode: statusCodeForAttempt,
         isOnline: false,
         failureCause: failureCauseForAttempt,
@@ -367,11 +387,27 @@ export default class WebsiteMonitor {
         };
       }
 
-      if (
-        !(err instanceof BadDataException) &&
-        !(err instanceof TimeoutException) &&
-        !options.isOnlineCheckRequest
-      ) {
+      /*
+       * A guard refusal that is about REACHING the target (DNS, or an address
+       * policy) is a network failure like any other, so it gets the same
+       * probe-health sanity check every other network failure gets: a probe
+       * whose own resolver has died must not be believed when it reports that
+       * a monitor is down. Only a structurally invalid target skips the check,
+       * because that is the tenant's configuration and has to surface as-is.
+       *
+       * The retry decision above is deliberately NOT changed the same way:
+       * retrying only some guard refusals would make the attempt count differ
+       * between a hostname that failed DNS and one blocked by policy, which is
+       * the distinction the sanitized message exists to hide. Transient
+       * resolver failures are retried inside the guard instead.
+       */
+      const shouldVerifyProbeIsOnline: boolean =
+        err instanceof EgressGuardException
+          ? err.isTargetUnreachable()
+          : !(err instanceof BadDataException) &&
+            !(err instanceof TimeoutException);
+
+      if (shouldVerifyProbeIsOnline && !options.isOnlineCheckRequest) {
         if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
           logger.error(
             `Website Monitor - Probe is not online. Cannot ping ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
