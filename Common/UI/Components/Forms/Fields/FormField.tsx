@@ -935,10 +935,12 @@ const FormField: <T extends GenericObject>(
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               type={fieldType as InputType}
+              ariaDescribedby={props.field.ariaDescribedby}
               autoComplete={
-                props.field.fieldType
+                props.field.autoComplete ||
+                (props.field.fieldType
                   ? getAutoComplete(props.field.fieldType)
-                  : undefined
+                  : undefined)
               }
               onChange={(value: string) => {
                 onChange(value);

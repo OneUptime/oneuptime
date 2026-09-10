@@ -1,7 +1,10 @@
 import { SIGNUP_API_URL } from "../Utils/ApiPaths";
+import PasswordRequirements from "../Components/PasswordRequirements/PasswordRequirements";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
+import HashedString from "Common/Types/HashedString";
+import { getSignupPasswordValidationError } from "Common/Types/Password";
 import { JSONObject } from "Common/Types/JSON";
 import {
   UtmPropertyKeys,
@@ -38,14 +41,25 @@ import Navigation from "Common/UI/Utils/Navigation";
 import UserUtil from "Common/UI/Utils/User";
 import Reseller from "Common/Models/DatabaseModels/Reseller";
 import User from "Common/Models/DatabaseModels/User";
-import React, { useRef, useState } from "react";
+import React, { useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useAsyncEffect from "use-async-effect";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 
+/*
+ * BasicForm wraps password values for submission. Keep validation and retry
+ * feedback on their plaintext value after a request fails.
+ */
+const getFormPasswordValue: (value: unknown) => unknown = (
+  value: unknown,
+): unknown => {
+  return value instanceof HashedString ? value.toString() : value;
+};
+
 const RegisterPage: () => JSX.Element = () => {
   const { t } = useTranslation();
   const apiUrl: URL = SIGNUP_API_URL;
+  const passwordRequirementsId: string = useId();
 
   const [initialValues, setInitialValues] = React.useState<JSONObject>({});
 
@@ -240,9 +254,30 @@ const RegisterPage: () => JSX.Element = () => {
         password: true,
       },
       fieldType: FormFieldSchemaType.Password,
-      validation: {
-        minLength: 6,
+      customValidation: (values: FormValues<User>): string | null => {
+        const message: string | null = getSignupPasswordValidationError(
+          getFormPasswordValue(values.password),
+        );
+
+        return message
+          ? t(message, {
+              defaultValue: message,
+              keySeparator: false,
+              nsSeparator: false,
+            })
+          : null;
       },
+      getFooterElement: (values: FormValues<User>): React.ReactElement => {
+        const password: unknown = getFormPasswordValue(values.password);
+        return (
+          <PasswordRequirements
+            id={passwordRequirementsId}
+            password={typeof password === "string" ? password : ""}
+          />
+        );
+      },
+      ariaDescribedby: passwordRequirementsId,
+      autoComplete: "new-password",
       placeholder: t("common.password"),
       title: t("common.password"),
       required: true,
@@ -253,11 +288,25 @@ const RegisterPage: () => JSX.Element = () => {
       field: {
         confirmPassword: true,
       } as any,
-      validation: {
-        minLength: 6,
-        toMatchField: "password",
+      customValidation: (values: FormValues<User>): string | null => {
+        const confirmation: unknown = getFormPasswordValue(
+          (values as JSONObject)["confirmPassword"],
+        );
+
+        if (
+          !confirmation ||
+          confirmation === getFormPasswordValue(values.password)
+        ) {
+          return null;
+        }
+
+        return t("{{field}} should match {{matchField}}", {
+          field: t("common.confirmPassword"),
+          matchField: t("common.password"),
+        });
       },
       fieldType: FormFieldSchemaType.Password,
+      autoComplete: "new-password",
       placeholder: t("common.confirmPassword"),
       title: t("common.confirmPassword"),
       overrideFieldKey: "confirmPassword",

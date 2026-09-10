@@ -176,5 +176,14 @@
     "returnToApp": "Вернуться в приложение",
     "cancel": "Отменить и вернуться в приложение",
     "setup": "Создайте ключ доступа в веб-панели: Профиль пользователя → Ключи доступа и двухфакторная аутентификация."
-  }
+  },
+  "Use at least {{minimum}} characters.": "Используйте не менее {{minimum}} символов.",
+  "Try a few unrelated words.": "Попробуйте несколько не связанных между собой слов.",
+  "Password meets requirements": "Пароль соответствует требованиям",
+  "Password must be at least 15 characters.": "Пароль должен содержать не менее 15 символов.",
+  "Password cannot be more than 100 characters.": "Пароль не может содержать более 100 символов.",
+  "Choose a less predictable password. Try a few unrelated words.": "Выберите менее предсказуемый пароль. Попробуйте несколько не связанных между собой слов.",
+  "Password cannot be blank.": "Пароль не может состоять только из пробелов.",
+  "Password is required.": "Необходимо указать пароль.",
+  "Password must be a string.": "Пароль должен быть строкой."
 }

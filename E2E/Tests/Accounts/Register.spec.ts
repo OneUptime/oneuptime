@@ -63,9 +63,9 @@ test.describe("Account Registration", () => {
       await page.getByTestId("companyPhoneNumber").press("Tab");
     }
 
-    await page.getByTestId("password").fill("sample");
+    await page.getByTestId("password").fill("violet river lantern");
     await page.getByTestId("password").press("Tab");
-    await page.getByTestId("confirmPassword").fill("sample");
+    await page.getByTestId("confirmPassword").fill("violet river lantern");
     await page.getByTestId("Sign Up").click();
 
     // wait for navigation with base url

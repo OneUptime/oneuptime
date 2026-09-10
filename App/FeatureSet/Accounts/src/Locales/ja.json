@@ -176,5 +176,14 @@
     "returnToApp": "アプリに戻る",
     "cancel": "キャンセルしてアプリに戻る",
     "setup": "Web ダッシュボードの「ユーザープロフィール → パスキーと二要素認証」でパスキーを作成してください。"
-  }
+  },
+  "Use at least {{minimum}} characters.": "{{minimum}}文字以上で入力してください。",
+  "Try a few unrelated words.": "関連のない単語をいくつか組み合わせてみてください。",
+  "Password meets requirements": "パスワードは要件を満たしています",
+  "Password must be at least 15 characters.": "パスワードは15文字以上にしてください。",
+  "Password cannot be more than 100 characters.": "パスワードは100文字以内にしてください。",
+  "Choose a less predictable password. Try a few unrelated words.": "推測されにくいパスワードを選んでください。関連のない単語をいくつか組み合わせてみてください。",
+  "Password cannot be blank.": "パスワードを空白のみにすることはできません。",
+  "Password is required.": "パスワードは必須です。",
+  "Password must be a string.": "パスワードは文字列で入力してください。"
 }

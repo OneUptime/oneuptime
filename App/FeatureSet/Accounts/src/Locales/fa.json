@@ -176,5 +176,14 @@
     "returnToApp": "بازگشت به برنامه",
     "cancel": "لغو و بازگشت به برنامه",
     "setup": "در داشبورد وب، از مسیر نمایه کاربر ← کلیدهای عبور و احراز هویت دومرحله‌ای، یک کلید عبور ایجاد کنید."
-  }
+  },
+  "Use at least {{minimum}} characters.": "حداقل از {{minimum}} نویسه استفاده کنید.",
+  "Try a few unrelated words.": "چند واژهٔ نامرتبط را امتحان کنید.",
+  "Password meets requirements": "گذرواژه شرایط لازم را دارد",
+  "Password must be at least 15 characters.": "گذرواژه باید حداقل ۱۵ نویسه داشته باشد.",
+  "Password cannot be more than 100 characters.": "گذرواژه نمی‌تواند بیش از ۱۰۰ نویسه داشته باشد.",
+  "Choose a less predictable password. Try a few unrelated words.": "گذرواژه‌ای انتخاب کنید که حدس زدن آن سخت‌تر باشد. چند واژهٔ نامرتبط را امتحان کنید.",
+  "Password cannot be blank.": "گذرواژه نمی‌تواند فقط شامل فاصله باشد.",
+  "Password is required.": "وارد کردن گذرواژه الزامی است.",
+  "Password must be a string.": "گذرواژه باید یک رشتهٔ متنی باشد."
 }

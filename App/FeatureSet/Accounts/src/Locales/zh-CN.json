@@ -176,5 +176,14 @@
     "returnToApp": "返回应用",
     "cancel": "取消并返回应用",
     "setup": "在网页控制台的“用户资料 → 通行密钥和双重身份验证”中创建通行密钥。"
-  }
+  },
+  "Use at least {{minimum}} characters.": "请至少使用 {{minimum}} 个字符。",
+  "Try a few unrelated words.": "试试组合几个互不相关的词。",
+  "Password meets requirements": "密码符合要求",
+  "Password must be at least 15 characters.": "密码必须至少包含 15 个字符。",
+  "Password cannot be more than 100 characters.": "密码不能超过 100 个字符。",
+  "Choose a less predictable password. Try a few unrelated words.": "请选择更难猜测的密码。试试组合几个互不相关的词。",
+  "Password cannot be blank.": "密码不能仅包含空白字符。",
+  "Password is required.": "请输入密码。",
+  "Password must be a string.": "密码必须是字符串。"
 }

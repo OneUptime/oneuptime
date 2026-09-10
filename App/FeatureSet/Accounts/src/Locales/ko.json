@@ -176,5 +176,14 @@
     "returnToApp": "앱으로 돌아가기",
     "cancel": "취소하고 앱으로 돌아가기",
     "setup": "웹 대시보드의 사용자 프로필 → 패스키 및 2단계 인증에서 패스키를 만드세요."
-  }
+  },
+  "Use at least {{minimum}} characters.": "{{minimum}}자 이상 사용하세요.",
+  "Try a few unrelated words.": "서로 관련 없는 단어 몇 개를 조합해 보세요.",
+  "Password meets requirements": "비밀번호가 요구 사항을 충족합니다",
+  "Password must be at least 15 characters.": "비밀번호는 15자 이상이어야 합니다.",
+  "Password cannot be more than 100 characters.": "비밀번호는 100자를 초과할 수 없습니다.",
+  "Choose a less predictable password. Try a few unrelated words.": "추측하기 어려운 비밀번호를 선택하세요. 서로 관련 없는 단어 몇 개를 조합해 보세요.",
+  "Password cannot be blank.": "비밀번호는 공백으로만 구성할 수 없습니다.",
+  "Password is required.": "비밀번호는 필수입니다.",
+  "Password must be a string.": "비밀번호는 문자열이어야 합니다."
 }

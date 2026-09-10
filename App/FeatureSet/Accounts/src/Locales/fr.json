@@ -176,5 +176,14 @@
     "returnToApp": "Revenir dans l’application",
     "cancel": "Annuler et revenir dans l’application",
     "setup": "Créez une clé d’accès dans Profil utilisateur → Clés d’accès et authentification à deux facteurs du tableau de bord web."
-  }
+  },
+  "Use at least {{minimum}} characters.": "Utilisez au moins {{minimum}} caractères.",
+  "Try a few unrelated words.": "Essayez quelques mots sans rapport entre eux.",
+  "Password meets requirements": "Le mot de passe respecte les critères",
+  "Password must be at least 15 characters.": "Le mot de passe doit contenir au moins 15 caractères.",
+  "Password cannot be more than 100 characters.": "Le mot de passe ne peut pas dépasser 100 caractères.",
+  "Choose a less predictable password. Try a few unrelated words.": "Choisissez un mot de passe moins prévisible. Essayez quelques mots sans rapport entre eux.",
+  "Password cannot be blank.": "Le mot de passe ne peut pas contenir uniquement des espaces.",
+  "Password is required.": "Le mot de passe est obligatoire.",
+  "Password must be a string.": "Le mot de passe doit être une chaîne de caractères."
 }

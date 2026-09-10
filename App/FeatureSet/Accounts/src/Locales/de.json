@@ -176,5 +176,14 @@
     "returnToApp": "Zurück zur App",
     "cancel": "Abbrechen und zur App zurückkehren",
     "setup": "Erstellen Sie im Web-Dashboard unter Benutzerprofil → Passkeys und Zwei-Faktor-Authentifizierung einen Passkey."
-  }
+  },
+  "Use at least {{minimum}} characters.": "Verwenden Sie mindestens {{minimum}} Zeichen.",
+  "Try a few unrelated words.": "Versuchen Sie es mit einigen nicht zusammenhängenden Wörtern.",
+  "Password meets requirements": "Das Passwort erfüllt die Anforderungen",
+  "Password must be at least 15 characters.": "Das Passwort muss mindestens 15 Zeichen lang sein.",
+  "Password cannot be more than 100 characters.": "Das Passwort darf höchstens 100 Zeichen lang sein.",
+  "Choose a less predictable password. Try a few unrelated words.": "Wählen Sie ein weniger vorhersehbares Passwort. Versuchen Sie es mit einigen nicht zusammenhängenden Wörtern.",
+  "Password cannot be blank.": "Das Passwort darf nicht nur aus Leerzeichen bestehen.",
+  "Password is required.": "Ein Passwort ist erforderlich.",
+  "Password must be a string.": "Das Passwort muss eine Zeichenfolge sein."
 }

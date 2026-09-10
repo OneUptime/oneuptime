@@ -176,5 +176,14 @@
     "returnToApp": "Tilbage til appen",
     "cancel": "Annuller og vend tilbage til appen",
     "setup": "Opret en adgangsnøgle under Brugerprofil → Adgangsnøgler og tofaktorgodkendelse i webdashboardet."
-  }
+  },
+  "Use at least {{minimum}} characters.": "Brug mindst {{minimum}} tegn.",
+  "Try a few unrelated words.": "Prøv et par ord uden relation til hinanden.",
+  "Password meets requirements": "Adgangskoden opfylder kravene",
+  "Password must be at least 15 characters.": "Adgangskoden skal indeholde mindst 15 tegn.",
+  "Password cannot be more than 100 characters.": "Adgangskoden må højst indeholde 100 tegn.",
+  "Choose a less predictable password. Try a few unrelated words.": "Vælg en mindre forudsigelig adgangskode. Prøv et par ord uden relation til hinanden.",
+  "Password cannot be blank.": "Adgangskoden må ikke kun indeholde mellemrum.",
+  "Password is required.": "Adgangskode er påkrævet.",
+  "Password must be a string.": "Adgangskoden skal være en tekststreng."
 }

@@ -176,5 +176,14 @@
     "returnToApp": "Torna all’app",
     "cancel": "Annulla e torna all’app",
     "setup": "Crea una passkey in Profilo utente → Passkey e autenticazione a due fattori nella dashboard web."
-  }
+  },
+  "Use at least {{minimum}} characters.": "Usa almeno {{minimum}} caratteri.",
+  "Try a few unrelated words.": "Prova con alcune parole non correlate.",
+  "Password meets requirements": "La password soddisfa i requisiti",
+  "Password must be at least 15 characters.": "La password deve contenere almeno 15 caratteri.",
+  "Password cannot be more than 100 characters.": "La password non può superare i 100 caratteri.",
+  "Choose a less predictable password. Try a few unrelated words.": "Scegli una password meno prevedibile. Prova con alcune parole non correlate.",
+  "Password cannot be blank.": "La password non può contenere solo spazi.",
+  "Password is required.": "La password è obbligatoria.",
+  "Password must be a string.": "La password deve essere una stringa di testo."
 }

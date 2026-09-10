@@ -176,5 +176,14 @@
     "returnToApp": "ऐप में वापस जाएँ",
     "cancel": "रद्द करें और ऐप में वापस जाएँ",
     "setup": "वेब डैशबोर्ड में उपयोगकर्ता प्रोफ़ाइल → पासकी और दो-कारक प्रमाणीकरण में पासकी बनाएँ।"
-  }
+  },
+  "Use at least {{minimum}} characters.": "कम से कम {{minimum}} अक्षरों का उपयोग करें।",
+  "Try a few unrelated words.": "कुछ ऐसे शब्द आज़माएँ जिनका आपस में संबंध न हो।",
+  "Password meets requirements": "पासवर्ड आवश्यकताओं को पूरा करता है",
+  "Password must be at least 15 characters.": "पासवर्ड में कम से कम 15 अक्षर होने चाहिए।",
+  "Password cannot be more than 100 characters.": "पासवर्ड में 100 से अधिक अक्षर नहीं हो सकते।",
+  "Choose a less predictable password. Try a few unrelated words.": "ऐसा पासवर्ड चुनें जिसका अनुमान लगाना कठिन हो। कुछ ऐसे शब्द आज़माएँ जिनका आपस में संबंध न हो।",
+  "Password cannot be blank.": "पासवर्ड में केवल खाली स्थान नहीं हो सकते।",
+  "Password is required.": "पासवर्ड आवश्यक है।",
+  "Password must be a string.": "पासवर्ड एक टेक्स्ट स्ट्रिंग होना चाहिए।"
 }
