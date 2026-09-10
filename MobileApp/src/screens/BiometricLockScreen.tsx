@@ -1,8 +1,9 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { View, Text } from "react-native";
-import { useTheme } from "../theme";
+import { Ionicons } from "@expo/vector-icons";
 import * as LocalAuthentication from "expo-local-authentication";
-import Logo from "../components/Logo";
+import { useTheme } from "../theme";
+import AuthLayout from "../components/AuthLayout";
 import GradientButton from "../components/GradientButton";
 
 interface BiometricLockScreenProps {
@@ -15,77 +16,107 @@ export default function BiometricLockScreen({
   biometricType,
 }: BiometricLockScreenProps): React.JSX.Element {
   const { theme } = useTheme();
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const pending: React.MutableRefObject<boolean> = useRef(false);
 
   const authenticate: () => Promise<void> = async (): Promise<void> => {
-    const result: LocalAuthentication.LocalAuthenticationResult =
-      await LocalAuthentication.authenticateAsync({
-        promptMessage: "Unlock OneUptime",
-        fallbackLabel: "Use passcode",
-        disableDeviceFallback: false,
-      });
-    if (result.success) {
-      onSuccess();
+    if (pending.current) {
+      return;
+    }
+    pending.current = true;
+    setIsAuthenticating(true);
+    setNotice(null);
+    try {
+      const result: LocalAuthentication.LocalAuthenticationResult =
+        await LocalAuthentication.authenticateAsync({
+          promptMessage: "Unlock OneUptime",
+          fallbackLabel: "Use passcode",
+          disableDeviceFallback: false,
+        });
+      if (result.success) {
+        onSuccess();
+      } else {
+        setNotice(
+          "Your app is still locked. Try again, or use your device passcode in the unlock prompt.",
+        );
+      }
+    } catch {
+      setNotice("The unlock prompt could not open. Tap Unlock to try again.");
+    } finally {
+      pending.current = false;
+      setIsAuthenticating(false);
     }
   };
 
   useEffect(() => {
-    authenticate();
+    void authenticate();
   }, []);
 
   return (
-    <View
-      style={{
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        paddingHorizontal: 40,
-        backgroundColor: theme.colors.backgroundPrimary,
-      }}
+    <AuthLayout
+      showBrand
+      title="OneUptime is Locked"
+      eyebrow="WELCOME BACK"
+      description={`Use ${biometricType.toLowerCase()} to unlock`}
     >
       <View
         style={{
-          width: 80,
-          height: 80,
+          padding: 24,
           borderRadius: 16,
-          alignItems: "center",
-          justifyContent: "center",
+          borderWidth: 1,
+          borderColor: theme.colors.borderDefault,
+          backgroundColor: theme.colors.backgroundSecondary,
           marginBottom: 24,
-          backgroundColor: theme.colors.iconBackground,
         }}
       >
-        <Logo size={40} />
-      </View>
-
-      <Text
-        style={{
-          fontSize: 20,
-          fontWeight: "bold",
-          textAlign: "center",
-          color: theme.colors.textPrimary,
-          letterSpacing: -0.3,
-        }}
-      >
-        OneUptime is Locked
-      </Text>
-
-      <Text
-        style={{
-          fontSize: 15,
-          marginTop: 8,
-          textAlign: "center",
-          color: theme.colors.textSecondary,
-        }}
-      >
-        Use {biometricType.toLowerCase()} to unlock
-      </Text>
-
-      <View style={{ marginTop: 40, width: "100%", maxWidth: 260 }}>
-        <GradientButton
-          label="Unlock"
-          onPress={authenticate}
-          icon="finger-print-outline"
+        <Ionicons
+          name="lock-closed-outline"
+          size={40}
+          color={theme.colors.actionPrimary}
+          style={{ marginBottom: 16 }}
         />
+        <Text
+          style={{
+            fontSize: 17,
+            fontWeight: "600",
+            color: theme.colors.textPrimary,
+          }}
+        >
+          Your workspace is protected
+        </Text>
+        <Text
+          style={{
+            fontSize: 15,
+            lineHeight: 23,
+            marginTop: 8,
+            color: theme.colors.textSecondary,
+          }}
+        >
+          Confirm it is you to return to your incidents and on-call work. Your
+          device passcode is also available in the unlock prompt.
+        </Text>
       </View>
-    </View>
+      {notice ? (
+        <Text
+          accessibilityLiveRegion="polite"
+          style={{
+            fontSize: 15,
+            lineHeight: 23,
+            marginBottom: 20,
+            color: theme.colors.textSecondary,
+          }}
+        >
+          {notice}
+        </Text>
+      ) : null}
+      <GradientButton
+        label="Unlock"
+        onPress={authenticate}
+        loading={isAuthenticating}
+        disabled={isAuthenticating}
+        icon="finger-print-outline"
+      />
+    </AuthLayout>
   );
 }

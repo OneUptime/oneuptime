@@ -1,7 +1,7 @@
 import React from "react";
-import { renderHook, waitFor } from "@testing-library/react-native";
+import { cleanup, renderHook, waitFor } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, expect, test, beforeEach } from "@jest/globals";
+import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import {
   computeMyShiftsWindow,
   myShiftsQueryKey,
@@ -35,7 +35,7 @@ jest.mock("./useCurrentUserId", () => {
 
 jest.mock("./useProject", () => {
   return {
-    useProject: () => {
+    useActiveProject: () => {
       return {
         projectList: mockProjects.current,
         isLoadingProjects: false,
@@ -90,10 +90,21 @@ function axiosError(httpStatus: number): unknown {
   };
 }
 
+const createdClients: QueryClient[] = [];
+
+afterEach(async (): Promise<void> => {
+  await cleanup();
+  createdClients.splice(0).forEach((client: QueryClient): void => {
+    client.clear();
+  });
+});
+
 function createClient(): QueryClient {
-  return new QueryClient({
+  const client: QueryClient = new QueryClient({
     defaultOptions: { queries: { retryDelay: 0 } },
   });
+  createdClients.push(client);
+  return client;
 }
 
 function createWrapperFor(
@@ -181,7 +192,7 @@ describe("useMyShifts", () => {
     fetchSpy().mockReset();
   });
 
-  test("asks for the fortnight from now, across every project", async () => {
+  test("asks for the fortnight from now in the selected project", async () => {
     fetchSpy().mockResolvedValue({
       shifts: [shift("a")],
       truncated: false,
@@ -207,7 +218,7 @@ describe("useMyShifts", () => {
     expect((window as { to: Date }).to.toISOString()).toBe(
       "2026-03-17T12:00:00.000Z",
     );
-    expect(projectId).toBeUndefined();
+    expect(projectId).toBe("project-1");
     expect(
       result.current.shifts.map((entry: MyOnCallShift) => {
         return entry.shiftKey;

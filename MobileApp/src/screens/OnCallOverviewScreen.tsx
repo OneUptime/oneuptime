@@ -10,6 +10,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import { useScreenPadding } from "../hooks/useScreenPadding";
+import ScreenIntro from "../components/ScreenIntro";
 import { useHaptics } from "../hooks/useHaptics";
 import { useOnCallDuty } from "../hooks/useOnCallDuty";
 import { useOnCallOverrides } from "../hooks/useOnCallOverrides";
@@ -48,6 +50,7 @@ type OnCallNavProp = NativeStackNavigationProp<
  */
 export default function OnCallOverviewScreen(): React.JSX.Element {
   const { theme } = useTheme();
+  const bottomPadding: number = useScreenPadding();
   const { lightImpact } = useHaptics();
   const navigation: OnCallNavProp = useNavigation<OnCallNavProp>();
   const now: number = useNow();
@@ -97,8 +100,12 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
       >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={{ padding: 20, paddingBottom: 56 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
         >
+          <ScreenIntro
+            title="On call"
+            description="Your duty, coverage and upcoming shifts."
+          />
           <SkeletonCard lines={4} />
           <SkeletonCard lines={2} />
           <SkeletonCard lines={3} />
@@ -135,7 +142,7 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
       testID="oncall-overview-scroll"
       contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom: 56 }}
+      contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
       refreshControl={
         <RefreshControl
           refreshing={false}
@@ -144,13 +151,18 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
         />
       }
     >
+      <ScreenIntro
+        title="On call"
+        eyebrow="YOUR WORKSPACE"
+        description="Your duty, coverage and upcoming shifts."
+      />
       <OnCallStatusCard summary={duty.summary} now={now} />
 
       <View style={{ flexDirection: "row", gap: 12, marginTop: 16 }}>
         <QuickActionTile
           testID="quick-action-cover"
           label="Cover for me"
-          sublabel="Route my pages to a teammate"
+          sublabel="Choose a teammate to take your pages"
           iconName="swap-horizontal-outline"
           accentColor={theme.colors.severityInfo}
           onPress={() => {
@@ -160,11 +172,23 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
         <QuickActionTile
           testID="quick-action-roster"
           label="Who's on call"
-          sublabel="Every schedule, right now"
+          sublabel="Find the right person to contact"
           iconName="people-outline"
           accentColor={theme.colors.oncallActive}
           onPress={() => {
             navigation.navigate("WhoIsOnCall");
+          }}
+        />
+      </View>
+
+      <View style={{ marginTop: 12 }}>
+        <NavigationRow
+          testID="row-pages"
+          iconName="notifications-outline"
+          title="Pages sent to me"
+          subtitle="Review notifications and open the incident or alert"
+          onPress={() => {
+            navigation.navigate("MyOnCallPages");
           }}
         />
       </View>
@@ -231,7 +255,7 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
                 <View key={group.key} testID={`shift-day-${group.key}`}>
                   <Text
                     style={{
-                      fontSize: 11,
+                      fontSize: 13,
                       fontWeight: "600",
                       letterSpacing: 0.6,
                       textTransform: "uppercase",
@@ -275,7 +299,7 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
         ) : allShifts.length === 0 ? (
           <View
             style={{
-              borderRadius: 18,
+              borderRadius: 16,
               padding: 18,
               backgroundColor: theme.colors.backgroundElevated,
               borderWidth: 1,
@@ -289,8 +313,8 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
                 color: theme.colors.textSecondary,
               }}
             >
-              You are not on the roster of any on-call schedule right now, and
-              none of them has you queued up next.
+              No current or upcoming roster shifts. Standing assignments, if
+              any, are shown below.
             </Text>
           </View>
         ) : (
@@ -316,7 +340,7 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
           />
           <View
             style={{
-              borderRadius: 18,
+              borderRadius: 16,
               padding: 18,
               backgroundColor: theme.colors.backgroundElevated,
               borderWidth: 1,
@@ -339,7 +363,7 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
       ) : null}
 
       <View style={{ marginTop: 28, gap: 12 }}>
-        <SectionHeader title="More" iconName="ellipsis-horizontal" />
+        <SectionHeader title="Manage on-call" iconName="options-outline" />
 
         <NavigationRow
           testID="row-policies"
@@ -363,20 +387,10 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
         <NavigationRow
           testID="row-overrides"
           iconName="swap-horizontal-outline"
-          title="Overrides"
-          subtitle="Cover arrangements across your projects"
+          title="Coverage & overrides"
+          subtitle="Review active, scheduled and past cover"
           onPress={() => {
             navigation.navigate("OnCallOverrides");
-          }}
-        />
-
-        <NavigationRow
-          testID="row-pages"
-          iconName="notifications-outline"
-          title="Pages sent to me"
-          subtitle="Every notification, and whether it was acknowledged"
-          onPress={() => {
-            navigation.navigate("MyOnCallPages");
           }}
         />
 
@@ -430,7 +444,8 @@ function NavigationRow({
           flexDirection: "row",
           alignItems: "center",
           padding: 16,
-          borderRadius: 18,
+          minHeight: 80,
+          borderRadius: 16,
           backgroundColor: theme.colors.backgroundElevated,
           borderWidth: 1,
           borderColor: theme.colors.borderGlass,
@@ -438,8 +453,8 @@ function NavigationRow({
       >
         <View
           style={{
-            width: 34,
-            height: 34,
+            width: 42,
+            height: 42,
             borderRadius: 12,
             alignItems: "center",
             justifyContent: "center",
@@ -457,21 +472,21 @@ function NavigationRow({
         <View style={{ flex: 1 }}>
           <Text
             style={{
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: "600",
               color: theme.colors.textPrimary,
             }}
-            numberOfLines={1}
+            numberOfLines={2}
           >
             {title}
           </Text>
           <Text
             style={{
-              fontSize: 12,
-              marginTop: 2,
+              fontSize: 14,
+              lineHeight: 20,
+              marginTop: 4,
               color: theme.colors.textTertiary,
             }}
-            numberOfLines={1}
           >
             {subtitle}
           </Text>

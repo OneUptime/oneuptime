@@ -235,3 +235,69 @@ test("unmounting also aborts browser work", async () => {
   await screen.unmount();
   expect(options?.signal.aborted).toBe(true);
 });
+
+test("password visibility is explicit, starts private, and preserves the entered password", async () => {
+  await show();
+  const password: ReturnType<typeof screen.getByLabelText> =
+    screen.getByLabelText("Password");
+  await fireEvent.changeText(password, "A private password");
+  expect(screen.getByLabelText("Password").props.secureTextEntry).toBe(true);
+  await fireEvent.press(screen.getByRole("button", { name: "Show password" }));
+  expect(screen.getByLabelText("Password").props.secureTextEntry).toBe(false);
+  expect(screen.getByLabelText("Password").props.autoCapitalize).toBe("none");
+  expect(screen.getByLabelText("Password").props.autoCorrect).toBe(false);
+  expect(screen.getByLabelText("Password").props.spellCheck).toBe(false);
+  expect(screen.getByLabelText("Password").props.value).toBe(
+    "A private password",
+  );
+  await fireEvent.press(screen.getByRole("button", { name: "Hide password" }));
+  expect(screen.getByLabelText("Password").props.secureTextEntry).toBe(true);
+});
+
+test("the keyboard advances from email without submitting and signs in from password", async () => {
+  await show();
+  await fireEvent.changeText(
+    screen.getByLabelText("Email"),
+    "responder@example.com",
+  );
+  await fireEvent(screen.getByLabelText("Email"), "submitEditing");
+  expect(mockLogin).not.toHaveBeenCalled();
+  expect(screen.getByLabelText("Email").props.submitBehavior).toBe("submit");
+  await fireEvent.changeText(
+    screen.getByLabelText("Password"),
+    "secret password",
+  );
+  await fireEvent(screen.getByLabelText("Password"), "submitEditing");
+  expect(mockLogin).toHaveBeenCalledWith(
+    "responder@example.com",
+    "secret password",
+  );
+});
+
+test("a validation error is announced and clears when the email is corrected", async () => {
+  await show();
+  await fireEvent.press(screen.getByRole("button", { name: "Sign In" }));
+  expect(screen.getByRole("alert")).toBeTruthy();
+  await fireEvent.changeText(
+    screen.getByLabelText("Email"),
+    "responder@example.com",
+  );
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
+test("compact login fields can shrink beside icons and the full-size password visibility control", async () => {
+  await show();
+  expect(screen.queryByText("ONEUPTIME")).toBeNull();
+  for (const label of ["Email", "Password"]) {
+    const field: ReturnType<typeof screen.getByLabelText> =
+      screen.getByLabelText(label);
+    expect(field.props.style.minWidth).toBe(0);
+    expect(field.props.style.fontSize).toBeGreaterThanOrEqual(16);
+  }
+  const reveal: ReturnType<typeof screen.getByRole> = screen.getByRole(
+    "button",
+    { name: "Show password" },
+  );
+  expect(reveal.props.style.minWidth).toBeGreaterThanOrEqual(48);
+  expect(reveal.props.style.minHeight).toBeGreaterThanOrEqual(48);
+});

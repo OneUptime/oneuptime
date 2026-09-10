@@ -16,7 +16,7 @@ export default function NotesSection({
   setNoteModalVisible,
 }: NotesSectionProps): React.JSX.Element {
   const { theme } = useTheme();
-  const addNoteContentColor: string = "#FFFFFF";
+  const addNoteContentColor: string = theme.colors.backgroundPrimary;
 
   return (
     <View style={{ marginBottom: 8, marginTop: 4 }}>
@@ -36,26 +36,29 @@ export default function NotesSection({
             style={{ marginRight: 6 }}
           />
           <Text
+            accessibilityRole="header"
             style={{
-              fontSize: 12,
-              fontWeight: "600",
-              textTransform: "uppercase",
-              color: theme.colors.textSecondary,
-              letterSpacing: 1,
+              fontSize: 18,
+              fontWeight: "700",
+              color: theme.colors.textPrimary,
             }}
           >
             Internal Notes
           </Text>
         </View>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Add Note"
           style={({ pressed }: { pressed: boolean }) => {
             return {
               flexDirection: "row" as const,
               alignItems: "center" as const,
+              justifyContent: "center" as const,
+              minHeight: 48,
               borderRadius: 8,
               paddingHorizontal: 12,
               paddingVertical: 6,
-              backgroundColor: theme.colors.accentGradientStart,
+              backgroundColor: theme.colors.actionPrimary,
               opacity: pressed ? 0.85 : 1,
             };
           }}
@@ -71,7 +74,7 @@ export default function NotesSection({
           />
           <Text
             style={{
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: "600",
               color: addNoteContentColor,
             }}

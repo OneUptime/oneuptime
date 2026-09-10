@@ -3,6 +3,8 @@ import { View, Text, ScrollView, RefreshControl, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import { useScreenPadding } from "../hooks/useScreenPadding";
+import ScreenIntro from "../components/ScreenIntro";
 import { useHaptics } from "../hooks/useHaptics";
 import { useOnCallOverrides } from "../hooks/useOnCallOverrides";
 import { useCurrentUserId } from "../hooks/useCurrentUserId";
@@ -30,6 +32,7 @@ type OverridesNavProp = NativeStackNavigationProp<
  */
 export default function OnCallOverridesScreen(): React.JSX.Element {
   const { theme } = useTheme();
+  const bottomPadding: number = useScreenPadding();
   const { lightImpact, successFeedback, errorFeedback } = useHaptics();
   const navigation: OverridesNavProp = useNavigation<OverridesNavProp>();
   const now: number = useNow();
@@ -87,7 +90,7 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
       >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={{ padding: 20, paddingBottom: 56 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
         >
           <SkeletonCard lines={3} />
           <SkeletonCard lines={3} />
@@ -124,7 +127,7 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
       testID="overrides-scroll"
       contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom: 56 }}
+      contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
       refreshControl={
         <RefreshControl
           refreshing={false}
@@ -133,9 +136,76 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
         />
       }
     >
+      <ScreenIntro
+        title="Coverage"
+        description="Arrange a handoff and see who receives pages while someone is away."
+      />
+      {hasAny ? (
+        <View
+          testID="coverage-counts"
+          style={{ flexDirection: "row", gap: 12, marginBottom: 20 }}
+        >
+          <View
+            style={{
+              flex: 1,
+              padding: 18,
+              borderRadius: 16,
+              backgroundColor: theme.colors.oncallActiveBg,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 28,
+                fontWeight: "700",
+                color: theme.colors.oncallActive,
+              }}
+            >
+              {overrides.active.length}
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+                marginTop: 4,
+                color: theme.colors.textSecondary,
+              }}
+            >
+              Active now
+            </Text>
+          </View>
+          <View
+            style={{
+              flex: 1,
+              padding: 18,
+              borderRadius: 16,
+              backgroundColor: theme.colors.backgroundElevated,
+              borderWidth: 1,
+              borderColor: theme.colors.borderSubtle,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 28,
+                fontWeight: "700",
+                color: theme.colors.textPrimary,
+              }}
+            >
+              {overrides.upcoming.length}
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+                marginTop: 4,
+                color: theme.colors.textSecondary,
+              }}
+            >
+              Scheduled
+            </Text>
+          </View>
+        </View>
+      ) : null}
       <GradientButton
         testID="new-override"
-        label="New override"
+        label="Arrange coverage"
         icon="add-outline"
         onPress={() => {
           lightImpact();
@@ -147,7 +217,7 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
         <View
           style={{
             marginTop: 24,
-            borderRadius: 18,
+            borderRadius: 16,
             padding: 18,
             backgroundColor: theme.colors.backgroundElevated,
             borderWidth: 1,

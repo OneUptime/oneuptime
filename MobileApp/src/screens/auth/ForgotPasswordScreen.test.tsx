@@ -503,3 +503,12 @@ describe("The way back to sign-in", () => {
     expect(mockNavigate).toHaveBeenCalledWith("Login");
   });
 });
+
+test("the recovery email field can shrink within its icon row on a narrow phone", async () => {
+  await render(<ForgotPasswordScreen />);
+  const field: ReturnType<typeof screen.getByTestId> = screen.getByTestId(
+    "forgot-password-email-input",
+  );
+  expect(field.props.style.minWidth).toBe(0);
+  expect(field.props.style.fontSize).toBeGreaterThanOrEqual(16);
+});

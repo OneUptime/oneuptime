@@ -283,7 +283,9 @@ export interface MonitorItem {
   name: string;
   description?: string;
   monitorType?: string;
-  currentMonitorStatus?: NamedEntityWithColor;
+  currentMonitorStatus?: NamedEntityWithColor & {
+    isOperationalState?: boolean;
+  };
   disableActiveMonitoring?: boolean;
   createdAt: string;
   projectId?: string;

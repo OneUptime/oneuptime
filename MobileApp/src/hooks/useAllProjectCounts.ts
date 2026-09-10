@@ -1,9 +1,9 @@
 import { useQuery, useQueries, UseQueryResult } from "@tanstack/react-query";
-import { useProject } from "./useProject";
-import { fetchAllIncidents } from "../api/incidents";
-import { fetchAllAlerts } from "../api/alerts";
-import { fetchAllIncidentEpisodes } from "../api/incidentEpisodes";
-import { fetchAllAlertEpisodes } from "../api/alertEpisodes";
+import { useActiveProject } from "./useProject";
+import { fetchIncidents } from "../api/incidents";
+import { fetchAlerts } from "../api/alerts";
+import { fetchIncidentEpisodes } from "../api/incidentEpisodes";
+import { fetchAlertEpisodes } from "../api/alertEpisodes";
 import {
   fetchMonitorCount,
   fetchDisabledMonitorCount,
@@ -33,16 +33,17 @@ interface UseAllProjectCountsResult {
 }
 
 export function useAllProjectCounts(): UseAllProjectCountsResult {
-  const { projectList, isLoadingProjects } = useProject();
-  const enabled: boolean = projectList.length > 0;
+  const { projectList, isLoadingProjects } = useActiveProject();
+  const projectId: string | undefined = projectList[0]?._id;
+  const enabled: boolean = Boolean(projectId) && !isLoadingProjects;
 
   const incidentQuery: UseQueryResult<
     ListResponse<IncidentItem>,
     Error
   > = useQuery({
-    queryKey: ["incidents", "unresolved-count", "all-projects"],
+    queryKey: ["incidents", "unresolved-count", projectId],
     queryFn: () => {
-      return fetchAllIncidents({
+      return fetchIncidents(projectId!, {
         skip: 0,
         limit: 1,
         unresolvedOnly: true,
@@ -52,9 +53,13 @@ export function useAllProjectCounts(): UseAllProjectCountsResult {
   });
 
   const alertQuery: UseQueryResult<ListResponse<AlertItem>, Error> = useQuery({
-    queryKey: ["alerts", "unresolved-count", "all-projects"],
+    queryKey: ["alerts", "unresolved-count", projectId],
     queryFn: () => {
-      return fetchAllAlerts({ skip: 0, limit: 1, unresolvedOnly: true });
+      return fetchAlerts(projectId!, {
+        skip: 0,
+        limit: 1,
+        unresolvedOnly: true,
+      });
     },
     enabled,
   });
@@ -63,9 +68,9 @@ export function useAllProjectCounts(): UseAllProjectCountsResult {
     ListResponse<IncidentEpisodeItem>,
     Error
   > = useQuery({
-    queryKey: ["incident-episodes", "unresolved-count", "all-projects"],
+    queryKey: ["incident-episodes", "unresolved-count", projectId],
     queryFn: () => {
-      return fetchAllIncidentEpisodes({
+      return fetchIncidentEpisodes(projectId!, {
         skip: 0,
         limit: 1,
         unresolvedOnly: true,
@@ -78,9 +83,9 @@ export function useAllProjectCounts(): UseAllProjectCountsResult {
     ListResponse<AlertEpisodeItem>,
     Error
   > = useQuery({
-    queryKey: ["alert-episodes", "unresolved-count", "all-projects"],
+    queryKey: ["alert-episodes", "unresolved-count", projectId],
     queryFn: () => {
-      return fetchAllAlertEpisodes({
+      return fetchAlertEpisodes(projectId!, {
         skip: 0,
         limit: 1,
         unresolvedOnly: true,
@@ -222,6 +227,9 @@ export function useAllProjectCounts(): UseAllProjectCountsResult {
     );
 
   const refetch: () => Promise<void> = async (): Promise<void> => {
+    if (!projectId) {
+      return;
+    }
     await Promise.all([
       incidentQuery.refetch(),
       alertQuery.refetch(),

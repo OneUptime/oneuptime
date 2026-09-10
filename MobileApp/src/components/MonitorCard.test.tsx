@@ -131,7 +131,7 @@ describe("What an ordinary monitor row shows", () => {
 
     await render(<MonitorCard monitor={monitor} onPress={noop} />);
 
-    expect(screen.getByText("5h ago")).toBeTruthy();
+    expect(screen.getByText("Created 5h ago")).toBeTruthy();
   });
 
   test("an unusable timestamp shows a dash rather than an invented age", async () => {
@@ -139,7 +139,7 @@ describe("What an ordinary monitor row shows", () => {
 
     await render(<MonitorCard monitor={monitor} onPress={noop} />);
 
-    expect(screen.getByText("—")).toBeTruthy();
+    expect(screen.getByText("Created —")).toBeTruthy();
   });
 
   test("the project it belongs to, when the list spans several", async () => {
@@ -295,7 +295,7 @@ describe("Pressing the row", () => {
     expect(onPress).toHaveBeenCalledTimes(2);
   });
 
-  test("an operational monitor is muted by the list, and still opens", async () => {
+  test("an operational monitor stays readable and still opens", async () => {
     /*
      * MonitorsScreen mutes everything in its "Operational" section, which is
      * most of the list on a good day. Muting must stay a visual weight only.
@@ -306,7 +306,7 @@ describe("Pressing the row", () => {
       <MonitorCard monitor={makeMonitor()} onPress={onPress} muted />,
     );
 
-    expect(styleOf(cardSurface()).opacity).toBe(0.5);
+    expect(styleOf(cardSurface()).opacity).toBe(1);
 
     await fireEvent.press(screen.getByText("api.example.com"));
 

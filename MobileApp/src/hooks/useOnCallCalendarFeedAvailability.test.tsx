@@ -1,7 +1,7 @@
 import React from "react";
-import { renderHook, waitFor } from "@testing-library/react-native";
+import { cleanup, renderHook, waitFor } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, expect, test, beforeEach } from "@jest/globals";
+import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import {
   useOnCallCalendarFeedAvailability,
   type UseOnCallCalendarFeedAvailabilityResult,
@@ -28,7 +28,7 @@ const mockAuthorized: { current: ProjectItem[] | null } = { current: null };
 
 jest.mock("./useProject", () => {
   return {
-    useProject: () => {
+    useActiveProject: () => {
       return {
         projectList: mockProjects.current,
         isLoadingProjects: false,
@@ -76,14 +76,24 @@ function axiosError(httpStatus: number | null): unknown {
   };
 }
 
+const createdClients: QueryClient[] = [];
+
+afterEach(async (): Promise<void> => {
+  await cleanup();
+  createdClients.splice(0).forEach((client: QueryClient): void => {
+    client.clear();
+  });
+});
+
 function createWrapper(): ({
   children,
 }: {
   children: React.ReactNode;
 }) => React.JSX.Element {
   const client: QueryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
+  createdClients.push(client);
 
   return function Wrapper({
     children,

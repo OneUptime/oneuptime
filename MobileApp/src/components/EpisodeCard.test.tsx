@@ -444,7 +444,7 @@ describe("Pressing the card", () => {
     expect(screen.getByText("Acme Production")).toBeTruthy();
   });
 
-  test("a muted card is dimmed but still opens", async () => {
+  test("a resolved episode stays readable and still opens", async () => {
     const onPress: jest.Mock = jest.fn();
 
     await render(
@@ -456,7 +456,7 @@ describe("Pressing the card", () => {
       />,
     );
 
-    expect(styleOf(cardSurface()).opacity).toBe(0.5);
+    expect(styleOf(cardSurface()).opacity).toBe(1);
 
     await fireEvent.press(screen.getByText("Rolling checkout outage"));
 

@@ -236,6 +236,61 @@ async function renderLoadedProjectsScreen(): Promise<void> {
   });
 }
 
+describe("Finding projects and understanding access", () => {
+  test("search ignores case and surrounding spaces, and clear restores every project", async () => {
+    mockFetchProjects.mockResolvedValue(
+      makeListResponse([OPEN_PROJECT, SSO_PROJECT]),
+    );
+    await renderLoadedProjectsScreen();
+    await fireEvent.changeText(
+      screen.getByLabelText("Search projects"),
+      "  ACME  ",
+    );
+    expect(screen.getByText(OPEN_PROJECT.name)).toBeTruthy();
+    expect(screen.queryByText(SSO_PROJECT.name)).toBeNull();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Clear project search" }),
+    );
+    expect(screen.getByText(SSO_PROJECT.name)).toBeTruthy();
+    expect(screen.getByText(OPEN_PROJECT.name)).toBeTruthy();
+  });
+
+  test("an unmatched search explains how to recover without hiding the search control", async () => {
+    mockFetchProjects.mockResolvedValue(makeListResponse([OPEN_PROJECT]));
+    await renderLoadedProjectsScreen();
+    await fireEvent.changeText(
+      screen.getByLabelText("Search projects"),
+      "does not exist",
+    );
+    expect(screen.getByText("No matching projects")).toBeTruthy();
+    expect(screen.getByLabelText("Search projects")).toBeTruthy();
+    expect(screen.queryByText("No projects found.")).toBeNull();
+  });
+
+  test("the access summary respects the server's SSO denial even with a saved token", async () => {
+    mockFetchProjects.mockResolvedValue(
+      makeListResponse([OPEN_PROJECT, SSO_PROJECT]),
+    );
+    mockGetSsoTokens.mockResolvedValue({ [SSO_PROJECT._id]: "saved-token" });
+    markProjectSsoDenied(SSO_PROJECT._id);
+    await renderLoadedProjectsScreen();
+    expect(screen.getByText("2 projects · 1 need SSO sign-in")).toBeTruthy();
+    expect(screen.getByLabelText(ssoButtonLabel(SSO_PROJECT))).toBeTruthy();
+  });
+
+  test("a failed initial load can be retried directly", async () => {
+    mockFetchProjects.mockRejectedValueOnce(new Error("Network down"));
+    mockFetchProjects.mockResolvedValueOnce(makeListResponse([OPEN_PROJECT]));
+    await renderLoadedProjectsScreen();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Retry loading projects" }),
+    );
+    expect(screen.getByText(OPEN_PROJECT.name)).toBeTruthy();
+    expect(screen.queryByText("Failed to load projects.")).toBeNull();
+    expect(mockFetchProjects).toHaveBeenCalledTimes(2);
+  });
+});
+
 /*
  * `fireEvent` resolves with the pressed handler's own promise, so awaiting it
  * runs the whole SSO flow. The "browser still open" tests below must not await
@@ -616,6 +671,20 @@ describe("Starting an SSO login", () => {
     expect(lastOpenedUrl()).toBe(
       `https://status.internal.example/identity/sso/${SSO_PROJECT._id}/${PROJECT_PROVIDER._id}?mobile=true`,
     );
+  });
+
+  test("a single project OIDC provider retains its project ID when opening directly", async () => {
+    mockFetchSSOProvidersForProject.mockResolvedValue([
+      { ...PROJECT_PROVIDER, kind: "project-oidc" },
+    ]);
+    await renderLoadedProjectsScreen();
+    await pressAuthenticate(SSO_PROJECT);
+    expect(lastOpenedUrl()).toBe(
+      `${SERVER_URL}/identity/oidc/${SSO_PROJECT._id}/${PROJECT_PROVIDER._id}?mobile=true`,
+    );
+    expect(
+      screen.queryByText("SSO authentication failed. Please try again."),
+    ).toBeNull();
   });
 
   test("a single global provider is opened without a project id in the url", async () => {

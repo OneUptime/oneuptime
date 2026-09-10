@@ -65,15 +65,15 @@ export default function OfflineBanner(): React.JSX.Element | null {
         <Ionicons
           name="cloud-offline-outline"
           size={16}
-          color="#FFFFFF"
+          color={theme.colors.backgroundPrimary}
           style={{ marginRight: 8, opacity: 0.9 }}
         />
         <Text
           style={{
-            fontSize: 13,
+            fontSize: 14,
             fontWeight: "600",
             letterSpacing: -0.5,
-            color: "#FFFFFF",
+            color: theme.colors.backgroundPrimary,
           }}
         >
           No internet connection

@@ -4,11 +4,14 @@ import {
   Text,
   ScrollView,
   RefreshControl,
-  TextInput,
   Share,
   Alert,
 } from "react-native";
 import { useTheme } from "../theme";
+import { useScreenPadding } from "../hooks/useScreenPadding";
+import ScreenIntro from "../components/ScreenIntro";
+import SearchField from "../components/SearchField";
+import SegmentedControl from "../components/SegmentedControl";
 import { useHaptics } from "../hooks/useHaptics";
 import { useOnCallSchedules } from "../hooks/useOnCallSchedules";
 import { useCurrentUserId } from "../hooks/useCurrentUserId";
@@ -103,7 +106,7 @@ export function matchesRosterSearch(
 }
 
 /*
- * Who is carrying every schedule, across every project.
+ * Who is carrying each schedule in the selected project.
  *
  * Uncovered schedules are pulled to the top rather than sorted alphabetically
  * with the rest. A schedule with nobody on it is the only row on this screen
@@ -112,6 +115,7 @@ export function matchesRosterSearch(
  */
 export default function WhoIsOnCallScreen(): React.JSX.Element {
   const { theme } = useTheme();
+  const bottomPadding: number = useScreenPadding();
   const { lightImpact } = useHaptics();
   const now: number = useNow();
   const currentUserId: string | null = useCurrentUserId();
@@ -120,6 +124,9 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
     useOnCallCalendarFeedAvailability();
 
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [coverageFilter, setCoverageFilter] = useState<
+    "all" | "uncovered" | "covered"
+  >("all");
   const [sharingScheduleId, setSharingScheduleId] = useState<string | null>(
     null,
   );
@@ -250,7 +257,7 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
       >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={{ padding: 20, paddingBottom: 56 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
         >
           <SkeletonCard lines={3} />
           <SkeletonCard lines={3} />
@@ -285,7 +292,7 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
       >
         <EmptyState
           title="No on-call schedules"
-          subtitle="None of your projects has an on-call schedule yet."
+          subtitle="The selected project has no on-call schedules yet."
           icon="alerts"
         />
       </View>
@@ -297,7 +304,8 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
       testID="who-is-on-call-scroll"
       contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom: 56 }}
+      contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
+      keyboardShouldPersistTaps="handled"
       refreshControl={
         <RefreshControl
           refreshing={false}
@@ -306,28 +314,74 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
         />
       }
     >
-      <TextInput
-        testID="roster-search"
-        placeholder="Search schedules, projects or people"
-        placeholderTextColor={theme.colors.textTertiary}
-        value={searchTerm}
-        onChangeText={setSearchTerm}
-        autoCapitalize="none"
-        autoCorrect={false}
+      <ScreenIntro
+        title="Who's on call"
+        description="Find a teammate, check handoffs and spot gaps in coverage."
+      />
+      <View
+        testID="coverage-summary"
         style={{
-          height: 44,
-          borderRadius: 12,
-          paddingHorizontal: 14,
+          padding: 18,
           marginBottom: 20,
-          fontSize: 14,
-          color: theme.colors.textPrimary,
+          borderRadius: 16,
           backgroundColor: theme.colors.backgroundElevated,
           borderWidth: 1,
-          borderColor: theme.colors.borderGlass,
+          borderColor: theme.colors.borderSubtle,
         }}
+      >
+        <Text
+          style={{
+            color: theme.colors.textPrimary,
+            fontSize: 18,
+            fontWeight: "700",
+          }}
+        >
+          {
+            schedules.filter((entry: ProjectOnCallScheduleItem) => {
+              return Boolean(entry.item.currentUserOnRoster);
+            }).length
+          }{" "}
+          of {schedules.length} schedules covered
+        </Text>
+        <Text
+          style={{
+            color: theme.colors.textSecondary,
+            fontSize: 14,
+            lineHeight: 21,
+            marginTop: 6,
+          }}
+        >
+          {schedules.some((entry: ProjectOnCallScheduleItem) => {
+            return !entry.item.currentUserOnRoster;
+          })
+            ? "Schedules with nobody on call appear first. Check these gaps with your team."
+            : "Every schedule has someone on call right now."}
+        </Text>
+      </View>
+      <SearchField
+        testID="roster-search"
+        placeholder="Search schedules, projects or people"
+        accessibilityLabel="Search schedules, projects or people"
+        value={searchTerm}
+        onChangeText={setSearchTerm}
       />
+      <View style={{ marginTop: 12, marginBottom: 24 }}>
+        <SegmentedControl<"all" | "uncovered" | "covered">
+          style={{ marginHorizontal: 0, marginTop: 0 }}
+          segments={[
+            { key: "all", label: `All (${uncovered.length + covered.length})` },
+            { key: "uncovered", label: `Needs cover (${uncovered.length})` },
+            { key: "covered", label: `On call (${covered.length})` },
+          ]}
+          selected={coverageFilter}
+          onSelect={(value: "all" | "uncovered" | "covered") => {
+            lightImpact();
+            setCoverageFilter(value);
+          }}
+        />
+      </View>
 
-      {uncovered.length > 0 ? (
+      {uncovered.length > 0 && coverageFilter !== "covered" ? (
         <View testID="section-uncovered" style={{ marginBottom: 28 }}>
           <SectionHeader title="Nobody on call" iconName="warning-outline" />
           <View style={{ gap: 12 }}>
@@ -349,7 +403,7 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
         </View>
       ) : null}
 
-      {covered.length > 0 ? (
+      {covered.length > 0 && coverageFilter !== "uncovered" ? (
         <View testID="section-covered">
           <SectionHeader title="On call now" iconName="people-outline" />
           <View style={{ gap: 12 }}>
@@ -371,10 +425,16 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
         </View>
       ) : null}
 
-      {uncovered.length === 0 && covered.length === 0 ? (
+      {(
+        coverageFilter === "uncovered"
+          ? uncovered.length === 0
+          : coverageFilter === "covered"
+            ? covered.length === 0
+            : uncovered.length === 0 && covered.length === 0
+      ) ? (
         <View
           style={{
-            borderRadius: 18,
+            borderRadius: 16,
             padding: 18,
             backgroundColor: theme.colors.backgroundElevated,
             borderWidth: 1,
@@ -387,7 +447,11 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
               color: theme.colors.textSecondary,
             }}
           >
-            No schedules match that search.
+            {searchTerm.trim()
+              ? "No schedules match that search."
+              : coverageFilter === "uncovered"
+                ? "No coverage gaps. Every schedule has someone on call."
+                : "No schedules are covered right now."}
           </Text>
         </View>
       ) : null}

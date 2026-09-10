@@ -1,5 +1,5 @@
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
-import { useProject } from "./useProject";
+import { useActiveProject } from "./useProject";
 import { getAuthorizedProjects, projectListKey } from "./authorizedProjects";
 import {
   fetchPersonalCalendarFeed,
@@ -32,7 +32,7 @@ const ONE_HOUR_MILLISECONDS: number = 60 * 60 * 1000;
  * is cached for an hour and re-checked on the next launch after that.
  */
 export function useOnCallCalendarFeedAvailability(): UseOnCallCalendarFeedAvailabilityResult {
-  const { projectList } = useProject();
+  const { projectList } = useActiveProject();
 
   const query: UseQueryResult<boolean, Error> = useQuery({
     queryKey: [

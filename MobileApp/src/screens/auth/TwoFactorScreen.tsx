@@ -1,13 +1,5 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../theme";
 import { useAuth } from "../../hooks/useAuth";
@@ -15,7 +7,7 @@ import { LoginResponse, TwoFactorMethod } from "../../api/auth";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { AuthStackParamList } from "../../navigation/types";
-import Logo from "../../components/Logo";
+import AuthLayout from "../../components/AuthLayout";
 import GradientButton from "../../components/GradientButton";
 import { getFriendlyErrorMessage } from "../../utils/error";
 import {
@@ -131,6 +123,9 @@ export default function TwoFactorScreen(): React.JSX.Element {
   };
 
   const submitTotpCode: () => Promise<void> = async (): Promise<void> => {
+    if (isLoading) {
+      return;
+    }
     if (!selectedTotp) {
       return;
     }
@@ -158,6 +153,9 @@ export default function TwoFactorScreen(): React.JSX.Element {
   };
 
   const submitBackupCode: () => Promise<void> = async (): Promise<void> => {
+    if (isLoading) {
+      return;
+    }
     if (!backupCode.trim()) {
       setError("Enter one of your backup codes.");
       return;
@@ -213,6 +211,9 @@ export default function TwoFactorScreen(): React.JSX.Element {
 
       return (
         <View
+          accessible
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
           style={{
             flexDirection: "row",
             alignItems: "flex-start",
@@ -226,7 +227,7 @@ export default function TwoFactorScreen(): React.JSX.Element {
             style={{ marginRight: 6, marginTop: 2 }}
           />
           <Text
-            style={{ fontSize: 13, flex: 1, color: theme.colors.statusError }}
+            style={{ fontSize: 14, flex: 1, color: theme.colors.statusError }}
           >
             {error}
           </Text>
@@ -263,11 +264,17 @@ export default function TwoFactorScreen(): React.JSX.Element {
         <TouchableOpacity
           accessibilityRole="button"
           testID="lost-access-link"
+          disabled={isLoading}
           onPress={() => {
             setIsUsingBackupCode(true);
             setError(null);
           }}
-          style={{ marginTop: 20, alignItems: "center" }}
+          style={{
+            marginTop: 12,
+            minHeight: 48,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
         >
           <Text style={{ fontSize: 14, color: theme.colors.actionPrimary }}>
             {lostAccessLabel}
@@ -284,14 +291,16 @@ export default function TwoFactorScreen(): React.JSX.Element {
             <TouchableOpacity
               key={method._id}
               accessibilityRole="button"
+              accessibilityLabel={`Use ${method.name}`}
+              accessibilityHint="Enter a code from this authenticator app."
               testID={`totp-method-${method._id}`}
               onPress={() => {
                 setSelectedTotp(method);
                 setError(null);
               }}
               style={{
-                padding: 16,
-                borderRadius: 12,
+                padding: 20,
+                borderRadius: 16,
                 marginBottom: 12,
                 borderWidth: 1.5,
                 borderColor: theme.colors.borderDefault,
@@ -300,7 +309,7 @@ export default function TwoFactorScreen(): React.JSX.Element {
             >
               <Text
                 style={{
-                  fontSize: 15,
+                  fontSize: 16,
                   fontWeight: "600",
                   color: theme.colors.textPrimary,
                 }}
@@ -309,7 +318,7 @@ export default function TwoFactorScreen(): React.JSX.Element {
               </Text>
               <Text
                 style={{
-                  fontSize: 13,
+                  fontSize: 14,
                   marginTop: 2,
                   color: theme.colors.textSecondary,
                 }}
@@ -332,12 +341,11 @@ export default function TwoFactorScreen(): React.JSX.Element {
                 borderWidth: 1.5,
                 borderColor: theme.colors.borderDefault,
                 backgroundColor: theme.colors.backgroundTertiary,
-                opacity: 0.6,
               }}
             >
               <Text
                 style={{
-                  fontSize: 15,
+                  fontSize: 16,
                   fontWeight: "600",
                   color: theme.colors.textSecondary,
                 }}
@@ -346,7 +354,7 @@ export default function TwoFactorScreen(): React.JSX.Element {
               </Text>
               <Text
                 style={{
-                  fontSize: 13,
+                  fontSize: 14,
                   marginTop: 2,
                   color: theme.colors.textTertiary,
                 }}
@@ -362,7 +370,7 @@ export default function TwoFactorScreen(): React.JSX.Element {
           <Text
             testID="security-key-only-notice"
             style={{
-              fontSize: 13,
+              fontSize: 14,
               color: theme.colors.textSecondary,
               marginTop: 4,
             }}
@@ -379,9 +387,37 @@ export default function TwoFactorScreen(): React.JSX.Element {
   const renderCodeEntry: () => React.JSX.Element = (): React.JSX.Element => {
     return (
       <View>
+        <View
+          style={{
+            padding: 16,
+            borderRadius: 16,
+            backgroundColor: theme.colors.iconBackground,
+            marginBottom: 24,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 16,
+              fontWeight: "600",
+              color: theme.colors.textPrimary,
+            }}
+          >
+            {selectedTotp?.name}
+          </Text>
+          <Text
+            style={{
+              fontSize: 14,
+              lineHeight: 21,
+              color: theme.colors.textSecondary,
+              marginTop: 6,
+            }}
+          >
+            Open this authenticator and enter its current six-digit code below.
+          </Text>
+        </View>
         <Text
           style={{
-            fontSize: 13,
+            fontSize: 14,
             fontWeight: "600",
             marginBottom: 8,
             color: theme.colors.textSecondary,
@@ -393,7 +429,7 @@ export default function TwoFactorScreen(): React.JSX.Element {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            height: 48,
+            minHeight: 56,
             borderRadius: 12,
             paddingHorizontal: 14,
             backgroundColor: theme.colors.backgroundSecondary,
@@ -409,7 +445,14 @@ export default function TwoFactorScreen(): React.JSX.Element {
           />
           <TextInput
             testID="totp-code-input"
-            style={{ flex: 1, fontSize: 15, color: theme.colors.textPrimary }}
+            accessibilityLabel="Authenticator code"
+            editable={!isLoading}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              fontSize: 16,
+              color: theme.colors.textPrimary,
+            }}
             value={code}
             onChangeText={(text: string) => {
               setCode(text);
@@ -460,7 +503,7 @@ export default function TwoFactorScreen(): React.JSX.Element {
         <View testID="no-backup-codes">
           <Text
             style={{
-              fontSize: 15,
+              fontSize: 16,
               fontWeight: "600",
               color: theme.colors.textPrimary,
             }}
@@ -503,7 +546,7 @@ export default function TwoFactorScreen(): React.JSX.Element {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            height: 48,
+            minHeight: 56,
             borderRadius: 12,
             paddingHorizontal: 14,
             backgroundColor: theme.colors.backgroundSecondary,
@@ -519,7 +562,14 @@ export default function TwoFactorScreen(): React.JSX.Element {
           />
           <TextInput
             testID="backup-code-input"
-            style={{ flex: 1, fontSize: 15, color: theme.colors.textPrimary }}
+            accessibilityLabel="Backup code"
+            editable={!isLoading}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              fontSize: 16,
+              color: theme.colors.textPrimary,
+            }}
             value={backupCode}
             onChangeText={(text: string) => {
               setBackupCode(text);
@@ -600,95 +650,65 @@ export default function TwoFactorScreen(): React.JSX.Element {
       : "Select a two factor authentication method.";
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <AuthLayout
+      title="Two Factor Authentication"
+      eyebrow={isUsingBackupCode ? "ACCOUNT RECOVERY" : "VERIFY YOUR IDENTITY"}
+      description={subtitle}
     >
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View
-          style={{ flex: 1, justifyContent: "center", paddingHorizontal: 28 }}
+      {renderBody()}
+
+      {renderLostAccessLink()}
+
+      {isUsingBackupCode || selectedTotp ? (
+        <TouchableOpacity
+          accessibilityRole="button"
+          testID="back-to-methods"
+          disabled={isLoading}
+          onPress={() => {
+            setIsUsingBackupCode(false);
+            setSelectedTotp(null);
+            setError(null);
+
+            /*
+             * The typed values go too. A six digit code is bound to the
+             * factor it came from, so leaving it in the box while the user
+             * picks a DIFFERENT authenticator means a reflex press of
+             * Verify submits the first method's code against the second --
+             * refused, with nothing on screen to explain why. Same for a
+             * half-typed recovery code left behind a method switch.
+             */
+            setCode("");
+            setBackupCode("");
+          }}
+          style={{
+            marginTop: 4,
+            minHeight: 48,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
         >
-          <View style={{ alignItems: "center", marginBottom: 36 }}>
-            <View
-              style={{
-                borderWidth: 2,
-                borderColor: theme.colors.borderDefault,
-                borderRadius: 20,
-                marginBottom: 20,
-                overflow: "hidden",
-              }}
-            >
-              <Logo size={72} />
-            </View>
-            <Text
-              style={{
-                fontSize: 24,
-                fontWeight: "bold",
-                textAlign: "center",
-                color: theme.colors.textPrimary,
-              }}
-            >
-              Two Factor Authentication
-            </Text>
-            <Text
-              style={{
-                fontSize: 14,
-                marginTop: 6,
-                textAlign: "center",
-                color: theme.colors.textSecondary,
-              }}
-            >
-              {subtitle}
-            </Text>
-          </View>
+          <Text style={{ fontSize: 14, color: theme.colors.actionPrimary }}>
+            Use a different two factor method
+          </Text>
+        </TouchableOpacity>
+      ) : null}
 
-          {renderBody()}
-
-          {renderLostAccessLink()}
-
-          {isUsingBackupCode || selectedTotp ? (
-            <TouchableOpacity
-              accessibilityRole="button"
-              testID="back-to-methods"
-              onPress={() => {
-                setIsUsingBackupCode(false);
-                setSelectedTotp(null);
-                setError(null);
-
-                /*
-                 * The typed values go too. A six digit code is bound to the
-                 * factor it came from, so leaving it in the box while the user
-                 * picks a DIFFERENT authenticator means a reflex press of
-                 * Verify submits the first method's code against the second --
-                 * refused, with nothing on screen to explain why. Same for a
-                 * half-typed recovery code left behind a method switch.
-                 */
-                setCode("");
-                setBackupCode("");
-              }}
-              style={{ marginTop: 16, alignItems: "center" }}
-            >
-              <Text style={{ fontSize: 14, color: theme.colors.actionPrimary }}>
-                Use a different two factor method
-              </Text>
-            </TouchableOpacity>
-          ) : null}
-
-          <TouchableOpacity
-            accessibilityRole="button"
-            testID="sign-in-as-different-user"
-            onPress={signInAsSomebodyElse}
-            style={{ marginTop: 16, alignItems: "center" }}
-          >
-            <Text style={{ fontSize: 14, color: theme.colors.textTertiary }}>
-              Sign in as a different user
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <TouchableOpacity
+        accessibilityRole="button"
+        testID="sign-in-as-different-user"
+        disabled={isLoading}
+        onPress={signInAsSomebodyElse}
+        style={{
+          marginTop: 4,
+          minHeight: 48,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ fontSize: 14, color: theme.colors.textTertiary }}>
+          Sign in as a different user
+        </Text>
+      </TouchableOpacity>
+    </AuthLayout>
   );
 }

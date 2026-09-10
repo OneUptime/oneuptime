@@ -52,9 +52,9 @@ export default function QuickActionTile({
     >
       <View
         style={{
-          borderRadius: 18,
-          padding: 14,
-          minHeight: 108,
+          borderRadius: 16,
+          padding: 16,
+          minHeight: 128,
           justifyContent: "space-between",
           backgroundColor: theme.colors.backgroundElevated,
           borderWidth: 1,
@@ -77,22 +77,22 @@ export default function QuickActionTile({
         <View style={{ marginTop: 12 }}>
           <Text
             style={{
-              fontSize: 13,
+              fontSize: 15,
+              lineHeight: 22,
               fontWeight: "700",
               color: theme.colors.textPrimary,
             }}
-            numberOfLines={1}
           >
             {label}
           </Text>
           {sublabel ? (
             <Text
               style={{
-                fontSize: 11,
+                fontSize: 14,
+                lineHeight: 20,
                 marginTop: 2,
                 color: theme.colors.textTertiary,
               }}
-              numberOfLines={2}
             >
               {sublabel}
             </Text>

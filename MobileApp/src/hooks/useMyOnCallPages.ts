@@ -1,5 +1,5 @@
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
-import { useProject } from "./useProject";
+import { useActiveProject } from "./useProject";
 import { fetchMyOnCallPages } from "../api/onCallPages";
 import { getAuthorizedProjects, projectListKey } from "./authorizedProjects";
 import type { OnCallPageItem, ProjectItem } from "../api/types";
@@ -12,15 +12,10 @@ export interface UseMyOnCallPagesResult {
 }
 
 /**
- * The pages sent to this responder, newest first, across every project.
- *
- * Merged into one list rather than grouped by project: a responder chasing
- * "did I miss something last night?" is asking about a moment in time, not
- * about a project, and splitting the answer into per-project sections makes
- * them reassemble the timeline themselves.
+ * Pages sent to this responder in the selected project, newest first.
  */
 export function useMyOnCallPages(): UseMyOnCallPagesResult {
-  const { projectList } = useProject();
+  const { projectList } = useActiveProject();
 
   const query: UseQueryResult<OnCallPageItem[], Error> = useQuery({
     queryKey: ["oncall", "my-pages", projectListKey(projectList)],
@@ -28,6 +23,12 @@ export function useMyOnCallPages(): UseMyOnCallPagesResult {
     queryFn: async (): Promise<OnCallPageItem[]> => {
       const authorizedProjects: ProjectItem[] =
         await getAuthorizedProjects(projectList);
+
+      if (projectList.length > 0 && authorizedProjects.length === 0) {
+        throw new Error(
+          "Sign in with SSO for the selected project to view your pages.",
+        );
+      }
 
       const results: PromiseSettledResult<OnCallPageItem[]>[] =
         await Promise.allSettled(
@@ -40,6 +41,15 @@ export function useMyOnCallPages(): UseMyOnCallPagesResult {
         );
 
       const all: OnCallPageItem[] = [];
+
+      if (
+        results.length > 0 &&
+        results.every((result: PromiseSettledResult<OnCallPageItem[]>) => {
+          return result.status === "rejected";
+        })
+      ) {
+        throw new Error("Could not load pages for the selected project.");
+      }
 
       results.forEach((result: PromiseSettledResult<OnCallPageItem[]>) => {
         if (result.status === "fulfilled") {

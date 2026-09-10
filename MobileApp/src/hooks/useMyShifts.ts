@@ -1,7 +1,7 @@
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
-import { useProject } from "./useProject";
+import { useActiveProject } from "./useProject";
 import { useCurrentUserId } from "./useCurrentUserId";
-import { projectListKey } from "./authorizedProjects";
+import { getAuthorizedProjects, projectListKey } from "./authorizedProjects";
 import { fetchMyShifts, isRouteMissingError } from "../api/onCallCalendar";
 import type {
   MyOnCallShift,
@@ -95,7 +95,7 @@ export function myShiftsQueryKey(input: {
 
 /**
  * The signed-in user's shifts for the coming days, from the server's own
- * expansion of every schedule they are on (`/my-shifts`), across projects.
+ * expansion of schedules they are on in the selected project (`/my-shifts`).
  *
  * This is the upgrade over the roster-derived list: it sees the whole
  * fortnight, it knows about overrides ("covering for X"), and it is what the
@@ -107,7 +107,7 @@ export function myShiftsQueryKey(input: {
 export function useMyShifts(
   options: UseMyShiftsOptions = {},
 ): UseMyShiftsResult {
-  const { projectList } = useProject();
+  const { projectList } = useActiveProject();
   const currentUserId: string | null = useCurrentUserId();
   const daysAhead: number = options.daysAhead ?? DEFAULT_DAYS_AHEAD;
   const window: { from: Date; to: Date } = computeMyShiftsWindow(
@@ -133,7 +133,24 @@ export function useMyShifts(
       return failureCount < 1;
     },
     queryFn: async (): Promise<MyOnCallShiftsResponse> => {
-      return await fetchMyShifts(window);
+      const authorizedProjects: ProjectItem[] =
+        await getAuthorizedProjects(projectList);
+      const project: ProjectItem | undefined = authorizedProjects[0];
+      if (!project) {
+        throw new Error(
+          "Sign in with SSO for the selected project to view your shifts.",
+        );
+      }
+      const response: MyOnCallShiftsResponse = await fetchMyShifts(
+        window,
+        project._id,
+      );
+      return {
+        ...response,
+        shifts: response.shifts.filter((shift: MyOnCallShift) => {
+          return shift.projectId === project._id;
+        }),
+      };
     },
   });
 

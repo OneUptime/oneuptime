@@ -362,12 +362,12 @@ describe("Pressing the row", () => {
     expect(onPress).toHaveBeenCalledTimes(2);
   });
 
-  test("a muted row is dimmed but still opens", async () => {
+  test("a resolved row stays readable and still opens", async () => {
     const onPress: jest.Mock = jest.fn();
 
     await render(<AlertCard alert={makeAlert()} onPress={onPress} muted />);
 
-    expect(styleOf(cardSurface()).opacity).toBe(0.5);
+    expect(styleOf(cardSurface()).opacity).toBe(1);
 
     await fireEvent.press(screen.getByText("Disk almost full"));
 
@@ -380,7 +380,7 @@ describe("Pressing the row", () => {
     expect(styleOf(cardSurface()).opacity).toBe(1);
   });
 
-  test("holding a finger on the row dims it further than muting does", async () => {
+  test("holding a finger on the row provides visible touch feedback", async () => {
     await render(<AlertCard alert={makeAlert()} onPress={noop} />);
 
     await holdDown(cardSurface());
@@ -388,7 +388,7 @@ describe("Pressing the row", () => {
     expect(styleOf(cardSurface()).opacity).toBe(0.7);
   });
 
-  test("the press dimming wins over the muted dimming, so a muted row still answers a touch", async () => {
+  test("a resolved row still answers a touch", async () => {
     /*
      * Resolved rows are muted, and a muted row that did not visibly react to
      * being touched would read as disabled - the responder taps again, harder,

@@ -91,6 +91,14 @@ const mockRefetchTimeline: { current: jest.Mock } = { current: jest.fn() };
 const mockRefetchFeed: { current: jest.Mock } = { current: jest.fn() };
 const mockRefetchNotes: { current: jest.Mock } = { current: jest.fn() };
 
+jest.mock("../hooks/useScreenPadding", () => {
+  return {
+    useScreenPadding: () => {
+      return 248;
+    },
+  };
+});
+
 jest.mock("../hooks/useAlertEpisodeDetail", () => {
   return {
     useAlertEpisodeDetail: () => {
@@ -835,5 +843,23 @@ describe("Adding a note", () => {
     });
 
     expect(screen.getByDisplayValue("Rebooted the node.")).toBeTruthy();
+  });
+});
+
+describe("Episode response guidance", () => {
+  test("the responder sees the scope of an episode action before pressing it", async () => {
+    await renderScreen(createSeedableClient());
+    expect(
+      screen.getByText(
+        "Actions on this episode apply to its grouped alerts. Acknowledge to take responsibility, or resolve when recovery is confirmed.",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Acknowledge alert episode" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("detail-scroll").props.contentContainerStyle
+        .paddingBottom,
+    ).toBe(248);
   });
 });

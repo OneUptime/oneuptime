@@ -62,7 +62,7 @@ const mockProjectContext: {
 
 jest.mock("./useProject", () => {
   return {
-    useProject: () => {
+    useActiveProject: () => {
       return mockProjectContext;
     },
   };
@@ -337,7 +337,7 @@ describe("useAllProjectOnCallPolicies with a project awaiting SSO", () => {
     expect(result.current.failedProjectCount).toBe(0);
   });
 
-  test("a list of nothing but SSO-pending projects is not an error either", async () => {
+  test("an SSO-locked selected project is unknown duty, not an empty successful answer", async () => {
     mockProjectContext.projectList = [
       makeProject({
         _id: "project-sso",
@@ -359,7 +359,7 @@ describe("useAllProjectOnCallPolicies with a project awaiting SSO", () => {
     });
 
     expect(fetchDutyMock).not.toHaveBeenCalled();
-    expect(result.current.isError).toBe(false);
+    expect(result.current.isError).toBe(true);
     expect(result.current.failedProjectCount).toBe(0);
   });
 });

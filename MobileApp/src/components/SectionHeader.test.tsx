@@ -50,7 +50,7 @@ describe("What the header shows", () => {
     expect(screen.getByText("Status History")).toBeTruthy();
   });
 
-  test("the title is upper-cased by the style, not by rewriting the words", async () => {
+  test("section headings keep readable sentence case and heading semantics", async () => {
     /*
      * This matters for more than tidiness. textTransform is a display
      * instruction, so the text a screen reader announces is still "Status
@@ -63,7 +63,8 @@ describe("What the header shows", () => {
     );
 
     const title: RenderedElement = screen.getByText("Status History");
-    expect(styleOf(title).textTransform).toBe("uppercase");
+    expect(styleOf(title).textTransform).toBeUndefined();
+    expect(screen.getByRole("header", { name: "Status History" })).toBeTruthy();
     expect(screen.queryByText("STATUS HISTORY")).toBeNull();
   });
 

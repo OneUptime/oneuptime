@@ -247,6 +247,16 @@ describe("OnCallOverviewScreen", () => {
     expect(screen.getByText("Handoff in 6h")).toBeTruthy();
   });
 
+  test("keeps the final navigation actions clear of the bottom bar", async (): Promise<void> => {
+    await render(<OnCallOverviewScreen />);
+    expect(
+      screen.getByTestId("oncall-overview-scroll").props.contentContainerStyle
+        .paddingBottom,
+    ).toBeGreaterThanOrEqual(124);
+    await fireEvent.press(screen.getByTestId("row-pages"));
+    expect(mockNavigate.calls).toContainEqual(["MyOnCallPages", undefined]);
+  });
+
   test("offers cover and roster as one-tap actions", async (): Promise<void> => {
     await render(<OnCallOverviewScreen />);
 
@@ -286,7 +296,7 @@ describe("OnCallOverviewScreen", () => {
     await render(<OnCallOverviewScreen />);
 
     expect(
-      screen.getByText(/not on the roster of any on-call schedule/),
+      screen.getByText(/No current or upcoming roster shifts/),
     ).toBeTruthy();
   });
 
@@ -582,7 +592,7 @@ describe("OnCallOverviewScreen your shifts (server list)", () => {
     await render(<OnCallOverviewScreen />);
 
     expect(
-      screen.getByText(/not on the roster of any on-call schedule/),
+      screen.getByText(/No current or upcoming roster shifts/),
     ).toBeTruthy();
   });
 

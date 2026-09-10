@@ -23,6 +23,15 @@ import type {
   SettingsStackParamList,
 } from "./types";
 
+jest.mock("../components/ProjectSwitcher", () => {
+  return {
+    __esModule: true,
+    default: () => {
+      return null;
+    },
+  };
+});
+
 /*
  * The six stacks, tested for the two things a stack can quietly get wrong.
  *
@@ -37,8 +46,8 @@ import type {
  * param list declares and asked where it ended up.
  *
  * The second is the platform split. Each of these files carries a
- * `Platform.OS === "ios"` branch that turns on the large scrolling title, and
- * a matching branch on every pushed screen that turns it back off.
+ * `Platform.OS === "ios"` branch for native header options. The project
+ * switcher uses a compact header on list and detail screens alike.
  * babel-preset-expo inlines Platform.OS per Jest project, so the branch cannot
  * be mocked - the ios project is the only place the iOS half exists and the
  * android project is the only place its absence can be observed. Both halves
@@ -586,9 +595,7 @@ for (const stack of CONTENT_STACKS) {
         await goTo(navigationRef, routeName, route.params);
 
         if (Platform.OS === "ios") {
-          expect(currentOptions(navigationRef).headerLargeTitle).toBe(
-            route.keepsIosLargeTitle,
-          );
+          expect(currentOptions(navigationRef).headerLargeTitle).toBe(false);
         } else {
           expect(
             currentOptions(navigationRef).headerLargeTitle,

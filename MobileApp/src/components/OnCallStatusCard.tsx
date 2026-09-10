@@ -1,7 +1,6 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../theme";
 import {
   formatDuration,
@@ -96,26 +95,16 @@ export default function OnCallStatusCard({
       testID="oncall-status-card"
       accessibilityLabel={`${headline}. ${subtitle}.`}
       style={{
-        borderRadius: 24,
+        borderRadius: 16,
         overflow: "hidden",
         backgroundColor: theme.colors.backgroundElevated,
         borderWidth: 1,
-        borderColor: theme.colors.borderGlass,
+        borderColor:
+          summary.isOnCall && !isLoading
+            ? theme.colors.oncallActive + "66"
+            : theme.colors.borderSubtle,
       }}
     >
-      <LinearGradient
-        colors={[accentBackground, theme.colors.accentGradientEnd + "06"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 140,
-        }}
-      />
-
       <View style={{ padding: 20 }}>
         <View
           style={{
@@ -145,13 +134,17 @@ export default function OnCallStatusCard({
             />
             <Text
               style={{
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: "700",
                 letterSpacing: 0.8,
                 color: accent,
               }}
             >
-              {summary.isOnCall ? "ON CALL" : "OFF CALL"}
+              {isLoading
+                ? "CHECKING"
+                : summary.isOnCall
+                  ? "ON CALL"
+                  : "OFF CALL"}
             </Text>
           </View>
 
@@ -176,7 +169,7 @@ export default function OnCallStatusCard({
         <Text
           accessibilityRole="header"
           style={{
-            fontSize: 24,
+            fontSize: 28,
             fontWeight: "bold",
             marginTop: 16,
             letterSpacing: -0.6,
@@ -188,19 +181,21 @@ export default function OnCallStatusCard({
 
         <Text
           style={{
-            fontSize: 14,
-            marginTop: 6,
-            lineHeight: 20,
+            fontSize: 16,
+            marginTop: 8,
+            lineHeight: 24,
             color: theme.colors.textSecondary,
           }}
         >
           {subtitle}
         </Text>
 
-        {handoffAtLabel || nextShiftAtLabel ? (
+        {!isLoading && (handoffAtLabel || nextShiftAtLabel) ? (
           <View
             style={{
               flexDirection: "row",
+              flexWrap: "wrap",
+              gap: 16,
               marginTop: 18,
               paddingTop: 16,
               borderTopWidth: 1,
@@ -241,12 +236,12 @@ function MetaColumn({
   const { theme } = useTheme();
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, minWidth: 110 }}>
       <View style={{ flexDirection: "row", alignItems: "center" }}>
         <Ionicons name={iconName} size={12} color={theme.colors.textTertiary} />
         <Text
           style={{
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: "600",
             marginLeft: 5,
             letterSpacing: 0.6,
@@ -259,12 +254,11 @@ function MetaColumn({
       </View>
       <Text
         style={{
-          fontSize: 14,
+          fontSize: 15,
           fontWeight: "600",
           marginTop: 4,
           color: theme.colors.textPrimary,
         }}
-        numberOfLines={1}
       >
         {value}
       </Text>

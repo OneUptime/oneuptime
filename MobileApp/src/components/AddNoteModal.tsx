@@ -7,10 +7,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import GradientButton from "./GradientButton";
+import { useScreenPadding } from "../hooks/useScreenPadding";
 
 interface AddNoteModalProps {
   visible: boolean;
@@ -26,6 +28,7 @@ export default function AddNoteModal({
   isSubmitting,
 }: AddNoteModalProps): React.JSX.Element {
   const { theme } = useTheme();
+  const paddingBottom: number = useScreenPadding({ tabBar: false });
   const [noteText, setNoteText] = useState("");
 
   /*
@@ -54,12 +57,15 @@ export default function AddNoteModal({
 
   const handleSubmit: () => void = (): void => {
     const trimmed: string = noteText.trim();
-    if (trimmed) {
+    if (trimmed && !isSubmitting) {
       onSubmit(trimmed);
     }
   };
 
   const handleClose: () => void = (): void => {
+    if (isSubmitting) {
+      return;
+    }
     setNoteText("");
     onClose();
   };
@@ -79,12 +85,20 @@ export default function AddNoteModal({
         }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <View
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
           style={{
+            maxHeight: "90%",
+            flexGrow: 0,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            backgroundColor: theme.colors.backgroundElevated,
+          }}
+          contentContainerStyle={{
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
             padding: 20,
-            paddingBottom: 36,
+            paddingBottom,
             backgroundColor: theme.colors.backgroundElevated,
             borderWidth: 1,
             borderBottomWidth: 0,
@@ -140,7 +154,18 @@ export default function AddNoteModal({
             </Text>
           </View>
 
+          <Text
+            style={{
+              fontSize: 14,
+              lineHeight: 22,
+              color: theme.colors.textSecondary,
+              marginBottom: 16,
+            }}
+          >
+            Share an update with your team. Markdown is supported.
+          </Text>
           <TextInput
+            accessibilityLabel="Note"
             style={{
               minHeight: 120,
               borderRadius: 12,
@@ -169,10 +194,15 @@ export default function AddNoteModal({
             }}
           >
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Cancel"
+              accessibilityState={{ disabled: isSubmitting }}
               style={({ pressed }: { pressed: boolean }) => {
                 return {
                   flex: 1,
-                  height: 50,
+                  minHeight: 52,
+                  paddingVertical: 14,
+                  paddingHorizontal: 16,
                   borderRadius: 12,
                   alignItems: "center" as const,
                   justifyContent: "center" as const,
@@ -203,7 +233,7 @@ export default function AddNoteModal({
               style={{ flex: 1 }}
             />
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
   );

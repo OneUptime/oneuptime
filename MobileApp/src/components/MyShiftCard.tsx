@@ -71,8 +71,8 @@ export default function MyShiftCard({
     <View
       testID={`my-shift-card-${shift.shiftKey}`}
       style={{
-        borderRadius: 18,
-        padding: 16,
+        borderRadius: 16,
+        padding: 18,
         backgroundColor: theme.colors.backgroundElevated,
         borderWidth: 1,
         borderColor: theme.colors.borderGlass,
@@ -88,8 +88,8 @@ export default function MyShiftCard({
         <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
           <View
             style={{
-              width: 34,
-              height: 34,
+              width: 42,
+              height: 42,
               borderRadius: 12,
               alignItems: "center",
               justifyContent: "center",
@@ -106,17 +106,17 @@ export default function MyShiftCard({
           <View style={{ flex: 1 }}>
             <Text
               style={{
-                fontSize: 15,
+                fontSize: 16,
                 fontWeight: "600",
                 color: theme.colors.textPrimary,
               }}
-              numberOfLines={1}
+              numberOfLines={2}
             >
               {shift.scheduleName}
             </Text>
             <Text
               style={{
-                fontSize: 12,
+                fontSize: 14,
                 marginTop: 2,
                 color: theme.colors.textTertiary,
               }}
@@ -140,7 +140,7 @@ export default function MyShiftCard({
         >
           <Text
             style={{
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: "700",
               color: accent,
               fontVariant: ["tabular-nums"],
@@ -166,11 +166,12 @@ export default function MyShiftCard({
           />
           <Text
             style={{
-              fontSize: 12,
+              fontSize: 14,
+              lineHeight: 21,
               marginLeft: 6,
+              flex: 1,
               color: theme.colors.textSecondary,
             }}
-            numberOfLines={1}
           >
             {window}
           </Text>
@@ -198,11 +199,11 @@ export default function MyShiftCard({
             >
               <Text
                 style={{
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: "600",
                   color: theme.colors.severityInfo,
                 }}
-                numberOfLines={1}
+                numberOfLines={2}
               >
                 {covering}
               </Text>
@@ -221,11 +222,11 @@ export default function MyShiftCard({
             >
               <Text
                 style={{
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: "600",
                   color: theme.colors.severityWarning,
                 }}
-                numberOfLines={1}
+                numberOfLines={2}
               >
                 {policyVariant}
               </Text>
@@ -247,6 +248,8 @@ export default function MyShiftCard({
             return {
               marginTop: 12,
               paddingTop: 12,
+              paddingBottom: 4,
+              minHeight: 48,
               borderTopWidth: 1,
               borderTopColor: theme.colors.borderSubtle,
               flexDirection: "row",
@@ -262,7 +265,7 @@ export default function MyShiftCard({
           />
           <Text
             style={{
-              fontSize: 13,
+              fontSize: 15,
               fontWeight: "600",
               marginLeft: 6,
               color: theme.colors.actionPrimary,

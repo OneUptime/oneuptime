@@ -2,6 +2,8 @@ import React, { useMemo } from "react";
 import { View, Text, ScrollView, RefreshControl } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { useScreenPadding } from "../hooks/useScreenPadding";
+import ScreenIntro from "../components/ScreenIntro";
 import { useHaptics } from "../hooks/useHaptics";
 import { useAllProjectOnCallPolicies } from "../hooks/useAllProjectOnCallPolicies";
 import EmptyState from "../components/EmptyState";
@@ -57,6 +59,7 @@ function getAssignmentBadge(
 
 export default function MyOnCallPoliciesScreen(): React.JSX.Element {
   const { theme } = useTheme();
+  const bottomPadding: number = useScreenPadding();
   const { lightImpact } = useHaptics();
   const {
     projects,
@@ -73,8 +76,7 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
   const summaryText: string = useMemo(() => {
     const assignmentLabel: string =
       totalAssignments === 1 ? "assignment" : "assignments";
-    const projectLabel: string = projectCount === 1 ? "project" : "projects";
-    const summary: string = `You are currently on duty for ${totalAssignments} ${assignmentLabel} across ${projectCount} ${projectLabel}.`;
+    const summary: string = `You are currently on duty for ${totalAssignments} ${assignmentLabel} in the selected project.`;
 
     if (failedProjectCount === 0) {
       return summary;
@@ -104,11 +106,11 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
       >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={{ padding: 16, paddingBottom: 44 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
         >
           <View
             style={{
-              borderRadius: 24,
+              borderRadius: 16,
               overflow: "hidden",
               padding: 20,
               marginBottom: 16,
@@ -167,9 +169,10 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
 
   return (
     <ScrollView
+      testID="oncall-policies-scroll"
       contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom: 56 }}
+      contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
       refreshControl={
         <RefreshControl
           refreshing={false}
@@ -178,9 +181,13 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
         />
       }
     >
+      <ScreenIntro
+        title="My policies"
+        description="See why you receive pages and which projects need you right now."
+      />
       <View
         style={{
-          borderRadius: 24,
+          borderRadius: 16,
           padding: 20,
           marginBottom: 20,
           backgroundColor: theme.colors.backgroundElevated,
@@ -218,22 +225,22 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
             <View style={{ flex: 1 }}>
               <Text
                 style={{
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: "bold",
                   color: theme.colors.textPrimary,
                   letterSpacing: -0.4,
                 }}
               >
-                On-Call Now
+                Active assignments
               </Text>
               <Text
                 style={{
-                  fontSize: 12,
+                  fontSize: 14,
                   marginTop: 2,
                   color: theme.colors.textSecondary,
                 }}
               >
-                Live duty assignments
+                Policies that can page you now
               </Text>
             </View>
           </View>
@@ -270,7 +277,7 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
         {projectCount > 0 ? (
           <Text
             style={{
-              fontSize: 13,
+              fontSize: 15,
               marginTop: 16,
               lineHeight: 20,
               color: theme.colors.textSecondary,
@@ -281,10 +288,25 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
         ) : null}
       </View>
 
+      {projects.length > 0 ? (
+        <Text
+          style={{
+            fontSize: 14,
+            lineHeight: 21,
+            color: theme.colors.textSecondary,
+            marginBottom: 20,
+          }}
+        >
+          Direct assignments page you personally. Team assignments reach you
+          through a team. Schedule assignments apply while you are on its
+          roster.
+        </Text>
+      ) : null}
+
       {projects.length === 0 ? (
         <View
           style={{
-            borderRadius: 24,
+            borderRadius: 16,
             overflow: "hidden",
             backgroundColor: theme.colors.backgroundElevated,
             borderWidth: 1,
@@ -304,7 +326,7 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
               <View
                 key={projectData.projectId}
                 style={{
-                  borderRadius: 24,
+                  borderRadius: 16,
                   backgroundColor: theme.colors.backgroundElevated,
                   borderWidth: 1,
                   borderColor: theme.colors.borderGlass,
@@ -320,8 +342,8 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                     borderBottomWidth: 1,
                     borderBottomColor: theme.colors.borderSubtle,
                     backgroundColor: theme.colors.backgroundSecondary,
-                    borderTopLeftRadius: 23,
-                    borderTopRightRadius: 23,
+                    borderTopLeftRadius: 15,
+                    borderTopRightRadius: 15,
                   }}
                 >
                   <View
@@ -363,7 +385,7 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                   >
                     <Text
                       style={{
-                        fontSize: 11,
+                        fontSize: 13,
                         fontWeight: "600",
                         color: theme.colors.textSecondary,
                       }}
@@ -415,13 +437,13 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                           >
                             <Text
                               style={{
-                                fontSize: 15,
+                                fontSize: 16,
                                 fontWeight: "600",
                                 flex: 1,
                                 marginRight: 12,
                                 color: theme.colors.textPrimary,
                               }}
-                              numberOfLines={1}
+                              numberOfLines={2}
                             >
                               {assignment.policyName}
                             </Text>
@@ -443,7 +465,7 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                               />
                               <Text
                                 style={{
-                                  fontSize: 11,
+                                  fontSize: 13,
                                   fontWeight: "600",
                                   marginLeft: 4,
                                   color: badge.color,
@@ -468,11 +490,13 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                               />
                               <Text
                                 style={{
-                                  fontSize: 12,
+                                  fontSize: 14,
+                                  lineHeight: 21,
+                                  flex: 1,
                                   marginLeft: 6,
                                   color: theme.colors.textSecondary,
                                 }}
-                                numberOfLines={1}
+                                numberOfLines={2}
                               >
                                 Rule: {assignment.escalationRuleName}
                               </Text>
@@ -491,11 +515,13 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                               />
                               <Text
                                 style={{
-                                  fontSize: 12,
+                                  fontSize: 14,
+                                  lineHeight: 21,
+                                  flex: 1,
                                   marginLeft: 6,
                                   color: theme.colors.textSecondary,
                                 }}
-                                numberOfLines={1}
+                                numberOfLines={2}
                               >
                                 {assignment.assignmentDetail}
                               </Text>

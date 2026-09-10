@@ -3,9 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
   Pressable,
   ActivityIndicator,
 } from "react-native";
@@ -32,7 +29,7 @@ import {
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { AuthStackParamList } from "../../navigation/types";
-import Logo from "../../components/Logo";
+import AuthLayout from "../../components/AuthLayout";
 import GradientButton from "../../components/GradientButton";
 
 type SSOLoginNavigationProp = NativeStackNavigationProp<
@@ -87,6 +84,9 @@ export default function SSOLoginScreen(): React.JSX.Element {
   }, [loadGlobalProviders]);
 
   const handleFetchProviders: () => Promise<void> = async (): Promise<void> => {
+    if (isLoadingProviders || isSSOLoading) {
+      return;
+    }
     const trimmedEmail: string = email.trim();
 
     if (!trimmedEmail) {
@@ -248,10 +248,13 @@ export default function SSOLoginScreen(): React.JSX.Element {
         key={data.key}
         accessibilityRole="button"
         accessibilityLabel={data.name}
+        accessibilityHint="Opens your organization's secure sign-in in the browser."
+        disabled={isSSOLoading}
         onPress={data.onPress}
         style={{
           marginBottom: data.isLast ? 0 : 10,
-          borderRadius: 14,
+          borderRadius: 16,
+          minHeight: 64,
           backgroundColor: theme.colors.backgroundSecondary,
           borderWidth: 1,
           borderColor: theme.colors.borderDefault,
@@ -286,7 +289,7 @@ export default function SSOLoginScreen(): React.JSX.Element {
           <View style={{ flex: 1 }}>
             <Text
               style={{
-                fontSize: 15,
+                fontSize: 16,
                 fontWeight: "600",
                 color: theme.colors.textPrimary,
               }}
@@ -296,7 +299,7 @@ export default function SSOLoginScreen(): React.JSX.Element {
             {data.description ? (
               <Text
                 style={{
-                  fontSize: 13,
+                  fontSize: 14,
                   marginTop: 2,
                   color: theme.colors.textSecondary,
                 }}
@@ -323,6 +326,9 @@ export default function SSOLoginScreen(): React.JSX.Element {
 
       return (
         <View
+          accessible
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
           style={{
             flexDirection: "row",
             alignItems: "flex-start",
@@ -337,7 +343,7 @@ export default function SSOLoginScreen(): React.JSX.Element {
           />
           <Text
             style={{
-              fontSize: 13,
+              fontSize: 14,
               flex: 1,
               color: theme.colors.statusError,
             }}
@@ -369,7 +375,7 @@ export default function SSOLoginScreen(): React.JSX.Element {
         <View style={{ marginBottom: 24 }}>
           <Text
             style={{
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: "600",
               marginBottom: 10,
               color: theme.colors.textSecondary,
@@ -433,7 +439,7 @@ export default function SSOLoginScreen(): React.JSX.Element {
 
         <Text
           style={{
-            fontSize: 13,
+            fontSize: 14,
             fontWeight: "600",
             marginBottom: 8,
             color: theme.colors.textSecondary,
@@ -445,7 +451,7 @@ export default function SSOLoginScreen(): React.JSX.Element {
           style={{
             flexDirection: "row",
             alignItems: "center",
-            height: 48,
+            minHeight: 56,
             borderRadius: 12,
             paddingHorizontal: 14,
             backgroundColor: theme.colors.backgroundSecondary,
@@ -468,10 +474,12 @@ export default function SSOLoginScreen(): React.JSX.Element {
           <TextInput
             style={{
               flex: 1,
-              fontSize: 15,
+              minWidth: 0,
+              fontSize: 16,
               color: theme.colors.textPrimary,
             }}
             value={email}
+            editable={!isLoadingProviders && !isSSOLoading}
             onChangeText={(text: string) => {
               setEmail(text);
               setError(null);
@@ -588,85 +596,71 @@ export default function SSOLoginScreen(): React.JSX.Element {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <AuthLayout
+      title="SSO Login"
+      eyebrow="SIGN IN WITH YOUR TEAM"
+      description={
+        providers
+          ? "Select your SSO provider"
+          : "Choose your provider or enter your email"
+      }
     >
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled"
+      <View
+        style={{
+          padding: 16,
+          borderRadius: 16,
+          backgroundColor: theme.colors.iconBackground,
+          marginBottom: 24,
+          flexDirection: "row",
+          alignItems: "flex-start",
+        }}
       >
-        <View
-          style={{ flex: 1, justifyContent: "center", paddingHorizontal: 28 }}
+        <Ionicons
+          name="shield-checkmark-outline"
+          size={22}
+          color={theme.colors.actionPrimary}
+          style={{ marginRight: 12 }}
+        />
+        <Text
+          style={{
+            flex: 1,
+            fontSize: 14,
+            lineHeight: 21,
+            color: theme.colors.textSecondary,
+          }}
         >
-          <View style={{ alignItems: "center", marginBottom: 48 }}>
-            <View
-              style={{
-                borderWidth: 2,
-                borderColor: theme.colors.borderDefault,
-                borderRadius: 20,
-                marginBottom: 20,
-                overflow: "hidden",
-              }}
-            >
-              <Logo size={90} />
-            </View>
+          Your provider opens in a secure browser. After signing in, you will
+          return to OneUptime automatically.
+        </Text>
+      </View>
 
-            <Text
-              style={{
-                fontSize: 30,
-                fontWeight: "bold",
-                color: theme.colors.textPrimary,
-                letterSpacing: -1,
-              }}
-            >
-              SSO Login
-            </Text>
-            <Text
-              style={{
-                fontSize: 15,
-                marginTop: 4,
-                color: theme.colors.textSecondary,
-              }}
-            >
-              {providers
-                ? "Select your SSO provider"
-                : "Choose your provider or enter your email"}
-            </Text>
-          </View>
-
-          {isSSOLoading && !providers ? (
-            <View style={{ alignItems: "center", paddingVertical: 32 }}>
-              <ActivityIndicator
-                size="large"
-                color={theme.colors.actionPrimary}
-              />
-              <Text
-                style={{
-                  marginTop: 12,
-                  fontSize: 14,
-                  color: theme.colors.textSecondary,
-                }}
-              >
-                Authenticating...
-              </Text>
-            </View>
-          ) : providers ? (
-            renderProjectStep()
-          ) : (
-            renderEmailStep()
-          )}
-
-          <View style={{ marginTop: 16 }}>
-            <GradientButton
-              label={providers ? "Use a different email" : "Back to Login"}
-              onPress={handleBack}
-              variant="secondary"
-              icon="arrow-back-outline"
-            />
-          </View>
+      {isSSOLoading && !providers ? (
+        <View style={{ alignItems: "center", paddingVertical: 32 }}>
+          <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
+          <Text
+            style={{
+              marginTop: 12,
+              fontSize: 14,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            Authenticating...
+          </Text>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      ) : providers ? (
+        renderProjectStep()
+      ) : (
+        renderEmailStep()
+      )}
+
+      <View style={{ marginTop: 16 }}>
+        <GradientButton
+          label={providers ? "Use a different email" : "Back to Login"}
+          onPress={handleBack}
+          variant="secondary"
+          icon="arrow-back-outline"
+        />
+      </View>
+    </AuthLayout>
   );
 }

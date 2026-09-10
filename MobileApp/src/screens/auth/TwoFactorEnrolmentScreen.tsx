@@ -4,9 +4,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
   Platform,
-  ScrollView,
   Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,7 +14,7 @@ import { LoginResponse } from "../../api/auth";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { AuthStackParamList } from "../../navigation/types";
-import Logo from "../../components/Logo";
+import AuthLayout, { AuthStep } from "../../components/AuthLayout";
 import GradientButton from "../../components/GradientButton";
 import { getFriendlyErrorMessage } from "../../utils/error";
 import {
@@ -87,6 +85,9 @@ export default function TwoFactorEnrolmentScreen(): React.JSX.Element {
   };
 
   const submit: () => Promise<void> = async (): Promise<void> => {
+    if (isLoading) {
+      return;
+    }
     if (!code.trim()) {
       setError("Enter the code your authenticator app is showing.");
       return;
@@ -148,211 +149,190 @@ export default function TwoFactorEnrolmentScreen(): React.JSX.Element {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <AuthLayout
+      title="Set Up Two Factor Authentication"
+      eyebrow="SECURE YOUR ACCOUNT"
+      description="Your administrator requires two factor authentication on this account. Set it up now to finish signing in."
     >
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View
-          style={{ flex: 1, justifyContent: "center", paddingHorizontal: 28 }}
+      <AuthStep
+        number={1}
+        title="Add your account"
+        description="Open your authenticator app or enter the setup key manually."
+      />
+
+      <GradientButton
+        label="Add to Authenticator App"
+        onPress={openInAuthenticator}
+        icon="open-outline"
+        disabled={!otpUrl}
+      />
+
+      {didOpenAuthenticator ? (
+        <Text
+          testID="opened-authenticator-hint"
+          style={{
+            fontSize: 14,
+            marginTop: 10,
+            textAlign: "center",
+            color: theme.colors.textSecondary,
+          }}
         >
-          <View style={{ alignItems: "center", marginBottom: 32 }}>
-            <View
-              style={{
-                borderWidth: 2,
-                borderColor: theme.colors.borderDefault,
-                borderRadius: 20,
-                marginBottom: 20,
-                overflow: "hidden",
-              }}
-            >
-              <Logo size={72} />
-            </View>
+          Come back here and enter the six digit code it is showing.
+        </Text>
+      ) : null}
+
+      {secret ? (
+        <View style={{ marginTop: 20 }}>
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "600",
+              marginBottom: 8,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            Or add this setup key by hand
+          </Text>
+          <View
+            style={{
+              padding: 14,
+              borderRadius: 12,
+              backgroundColor: theme.colors.backgroundSecondary,
+              borderWidth: 1,
+              borderColor: theme.colors.borderDefault,
+            }}
+          >
             <Text
+              testID="enrolment-secret"
+              selectable={true}
               style={{
-                fontSize: 24,
-                fontWeight: "bold",
-                textAlign: "center",
+                fontSize: 16,
+                letterSpacing: 1.5,
+                fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
                 color: theme.colors.textPrimary,
               }}
             >
-              Set Up Two Factor Authentication
+              {secret}
             </Text>
+          </View>
+        </View>
+      ) : null}
+
+      <View style={{ marginTop: 24 }}>
+        <AuthStep
+          number={2}
+          title="Confirm the setup"
+          description="Enter the current six-digit code from your authenticator app."
+        />
+        <Text
+          style={{
+            fontSize: 14,
+            fontWeight: "600",
+            marginBottom: 8,
+            color: theme.colors.textSecondary,
+          }}
+        >
+          Code
+        </Text>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            minHeight: 56,
+            borderRadius: 12,
+            paddingHorizontal: 14,
+            backgroundColor: theme.colors.backgroundSecondary,
+            borderWidth: 1.5,
+            borderColor: theme.colors.borderDefault,
+          }}
+        >
+          <Ionicons
+            name="keypad-outline"
+            size={18}
+            color={theme.colors.textTertiary}
+            style={{ marginRight: 10 }}
+          />
+          <TextInput
+            testID="enrolment-code-input"
+            accessibilityLabel="Authenticator code"
+            editable={!isLoading}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              fontSize: 16,
+              color: theme.colors.textPrimary,
+            }}
+            value={code}
+            onChangeText={(text: string) => {
+              setCode(text);
+              setError(null);
+            }}
+            placeholder="123456"
+            placeholderTextColor={theme.colors.textTertiary}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="number-pad"
+            textContentType="oneTimeCode"
+            returnKeyType="go"
+            onSubmitEditing={submit}
+          />
+        </View>
+
+        {error ? (
+          <View
+            accessible
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+            style={{
+              flexDirection: "row",
+              alignItems: "flex-start",
+              marginTop: 12,
+            }}
+          >
+            <Ionicons
+              name="alert-circle"
+              size={14}
+              color={theme.colors.statusError}
+              style={{ marginRight: 6, marginTop: 2 }}
+            />
             <Text
               style={{
                 fontSize: 14,
-                marginTop: 6,
-                textAlign: "center",
-                lineHeight: 20,
-                color: theme.colors.textSecondary,
+                flex: 1,
+                color: theme.colors.statusError,
               }}
             >
-              Your administrator requires two factor authentication on this
-              account. Set it up now to finish signing in.
+              {error}
             </Text>
           </View>
+        ) : null}
 
+        <View style={{ marginTop: 24 }}>
           <GradientButton
-            label="Add to Authenticator App"
-            onPress={openInAuthenticator}
-            icon="open-outline"
-            disabled={!otpUrl}
+            label="Verify and Sign In"
+            onPress={submit}
+            loading={isLoading}
+            disabled={isLoading}
           />
-
-          {didOpenAuthenticator ? (
-            <Text
-              testID="opened-authenticator-hint"
-              style={{
-                fontSize: 13,
-                marginTop: 10,
-                textAlign: "center",
-                color: theme.colors.textSecondary,
-              }}
-            >
-              Come back here and enter the six digit code it is showing.
-            </Text>
-          ) : null}
-
-          {secret ? (
-            <View style={{ marginTop: 20 }}>
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: "600",
-                  marginBottom: 8,
-                  color: theme.colors.textSecondary,
-                }}
-              >
-                Or add this setup key by hand
-              </Text>
-              <View
-                style={{
-                  padding: 14,
-                  borderRadius: 12,
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  borderWidth: 1,
-                  borderColor: theme.colors.borderDefault,
-                }}
-              >
-                <Text
-                  testID="enrolment-secret"
-                  selectable={true}
-                  style={{
-                    fontSize: 15,
-                    letterSpacing: 1.5,
-                    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-                    color: theme.colors.textPrimary,
-                  }}
-                >
-                  {secret}
-                </Text>
-              </View>
-            </View>
-          ) : null}
-
-          <View style={{ marginTop: 24 }}>
-            <Text
-              style={{
-                fontSize: 13,
-                fontWeight: "600",
-                marginBottom: 8,
-                color: theme.colors.textSecondary,
-              }}
-            >
-              Code
-            </Text>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                height: 48,
-                borderRadius: 12,
-                paddingHorizontal: 14,
-                backgroundColor: theme.colors.backgroundSecondary,
-                borderWidth: 1.5,
-                borderColor: theme.colors.borderDefault,
-              }}
-            >
-              <Ionicons
-                name="keypad-outline"
-                size={18}
-                color={theme.colors.textTertiary}
-                style={{ marginRight: 10 }}
-              />
-              <TextInput
-                testID="enrolment-code-input"
-                style={{
-                  flex: 1,
-                  fontSize: 15,
-                  color: theme.colors.textPrimary,
-                }}
-                value={code}
-                onChangeText={(text: string) => {
-                  setCode(text);
-                  setError(null);
-                }}
-                placeholder="123456"
-                placeholderTextColor={theme.colors.textTertiary}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="number-pad"
-                textContentType="oneTimeCode"
-                returnKeyType="go"
-                onSubmitEditing={submit}
-              />
-            </View>
-
-            {error ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "flex-start",
-                  marginTop: 12,
-                }}
-              >
-                <Ionicons
-                  name="alert-circle"
-                  size={14}
-                  color={theme.colors.statusError}
-                  style={{ marginRight: 6, marginTop: 2 }}
-                />
-                <Text
-                  style={{
-                    fontSize: 13,
-                    flex: 1,
-                    color: theme.colors.statusError,
-                  }}
-                >
-                  {error}
-                </Text>
-              </View>
-            ) : null}
-
-            <View style={{ marginTop: 24 }}>
-              <GradientButton
-                label="Verify and Sign In"
-                onPress={submit}
-                loading={isLoading}
-                disabled={isLoading}
-              />
-            </View>
-          </View>
-
-          <TouchableOpacity
-            accessibilityRole="button"
-            testID="sign-in-as-different-user"
-            onPress={startOver}
-            style={{ marginTop: 20, alignItems: "center" }}
-          >
-            <Text style={{ fontSize: 14, color: theme.colors.textTertiary }}>
-              Sign in as a different user
-            </Text>
-          </TouchableOpacity>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </View>
+
+      <TouchableOpacity
+        accessibilityRole="button"
+        testID="sign-in-as-different-user"
+        onPress={startOver}
+        disabled={isLoading}
+        style={{
+          marginTop: 12,
+          minHeight: 48,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ fontSize: 14, color: theme.colors.textTertiary }}>
+          Sign in as a different user
+        </Text>
+      </TouchableOpacity>
+    </AuthLayout>
   );
 }

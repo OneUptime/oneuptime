@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Notifications from "expo-notifications";
 import { renderHook, waitFor } from "@testing-library/react-native";
 import { usePushNotifications } from "./usePushNotifications";
 import * as pushDeviceApi from "../api/pushDevice";
@@ -120,5 +121,47 @@ describe("Push registration restates the critical alert preference", () => {
     );
 
     expect(projectIds).toEqual(["project-1", "project-2"]);
+  });
+
+  test("native platforms still initialize notification actions and cold-start listeners", async () => {
+    await renderHook(() => {
+      return usePushNotifications(null);
+    });
+
+    expect(setupModule.setupNotificationChannels).toHaveBeenCalledTimes(1);
+    expect(setupModule.setupNotificationCategories).toHaveBeenCalledTimes(1);
+    expect(Notifications.addNotificationReceivedListener).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(
+      Notifications.addNotificationResponseReceivedListener,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      Notifications.getLastNotificationResponseAsync,
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  test("native notification subscriptions are removed when the hook unmounts", async () => {
+    const removeReceived: jest.Mock = jest.fn();
+    const removeResponse: jest.Mock = jest.fn();
+    jest
+      .spyOn(Notifications, "addNotificationReceivedListener")
+      .mockReturnValue({
+        remove: removeReceived,
+      });
+    jest
+      .spyOn(Notifications, "addNotificationResponseReceivedListener")
+      .mockReturnValue({
+        remove: removeResponse,
+      });
+    const view: Awaited<ReturnType<typeof renderHook>> = await renderHook(
+      () => {
+        return usePushNotifications(null);
+      },
+    );
+    await view.unmount();
+
+    expect(removeReceived).toHaveBeenCalledTimes(1);
+    expect(removeResponse).toHaveBeenCalledTimes(1);
   });
 });
