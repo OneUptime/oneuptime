@@ -304,6 +304,7 @@ function createConfig(options) {
   const isDev = process.env.NODE_ENV !== "production";
   const isAnalyze = process.env.analyze === "true";
   const reactRoot = resolvePackageRoot("react");
+  const reactDomRoot = resolvePackageRoot("react-dom");
   const reactRouterRoot = resolvePackageRoot("react-router");
   const reactRouterDomRoot = resolvePackageRoot("react-router-dom");
   const reactI18nextRoot = resolvePackageRoot("react-i18next");
@@ -356,6 +357,9 @@ function createConfig(options) {
     external: ["react-native-sqlite-storage", ...additionalExternal],
     alias: {
       react: reactRoot,
+      // Shared controls use portals while the entry point uses react-dom/client.
+      // Resolve both to one renderer even when each package installs its own copy.
+      "react-dom": reactDomRoot,
       "react/jsx-runtime": path.join(reactRoot, "jsx-runtime.js"),
       "react/jsx-dev-runtime": path.join(reactRoot, "jsx-dev-runtime.js"),
       // Public dashboards reuse widgets from the private dashboard package.
