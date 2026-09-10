@@ -181,8 +181,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         },
       });
 
-      // Billing can lag after a provider outage. Admission limits must use
-      // persisted memberships, including pending invitations.
+      /*
+       * Billing can lag after a provider outage. Admission limits must use
+       * persisted memberships, including pending invitations.
+       */
       const numberOfMembers: number =
         project &&
         (project.seatLimit || createBy.props.currentPlan === PlanType.Free)
@@ -1302,8 +1304,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       return;
     }
 
-    // Serialize the request and worker paths, then read the latest count so
-    // an older synchronization cannot overwrite a newer seat quantity.
+    /*
+     * Serialize the request and worker paths, then read the latest count so
+     * an older synchronization cannot overwrite a newer seat quantity.
+     */
     const mutex: SemaphoreMutex = await Semaphore.lock({
       key: projectId.toString(),
       namespace: "team-member-subscription-seats",
@@ -1345,9 +1349,11 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         return;
       }
 
-      // The provider may apply the quantity and then time out. Persist that
-      // uncertainty before calling it, so even a later return to the previous
-      // member count cannot make reconciliation mistake the seats for synced.
+      /*
+       * The provider may apply the quantity and then time out. Persist that
+       * uncertainty before calling it, so even a later return to the previous
+       * member count cannot make reconciliation mistake the seats for synced.
+       */
       const invalidated: number = await ProjectService.updateSubscriptionSeats({
         projectId: projectId,
         subscriptionId: project.paymentProviderSubscriptionId,

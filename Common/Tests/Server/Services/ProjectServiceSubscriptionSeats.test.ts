@@ -56,8 +56,10 @@ describe("ProjectService.updateSubscriptionSeats", () => {
 
     await expect(updateSeats(4)).resolves.toBe(1);
 
-    // The normal update service applies predicates to a SELECT, then updates
-    // by id alone. They must reach repository.update in this same statement.
+    /*
+     * The normal update service applies predicates to a SELECT, then updates
+     * by id alone. They must reach repository.update in this same statement.
+     */
     expect(update).toHaveBeenCalledTimes(1);
     expect(update).toHaveBeenCalledWith(
       {

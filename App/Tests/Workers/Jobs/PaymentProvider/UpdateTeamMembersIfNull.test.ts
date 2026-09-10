@@ -157,8 +157,10 @@ describe("subscription seat reconciliation sweep", () => {
       props: { isRoot: boolean };
     };
 
-    // The old IS NULL seat filter permanently missed failed updates to an
-    // existing subscription. Only subscription and plan eligibility belong here.
+    /*
+     * The old IS NULL seat filter permanently missed failed updates to an
+     * existing subscription. Only subscription and plan eligibility belong here.
+     */
     expect(Object.keys(lookup.query).sort()).toEqual([
       "paymentProviderPlanId",
       "paymentProviderSubscriptionId",
@@ -226,12 +228,16 @@ describe("subscription seat reconciliation sweep", () => {
   test("processes projects sequentially rather than issuing a provider burst", async () => {
     let finishFirst: (() => void) | undefined;
     let startFirst: (() => void) | undefined;
-    const firstSync: Promise<void> = new Promise<void>((resolve) => {
-      finishFirst = resolve;
-    });
-    const firstStarted: Promise<void> = new Promise<void>((resolve) => {
-      startFirst = resolve;
-    });
+    const firstSync: Promise<void> = new Promise<void>(
+      (resolve: () => void) => {
+        finishFirst = resolve;
+      },
+    );
+    const firstStarted: Promise<void> = new Promise<void>(
+      (resolve: () => void) => {
+        startFirst = resolve;
+      },
+    );
     findProjects.mockResolvedValue([
       project(FIRST_PROJECT_ID, 1),
       project(SECOND_PROJECT_ID, 3),

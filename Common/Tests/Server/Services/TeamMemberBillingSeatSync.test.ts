@@ -32,9 +32,11 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
   const config: Record<string, unknown> = {
-    __esModule: true,
     ...jest.requireActual("../../../Server/EnvironmentConfig"),
   };
+
+  // Preserve the configurable getter when TypeScript imports this namespace.
+  Object.defineProperty(config, "__esModule", { value: true });
 
   Object.defineProperty(config, "IsBillingEnabled", {
     configurable: true,
@@ -662,8 +664,10 @@ describe("completed membership writes during a billing outage", () => {
   });
 
   test("the complete create pipeline returns the committed row after a provider 429", async () => {
-    // Keep DatabaseService.create, validation, and both membership hooks real.
-    // Only persistence and other external side effects are replaced.
+    /*
+     * Keep DatabaseService.create, validation, and both membership hooks real.
+     * Only persistence and other external side effects are replaced.
+     */
     const persisted: Array<TeamMember> = [];
     const save: jest.Mock = jest.fn(
       async (data: TeamMember): Promise<TeamMember> => {

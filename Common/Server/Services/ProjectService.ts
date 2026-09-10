@@ -2780,8 +2780,10 @@ These are no longer recorded against the project and have to be cancelled by han
       );
     }
 
-    // A pending seat synchronization leaves the acknowledged count empty.
-    // Reactivation can still use the memberships already stored in the project.
+    /*
+     * A pending seat synchronization leaves the acknowledged count empty.
+     * Reactivation can still use the memberships already stored in the project.
+     */
     const seats: number =
       project.paymentProviderSubscriptionSeats ??
       (await TeamMemberService.getUniqueTeamMemberCountInProject(projectId));
