@@ -152,6 +152,15 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
     const isInitialValuesSet: MutableRefObject<boolean> = useRef(false);
 
+    /*
+     * Nothing may re-seed a form the user has already typed into. The guard
+     * above latches once, which is enough on its own, but "the value the user
+     * entered survives" is the one property of a form that must never quietly
+     * regress - so it is asserted directly rather than inferred from the order
+     * two effects happen to run in.
+     */
+    const hasUserEdited: MutableRefObject<boolean> = useRef(false);
+
     const refCurrentValue: React.MutableRefObject<FormValues<T>> = useRef(
       props.initialValues || {},
     );
@@ -310,6 +319,24 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       setFormFields(fields);
     }, [props.fields, currentFormStepId]);
 
+    /*
+     * A field is only worth disabling while options are being fetched if it is
+     * one of the fields those options belong to. Disabling everything meant a
+     * Text or Email field went read-only because some unrelated dropdown was
+     * refreshing - and Input renders `disabled` as `readOnly`, so it stays
+     * focusable and simply swallows the keystrokes with no visible reason.
+     */
+    type IsDropdownFieldFunction = (field: Field<T>) => boolean;
+
+    const isDropdownField: IsDropdownFieldFunction = (
+      field: Field<T>,
+    ): boolean => {
+      return (
+        field.fieldType === FormFieldSchemaType.Dropdown ||
+        field.fieldType === FormFieldSchemaType.MultiSelectDropdown
+      );
+    };
+
     type GetFieldNameFunction = (field: Field<T>) => string;
 
     const getFieldName: GetFieldNameFunction = (field: Field<T>): string => {
@@ -346,6 +373,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         ...refCurrentValue.current,
         [fieldName]: value as any,
       };
+
+      hasUserEdited.current = true;
 
       refCurrentValue.current = updatedValue;
 
@@ -484,7 +513,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         return;
       }
 
-      if (isInitialValuesSet.current) {
+      if (isInitialValuesSet.current || hasUserEdited.current) {
         return;
       }
 
@@ -601,7 +630,16 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         if (field.getDefaultValue && (values as any)[fieldName] === undefined) {
           (values as any)[fieldName] = field.getDefaultValue(values);
         }
+      }
 
+      /*
+       * Latch only once the field list has actually arrived. formFields starts
+       * empty and is filled in by an effect, so latching before then would
+       * skip every default value and every dropdown/date normalisation above.
+       * (This used to be written as an assignment inside the loop, which had
+       * the same effect by accident.)
+       */
+      if (formFields.length > 0) {
         isInitialValuesSet.current = true;
       }
 
@@ -747,7 +785,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                       touched={touched[fieldName] || false}
                                       isDisabled={
                                         isLoading ||
-                                        isDropdownOptionsLoading ||
+                                        (isDropdownOptionsLoading &&
+                                          isDropdownField(field)) ||
                                         false
                                       }
                                       currentValues={refCurrentValue.current}

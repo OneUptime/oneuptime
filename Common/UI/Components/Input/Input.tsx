@@ -85,9 +85,18 @@ const Input: FunctionComponent<ComponentProps> = (
   }
 
   const [value, setValue] = useState<string | Date>("");
-  const [displayValue, setDisplayValue] = useState<string>("");
+
+  /*
+   * Only dates need a display form that differs from the stored value, and
+   * working it out means parsing, so it stays in state behind an effect.
+   * Text keeps no second copy - see the comment on displayValue below.
+   */
+  const [dateDisplayValue, setDateDisplayValue] = useState<string>("");
   const ref: React.MutableRefObject<HTMLInputElement | null> =
     useRef<HTMLInputElement | null>(null);
+
+  const isDateInput: boolean =
+    props.type === InputType.DATE || props.type === InputType.DATETIME_LOCAL;
 
   useEffect(() => {
     if (
@@ -105,7 +114,7 @@ const Input: FunctionComponent<ComponentProps> = (
         } catch (e: any) {
           Logger.error(e);
         }
-        setDisplayValue(dateString);
+        setDateDisplayValue(dateString);
       } else if (
         value &&
         (value as any).includes &&
@@ -123,21 +132,47 @@ const Input: FunctionComponent<ComponentProps> = (
         } catch (err: any) {
           Logger.error(err);
         }
-        setDisplayValue(dateString);
+        setDateDisplayValue(dateString);
       } else if (
         !value ||
         ((value as any).includes && !(value as any).includes(" - "))
       ) {
-        setDisplayValue("");
+        setDateDisplayValue("");
       }
-    } else {
-      setDisplayValue(value as string);
     }
   }, [value]);
 
+  /*
+   * For text the display value IS the value, derived here rather than kept in
+   * a second piece of state, and that is load-bearing rather than tidiness.
+   *
+   * This <input> is uncontrolled - React never writes its `value` attribute -
+   * so the effect below is the only thing keeping the DOM and this component
+   * in step. When the display value was its own state it settled one render
+   * behind `value`, and anything that interleaved a render between those two
+   * commits (a parent re-rendering while the user typed, which is exactly what
+   * the invite form does on every keystroke) made the effect write the older
+   * copy back over text the browser already held. The character typed in that
+   * window disappeared - the "typed characters vanish as I type" half of the
+   * invite-user bug, and a silent character-eater in every form in the product.
+   *
+   * Derived, the two can no longer drift: `setValue` runs synchronously in the
+   * change handler, so by the time any render commits, this already equals
+   * what the user typed.
+   */
+  const displayValue: string = isDateInput
+    ? dateDisplayValue
+    : (value as string) || "";
+
   useEffect(() => {
     const input: HTMLInputElement | null = ref.current;
-    if (input) {
+
+    /*
+     * Never write when it would not change anything: assigning to input.value
+     * moves the caret to the end, so an unconditional write reorders text
+     * whenever someone edits in the middle of a field.
+     */
+    if (input && input.value !== displayValue) {
       input.value = displayValue;
     }
   }, [ref, displayValue]);
