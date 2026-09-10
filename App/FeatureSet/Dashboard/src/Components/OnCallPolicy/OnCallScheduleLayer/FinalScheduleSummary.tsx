@@ -6,6 +6,10 @@ import {
   formatShiftInstant,
   formatWindowSpan,
 } from "./LayerSummary";
+import {
+  OverrideScopeKind,
+  describeShiftOverride,
+} from "./OverridePresentation";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
@@ -48,6 +52,12 @@ export interface ComponentProps {
    * override substitutes).
    */
   userById: Dictionary<UserInfo>;
+  /*
+   * policyId -> policy name, so a shift produced by a POLICY-SCOPED override
+   * can name the policy it is limited to. Omitted by callers that have no
+   * overrides to describe.
+   */
+  policyNameById?: Dictionary<string> | undefined;
   /*
    * Pre-computed coverage state from ScheduleShiftUtil.getCoverageState. Passed
    * in rather than derived here so this component and the calendar grid beside
@@ -110,6 +120,94 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
         style={{ backgroundColor: getColorForUserId(userId) }}
       >
         {getInitials(userId)}
+      </span>
+    );
+  };
+
+  /*
+   * The "this person is here because of an override" strip.
+   *
+   * A shift produced by an override names the right person to page, and that is
+   * exactly why it needs annotating: on its own it is indistinguishable from a
+   * shift the rotation produced, so a reader has no way to know that the roster
+   * says somebody else and that the substitution expires. Both halves are shown
+   * - who was overridden, and how far the override reaches.
+   */
+  const getOverrideStrip: (
+    shift: OnCallShift,
+    testId: string,
+  ) => ReactElement | null = (
+    shift: OnCallShift,
+    testId: string,
+  ): ReactElement | null => {
+    if (!shift.override) {
+      return null;
+    }
+
+    const described: {
+      originalName: string;
+      scope: { kind: OverrideScopeKind; label: string; detail: string };
+      coveringLabel: string;
+    } = describeShiftOverride({
+      override: shift.override,
+      userInfoById: props.userById,
+      policyNameById: props.policyNameById || {},
+    });
+
+    return (
+      <div
+        data-testid={testId}
+        className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-white/70 px-2 py-1.5 text-xs ring-1 ring-inset ring-indigo-200"
+      >
+        <span className="inline-flex items-center gap-1 font-semibold text-indigo-700">
+          <Icon icon={IconProp.ArrowUturnRight} className="h-3.5 w-3.5" />
+          Override
+        </span>
+        <span className="text-gray-700">{described.coveringLabel}</span>
+        <span
+          title={described.scope.detail}
+          className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset ${
+            described.scope.kind === OverrideScopeKind.Global
+              ? "bg-gray-50 text-gray-600 ring-gray-200"
+              : "bg-amber-50 text-amber-800 ring-amber-200"
+          }`}
+        >
+          {described.scope.label}
+        </span>
+        <span className="basis-full text-[11px] text-gray-500">
+          Override runs{" "}
+          {formatShiftInstant(shift.override.overrideStartsAt, props.timezone)}
+          <span className="mx-1 text-gray-300">&rarr;</span>
+          {formatShiftInstant(shift.override.overrideEndsAt, props.timezone)}
+        </span>
+      </div>
+    );
+  };
+
+  /*
+   * The compact form of the same fact, for the upcoming hand-off rows where
+   * there is room for one line and no more.
+   */
+  const getOverridePill: (shift: OnCallShift) => ReactElement | null = (
+    shift: OnCallShift,
+  ): ReactElement | null => {
+    if (!shift.override) {
+      return null;
+    }
+
+    const described: { coveringLabel: string } = describeShiftOverride({
+      override: shift.override,
+      userInfoById: props.userById,
+      policyNameById: props.policyNameById || {},
+    });
+
+    return (
+      <span
+        data-testid="upcoming-override-pill"
+        className="mt-0.5 inline-flex w-fit items-center gap-1 rounded-md bg-indigo-50 px-1.5 py-0.5 text-[11px] font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200"
+      >
+        <Icon icon={IconProp.ArrowUturnRight} className="h-3 w-3" />
+        {described.coveringLabel}
       </span>
     );
   };
@@ -180,6 +278,7 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
             </div>
           </div>
         </div>
+        {getOverrideStrip(current, "on-call-now-override")}
       </div>
     );
   };
@@ -217,6 +316,7 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
             </div>
           </div>
         </div>
+        {getOverrideStrip(next, "up-next-override")}
       </div>
     );
   };
@@ -333,7 +433,7 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
                 className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2.5"
               >
                 {getAvatar(shift.userId, "h-7 w-7 text-[10px]")}
-                <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 flex-1 flex-col">
                   <div className="truncate text-sm font-semibold text-gray-900">
                     {getName(shift.userId)}
                   </div>
@@ -342,6 +442,7 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
                     <span className="mx-1 text-gray-300">&rarr;</span>
                     {formatShiftInstant(shift.end, props.timezone)}
                   </div>
+                  {getOverridePill(shift)}
                 </div>
                 <div className="flex flex-shrink-0 flex-col items-end gap-0.5">
                   <span className="rounded-md bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-600 ring-1 ring-inset ring-gray-200">

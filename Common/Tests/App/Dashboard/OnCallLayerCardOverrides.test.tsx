@@ -170,10 +170,16 @@ describe("Layer card names the substitute during an override (issue #3411)", () 
     const line: string = getOnCallNowLineText();
     expect(line).toContain(USER_A_NAME);
     expect(line).not.toContain(USER_B_NAME);
-    expect(line).not.toContain("covering via override");
+    expect(line).not.toContain("covering");
   });
 
-  test("during an override the SUBSTITUTE is named, and marked as covering", () => {
+  test("during an override the SUBSTITUTE is named, and says who they cover for", () => {
+    /*
+     * The line used to read "(covering via override)", which told the reader
+     * the one thing the unfamiliar name already told them - that this person is
+     * not in the rotation - and withheld the one thing it did not: whose shift
+     * they have. Naming the overridden user is the point.
+     */
     renderCard({
       overrides: [activeGlobalOverride()],
       overrideUserInfo: SUBSTITUTE_INFO,
@@ -181,7 +187,9 @@ describe("Layer card names the substitute during an override (issue #3411)", () 
 
     const line: string = getOnCallNowLineText();
     expect(line).toContain(USER_B_NAME);
-    expect(line).toContain("covering via override");
+    expect(line.toLowerCase()).toContain(
+      `covering for ${USER_A_NAME}`.toLowerCase(),
+    );
     expect(line).not.toContain(`${USER_A_NAME} on call now`);
   });
 
@@ -241,20 +249,29 @@ describe("Rotation summary marks a covered turn (issue #3411)", () => {
     );
   }
 
-  test("the covered turn is attributed to the substitute and tagged Covering", () => {
+  test("the covered turn is attributed to the substitute and names who they cover for", () => {
     renderSummary({
       overrides: [activeGlobalOverride()],
       overrideUserInfo: SUBSTITUTE_INFO,
     });
 
     expect(screen.getAllByText(USER_B_NAME).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Covering").length).toBeGreaterThan(0);
+
+    const pills: Array<HTMLElement> = screen.getAllByTestId(
+      "rotation-covering-pill",
+    );
+    expect(pills.length).toBeGreaterThan(0);
+    /*
+     * The turn carries the override that produced it, so the pill can name the
+     * person being covered rather than saying the bare word "Covering".
+     */
+    expect(pills[0]!.textContent).toBe(`Covering for ${USER_A_NAME}`);
   });
 
-  test("without an override no turn is tagged Covering", () => {
+  test("without an override no turn is tagged as covering", () => {
     renderSummary({ overrides: [], overrideUserInfo: {} });
 
-    expect(screen.queryByText("Covering")).toBeNull();
+    expect(screen.queryByTestId("rotation-covering-pill")).toBeNull();
   });
 
   /*
