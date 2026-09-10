@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import ts from "typescript";
 
 /*
  * Source-pinning tests for the Dashboard app shell (App.tsx). The App suite
@@ -30,8 +31,6 @@ const DASHBOARD_SRC: string = path.join(
   "src",
 );
 
-const ROUTES_DIR: string = path.join(DASHBOARD_SRC, "Routes");
-
 /*
  * Comments are stripped before matching: App.tsx's own comments narrate the
  * old AllRoutes-barrel behaviour, and an assertion about the code must read
@@ -47,20 +46,42 @@ const APP_SOURCE: string = stripComments(
 
 function dynamicImportSpecifiers(source: string): Array<string> {
   const specifiers: Array<string> = [];
-  const pattern: RegExp = /\bimport\(\s*["']([^"']+)["']\s*\)/g;
+  const sourceFile: ts.SourceFile = ts.createSourceFile(
+    "App.tsx",
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX,
+  );
 
-  let match: RegExpExecArray | null = pattern.exec(source);
-
-  while (match !== null) {
-    specifiers.push(match[1] as string);
-    match = pattern.exec(source);
-  }
+  // Import types describe lazy page props but never download a module.
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isCallExpression(node) &&
+      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+      node.arguments[0] &&
+      ts.isStringLiteral(node.arguments[0])
+    ) {
+      specifiers.push(node.arguments[0].text);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
 
   return specifiers;
 }
 
 describe("route splitting: each route group owns its chunk", () => {
   const specifiers: Array<string> = dynamicImportSpecifiers(APP_SOURCE);
+
+  test("counts runtime imports without counting a page's imported props type", () => {
+    expect(
+      dynamicImportSpecifiers(`
+        type Page = typeof import("./Pages/Example").default;
+        const Page = lazy(() => import("./Pages/Example"));
+      `),
+    ).toEqual(["./Pages/Example"]);
+  });
 
   test("App.tsx still declares a healthy number of lazy route groups", () => {
     // Guards the assertions below against the patterns silently matching nothing.
@@ -73,9 +94,9 @@ describe("route splitting: each route group owns its chunk", () => {
     }
   });
 
-  test("every lazily-imported module lives under ./Routes/", () => {
+  test("every lazily-imported module is a route group or standalone page", () => {
     for (const specifier of specifiers) {
-      expect(specifier).toMatch(/^\.\/Routes\//);
+      expect(specifier).toMatch(/^\.\/(Routes|Pages)\//);
     }
   });
 
@@ -100,8 +121,7 @@ describe("route splitting: each route group owns its chunk", () => {
      * mappings without hardcoding the list here.
      */
     for (const specifier of specifiers) {
-      const moduleName: string = specifier.replace(/^\.\/Routes\//, "");
-      const modulePath: string = path.join(ROUTES_DIR, moduleName + ".tsx");
+      const modulePath: string = path.join(DASHBOARD_SRC, specifier + ".tsx");
 
       expect([specifier, fs.existsSync(modulePath)]).toEqual([specifier, true]);
     }
