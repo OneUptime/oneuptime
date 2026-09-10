@@ -60,6 +60,35 @@ function storedMonitor(project: ObjectID, monitorType: MonitorType): Monitor {
   return Object.assign(new Monitor(), { projectId: project, monitorType });
 }
 
+type PaymentCheck = Parameters<
+  typeof PayAsYouGoBillingService.canUsePayAsYouGo
+>;
+
+/*
+ * requirePayAsYouGo forwards its own options argument straight through to
+ * canUsePayAsYouGo, so a recorded check carries a second argument as well as
+ * the project. Assert the two things that decide the outcome rather than the
+ * exact argument list: whose payment setup was read, and that monitoring stays
+ * a read-through check - it must not answer from the cached denial that only
+ * telemetry admission opts into, or adding a card would leave monitor writes
+ * refused for the rest of that denial's TTL.
+ */
+function expectPaymentCheckedFor(project: ObjectID): void {
+  const checks: Array<PaymentCheck> = jest.mocked(
+    PayAsYouGoBillingService.canUsePayAsYouGo,
+  ).mock.calls;
+
+  expect(
+    checks.map((check: PaymentCheck): string => {
+      return check[0].toString();
+    }),
+  ).toEqual([project.toString()]);
+
+  for (const check of checks) {
+    expect(check[1]?.allowStaleDenial).toBeFalsy();
+  }
+}
+
 beforeEach(() => {
   jest.restoreAllMocks();
   (EnvironmentConfig as { IsBillingEnabled: boolean }).IsBillingEnabled = true;
@@ -134,9 +163,7 @@ describe("monitor creation payment admission", () => {
     await expect(hooks.onBeforeCreate(input)).rejects.toBeInstanceOf(
       PaymentRequiredException,
     );
-    expect(PayAsYouGoBillingService.canUsePayAsYouGo).toHaveBeenCalledWith(
-      projectId,
-    );
+    expectPaymentCheckedFor(projectId);
   });
 
   test("admits an authorized Free project and retains its monitor count limit", async () => {
@@ -190,9 +217,7 @@ describe("monitor update payment admission", () => {
     await expect(
       hooks.onBeforeUpdate(updateInput({ disableActiveMonitoring: false })),
     ).rejects.toBeInstanceOf(PaymentRequiredException);
-    expect(PayAsYouGoBillingService.canUsePayAsYouGo).toHaveBeenCalledWith(
-      projectId,
-    );
+    expectPaymentCheckedFor(projectId);
   });
 
   test("guards internal Manual-to-active changes using the stored project", async () => {
@@ -206,9 +231,7 @@ describe("monitor update payment admission", () => {
     await expect(hooks.onBeforeUpdate(input)).rejects.toBeInstanceOf(
       PaymentRequiredException,
     );
-    expect(PayAsYouGoBillingService.canUsePayAsYouGo).toHaveBeenCalledWith(
-      otherProjectId,
-    );
+    expectPaymentCheckedFor(otherProjectId);
   });
 
   test("scopes non-root update lookups to their tenant", async () => {

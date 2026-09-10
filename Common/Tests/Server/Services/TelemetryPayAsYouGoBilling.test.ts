@@ -72,6 +72,35 @@ function updateInput(
   };
 }
 
+type PaymentCheck = Parameters<
+  typeof PayAsYouGoBillingService.canUsePayAsYouGo
+>;
+
+/*
+ * requirePayAsYouGo forwards its own options argument straight through to
+ * canUsePayAsYouGo, so a recorded check carries a second argument as well as
+ * the project. Assert the two things that decide the outcome rather than the
+ * exact argument list: whose payment setup was read, and that creating or
+ * enabling a key stays a read-through check. Only ingest admission - which
+ * runs per batch and whose client retries - opts into answering from a cached
+ * denial; a key the user just created must not be refused because of one.
+ */
+function expectPaymentCheckedFor(project: ObjectID): void {
+  const checks: Array<PaymentCheck> = jest.mocked(
+    PayAsYouGoBillingService.canUsePayAsYouGo,
+  ).mock.calls;
+
+  expect(
+    checks.map((check: PaymentCheck): string => {
+      return check[0].toString();
+    }),
+  ).toEqual([project.toString()]);
+
+  for (const check of checks) {
+    expect(check[1]?.allowStaleDenial).toBeFalsy();
+  }
+}
+
 beforeEach(() => {
   jest.restoreAllMocks();
   (EnvironmentConfig as { IsBillingEnabled: boolean }).IsBillingEnabled = true;
@@ -114,9 +143,7 @@ describe("telemetry key creation and enablement payment admission", () => {
     await expect(hooks.onBeforeCreate(input)).rejects.toBeInstanceOf(
       PaymentRequiredException,
     );
-    expect(PayAsYouGoBillingService.canUsePayAsYouGo).toHaveBeenCalledWith(
-      projectId,
-    );
+    expectPaymentCheckedFor(projectId);
   });
 
   test("uses the project on an internal create without a request tenant", async () => {
@@ -125,9 +152,7 @@ describe("telemetry key creation and enablement payment admission", () => {
     await expect(hooks.onBeforeCreate(input)).rejects.toBeInstanceOf(
       PaymentRequiredException,
     );
-    expect(PayAsYouGoBillingService.canUsePayAsYouGo).toHaveBeenCalledWith(
-      projectId,
-    );
+    expectPaymentCheckedFor(projectId);
   });
 
   test("does not admit a billed create without a project", async () => {
@@ -162,9 +187,7 @@ describe("telemetry key creation and enablement payment admission", () => {
     await expect(hooks.onBeforeUpdate(input)).rejects.toBeInstanceOf(
       PaymentRequiredException,
     );
-    expect(PayAsYouGoBillingService.canUsePayAsYouGo).toHaveBeenCalledWith(
-      otherProjectId,
-    );
+    expectPaymentCheckedFor(otherProjectId);
   });
 
   test("checks every distinct project of a bulk enable operation", async () => {
