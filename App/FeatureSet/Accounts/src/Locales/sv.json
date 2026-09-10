@@ -187,5 +187,13 @@
   "Password is required.": "Lösenord krävs.",
   "Password must be a string.": "Lösenordet måste vara en textsträng.",
   "Account details": "Kontouppgifter",
-  "Secure your account": "Skydda ditt konto"
+  "Secure your account": "Skydda ditt konto",
+  "Between {{minimum}} and {{maximum}} characters": "Mellan {{minimum}} och {{maximum}} tecken",
+  "Avoid common or repeated patterns": "Undvik vanliga eller upprepade mönster",
+  "Password length": "Lösenordets längd",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / minst {{minimum}} tecken",
+  "Complete:": "Uppfyllt:",
+  "Incomplete:": "Inte uppfyllt:",
+  "Special character included (optional)": "Specialtecken inkluderat (valfritt)",
+  "Special characters are optional. Try !, @, # or $.": "Specialtecken är valfria. Prova !, @, # eller $."
 }

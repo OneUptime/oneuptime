@@ -45,18 +45,89 @@ test.describe("Signup password feedback", () => {
       "new-password",
     );
     await expect(password).toHaveAccessibleDescription(
-      "Use at least 15 characters. Try a few unrelated words.",
+      /Use at least 15 characters\..*0 \/ 15 characters minimum.*Special characters are optional\./,
     );
     await expect(page.getByRole("status")).not.toContainText(
       "Password meets requirements",
     );
     await password.fill(passphrase);
-    await expect(page.getByRole("status")).toHaveText(
+    await expect(page.getByRole("status")).toContainText(
       "Password meets requirements",
     );
     await password.clear();
     await expect(page.getByRole("status")).toContainText(
       "Use at least 15 characters.",
+    );
+  });
+
+  test("shows progress on every keystroke and updates optional special characters", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(registrationUrl);
+    const password: Locator = page.getByTestId("password");
+    const progress: Locator = page.getByRole("progressbar", {
+      name: "Password length",
+    });
+    await expect(progress).toHaveAttribute("aria-valuenow", "0");
+    await password.pressSequentially("river");
+    await expect(progress).toHaveAttribute("aria-valuenow", "5");
+    await password.pressSequentially(" lantern!");
+    await expect(progress).toHaveAttribute("aria-valuenow", "14");
+    await expect(page.getByRole("status")).toContainText(
+      "Special character included (optional)",
+    );
+    await expect(page.getByRole("status")).not.toContainText(
+      "Password meets requirements",
+    );
+    await password.pressSequentially("7");
+    await expect(progress).toHaveAttribute("aria-valuenow", "15");
+    await expect(page.getByRole("status")).toContainText(
+      "Password meets requirements",
+    );
+    await expect(page.getByRole("status").getByRole("list")).toBeVisible();
+    await password.press("Backspace");
+    await password.press("Backspace");
+    await expect(progress).toHaveAttribute("aria-valuenow", "13");
+    await expect(page.getByRole("status")).toContainText(
+      "Special characters are optional.",
+    );
+    await password.clear();
+    await expect(progress).toHaveAttribute("aria-valuenow", "0");
+  });
+
+  test("counts Unicode consistently and keeps a predictable full-length password incomplete", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(registrationUrl);
+    const password: Locator = page.getByTestId("password");
+    const progress: Locator = page.getByRole("progressbar", {
+      name: "Password length",
+    });
+    await password.fill("🌲river lantern");
+    await expect(progress).toHaveAttribute("aria-valuenow", "14");
+    await expect(progress).toHaveAttribute(
+      "aria-valuetext",
+      "14 / 15 characters minimum",
+    );
+    await password.fill("🌲 river lantern");
+    await expect(progress).toHaveAttribute("aria-valuenow", "15");
+    await expect(page.getByRole("status")).toContainText(
+      "Password meets requirements",
+    );
+    await password.fill("Password123456789!");
+    await expect(progress).toHaveAttribute("aria-valuenow", "15");
+    await expect(page.getByRole("status")).toContainText(
+      "Incomplete: Avoid common or repeated patterns",
+    );
+    await expect(page.getByRole("status")).toContainText(
+      "Special character included (optional)",
+    );
+    await expect(page.getByRole("status")).not.toContainText(
+      "Password meets requirements",
     );
   });
 
@@ -168,6 +239,11 @@ test.describe("Signup password feedback", () => {
             ? "Password meets requirements"
             : "Choose a less predictable password.",
         );
+        await expect(page.getByRole("progressbar")).toBeVisible();
+        await expect(page.getByRole("status").getByRole("list")).toBeVisible();
+        await expect(
+          page.getByText("Special characters are optional. Try !, @, # or $."),
+        ).toBeVisible();
         expect(
           await page.evaluate(() => {
             return document.documentElement.scrollWidth <= window.innerWidth;

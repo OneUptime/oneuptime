@@ -14,6 +14,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
@@ -153,7 +154,7 @@ describe("Signup password requirements", () => {
     expect(requirements).toHaveAttribute("aria-atomic", "true");
     expect(password).toHaveAttribute("aria-describedby", requirements.id);
     expect(password).toHaveAccessibleDescription(
-      "Use at least 15 characters. Try a few unrelated words.",
+      /Use at least 15 characters\..*0 \/ 15 characters minimum.*Special characters are optional\./,
     );
     expect(password).toHaveAttribute("type", "password");
     expect(password).not.toHaveAttribute("aria-invalid");
@@ -226,6 +227,68 @@ describe("Signup password requirements", () => {
     expect(screen.getByRole("status")).not.toHaveClass("text-emerald-800");
   });
 
+  test("advances progress with each keystroke and retains the checklist after completion", async () => {
+    await renderPage();
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup({
+      delay: null,
+    });
+    const password: HTMLElement = screen.getByTestId("password");
+    const progress: HTMLElement = screen.getByRole("progressbar", {
+      name: "Password length",
+    });
+
+    await user.type(password, "river");
+    expect(progress).toHaveAttribute("aria-valuenow", "5");
+    await user.type(password, " lantern");
+    expect(progress).toHaveAttribute("aria-valuenow", "13");
+    await user.type(password, "!");
+    expect(progress).toHaveAttribute("aria-valuenow", "14");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Special character included (optional)",
+    );
+    expect(screen.getByRole("status")).not.toHaveTextContent(
+      "Password meets requirements",
+    );
+    await user.type(password, "7");
+    expect(progress).toHaveAttribute("aria-valuenow", "15");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Password meets requirements",
+    );
+    expect(within(screen.getByRole("status")).getByRole("list")).toBeVisible();
+
+    await user.keyboard("{Backspace}{Backspace}");
+    expect(progress).toHaveAttribute("aria-valuenow", "13");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Special characters are optional.",
+    );
+    await user.clear(password);
+    expect(progress).toHaveAttribute("aria-valuenow", "0");
+    expect(ModelAPI.createOrUpdate).not.toHaveBeenCalled();
+  });
+
+  test("keeps pasted Unicode progress and optional symbols consistent with signup validation", async () => {
+    await renderPage();
+    await fillForm("🌲 river lantern!");
+    const progress: HTMLElement = screen.getByRole("progressbar", {
+      name: "Password length",
+    });
+    expect(progress).toHaveAttribute(
+      "aria-valuetext",
+      "16 / 15 characters minimum",
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Special character included (optional)",
+    );
+    await submit();
+    expect(ModelAPI.createOrUpdate).toHaveBeenCalledTimes(1);
+    const request: Parameters<typeof ModelAPI.createOrUpdate>[0] = jest.mocked(
+      ModelAPI.createOrUpdate,
+    ).mock.calls[0]![0];
+    expect((request.model as User).password?.toString()).toBe(
+      "🌲 river lantern!",
+    );
+  });
+
   test.each([
     [
       "six characters previously accepted",
@@ -295,7 +358,7 @@ describe("Signup password requirements", () => {
       "Password meets requirements",
     );
     expect(screen.getByTestId("password")).toHaveAccessibleDescription(
-      "Choose a less predictable password. Try a few unrelated words.",
+      /Choose a less predictable password\..*Complete: Between 15 and 100 characters.*Incomplete: Avoid common or repeated patterns/,
     );
   });
 
@@ -328,7 +391,7 @@ describe("Signup password requirements", () => {
     expect(requirements).toContainElement(screen.getByTestId("error-message"));
     expect(password).toHaveAttribute("aria-invalid", "true");
     expect(password).toHaveAttribute("aria-describedby", requirements.id);
-    expect(password).toHaveAccessibleDescription(message);
+    expect(password).toHaveAccessibleDescription(new RegExp(message));
 
     await setField("password", VALID_PASSWORD);
 
@@ -337,7 +400,7 @@ describe("Signup password requirements", () => {
       expect(requirements).toHaveTextContent("Password meets requirements");
       expect(password).not.toHaveAttribute("aria-invalid");
       expect(password).toHaveAccessibleDescription(
-        "Password meets requirements",
+        /Password meets requirements.*Complete: Between 15 and 100 characters.*Complete: Avoid common or repeated patterns/,
       );
     });
     expect(ModelAPI.createOrUpdate).not.toHaveBeenCalled();

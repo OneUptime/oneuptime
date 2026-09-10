@@ -187,5 +187,13 @@
   "Password is required.": "Необходимо указать пароль.",
   "Password must be a string.": "Пароль должен быть строкой.",
   "Account details": "Данные учетной записи",
-  "Secure your account": "Защитите свою учетную запись"
+  "Secure your account": "Защитите свою учетную запись",
+  "Between {{minimum}} and {{maximum}} characters": "От {{minimum}} до {{maximum}} символов",
+  "Avoid common or repeated patterns": "Избегайте распространённых или повторяющихся последовательностей",
+  "Password length": "Длина пароля",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / минимум {{minimum}} символов",
+  "Complete:": "Выполнено:",
+  "Incomplete:": "Не выполнено:",
+  "Special character included (optional)": "Специальный символ добавлен (необязательно)",
+  "Special characters are optional. Try !, @, # or $.": "Специальные символы необязательны. Попробуйте !, @, # или $."
 }

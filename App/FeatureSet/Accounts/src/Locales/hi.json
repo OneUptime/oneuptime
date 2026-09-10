@@ -187,5 +187,13 @@
   "Password is required.": "पासवर्ड आवश्यक है।",
   "Password must be a string.": "पासवर्ड एक टेक्स्ट स्ट्रिंग होना चाहिए।",
   "Account details": "खाते की जानकारी",
-  "Secure your account": "अपना खाता सुरक्षित करें"
+  "Secure your account": "अपना खाता सुरक्षित करें",
+  "Between {{minimum}} and {{maximum}} characters": "{{minimum}} से {{maximum}} अक्षर",
+  "Avoid common or repeated patterns": "आम या दोहराए जाने वाले पैटर्न से बचें",
+  "Password length": "पासवर्ड की लंबाई",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} / कम से कम {{minimum}} अक्षर",
+  "Complete:": "पूरी हुई:",
+  "Incomplete:": "पूरी नहीं हुई:",
+  "Special character included (optional)": "विशेष चिह्न शामिल है (वैकल्पिक)",
+  "Special characters are optional. Try !, @, # or $.": "विशेष चिह्न वैकल्पिक हैं। !, @, # या $ आज़माएँ।"
 }

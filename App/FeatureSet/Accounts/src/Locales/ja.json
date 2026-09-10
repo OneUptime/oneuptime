@@ -187,5 +187,13 @@
   "Password is required.": "パスワードは必須です。",
   "Password must be a string.": "パスワードは文字列で入力してください。",
   "Account details": "アカウント情報",
-  "Secure your account": "アカウントのセキュリティ"
+  "Secure your account": "アカウントのセキュリティ",
+  "Between {{minimum}} and {{maximum}} characters": "{{minimum}}文字以上{{maximum}}文字以下",
+  "Avoid common or repeated patterns": "よく使われるパターンや繰り返しを避ける",
+  "Password length": "パスワードの長さ",
+  "{{length}} / {{minimum}} characters minimum": "{{length}}文字 / 最低{{minimum}}文字",
+  "Complete:": "達成済み：",
+  "Incomplete:": "未達成：",
+  "Special character included (optional)": "記号が含まれています（任意）",
+  "Special characters are optional. Try !, @, # or $.": "記号の使用は任意です。!、@、#、$ などを使ってみてください。"
 }

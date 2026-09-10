@@ -39,6 +39,40 @@ const COMMON_SIGNUP_PASSWORDS: Set<string> = new Set([
 
 const REPEATED_SIGNUP_PASSWORD_PATTERN: RegExp = /^(.{1,14})\1+$/u;
 
+/**
+ * Check obvious patterns independently of length so signup can show each
+ * requirement as the user types. Blank input returns true so an empty form
+ * cannot complete this requirement.
+ * Passing this check alone does not mean the password is valid or strong.
+ */
+export function isPredictableSignupPassword(password: string): boolean {
+  if (password.trim().length === 0) {
+    return true;
+  }
+
+  // Comparison only: padding, punctuation and casing do not rescue an obvious pattern.
+  const comparable: string =
+    password.toLowerCase().replace(/[\s\p{P}\p{Sc}\p{Sm}\p{Sk}]/gu, "") ||
+    password.toLowerCase().replace(/\s/gu, "");
+  const sequences: Array<string> = [
+    "0123456789",
+    "abcdefghijklmnopqrstuvwxyz",
+    "qwertyuiopasdfghjklzxcvbnm",
+  ];
+  const isSequence: boolean = sequences.some((sequence: string): boolean => {
+    return (
+      sequence.repeat(10).includes(comparable) ||
+      Array.from(sequence).reverse().join("").repeat(10).includes(comparable)
+    );
+  });
+
+  return (
+    REPEATED_SIGNUP_PASSWORD_PATTERN.test(comparable) ||
+    COMMON_SIGNUP_PASSWORDS.has(comparable.replace(/\d+$/u, "")) ||
+    isSequence
+  );
+}
+
 /** New accounts use a stronger policy; existing credentials remain valid. */
 export function getSignupPasswordValidationError(
   password: unknown,
@@ -66,27 +100,7 @@ export function getSignupPasswordValidationError(
     return `Password cannot be more than ${MAXIMUM_PASSWORD_LENGTH} characters.`;
   }
 
-  // Comparison only: padding, punctuation and casing do not rescue an obvious pattern.
-  const comparable: string =
-    password.toLowerCase().replace(/[\s\p{P}\p{Sc}\p{Sm}\p{Sk}]/gu, "") ||
-    password.toLowerCase().replace(/\s/gu, "");
-  const sequences: Array<string> = [
-    "0123456789",
-    "abcdefghijklmnopqrstuvwxyz",
-    "qwertyuiopasdfghjklzxcvbnm",
-  ];
-  const isSequence: boolean = sequences.some((sequence: string): boolean => {
-    return (
-      sequence.repeat(10).includes(comparable) ||
-      Array.from(sequence).reverse().join("").repeat(10).includes(comparable)
-    );
-  });
-
-  if (
-    REPEATED_SIGNUP_PASSWORD_PATTERN.test(comparable) ||
-    COMMON_SIGNUP_PASSWORDS.has(comparable.replace(/\d+$/u, "")) ||
-    isSequence
-  ) {
+  if (isPredictableSignupPassword(password)) {
     return "Choose a less predictable password. Try a few unrelated words.";
   }
 

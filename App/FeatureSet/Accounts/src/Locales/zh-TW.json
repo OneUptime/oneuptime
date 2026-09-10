@@ -187,5 +187,13 @@
   "Password is required.": "請輸入密碼。",
   "Password must be a string.": "密碼必須是字串。",
   "Account details": "帳戶資訊",
-  "Secure your account": "保護你的帳戶"
+  "Secure your account": "保護你的帳戶",
+  "Between {{minimum}} and {{maximum}} characters": "{{minimum}} 至 {{maximum}} 個字元",
+  "Avoid common or repeated patterns": "避免常見或重複的模式",
+  "Password length": "密碼長度",
+  "{{length}} / {{minimum}} characters minimum": "{{length}} 個字元 / 至少 {{minimum}} 個字元",
+  "Complete:": "已符合：",
+  "Incomplete:": "未符合：",
+  "Special character included (optional)": "已包含特殊字元（選填）",
+  "Special characters are optional. Try !, @, # or $.": "特殊字元為選填項目。可以試試 !、@、# 或 $。"
 }
