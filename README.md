@@ -1,0 +1,1 @@
+Screenshots render the actual profile components and dashboard styling with deterministic sample-account data. The local Docker environment was unavailable during capture. Displayed credentials and backup codes are nonfunctional fixtures.
