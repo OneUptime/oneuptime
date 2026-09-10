@@ -301,9 +301,11 @@ afterEach(() => {
 });
 
 function renderApp(path: string): void {
-  const App: React.FunctionComponent = jest.requireActual<{
-    default: React.FunctionComponent;
-  }>(`${dashboardSource}/App`).default;
+  const App: React.FunctionComponent = (
+    jest.requireActual(`${dashboardSource}/App`) as {
+      default: React.FunctionComponent;
+    }
+  ).default;
   render(
     <Router.MemoryRouter
       initialEntries={[path]}
