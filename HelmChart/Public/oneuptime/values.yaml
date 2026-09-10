@@ -1295,6 +1295,13 @@ probes:
     # watchdog is the primary limit; this emptyDir ceiling contains failures
     # across all concurrent executions and other temporary Probe data.
     syntheticMonitorTempStorageSizeLimit: 2Gi
+    # Size of /dev/shm, which Chromium uses for shared memory between its
+    # browser, renderer and network processes. A container gets 64Mi by
+    # default -- not enough for syntheticMonitorMaxConcurrency browsers at a
+    # 1920x1080 viewport, and running out does not produce a clean error: the
+    # browser starts, then its first navigation never completes. This is
+    # memory-backed, so it counts against the pod's memory limit.
+    syntheticMonitorSharedMemorySizeLimit: 512Mi
     # RuntimeDefault is available on every conforming cluster but commonly
     # blocks the user-namespace creation Chromium's OS sandbox needs. Leave the
     # Chromium sandbox disabled with RuntimeDefault. Set this to true together
@@ -1392,6 +1399,7 @@ probes:
 #   syntheticMonitorMaxProcessTreeRssBytes: 1610612736
 #   syntheticMonitorMaxDiskBytes: 268435456
 #   syntheticMonitorTempStorageSizeLimit: 2Gi
+#   syntheticMonitorSharedMemorySizeLimit: 512Mi
 #   syntheticMonitorChromiumSandboxEnabled: false
 #   customCodeMonitorScriptTimeoutInMs: 60000
 #   # DNS override for this probe (otherwise inherits the chart-wide dnsConfig default).

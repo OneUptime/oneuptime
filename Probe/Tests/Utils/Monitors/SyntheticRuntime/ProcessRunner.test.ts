@@ -12,9 +12,13 @@ import ProcessRunner, {
 } from "../../../../Utils/Monitors/SyntheticRuntime/ProcessRunner";
 import {
   SyntheticWorkerStartEnvelope,
+  createWorkerFailureEnvelope,
   createWorkerNonce,
   createWorkerSuccessEnvelope,
 } from "../../../../Utils/Monitors/SyntheticRuntime/WorkerProtocol";
+import SyntheticRuntimeFault, {
+  SYNTHETIC_RUNTIME_FAULT_KIND,
+} from "../../../../Utils/Monitors/SyntheticRuntime/SyntheticRuntimeFault";
 
 jest.mock("child_process", () => {
   const actual: typeof import("child_process") =
@@ -172,6 +176,18 @@ function emitSuccess(child: FakeChildProcess, result: TestResult): void {
     createWorkerSuccessEnvelope({
       nonce: startEnvelope.nonce,
       result,
+    }),
+  );
+}
+
+function emitFailure(child: FakeChildProcess, error: unknown): void {
+  const startEnvelope: SyntheticWorkerStartEnvelope<TestConfig> =
+    startEnvelopeFrom(child);
+  child.emit(
+    "message",
+    createWorkerFailureEnvelope({
+      nonce: startEnvelope.nonce,
+      error,
     }),
   );
 }
@@ -851,8 +867,17 @@ describe("SyntheticRuntime ProcessRunner", () => {
     expect(environment?.["HTTPS_PROXY_URL"]).toBe(httpsProxyUrl);
     expect(environment?.["HTTPS_PROXY"]).toBe(httpsProxyUrl);
     expect(environment?.["https_proxy"]).toBe(httpsProxyUrl);
-    expect(environment?.["NO_PROXY"]).toBe("localhost,127.0.0.1");
-    expect(environment?.["no_proxy"]).toBe(".svc.internal");
+    /*
+     * The sandbox's own controller host is prepended to whatever the operator
+     * configured: the internal bootstrap navigation must never be routed at a
+     * proxy, whichever spelling of the variable the browser happens to read.
+     */
+    expect(environment?.["NO_PROXY"]).toBe(
+      "synthetic-runtime.oneuptime.invalid,localhost,127.0.0.1",
+    );
+    expect(environment?.["no_proxy"]).toBe(
+      "synthetic-runtime.oneuptime.invalid,.svc.internal",
+    );
     expect(environment?.["HTTP_PROXY_USERNAME"]).toBeUndefined();
     expect(environment?.["HTTPS_PROXY_PASSWORD"]).toBeUndefined();
     expect(environment?.["AWS_SECRET_ACCESS_KEY"]).toBeUndefined();
@@ -903,7 +928,189 @@ describe("SyntheticRuntime ProcessRunner", () => {
     expect(environment?.["https_proxy"]).toBe(
       "http://lower-https-proxy.internal:8443",
     );
-    expect(environment?.["NO_PROXY"]).toBe("localhost");
+    expect(environment?.["NO_PROXY"]).toBe(
+      "synthetic-runtime.oneuptime.invalid,localhost",
+    );
+  });
+
+  test("carries a worker runtime fault up as a fault, with its stack kept off the message", async () => {
+    /*
+     * The worker already wrote a message for whoever reads the monitor.
+     * Appending its Playwright stack -- as every other worker failure gets --
+     * would bury that message under exactly the internals it replaces, which
+     * is what the customer saw: the same timeout paragraph twice, then a path
+     * inside /usr/src/app.
+     */
+    const child: FakeChildProcess = new FakeChildProcess(41_201);
+    getForkMock().mockImplementation(() => {
+      return asChildProcess(child);
+    });
+    child.onSend = (): void => {
+      global.setImmediate(() => {
+        emitFailure(
+          child,
+          new SyntheticRuntimeFault({
+            message: "Synthetic monitor could not start on this probe.",
+            internalDetail: "unused on this side of the fork",
+          }),
+        );
+        emitExit(child, null);
+      });
+    };
+
+    const runner: ProcessRunner = new ProcessRunner({
+      workerEntryPath: "Workers/SyntheticMonitorWorker.ts",
+      concurrencyLimit: 1,
+    });
+
+    const error: SyntheticProcessRunnerError = await runner
+      .run<TestConfig, TestResult>({
+        payload: { monitorId: "monitor-1" },
+        timeoutInMs: 1000,
+        validateResult: isTestResult,
+      })
+      .then(
+        (): never => {
+          throw new Error("Expected the run to fail.");
+        },
+        (caught: SyntheticProcessRunnerError): SyntheticProcessRunnerError => {
+          return caught;
+        },
+      );
+
+    expect(error).toBeInstanceOf(SyntheticProcessRunnerError);
+    expect(error.kind).toBe(SYNTHETIC_RUNTIME_FAULT_KIND);
+    expect(error.message).toBe(
+      "Synthetic monitor could not start on this probe.",
+    );
+    expect(error.message).not.toContain("SyntheticRuntimeFault");
+    expect(error.remoteStack).toContain("SyntheticRuntimeFault");
+  });
+
+  test("still folds the stack into the message for an ordinary worker failure", async () => {
+    const child: FakeChildProcess = new FakeChildProcess(41_202);
+    getForkMock().mockImplementation(() => {
+      return asChildProcess(child);
+    });
+    child.onSend = (): void => {
+      global.setImmediate(() => {
+        emitFailure(
+          child,
+          new Error("TypeError: page.clickk is not a function"),
+        );
+        emitExit(child, null);
+      });
+    };
+
+    const runner: ProcessRunner = new ProcessRunner({
+      workerEntryPath: "Workers/SyntheticMonitorWorker.ts",
+      concurrencyLimit: 1,
+    });
+
+    const error: SyntheticProcessRunnerError = await runner
+      .run<TestConfig, TestResult>({
+        payload: { monitorId: "monitor-1" },
+        timeoutInMs: 1000,
+        validateResult: isTestResult,
+      })
+      .then(
+        (): never => {
+          throw new Error("Expected the run to fail.");
+        },
+        (caught: SyntheticProcessRunnerError): SyntheticProcessRunnerError => {
+          return caught;
+        },
+      );
+
+    expect(error.kind).toBeUndefined();
+    expect(error.remoteStack).toBeUndefined();
+    expect(error.message).toContain("TypeError: page.clickk is not a function");
+    expect(error.message).toContain("ProcessRunner.test.ts");
+  });
+
+  test("keeps the synthetic runtime's own host out of every proxy, configured or not", async () => {
+    /*
+     * The controller document is fulfilled from memory, so it should never
+     * reach a proxy in the first place -- but that is an ordering guarantee
+     * inside Chromium's network stack, and a corporate proxy asked for a host
+     * that cannot resolve hangs rather than failing fast. The bootstrap is the
+     * least affordable place to find that out.
+     */
+    jest.spyOn(process, "getuid").mockReturnValue(501);
+    const child: FakeChildProcess = new FakeChildProcess(41_103);
+    const forkSpy: jest.Mock = getForkMock().mockImplementation(() => {
+      return asChildProcess(child);
+    });
+    child.onSend = (): void => {
+      global.setImmediate(() => {
+        emitSuccess(child, { value: "complete" });
+        emitExit(child, null);
+      });
+    };
+
+    const runner: ProcessRunner = new ProcessRunner({
+      workerEntryPath: "Workers/SyntheticMonitorWorker.ts",
+      concurrencyLimit: 1,
+      // No proxy configured at all, and no NO_PROXY of any kind.
+      environment: {},
+    });
+
+    await expect(
+      runner.run<TestConfig, TestResult>({
+        payload: { monitorId: "monitor-1" },
+        timeoutInMs: 1000,
+        validateResult: isTestResult,
+      }),
+    ).resolves.toMatchObject({ result: { value: "complete" } });
+
+    const environment: NodeJS.ProcessEnv | undefined = forkOptionsAt(
+      forkSpy,
+      0,
+    ).env;
+    expect(environment?.["NO_PROXY"]).toBe(
+      "synthetic-runtime.oneuptime.invalid",
+    );
+    expect(environment?.["no_proxy"]).toBe(
+      "synthetic-runtime.oneuptime.invalid",
+    );
+  });
+
+  test("does not list the synthetic runtime host twice when it is already bypassed", async () => {
+    jest.spyOn(process, "getuid").mockReturnValue(501);
+    const child: FakeChildProcess = new FakeChildProcess(41_104);
+    const forkSpy: jest.Mock = getForkMock().mockImplementation(() => {
+      return asChildProcess(child);
+    });
+    child.onSend = (): void => {
+      global.setImmediate(() => {
+        emitSuccess(child, { value: "complete" });
+        emitExit(child, null);
+      });
+    };
+
+    const runner: ProcessRunner = new ProcessRunner({
+      workerEntryPath: "Workers/SyntheticMonitorWorker.ts",
+      concurrencyLimit: 1,
+      environment: {
+        NO_PROXY: "synthetic-runtime.oneuptime.invalid, localhost",
+      },
+    });
+
+    await expect(
+      runner.run<TestConfig, TestResult>({
+        payload: { monitorId: "monitor-1" },
+        timeoutInMs: 1000,
+        validateResult: isTestResult,
+      }),
+    ).resolves.toMatchObject({ result: { value: "complete" } });
+
+    const environment: NodeJS.ProcessEnv | undefined = forkOptionsAt(
+      forkSpy,
+      0,
+    ).env;
+    expect(environment?.["NO_PROXY"]).toBe(
+      "synthetic-runtime.oneuptime.invalid, localhost",
+    );
   });
 
   test("allocates distinct rotating identities for concurrent root children", async () => {

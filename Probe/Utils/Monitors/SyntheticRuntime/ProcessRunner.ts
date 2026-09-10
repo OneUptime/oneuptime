@@ -4,6 +4,8 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import ConcurrencyLimiter from "./ConcurrencyLimiter";
+import { SyntheticRuntimeFaultKind } from "./SyntheticRuntimeFault";
+import { SYNTHETIC_RUNTIME_CONTROLLER_HOST } from "./ControllerOrigin";
 import {
   SyntheticWorkerResultEnvelope,
   createWorkerNonce,
@@ -216,11 +218,28 @@ export class SyntheticProcessRunnerError extends Error {
   public readonly stderr: string;
   public readonly stdoutTruncated: boolean;
   public readonly stderrTruncated: boolean;
+  /*
+   * Set when the worker reported that it could not start ITSELF -- browser
+   * launch, controller page, sandbox boot -- rather than that the tenant's
+   * script failed. Carried up from the worker's failure envelope so the
+   * monitor can log it as our fault and retry it instead of reporting it to
+   * the tenant as a script error.
+   */
+  public readonly kind: SyntheticRuntimeFaultKind | undefined;
+  /*
+   * The worker-side stack for a `kind` failure. Kept off `message` on purpose:
+   * `message` for those is written to be read by the tenant, and a Playwright
+   * stack naming internal files and an internal URL is exactly what made this
+   * failure mode unreadable before.
+   */
+  public readonly remoteStack: string | undefined;
 
   public constructor(data: {
     message: string;
     stdout: BoundedOutput;
     stderr: BoundedOutput;
+    kind?: SyntheticRuntimeFaultKind | undefined;
+    remoteStack?: string | undefined;
   }) {
     super(data.message);
     this.name = "SyntheticProcessRunnerError";
@@ -228,6 +247,8 @@ export class SyntheticProcessRunnerError extends Error {
     this.stderr = data.stderr.toString();
     this.stdoutTruncated = data.stdout.isTruncated;
     this.stderrTruncated = data.stderr.isTruncated;
+    this.kind = data.kind;
+    this.remoteStack = data.remoteStack;
   }
 }
 
@@ -980,6 +1001,24 @@ export default class ProcessRunner {
       }
 
       if (!envelope.ok) {
+        /*
+         * A worker that could not start itself already produced a message
+         * written for whoever reads the monitor. Appending its stack would
+         * bury that message under the internals it was written to replace, so
+         * the stack travels beside it instead.
+         */
+        if (envelope.error.kind) {
+          throw this.createRunnerError({
+            message: envelope.error.message,
+            stdout,
+            stderr,
+            kind: envelope.error.kind,
+            ...(envelope.error.stack
+              ? { remoteStack: envelope.error.stack }
+              : {}),
+          });
+        }
+
         const remoteStack: string = envelope.error.stack
           ? `\n${envelope.error.stack}`
           : "";
@@ -1033,6 +1072,14 @@ export default class ProcessRunner {
       conventionalKeys: ["HTTPS_PROXY", "https_proxy"],
     });
 
+    /*
+     * Chromium reads these too, so the sentinel controller host is pinned into
+     * the child's bypass list for the same reason it is pinned into the
+     * Playwright proxy option: the internal bootstrap navigation must never
+     * depend on an operator's proxy being reachable.
+     */
+    this.addSyntheticRuntimeHostToNoProxy(environment);
+
     environment["PATH"] = environment["PATH"] || DEFAULT_PATH;
     environment["HOME"] = runDirectory;
     environment["TMPDIR"] = runDirectory;
@@ -1048,6 +1095,30 @@ export default class ProcessRunner {
     environment["LOCALAPPDATA"] = runDirectory;
     environment["APPDATA"] = runDirectory;
     return environment;
+  }
+
+  private addSyntheticRuntimeHostToNoProxy(
+    environment: NodeJS.ProcessEnv,
+  ): void {
+    for (const key of ["NO_PROXY", "no_proxy"] as const) {
+      const existing: string | undefined = environment[key];
+      const entries: string[] = (existing || "")
+        .split(",")
+        .map((entry: string): string => {
+          return entry.trim();
+        })
+        .filter((entry: string): boolean => {
+          return entry.length > 0;
+        });
+
+      if (entries.includes(SYNTHETIC_RUNTIME_CONTROLLER_HOST)) {
+        continue;
+      }
+
+      environment[key] = [SYNTHETIC_RUNTIME_CONTROLLER_HOST, ...entries].join(
+        ",",
+      );
+    }
   }
 
   private mapProxyUrlToConventionalEnvironment(data: {
@@ -1997,6 +2068,8 @@ export default class ProcessRunner {
     message: string;
     stdout: BoundedOutput;
     stderr: BoundedOutput;
+    kind?: SyntheticRuntimeFaultKind | undefined;
+    remoteStack?: string | undefined;
   }): SyntheticProcessRunnerError {
     return new SyntheticProcessRunnerError(data);
   }

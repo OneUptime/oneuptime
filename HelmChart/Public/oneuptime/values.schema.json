@@ -2191,6 +2191,10 @@
                             "type": "string",
                             "pattern": "^[0-9]+(?:Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K)?$"
                         },
+                        "syntheticMonitorSharedMemorySizeLimit": {
+                            "type": "string",
+                            "pattern": "^[0-9]+(?:Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|K)?$"
+                        },
                         "syntheticMonitorChromiumSandboxEnabled": {
                             "type": "boolean"
                         },

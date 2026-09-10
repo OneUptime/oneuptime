@@ -136,6 +136,9 @@ tests:
 
   # The four workloads that already carry volumes keep exactly the ones they
   # shipped with — a count, so an accidental extra entry fails too.
+  # Two of the probe's own: the synthetic-runtime scratch space at /tmp, and
+  # the memory-backed /dev/shm that Chromium needs to be bigger than a
+  # container's 64Mi default.
   - it: leaves the probe's own volumes alone when nothing is set
     templates:
       - templates/probe.yaml
@@ -145,16 +148,23 @@ tests:
     asserts:
       - lengthEqual:
           path: spec.template.spec.volumes
-          count: 1
+          count: 2
       - lengthEqual:
           path: spec.template.spec.containers[0].volumeMounts
-          count: 1
+          count: 2
       - contains:
           path: spec.template.spec.volumes
           content:
             name: synthetic-runtime-tmp
             emptyDir:
               sizeLimit: "2Gi"
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: dshm
+            emptyDir:
+              medium: Memory
+              sizeLimit: 512Mi
 
   - it: leaves nginx's own volumes alone when nothing is set
     templates:
@@ -396,13 +406,20 @@ tests:
     asserts:
       - lengthEqual:
           path: spec.template.spec.volumes
-          count: 2
+          count: 3
       - contains:
           path: spec.template.spec.volumes
           content:
             name: synthetic-runtime-tmp
             emptyDir:
               sizeLimit: "2Gi"
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: dshm
+            emptyDir:
+              medium: Memory
+              sizeLimit: 512Mi
       - contains:
           path: spec.template.spec.containers[0].volumeMounts
           content:

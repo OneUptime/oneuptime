@@ -1,4 +1,7 @@
-import ProcessRunner from "../../../../Utils/Monitors/SyntheticRuntime/ProcessRunner";
+import ProcessRunner, {
+  SyntheticProcessRunnerError,
+} from "../../../../Utils/Monitors/SyntheticRuntime/ProcessRunner";
+import { SYNTHETIC_RUNTIME_FAULT_KIND } from "../../../../Utils/Monitors/SyntheticRuntime/SyntheticRuntimeFault";
 import {
   SyntheticMonitorWorkerConfig,
   SyntheticMonitorWorkerResult,
@@ -267,7 +270,13 @@ describe("SyntheticMonitor secure worker orchestration", () => {
         .payload as SyntheticMonitorWorkerConfig;
       expect(payload.proxy).toEqual({
         server: "http://proxy.internal:8080",
-        bypass: "localhost,127.0.0.1,.internal.example",
+        /*
+         * The sandbox's own controller origin leads the list, ahead of the
+         * operator's entries: the internal bootstrap navigation must never
+         * depend on their proxy being reachable.
+         */
+        bypass:
+          "synthetic-runtime.oneuptime.invalid,localhost,127.0.0.1,.internal.example",
       });
     } finally {
       noProxy.splice(0, noProxy.length, ...originalNoProxy);
@@ -455,6 +464,201 @@ describe("SyntheticMonitor secure worker orchestration", () => {
       scriptError: "worker launch failed",
       totalAttempts: 1,
     });
+  });
+
+  /*
+   * A probe that cannot start its own browser has not learned anything about
+   * the customer's site. Everything below is about keeping those two apart:
+   * the customer who reported this was handed a Playwright timeout on an
+   * internal `.invalid` URL as though their script had failed, on the first
+   * and only attempt, because Retry Count On Error defaults to zero.
+   */
+  function runtimeFault(message: string): SyntheticProcessRunnerError {
+    const error: SyntheticProcessRunnerError = Object.create(
+      SyntheticProcessRunnerError.prototype,
+    ) as SyntheticProcessRunnerError;
+    Object.assign(error, {
+      name: "SyntheticProcessRunnerError",
+      message,
+      stdout: "",
+      stderr: "",
+      stdoutTruncated: false,
+      stderrTruncated: false,
+      kind: SYNTHETIC_RUNTIME_FAULT_KIND,
+      remoteStack: `${message}\n    at WorkerController.execute (/usr/src/app/Utils/Monitors/SyntheticRuntime/WorkerController.ts:148:28)`,
+    });
+    return error;
+  }
+
+  test("retries a probe runtime fault even when the tenant asked for no retries", async () => {
+    const timeoutSpy: jest.SpyInstance = jest
+      .spyOn(global, "setTimeout")
+      .mockImplementation(((callback: () => void): NodeJS.Timeout => {
+        callback();
+        return {} as NodeJS.Timeout;
+      }) as typeof setTimeout);
+    runSpy
+      .mockRejectedValueOnce(
+        runtimeFault("Synthetic monitor could not start on this probe: ..."),
+      )
+      .mockResolvedValueOnce(
+        workerRunResult({
+          returnValue: { data: "recovered" },
+          logMessages: [],
+          capturedMetrics: [],
+          screenshots: {},
+        }),
+      );
+
+    try {
+      const responses: SyntheticMonitorResponse[] | null =
+        await SyntheticMonitor.execute({
+          script: "return { data: 'recovered' };",
+          browserTypes: [BrowserType.Chromium],
+          screenSizeTypes: [ScreenSizeType.Desktop],
+          // Deliberately absent: this is the default every monitor ships with.
+        });
+
+      expect(runSpy).toHaveBeenCalledTimes(2);
+      expect(responses?.[0]).toMatchObject({
+        result: "recovered",
+        scriptError: undefined,
+        totalAttempts: 2,
+      });
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  test("does not retry a tenant script error the tenant chose not to retry", async () => {
+    runSpy.mockResolvedValue(
+      workerRunResult({
+        logMessages: [],
+        capturedMetrics: [],
+        screenshots: {},
+        scriptError: "TypeError: page.clickk is not a function",
+      }),
+    );
+
+    const responses: SyntheticMonitorResponse[] | null =
+      await SyntheticMonitor.execute({
+        script: "await page.clickk('#buy');",
+        browserTypes: [BrowserType.Chromium],
+        screenSizeTypes: [ScreenSizeType.Desktop],
+      });
+
+    expect(runSpy).toHaveBeenCalledTimes(1);
+    expect(responses?.[0]?.totalAttempts).toBe(1);
+  });
+
+  test("stops after one extra attempt when the runtime fault persists", async () => {
+    const timeoutSpy: jest.SpyInstance = jest
+      .spyOn(global, "setTimeout")
+      .mockImplementation(((callback: () => void): NodeJS.Timeout => {
+        callback();
+        return {} as NodeJS.Timeout;
+      }) as typeof setTimeout);
+    runSpy.mockRejectedValue(
+      runtimeFault(
+        "Synthetic monitor could not start on this probe: the browser runtime did not finish starting up after 3 attempt(s) of 30000 ms. The monitored page was never opened, so this does not reflect the health of the monitored site.",
+      ),
+    );
+
+    try {
+      const responses: SyntheticMonitorResponse[] | null =
+        await SyntheticMonitor.execute({
+          script: "return { data: true };",
+          browserTypes: [BrowserType.Chromium],
+          screenSizeTypes: [ScreenSizeType.Desktop],
+        });
+
+      expect(runSpy).toHaveBeenCalledTimes(2);
+      expect(responses?.[0]?.totalAttempts).toBe(2);
+      /*
+       * A persistent fault still has to be reported -- silently reporting a
+       * monitor as healthy would be worse than a confusing message.
+       */
+      expect(responses?.[0]?.scriptError).toContain(
+        "could not start on this probe",
+      );
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  test("keeps OneUptime internals out of the error the tenant is shown", async () => {
+    const timeoutSpy: jest.SpyInstance = jest
+      .spyOn(global, "setTimeout")
+      .mockImplementation(((callback: () => void): NodeJS.Timeout => {
+        callback();
+        return {} as NodeJS.Timeout;
+      }) as typeof setTimeout);
+    runSpy.mockRejectedValue(
+      runtimeFault(
+        "Synthetic monitor could not start on this probe: the browser runtime did not finish starting up after 3 attempt(s) of 30000 ms. The monitored page was never opened, so this does not reflect the health of the monitored site.",
+      ),
+    );
+
+    try {
+      const responses: SyntheticMonitorResponse[] | null =
+        await SyntheticMonitor.execute({
+          script: "return { data: true };",
+          browserTypes: [BrowserType.Chromium],
+          screenSizeTypes: [ScreenSizeType.Desktop],
+        });
+
+      const scriptError: string = responses?.[0]?.scriptError as string;
+      expect(scriptError).not.toContain("synthetic-runtime.oneuptime.invalid");
+      expect(scriptError).not.toContain("WorkerController.ts");
+      expect(scriptError).not.toContain("page.goto");
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
+  test("retries the runtime fault per browser and screen-size combination", async () => {
+    const timeoutSpy: jest.SpyInstance = jest
+      .spyOn(global, "setTimeout")
+      .mockImplementation(((callback: () => void): NodeJS.Timeout => {
+        callback();
+        return {} as NodeJS.Timeout;
+      }) as typeof setTimeout);
+    runSpy
+      .mockRejectedValueOnce(runtimeFault("probe runtime fault"))
+      .mockResolvedValueOnce(
+        workerRunResult({
+          returnValue: { data: "chromium-desktop" },
+          logMessages: [],
+          capturedMetrics: [],
+          screenshots: {},
+        }),
+      )
+      .mockResolvedValueOnce(
+        workerRunResult({
+          returnValue: { data: "firefox-desktop" },
+          logMessages: [],
+          capturedMetrics: [],
+          screenshots: {},
+        }),
+      );
+
+    try {
+      const responses: SyntheticMonitorResponse[] | null =
+        await SyntheticMonitor.execute({
+          script: "return { data: true };",
+          browserTypes: [BrowserType.Chromium, BrowserType.Firefox],
+          screenSizeTypes: [ScreenSizeType.Desktop],
+        });
+
+      expect(runSpy).toHaveBeenCalledTimes(3);
+      expect(
+        responses?.map((response: SyntheticMonitorResponse) => {
+          return response.result;
+        }),
+      ).toEqual(["chromium-desktop", "firefox-desktop"]);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
   });
 });
 
