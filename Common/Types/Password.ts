@@ -37,7 +37,7 @@ const COMMON_SIGNUP_PASSWORDS: Set<string> = new Set([
   "changeme",
 ]);
 
-const REPEATED_SIGNUP_PASSWORD_PATTERN: RegExp = /^(.{1,8})\1+$/u;
+const REPEATED_SIGNUP_PASSWORD_PATTERN: RegExp = /^(.{1,14})\1+$/u;
 
 /** New accounts use a stronger policy; existing credentials remain valid. */
 export function getSignupPasswordValidationError(
