@@ -21,6 +21,8 @@ import Email from "../../Types/Email";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import APIException from "../../Types/Exception/ApiException";
 import BadDataException from "../../Types/Exception/BadDataException";
+import Exception from "../../Types/Exception/Exception";
+import ServiceUnavailableException from "../../Types/Exception/ServiceUnavailableException";
 import ProductType from "../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../Types/ObjectID";
 import Sleep from "../../Types/Sleep";
@@ -65,7 +67,47 @@ const PAYMENT_METHOD_TYPES: Array<Stripe.PaymentMethodListParams.Type> = [
   "us_bank_account",
   "bacs_debit",
 ];
-const PAYMENT_READ_MAX_RETRIES: number = 3;
+/*
+ * Four attempts spread over 1s+2s+4s was the whole budget, and CI showed it
+ * spent: every failing read took 9-10s and then 500'd, which is this ladder
+ * running out while Stripe was still rate-limiting. One more attempt roughly
+ * doubles the window without making a user-facing request pathological.
+ */
+const PAYMENT_READ_MAX_RETRIES: number = 4;
+
+// Ceiling for a single wait, so a large Retry-After cannot hang the request.
+const PAYMENT_READ_MAX_RETRY_DELAY_IN_MS: number = 8000;
+
+/*
+ * stripe-node defaults maxNetworkRetries to 0, so out of the box a dropped
+ * socket, a 409, a Stripe-side 5xx, or a 400 that Stripe itself marks retryable
+ * with `Stripe-Should-Retry: true` (lock_timeout is the common one) is not
+ * retried at all - it surfaces as a raw StripeError, which is not an
+ * OneUptime Exception, so the express handler answers an opaque
+ * 500 {"error":"Server Error"}. That is a user-visible failure of the billing
+ * page on a single upstream hiccup. The SDK's own retry generates an
+ * idempotency key per attempt, so it is safe for writes as well as reads.
+ */
+const STRIPE_MAX_NETWORK_RETRIES: number = 2;
+
+/*
+ * The SDK default is 80s. A request holding a worker for 80s on a hung socket
+ * outlives every caller that waits on it, so fail fast enough to retry.
+ */
+const STRIPE_REQUEST_TIMEOUT_IN_MS: number = 20000;
+
+/*
+ * Node's socket-level failures, which reach us with no HTTP status. Mirrors
+ * stripe-node's own CONNECTION_CLOSED_ERROR_CODES plus the timeout cases.
+ */
+const RETRYABLE_CONNECTION_ERROR_CODES: Array<string> = [
+  "ECONNRESET",
+  "EPIPE",
+  "ETIMEDOUT",
+  "ECONNREFUSED",
+  "EAI_AGAIN",
+  "ENOTFOUND",
+];
 
 export interface Invoice {
   id: string;
@@ -87,6 +129,8 @@ export class BillingService extends BaseService {
 
   private stripe: Stripe = new Stripe(BillingPrivateKey, {
     apiVersion: "2022-08-01",
+    maxNetworkRetries: STRIPE_MAX_NETWORK_RETRIES,
+    timeout: STRIPE_REQUEST_TIMEOUT_IN_MS,
   });
 
   // returns billing id of the customer.
@@ -1301,31 +1345,130 @@ export class BillingService extends BaseService {
     return false;
   }
 
+  /**
+   * A read that could not be completed is not the same answer as "no payment
+   * method", so this never converts a failure into a value - it retries, and
+   * then reports the outage as one. Callers stay free to fail closed.
+   */
   private async readPaymentProvider<T>(read: () => Promise<T>): Promise<T> {
     for (let attempt: number = 0; ; attempt++) {
       try {
         return await read();
       } catch (err) {
-        const providerError: { statusCode?: number } = err as {
-          statusCode?: number;
-        };
-        if (
-          providerError?.statusCode !== 429 ||
-          attempt >= PAYMENT_READ_MAX_RETRIES
-        ) {
+        if (!BillingService.isRetryablePaymentProviderRead(err)) {
+          /*
+           * A 400/401/404 is this request being wrong - a bad key, a customer
+           * that is not there. Keep it exactly as it came: renaming it "could
+           * not reach the provider" would send the reader somewhere else.
+           */
           throw err;
         }
 
+        if (attempt >= PAYMENT_READ_MAX_RETRIES) {
+          throw BillingService.toPaymentProviderReadFailure(err);
+        }
+
         /*
-         * Stripe's network retries do not generally cover rate-limit responses.
-         * Retry only these reads; exhausted failures must still deny paid usage.
+         * The SDK's own network retries are immediate and few; this is the
+         * longer, jittered wait a sustained rate limit needs. An exhausted
+         * read still denies paid usage - it never answers "no payment method".
          */
-        const delayInMs: number = Math.round(
-          1000 * 2 ** attempt * (1 + Math.random() / 2),
+        await Sleep.sleep(
+          BillingService.getPaymentReadRetryDelay(err, attempt),
         );
-        await Sleep.sleep(delayInMs);
       }
     }
+  }
+
+  /**
+   * Stripe answers a rate limit with Retry-After when it knows how long the
+   * caller should wait. Preferring our own doubling over Stripe's own number
+   * is how a retry ladder ends up firing all of its attempts inside a window
+   * the provider already said was too small.
+   */
+  private static getPaymentReadRetryDelay(
+    err: unknown,
+    attempt: number,
+  ): number {
+    const backoffInMs: number = Math.round(
+      1000 * 2 ** attempt * (1 + Math.random() / 2),
+    );
+
+    const headers: Record<string, string | undefined> =
+      ((err ?? {}) as { headers?: Record<string, string | undefined> })
+        .headers || {};
+    const retryAfterInSeconds: number = Number(
+      headers["retry-after"] ?? headers["Retry-After"],
+    );
+
+    if (!Number.isFinite(retryAfterInSeconds) || retryAfterInSeconds <= 0) {
+      return backoffInMs;
+    }
+
+    return Math.min(
+      Math.max(backoffInMs, retryAfterInSeconds * 1000),
+      PAYMENT_READ_MAX_RETRY_DELAY_IN_MS,
+    );
+  }
+
+  /**
+   * Rate limits are the documented case, but a read can also fail with no HTTP
+   * response at all - a reset or timed-out socket, which arrives with
+   * statusCode undefined - or with Stripe's own 5xx. The SDK retries those too
+   * now (STRIPE_MAX_NETWORK_RETRIES); this outer loop adds the longer,
+   * jittered backoff that a sustained rate limit needs.
+   */
+  private static isRetryablePaymentProviderRead(err: unknown): boolean {
+    const providerError: {
+      statusCode?: number;
+      type?: string;
+      code?: string;
+    } = (err ?? {}) as {
+      statusCode?: number;
+      type?: string;
+      code?: string;
+    };
+
+    if (typeof providerError.statusCode === "number") {
+      return (
+        providerError.statusCode === 429 || providerError.statusCode >= 500
+      );
+    }
+
+    /*
+     * No HTTP response was read at all. Retry only the transport failures we
+     * can name - a programming error also lands here with no statusCode, and
+     * retrying one four times just delays the real report.
+     */
+    return (
+      providerError.type === "StripeConnectionError" ||
+      providerError.type === "StripeAPIError" ||
+      RETRYABLE_CONNECTION_ERROR_CODES.includes(providerError.code || "")
+    );
+  }
+
+  /**
+   * A raw StripeError is not an OneUptime Exception, so it reaches the express
+   * handler's fallback branch and becomes an opaque 500 {"error":"Server
+   * Error"} - indistinguishable from a bug in OneUptime, and carrying nothing
+   * an operator or an E2E diagnostic can act on. Name the real condition
+   * instead: the payment provider could not be reached.
+   */
+  private static toPaymentProviderReadFailure(err: unknown): unknown {
+    if (err instanceof Exception) {
+      return err;
+    }
+
+    const providerError: { statusCode?: number; code?: string; type?: string } =
+      (err ?? {}) as { statusCode?: number; code?: string; type?: string };
+
+    logger.error(err);
+
+    return new ServiceUnavailableException(
+      `Could not reach the payment provider to read payment methods${
+        providerError.code ? ` (${providerError.code})` : ""
+      }. Please try again.`,
+    );
   }
 
   private async listPaymentMethods(
