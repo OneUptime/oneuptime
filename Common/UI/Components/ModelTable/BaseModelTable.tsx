@@ -4627,9 +4627,23 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
             return Promise.resolve();
           },
-          modelIdToEdit: currentEditableItem
-            ? new ObjectID(currentEditableItem["_id"] as string)
-            : undefined,
+          /*
+           * Gated on the modal type, not on currentEditableItem alone. The Edit
+           * row action is the only thing that ever sets that state and nothing
+           * clears it - not onClose above, not any of the three Create entry
+           * points - so after one edit it stays populated for the life of the
+           * table. Passing it into a Create handed ModelTable an id that made
+           * its form filter treat the create form as an edit form, which
+           * dropped every doNotShowWhenEditing field: on Runbook Secrets,
+           * Monitor Secrets and the Security Events connectors, creating a
+           * second row after editing one offered a form with no secret field
+           * on it and failed at submit on a required column the user was never
+           * shown.
+           */
+          modelIdToEdit:
+            modalType === ModalType.Edit && currentEditableItem
+              ? new ObjectID(currentEditableItem["_id"] as string)
+              : undefined,
         })
       ) : (
         <></>

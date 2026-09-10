@@ -344,7 +344,21 @@ export default class WorkflowVariable extends BaseModel {
       Permission.WorkflowViewer,
       Permission.ReadWorkflowVariable,
     ],
-    update: [],
+    /*
+     * Same list as name, description and content. isSecret decides one thing
+     * only - whether RunWorkflow redacts this variable's value out of the run
+     * logs (getSecretWorkflowVariableValues in
+     * App/FeatureSet/Workflow/Services/RunWorkflow.ts). It is not an
+     * encryption switch and nothing is re-encrypted when it flips, so leaving
+     * it create-only bought no safety: it only meant a variable saved without
+     * the toggle kept leaking its value into every run log until someone
+     * deleted and recreated it.
+     */
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditWorkflowVariable,
+    ],
   })
   @TableColumn({
     required: true,
