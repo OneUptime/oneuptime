@@ -188,6 +188,22 @@ function pathFor(page: PageMap): string {
     .replace(":id", "conversation-one");
 }
 
+function mockSecondaryPage(module: string): void {
+  jest.doMock(`${dashboardSource}/Pages/${module}`, () => {
+    loadedPages.push(module);
+    if (module === failingModule) {
+      throw new Error("Failed to fetch dynamically imported module");
+    }
+    return {
+      __esModule: true,
+      default: (props: PageComponentProps): React.ReactElement => {
+        pageProps.set(module, props);
+        return <div data-testid="secondary-page">{module}</div>;
+      },
+    };
+  });
+}
+
 beforeEach(() => {
   // Each test starts with a cold module cache, like a fresh dashboard document.
   jest.resetModules();
@@ -213,19 +229,7 @@ beforeEach(() => {
       return page.module;
     }),
   )) {
-    jest.doMock(`${dashboardSource}/Pages/${module}`, () => {
-      loadedPages.push(module);
-      if (module === failingModule) {
-        throw new Error("Failed to fetch dynamically imported module");
-      }
-      return {
-        __esModule: true,
-        default: (props: PageComponentProps): React.ReactElement => {
-          pageProps.set(module, props);
-          return <div data-testid="secondary-page">{module}</div>;
-        },
-      };
-    });
+    mockSecondaryPage(module);
   }
 
   for (const module of [

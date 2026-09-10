@@ -15,9 +15,11 @@ describe("frontend renderer deduplication", () => {
   test.each(["production", "development"])(
     "bundles one renderer for the entry point and shared portals in %s",
     (environment: string) => {
-      // Use a subprocess because esbuild requires Node's native Uint8Array.
-      // Separate physical installs reproduce the app/Common package layout;
-      // symlinking both to one install would hide the original duplication.
+      /*
+       * Use a subprocess because esbuild requires Node's native Uint8Array.
+       * Separate physical installs reproduce the app/Common package layout;
+       * symlinking both to one install would hide the original duplication.
+       */
       const result: RendererBuild = JSON.parse(
         childProcess.execFileSync(
           process.execPath,

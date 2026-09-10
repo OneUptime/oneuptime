@@ -124,8 +124,10 @@ jest.mock("react-i18next", () => {
   };
 });
 
-// Keep the real header, notification bell, and error modal. These unrelated
-// controls have their own effects and are covered by the header layout tests.
+/*
+ * Keep the real header, notification bell, and error modal. These unrelated
+ * controls have their own effects and are covered by the header layout tests.
+ */
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Header/ProjectPicker",
   () => {
