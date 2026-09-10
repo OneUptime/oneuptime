@@ -36,6 +36,7 @@
     "projectTeams": "Équipes",
     "projectTeam": "Équipe",
     "projectSubscription": "Abonnement",
+    "projectSupport": "Assistance",
     "settings": "Paramètres",
     "authentication": "Authentification",
     "emailSettings": "Paramètres d'e-mail",
@@ -94,6 +95,8 @@
     "teams": "Équipes",
     "billing": "Facturation",
     "subscription": "Abonnement",
+    "support": "Assistance",
+    "customerSupportAccess": "Accès du support client",
     "advanced": "Avancé",
     "overview": "Vue d'ensemble",
     "projects": "Projets",
@@ -334,6 +337,16 @@
       "amountTooLarge": "Le montant ne peut pas dépasser {{max}} USD par ajustement.",
       "amountTooPrecise": "Le montant ne peut pas avoir plus de deux décimales.",
       "reasonRequired": "Veuillez saisir un motif pour cet ajustement."
+    },
+    "projectSupport": {
+      "title": "Accès du support client",
+      "cardTitle": "Accès du support client",
+      "cardDescription": "Indique si le support client OneUptime peut accéder à ce projet à des fins de dépannage. Il s'agit du même interrupteur que celui dont dispose le client dans ses paramètres de projet.",
+      "editButton": "Modifier l'accès du support client",
+      "fieldLabel": "Autoriser le support client à accéder au projet",
+      "fieldDescription": "Lorsque cette option est activée, le support client OneUptime peut ouvrir ce projet pour enquêter sur un problème. Désactivez-la une fois l'enquête terminée.",
+      "consentWarning": "N'activez ceci que si le client a demandé au support d'examiner son projet. Le client peut l'activer et le désactiver lui-même dans les paramètres du projet : demandez-lui de le faire de préférence, et désactivez-le une fois l'enquête terminée.",
+      "billingDisabled": "La facturation n'est pas activée sur cette instance, il n'y a donc aucune équipe de support client OneUptime à qui accorder l'accès. Ce paramètre ne s'applique qu'à l'édition hébergée de OneUptime."
     },
     "projectUsers": {
       "title": "Project Users",

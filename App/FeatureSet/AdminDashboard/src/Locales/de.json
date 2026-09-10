@@ -36,6 +36,7 @@
     "projectTeams": "Teams",
     "projectTeam": "Team",
     "projectSubscription": "Abonnement",
+    "projectSupport": "Support",
     "settings": "Einstellungen",
     "authentication": "Authentifizierung",
     "emailSettings": "E-Mail-Einstellungen",
@@ -94,6 +95,8 @@
     "teams": "Teams",
     "billing": "Abrechnung",
     "subscription": "Abonnement",
+    "support": "Support",
+    "customerSupportAccess": "Kundensupport-Zugriff",
     "advanced": "Erweitert",
     "overview": "Übersicht",
     "projects": "Projekte",
@@ -334,6 +337,16 @@
       "amountTooLarge": "Der Betrag darf pro einzelner Anpassung nicht mehr als {{max}} USD betragen.",
       "amountTooPrecise": "Der Betrag darf höchstens zwei Nachkommastellen haben.",
       "reasonRequired": "Bitte geben Sie einen Grund für diese Anpassung an."
+    },
+    "projectSupport": {
+      "title": "Kundensupport-Zugriff",
+      "cardTitle": "Kundensupport-Zugriff",
+      "cardDescription": "Ob der OneUptime-Kundensupport zur Fehlersuche auf dieses Projekt zugreifen darf. Dies ist derselbe Schalter, den der Kunde in seinen Projekteinstellungen hat.",
+      "editButton": "Kundensupport-Zugriff bearbeiten",
+      "fieldLabel": "Kundensupport Zugriff auf Projekt erlauben",
+      "fieldDescription": "Wenn aktiviert, kann der OneUptime-Kundensupport dieses Projekt öffnen, um ein Problem zu untersuchen. Schalten Sie es wieder aus, sobald die Untersuchung abgeschlossen ist.",
+      "consentWarning": "Aktivieren Sie dies nur, wenn der Kunde den Support gebeten hat, sein Projekt anzusehen. Der Kunde kann es in den Projekteinstellungen selbst ein- und ausschalten, bitten Sie ihn daher bevorzugt darum, und schalten Sie es nach Abschluss der Untersuchung wieder aus.",
+      "billingDisabled": "Auf dieser Instanz ist die Abrechnung nicht aktiviert, daher gibt es kein OneUptime-Kundensupport-Team, dem Zugriff gewährt werden könnte. Diese Einstellung gilt nur für die gehostete Edition von OneUptime."
     },
     "projectUsers": {
       "title": "Project Users",

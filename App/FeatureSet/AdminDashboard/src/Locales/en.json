@@ -36,6 +36,7 @@
     "projectTeams": "Teams",
     "projectTeam": "Team",
     "projectSubscription": "Subscription",
+    "projectSupport": "Support",
     "settings": "Settings",
     "authentication": "Authentication",
     "emailSettings": "Email Settings",
@@ -94,6 +95,8 @@
     "teams": "Teams",
     "billing": "Billing",
     "subscription": "Subscription",
+    "support": "Support",
+    "customerSupportAccess": "Customer Support Access",
     "advanced": "Advanced",
     "overview": "Overview",
     "projects": "Projects",
@@ -334,6 +337,16 @@
       "amountTooLarge": "The amount cannot be more than {{max}} USD in a single adjustment.",
       "amountTooPrecise": "The amount cannot have more than two decimal places.",
       "reasonRequired": "Please enter a reason for this adjustment."
+    },
+    "projectSupport": {
+      "title": "Customer Support Access",
+      "cardTitle": "Customer Support Access",
+      "cardDescription": "Whether OneUptime customer support can access this project for troubleshooting. This is the same switch the customer has in their own Project Settings.",
+      "editButton": "Edit Customer Support Access",
+      "fieldLabel": "Let Customer Support Access Project",
+      "fieldDescription": "When enabled, OneUptime customer support can open this project to investigate an issue. Turn it off again once the investigation is done.",
+      "consentWarning": "Only turn this on when the customer has asked support to look at their project. The customer can turn it on and off themselves in Project Settings, so prefer asking them to do it, and turn it back off when the investigation is over.",
+      "billingDisabled": "Billing is not enabled on this instance, so there is no OneUptime customer support team to grant access to. This setting only applies to the hosted edition of OneUptime."
     },
     "projectUsers": {
       "title": "Project Users",

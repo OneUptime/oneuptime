@@ -36,6 +36,7 @@
     "projectTeams": "Teams",
     "projectTeam": "Team",
     "projectSubscription": "Abonnement",
+    "projectSupport": "Ondersteuning",
     "settings": "Instellingen",
     "authentication": "Authenticatie",
     "emailSettings": "E-mailinstellingen",
@@ -94,6 +95,8 @@
     "teams": "Teams",
     "billing": "Facturering",
     "subscription": "Abonnement",
+    "support": "Ondersteuning",
+    "customerSupportAccess": "Toegang voor klantenondersteuning",
     "advanced": "Geavanceerd",
     "overview": "Overzicht",
     "projects": "Projecten",
@@ -334,6 +337,16 @@
       "amountTooLarge": "Het bedrag mag niet meer zijn dan {{max}} USD per aanpassing.",
       "amountTooPrecise": "Het bedrag mag niet meer dan twee decimalen hebben.",
       "reasonRequired": "Voer een reden in voor deze aanpassing."
+    },
+    "projectSupport": {
+      "title": "Toegang voor klantenondersteuning",
+      "cardTitle": "Toegang voor klantenondersteuning",
+      "cardDescription": "Of de klantenondersteuning van OneUptime toegang heeft tot dit project om problemen op te lossen. Dit is dezelfde schakelaar die de klant in zijn eigen projectinstellingen heeft.",
+      "editButton": "Toegang voor klantenondersteuning bewerken",
+      "fieldLabel": "Klantenondersteuning toegang geven tot project",
+      "fieldDescription": "Wanneer dit is ingeschakeld, kan de klantenondersteuning van OneUptime dit project openen om een probleem te onderzoeken. Schakel het weer uit zodra het onderzoek is afgerond.",
+      "consentWarning": "Schakel dit alleen in wanneer de klant de ondersteuning heeft gevraagd naar zijn project te kijken. De klant kan het zelf in- en uitschakelen in de projectinstellingen, dus vraag het bij voorkeur aan hem, en schakel het weer uit zodra het onderzoek is afgerond.",
+      "billingDisabled": "Facturering is niet ingeschakeld op deze instantie, dus er is geen OneUptime-klantenondersteuningsteam om toegang aan te verlenen. Deze instelling geldt alleen voor de gehoste editie van OneUptime."
     },
     "projectUsers": {
       "title": "Project Users",

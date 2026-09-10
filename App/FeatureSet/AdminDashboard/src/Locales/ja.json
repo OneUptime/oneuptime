@@ -36,6 +36,7 @@
     "projectTeams": "チーム",
     "projectTeam": "チーム",
     "projectSubscription": "サブスクリプション",
+    "projectSupport": "サポート",
     "settings": "設定",
     "authentication": "認証",
     "emailSettings": "メール設定",
@@ -94,6 +95,8 @@
     "teams": "チーム",
     "billing": "請求",
     "subscription": "サブスクリプション",
+    "support": "サポート",
+    "customerSupportAccess": "カスタマーサポートのアクセス",
     "advanced": "詳細",
     "overview": "概要",
     "projects": "プロジェクト",
@@ -334,6 +337,16 @@
       "amountTooLarge": "1回の調整で{{max}} USDを超える金額は指定できません。",
       "amountTooPrecise": "金額の小数点以下は2桁までです。",
       "reasonRequired": "この調整の理由を入力してください。"
+    },
+    "projectSupport": {
+      "title": "カスタマーサポートのアクセス",
+      "cardTitle": "カスタマーサポートのアクセス",
+      "cardDescription": "OneUptime のカスタマーサポートがトラブルシューティングのためにこのプロジェクトにアクセスできるかどうか。これは顧客がプロジェクト設定で操作するものと同じスイッチです。",
+      "editButton": "カスタマーサポートのアクセスを編集",
+      "fieldLabel": "カスタマーサポートによるプロジェクトへのアクセスを許可する",
+      "fieldDescription": "有効にすると、OneUptime のカスタマーサポートが問題を調査するためにこのプロジェクトを開けるようになります。調査が終わったら再び無効にしてください。",
+      "consentWarning": "顧客からプロジェクトを確認してほしいと依頼された場合にのみ有効にしてください。顧客はプロジェクト設定で自分でオン・オフを切り替えられるため、できるだけ顧客に操作を依頼し、調査が終わったら再び無効にしてください。",
+      "billingDisabled": "このインスタンスでは課金が有効になっていないため、アクセスを許可する OneUptime のカスタマーサポートチームは存在しません。この設定は OneUptime のホスト版にのみ適用されます。"
     },
     "projectUsers": {
       "title": "Project Users",
