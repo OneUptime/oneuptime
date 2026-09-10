@@ -1,5 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
-import AIPlanGate from "../../Components/AI/AIPlanGate";
+import AIChatUnavailableView from "../../Components/AIChat/AIChatUnavailableView";
 import ChatActivityFeed from "../../Components/AIChat/ChatActivityFeed";
 import ChatDownloadMenu from "../../Components/AIChat/ChatDownloadMenu";
 import ChatHomeView from "../../Components/AIChat/ChatHomeView";
@@ -148,9 +148,28 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
     />
   ) : undefined;
 
+  /*
+   * AI switched off for the project (plan, kill switch, or no provider at all)
+   * replaces the entire workspace — rail, thread and composer. A conversation
+   * rail whose threads cannot be continued, above a composer that cannot send,
+   * would be a page pretending to work; the notice names the setting instead.
+   * This subsumes <AIPlanGate />, which used to carry the plan half alone.
+   */
+  if (chat.unavailableReason) {
+    return (
+      <Page title="AI" description={AI_CHAT_DESCRIPTION}>
+        <div
+          className="flex overflow-hidden rounded-2xl border border-gray-200 bg-white"
+          style={{ minHeight: "420px" }}
+        >
+          <AIChatUnavailableView reason={chat.unavailableReason} />
+        </div>
+      </Page>
+    );
+  }
+
   return (
     <Page title="AI" description={AI_CHAT_DESCRIPTION}>
-      <AIPlanGate />
       <div
         className="flex overflow-hidden rounded-2xl border border-gray-200 bg-white"
         style={{ height: "calc(100vh - 220px)", minHeight: "560px" }}
@@ -313,9 +332,6 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   conversations={chat.conversations}
                   isSending={chat.isSending}
                   hideConversations={true}
-                  showNoProviderNotice={
-                    chat.providersLoaded && chat.providers.length === 0
-                  }
                   pageContext={chat.pageContext}
                   isPageContextAttached={chat.isPageContextAttached}
                   onOpenConversation={chat.openConversation}
