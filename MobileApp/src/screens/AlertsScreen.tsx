@@ -18,6 +18,7 @@ import {
 } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import getToggleAccessibilityProps from "../utils/getToggleAccessibilityProps";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import ScreenIntro from "../components/ScreenIntro";
 import SearchField from "../components/SearchField";
@@ -32,7 +33,6 @@ import EpisodeCard from "../components/EpisodeCard";
 import SwipeableCard from "../components/SwipeableCard";
 import SkeletonCard from "../components/SkeletonCard";
 import EmptyState from "../components/EmptyState";
-import SegmentedControl from "../components/SegmentedControl";
 import type { AlertsStackParamList } from "../navigation/types";
 import type {
   AlertState,
@@ -89,6 +89,7 @@ function SectionHeader({
         style={{ marginRight: 6 }}
       />
       <Text
+        accessibilityRole="header"
         style={{
           fontSize: 15,
           fontWeight: "600",
@@ -127,7 +128,13 @@ function SectionHeader({
   );
 }
 
-export default function AlertsScreen(): React.JSX.Element {
+interface AlertsScreenProps {
+  embedded?: boolean;
+}
+
+export default function AlertsScreen({
+  embedded = false,
+}: AlertsScreenProps = {}): React.JSX.Element {
   const { theme } = useTheme();
   const bottomPadding: number = useScreenPadding();
   const [search, setSearch] = useState("");
@@ -142,7 +149,13 @@ export default function AlertsScreen(): React.JSX.Element {
   const [visibleEpisodeCount, setVisibleEpisodeCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
-    if (route.params?.initialSegment) {
+    if (route.params?.initialSegment || route.params?.initialFilter) {
+      setSearch("");
+    }
+    if (
+      route.params?.initialSegment === "alerts" ||
+      route.params?.initialSegment === "episodes"
+    ) {
       setSegment(route.params.initialSegment);
       setVisibleCount(PAGE_SIZE);
       setVisibleEpisodeCount(PAGE_SIZE);
@@ -384,30 +397,69 @@ export default function AlertsScreen(): React.JSX.Element {
     setVisibleEpisodeCount(PAGE_SIZE);
   };
   const listHeader: React.JSX.Element = (
-    <View style={{ marginBottom: 24 }}>
-      <ScreenIntro
-        compact
-        title="Alert inbox"
-        description={
-          segment === "alerts"
-            ? "Review and act on alerts."
-            : "Respond to related alerts together."
-        }
-      />
-      <View style={{ marginHorizontal: 0 }}>
-        <SegmentedControl
-          style={{ marginHorizontal: 0, marginTop: 0 }}
-          segments={[
-            { key: "alerts" as const, label: "Alerts" },
-            { key: "episodes" as const, label: "Episodes" },
-          ]}
-          selected={segment}
-          onSelect={(next: Segment) => {
-            setSegment(next);
+    <View style={{ marginBottom: 16 }}>
+      {!embedded ? (
+        <ScreenIntro
+          title="Alerts"
+          description="One place to understand what needs your response."
+        />
+      ) : null}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <Text
+          style={{
+            flex: 1,
+            fontSize: 14,
+            lineHeight: 21,
+            color: theme.colors.textSecondary,
+          }}
+        >
+          {segment === "alerts"
+            ? "Individual alerts"
+            : "Related alerts, grouped"}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={segment === "alerts" ? "Episodes" : "Alerts"}
+          accessibilityHint={
+            segment === "alerts"
+              ? "Show related alerts grouped into episodes"
+              : "Show individual alerts"
+          }
+          onPress={() => {
+            setSegment(segment === "alerts" ? "episodes" : "alerts");
             setVisibleCount(PAGE_SIZE);
             setVisibleEpisodeCount(PAGE_SIZE);
           }}
-        />
+          style={{
+            minHeight: 48,
+            paddingHorizontal: 4,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 5,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "600",
+              color: theme.colors.actionPrimary,
+            }}
+          >
+            {segment === "alerts" ? "Episodes" : "Alerts"}
+          </Text>
+          <Ionicons
+            name="swap-horizontal-outline"
+            size={16}
+            color={theme.colors.actionPrimary}
+          />
+        </Pressable>
       </View>
       <View style={{ marginTop: 12 }}>
         <SearchField
@@ -455,7 +507,7 @@ export default function AlertsScreen(): React.JSX.Element {
             <Pressable
               key={filter.key}
               accessibilityRole="button"
-              accessibilityState={{ selected }}
+              {...getToggleAccessibilityProps(selected)}
               accessibilityLabel={filter.label}
               onPress={() => {
                 setStateFilter(filter.key);
@@ -466,13 +518,9 @@ export default function AlertsScreen(): React.JSX.Element {
                 minHeight: 48,
                 justifyContent: "center",
                 paddingHorizontal: 14,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: selected
-                  ? theme.colors.actionPrimary
-                  : theme.colors.borderDefault,
+                borderRadius: 24,
                 backgroundColor: selected
-                  ? theme.colors.iconBackground
+                  ? theme.colors.textPrimary
                   : theme.colors.backgroundElevated,
               }}
             >
@@ -481,11 +529,15 @@ export default function AlertsScreen(): React.JSX.Element {
                   fontSize: 14,
                   fontWeight: "600",
                   color: selected
-                    ? theme.colors.actionPrimary
+                    ? theme.colors.textInverse
                     : theme.colors.textSecondary,
                 }}
               >
-                {filter.label}
+                {filter.key === "all"
+                  ? "All"
+                  : filter.key === "active"
+                    ? "Active"
+                    : "Resolved"}
               </Text>
             </Pressable>
           );
@@ -609,7 +661,7 @@ export default function AlertsScreen(): React.JSX.Element {
                   wrapped.item.currentAlertState?._id !== acknowledgeState._id
                     ? {
                         label: "Acknowledge",
-                        color: "#22C55E",
+                        color: theme.colors.stateResolved,
                         onAction: () => {
                           return handleAcknowledge(wrapped);
                         },

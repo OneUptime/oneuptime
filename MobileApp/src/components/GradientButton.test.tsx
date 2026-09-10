@@ -91,6 +91,30 @@ describe("The ordinary button", () => {
 });
 
 describe("While the action is in flight", () => {
+  test.each(["primary", "secondary"] as const)(
+    "%s exposes matching web and native asynchronous state",
+    async (variant: "primary" | "secondary") => {
+      await render(
+        <GradientButton
+          label="Continue"
+          variant={variant}
+          loading
+          onPress={jest.fn()}
+        />,
+      );
+      const control: ReturnType<typeof screen.getByRole> = screen.getByRole(
+        "button",
+        { name: "Continue" },
+      );
+      expect(control).toBeDisabled();
+      expect(control).toBeBusy();
+      expect(control.props.accessibilityState).toEqual({
+        disabled: true,
+        busy: true,
+      });
+    },
+  );
+
   test("the spinner replaces the label on screen", async () => {
     await render(
       <GradientButton label="Sign In" loading={true} onPress={jest.fn()} />,

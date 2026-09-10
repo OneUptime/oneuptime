@@ -84,7 +84,7 @@ describe("What the control shows", () => {
 
     expect(
       (chosen.props.style as { backgroundColor: string }).backgroundColor,
-    ).toBe(darkColors.actionPrimary);
+    ).toBe(darkColors.backgroundElevated);
     expect(
       (other.props.style as { backgroundColor: string }).backgroundColor,
     ).toBe("transparent");
@@ -92,6 +92,21 @@ describe("What the control shows", () => {
 });
 
 describe("What a screen reader is told", () => {
+  test("ARIA aliases preserve exactly one native selected tab after each selection", async () => {
+    await render(<StatefulSegmentedControl />);
+    expect(screen.getAllByRole("tab", { selected: true })).toHaveLength(1);
+    expect(
+      screen.getByRole("tab", { name: "Alerts", selected: true }),
+    ).toBeTruthy();
+    await fireEvent.press(screen.getByRole("tab", { name: "Episodes" }));
+    expect(screen.getAllByRole("tab", { selected: true })).toHaveLength(1);
+    expect(
+      screen.getByRole("tab", { name: "Episodes", selected: true }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("tab", { name: "Alerts", selected: false }),
+    ).toBeTruthy();
+  });
   test("each segment is a tab rather than an anonymous button", async () => {
     await render(
       <SegmentedControl

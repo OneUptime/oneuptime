@@ -350,8 +350,13 @@ describe("A set of codes that exists only on this screen", () => {
 
   test("ticking the acknowledgement enables it", async () => {
     await renderCodes();
+    const checkbox: () => ReturnType<typeof screen.getByTestId> = () => {
+      return screen.getByTestId("backup-codes-saved-checkbox");
+    };
+    expect(checkbox().props.accessibilityState.checked).toBe(false);
 
     await fireEvent.press(screen.getByTestId("backup-codes-saved-checkbox"));
+    expect(checkbox().props.accessibilityState.checked).toBe(true);
 
     expect(isDisabled("backup-codes-continue")).toBe(false);
   });

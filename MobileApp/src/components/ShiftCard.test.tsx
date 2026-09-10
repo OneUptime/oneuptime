@@ -19,11 +19,11 @@ function shift(overrides: Partial<OnCallShift> = {}): OnCallShift {
 }
 
 describe("Readable shift timing", () => {
-  test("an active shift shows remaining duty, schedule and project", async (): Promise<void> => {
+  test("an active shift shows remaining duty and schedule without repeating the selected project", async (): Promise<void> => {
     await render(<ShiftCard shift={shift()} now={NOW} />);
     expect(screen.getByText("3h left")).toBeTruthy();
     expect(screen.getByText("Primary response")).toBeTruthy();
-    expect(screen.getByText("Production")).toBeTruthy();
+    expect(screen.queryByText("Production")).toBeNull();
   });
   test("an upcoming shift shows time until it starts", async (): Promise<void> => {
     await render(
@@ -45,5 +45,15 @@ describe("Readable shift timing", () => {
     );
     expect(screen.getByText("On now")).toBeTruthy();
     expect(screen.queryByText(/left$/)).toBeNull();
+  });
+  test("an upcoming roster without a start time says scheduled without inventing a date", async (): Promise<void> => {
+    await render(
+      <ShiftCard
+        shift={shift({ status: "upcoming", startsAt: null, endsAt: null })}
+        now={NOW}
+      />,
+    );
+    expect(screen.getByText("Scheduled")).toBeTruthy();
+    expect(screen.queryByText(/^in /)).toBeNull();
   });
 });

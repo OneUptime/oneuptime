@@ -8,6 +8,7 @@ import {
   Share,
   Alert,
   RefreshControl,
+  Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
@@ -64,6 +65,7 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
   const projectId: string | null = projectList[0]?._id ?? null;
   const [serverUrl, setServerUrl] = useState<string>("");
   const [notice, setNotice] = useState<FeedNotice>(null);
+  const [revealedLink, setRevealedLink] = useState<string | null>(null);
 
   useEffect((): void => {
     getServerUrl().then(setServerUrl);
@@ -81,6 +83,17 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
 
     return buildFeedLinks(serverUrl, status);
   }, [status, serverUrl]);
+
+  const privateLinkIdentity: string | null = links
+    ? `${projectId}:${links.https}`
+    : null;
+  const isPrivateLinkVisible: boolean = Boolean(
+    privateLinkIdentity && revealedLink === privateLinkIdentity,
+  );
+  useEffect((): void => {
+    setRevealedLink(null);
+    setNotice(null);
+  }, [projectId, links?.https]);
 
   const selectedProject: ProjectItem | undefined = projectList.find(
     (project: ProjectItem) => {
@@ -218,8 +231,8 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
         >
           <Text
             style={{
-              fontSize: 13,
-              lineHeight: 18,
+              fontSize: 14,
+              lineHeight: 22,
               color:
                 notice.kind === "error"
                   ? theme.colors.statusError
@@ -333,10 +346,7 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
     return (
       <View testID="feed-active">
         <View style={{ marginBottom: 20 }}>
-          <SectionHeader
-            title="Your subscription"
-            iconName="calendar-outline"
-          />
+          <SectionHeader title="Your subscription" />
           <Text
             style={{
               fontSize: 14,
@@ -384,57 +394,6 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
         ) : null}
 
         {links ? (
-          <View
-            testID="feed-link-box"
-            style={{
-              borderRadius: 16,
-              paddingHorizontal: 14,
-              paddingVertical: 12,
-              backgroundColor: theme.colors.backgroundTertiary,
-              borderWidth: 1,
-              borderColor: theme.colors.borderSubtle,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 13,
-                fontWeight: "600",
-                letterSpacing: 0.6,
-                textTransform: "uppercase",
-                color: theme.colors.textTertiary,
-              }}
-            >
-              Your private link
-            </Text>
-            <Text
-              testID="feed-https-url"
-              selectable
-              style={{
-                fontSize: 13,
-                marginTop: 6,
-                lineHeight: 18,
-                color: theme.colors.textPrimary,
-                fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-              }}
-            >
-              {links.https}
-            </Text>
-          </View>
-        ) : null}
-
-        <Text
-          testID="feed-fetch-status"
-          style={{
-            fontSize: 14,
-            marginTop: 10,
-            marginLeft: 4,
-            color: theme.colors.textTertiary,
-          }}
-        >
-          {describeFetchStatus(status, now)}
-        </Text>
-
-        {links ? (
           <View style={{ marginTop: 16, gap: 10 }}>
             {Platform.OS === "ios" ? (
               <>
@@ -450,7 +409,7 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
                     fontSize: 14,
                     lineHeight: 21,
                     marginHorizontal: 4,
-                    color: theme.colors.textTertiary,
+                    color: theme.colors.textSecondary,
                   }}
                 >
                   {IOS_SUBSCRIBE_HINT}
@@ -487,6 +446,113 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
             />
           </View>
         ) : null}
+
+        {links ? (
+          <Text
+            testID="feed-privacy-warning"
+            style={{
+              fontSize: 14,
+              lineHeight: 22,
+              color: theme.colors.textSecondary,
+              marginTop: 14,
+            }}
+          >
+            This link is private to you — treat it like a password. Anyone who
+            has it can see your shifts.
+          </Text>
+        ) : null}
+
+        {links ? (
+          <View
+            testID="feed-link-box"
+            style={{
+              marginTop: 20,
+              backgroundColor: theme.colors.backgroundElevated,
+              borderRadius: 16,
+              padding: 16,
+            }}
+          >
+            <View
+              style={{ flexDirection: "row", gap: 10, alignItems: "center" }}
+            >
+              <Ionicons
+                name="link-outline"
+                size={19}
+                color={theme.colors.textSecondary}
+              />
+              <Text
+                style={{
+                  flex: 1,
+                  fontSize: 15,
+                  lineHeight: 22,
+                  fontWeight: "600",
+                  color: theme.colors.textPrimary,
+                }}
+              >
+                Your private link
+              </Text>
+              <Pressable
+                testID="toggle-private-link"
+                accessibilityRole="button"
+                accessibilityLabel={
+                  isPrivateLinkVisible
+                    ? "Hide private link"
+                    : "Show private link"
+                }
+                accessibilityState={{ expanded: isPrivateLinkVisible }}
+                aria-expanded={isPrivateLinkVisible}
+                onPress={() => {
+                  setRevealedLink(
+                    isPrivateLinkVisible ? null : privateLinkIdentity,
+                  );
+                }}
+                style={{
+                  minHeight: 48,
+                  minWidth: 48,
+                  paddingHorizontal: 6,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: "600",
+                    color: theme.colors.actionPrimary,
+                  }}
+                >
+                  {isPrivateLinkVisible ? "Hide" : "Show"}
+                </Text>
+              </Pressable>
+            </View>
+            {isPrivateLinkVisible ? (
+              <Text
+                testID="feed-https-url"
+                selectable
+                style={{
+                  fontSize: 13,
+                  marginTop: 10,
+                  lineHeight: 20,
+                  color: theme.colors.textSecondary,
+                  fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+                }}
+              >
+                {links.https}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        <Text
+          testID="feed-fetch-status"
+          style={{
+            fontSize: 14,
+            marginTop: 10,
+            color: theme.colors.textTertiary,
+          }}
+        >
+          {describeFetchStatus(status, now)}
+        </Text>
 
         {renderNotice()}
 
@@ -566,7 +632,7 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
             borderTopColor: theme.colors.borderSubtle,
           }}
         >
-          <SectionHeader title="Manage your link" iconName="key-outline" />
+          <SectionHeader title="Manage your link" />
           <Text
             style={{
               fontSize: 14,
@@ -610,68 +676,15 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
     >
       <ScreenIntro
         title="Calendar sync"
-        description="Plan ahead with your on-call shifts in the calendar you already use."
+        description="Your on-call schedule, alongside the rest of your day."
       />
-      <View
-        style={{
-          borderRadius: 16,
-          padding: 18,
-          marginBottom: 24,
-          backgroundColor: theme.colors.backgroundElevated,
-          borderWidth: 1,
-          borderColor: theme.colors.borderGlass,
-        }}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <View
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 12,
-              alignItems: "center",
-              justifyContent: "center",
-              marginRight: 10,
-              backgroundColor: theme.colors.iconBackground,
-            }}
-          >
-            <Ionicons
-              name="calendar-outline"
-              size={16}
-              color={theme.colors.actionPrimary}
-            />
-          </View>
-          <Text
-            style={{
-              flex: 1,
-              fontSize: 18,
-              fontWeight: "700",
-              color: theme.colors.textPrimary,
-            }}
-          >
-            Your shifts, in your calendar
-          </Text>
-        </View>
-        <Text
-          style={{
-            fontSize: 15,
-            lineHeight: 22,
-            marginTop: 10,
-            color: theme.colors.textSecondary,
-          }}
-        >
-          Subscribe once from Google Calendar, Outlook or Apple Calendar and
-          your on-call shifts stay in step with the schedule. The link is
-          private to you - treat it like a password.
-        </Text>
-      </View>
-
       {projectList[0] ? (
         <Text
           testID="calendar-project-name"
           style={{
             fontSize: 14,
             color: theme.colors.textSecondary,
-            marginBottom: 20,
+            marginBottom: 24,
           }}
         >
           Project: {projectList[0].name}
@@ -710,25 +723,20 @@ function InfoCard({
         ? theme.colors.statusErrorBg
         : theme.colors.backgroundElevated;
 
-  const border: string =
-    tone === "info" ? theme.colors.borderGlass : color + "33";
-
   return (
     <View
       testID={testID}
       style={{
-        borderRadius: 16,
-        padding: 16,
-        backgroundColor: background,
-        borderWidth: 1,
-        borderColor: border,
+        borderRadius: tone === "info" ? 0 : 14,
+        padding: tone === "info" ? 0 : 16,
+        backgroundColor: tone === "info" ? "transparent" : background,
         ...style,
       }}
     >
       <Text
         style={{
-          fontSize: 14,
-          lineHeight: 21,
+          fontSize: 15,
+          lineHeight: 23,
           color: tone === "info" ? theme.colors.textSecondary : color,
         }}
       >

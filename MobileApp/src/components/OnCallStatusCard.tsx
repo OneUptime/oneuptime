@@ -35,10 +35,6 @@ export default function OnCallStatusCard({
 }: OnCallStatusCardProps): React.JSX.Element {
   const { theme } = useTheme();
 
-  const accent: string = summary.isOnCall
-    ? theme.colors.oncallActive
-    : theme.colors.textTertiary;
-
   const accentBackground: string = summary.isOnCall
     ? theme.colors.oncallActiveBg
     : theme.colors.oncallInactiveBg;
@@ -90,136 +86,109 @@ export default function OnCallStatusCard({
     now,
   );
 
+  const highlighted: boolean = summary.isOnCall && !isLoading;
+  const foreground: string = highlighted
+    ? theme.colors.textInverse
+    : theme.colors.textPrimary;
   return (
     <View
       testID="oncall-status-card"
       accessibilityLabel={`${headline}. ${subtitle}.`}
       style={{
-        borderRadius: 16,
-        overflow: "hidden",
-        backgroundColor: theme.colors.backgroundElevated,
-        borderWidth: 1,
-        borderColor:
-          summary.isOnCall && !isLoading
-            ? theme.colors.oncallActive + "66"
-            : theme.colors.borderSubtle,
+        borderRadius: 20,
+        padding: 20,
+        backgroundColor: highlighted
+          ? theme.colors.actionPrimary
+          : theme.colors.backgroundElevated,
+        borderWidth: highlighted ? 0 : 1,
+        borderColor: theme.colors.borderSubtle,
       }}
     >
-      <View style={{ padding: 20 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 16,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 11,
+            fontWeight: "700",
+            letterSpacing: 1.4,
+            color: foreground,
+          }}
+        >
+          {isLoading ? "CHECKING" : summary.isOnCall ? "ON CALL" : "OFF CALL"}
+        </Text>
+        <View
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 17,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: highlighted ? "#FFFFFF20" : accentBackground,
+          }}
+        >
+          <Ionicons name="call-outline" size={17} color={foreground} />
+        </View>
+      </View>
+      <Text
+        accessibilityRole="header"
+        style={{
+          fontSize: 27,
+          lineHeight: 34,
+          fontWeight: "700",
+          letterSpacing: -0.8,
+          color: foreground,
+        }}
+      >
+        {headline}
+      </Text>
+      <Text
+        style={{
+          fontSize: 15,
+          lineHeight: 23,
+          marginTop: 6,
+          color: highlighted ? foreground : theme.colors.textSecondary,
+        }}
+      >
+        {subtitle}
+      </Text>
+      {!isLoading && (handoffAtLabel || nextShiftAtLabel) ? (
         <View
           style={{
             flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 24,
+            paddingTop: 16,
+            marginTop: 18,
+            borderTopWidth: 1,
+            borderTopColor: highlighted
+              ? "#FFFFFF35"
+              : theme.colors.borderSubtle,
           }}
         >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              paddingHorizontal: 10,
-              paddingVertical: 5,
-              borderRadius: 9999,
-              backgroundColor: accentBackground,
-            }}
-          >
-            <View
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: 9999,
-                marginRight: 7,
-                backgroundColor: accent,
-              }}
+          {handoffAtLabel ? (
+            <MetaColumn
+              iconName="log-out-outline"
+              label="Handoff"
+              value={handoffAtLabel}
+              color={highlighted ? foreground : undefined}
             />
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: "700",
-                letterSpacing: 0.8,
-                color: accent,
-              }}
-            >
-              {isLoading
-                ? "CHECKING"
-                : summary.isOnCall
-                  ? "ON CALL"
-                  : "OFF CALL"}
-            </Text>
-          </View>
-
-          <View
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 14,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: accentBackground,
-            }}
-          >
-            <Ionicons
-              name={summary.isOnCall ? "call" : "call-outline"}
-              size={18}
-              color={accent}
+          ) : null}
+          {nextShiftAtLabel ? (
+            <MetaColumn
+              iconName="calendar-outline"
+              label="Next shift"
+              value={nextShiftAtLabel}
+              color={highlighted ? foreground : undefined}
             />
-          </View>
+          ) : null}
         </View>
-
-        <Text
-          accessibilityRole="header"
-          style={{
-            fontSize: 28,
-            fontWeight: "bold",
-            marginTop: 16,
-            letterSpacing: -0.6,
-            color: theme.colors.textPrimary,
-          }}
-        >
-          {headline}
-        </Text>
-
-        <Text
-          style={{
-            fontSize: 16,
-            marginTop: 8,
-            lineHeight: 24,
-            color: theme.colors.textSecondary,
-          }}
-        >
-          {subtitle}
-        </Text>
-
-        {!isLoading && (handoffAtLabel || nextShiftAtLabel) ? (
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 16,
-              marginTop: 18,
-              paddingTop: 16,
-              borderTopWidth: 1,
-              borderTopColor: theme.colors.borderSubtle,
-            }}
-          >
-            {handoffAtLabel ? (
-              <MetaColumn
-                iconName="log-out-outline"
-                label="Handoff"
-                value={handoffAtLabel}
-              />
-            ) : null}
-
-            {nextShiftAtLabel ? (
-              <MetaColumn
-                iconName="calendar-outline"
-                label="Next shift"
-                value={nextShiftAtLabel}
-              />
-            ) : null}
-          </View>
-        ) : null}
-      </View>
+      ) : null}
     </View>
   );
 }
@@ -228,7 +197,9 @@ function MetaColumn({
   iconName,
   label,
   value,
+  color,
 }: {
+  color?: string;
   iconName: keyof typeof Ionicons.glyphMap;
   label: string;
   value: string;
@@ -238,7 +209,11 @@ function MetaColumn({
   return (
     <View style={{ flex: 1, minWidth: 110 }}>
       <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <Ionicons name={iconName} size={12} color={theme.colors.textTertiary} />
+        <Ionicons
+          name={iconName}
+          size={12}
+          color={color ?? theme.colors.textTertiary}
+        />
         <Text
           style={{
             fontSize: 12,
@@ -246,7 +221,7 @@ function MetaColumn({
             marginLeft: 5,
             letterSpacing: 0.6,
             textTransform: "uppercase",
-            color: theme.colors.textTertiary,
+            color: color ?? theme.colors.textTertiary,
           }}
         >
           {label}
@@ -257,7 +232,7 @@ function MetaColumn({
           fontSize: 15,
           fontWeight: "600",
           marginTop: 4,
-          color: theme.colors.textPrimary,
+          color: color ?? theme.colors.textPrimary,
         }}
       >
         {value}

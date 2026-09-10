@@ -1,14 +1,5 @@
 import React, { useState, useCallback } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  ActivityIndicator,
-  RefreshControl,
-  Alert,
-  Pressable,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Text, ScrollView, RefreshControl, Alert } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { useScreenPadding } from "../hooks/useScreenPadding";
@@ -33,9 +24,16 @@ import AddNoteModal from "../components/AddNoteModal";
 import EmptyState from "../components/EmptyState";
 import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
-import SectionHeader from "../components/SectionHeader";
+import {
+  ResponseDetailHeader,
+  ResponseActions,
+  ResponseInfoRow,
+  ResponseSection,
+  type ResponseAction,
+} from "../components/ResponseDetailLayout";
 import NotesSection from "../components/NotesSection";
 import MarkdownContent from "../components/MarkdownContent";
+import RootCauseCard from "../components/RootCauseCard";
 import { useHaptics } from "../hooks/useHaptics";
 
 type Props = NativeStackScreenProps<AlertsStackParamList, "AlertEpisodeDetail">;
@@ -246,10 +244,6 @@ export default function AlertEpisodeDetailScreen({
     ? rgbToHex(episode.currentAlertState.color)
     : theme.colors.textTertiary;
 
-  const severityColor: string = episode.alertSeverity?.color
-    ? rgbToHex(episode.alertSeverity.color)
-    : theme.colors.textTertiary;
-
   const acknowledgeState: AlertState | undefined = states?.find(
     (s: AlertState) => {
       return s.isAcknowledgedState;
@@ -271,6 +265,31 @@ export default function AlertEpisodeDetailScreen({
     rootCauseTextRaw.trim() || undefined;
   const descriptionText: string = toPlainText(episode.description);
 
+  const actions: ResponseAction[] = [];
+  if (!isResolved && !isAcknowledged && acknowledgeState) {
+    actions.push({
+      label: "Acknowledge",
+      accessibilityLabel: "Acknowledge alert episode",
+      busyAccessibilityLabel:
+        "Acknowledge alert episode, state change in progress",
+      primary: true,
+      onPress: () => {
+        return handleStateChange(acknowledgeState._id, acknowledgeState.name);
+      },
+    });
+  }
+  if (!isResolved && resolveState) {
+    actions.push({
+      label: "Resolve",
+      accessibilityLabel: "Resolve alert episode",
+      busyAccessibilityLabel: "Resolve alert episode, state change in progress",
+      primary: isAcknowledged || !acknowledgeState,
+      onPress: () => {
+        return handleStateChange(resolveState._id, resolveState.name);
+      },
+    });
+  }
+
   return (
     <ScrollView
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
@@ -285,371 +304,52 @@ export default function AlertEpisodeDetailScreen({
         />
       }
     >
-      <View
+      <ResponseDetailHeader
+        title={episode.title}
+        kind="Alert episode"
+        number={episode.episodeNumberWithPrefix || `#${episode.episodeNumber}`}
+        state={episode.currentAlertState?.name}
+        stateColor={stateColor}
+        severity={episode.alertSeverity?.name}
+      />
+      <Text
+        accessibilityLiveRegion="polite"
         style={{
-          borderRadius: 16,
-          overflow: "hidden",
-          marginBottom: 20,
-          backgroundColor: theme.colors.backgroundElevated,
-          borderWidth: 1,
-          borderColor: theme.colors.borderGlass,
-          shadowColor: "#000",
-          shadowOpacity: 0.06,
-          shadowOffset: { width: 0, height: 2 },
-          shadowRadius: 6,
-          elevation: 1,
+          color: theme.colors.textSecondary,
+          fontSize: 15,
+          lineHeight: 23,
+          marginBottom: 22,
         }}
       >
-        <View style={{ height: 3, backgroundColor: stateColor }} />
-        <View style={{ padding: 20 }}>
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "600",
-              marginBottom: 8,
-              color: stateColor,
-            }}
-          >
-            {episode.episodeNumberWithPrefix || `#${episode.episodeNumber}`}
-          </Text>
-          <Text
-            style={{
-              fontSize: 28,
-              lineHeight: 36,
-              fontWeight: "bold",
-              color: theme.colors.textPrimary,
-              letterSpacing: -0.6,
-            }}
-          >
-            {episode.title}
-          </Text>
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 8,
-              marginTop: 12,
-            }}
-          >
-            {episode.currentAlertState ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingHorizontal: 10,
-                  paddingVertical: 6,
-                  borderRadius: 6,
-                  backgroundColor: stateColor + "14",
-                }}
-              >
-                <View
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 9999,
-                    marginRight: 6,
-                    backgroundColor: stateColor,
-                  }}
-                />
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: "600",
-                    color: stateColor,
-                  }}
-                >
-                  {episode.currentAlertState.name}
-                </Text>
-              </View>
-            ) : null}
-            {episode.alertSeverity ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingHorizontal: 10,
-                  paddingVertical: 6,
-                  borderRadius: 6,
-                  backgroundColor: severityColor + "14",
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: "600",
-                    color: severityColor,
-                  }}
-                >
-                  {episode.alertSeverity.name}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        </View>
-      </View>
-
-      <View style={{ marginBottom: 20 }}>
-        <Text
-          accessibilityLiveRegion="polite"
-          style={{
-            color: theme.colors.textSecondary,
-            fontSize: 15,
-            lineHeight: 23,
-          }}
-        >
-          {isResolved
-            ? "This episode is resolved. Review the context and team notes below."
+        {isResolved
+          ? "This alert episode is resolved. Review the context and team notes below."
+          : isAcknowledged
+            ? "A responder has acknowledged this alert episode. Resolve it once recovery is confirmed."
             : "Actions on this episode apply to its grouped alerts. Acknowledge to take responsibility, or resolve when recovery is confirmed."}
-        </Text>
-      </View>
-
-      {!isResolved ? (
-        <View style={{ marginBottom: 24 }}>
-          <SectionHeader title="Actions" iconName="flash-outline" />
-          <View
-            style={{
-              borderRadius: 16,
-              padding: 12,
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderGlass,
-            }}
-          >
-            <View style={{ flexDirection: "row" }}>
-              {!isAcknowledged && !isResolved && acknowledgeState ? (
-                <View style={{ flex: 1 }}>
-                  <Pressable
-                    style={{
-                      flexDirection: "row",
-                      paddingVertical: 12,
-                      borderRadius: 12,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      minHeight: 48,
-                      backgroundColor: theme.colors.stateAcknowledged,
-                    }}
-                    onPress={() => {
-                      return handleStateChange(
-                        acknowledgeState._id,
-                        acknowledgeState.name,
-                      );
-                    }}
-                    disabled={changingState}
-                    accessibilityState={{
-                      disabled: changingState,
-                      busy: changingState,
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      changingState
-                        ? "Acknowledge alert episode, state change in progress"
-                        : "Acknowledge alert episode"
-                    }
-                  >
-                    {changingState ? (
-                      <ActivityIndicator
-                        size="small"
-                        color={theme.colors.backgroundPrimary}
-                      />
-                    ) : (
-                      <>
-                        <Ionicons
-                          name="checkmark-circle-outline"
-                          size={17}
-                          color={theme.colors.backgroundPrimary}
-                          style={{ marginRight: 6 }}
-                        />
-                        <Text
-                          style={{
-                            fontSize: 14,
-                            fontWeight: "bold",
-                            color: theme.colors.backgroundPrimary,
-                          }}
-                        >
-                          Acknowledge
-                        </Text>
-                      </>
-                    )}
-                  </Pressable>
-                </View>
-              ) : null}
-              {resolveState ? (
-                <View
-                  style={{
-                    flex: 1,
-                    marginLeft:
-                      !isAcknowledged && !isResolved && acknowledgeState
-                        ? 12
-                        : 0,
-                  }}
-                >
-                  <Pressable
-                    style={{
-                      flexDirection: "row",
-                      paddingVertical: 12,
-                      borderRadius: 12,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      minHeight: 48,
-                      backgroundColor: theme.colors.stateResolved,
-                    }}
-                    onPress={() => {
-                      return handleStateChange(
-                        resolveState._id,
-                        resolveState.name,
-                      );
-                    }}
-                    disabled={changingState}
-                    accessibilityState={{
-                      disabled: changingState,
-                      busy: changingState,
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      changingState
-                        ? "Resolve alert episode, state change in progress"
-                        : "Resolve alert episode"
-                    }
-                  >
-                    {changingState ? (
-                      <ActivityIndicator
-                        size="small"
-                        color={theme.colors.backgroundPrimary}
-                      />
-                    ) : (
-                      <>
-                        <Ionicons
-                          name="checkmark-done-outline"
-                          size={17}
-                          color={theme.colors.backgroundPrimary}
-                          style={{ marginRight: 6 }}
-                        />
-                        <Text
-                          style={{
-                            fontSize: 14,
-                            fontWeight: "bold",
-                            color: theme.colors.backgroundPrimary,
-                          }}
-                        >
-                          Resolve
-                        </Text>
-                      </>
-                    )}
-                  </Pressable>
-                </View>
-              ) : null}
-            </View>
-          </View>
-        </View>
+      </Text>
+      {actions.length > 0 ? (
+        <ResponseActions actions={actions} busy={changingState} />
       ) : null}
-
       {descriptionText ? (
-        <View style={{ marginBottom: 24 }}>
-          <SectionHeader title="Description" iconName="document-text-outline" />
-          <View
-            style={{
-              borderRadius: 16,
-              padding: 16,
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderGlass,
-            }}
-          >
-            <MarkdownContent content={descriptionText} />
-          </View>
-        </View>
+        <ResponseSection title="Description">
+          <MarkdownContent content={descriptionText} />
+        </ResponseSection>
       ) : null}
-
-      <View style={{ marginBottom: 24 }}>
-        <SectionHeader title="Root Cause" iconName="git-branch-outline" />
-        <View
-          style={{
-            borderRadius: 16,
-            padding: 16,
-            backgroundColor: theme.colors.backgroundElevated,
-            borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 14,
-              lineHeight: 22,
-              color: rootCauseText
-                ? theme.colors.textPrimary
-                : theme.colors.textTertiary,
-            }}
-          >
-            {rootCauseText || "No root cause documented yet."}
-          </Text>
-        </View>
-      </View>
-
-      <View style={{ marginBottom: 24 }}>
-        <SectionHeader title="Details" iconName="information-circle-outline" />
-        <View
-          style={{
-            borderRadius: 16,
-            overflow: "hidden",
-            backgroundColor: theme.colors.backgroundElevated,
-            borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
-          }}
-        >
-          <View style={{ padding: 16 }}>
-            <View style={{ flexDirection: "row", marginBottom: 12 }}>
-              <Text
-                style={{
-                  fontSize: 14,
-                  width: 90,
-                  flexShrink: 0,
-                  color: theme.colors.textSecondary,
-                }}
-              >
-                Created
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  flexShrink: 1,
-                  color: theme.colors.textPrimary,
-                }}
-              >
-                {formatDateTime(episode.createdAt)}
-              </Text>
-            </View>
-            <View style={{ flexDirection: "row" }}>
-              <Text
-                style={{
-                  fontSize: 14,
-                  width: 90,
-                  flexShrink: 0,
-                  color: theme.colors.textSecondary,
-                }}
-              >
-                Alerts
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  flexShrink: 1,
-                  color: theme.colors.textPrimary,
-                }}
-              >
-                {episode.alertCount ?? 0}
-              </Text>
-            </View>
-          </View>
-        </View>
-      </View>
-
+      <ResponseSection title="Details">
+        <ResponseInfoRow
+          label="Created"
+          value={formatDateTime(episode.createdAt)}
+        />
+        <ResponseInfoRow label="Alerts" value={episode.alertCount ?? 0} />
+      </ResponseSection>
+      <ResponseSection title="Root Cause">
+        <RootCauseCard rootCauseText={rootCauseText} />
+      </ResponseSection>
       {feed && feed.length > 0 ? (
-        <View style={{ marginBottom: 24 }}>
-          <SectionHeader title="Activity Feed" iconName="list-outline" />
+        <ResponseSection title="Activity Feed">
           <FeedTimeline feed={feed} />
-        </View>
+        </ResponseSection>
       ) : null}
-
       <NotesSection notes={notes} setNoteModalVisible={setNoteModalVisible} />
       <AddNoteModal
         visible={noteModalVisible}

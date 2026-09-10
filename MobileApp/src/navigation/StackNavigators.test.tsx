@@ -11,6 +11,7 @@ import { describe, expect, test, jest } from "@jest/globals";
 import AlertsStackNavigator from "./AlertsStackNavigator";
 import AuthStackNavigator from "./AuthStackNavigator";
 import IncidentsStackNavigator from "./IncidentsStackNavigator";
+import InboxStackNavigator from "./InboxStackNavigator";
 import MonitorsStackNavigator from "./MonitorsStackNavigator";
 import OnCallStackNavigator from "./OnCallStackNavigator";
 import SettingsStackNavigator from "./SettingsStackNavigator";
@@ -18,6 +19,7 @@ import type {
   AlertsStackParamList,
   AuthStackParamList,
   IncidentsStackParamList,
+  InboxStackParamList,
   MonitorsStackParamList,
   OnCallStackParamList,
   SettingsStackParamList,
@@ -114,6 +116,10 @@ jest.mock("../screens/auth/BackupCodesScreen", () => {
 
 jest.mock("../screens/AlertsScreen", () => {
   return mockScreenStub("screen-alerts-list");
+});
+
+jest.mock("../screens/InboxScreen", () => {
+  return mockScreenStub("screen-inbox-list");
 });
 
 jest.mock("../screens/AlertDetailScreen", () => {
@@ -274,6 +280,24 @@ const INCIDENTS_ROUTES: Record<keyof IncidentsStackParamList, TitledRoute> = {
   },
 };
 
+const INBOX_ROUTES: Record<keyof InboxStackParamList, TitledRoute> = {
+  InboxList: {
+    testID: "screen-inbox-list",
+    title: "Inbox",
+    keepsIosLargeTitle: false,
+  },
+  IncidentDetail: INCIDENTS_ROUTES.IncidentDetail,
+  IncidentEpisodeDetail: {
+    ...INCIDENTS_ROUTES.IncidentEpisodeDetail,
+    title: "Incident group",
+  },
+  AlertDetail: ALERTS_ROUTES.AlertDetail,
+  AlertEpisodeDetail: {
+    ...ALERTS_ROUTES.AlertEpisodeDetail,
+    title: "Alert group",
+  },
+};
+
 const MONITORS_ROUTES: Record<keyof MonitorsStackParamList, TitledRoute> = {
   MonitorsList: {
     testID: "screen-monitors-list",
@@ -386,6 +410,7 @@ const SETTINGS_ROUTES: Record<keyof SettingsStackParamList, TitledRoute> = {
 
 const CONTENT_STACKS: Array<StackUnderTest> = [
   { name: "Alerts", element: <AlertsStackNavigator />, routes: ALERTS_ROUTES },
+  { name: "Inbox", element: <InboxStackNavigator />, routes: INBOX_ROUTES },
   {
     name: "Incidents",
     element: <IncidentsStackNavigator />,

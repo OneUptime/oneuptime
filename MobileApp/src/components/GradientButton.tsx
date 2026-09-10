@@ -39,7 +39,7 @@ export default function GradientButton({
   testID,
 }: GradientButtonProps): React.JSX.Element {
   const { theme } = useTheme();
-  const primaryContentColor: string = theme.colors.backgroundPrimary;
+  const primaryContentColor: string = theme.colors.textInverse;
 
   const isDisabled: boolean = disabled || loading;
 
@@ -57,6 +57,8 @@ export default function GradientButton({
          */
         accessibilityLabel={label}
         accessibilityState={{ disabled: isDisabled, busy: loading }}
+        aria-disabled={isDisabled}
+        aria-busy={loading}
         onPress={onPress}
         disabled={isDisabled}
         style={[
@@ -64,11 +66,11 @@ export default function GradientButton({
             minHeight: 52,
             paddingHorizontal: 16,
             paddingVertical: 14,
-            borderRadius: 14,
+            borderRadius: 12,
             alignItems: "center" as const,
             justifyContent: "center" as const,
             overflow: "hidden" as const,
-            backgroundColor: theme.colors.backgroundTertiary,
+            backgroundColor: theme.colors.backgroundSecondary,
             borderWidth: 1,
             borderColor: theme.colors.borderDefault,
             opacity: isDisabled ? 0.5 : 1,
@@ -112,6 +114,8 @@ export default function GradientButton({
       /* Named explicitly for the reason given on the secondary variant above. */
       accessibilityLabel={label}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
+      aria-disabled={isDisabled}
+      aria-busy={loading}
       onPress={onPress}
       disabled={isDisabled}
       style={[
@@ -119,7 +123,7 @@ export default function GradientButton({
           minHeight: 52,
           paddingHorizontal: 16,
           paddingVertical: 14,
-          borderRadius: 14,
+          borderRadius: 12,
           overflow: "hidden" as const,
           alignItems: "center" as const,
           justifyContent: "center" as const,

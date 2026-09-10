@@ -5,7 +5,7 @@ import { useTheme } from "../theme";
 
 interface SectionHeaderProps {
   title: string;
-  iconName: keyof typeof Ionicons.glyphMap;
+  iconName?: keyof typeof Ionicons.glyphMap;
 }
 
 export default function SectionHeader({
@@ -21,25 +21,27 @@ export default function SectionHeader({
         marginBottom: 14,
       }}
     >
-      <View
-        style={{
-          width: 24,
-          height: 24,
-          borderRadius: 8,
-          alignItems: "center",
-          justifyContent: "center",
-          marginRight: 8,
-          backgroundColor: theme.colors.iconBackground,
-          borderWidth: 1,
-          borderColor: theme.colors.borderGlass,
-        }}
-      >
-        <Ionicons
-          name={iconName}
-          size={13}
-          color={theme.colors.actionPrimary}
-        />
-      </View>
+      {iconName ? (
+        <View
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 0,
+            alignItems: "center",
+            justifyContent: "center",
+            marginRight: 8,
+            backgroundColor: "transparent",
+            borderWidth: 0,
+            borderColor: theme.colors.borderGlass,
+          }}
+        >
+          <Ionicons
+            name={iconName}
+            size={18}
+            color={theme.colors.textTertiary}
+          />
+        </View>
+      ) : null}
       <Text
         accessibilityRole="header"
         style={{

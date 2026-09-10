@@ -9,31 +9,15 @@ interface RosterScheduleCardProps {
   entry: ProjectOnCallScheduleItem;
   currentUserId: string | null;
   now: number;
-
-  /*
-   * When given, the card offers "Share team calendar link" - the shared feed
-   * an editor published for this schedule, handed to a colleague through the
-   * share sheet. Absent on servers that predate calendar feeds.
-   */
   onShareCalendar?: (entry: ProjectOnCallScheduleItem) => void;
   isSharingCalendar?: boolean;
 }
 
 export function displayNameForUser(user: OnCallUserRef | null): string {
-  if (!user) {
-    return "Nobody";
-  }
-
-  return user.name || user.email || "Unnamed user";
+  return user ? user.name || user.email || "Unnamed user" : "Nobody";
 }
 
-/*
- * Who is carrying this schedule's phone, and who takes it next.
- *
- * The uncovered case is called out rather than left blank. A schedule with no
- * current user pages nobody, and "—" in a table has never once made that land
- * with the person reading it at 2am.
- */
+/** Current coverage and the next handoff remain separate, explicit facts. */
 export default function RosterScheduleCard({
   entry,
   currentUserId,
@@ -43,28 +27,17 @@ export default function RosterScheduleCard({
 }: RosterScheduleCardProps): React.JSX.Element {
   const { theme } = useTheme();
   const schedule: ProjectOnCallScheduleItem["item"] = entry.item;
-
   const isCovered: boolean = Boolean(schedule.currentUserOnRoster);
-
   const isMe: boolean = Boolean(
-    currentUserId &&
-      schedule.currentUserOnRoster &&
-      schedule.currentUserOnRoster._id === currentUserId,
+    currentUserId && schedule.currentUserOnRoster?._id === currentUserId,
   );
-
   const accent: string = isCovered
     ? theme.colors.oncallActive
     : theme.colors.severityWarning;
-
-  const accentBackground: string = isCovered
-    ? theme.colors.oncallActiveBg
-    : theme.colors.severityWarningBg;
-
   const handoffLabel: string | null = formatTimeUntil(
     schedule.rosterHandoffAt,
     now,
   );
-
   const nextStartLabel: string | null = formatShiftTime(
     schedule.rosterNextStartAt,
     now,
@@ -74,61 +47,26 @@ export default function RosterScheduleCard({
     <View
       testID={`roster-card-${schedule._id}`}
       style={{
-        borderRadius: 16,
+        borderRadius: 18,
         padding: 18,
         backgroundColor: theme.colors.backgroundElevated,
-        borderWidth: 1,
-        borderColor: isCovered
-          ? theme.colors.borderSubtle
-          : theme.colors.severityWarning + "66",
+        borderLeftWidth: isCovered ? 0 : 3,
+        borderLeftColor: accent,
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <View style={{ flex: 1 }}>
-          <Text
-            style={{
-              fontSize: 17,
-              fontWeight: "600",
-              color: theme.colors.textPrimary,
-            }}
-            numberOfLines={2}
-          >
-            {schedule.name}
-          </Text>
-          <Text
-            style={{
-              fontSize: 14,
-              marginTop: 2,
-              color: theme.colors.textTertiary,
-            }}
-            numberOfLines={1}
-          >
-            {entry.projectName}
-          </Text>
-        </View>
-
-        {isMe ? (
-          <View
-            style={{
-              paddingHorizontal: 9,
-              paddingVertical: 4,
-              borderRadius: 9999,
-              backgroundColor: theme.colors.oncallActiveBg,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: "700",
-                letterSpacing: 0.5,
-                color: theme.colors.oncallActive,
-              }}
-            >
-              YOU
-            </Text>
-          </View>
-        ) : null}
-
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <Text
+          style={{
+            flex: 1,
+            fontSize: 17,
+            fontWeight: "600",
+            lineHeight: 24,
+            letterSpacing: -0.2,
+            color: theme.colors.textPrimary,
+          }}
+        >
+          {schedule.name}
+        </Text>
         {onShareCalendar ? (
           <Pressable
             testID={`roster-share-${schedule._id}`}
@@ -139,20 +77,22 @@ export default function RosterScheduleCard({
               disabled: isSharingCalendar,
               busy: isSharingCalendar,
             }}
-            onPress={() => {
+            aria-disabled={isSharingCalendar}
+            aria-busy={isSharingCalendar}
+            onPress={(): void => {
               onShareCalendar(entry);
             }}
-            hitSlop={8}
             style={({ pressed }: { pressed: boolean }) => {
               return {
                 width: 48,
                 height: 48,
-                borderRadius: 14,
-                marginLeft: 8,
+                borderRadius: 12,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: theme.colors.iconBackground,
-                opacity: pressed || isSharingCalendar ? 0.6 : 1,
+                backgroundColor: pressed
+                  ? theme.colors.backgroundTertiary
+                  : theme.colors.iconBackground,
+                opacity: isSharingCalendar ? 0.6 : 1,
               };
             }}
           >
@@ -164,123 +104,128 @@ export default function RosterScheduleCard({
             ) : (
               <Ionicons
                 name="share-outline"
-                size={20}
+                size={19}
                 color={theme.colors.actionPrimary}
               />
             )}
           </Pressable>
         ) : null}
       </View>
-
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
+          gap: 12,
           marginTop: 14,
-          paddingTop: 14,
-          borderTopWidth: 1,
-          borderTopColor: theme.colors.borderSubtle,
         }}
       >
         <View
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 12,
+            width: 36,
+            height: 36,
+            borderRadius: 18,
             alignItems: "center",
             justifyContent: "center",
-            marginRight: 10,
-            backgroundColor: accentBackground,
+            backgroundColor: isCovered
+              ? theme.colors.oncallActiveBg
+              : theme.colors.severityWarningBg,
           }}
         >
           <Ionicons
-            name={isCovered ? "person" : "person-remove-outline"}
-            size={15}
+            name={isCovered ? "person-outline" : "person-remove-outline"}
+            size={18}
             color={accent}
           />
         </View>
-
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, gap: 2 }}>
           <Text
             style={{
-              fontSize: 12,
-              fontWeight: "600",
-              letterSpacing: 0.6,
-              textTransform: "uppercase",
-              color: theme.colors.textTertiary,
+              fontSize: 13,
+              lineHeight: 19,
+              color: theme.colors.textSecondary,
             }}
           >
             On call now
           </Text>
           <Text
             style={{
-              fontSize: 17,
+              fontSize: 16,
+              lineHeight: 23,
               fontWeight: "600",
-              marginTop: 2,
               color: isCovered ? theme.colors.textPrimary : accent,
             }}
-            numberOfLines={2}
           >
             {isCovered
               ? displayNameForUser(schedule.currentUserOnRoster)
               : "Nobody on call"}
           </Text>
         </View>
-
-        {handoffLabel ? (
-          <View style={{ alignItems: "flex-end", marginLeft: 10 }}>
-            <Text
+        {isMe ? (
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: "700",
+              color: theme.colors.oncallActive,
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+              borderRadius: 6,
+              backgroundColor: theme.colors.oncallActiveBg,
+            }}
+          >
+            YOU
+          </Text>
+        ) : null}
+      </View>
+      {handoffLabel || schedule.nextUserOnRoster ? (
+        <View
+          style={{
+            marginTop: 14,
+            paddingTop: 12,
+            borderTopWidth: 1,
+            borderTopColor: theme.colors.borderSubtle,
+            gap: 7,
+          }}
+        >
+          {handoffLabel ? (
+            <View
               style={{
-                fontSize: 12,
-                fontWeight: "600",
-                letterSpacing: 0.6,
-                textTransform: "uppercase",
-                color: theme.colors.textTertiary,
+                flexDirection: "row",
+                flexWrap: "wrap",
+                justifyContent: "space-between",
+                gap: 6,
               }}
             >
-              Handoff
-            </Text>
+              <Text
+                style={{
+                  fontSize: 13,
+                  lineHeight: 20,
+                  color: theme.colors.textSecondary,
+                }}
+              >
+                Handoff
+              </Text>
+              <Text
+                style={{
+                  fontSize: 13,
+                  lineHeight: 20,
+                  fontWeight: "600",
+                  color: theme.colors.textPrimary,
+                  fontVariant: ["tabular-nums"],
+                }}
+              >
+                {handoffLabel}
+              </Text>
+            </View>
+          ) : null}
+          {schedule.nextUserOnRoster ? (
             <Text
               style={{
                 fontSize: 14,
-                fontWeight: "600",
-                marginTop: 2,
+                lineHeight: 21,
                 color: theme.colors.textSecondary,
-                fontVariant: ["tabular-nums"],
               }}
-            >
-              {handoffLabel}
-            </Text>
-          </View>
-        ) : null}
-      </View>
-
-      {schedule.nextUserOnRoster ? (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginTop: 12,
-          }}
-        >
-          <Ionicons
-            name="arrow-forward-circle-outline"
-            size={13}
-            color={theme.colors.textTertiary}
-          />
-          <Text
-            style={{
-              fontSize: 14,
-              lineHeight: 21,
-              marginLeft: 6,
-              flex: 1,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {`Next: ${displayNameForUser(schedule.nextUserOnRoster)}${
-              nextStartLabel ? ` · ${nextStartLabel}` : ""
-            }`}
-          </Text>
+            >{`Next: ${displayNameForUser(schedule.nextUserOnRoster)}${nextStartLabel ? ` · ${nextStartLabel}` : ""}`}</Text>
+          ) : null}
         </View>
       ) : null}
     </View>

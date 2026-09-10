@@ -101,7 +101,7 @@ describe("What an ordinary incident row shows", () => {
 
     expect(screen.getByText("Checkout is down")).toBeTruthy();
     expect(screen.getByText("#7")).toBeTruthy();
-    expect(screen.getByText("INCIDENT")).toBeTruthy();
+    expect(screen.getByText("Incident")).toBeTruthy();
   });
 
   test("the current state and the severity, by name", async () => {

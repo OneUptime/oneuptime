@@ -4,7 +4,7 @@ import {
   SafeAreaInsetsContext,
   type EdgeInsets,
 } from "react-native-safe-area-context";
-import { getTabBarBottom, layout } from "../theme/layout";
+import { layout } from "../theme/layout";
 import {
   createBottomTabNavigator,
   type BottomTabBarButtonProps,
@@ -14,8 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { MainTabParamList } from "./types";
 import HomeScreen from "../screens/HomeScreen";
 import MonitorsStackNavigator from "./MonitorsStackNavigator";
-import IncidentsStackNavigator from "./IncidentsStackNavigator";
-import AlertsStackNavigator from "./AlertsStackNavigator";
+import InboxStackNavigator from "./InboxStackNavigator";
 import OnCallStackNavigator from "./OnCallStackNavigator";
 import SettingsStackNavigator from "./SettingsStackNavigator";
 import { useTheme } from "../theme";
@@ -43,10 +42,10 @@ function TabIcon({
       style={{
         alignItems: "center",
         justifyContent: "center",
-        width: 42,
+        width: 44,
         height: 30,
-        borderRadius: 12,
-        backgroundColor: focused ? accentColor + "20" : "transparent",
+        borderRadius: 10,
+        backgroundColor: focused ? accentColor + "10" : "transparent",
       }}
     >
       <Ionicons name={focused ? focusedName : name} size={22} color={color} />
@@ -67,7 +66,7 @@ export default function MainTabNavigator(): React.JSX.Element {
             return <ProjectSwitcher />;
           },
           headerStyle: {
-            backgroundColor: theme.colors.backgroundPrimary,
+            backgroundColor: theme.colors.backgroundSecondary,
             borderBottomWidth: 1,
             borderBottomColor: theme.colors.borderSubtle,
           },
@@ -80,22 +79,16 @@ export default function MainTabNavigator(): React.JSX.Element {
           },
           tabBarStyle: {
             position: "absolute",
-            left: 8,
-            right: 8,
-            bottom: getTabBarBottom(insets?.bottom ?? 0),
-            backgroundColor: theme.colors.backgroundElevated,
-            borderTopWidth: 0,
-            borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
-            borderRadius: 20,
-            height: layout.tabBarHeight,
-            paddingBottom: 8,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: theme.colors.backgroundSecondary,
+            borderTopWidth: 1,
+            borderTopColor: theme.colors.borderDefault,
+            height: layout.tabBarHeight + (insets?.bottom ?? 0),
+            paddingBottom: 8 + (insets?.bottom ?? 0),
             paddingTop: 8,
-            shadowColor: "#000000",
-            shadowOpacity: 0.35,
-            shadowOffset: { width: 0, height: 8 },
-            shadowRadius: 18,
-            elevation: 16,
+            elevation: 0,
           },
           tabBarActiveTintColor: theme.colors.actionPrimary,
           tabBarInactiveTintColor: theme.colors.textTertiary,
@@ -111,10 +104,10 @@ export default function MainTabNavigator(): React.JSX.Element {
             );
           },
           tabBarLabelStyle: {
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: "600",
             marginTop: 1,
-            letterSpacing: 0.2,
+            letterSpacing: 0,
           },
           tabBarItemStyle: {
             borderRadius: 14,
@@ -178,11 +171,11 @@ export default function MainTabNavigator(): React.JSX.Element {
           }}
         />
         <Tab.Screen
-          name="Incidents"
-          component={IncidentsStackNavigator}
+          name="Inbox"
+          component={InboxStackNavigator}
           options={{
             headerShown: false,
-            tabBarAccessibilityLabel: "Incidents",
+            tabBarAccessibilityLabel: "Inbox",
             tabBarIcon: ({
               color,
               focused,
@@ -192,33 +185,8 @@ export default function MainTabNavigator(): React.JSX.Element {
             }) => {
               return (
                 <TabIcon
-                  name="warning-outline"
-                  focusedName="warning"
-                  color={color}
-                  focused={focused}
-                  accentColor={theme.colors.actionPrimary}
-                />
-              );
-            },
-          }}
-        />
-        <Tab.Screen
-          name="Alerts"
-          component={AlertsStackNavigator}
-          options={{
-            headerShown: false,
-            tabBarAccessibilityLabel: "Alerts",
-            tabBarIcon: ({
-              color,
-              focused,
-            }: {
-              color: string;
-              focused: boolean;
-            }) => {
-              return (
-                <TabIcon
-                  name="alert-circle-outline"
-                  focusedName="alert-circle"
+                  name="file-tray-outline"
+                  focusedName="file-tray"
                   color={color}
                   focused={focused}
                   accentColor={theme.colors.actionPrimary}

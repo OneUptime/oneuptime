@@ -597,20 +597,40 @@ export default function SSOLoginScreen(): React.JSX.Element {
 
   return (
     <AuthLayout
-      title="SSO Login"
-      eyebrow="SIGN IN WITH YOUR TEAM"
+      title="Sign in with your team"
+      compact
+      eyebrow="SINGLE SIGN-ON"
       description={
         providers
           ? "Select your SSO provider"
           : "Choose your provider or enter your email"
       }
     >
+      {isSSOLoading && !providers ? (
+        <View style={{ alignItems: "center", paddingVertical: 32 }}>
+          <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
+          <Text
+            style={{
+              marginTop: 12,
+              fontSize: 14,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            Authenticating...
+          </Text>
+        </View>
+      ) : providers ? (
+        renderProjectStep()
+      ) : (
+        renderEmailStep()
+      )}
+
       <View
         style={{
-          padding: 16,
-          borderRadius: 16,
-          backgroundColor: theme.colors.iconBackground,
-          marginBottom: 24,
+          paddingVertical: 16,
+          borderTopWidth: 1,
+          borderTopColor: theme.colors.borderSubtle,
+          marginTop: 24,
           flexDirection: "row",
           alignItems: "flex-start",
         }}
@@ -633,25 +653,6 @@ export default function SSOLoginScreen(): React.JSX.Element {
           return to OneUptime automatically.
         </Text>
       </View>
-
-      {isSSOLoading && !providers ? (
-        <View style={{ alignItems: "center", paddingVertical: 32 }}>
-          <ActivityIndicator size="large" color={theme.colors.actionPrimary} />
-          <Text
-            style={{
-              marginTop: 12,
-              fontSize: 14,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            Authenticating...
-          </Text>
-        </View>
-      ) : providers ? (
-        renderProjectStep()
-      ) : (
-        renderEmailStep()
-      )}
 
       <View style={{ marginTop: 16 }}>
         <GradientButton

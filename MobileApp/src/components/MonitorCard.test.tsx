@@ -41,8 +41,7 @@ function cardSurface(): RenderedElement {
  * visible while scrolling fast.
  */
 function statusStripe(): RenderedElement {
-  const inner: RenderedElement = cardSurface().children[0] as RenderedElement;
-  return inner.children[0] as RenderedElement;
+  return screen.getByTestId("response-status-marker");
 }
 
 function hoursAgo(hours: number): string {
@@ -91,7 +90,7 @@ describe("What an ordinary monitor row shows", () => {
   test("the kind of check it is, in the list's shorthand", async () => {
     await render(<MonitorCard monitor={makeMonitor()} onPress={noop} />);
 
-    expect(screen.getByText("WEBSITE")).toBeTruthy();
+    expect(screen.getByText("Website")).toBeTruthy();
   });
 
   test("a long monitor type is shortened to the label the list uses", async () => {
@@ -115,7 +114,7 @@ describe("What an ordinary monitor row shows", () => {
 
     await render(<MonitorCard monitor={monitor} onPress={noop} />);
 
-    expect(screen.getByText("KUBERNETES")).toBeTruthy();
+    expect(screen.getByText("Kubernetes")).toBeTruthy();
   });
 
   test("a monitor with no type at all is simply a monitor", async () => {
@@ -123,7 +122,7 @@ describe("What an ordinary monitor row shows", () => {
 
     await render(<MonitorCard monitor={monitor} onPress={noop} />);
 
-    expect(screen.getByText("MONITOR")).toBeTruthy();
+    expect(screen.getByText("Monitor")).toBeTruthy();
   });
 
   test("how long the monitor has existed", async () => {
@@ -161,8 +160,8 @@ describe("What an ordinary monitor row shows", () => {
   });
 });
 
-describe("The status colour is the one the API sent", () => {
-  test("the pill and its dot are painted from the status colour", async () => {
+describe("Status markers preserve server colours while text stays readable", () => {
+  test("the marker carries the server colour and text remains readable", async () => {
     const monitor: MonitorItem = makeMonitor({
       currentMonitorStatus: makeNamedEntityWithColor({
         name: "Degraded",
@@ -173,16 +172,15 @@ describe("The status colour is the one the API sent", () => {
     await render(<MonitorCard monitor={monitor} onPress={noop} />);
 
     const label: RenderedElement = screen.getByText("Degraded");
-    const dot: RenderedElement = (label.parent as RenderedElement)
-      .children[0] as RenderedElement;
+    const dot: RenderedElement = screen.getByTestId("response-status-marker");
 
-    expect(styleOf(label).color).toBe(rgbToHex({ r: 245, g: 158, b: 11 }));
+    expect(styleOf(label).color).toBe(darkColors.textPrimary);
     expect(styleOf(dot).backgroundColor).toBe(
       rgbToHex({ r: 245, g: 158, b: 11 }),
     );
   });
 
-  test("the stripe across the top of the card carries the same colour", async () => {
+  test("the leading status marker carries the server colour", async () => {
     const monitor: MonitorItem = makeMonitor({
       currentMonitorStatus: makeNamedEntityWithColor({
         name: "Offline",
@@ -200,7 +198,7 @@ describe("The status colour is the one the API sent", () => {
   test("a colour object with no channels comes out neutral, never black", async () => {
     /*
      * Reading each absent channel as zero would paint the status #000000 -
-     * black on this app's near-black card, so the one word the row exists to
+     * black on a surface, so the one word the row exists to
      * show disappears. rgbToHex is what stops that, and asserting through it
      * keeps this test true if the neutral it picks ever changes.
      */
@@ -214,12 +212,12 @@ describe("The status colour is the one the API sent", () => {
     await render(<MonitorCard monitor={monitor} onPress={noop} />);
 
     expect(styleOf(screen.getByText("Unknown")).color).toBe(
-      rgbToHex({} as ColorField),
+      darkColors.textPrimary,
     );
     expect(styleOf(screen.getByText("Unknown")).color).not.toBe("#000000");
   });
 
-  test("a status carrying no colour field falls back to the muted text token", async () => {
+  test("a status carrying no colour field retains a high-contrast label", async () => {
     const monitor: MonitorItem = makeMonitor({
       currentMonitorStatus: makeNamedEntityWithColor({
         name: "Unknown",
@@ -230,7 +228,7 @@ describe("The status colour is the one the API sent", () => {
     await render(<MonitorCard monitor={monitor} onPress={noop} />);
 
     expect(styleOf(screen.getByText("Unknown")).color).toBe(
-      darkColors.textTertiary,
+      darkColors.textPrimary,
     );
   });
 });
@@ -306,7 +304,9 @@ describe("Pressing the row", () => {
       <MonitorCard monitor={makeMonitor()} onPress={onPress} muted />,
     );
 
-    expect(styleOf(cardSurface()).opacity).toBe(1);
+    expect(styleOf(cardSurface()).backgroundColor).toBe(
+      darkColors.backgroundElevated,
+    );
 
     await fireEvent.press(screen.getByText("api.example.com"));
 
@@ -316,7 +316,9 @@ describe("Pressing the row", () => {
   test("a row in the Issues section is drawn at full strength", async () => {
     await render(<MonitorCard monitor={makeMonitor()} onPress={noop} />);
 
-    expect(styleOf(cardSurface()).opacity).toBe(1);
+    expect(styleOf(cardSurface()).backgroundColor).toBe(
+      darkColors.backgroundElevated,
+    );
   });
 
   test("holding a finger on a muted row still visibly answers the touch", async () => {
@@ -324,7 +326,9 @@ describe("Pressing the row", () => {
 
     await holdDown(cardSurface());
 
-    expect(styleOf(cardSurface()).opacity).toBe(0.7);
+    expect(styleOf(cardSurface()).backgroundColor).toBe(
+      darkColors.backgroundTertiary,
+    );
   });
 });
 

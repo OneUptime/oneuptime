@@ -183,103 +183,46 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
     >
       <ScreenIntro
         title="My policies"
-        description="See why you receive pages and which projects need you right now."
+        description="Understand how this project reaches you."
       />
       <View
         style={{
-          borderRadius: 16,
-          padding: 20,
+          paddingVertical: 16,
+          paddingHorizontal: 18,
           marginBottom: 20,
-          backgroundColor: theme.colors.backgroundElevated,
-          borderWidth: 1,
-          borderColor: theme.colors.borderGlass,
+          borderRadius: 12,
+          backgroundColor: theme.colors.cardAccent,
         }}
       >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 16,
-                alignItems: "center",
-                justifyContent: "center",
-                marginRight: 12,
-                backgroundColor: theme.colors.oncallActiveBg,
-                borderWidth: 1,
-                borderColor: theme.colors.borderGlass,
-              }}
-            >
-              <Ionicons
-                name="call-outline"
-                size={20}
-                color={theme.colors.oncallActive}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text
-                style={{
-                  fontSize: 22,
-                  fontWeight: "bold",
-                  color: theme.colors.textPrimary,
-                  letterSpacing: -0.4,
-                }}
-              >
-                Active assignments
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  marginTop: 2,
-                  color: theme.colors.textSecondary,
-                }}
-              >
-                Policies that can page you now
-              </Text>
-            </View>
-          </View>
-
-          <View
+        <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+          <Text
             style={{
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 12,
-              backgroundColor: theme.colors.backgroundTertiary,
-              borderWidth: 1,
-              borderColor: theme.colors.borderSubtle,
+              flex: 1,
+              fontSize: 16,
+              fontWeight: "600",
+              color: theme.colors.textPrimary,
             }}
           >
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: "bold",
-                color: theme.colors.textPrimary,
-                fontVariant: ["tabular-nums"],
-              }}
-            >
-              {totalAssignments}
-            </Text>
-          </View>
+            Active assignments
+          </Text>
+          <Text
+            style={{
+              fontSize: 28,
+              fontWeight: "700",
+              letterSpacing: -1,
+              color: theme.colors.actionPrimary,
+              fontVariant: ["tabular-nums"],
+            }}
+          >
+            {totalAssignments}
+          </Text>
         </View>
-
-        {/*
-         * With nothing on duty there is nothing to summarise, and this line
-         * sits directly above the "Not currently on-call" empty state - so
-         * the screen said the same thing twice, once as the stilted "on duty
-         * for 0 assignments across 0 projects".
-         */}
         {projectCount > 0 ? (
           <Text
             style={{
-              fontSize: 15,
-              marginTop: 16,
-              lineHeight: 20,
+              fontSize: 14,
+              lineHeight: 21,
+              marginTop: 8,
               color: theme.colors.textSecondary,
             }}
           >
@@ -334,14 +277,14 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
               >
                 <View
                   style={{
-                    paddingHorizontal: 20,
-                    paddingVertical: 16,
+                    paddingHorizontal: 18,
+                    paddingVertical: 12,
                     flexDirection: "row",
                     alignItems: "center",
                     justifyContent: "space-between",
                     borderBottomWidth: 1,
                     borderBottomColor: theme.colors.borderSubtle,
-                    backgroundColor: theme.colors.backgroundSecondary,
+                    backgroundColor: theme.colors.backgroundTertiary,
                     borderTopLeftRadius: 15,
                     borderTopRightRadius: 15,
                   }}
@@ -408,8 +351,8 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                           successBg: theme.colors.oncallActiveBg,
                           info: theme.colors.severityInfo,
                           infoBg: theme.colors.severityInfoBg,
-                          purple: "#A855F7",
-                          purpleBg: "rgba(168, 85, 247, 0.12)",
+                          purple: "#6B3AB8",
+                          purpleBg: "#F0EAF9",
                         },
                       );
 
@@ -417,8 +360,8 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                         <View
                           key={`${assignment.projectId}-${assignment.policyId ?? "unknown"}-${assignmentIndex}`}
                           style={{
-                            paddingHorizontal: 20,
-                            paddingVertical: 16,
+                            paddingHorizontal: 18,
+                            paddingVertical: 20,
                             ...(assignmentIndex !==
                             projectData.assignments.length - 1
                               ? {
@@ -437,7 +380,8 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
                           >
                             <Text
                               style={{
-                                fontSize: 16,
+                                fontSize: 18,
+                                lineHeight: 25,
                                 fontWeight: "600",
                                 flex: 1,
                                 marginRight: 12,
@@ -450,9 +394,9 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
 
                             <View
                               style={{
-                                paddingHorizontal: 10,
-                                paddingVertical: 4,
-                                borderRadius: 9999,
+                                paddingHorizontal: 8,
+                                paddingVertical: 5,
+                                borderRadius: 6,
                                 flexDirection: "row",
                                 alignItems: "center",
                                 backgroundColor: badge.background,

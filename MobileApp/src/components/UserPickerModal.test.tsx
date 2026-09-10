@@ -1,4 +1,5 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import { describe, expect, test, jest as jestGlobal } from "@jest/globals";
 import UserPickerModal, { filterUsers } from "./UserPickerModal";
@@ -49,6 +50,101 @@ describe("filterUsers", () => {
 });
 
 describe("UserPickerModal", () => {
+  test("selected teammate buttons use valid pressed semantics on web while retaining native selection", async () => {
+    await render(
+      <UserPickerModal
+        visible
+        title="Route my pages to"
+        users={USERS}
+        isLoading={false}
+        selectedUserId="user-2"
+        onSelect={jestGlobal.fn()}
+        onClose={jestGlobal.fn()}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "Select Priya Rao", selected: true }),
+    ).toBeTruthy();
+    expect(
+      screen.getAllByRole("button", { name: /^Select /, selected: false }),
+    ).toHaveLength(2);
+  });
+
+  test("keeps long headings flexible without shrinking the close target", async () => {
+    await render(
+      <UserPickerModal
+        visible
+        title="Choose a teammate to take over your on-call pages"
+        users={USERS}
+        isLoading={false}
+        selectedUserId={null}
+        onSelect={jestGlobal.fn()}
+        onClose={jestGlobal.fn()}
+      />,
+    );
+    const title: ReturnType<typeof screen.getByRole> =
+      screen.getByRole("header");
+    const close: ReturnType<typeof screen.getByRole> = screen.getByRole(
+      "button",
+      { name: "Close user picker" },
+    );
+    expect(StyleSheet.flatten(title.props.style)).toMatchObject({
+      flex: 1,
+      minWidth: 0,
+    });
+    expect(StyleSheet.flatten(close.props.style)).toMatchObject({
+      minWidth: 48,
+      minHeight: 48,
+      flexShrink: 0,
+    });
+  });
+
+  test("email-only and duplicate-name entries remain readable and distinguishable", async () => {
+    const duplicateUsers: ProjectUserItem[] = [
+      {
+        userId: "first",
+        name: "Alex Morgan",
+        email: "alex.engineering@example.test",
+      },
+      {
+        userId: "second",
+        name: "Alex Morgan",
+        email: "alex.operations@example.test",
+      },
+      {
+        userId: "email-only",
+        name: "",
+        email: "teammate.with.a.long.email@example.test",
+      },
+    ];
+    await render(
+      <UserPickerModal
+        visible
+        title="Route my pages to"
+        users={duplicateUsers}
+        isLoading={false}
+        selectedUserId={null}
+        onSelect={jestGlobal.fn()}
+        onClose={jestGlobal.fn()}
+      />,
+    );
+    expect(
+      screen.getByTestId("user-option-first").props.accessibilityHint,
+    ).toBe("alex.engineering@example.test");
+    expect(
+      screen.getByTestId("user-option-second").props.accessibilityHint,
+    ).toBe("alex.operations@example.test");
+    for (const user of duplicateUsers) {
+      const option: ReturnType<typeof screen.getByTestId> = screen.getByTestId(
+        `user-option-${user.userId}`,
+      );
+      expect(
+        StyleSheet.flatten(option.props.style).minHeight,
+      ).toBeGreaterThanOrEqual(48);
+      expect(screen.getByText(user.email).props.numberOfLines).toBe(2);
+    }
+  });
+
   test("lists the eligible teammates and reports a selection", async (): Promise<void> => {
     const onSelect: (user: ProjectUserItem) => void = jestGlobal.fn();
 

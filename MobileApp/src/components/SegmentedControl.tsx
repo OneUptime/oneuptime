@@ -21,7 +21,7 @@ export default function SegmentedControl<T extends string>({
   style,
 }: SegmentedControlProps<T>): React.JSX.Element {
   const { theme } = useTheme();
-  const activeContentColor: string = theme.colors.backgroundPrimary;
+  const activeContentColor: string = theme.colors.actionPrimary;
 
   return (
     <View
@@ -30,10 +30,10 @@ export default function SegmentedControl<T extends string>({
         marginHorizontal: 20,
         marginTop: 12,
         marginBottom: 8,
-        borderRadius: 16,
-        padding: 6,
-        backgroundColor: theme.colors.backgroundElevated,
-        borderWidth: 1,
+        borderRadius: 12,
+        padding: 4,
+        backgroundColor: theme.colors.backgroundTertiary,
+        borderWidth: 0,
         borderColor: theme.colors.borderGlass,
         ...style,
       }}
@@ -55,6 +55,7 @@ export default function SegmentedControl<T extends string>({
             accessibilityRole="tab"
             accessibilityLabel={segment.label}
             accessibilityState={{ selected: isActive }}
+            aria-selected={isActive}
             onPress={() => {
               return onSelect(segment.key);
             }}
@@ -65,10 +66,10 @@ export default function SegmentedControl<T extends string>({
               alignItems: "center",
               paddingVertical: 10,
               paddingHorizontal: 8,
-              borderRadius: 12,
+              borderRadius: 9,
               marginLeft: index > 0 ? 4 : 0,
               backgroundColor: isActive
-                ? theme.colors.actionPrimary
+                ? theme.colors.backgroundElevated
                 : "transparent",
             }}
           >

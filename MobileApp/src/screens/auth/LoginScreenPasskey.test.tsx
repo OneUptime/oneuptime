@@ -81,10 +81,25 @@ async function show(): Promise<void> {
   await screen.findByText("https://selfhosted.example.com");
 }
 
-test("offers passkeys before the password form and explains setup without requiring credentials", async () => {
+test("keeps password sign-in first and offers passkeys as a credential-free alternative", async () => {
   await show();
-  expect(screen.getByText("Use a saved passkey")).toBeTruthy();
+  expect(screen.queryByText("Use a saved passkey")).toBeNull();
+  const buttons: string[] = screen
+    .getAllByRole("button")
+    .map((button: ReturnType<typeof screen.getByRole>): string => {
+      return button.props.accessibilityLabel as string;
+    });
+  expect(buttons.indexOf("Sign In")).toBeGreaterThanOrEqual(0);
+  expect(buttons.indexOf("Sign In")).toBeLessThan(
+    buttons.indexOf("Sign in with a passkey"),
+  );
+  expect(screen.getByText("Other ways to sign in")).toBeTruthy();
+  const disclosure: () => ReturnType<typeof screen.getByRole> = () => {
+    return screen.getByRole("button", { name: "New to passkeys?" });
+  };
+  expect(disclosure().props.accessibilityState.expanded).toBe(false);
   await fireEvent.press(screen.getByText("New to passkeys?"));
+  expect(disclosure().props.accessibilityState.expanded).toBe(true);
   expect(screen.getByText(/In your profile, open Passkeys/)).toBeTruthy();
   await fireEvent.press(screen.getByTestId("passkey-sign-in"));
   expect(mockLoginWithPasskey).toHaveBeenCalledTimes(1);

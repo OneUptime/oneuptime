@@ -35,14 +35,11 @@ const linking: React.ComponentProps<typeof NavigationContainer>["linking"] = {
   config: {
     screens: {
       Home: "home",
-      Incidents: {
+      Inbox: {
         screens: {
+          InboxList: "inbox",
           IncidentDetail: "incident/:projectId/:incidentId",
           IncidentEpisodeDetail: "incident-episode/:projectId/:episodeId",
-        },
-      },
-      Alerts: {
-        screens: {
           AlertDetail: "alert/:projectId/:alertId",
           AlertEpisodeDetail: "alert-episode/:projectId/:episodeId",
         },
@@ -118,12 +115,12 @@ export default function RootNavigator(): React.JSX.Element {
 
   const navigationTheme: Theme = {
     ...DefaultTheme,
-    dark: true,
+    dark: false,
     colors: {
       ...DefaultTheme.colors,
       primary: theme.colors.actionPrimary,
       background: theme.colors.backgroundPrimary,
-      card: theme.colors.backgroundPrimary,
+      card: theme.colors.backgroundSecondary,
       text: theme.colors.textPrimary,
       border: theme.colors.borderDefault,
       notification: theme.colors.severityCritical,

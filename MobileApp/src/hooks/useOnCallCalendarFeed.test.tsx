@@ -1,7 +1,7 @@
 import React from "react";
-import { renderHook, waitFor, act } from "@testing-library/react-native";
+import { renderHook, waitFor, act, cleanup } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, expect, test, beforeEach } from "@jest/globals";
+import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import {
   calendarFeedQueryKey,
   useOnCallCalendarFeed,
@@ -92,10 +92,28 @@ function axiosError(httpStatus: number): unknown {
   };
 }
 
-function createClient(): QueryClient {
-  return new QueryClient({
-    defaultOptions: { queries: { retryDelay: 0 }, mutations: { retry: false } },
+const createdClients: QueryClient[] = [];
+
+afterEach(async (): Promise<void> => {
+  // Unmount observers first: their cleanup schedules GC, including for another
+  // user's deliberately seeded credential cache. Dispose only after assertions.
+  await cleanup();
+  createdClients.splice(0).forEach((client: QueryClient): void => {
+    client.clear();
   });
+});
+
+function createClient(): QueryClient {
+  const client: QueryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retryDelay: 0 },
+      // MutationCache.clear() removes entries but does not cancel their GC
+      // timeout. Mutations do not need a post-observer lifetime in this suite.
+      mutations: { retry: false, gcTime: 0 },
+    },
+  });
+  createdClients.push(client);
+  return client;
 }
 
 function createWrapperFor(

@@ -220,8 +220,14 @@ test("the search limit appears at the fetched cap and survives an empty search",
  */
 function countsBesideLabel(label: string): string[] {
   const counts: string[] = [];
+  const summary: RenderedElement | null = screen.queryByTestId(
+    `monitor-summary-${label}`,
+  );
+  if (summary) {
+    counts.push(String(within(summary).getByText(/^\d+$/).props.children));
+  }
 
-  for (const labelNode of screen.getAllByText(label)) {
+  for (const labelNode of screen.queryAllByRole("header", { name: label })) {
     const container: RenderedElement | null = labelNode.parent;
 
     if (container === null) {
@@ -499,7 +505,7 @@ describe("Grouping the fleet", () => {
     await render(<MonitorsScreen />);
 
     await waitFor(() => {
-      expect(screen.queryByText("Issues")).toBeNull();
+      expect(screen.queryByRole("header", { name: "Issues" })).toBeNull();
     });
   });
 });
@@ -953,6 +959,67 @@ describe("Finding monitors without losing fleet context", () => {
 });
 
 describe("Semantic monitor health", () => {
+  test.each(["all", "issues", "disabled"] as const)(
+    "a Home %s shortcut clears a previous search and shows the requested monitor set",
+    async (filter: "all" | "issues" | "disabled") => {
+      mockMonitors.current = stateWith({
+        items: [
+          wrap(healthyMonitor("healthy", "Serving API")),
+          wrap(offlineMonitor("offline", "Database outage")),
+          wrap(
+            makeMonitor({
+              ...healthyMonitor("paused", "Paused checks"),
+              disableActiveMonitoring: true,
+            }),
+          ),
+        ],
+      });
+      const view: Awaited<ReturnType<typeof render>> = await render(
+        <MonitorsScreen />,
+      );
+      await fireEvent.changeText(
+        screen.getByLabelText("Search monitors"),
+        "unmatched search",
+      );
+      expect(screen.getByText("No matching monitors")).toBeTruthy();
+      mockRoute.params = { initialFilter: filter };
+      await view.rerender(<MonitorsScreen />);
+      expect(screen.getByLabelText("Search monitors").props.value).toBe("");
+      if (filter === "all") {
+        expect(screen.getByText("Serving API")).toBeTruthy();
+        expect(screen.getByText("Database outage")).toBeTruthy();
+        expect(screen.getByText("Paused checks")).toBeTruthy();
+      } else if (filter === "issues") {
+        expect(screen.getByText("Database outage")).toBeTruthy();
+        expect(screen.queryByText("Serving API")).toBeNull();
+        expect(screen.queryByText("Paused checks")).toBeNull();
+      } else {
+        expect(screen.getByText("Paused checks")).toBeTruthy();
+        expect(screen.queryByText("Serving API")).toBeNull();
+        expect(screen.queryByText("Database outage")).toBeNull();
+      }
+    },
+  );
+
+  test("a normal render after opening details preserves the current monitor search", async () => {
+    mockRoute.params = { initialFilter: "all" };
+    mockMonitors.current = stateWith({
+      items: [wrap(healthyMonitor("healthy", "Serving API"))],
+    });
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      <MonitorsScreen />,
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("Search monitors"),
+      "Serving",
+    );
+    await view.rerender(<MonitorsScreen />);
+    expect(screen.getByLabelText("Search monitors").props.value).toBe(
+      "Serving",
+    );
+    expect(screen.getByText("Serving API")).toBeTruthy();
+  });
+
   test("custom status names are classified by the server flag, not English words", async () => {
     mockMonitors.current = stateWith({
       items: [

@@ -15,14 +15,14 @@ export default function RootCauseCard({
   return (
     <View
       style={{
-        borderRadius: 16,
+        borderRadius: 0,
         overflow: "hidden",
-        backgroundColor: theme.colors.backgroundElevated,
-        borderWidth: 1,
+        backgroundColor: "transparent",
+        borderWidth: 0,
         borderColor: theme.colors.borderGlass,
       }}
     >
-      <View style={{ padding: 16 }}>
+      <View style={{ paddingVertical: 4 }}>
         {rootCauseText ? (
           <MarkdownContent content={rootCauseText} />
         ) : (

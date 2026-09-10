@@ -101,25 +101,25 @@ describe("My pages response workflow", () => {
   test.each([
     {
       field: "triggeredByIncident",
-      tab: "Incidents",
+      tab: "Inbox",
       destination: "IncidentDetail",
       idKey: "incidentId",
     },
     {
       field: "triggeredByAlert",
-      tab: "Alerts",
+      tab: "Inbox",
       destination: "AlertDetail",
       idKey: "alertId",
     },
     {
       field: "triggeredByIncidentEpisode",
-      tab: "Incidents",
+      tab: "Inbox",
       destination: "IncidentEpisodeDetail",
       idKey: "episodeId",
     },
     {
       field: "triggeredByAlertEpisode",
-      tab: "Alerts",
+      tab: "Inbox",
       destination: "AlertEpisodeDetail",
       idKey: "episodeId",
     },

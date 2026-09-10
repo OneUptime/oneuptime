@@ -69,7 +69,7 @@ test("a notification switches project before opening the destination exactly onc
       return true;
     },
     getRootState: () => {
-      return { routeNames: ["Incidents"] };
+      return { routeNames: ["Inbox"] };
     },
     navigate,
   });
@@ -83,7 +83,7 @@ test("a notification switches project before opening the destination exactly onc
   expect(navigate).not.toHaveBeenCalled();
   mockProjectState.activeProject = { _id: "b", name: "Atlas", slug: "atlas" };
   await view.rerender(<ProjectNavigationSync />);
-  expect(navigate).toHaveBeenCalledWith("Incidents", {
+  expect(navigate).toHaveBeenCalledWith("Inbox", {
     screen: "IncidentDetail",
     initial: false,
     params: { incidentId: "incident-1", projectId: "b" },
@@ -104,7 +104,7 @@ test("revoked project access gives feedback and does not navigate into another w
       return true;
     },
     getRootState: () => {
-      return { routeNames: ["Incidents"] };
+      return { routeNames: ["Inbox"] };
     },
     navigate,
   });
@@ -128,7 +128,7 @@ test("cold-start notifications wait for project preference hydration", async () 
       return true;
     },
     getRootState: () => {
-      return { routeNames: ["Incidents"] };
+      return { routeNames: ["Inbox"] };
     },
     navigate,
   });
@@ -159,7 +159,7 @@ test("a transient membership failure keeps the page pending until retry succeeds
       return true;
     },
     getRootState: () => {
-      return { routeNames: ["Incidents"] };
+      return { routeNames: ["Inbox"] };
     },
     navigate,
   });
