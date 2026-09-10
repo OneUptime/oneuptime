@@ -279,38 +279,18 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Passkeys",
               description:
                 "Use your fingerprint, face, screen lock, or security key to sign in.",
-              rightElement: (
-                <Button
-                  title="Add Passkey"
-                  dataTestId="add-passkey"
-                  buttonStyle={ButtonStyleType.PRIMARY}
-                  icon={IconProp.Add}
-                  style={{ marginLeft: 0 }}
-                  onClick={() => {
+              buttons: [
+                {
+                  title: "Add Passkey",
+                  buttonStyle: ButtonStyleType.NORMAL,
+                  icon: IconProp.Add,
+                  onClick: () => {
                     openRegistration(true);
-                  }}
-                />
-              ),
+                  },
+                },
+              ],
             }}
-            topContent={
-              <p className="mt-3 mb-4 text-sm text-gray-600">
-                Passkeys let you sign in without a password, whether two factor
-                authentication is on or off. Existing security keys are also
-                listed here.
-              </p>
-            }
-            noItemsMessage={
-              <div className="py-6 text-center">
-                <p className="font-medium text-gray-900">
-                  Add your first passkey
-                </p>
-                <p className="mx-auto mt-2 max-w-md text-sm text-gray-500">
-                  Save it on your device, in a password manager, or on a
-                  security key. Next time, choose &quot;Sign in with a
-                  passkey&quot; on the login screen.
-                </p>
-              </div>
-            }
+            noItemsMessage="No passkeys or security keys found."
             singularName="Passkey or Security Key"
             pluralName="Passkeys and Security Keys"
             formFields={[
