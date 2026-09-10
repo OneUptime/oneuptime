@@ -309,6 +309,7 @@ describe("WorkflowVariableService rename uniqueness", () => {
 
       expect(call.query).toEqual({ _id: VARIABLE_ID.toString() });
       expect(call.props).toEqual({ isRoot: true });
+      expect(call.props).not.toHaveProperty("userId");
       expect(call.select).toEqual(
         expect.objectContaining({
           _id: true,
@@ -391,6 +392,35 @@ describe("WorkflowVariableService rename uniqueness", () => {
 
       expect(workflowSql).toContain("IS NULL");
       expect(workflowSql).not.toContain("IS NOT NULL");
+    });
+
+    /*
+     * The count must run as root whoever is calling. Asserting that against a
+     * root fixture proves nothing - `props: updateBy.props` is indistinguishable
+     * from `props: { isRoot: true }` when the caller already is root - so this
+     * one calls as an ordinary user and checks the lookup did NOT inherit those
+     * props. It matters because the conflicting row can be one the caller
+     * cannot read: read access is label-gated, and a count that cannot see the
+     * duplicate reports zero and waves it through.
+     */
+    test("counts as root even when the caller is not", async () => {
+      const { countByCalls } = stubReads({
+        itemsBeingUpdated: [
+          makeVariable({ name: "OldName", workflowId: WORKFLOW_ID }),
+        ],
+        conflictCount: 0,
+      });
+
+      await hook()(
+        makeUpdateBy(
+          { name: "NewName" },
+          { userId: USER_ID, tenantId: PROJECT_ID },
+        ),
+      );
+
+      expect(countByCalls).toHaveLength(1);
+      expect(countByCalls[0]!.props).toEqual({ isRoot: true });
+      expect(countByCalls[0]!.props).not.toHaveProperty("userId");
     });
 
     test("the row's own project scopes the lookup, not the caller's", async () => {

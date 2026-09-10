@@ -191,7 +191,9 @@ export class Service extends DatabaseService<Model> {
               : QueryHelper.isNull(),
             _id: QueryHelper.notEquals(item.id as ObjectID),
           },
-          props: updateBy.props,
+          props: {
+            isRoot: true,
+          },
         })
       ).toNumber();
 
