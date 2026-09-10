@@ -4,7 +4,7 @@ Open a [GitHub](https://github.com) issue automatically when a OneUptime inciden
 
 This integration is **outbound**: OneUptime calls the [GitHub REST API](https://docs.github.com/en/rest/issues/issues). It uses a OneUptime **[Workflow](/docs/workflows/index)** with an **Incident → On Create** trigger and an **API component**.
 
-> **Looking for the deeper GitHub connection?** OneUptime also has a native **GitHub App** integration for connecting code repositories (used by the AI agent and code features). That's configured with environment variables, not workflows — see [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration). This page is specifically about _filing issues from incidents_.
+> **Looking for the deeper GitHub connection?** OneUptime also has a native **GitHub App** integration for connecting code repositories (used by the AI agent and code features). You can talk to that app in your repository — mention it on an issue or pull request and it implements, revises or reviews; see [Working with OneUptime from GitHub](/docs/ai/github-app), and [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) for installing it. This page is specifically about _filing issues from incidents_.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -74,6 +74,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [Integrations Overview](/docs/integrations/index) — patterns and the auth cheat sheet.
 - [GitLab](/docs/integrations/gitlab) — the same idea for GitLab.
 - [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) — the native GitHub App connection.
+- [Working with OneUptime from GitHub](/docs/ai/github-app) — commanding the GitHub App from an issue or pull request.
 
 ## Network access for self-hosted deployments
 

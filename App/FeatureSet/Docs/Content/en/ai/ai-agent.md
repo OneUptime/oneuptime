@@ -4,6 +4,8 @@ OneUptime AI turns an unresolved exception into a reviewable pull request. On an
 
 Every pull request is reviewed and merged by a human. The Runner never merges its own changes — it can push branches and open PRs, nothing more.
 
+> **You can also start this from GitHub itself.** Mention the OneUptime GitHub App on an issue or a pull request and it will implement, revise or review right there — see [Working with OneUptime from GitHub](/docs/ai/github-app). It is the same agent, the same Runner and the same budgets; only the trigger differs.
+
 ## How a fix run works
 
 1. You click **Fix with AI** on an unresolved exception.

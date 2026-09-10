@@ -825,6 +825,7 @@ const DocsNav: NavGroup[] = [
       { title: "Ask AI", url: "/docs/ai/ask-ai" },
       { title: "AI SRE", url: "/docs/ai/ai-sre" },
       { title: "Fix Tasks", url: "/docs/ai/ai-agent" },
+      { title: "GitHub App", url: "/docs/ai/github-app" },
       { title: "LLM Providers", url: "/docs/ai/llm-provider" },
       { title: "MCP Server", url: "/docs/ai/mcp-server" },
     ],

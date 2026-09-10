@@ -11,6 +11,7 @@ import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
 } from "../../Types/AI/CodeFixTaskType";
 import {
+  getGitHubTaskContext,
   getInvestigationCodeFixTaskSnapshot,
   InvestigationCodeFixTaskContext,
 } from "../../Types/AI/CodeFixTaskContext";
@@ -296,6 +297,18 @@ export class Service extends DatabaseService<Model> {
           missingContextMessage =
             "Queued FixFromIncident run has no complete pinned investigation analysis snapshot.";
         }
+      } else if (CodeFixTaskTypeHelper.isGitHubTaskType(run.codeFixTaskType)) {
+        /*
+         * The GitHub recipes carry their whole world in taskContext.github:
+         * which repository, which installation, and which issue OR pull
+         * request. getGitHubTaskContext rejects a half-built context — one
+         * missing its repository, or naming both an issue and a pull
+         * request — so a run that could not decide what it is about fails
+         * here rather than picking one at execution time.
+         */
+        missingContextMessage = getGitHubTaskContext(run.taskContext)
+          ? null
+          : "Queued GitHub run has no complete GitHub conversation in its task context.";
       } else if (
         run.codeFixTaskType === CodeFixTaskType.ImproveLogging ||
         run.codeFixTaskType === CodeFixTaskType.ImproveTracing

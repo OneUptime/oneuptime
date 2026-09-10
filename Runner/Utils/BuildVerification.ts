@@ -431,7 +431,16 @@ export default class BuildVerification {
    *     finalizes a code-fix run whose heartbeat is quiet for 12 minutes.
    */
   public static async verifyWithRepairs(data: {
-    repo: CodeRepositoryInfo;
+    /*
+     * Only the three configured commands are read, so this is the narrowest
+     * shape that works — which lets the GitHub recipes, whose repository comes
+     * from a different task-details endpoint, share the same verification loop
+     * instead of duplicating it.
+     */
+    repo: Pick<
+      CodeRepositoryInfo,
+      "setupCommand" | "buildCommand" | "testCommand"
+    >;
     repositoryPath: string;
     agent: CodeAgent;
     originalPrompt: string;

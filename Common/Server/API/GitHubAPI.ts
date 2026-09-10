@@ -18,6 +18,9 @@ import {
 } from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
 import GitHubUtil from "../Utils/CodeRepository/GitHub/GitHub";
+import GitHubWebhookHandler, {
+  GitHubWebhookHandlingResult,
+} from "../Utils/CodeRepository/GitHub/GitHubWebhookHandler";
 import CodeRepositoryService, {
   ImportReposFromInstallationResult,
 } from "../Services/CodeRepositoryService";
@@ -499,8 +502,34 @@ export default class GitHubAPI {
             );
           }
 
-          // Get raw body for signature verification
-          const rawBody: string = JSON.stringify(req.body);
+          /*
+           * The signature covers the bytes GitHub SENT, so it has to be
+           * checked against those bytes. This used to re-serialize the parsed
+           * body with JSON.stringify, which only verifies when GitHub's
+           * payload happens to be a fixed point of parse-then-stringify —
+           * every \uXXXX escape, renormalized number and reordered numeric
+           * key silently became "Invalid webhook signature" instead. The
+           * express json parser already captures the real body for exactly
+           * this purpose (see jsonBodyParserOptions in StartServer).
+           *
+           * A missing rawBody is a misconfiguration (a route mounted without
+           * that parser), and it fails closed: verifying a body we did not
+           * capture is not something to guess at.
+           */
+          const rawBody: string | undefined = (req as OneUptimeRequest).rawBody;
+
+          if (!rawBody) {
+            logger.error(
+              "Rejecting GitHub webhook: the raw request body was not captured, so its signature cannot be verified.",
+              getLogAttributesFromRequest(req as OneUptimeRequest),
+            );
+
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Could not verify webhook signature"),
+            );
+          }
 
           // Verify webhook signature
           const isValid: boolean = GitHubUtil.verifyWebhookSignature(
@@ -661,14 +690,27 @@ export default class GitHubAPI {
           }
 
           /*
-           * Handle different webhook events here
-           * For now, just acknowledge receipt
-           * Future: Handle push, pull_request, check_run events
+           * The interactive surface: mentions, assignments, trigger labels
+           * and review requests. It is deliberately the LAST thing this
+           * handler does and it never throws — the installation bookkeeping
+           * above must not be undone by a comment that could not be posted,
+           * and an exception escaping to GitHub becomes a redelivery of the
+           * same payload forever.
            */
+          const interactiveResult: GitHubWebhookHandlingResult =
+            await GitHubWebhookHandler.handleEvent({
+              event: event,
+              deliveryId: req.headers["x-github-delivery"] as
+                | string
+                | undefined,
+              payload: req.body as JSONObject,
+            });
 
           return Response.sendJsonObjectResponse(req, res, {
             success: true,
             message: "Webhook received",
+            handled: interactiveResult.handled,
+            outcome: interactiveResult.outcome,
           } as JSONObject);
         } catch (error) {
           logger.error(
