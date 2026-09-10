@@ -37,11 +37,13 @@ Configureer in de sectie "Machtigingen en gebeurtenissen" de volgende machtiging
 | Machtiging       | Toegangsniveau    | Doel                                                               |
 | ---------------- | ----------------- | ------------------------------------------------------------------ |
 | Inhoud           | Lezen & Schrijven | Repositorybestanden lezen, branches pushen (vereist voor AI Agent) |
-| Pull requests    | Lezen & Schrijven | Pull requests aanmaken en beheren                                  |
-| Issues           | Lezen & Schrijven | Issues lezen en becommentariëren                                   |
+| Pull requests    | Lezen & Schrijven | Pull requests aanmaken en beheren, en reviews plaatsen             |
+| Issues           | Lezen & Schrijven | Issues lezen en de opmerkingen van de app plaatsen — **ook op pull requests**, waarvan GitHub het gesprek via de issues-API leidt |
 | Commit-statussen | Lezen             | Build/CI-status controleren                                        |
 | Actions          | Lezen             | GitHub Actions workflow-uitvoeringen en logboeken lezen            |
 | Metadata         | Lezen             | Basisrepository-metadata (vereist)                                 |
+
+**Issues: Lezen & Schrijven is wat de app interactief maakt.** Zonder die machtiging komen vermeldingen wel binnen, maar mislukken ze geruisloos zodra de app wil antwoorden — GitHub serveert de gespreksopmerkingen van pull requests vanuit de issues-API, en deze ene machtiging bepaalt dus elk antwoord dat de app schrijft. Zie [Werken met OneUptime vanuit GitHub](/docs/ai/github-app).
 
 **Organisatiemachtigingen (indien gebruikt met organisaties):**
 
@@ -57,7 +59,23 @@ Configureer in de sectie "Machtigingen en gebeurtenissen" de volgende machtiging
 
 ### Stap 3: Abonneren op webhookgebeurtenissen
 
-OneUptime synchroniseert installatie en repositorytoegang met `installation` en `installation_repositories`, die GitHub Apps automatisch ontvangen. Andere gebeurtenissen, waaronder **Pull request**, **Push** en **Workflow run**, worden alleen bevestigd; een abonnement activeert geen meldingen of CI/CD-automatisering.
+OneUptime gebruikt twee soorten gebeurtenissen, en ze doen verschillend werk.
+
+**Repositorysynchronisatie** — `installation` en `installation_repositories`. GitHub Apps ontvangen deze automatisch; ze houden de verzameling gekoppelde repositories gelijk met datgene waarop de app is geïnstalleerd.
+
+**De interactieve app** — hierop moet u zich expliciet abonneren, en elke gebeurtenis maakt een specifieke manier mogelijk om werk aan de app over te dragen:
+
+| Gebeurtenis                     | Wat het mogelijk maakt                                                |
+| ------------------------------- | --------------------------------------------------------------------- |
+| **Issue comment**               | `@mention`-commando's op issues **en** op pull requests               |
+| **Issues**                      | een issue aan de app toewijzen, en het triggerlabel van de repository |
+| **Pull request**                | een review van de app vragen                                          |
+| **Pull request review**         | een vermelding in de body van een ingediende review                   |
+| **Pull request review comment** | een vermelding bij een inline opmerking in de diff                    |
+
+Bent u op geen van deze gebeurtenissen geabonneerd, dan koppelt de GitHub App nog steeds repositories en opent hij vanuit OneUptime nog steeds pull requests met fixes — hij reageert alleen nooit op wat er in GitHub wordt geschreven. Dat is de meest voorkomende oorzaak van "de bot negeert me". Zie [Werken met OneUptime vanuit GitHub](/docs/ai/github-app) voor wat de commando's zijn en wie ze mag geven.
+
+Andere gebeurtenissen (**Push**, **Workflow run**) worden bevestigd en genegeerd; een abonnement erop activeert geen meldingen of CI/CD-automatisering.
 
 ### Stap 4: Installatietoegang instellen
 

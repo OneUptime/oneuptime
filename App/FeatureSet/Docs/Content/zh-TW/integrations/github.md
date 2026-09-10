@@ -4,7 +4,7 @@
 
 此整合為**對外（outbound）**：OneUptime 會呼叫 [GitHub REST API](https://docs.github.com/en/rest/issues/issues)。它使用 OneUptime 的 **[Workflow](/docs/workflows/index)**，搭配 **Incident → On Create** 觸發器與一個 **API component**。
 
-> **想要更深層的 GitHub 連線嗎？** OneUptime 也有原生的 **GitHub App** 整合，用於連接程式碼儲存庫（供 AI agent 與程式碼功能使用）。那是透過環境變數設定，而非 workflows — 請參閱 [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration)。本頁專門說明*從事件開立 issue*。
+> **想要更深層的 GitHub 連線嗎？** OneUptime 也有原生的 **GitHub App** 整合，用於連接程式碼儲存庫（供 AI agent 與程式碼功能使用）。你可以在自己的儲存庫裡直接對那個 App 說話 — 在 issue 或 pull request 上提及它，它就會實作、修改或審查；請參閱[從 GitHub 操作 OneUptime](/docs/ai/github-app)，安裝方式則請參閱 [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration)。本頁專門說明*從事件開立 issue*。
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -74,6 +74,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [Integrations Overview](/docs/integrations/index) — 模式與驗證速查表。
 - [GitLab](/docs/integrations/gitlab) — 適用於 GitLab 的相同概念。
 - [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) — 原生的 GitHub App 連線。
+- [從 GitHub 操作 OneUptime](/docs/ai/github-app) — 從 issue 或 pull request 指揮 GitHub App。
 
 ## 自架部署的網路存取
 

@@ -37,11 +37,13 @@ En la sección "Permisos y eventos", configura los siguientes permisos:
 | Permiso                   | Nivel de acceso     | Propósito                                                                    |
 | ------------------------- | ------------------- | ---------------------------------------------------------------------------- |
 | Contenidos                | Lectura y escritura | Leer archivos del repositorio, enviar ramas (requerido para el Agente de IA) |
-| Solicitudes de extracción | Lectura y escritura | Crear y gestionar solicitudes de extracción                                  |
-| Incidencias               | Lectura y escritura | Leer y comentar en incidencias                                               |
+| Solicitudes de extracción | Lectura y escritura | Crear y gestionar solicitudes de extracción, y publicar revisiones           |
+| Incidencias               | Lectura y escritura | Leer incidencias y publicar los comentarios de la app — **incluidos los de los pull requests**, cuya conversación GitHub sirve a través de la API de incidencias |
 | Estados de confirmación   | Lectura             | Verificar el estado de compilación/CI                                        |
 | Acciones                  | Lectura             | Leer ejecuciones y registros de flujos de trabajo de GitHub Actions          |
 | Metadatos                 | Lectura             | Metadatos básicos del repositorio (requerido)                                |
+
+**Incidencias: Lectura y escritura es lo que hace que la app sea interactiva.** Sin ese permiso, las menciones se reciben y luego fallan en silencio cuando la app intenta responder: GitHub sirve los comentarios de la conversación de un pull request desde la API de incidencias, así que ese único permiso condiciona cada respuesta que escribe la app. Consulta [Trabajar con OneUptime desde GitHub](/docs/ai/github-app).
 
 **Permisos de organización (si se usa con organizaciones):**
 
@@ -57,7 +59,23 @@ En la sección "Permisos y eventos", configura los siguientes permisos:
 
 ### Paso 3: Suscribirse a eventos de webhook
 
-OneUptime sincroniza instalación y acceso a repositorios con `installation` e `installation_repositories`, recibidos automáticamente por GitHub Apps. Otros eventos, incluidos **Pull request**, **Push** y **Workflow run**, solo se confirman; suscribirse no activa notificaciones ni automatización CI/CD.
+OneUptime usa dos conjuntos de eventos, y cada uno hace un trabajo distinto.
+
+**Sincronización de repositorios** — `installation` e `installation_repositories`. Las GitHub Apps los reciben automáticamente; mantienen el conjunto de repositorios conectados al día con aquello en lo que está instalada la app.
+
+**La app interactiva** — a estos hay que suscribirse de forma explícita, y cada uno habilita una manera concreta de pasarle trabajo a la app:
+
+| Evento                          | Qué habilita                                                                 |
+| ------------------------------- | ---------------------------------------------------------------------------- |
+| **Issue comment**               | comandos con `@mención` en issues **y** en pull requests                     |
+| **Issues**                      | asignar un issue a la app, y la etiqueta de activación del repositorio       |
+| **Pull request**                | solicitar una revisión a la app                                              |
+| **Pull request review**         | una mención escrita en el cuerpo de una revisión enviada                     |
+| **Pull request review comment** | una mención en un comentario en línea del diff                               |
+
+Si no hay ninguno suscrito, la GitHub App sigue conectando repositorios y sigue abriendo pull requests de corrección desde OneUptime: simplemente no responde nunca a nada de lo que se escriba en GitHub. Esa es la causa más habitual de "el bot me ignora". Consulta [Trabajar con OneUptime desde GitHub](/docs/ai/github-app) para saber cuáles son los comandos y quién puede darlos.
+
+Otros eventos (**Push**, **Workflow run**) se confirman y se ignoran; suscribirse a ellos no activa notificaciones ni automatización CI/CD.
 
 ### Paso 4: Establecer el acceso de instalación
 

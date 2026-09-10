@@ -37,11 +37,13 @@
 | 权限            | 访问级别 | 用途                                    |
 | --------------- | -------- | --------------------------------------- |
 | Contents        | 读写     | 读取仓库文件，推送分支（AI Agent 必需） |
-| Pull requests   | 读写     | 创建和管理 Pull Request                 |
-| Issues          | 读写     | 读取 Issue 并发表评论                   |
+| Pull requests   | 读写     | 创建和管理 Pull Request，并发表代码评审  |
+| Issues          | 读写     | 读取 Issue，并发表应用自己的评论——**包括发表在 Pull Request 上**，因为 GitHub 把 Pull Request 的对话交给 Issues API 提供 |
 | Commit statuses | 读取     | 检查构建/CI 状态                        |
 | Actions         | 读取     | 读取 GitHub Actions 工作流运行和日志    |
 | Metadata        | 读取     | 基本仓库元数据（必需）                  |
+
+**"Issues：读写"才是让这个应用具备交互能力的那一项。** 没有它，提及能被收到，但应用一尝试回复就会静默失败——GitHub 把 Pull Request 的对话评论交给 Issues API 提供，所以仅这一项权限就决定了应用能否写出任何回复。参见[在 GitHub 中使用 OneUptime](/docs/ai/github-app)。
 
 **组织权限（与组织一起使用时）：**
 
@@ -57,7 +59,23 @@
 
 ### 第三步：订阅 Webhook 事件
 
-OneUptime 使用 GitHub Apps 自动接收的 `installation` 和 `installation_repositories` 同步安装与仓库访问。当前仅确认 **Pull request**、**Push**、**Workflow run** 等其他事件，订阅它们不会启用通知或 CI/CD 自动化。
+OneUptime 使用两组事件，它们做的是不同的事。
+
+**仓库同步**——`installation` 和 `installation_repositories`。GitHub Apps 会自动收到这两个事件；它们让已连接仓库的集合与应用实际安装到的范围保持一致。
+
+**交互式应用**——这些事件必须显式订阅，每一个都启用一种把工作交给应用的具体方式：
+
+| 事件                            | 启用什么                                        |
+| ------------------------------- | ----------------------------------------------- |
+| **Issue comment**               | Issue **以及** Pull Request 上的 `@mention` 命令 |
+| **Issues**                      | 把 Issue 指派给应用，以及仓库的触发标签         |
+| **Pull request**                | 向应用请求评审                                  |
+| **Pull request review**         | 写在已提交评审正文中的提及                      |
+| **Pull request review comment** | 写在 diff 内联评论上的提及                      |
+
+如果这些一个都没订阅，GitHub App 仍然会连接仓库，也仍然会从 OneUptime 发起修复用的 Pull Request——它只是永远不会对 GitHub 里写下的内容作出任何反应。这是"机器人不理我"最常见的原因。命令有哪些、谁有权下达，参见[在 GitHub 中使用 OneUptime](/docs/ai/github-app)。
+
+其他事件（**Push**、**Workflow run**）只会被确认然后忽略；订阅它们不会启用通知或 CI/CD 自动化。
 
 ### 第四步：设置安装访问权限
 

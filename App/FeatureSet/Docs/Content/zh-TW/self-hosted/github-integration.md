@@ -37,11 +37,13 @@
 | 權限            | 存取層級     | 用途                                      |
 | --------------- | ------------ | ----------------------------------------- |
 | Contents        | Read & Write | 讀取儲存庫檔案、推送分支（AI Agent 所需） |
-| Pull requests   | Read & Write | 建立並管理拉取請求                        |
-| Issues          | Read & Write | 讀取與回覆問題                            |
+| Pull requests   | Read & Write | 建立並管理拉取請求，並張貼審查            |
+| Issues          | Read & Write | 讀取 issue，並張貼 App 的留言——**包含在拉取請求上**，GitHub 是透過 issues API 提供拉取請求的對話 |
 | Commit statuses | Read         | 檢查建置/CI 狀態                          |
 | Actions         | Read         | 讀取 GitHub Actions 工作流程執行與記錄    |
 | Metadata        | Read         | 基本儲存庫中繼資料（必要）                |
+
+**Issues: Read & write 正是讓這個 App 得以互動的關鍵。** 少了它，提及會被收到，然後在 App 試著回覆時默默失敗——GitHub 是從 issues API 提供拉取請求的對話留言，所以這一個權限就決定了 App 寫出的每一則回覆。請參閱[從 GitHub 操作 OneUptime](/docs/ai/github-app)。
 
 **組織權限（若搭配組織使用）：**
 
@@ -57,7 +59,23 @@
 
 ### 步驟 3：訂閱 Webhook 事件
 
-OneUptime 使用 GitHub Apps 自動接收的 `installation` 和 `installation_repositories` 同步安裝與儲存庫存取。目前僅確認 **Pull request**、**Push**、**Workflow run** 等其他事件，訂閱不會啟用通知或 CI/CD 自動化。
+OneUptime 使用兩組事件，它們各司其職。
+
+**儲存庫同步**——`installation` 與 `installation_repositories`。GitHub Apps 會自動收到這兩個事件；它們讓已連接的儲存庫清單，與這個 App 實際安裝的範圍保持一致。
+
+**互動式 App**——這些必須明確訂閱，而每一個都啟用一種把工作交給 App 的方式：
+
+| 事件                            | 啟用了什麼                                  |
+| ------------------------------- | ------------------------------------------- |
+| **Issue comment**               | issue **與**拉取請求上的 `@mention` 指令    |
+| **Issues**                      | 把 issue 指派給 App，以及該儲存庫的觸發標籤 |
+| **Pull request**                | 向 App 要求審查                             |
+| **Pull request review**         | 寫在已送出審查內文裡的提及                  |
+| **Pull request review comment** | 在 diff 內嵌留言上的提及                    |
+
+若這些事件一個都沒訂閱，GitHub App 仍然會連接儲存庫，也仍然會從 OneUptime 開出修復用的拉取請求——它只是永遠不會回應任何寫在 GitHub 裡的內容。這是「機器人不理我」最常見的原因。指令有哪些、誰可以下指令，請參閱[從 GitHub 操作 OneUptime](/docs/ai/github-app)。
+
+其他事件（**Push**、**Workflow run**）會被確認並忽略；訂閱它們不會啟用通知或 CI/CD 自動化。
 
 ### 步驟 4：設定安裝存取權
 

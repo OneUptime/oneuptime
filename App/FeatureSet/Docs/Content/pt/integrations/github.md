@@ -4,7 +4,7 @@ Abra um issue no [GitHub](https://github.com) automaticamente quando um incident
 
 Esta integração é de **saída**: o OneUptime chama a [REST API do GitHub](https://docs.github.com/en/rest/issues/issues). Ela usa um **[Workflow](/docs/workflows/index)** do OneUptime com um gatilho **Incidente → On Create** e um **componente API**.
 
-> **Procurando a conexão mais profunda com o GitHub?** O OneUptime também tem uma integração nativa com o **GitHub App** para conectar repositórios de código (usada pelo agente de IA e recursos de código). Ela é configurada com variáveis de ambiente, não com workflows — veja [Integração com o GitHub (auto-hospedado)](/docs/self-hosted/github-integration). Esta página é especificamente sobre _criar issues a partir de incidentes_.
+> **Procurando a conexão mais profunda com o GitHub?** O OneUptime também tem uma integração nativa com o **GitHub App** para conectar repositórios de código (usada pelo agente de IA e recursos de código). Você pode conversar com esse app dentro do seu repositório — mencione-o em um issue ou pull request e ele implementa, ajusta ou revisa; veja [Trabalhando com o OneUptime a partir do GitHub](/docs/ai/github-app), e [Integração com o GitHub (auto-hospedado)](/docs/self-hosted/github-integration) para instalá-lo. Esta página é especificamente sobre _criar issues a partir de incidentes_.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -74,6 +74,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [Visão geral das integrações](/docs/integrations/index) — padrões e o guia rápido de autenticação.
 - [GitLab](/docs/integrations/gitlab) — a mesma ideia para o GitLab.
 - [Integração com o GitHub (auto-hospedado)](/docs/self-hosted/github-integration) — a conexão nativa com o GitHub App.
+- [Trabalhando com o OneUptime a partir do GitHub](/docs/ai/github-app) — comandar o GitHub App a partir de um issue ou pull request.
 
 ## Acesso à rede para implantações auto-hospedadas
 

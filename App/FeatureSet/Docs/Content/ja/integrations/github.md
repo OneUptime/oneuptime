@@ -4,7 +4,7 @@ OneUptime のインシデントが作成されると自動的に [GitHub](https:
 
 この連携は**アウトバウンド**です: OneUptime が [GitHub REST API](https://docs.github.com/en/rest/issues/issues) を呼び出します。**インシデント → On Create** トリガーと **API コンポーネント**を持つ OneUptime の **[ワークフロー](/docs/workflows/index)** を使います。
 
-> **より深い GitHub 接続をお探しですか?** OneUptime にはコードリポジトリを接続するためのネイティブ **GitHub App** インテグレーションもあります (AI エージェントとコード機能で使用)。これはワークフローではなく環境変数で設定します — [GitHub 連携 (セルフホスト)](/docs/self-hosted/github-integration) を参照してください。このページはインシデントから *Issue を登録する*ことについてです。
+> **より深い GitHub 接続をお探しですか?** OneUptime にはコードリポジトリを接続するためのネイティブ **GitHub App** インテグレーションもあります (AI エージェントとコード機能で使用)。この App にはリポジトリの中で話しかけられます — Issue やプルリクエストでメンションすれば、実装・修正・レビューを行います。[GitHub から OneUptime を使う](/docs/ai/github-app) を、インストール方法については [GitHub 連携 (セルフホスト)](/docs/self-hosted/github-integration) を参照してください。このページはインシデントから *Issue を登録する*ことについてです。
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -74,6 +74,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [連携 概要](/docs/integrations/index) — パターンと認証クイックリファレンス。
 - [GitLab](/docs/integrations/gitlab) — GitLab に対する同じ考え方。
 - [GitHub 連携 (セルフホスト)](/docs/self-hosted/github-integration) — ネイティブ GitHub App 接続。
+- [GitHub から OneUptime を使う](/docs/ai/github-app) — Issue やプルリクエストから GitHub App に指示を出す。
 
 ## セルフホスト環境のネットワークアクセス
 

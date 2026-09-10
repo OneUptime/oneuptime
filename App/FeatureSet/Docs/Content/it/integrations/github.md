@@ -4,7 +4,7 @@ Apri automaticamente un ticket [GitHub](https://github.com) quando viene creato 
 
 Questa integrazione è **in uscita**: OneUptime chiama la [GitHub REST API](https://docs.github.com/en/rest/issues/issues). Utilizza un **[Workflow](/docs/workflows/index)** di OneUptime con un trigger **Incidente → On Create** e un **componente API**.
 
-> **Stai cercando la connessione GitHub più approfondita?** OneUptime dispone anche di un'integrazione nativa **GitHub App** per collegare repository di codice (usata dall'agente AI e dalle funzionalità di codice). Questa viene configurata tramite variabili d'ambiente, non workflow — vedi [Integrazione GitHub (self-hosted)](/docs/self-hosted/github-integration). Questa pagina riguarda specificamente la _creazione di ticket dagli incidenti_.
+> **Stai cercando la connessione GitHub più approfondita?** OneUptime dispone anche di un'integrazione nativa **GitHub App** per collegare repository di codice (usata dall'agente AI e dalle funzionalità di codice). Con quell'app puoi dialogare direttamente nel tuo repository — menzionala su una issue o una pull request e implementa, modifica o revisiona; vedi [Lavorare con OneUptime da GitHub](/docs/ai/github-app), e [Integrazione GitHub (self-hosted)](/docs/self-hosted/github-integration) per installarla. Questa pagina riguarda specificamente la _creazione di ticket dagli incidenti_.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -74,6 +74,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [Panoramica delle integrazioni](/docs/integrations/index) — pattern e guida rapida all'autenticazione.
 - [GitLab](/docs/integrations/gitlab) — la stessa idea per GitLab.
 - [Integrazione GitHub (self-hosted)](/docs/self-hosted/github-integration) — la connessione nativa GitHub App.
+- [Lavorare con OneUptime da GitHub](/docs/ai/github-app) — impartire comandi alla GitHub App da una issue o una pull request.
 
 ## Accesso alla rete per le installazioni self-hosted
 

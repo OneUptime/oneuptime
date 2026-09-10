@@ -37,11 +37,13 @@
 | 権限            | アクセスレベル | 目的                                                                       |
 | --------------- | -------------- | -------------------------------------------------------------------------- |
 | Contents        | Read & Write   | リポジトリファイルの読み取り、ブランチへのプッシュ（AIエージェントに必要） |
-| Pull requests   | Read & Write   | プルリクエストの作成と管理                                                 |
-| Issues          | Read & Write   | issueの読み取りとコメント                                                  |
+| Pull requests   | Read & Write   | プルリクエストの作成と管理、レビューの投稿                                 |
+| Issues          | Read & Write   | issueの読み取りと、Appによるコメントの投稿 — **プルリクエストへのコメントも含みます**。GitHubはプルリクエストの会話をissues API経由で扱うためです |
 | Commit statuses | Read           | ビルド/CIステータスの確認                                                  |
 | Actions         | Read           | GitHub Actionsのワークフロー実行とログの読み取り                           |
 | Metadata        | Read           | 基本的なリポジトリのメタデータ（必須）                                     |
+
+**App を対話的にしているのは Issues: Read & write です。** これがないと、メンションは受信されるものの、App が返信しようとした時点で何も起きないまま失敗します。GitHub はプルリクエストの会話コメントを issues API から配信するため、この 1 つの権限が App の書き込むすべての返信を左右します。[GitHub から OneUptime を使う](/docs/ai/github-app) を参照してください。
 
 **組織権限（組織で使用する場合）：**
 
@@ -57,7 +59,23 @@
 
 ### ステップ3：Webhookイベントの購読
 
-OneUptime は GitHub Apps が自動受信する `installation` と `installation_repositories` でインストールとリポジトリアクセスを同期します。**Pull request**、**Push**、**Workflow run** などは受信確認のみで、購読しても通知や CI/CD 自動化は有効になりません。
+OneUptime は 2 種類のイベントを使い、それぞれ役割が異なります。
+
+**リポジトリの同期** — `installation` と `installation_repositories`。GitHub Apps はこれらを自動的に受信します。App がインストールされている範囲と、接続済みリポジトリの一覧を一致させ続けるためのものです。
+
+**対話的な App** — こちらは明示的に購読する必要があり、それぞれが App に作業を渡す特定の手段を有効にします：
+
+| イベント                        | 有効になること                                          |
+| ------------------------------- | ------------------------------------------------------- |
+| **Issue comment**               | Issue **およびプルリクエスト**での `@mention` コマンド  |
+| **Issues**                      | App への Issue のアサインと、リポジトリのトリガーラベル |
+| **Pull request**                | App へのレビュー依頼                                    |
+| **Pull request review**         | 送信されたレビュー本文に書かれたメンション              |
+| **Pull request review comment** | 差分へのインラインコメントに書かれたメンション          |
+
+いずれも購読していなくても、GitHub App はリポジトリの接続も、OneUptime からの修正プルリクエストの作成も引き続き行います。ただ、GitHub 上に書かれたものには一切反応しなくなるだけです。「ボットが反応してくれない」の最も多い原因がこれです。どんなコマンドがあり、誰がコマンドを実行できるのかは [GitHub から OneUptime を使う](/docs/ai/github-app) を参照してください。
+
+その他のイベント（**Push**、**Workflow run**）は受信確認のみで無視されます。購読しても通知や CI/CD 自動化は有効になりません。
 
 ### ステップ4：インストールアクセスの設定
 

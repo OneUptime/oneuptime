@@ -37,11 +37,13 @@
 | Permission      | Access Level | Purpose                                                             |
 | --------------- | ------------ | ------------------------------------------------------------------- |
 | Contents        | Read & Write | repository files पढ़ें, branches push करें (AI Agent के लिए आवश्यक) |
-| Pull requests   | Read & Write | pull requests बनाएं और प्रबंधित करें                                |
-| Issues          | Read & Write | issues पढ़ें और comment करें                                        |
+| Pull requests   | Read & Write | pull requests बनाएं और प्रबंधित करें, और reviews पोस्ट करें         |
+| Issues          | Read & Write | issues पढ़ें, और app के comments पोस्ट करें — **pull requests पर भी**, जिनकी conversation GitHub issues API से देता है |
 | Commit statuses | Read         | build/CI status जांचें                                              |
 | Actions         | Read         | GitHub Actions workflow runs और logs पढ़ें                          |
 | Metadata        | Read         | Basic repository metadata (आवश्यक)                                  |
+
+**Issues: Read & write ही वह चीज़ है जो app को interactive बनाती है।** इसके बिना mentions मिल तो जाते हैं, पर जब app जवाब देने की कोशिश करता है तो वे चुपचाप fail हो जाते हैं — GitHub, pull request की conversation comments issues API से देता है, इसलिए app जो भी जवाब लिखता है वह सब इसी एक permission पर टिका है। [GitHub से OneUptime के साथ काम करना](/docs/ai/github-app) देखें।
 
 **Organization Permissions (organizations के साथ उपयोग करने पर):**
 
@@ -57,7 +59,23 @@
 
 ### चरण 3: Webhook Events Subscribe करें
 
-OneUptime इंस्टॉलेशन और रिपॉज़िटरी एक्सेस को `installation` तथा `installation_repositories` से सिंक्रोनाइज़ करता है, जो GitHub Apps को अपने आप मिलते हैं। **Pull request**, **Push** और **Workflow run** समेत अन्य इवेंट की केवल प्राप्ति स्वीकार होती है; सब्सक्रिप्शन नोटिफिकेशन या CI/CD ऑटोमेशन चालू नहीं करता।
+OneUptime दो तरह के इवेंट उपयोग करता है, और दोनों का काम अलग है।
+
+**रिपॉज़िटरी सिंक्रोनाइज़ेशन** — `installation` और `installation_repositories`। GitHub Apps को ये अपने आप मिलते हैं; ये जुड़ी हुई रिपॉज़िटरी की सूची को उसके अनुरूप रखते हैं जहाँ app इंस्टॉल है।
+
+**इंटरैक्टिव app** — इन्हें स्पष्ट रूप से सब्सक्राइब करना होता है, और हर इवेंट app को काम सौंपने का एक अलग तरीका चालू करता है:
+
+| इवेंट                           | यह क्या चालू करता है                                              |
+| ------------------------------- | ----------------------------------------------------------------- |
+| **Issue comment**               | issues **और** pull requests, दोनों पर `@mention` कमांड             |
+| **Issues**                      | app को issue असाइन करना, और रिपॉज़िटरी का trigger label            |
+| **Pull request**                | app से review का अनुरोध करना                                       |
+| **Pull request review**         | सबमिट किए गए review के मुख्य text में mention                      |
+| **Pull request review comment** | diff पर किसी inline comment में mention                            |
+
+अगर इनमें से कोई भी सब्सक्राइब नहीं है, तब भी GitHub App रिपॉज़िटरी जोड़ता है और OneUptime से fix pull requests खोलता है — बस GitHub पर लिखी किसी बात का जवाब कभी नहीं देता। "बॉट मेरी बात अनसुनी कर देता है" की सबसे आम वजह यही है। कमांड क्या-क्या हैं और उन्हें कौन दे सकता है, यह [GitHub से OneUptime के साथ काम करना](/docs/ai/github-app) में देखें।
+
+अन्य इवेंट (**Push**, **Workflow run**) की केवल प्राप्ति स्वीकार होती है और उन्हें अनदेखा कर दिया जाता है; उन्हें सब्सक्राइब करने से नोटिफिकेशन या CI/CD ऑटोमेशन चालू नहीं होता।
 
 ### चरण 4: Installation Access सेट करें
 

@@ -4,7 +4,7 @@
 
 此集成为**出站**模式：OneUptime 调用 [GitHub REST API](https://docs.github.com/en/rest/issues/issues)。它使用带有 **事件 → On Create** 触发器和 **API 组件**的 OneUptime **[工作流](/docs/workflows/index)**。
 
-> **寻找更深层的 GitHub 连接？** OneUptime 还有一个原生 **GitHub App** 集成，用于连接代码仓库（供 AI 代理和代码功能使用）。该集成通过环境变量配置，而不是工作流——参见 [GitHub 集成（自托管）](/docs/self-hosted/github-integration)。本页专门介绍*从事件创建 issue*。
+> **寻找更深层的 GitHub 连接？** OneUptime 还有一个原生 **GitHub App** 集成，用于连接代码仓库（供 AI 代理和代码功能使用）。你可以在自己的仓库里跟这个应用对话——在 issue 或 pull request 中提及它，它就会实现、修订或评审代码；参见[在 GitHub 中使用 OneUptime](/docs/ai/github-app)，安装方法参见 [GitHub 集成（自托管）](/docs/self-hosted/github-integration)。本页专门介绍*从事件创建 issue*。
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -74,6 +74,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [集成概览](/docs/integrations/index)——模式和认证速查表。
 - [GitLab](/docs/integrations/gitlab)——适用于 GitLab 的相同思路。
 - [GitHub 集成（自托管）](/docs/self-hosted/github-integration)——原生 GitHub App 连接。
+- [在 GitHub 中使用 OneUptime](/docs/ai/github-app)——从 issue 或 pull request 中操控 GitHub App。
 
 ## 自托管部署的网络访问
 

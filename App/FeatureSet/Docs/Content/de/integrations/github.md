@@ -4,7 +4,7 @@
 
 Diese Integration ist **ausgehend**: OneUptime ruft die [GitHub REST API](https://docs.github.com/en/rest/issues/issues) auf. Sie verwendet einen OneUptime-**[Workflow](/docs/workflows/index)** mit einem **Vorfall → On Create**-Auslöser und einer **API-Komponente**.
 
-> **Suchen Sie die tiefere GitHub-Verbindung?** OneUptime hat auch eine native **GitHub App**-Integration zum Verbinden von Code-Repositories (verwendet von der KI-Agent- und Code-Funktion). Diese wird mit Umgebungsvariablen konfiguriert, nicht mit Workflows – siehe [GitHub-Integration (selbst gehostet)](/docs/self-hosted/github-integration). Diese Seite behandelt speziell das _Anlegen von Issues aus Vorfällen_.
+> **Suchen Sie die tiefere GitHub-Verbindung?** OneUptime hat auch eine native **GitHub App**-Integration zum Verbinden von Code-Repositories (verwendet von der KI-Agent- und Code-Funktion). Mit dieser App können Sie in Ihrem Repository sprechen – erwähnen Sie sie in einem Issue oder Pull Request, und sie implementiert, überarbeitet oder prüft den Code; siehe [Mit OneUptime aus GitHub heraus arbeiten](/docs/ai/github-app) sowie [GitHub-Integration (selbst gehostet)](/docs/self-hosted/github-integration) zur Installation. Diese Seite behandelt speziell das _Anlegen von Issues aus Vorfällen_.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/{repo}/issues)  ──►  GitHub issue
@@ -74,6 +74,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 - [Integrationen – Überblick](/docs/integrations/index) — Muster und der Authentifizierungs-Spickzettel.
 - [GitLab](/docs/integrations/gitlab) — dasselbe Prinzip für GitLab.
 - [GitHub-Integration (selbst gehostet)](/docs/self-hosted/github-integration) — die native GitHub App-Verbindung.
+- [Mit OneUptime aus GitHub heraus arbeiten](/docs/ai/github-app) — die GitHub App aus einem Issue oder Pull Request heraus steuern.
 
 ## Netzwerkzugriff bei selbst gehosteten Bereitstellungen
 
