@@ -1,4 +1,5 @@
 import AlertSeverity from "./AlertSeverity";
+import IncidentSeverity from "./IncidentSeverity";
 import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Project from "./Project";
 import ServiceLevelObjective from "./ServiceLevelObjective";
@@ -100,7 +101,7 @@ const decimalTransformer: ValueTransformer = {
   pluralName: "SLO Burn Rate Rules",
   icon: IconProp.Fire,
   tableDescription:
-    "Configure multi-window burn rate rules that raise alerts when a Service Level Objective consumes its error budget too quickly",
+    "Configure multi-window burn rate rules that raise alerts and/or declare incidents when a Service Level Objective consumes its error budget too quickly",
 })
 export default class ServiceLevelObjectiveBurnRateRule extends BaseModel {
   @ColumnAccessControl({
@@ -463,13 +464,99 @@ export default class ServiceLevelObjectiveBurnRateRule extends BaseModel {
     type: TableColumnType.Number,
     title: "Re-fire Suppression (Minutes)",
     description:
-      "Minimum number of minutes after an alert resolves before this rule can fire again. Defaults to the long window length when not set.",
+      "Minimum number of minutes after an alert or incident resolves before this rule can declare that same record again. Each output is suppressed independently, from its own resolve. Defaults to the long window length when not set.",
   })
   @Column({
     type: ColumnType.Number,
     nullable: true,
   })
   public refireSuppressionMinutes?: number = undefined;
+
+  /*
+   * What the rule DECLARES when it fires. A rule may raise an Alert, declare
+   * an Incident, or both — ServiceLevelObjectiveBurnRateRuleService rejects a
+   * rule that does neither, because a rule with no output is indistinguishable
+   * from a disabled one while still consuming a worker evaluation a minute.
+   *
+   * Named for DetectionRule.shouldCreateAlert / shouldCreateIncident, which
+   * model the same choice, and read with the same asymmetry the detection-rule
+   * evaluator documents: the alert gate is `!== false` and the incident gate is
+   * `=== true`, so a rule fetched without the column selected keeps alerting
+   * and never declares an incident by accident.
+   *
+   * `shouldCreateAlert` defaults to TRUE so every rule that existed before
+   * incidents were an option keeps behaving exactly as it did.
+   */
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Create Alert",
+    description:
+      "Raise an Alert when this burn rate rule fires. Enabled by default.",
+    defaultValue: true,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public shouldCreateAlert?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Declare Incident",
+    description:
+      "Declare an Incident when this burn rate rule fires. Disabled by default.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public shouldCreateIncident?: boolean = undefined;
 
   // Alert Configuration
 
@@ -571,9 +658,9 @@ export default class ServiceLevelObjectiveBurnRateRule extends BaseModel {
     required: false,
     type: TableColumnType.EntityArray,
     modelType: OnCallDutyPolicy,
-    title: "On-Call Duty Policies",
+    title: "Alert On-Call Duty Policies",
     description:
-      "On-call duty policies attached to alerts created by this burn rate rule.",
+      "On-call duty policies attached to alerts created by this burn rate rule. Incidents have their own list.",
   })
   @ManyToMany(
     () => {
@@ -594,9 +681,153 @@ export default class ServiceLevelObjectiveBurnRateRule extends BaseModel {
   })
   public onCallDutyPolicies?: Array<OnCallDutyPolicy> = undefined;
 
+  // Incident Configuration
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "incidentSeverityId",
+    type: TableColumnType.Entity,
+    modelType: IncidentSeverity,
+    title: "Incident Severity",
+    description:
+      "Severity of the incident declared when this burn rate rule fires.",
+  })
+  @ManyToOne(
+    () => {
+      return IncidentSeverity;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "incidentSeverityId" })
+  public incidentSeverity?: IncidentSeverity = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Incident Severity ID",
+    description:
+      "ID of the Incident Severity of the incident declared when this burn rate rule fires",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public incidentSeverityId?: ObjectID = undefined;
+
+  /*
+   * Deliberately a SEPARATE list from `onCallDutyPolicies` above, mirroring
+   * how a monitor criteria keeps CriteriaAlert.onCallPolicyIds apart from
+   * CriteriaIncident.onCallPolicyIds: "page the team rotation for the alert,
+   * the major-incident rotation for the incident" is otherwise unexpressible.
+   *
+   * Note this does NOT by itself prevent double-paging a rule that does both —
+   * project-level on-call rules are merged in afterwards by
+   * IncidentOnCallRuleEngineService and AlertOnCallRuleEngineService, so a
+   * project pointing both rule sets at one rotation still pages twice. Two
+   * lists are about expressiveness, not about suppression.
+   */
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveBurnRateRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveBurnRateRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: OnCallDutyPolicy,
+    title: "Incident On-Call Duty Policies",
+    description:
+      "On-call duty policies attached to incidents declared by this burn rate rule.",
+  })
+  @ManyToMany(
+    () => {
+      return OnCallDutyPolicy;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ServiceLevelObjectiveBurnRateRuleIncidentOnCallDutyPolicy",
+    inverseJoinColumn: {
+      name: "onCallDutyPolicyId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "serviceLevelObjectiveBurnRateRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public incidentOnCallDutyPolicies?: Array<OnCallDutyPolicy> = undefined;
+
   /*
    * Worker-owned state. These columns are set by the SLO evaluation worker
    * and cannot be created or updated through the API.
+   *
+   * The alert pair and the incident pair are kept SEPARATE on purpose. They
+   * are two independent lifecycles: one create can fail while the other
+   * succeeds, a responder can resolve the incident by hand while the alert
+   * stays open, and each output's re-fire suppression has to be measured from
+   * its own resolve. Folding both into one pair meant an incident create that
+   * kept failing would still consume the alert's "fired" stamp — and the
+   * alert, once opened, would never be resolved again.
    */
 
   @ColumnAccessControl({
@@ -646,6 +877,54 @@ export default class ServiceLevelObjectiveBurnRateRule extends BaseModel {
     nullable: true,
   })
   public lastAlertResolvedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "Last Incident Declared At",
+    description:
+      "The last time an incident was declared by this burn rate rule. Computed by the worker.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public lastIncidentCreatedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveBurnRateRule,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "Last Incident Resolved At",
+    description:
+      "The last time an incident declared by this burn rate rule was resolved. Computed by the worker.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public lastIncidentResolvedAt?: Date = undefined;
 
   // Created By / Deleted By User Relations
 

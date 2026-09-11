@@ -81,4 +81,4 @@ When an SLO transitions to **At Risk** or **Budget Exhausted**, OneUptime notifi
 
 Status-change notifications are rate-limited so a boundary-hugging SLO cannot page its owners repeatedly for the same slow-motion problem.
 
-Owner notifications are informational — they tell the people accountable for the SLO that the budget is in trouble. If you want budget burn to page your on-call team through escalation policies, use [Burn Rate Alerts](/docs/slo/burn-rate-alerts).
+Owner notifications are informational — they tell the people accountable for the SLO that the budget is in trouble. If you want budget burn to page your on-call team through escalation policies, use [Burn Rate Alerts and Incidents](/docs/slo/burn-rate-alerts).

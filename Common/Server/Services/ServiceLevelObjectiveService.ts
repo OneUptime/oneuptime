@@ -221,9 +221,10 @@ export class Service extends DatabaseService<Model> {
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     /*
-     * When an SLO is disabled, resolve its open burn-rate alerts — the
-     * evaluation worker skips disabled SLOs, so nothing else would ever
-     * resolve them (and their on-call escalations would stay open forever).
+     * When an SLO is disabled, resolve everything its burn-rate rules have
+     * open — the evaluation worker skips disabled SLOs, so nothing else
+     * would ever resolve them (and their on-call escalations would stay
+     * open forever).
      */
     if ((onUpdate.updateBy.data.isEnabled as boolean | undefined) === false) {
       for (const updatedItemId of updatedItemIds) {
@@ -242,13 +243,13 @@ export class Service extends DatabaseService<Model> {
             continue;
           }
 
-          await this.resolveOpenBurnRateAlertsForSlo({
+          await this.resolveOpenBurnRateAlertsAndIncidentsForSlo({
             sloId: updatedItemId,
             projectId: slo.projectId,
           });
         } catch (err) {
           logger.error(
-            `Error resolving open burn rate alerts for disabled SLO ${updatedItemId.toString()}: ${err}`,
+            `Error resolving open burn rate alerts and incidents for disabled SLO ${updatedItemId.toString()}: ${err}`,
           );
         }
       }
@@ -332,13 +333,13 @@ export class Service extends DatabaseService<Model> {
       }
 
       try {
-        await this.resolveOpenBurnRateAlertsForSlo({
+        await this.resolveOpenBurnRateAlertsAndIncidentsForSlo({
           sloId: item.id,
           projectId: item.projectId,
         });
       } catch (err) {
         logger.error(
-          `Error resolving open burn rate alerts for SLO ${item.id?.toString()} before delete: ${err}`,
+          `Error resolving open burn rate alerts and incidents for SLO ${item.id?.toString()} before delete: ${err}`,
           { projectId: item.projectId?.toString() } as LogAttributes,
         );
       }
@@ -353,11 +354,12 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Resolve every open Alert fired by any of this SLO's burn rate rules.
-   * Called when the SLO is disabled or deleted.
+   * Resolve everything any of this SLO's burn rate rules has left open — the
+   * Alerts they raised and the Incidents they declared. Called when the SLO is
+   * disabled or deleted, and by the worker's Misconfigured / Paused guards.
    */
   @CaptureSpan()
-  public async resolveOpenBurnRateAlertsForSlo(data: {
+  public async resolveOpenBurnRateAlertsAndIncidentsForSlo(data: {
     sloId: ObjectID;
     projectId: ObjectID;
   }): Promise<void> {
@@ -377,27 +379,67 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
+    /*
+     * One rule failing must not skip the rest — but the failure must still
+     * REACH the caller. The worker's guard path (Paused / Misconfigured)
+     * deliberately resolves before it commits the new status so that a failed
+     * resolve is retried on the next tick; swallowing the error here would
+     * hand it a success, let it commit, and the next tick would see no
+     * transition and never retry, stranding the record and its on-call
+     * escalation forever. So: attempt every rule, then rethrow the first
+     * error.
+     *
+     * The lifecycle-hook callers (SLO disabled / deleted) already wrap this in
+     * their own try/catch, so propagating changes nothing for them.
+     */
+    let firstError: unknown = null;
+
     for (const rule of burnRateRules) {
       if (!rule.id) {
         continue;
       }
 
       try {
-        await ServiceLevelObjectiveBurnRateRuleService.resolveOpenAlertsForRule(
+        await ServiceLevelObjectiveBurnRateRuleService.resolveOpenAlertsAndIncidentsForRule(
           {
             serviceLevelObjectiveId: data.sloId,
             burnRateRuleId: rule.id,
             projectId: data.projectId,
             rootCause:
-              "Alert auto-resolved because the Service Level Objective was disabled or deleted.",
+              "Auto-resolved because the Service Level Objective was disabled or deleted.",
+          },
+        );
+
+        /*
+         * The rule's own lifecycle columns still say it has something open —
+         * this path deliberately does not stamp a resolve, because that would
+         * start a re-fire suppression window of up to the rule's long window.
+         * But the evaluation worker reads those same columns to decide whether
+         * an output is already open, so leaving them set silences the rule for
+         * the rest of the burn once the SLO is re-enabled. Forget the open
+         * state instead: nothing is open, and nothing just recovered.
+         */
+        await ServiceLevelObjectiveBurnRateRuleService.clearOpenOutputStateForRule(
+          {
+            burnRateRuleId: rule.id,
+            clearAlert: true,
+            clearIncident: true,
           },
         );
       } catch (err) {
         logger.error(
-          `Error resolving open alerts for burn rate rule ${rule.id?.toString()} of SLO ${data.sloId?.toString()}: ${err}`,
+          `Error resolving open alerts and incidents for burn rate rule ${rule.id?.toString()} of SLO ${data.sloId?.toString()}: ${err}`,
           { projectId: data.projectId?.toString() } as LogAttributes,
         );
+
+        if (firstError === null) {
+          firstError = err;
+        }
       }
+    }
+
+    if (firstError !== null) {
+      throw firstError;
     }
   }
 
