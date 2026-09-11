@@ -150,7 +150,7 @@ jest.mock(
 );
 
 /*
- * aedes' real createBroker builds an in-memory persistence layer plus
+ * aedes' real Aedes.createBroker builds an in-memory persistence layer plus
  * heartbeat and will-sweep timers. The unit under test is the authenticate
  * hook the production code installs on the broker, so the broker itself is a
  * bare object the hook gets attached to and the test can then call directly.
@@ -160,14 +160,16 @@ jest.mock("aedes", () => {
 
   return {
     __esModule: true,
-    createBroker: (): Record<string, unknown> => {
-      const broker: Record<string, unknown> = {
-        on: (): void => {
-          return undefined;
-        },
-      };
-      brokers.push(broker);
-      return broker;
+    Aedes: {
+      createBroker: async (): Promise<Record<string, unknown>> => {
+        const broker: Record<string, unknown> = {
+          on: (): void => {
+            return undefined;
+          },
+        };
+        brokers.push(broker);
+        return broker;
+      },
     },
     __brokers: brokers,
   };
@@ -404,7 +406,7 @@ const mqttConnect: MqttConnectFunction = (data: {
   );
 };
 
-beforeAll(() => {
+beforeAll(async () => {
   for (const level of LOG_LEVELS) {
     const spy: SpyLike = (
       jest.spyOn(logger, level) as unknown as SpyLike
@@ -420,7 +422,7 @@ beforeAll(() => {
    * listener short-circuits) and keep the authenticate hook the production
    * code installed on it.
    */
-  startMqttServer();
+  await startMqttServer();
 
   const aedesModule: { __brokers: Array<MqttBrokerStub> } = jest.requireMock(
     "aedes",

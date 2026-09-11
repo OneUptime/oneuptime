@@ -341,7 +341,7 @@ test("a cross-project page survives the real keyed navigator remount and Back re
     mockRootRef.current!;
   await fireEvent.press(screen.getByLabelText("Inbox"));
   expect(screen.getByText("Production incident list")).toBeTruthy();
-  const originalNavigatorKey: string = navigationRef.getRootState().key;
+  const originalNavigatorKey: string = navigationRef.getRootState()!.key;
 
   await act(() => {
     handleNotificationResponse({
@@ -359,7 +359,7 @@ test("a cross-project page survives the real keyed navigator remount and Back re
       },
     } as unknown as NotificationResponse);
   });
-  expect(navigationRef.getRootState().key).not.toBe(originalNavigatorKey);
+  expect(navigationRef.getRootState()!.key).not.toBe(originalNavigatorKey);
   expect(mockListUnmounts).toContain("project-a");
   await waitFor(() => {
     expect(navigationRef.getCurrentRoute()?.name).toBe("IncidentDetail");
@@ -480,7 +480,7 @@ test("Inbox switches categories without adding a Back entry and keeps its choice
   ).toBe(true);
   expect(navigationRef.getCurrentRoute()?.name).toBe("InboxList");
   const inboxState: NavigationState["routes"][number]["state"] = navigationRef
-    .getRootState()
+    .getRootState()!
     .routes.find((route: NavigationState["routes"][number]) => {
       return route.name === "Inbox";
     })?.state;
@@ -692,7 +692,7 @@ test.each<NonNullable<InboxStackParamList["InboxList"]>>([
         .accessibilityState.selected,
     ).toBe(true);
     const inboxState: NavigationState["routes"][number]["state"] = navigationRef
-      .getRootState()
+      .getRootState()!
       .routes.find((route: NavigationState["routes"][number]) => {
         return route.name === "Inbox";
       })?.state;

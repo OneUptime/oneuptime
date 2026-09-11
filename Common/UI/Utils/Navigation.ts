@@ -1,4 +1,3 @@
-import { AgnosticRouteMatch } from "@remix-run/router";
 import Hostname from "../../Types/API/Hostname";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
@@ -45,7 +44,7 @@ abstract class Navigation {
   }
 
   public static getRoutePath(routes: Array<{ path: string }>): string {
-    const pathes: AgnosticRouteMatch[] | null = matchRoutes(
+    const pathes: ReturnType<typeof matchRoutes> = matchRoutes(
       routes,
       this.location.pathname,
     );

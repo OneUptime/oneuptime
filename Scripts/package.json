@@ -18,7 +18,7 @@
     "ts-node": "^10.9.2"
   },
   "devDependencies": {
-    "@faker-js/faker": "^6.3.1",
+    "@faker-js/faker": "^10.5.0",
     "@types/jest": "^28.1.4",
     "@types/node": "^26.1.1",
     "jest": "^28.1.1",

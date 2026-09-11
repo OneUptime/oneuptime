@@ -88,8 +88,10 @@ jest.mock("aedes", () => {
   const broker: Record<string, unknown> = { on: jest.fn() };
   return {
     __esModule: true,
-    createBroker: (): Record<string, unknown> => {
-      return broker;
+    Aedes: {
+      createBroker: async (): Promise<Record<string, unknown>> => {
+        return broker;
+      },
     },
     __broker: broker,
   };
@@ -202,8 +204,8 @@ interface TestBroker {
 }
 let broker: TestBroker;
 
-beforeAll(() => {
-  startMqttServer();
+beforeAll(async () => {
+  await startMqttServer();
   broker = (jest.requireMock("aedes") as { __broker: TestBroker }).__broker;
 });
 

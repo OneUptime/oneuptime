@@ -27,6 +27,17 @@ const path = require("path");
  */
 const sharedProjectConfig = {
   setupFilesAfterEnv: [path.join(__dirname, "src/__tests__/setup.ts")],
+  /*
+   * react-native-marked's parser is ESM-only. Metro handles those modules
+   * natively; Jest needs the same Babel transform allowlist or it tries to
+   * execute their `import`/`export` syntax as CommonJS before renderer tests
+   * can run.
+   */
+  transformIgnorePatterns: [
+    "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|standard-navigation|marked|github-slugger))",
+    "/node_modules/react-native-reanimated/plugin/",
+    "/node_modules/@react-native/babel-preset/",
+  ],
   testMatch: [
     "<rootDir>/src/**/*.test.ts",
     "<rootDir>/src/**/*.test.tsx",
@@ -73,12 +84,12 @@ module.exports = {
     },
   ],
   /*
-   * React Native component renders pull in font and native-module shims on
-   * first use, which can take well over Jest's 5s default on a cold cache -
-   * long enough to fail a screen test that is doing nothing wrong. Jest only
-   * honours this at the top level, not per project.
+   * React Native component renders pull in font, ESM parser, and native-module
+   * shims on first use. That cold transform can take well over Jest's default
+   * even though subsequent assertions are fast. Jest only honours this at the
+   * top level, not per project.
    */
-  testTimeout: 30000,
+  testTimeout: 60000,
   collectCoverageFrom: [
     "src/**/*.{ts,tsx}",
     "!src/**/*.test.{ts,tsx}",

@@ -36,7 +36,8 @@ test("deleting the last parked pod ends the node-OS retry loop", async () => {
   try {
     let readNodeCalls = 0;
     const fakeCoreApi = {
-      readNode: () => {
+      readNode: (request) => {
+        assert.deepEqual(request, { name: "gone-node" });
         readNodeCalls++;
         return Promise.reject(new Error("nodes \"gone-node\" not found"));
       },
@@ -74,4 +75,40 @@ test("deleting the last parked pod ends the node-OS retry loop", async () => {
   } finally {
     global.setTimeout = originalSetTimeout;
   }
+});
+
+/*
+ * @kubernetes/client-node 2.x moved generated APIs to object parameters and
+ * returns the resource body directly. Exercise both halves of that contract:
+ * a positional readNode call or an old `{ body }` response will leave the pod
+ * parked and make this test fail.
+ */
+test("reads node OS through the v2 object-parameter API", async () => {
+  const requests = [];
+  const fakeCoreApi = {
+    readNode: (request) => {
+      requests.push(request);
+      return Promise.resolve({
+        metadata: { labels: { "kubernetes.io/os": "windows" } },
+      });
+    },
+  };
+  const fakeKubeConfig = { makeApiClient: () => fakeCoreApi };
+  const watcher = new PodWatcher(fakeKubeConfig, {});
+  const flush = () => {
+    return new Promise((resolve) => {
+      setImmediate(resolve);
+    });
+  };
+
+  watcher["handleAddOrUpdate"](makePod("u1", "windows-node"));
+  await flush();
+
+  assert.deepEqual(requests, [{ name: "windows-node" }]);
+  assert.equal(watcher["parkedByNode"].has("windows-node"), false);
+
+  // The resolved OS is cached, so later pod events do not hit the API again.
+  watcher["handleAddOrUpdate"](makePod("u2", "windows-node"));
+  await flush();
+  assert.equal(requests.length, 1);
 });

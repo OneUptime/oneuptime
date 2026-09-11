@@ -15,5 +15,8 @@
   "dependencies": {
     "@fluent-org/logger": "^1.0.10",
     "express": "^4.18.2"
+  },
+  "overrides": {
+    "qs": "^6.16.0"
   }
 }

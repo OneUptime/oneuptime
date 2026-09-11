@@ -13,6 +13,75 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import dns from "dns";
 import nodemailer from "nodemailer";
 
+jest.mock("Common/Server/Infrastructure/GlobalCache", () => {
+  return {
+    __esModule: true,
+    default: {
+      getJSONObject: jest.fn(),
+      setJSON: jest.fn(),
+    },
+  };
+});
+
+jest.mock("../../FeatureSet/Notification/Config", () => {
+  return {
+    getEmailServerType: jest.fn(),
+    getGlobalSMTPConfig: jest.fn(),
+    getSendgridConfig: jest.fn(),
+  };
+});
+
+jest.mock("Common/Server/EnvironmentConfig", () => {
+  return { IsDevelopment: false };
+});
+
+jest.mock("Common/Server/Services/EmailLogService", () => {
+  return { __esModule: true, default: { create: jest.fn() } };
+});
+
+jest.mock("Common/Server/Services/UserOnCallLogTimelineService", () => {
+  return { __esModule: true, default: { updateOneById: jest.fn() } };
+});
+
+jest.mock("Common/Models/DatabaseModels/EmailLog", () => {
+  return { __esModule: true, default: jest.fn() };
+});
+
+jest.mock("Common/Models/DatabaseModels/GlobalConfig", () => {
+  return {
+    EmailServerType: { Sendgrid: "Sendgrid", CustomSMTP: "Custom SMTP" },
+  };
+});
+
+jest.mock("Common/Server/Utils/Logger", () => {
+  return {
+    __esModule: true,
+    EXTERNAL_FAULT: {},
+    default: { debug: jest.fn(), error: jest.fn() },
+  };
+});
+
+jest.mock("Common/Server/Utils/Telemetry/AppMetrics", () => {
+  return {
+    __esModule: true,
+    default: {
+      getNotificationCounter: () => {
+        return { add: jest.fn() };
+      },
+      getNotificationDuration: () => {
+        return { record: jest.fn() };
+      },
+    },
+  };
+});
+
+jest.mock(
+  "../../FeatureSet/Notification/Services/MailProviders/MicrosoftGraphMailProvider",
+  () => {
+    return { __esModule: true, default: jest.fn() };
+  },
+);
+
 /*
  * Two tenant-controlled SMTP sinks, both reachable from ProjectSmtpConfig,
  * which any project member can write:

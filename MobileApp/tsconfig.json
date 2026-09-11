@@ -3,9 +3,8 @@
   "exclude": ["node_modules", "dist-ui", "playwright-report", "test-results"],
   "compilerOptions": {
     "strict": true,
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
+      "@/*": ["./src/*"],
       "Common/*": ["../Common/build/dist/*"]
     },
     "types": ["nativewind/types", "jest"]

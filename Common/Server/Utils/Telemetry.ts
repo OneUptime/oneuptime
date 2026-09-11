@@ -263,7 +263,9 @@ export default class Telemetry {
           compression: CompressionAlgorithm.GZIP,
         });
 
-        logRecordProcessors.push(new BatchLogRecordProcessor(logExporter));
+        logRecordProcessors.push(
+          new BatchLogRecordProcessor({ exporter: logExporter }),
+        );
       }
 
       const loggerProviderConfig: LoggerProviderConfig = {
