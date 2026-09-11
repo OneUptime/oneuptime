@@ -198,7 +198,7 @@ const TwoFactorAuth: FunctionComponent<
       ]}
       sideMenu={<SideMenu />}
     >
-      <div className="max-w-6xl">
+      <div className="w-full min-w-0">
         <TwoFactorStatus />
         <WebAuthnCredentials
           isPasskey={false}

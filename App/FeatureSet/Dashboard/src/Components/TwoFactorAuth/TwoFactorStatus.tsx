@@ -16,7 +16,9 @@ const TwoFactorStatus: FunctionComponent = (): ReactElement => {
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [loadError, setLoadError] = React.useState<string>("");
   const [refresh, setRefresh] = React.useState<number>(0);
-  const [showEnableModal, setShowEnableModal] = React.useState<boolean>(false);
+  const [pendingStatus, setPendingStatus] = React.useState<boolean | null>(
+    null,
+  );
   const [isSaving, setIsSaving] = React.useState<boolean>(false);
   const [saveError, setSaveError] = React.useState<string>("");
   const saving: React.MutableRefObject<boolean> = React.useRef<boolean>(false);
@@ -61,8 +63,8 @@ const TwoFactorStatus: FunctionComponent = (): ReactElement => {
     };
   }, [refresh]);
 
-  const enable: () => Promise<void> = async (): Promise<void> => {
-    if (saving.current) {
+  const updateStatus: () => Promise<void> = async (): Promise<void> => {
+    if (saving.current || pendingStatus === null) {
       return;
     }
 
@@ -73,10 +75,10 @@ const TwoFactorStatus: FunctionComponent = (): ReactElement => {
       await ModelAPI.updateById<User>({
         modelType: User,
         id: UserUtil.getUserId(),
-        data: { enableTwoFactorAuth: true },
+        data: { enableTwoFactorAuth: pendingStatus },
       });
-      setIsEnabled(true);
-      setShowEnableModal(false);
+      setIsEnabled(pendingStatus);
+      setPendingStatus(null);
     } catch (error) {
       setSaveError(API.getFriendlyMessage(error));
     } finally {
@@ -109,15 +111,17 @@ const TwoFactorStatus: FunctionComponent = (): ReactElement => {
           ) : undefined
         }
         buttons={
-          !isLoading && !loadError && isEnabled === false
+          !isLoading && !loadError && isEnabled !== null
             ? [
                 {
-                  title: "Enable two-factor authentication",
-                  icon: IconProp.ShieldCheck,
+                  title: isEnabled
+                    ? "Turn off two-factor authentication"
+                    : "Enable two-factor authentication",
+                  icon: isEnabled ? IconProp.Lock : IconProp.ShieldCheck,
                   buttonStyle: ButtonStyleType.NORMAL,
                   onClick: () => {
                     setSaveError("");
-                    setShowEnableModal(true);
+                    setPendingStatus(!isEnabled);
                   },
                 },
               ]
@@ -148,17 +152,32 @@ const TwoFactorStatus: FunctionComponent = (): ReactElement => {
             />
             <p className="text-sm leading-6 text-gray-600">
               {isEnabled
-                ? "Use an authenticator app or security key for your second step. An administrator can turn this off for your account."
+                ? "Use an authenticator app or security key for your second step."
                 : "Set up an authenticator app or security key below, then enable two-factor authentication for your account."}
             </p>
           </div>
         )}
       </Card>
-      {showEnableModal && (
+      {pendingStatus !== null && (
         <ConfirmModal
-          title="Enable two-factor authentication?"
-          description="You will need an authenticator app or security key when signing in with a password. If you have not added one yet, you will finish setup at your next sign-in. Once enabled, only an administrator can turn it off."
-          submitButtonText="Enable two-factor authentication"
+          title={
+            pendingStatus
+              ? "Enable two-factor authentication?"
+              : "Turn off two-factor authentication?"
+          }
+          description={
+            pendingStatus
+              ? "You will need an authenticator app or security key when signing in with a password. If you have not added one yet, you will finish setup at your next sign-in."
+              : "You will no longer be asked for a second step when signing in with a password. Your authenticator apps and security keys will stay saved so you can enable it again."
+          }
+          submitButtonText={
+            pendingStatus
+              ? "Enable two-factor authentication"
+              : "Turn off two-factor authentication"
+          }
+          submitButtonType={
+            pendingStatus ? ButtonStyleType.PRIMARY : ButtonStyleType.DANGER
+          }
           isLoading={isSaving}
           disableSubmitButton={isSaving}
           error={saveError || undefined}
@@ -166,11 +185,11 @@ const TwoFactorStatus: FunctionComponent = (): ReactElement => {
             isSaving
               ? undefined
               : () => {
-                  setShowEnableModal(false);
+                  setPendingStatus(null);
                 }
           }
           onSubmit={() => {
-            void enable();
+            void updateStatus();
           }}
         />
       )}

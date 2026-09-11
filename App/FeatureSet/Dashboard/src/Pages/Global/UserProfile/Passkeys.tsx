@@ -36,7 +36,7 @@ const Passkeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
       ]}
       sideMenu={<SideMenu />}
     >
-      <div className="max-w-6xl">
+      <div className="w-full min-w-0">
         <WebAuthnCredentials
           isPasskey={true}
           onBackupCodes={setEnrolmentBackupCodes}
