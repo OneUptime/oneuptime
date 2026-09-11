@@ -475,6 +475,53 @@ test.describe("Home: Books", () => {
     });
   }
 
+  for (const width of [320, 1440]) {
+    test(`keeps the free-reading mark inline at ${width}px`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(booksUrl);
+
+      const note: Locator = page.locator(".books-free-note");
+      const mark: Locator = note.locator("svg");
+      await expect(note).toBeVisible();
+      await expect(mark).toBeVisible();
+
+      const noteBounds: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      } | null = await note.boundingBox();
+      const markBounds: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      } | null = await mark.boundingBox();
+
+      expect(noteBounds).not.toBeNull();
+      expect(markBounds).not.toBeNull();
+      expect(markBounds!.width).toBeGreaterThanOrEqual(12);
+      expect(markBounds!.width).toBeLessThanOrEqual(20);
+      expect(markBounds!.height).toBeGreaterThanOrEqual(12);
+      expect(markBounds!.height).toBeLessThanOrEqual(20);
+      expect(markBounds!.x).toBeGreaterThanOrEqual(noteBounds!.x);
+      expect(markBounds!.x + markBounds!.width).toBeLessThanOrEqual(
+        noteBounds!.x + noteBounds!.width,
+      );
+      expect(
+        Math.abs(
+          markBounds!.y +
+            markBounds!.height / 2 -
+            (noteBounds!.y + noteBounds!.height / 2),
+        ),
+      ).toBeLessThanOrEqual(1);
+    });
+  }
+
   test("the desktop Resources menu links to Books", async ({
     page,
   }: {
