@@ -67,6 +67,9 @@ export const BrandAssetsPath: string = path.resolve(
 /** Host-relative URL of the OneUptime wordmark, for use in a view's <img src>. */
 export const OneUptimeLogoUrl: string = `${VendorAssetsRoute}/${BrandAssetsRouteSegment}/oneuptime-logo.svg`;
 
+/** Cache-versioned, contrast-safe `Up.` mark used by browser tabs. */
+export const OneUptimeFaviconUrl: string = `${VendorAssetsRoute}/${BrandAssetsRouteSegment}/favicons/oneuptime-up-v1.svg`;
+
 /**
  * Mermaid is a dependency of Common already (Common/UI renders diagrams in
  * markdown with it), so it is on disk in every image and there is no reason to

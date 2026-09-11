@@ -15,6 +15,7 @@ import { createExpressApp } from "../../../Server/Utils/Express";
 import mountVendorAssets, {
   BrandAssetsPath,
   MountVendorAssetsFunction,
+  OneUptimeFaviconUrl,
   OneUptimeLogoUrl,
   VendorAssetsPath,
   VendorAssetsRoute,
@@ -328,6 +329,22 @@ describe("vendored browser assets", () => {
       expect(asset.contentType).toContain("image/svg+xml");
       expect(asset.text).toContain("<svg");
       expect(asset.body.byteLength).toBeGreaterThan(1000);
+    });
+
+    test("serves the contrast-safe Up favicon as a self-contained SVG", async () => {
+      const asset: AssetResponse = await getAsset(OneUptimeFaviconUrl);
+
+      expect(asset.status).toBe(200);
+      expect(asset.contentType).toContain("image/svg+xml");
+      expect(asset.text).toContain('viewBox="0 0 375 375"');
+      expect(asset.text).toContain(
+        '<rect width="375" height="375" rx="72" fill="#121212"',
+      );
+      expect(asset.text).toContain('fill="#ffffff"');
+      expect(asset.text).toContain('fill="#7ed957"');
+      expect(asset.text.match(/<path\b/g)).toHaveLength(2);
+      expect(asset.text).not.toContain("<text");
+      expect(asset.text).not.toBe(INDEX_PAGE);
     });
 
     test("does not answer with the index page", () => {
