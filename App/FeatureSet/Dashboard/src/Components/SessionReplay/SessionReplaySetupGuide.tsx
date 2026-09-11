@@ -23,7 +23,10 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Navigation from "Common/UI/Utils/Navigation";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
-import { RecordingHealthStatus } from "Common/Types/Rum/SessionReplayHealth";
+import {
+  RecordingHealthDiagnosis,
+  RecordingHealthStatus,
+} from "Common/Types/Rum/SessionReplayHealth";
 import {
   formatCountForCopy,
   formatRelativeAge,
@@ -376,6 +379,19 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
     },
   );
 
+  /*
+   * The banner offers at most one action, and "open the setup guide" is not
+   * worth offering to someone already reading it. Drop the KEY rather than
+   * blanking it: RecordingHealthDiagnosis declares `action?:`, and under
+   * exactOptionalPropertyTypes a present-but-empty action is not the same as
+   * an absent one.
+   */
+  const guideDiagnosis: RecordingHealthDiagnosis = { ...health.diagnosis };
+
+  if (guideDiagnosis.action?.target === "setup-guide") {
+    delete guideDiagnosis.action;
+  }
+
   return (
     <Card
       title="Set up Session Replay"
@@ -390,13 +406,7 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
         {!health.isLoading && health.status !== null && (
           <div className="mb-5" data-testid="setup-guide-diagnosis">
             <RecordingHealthDiagnosisBanner
-              diagnosis={{
-                ...health.diagnosis,
-                action:
-                  health.diagnosis.action?.target === "setup-guide"
-                    ? null
-                    : health.diagnosis.action,
-              }}
+              diagnosis={guideDiagnosis}
               rumApplicationId={props.rumApplicationId}
             />
           </div>
