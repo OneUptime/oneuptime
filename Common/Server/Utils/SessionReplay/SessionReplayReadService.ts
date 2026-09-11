@@ -30,6 +30,8 @@ import {
   SESSION_REPLAY_SORT_BY_VALUES,
   SessionReplaySortBy,
   SessionReplaySortedListCursorDto,
+  SessionReplayUserKind,
+  SessionReplayUsersCursorDto,
 } from "../../../Types/Rum/SessionReplayApi";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -92,6 +94,15 @@ const READ_QUERY_SETTINGS: string = getQuerySettings({
 /* Page sizes for the session list. */
 export const DEFAULT_SESSION_REPLAY_LIST_LIMIT: number = 50;
 export const MAX_SESSION_REPLAY_LIST_LIMIT: number = 200;
+
+/*
+ * Page sizes for the per-user rollup (listUsers). Same figures as the
+ * list, but the cost model differs: every page of the rollup
+ * re-aggregates the whole window (see listUsers), so the cap bounds the
+ * response, not the work.
+ */
+export const DEFAULT_SESSION_REPLAY_USERS_LIMIT: number = 50;
+export const MAX_SESSION_REPLAY_USERS_LIMIT: number = 200;
 
 /* Sessions returned by the exception -> replay lookup. */
 export const MAX_SESSION_REPLAY_FOR_EXCEPTION_LIMIT: number = 20;
@@ -163,6 +174,13 @@ export interface SessionReplayListFilters {
   deviceTypes?: Array<string> | undefined;
   countryCodes?: Array<string> | undefined;
   identifiedUserKey?: string | undefined;
+  /*
+   * Exact match on the recorder-minted anonymous visitor id: "every
+   * session from this browser". The handler has already checked the
+   * shape. Like identifiedUserKey it is a random token the list returns
+   * to every caller on every row, so it carries no identity gate.
+   */
+  visitorId?: string | undefined;
   /* "sessions that hit /checkout" - matches the routes array. */
   route?: string | undefined;
   minDurationMs?: number | undefined;
@@ -234,6 +252,12 @@ export interface SessionReplayListItem {
   viewportWidth: number;
   viewportHeight: number;
   identifiedUserKey: string;
+  /*
+   * The recorder's per-browser anonymous visitor id; "" for a session an
+   * older recorder produced. Under the ordinary session ACL like the
+   * digest above: it names a browser, never a person.
+   */
+  visitorId: string;
   /* Present only when the caller holds the narrower identity permission. */
   identifiedUserLabel?: string | undefined;
   identifiedUserTraits?: Record<string, string> | undefined;
@@ -263,6 +287,71 @@ export interface SessionReplayListResult {
 
 /* Routes projected onto a list row; the table shows three and says "(N pages)". */
 export const MAX_LIST_ROUTES: number = 5;
+
+/* The keyset cursor the per-user rollup accepts and emits. */
+export type SessionReplayUsersCursor = SessionReplayUsersCursorDto;
+
+export interface SessionReplayUsersRequest {
+  projectId: ObjectID;
+  rumApplicationId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+  limit: number;
+  cursor?: SessionReplayUsersCursor | undefined;
+  /*
+   * The same column-level identity ACL as SessionReplayListRequest: the
+   * label and traits are named at neither level of the statement unless
+   * the handler has already passed canReadIdentifiedUserLabel.
+   */
+  includeIdentifiedUserLabel: boolean;
+}
+
+/*
+ * One person (or one browser, or the anonymous remainder) across every
+ * session of theirs in the window. Mirrors SessionReplayUserRollupDto
+ * field for field; the handler serialises it as-is.
+ */
+export interface SessionReplayUserRollup {
+  /*
+   * "u:<identifiedUserKey>" for an identified person, "v:<visitorId>" for
+   * a linked browser, "" for the anonymous bucket. The row key and the
+   * cursor tiebreak; opaque to the client.
+   */
+  groupKey: string;
+  kind: SessionReplayUserKind;
+  /* "" unless kind is "identified". */
+  identifiedUserKey: string;
+  /* The visitor id of the newest session in the group; "" when it had none. */
+  visitorId: string;
+  /* Present only when the caller holds the narrower identity permission. */
+  identifiedUserLabel?: string | undefined;
+  identifiedUserTraits?: Record<string, string> | undefined;
+  sessionCount: number;
+  /* Sessions still being recorded (not finalized). */
+  liveSessionCount: number;
+  firstSeenUnixMs: number;
+  lastSeenUnixMs: number;
+  totalDurationMs: number;
+  /* Sums over the group's sessions. */
+  errorCount: number;
+  frustrationCount: number;
+  errorSessionCount: number;
+  pageCount: number;
+  /* The newest session, so "Watch latest" needs no second request. */
+  lastSessionId: string;
+  lastEntryUrl: string;
+  /* Device facts of the newest session. */
+  browserName: string;
+  browserVersion: string;
+  osName: string;
+  deviceType: string;
+  countryCode: string;
+}
+
+export interface SessionReplayUsersResult {
+  users: Array<SessionReplayUserRollup>;
+  nextCursor: SessionReplayUsersCursor | null;
+}
 
 export interface SessionReplaySessionHeader {
   sessionId: string;
@@ -327,6 +416,15 @@ export interface SessionReplaySessionHeader {
    * for recordings that predate the field.
    */
   recorderCapabilities: Array<string>;
+  /*
+   * The pseudonymous identity digest ("" when the page never identified
+   * the user) and the per-browser visitor id ("" from an older recorder).
+   * Both are what the player hands back to /list to find this person's
+   * other sessions. Neither is identity-gated: the list already returns
+   * both to every list-capable caller, and neither names anyone.
+   */
+  identifiedUserKey: string;
+  visitorId: string;
   /*
    * Never populated by getSessionHeader. The manifest handler fills them
    * from getSessionIdentity ONLY after canReadIdentifiedUserLabel passes,
@@ -554,6 +652,12 @@ const HEADER_AGGREGATES: Array<AggregatedColumn> = [
     alias: "aggIdentifiedUserKey",
     expression: argMaxColumn("identifiedUserKey"),
   },
+  /*
+   * The recorder-minted per-browser id. Under the ordinary session ACL
+   * beside the digest, NOT in IDENTITY_AGGREGATES: it is a random token
+   * that names a browser, never a person.
+   */
+  { alias: "aggVisitorId", expression: argMaxColumn("visitorId") },
   {
     alias: "aggSamplePercentage",
     expression: argMaxNumeric("samplePercentageAtCapture"),
@@ -643,6 +747,164 @@ function toSelectList(columns: Array<AggregatedColumn>): string {
       return `${column.expression} AS ${column.alias}`;
     })
     .join(",\n        ");
+}
+
+/*
+ * The per-session facts the user rollup (listUsers) reads at the inner,
+ * per-session level of its statement. Picked out of HEADER_AGGREGATES by
+ * alias rather than re-declared, so the rollup can never disagree with
+ * the list about what a session's live duration or error count is.
+ */
+const USER_ROLLUP_SESSION_ALIASES: ReadonlyArray<string> = [
+  "aggStartTime",
+  "aggDurationMs",
+  "aggIsFinalized",
+  "aggHasError",
+  "aggErrorCount",
+  "aggRageClickCount",
+  "aggDeadClickCount",
+  "aggErrorClickCount",
+  "aggRefreshRageCount",
+  "aggPageCount",
+  "aggEntryUrl",
+  "aggBrowserName",
+  "aggBrowserVersion",
+  "aggOsName",
+  "aggDeviceType",
+  "aggCountryCode",
+  "aggIdentifiedUserKey",
+  "aggVisitorId",
+];
+
+const USER_ROLLUP_SESSION_AGGREGATES: Array<AggregatedColumn> =
+  USER_ROLLUP_SESSION_ALIASES.map((alias: string): AggregatedColumn => {
+    const column: AggregatedColumn | undefined = HEADER_AGGREGATES.find(
+      (candidate: AggregatedColumn): boolean => {
+        return candidate.alias === alias;
+      },
+    );
+
+    if (!column) {
+      throw new Error(`HEADER_AGGREGATES has no column aliased ${alias}`);
+    }
+
+    return column;
+  });
+
+/*
+ * How a de-duplicated session is filed under a person. An identified
+ * session belongs to its user whatever browser it came from; an
+ * unidentified one belongs to its browser; one an older recorder left
+ * with neither key goes in the single anonymous bucket (''). The
+ * prefixes keep a user key and a visitor id from ever colliding, and
+ * readUserRollupKind reads the kind straight back off them. Computed at
+ * the per-session level so the outer GROUP BY can name it.
+ */
+const USER_ROLLUP_IDENTIFIED_PREFIX: string = "u:";
+const USER_ROLLUP_VISITOR_PREFIX: string = "v:";
+const USER_ROLLUP_KEY_ALIAS: string = "rollupKey";
+const USER_ROLLUP_KEY_EXPRESSION: string = `if(aggIdentifiedUserKey != '', concat('${USER_ROLLUP_IDENTIFIED_PREFIX}', aggIdentifiedUserKey), if(aggVisitorId != '', concat('${USER_ROLLUP_VISITOR_PREFIX}', aggVisitorId), ''))`;
+
+/*
+ * The outer, per-person level. Every alias carries the `rollup` prefix
+ * for the reason the per-session ones carry `agg`: none may spell a
+ * physical column, so a WHERE on this level could never trip
+ * ILLEGAL_AGGREGATION. The inputs are the per-session aliases: already
+ * de-duplicated, and already Float64 unix milliseconds where they are
+ * clocks (argMaxDateTime), so min/max/sum need no further conversion.
+ * argMax over aggStartTime takes the newest session's value for the
+ * "last seen" facts.
+ */
+const USER_ROLLUP_AGGREGATES: Array<AggregatedColumn> = [
+  { alias: "rollupSessionCount", expression: "toFloat64(count())" },
+  {
+    alias: "rollupLiveSessionCount",
+    expression: "toFloat64(countIf(aggIsFinalized = 0))",
+  },
+  {
+    alias: "rollupFirstSeenUnixMs",
+    expression: "toFloat64(min(aggStartTime))",
+  },
+  { alias: "rollupLastSeenUnixMs", expression: "toFloat64(max(aggStartTime))" },
+  {
+    alias: "rollupTotalDurationMs",
+    expression: "toFloat64(sum(aggDurationMs))",
+  },
+  { alias: "rollupErrorCount", expression: "toFloat64(sum(aggErrorCount))" },
+  {
+    alias: "rollupFrustrationCount",
+    expression: `toFloat64(sum${FRUSTRATION_TOTAL_EXPRESSION})`,
+  },
+  {
+    alias: "rollupErrorSessionCount",
+    expression: "toFloat64(countIf(aggHasError))",
+  },
+  { alias: "rollupPageCount", expression: "toFloat64(sum(aggPageCount))" },
+  {
+    alias: "rollupLastSessionId",
+    expression: "argMax(sessionId, aggStartTime)",
+  },
+  {
+    alias: "rollupLastEntryUrl",
+    expression: "argMax(aggEntryUrl, aggStartTime)",
+  },
+  /*
+   * Constant within an identified group and '' in every other, so any
+   * row would do; argMax keeps it on the same footing as the rest.
+   */
+  {
+    alias: "rollupIdentifiedUserKey",
+    expression: "argMax(aggIdentifiedUserKey, aggStartTime)",
+  },
+  {
+    alias: "rollupVisitorId",
+    expression: "argMax(aggVisitorId, aggStartTime)",
+  },
+  {
+    alias: "rollupBrowserName",
+    expression: "argMax(aggBrowserName, aggStartTime)",
+  },
+  {
+    alias: "rollupBrowserVersion",
+    expression: "argMax(aggBrowserVersion, aggStartTime)",
+  },
+  { alias: "rollupOsName", expression: "argMax(aggOsName, aggStartTime)" },
+  {
+    alias: "rollupDeviceType",
+    expression: "argMax(aggDeviceType, aggStartTime)",
+  },
+  {
+    alias: "rollupCountryCode",
+    expression: "argMax(aggCountryCode, aggStartTime)",
+  },
+];
+
+/*
+ * The identity pair at the person level. Named ONLY when the inner level
+ * named IDENTITY_AGGREGATES, which is only behind the identity ACL.
+ */
+const USER_ROLLUP_IDENTITY_AGGREGATES: Array<AggregatedColumn> = [
+  {
+    alias: "rollupIdentifiedUserLabel",
+    expression: "argMax(aggIdentifiedUserLabel, aggStartTime)",
+  },
+  {
+    alias: "rollupIdentifiedUserTraits",
+    expression: "argMax(aggIdentifiedUserTraits, aggStartTime)",
+  },
+];
+
+/* The kind USER_ROLLUP_KEY_EXPRESSION encoded, read back off the prefix. */
+function readUserRollupKind(groupKey: string): SessionReplayUserKind {
+  if (groupKey.startsWith(USER_ROLLUP_IDENTIFIED_PREFIX)) {
+    return "identified";
+  }
+
+  if (groupKey.startsWith(USER_ROLLUP_VISITOR_PREFIX)) {
+    return "visitor";
+  }
+
+  return "anonymous";
 }
 
 function readNumber(row: JSONObject, key: string): number {
@@ -1026,6 +1288,7 @@ export default class SessionReplayReadService {
           viewportWidth: readNumber(row, "aggViewportWidth"),
           viewportHeight: readNumber(row, "aggViewportHeight"),
           identifiedUserKey: readString(row, "aggIdentifiedUserKey"),
+          visitorId: readString(row, "aggVisitorId"),
           samplePercentageAtCapture: readNumber(row, "aggSamplePercentage"),
           routes: readStringArray(row, "aggRoutes").slice(0, MAX_LIST_ROUTES),
           traceCount: readNumber(row, "aggTraceCount"),
@@ -1069,6 +1332,225 @@ export default class SessionReplayReadService {
                 lastSession,
               ),
               sessionId: lastSession.sessionId,
+            }
+          : null,
+    };
+  }
+
+  /*
+   * The session list rolled up by person: one row per identified user,
+   * one per anonymous visitor (a browser the recorder linked with a
+   * visitor id), and at most one anonymous bucket (rollupKey '') for
+   * sessions an older recorder left with neither key. The bucket is a row
+   * like any other - the Dashboard shows it as "unlinked sessions" - so
+   * nothing here filters it out.
+   *
+   * Two levels, and it has to be two. The inner SELECT is the list's own
+   * shape - GROUP BY the replace key, argMax(col, version) per session -
+   * because until a merge runs a session is physically several
+   * ReplacingMergeTree rows (a provisional header, a finalized one, a
+   * retry), and a rollup over the raw rows would count one session twice
+   * and add its provisional zero to its finalized error count. Only once
+   * each session is one row can the outer SELECT group those rows by
+   * person and count, sum, and take the newest session's facts.
+   *
+   * It is its own read rather than a client-side fold of listSessions for
+   * the same reason. A keyset page of sessions holds an arbitrary prefix
+   * of a person's sessions: their newest three on this page, their older
+   * twenty on the next. Grouping such a page gives a row that says "3
+   * sessions, no errors" for a person who had 23 and an error in the
+   * fourth, and the boundary moves with every page size - a wrong answer
+   * that looks like a right one. The rollup has to see every session in
+   * the window, so the window is the unit of work here.
+   *
+   * WHERE is the sort-key prefix plus retention, exactly as the list: the
+   * identity keys are argMax'd like every other header column and are
+   * only ever named in a SELECT list, never in a WHERE.
+   *
+   * The keyset cursor lives in the HAVING ONLY. The list can additionally
+   * bound startTime in its WHERE because its sort key is a per-session
+   * fact; here the sort key is max(startTime) over a person's sessions,
+   * and a WHERE bound would cut a person who was on the previous page
+   * down to their older sessions - a smaller "last seen" that slips under
+   * the cursor and returns them as a phantom row with partial counts.
+   * Every page therefore re-aggregates the window, which is what the page
+   * cap and the handler's default window bound.
+   */
+  @CaptureSpan()
+  public static async listUsers(
+    request: SessionReplayUsersRequest,
+  ): Promise<SessionReplayUsersResult> {
+    const limit: number = Math.max(
+      1,
+      Math.min(request.limit, MAX_SESSION_REPLAY_USERS_LIMIT),
+    );
+
+    const statement: Statement = SQL`
+      SELECT
+    `;
+
+    statement.append(
+      `    ${USER_ROLLUP_KEY_ALIAS},\n        ${toSelectList(USER_ROLLUP_AGGREGATES)}`,
+    );
+
+    if (request.includeIdentifiedUserLabel) {
+      statement.append(
+        `,\n        ${toSelectList(USER_ROLLUP_IDENTITY_AGGREGATES)}`,
+      );
+    }
+
+    statement.append(`
+      FROM (
+        SELECT
+          sessionId,
+          ${toSelectList(USER_ROLLUP_SESSION_AGGREGATES)},
+          ${USER_ROLLUP_KEY_EXPRESSION} AS ${USER_ROLLUP_KEY_ALIAS}`);
+
+    if (request.includeIdentifiedUserLabel) {
+      statement.append(`,\n          ${toSelectList(IDENTITY_AGGREGATES)}`);
+    }
+
+    statement.append(SQL`
+        FROM ${AnalyticsTableName.RumSession}
+        WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: request.projectId,
+        }}
+          AND rumApplicationId = ${{
+            type: TableColumnType.ObjectID,
+            value: request.rumApplicationId,
+          }}
+          AND startTime >= ${{
+            type: TableColumnType.DateTime64,
+            value: request.startTime,
+          }}
+          AND startTime <= ${{
+            type: TableColumnType.DateTime64,
+            value: request.endTime,
+          }}
+    `);
+
+    statement.append(RETENTION_FILTER);
+
+    statement.append(`
+        GROUP BY projectId, rumApplicationId, sessionId
+      )
+      GROUP BY ${USER_ROLLUP_KEY_ALIAS}
+      HAVING 1 = 1`);
+
+    if (request.cursor) {
+      statement.append(" AND (rollupLastSeenUnixMs < ");
+      statement.append(
+        SQL`${{
+          type: TableColumnType.Decimal,
+          value: request.cursor.lastSeenUnixMs,
+        }}`,
+      );
+      statement.append(" OR (rollupLastSeenUnixMs = ");
+      statement.append(
+        SQL`${{
+          type: TableColumnType.Decimal,
+          value: request.cursor.lastSeenUnixMs,
+        }}`,
+      );
+      /*
+       * The alias goes in as trusted SQL, never through the SQL template:
+       * a plain string inside it is bound as an Identifier parameter, not
+       * spelled into the statement.
+       */
+      statement.append(` AND ${USER_ROLLUP_KEY_ALIAS} < `);
+      statement.append(
+        SQL`${{
+          type: TableColumnType.Text,
+          value: request.cursor.groupKey,
+        }}))`,
+      );
+    }
+
+    statement.append(
+      ` ORDER BY rollupLastSeenUnixMs DESC, ${USER_ROLLUP_KEY_ALIAS} DESC`,
+    );
+    statement.append(
+      SQL` LIMIT ${{
+        type: TableColumnType.Number,
+        value: limit + 1,
+      }}`,
+    );
+
+    statement.append(READ_QUERY_SETTINGS);
+
+    const dbResult: Results = await RumSessionService.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const rows: Array<JSONObject> = response.data || [];
+
+    /* One row over the page size, for the same reason as the list. */
+    const hasMore: boolean = rows.length > limit;
+    const pageRows: Array<JSONObject> = hasMore ? rows.slice(0, limit) : rows;
+
+    const users: Array<SessionReplayUserRollup> = pageRows.map(
+      (row: JSONObject): SessionReplayUserRollup => {
+        const groupKey: string = readString(row, USER_ROLLUP_KEY_ALIAS);
+        const kind: SessionReplayUserKind = readUserRollupKind(groupKey);
+
+        const user: SessionReplayUserRollup = {
+          groupKey: groupKey,
+          kind: kind,
+          /*
+           * The digest is '' for every session of a visitor or anonymous
+           * group by construction of the key; the guard keeps the wire
+           * promise ("" unless identified) even for a row that is not.
+           */
+          identifiedUserKey:
+            kind === "identified"
+              ? readString(row, "rollupIdentifiedUserKey")
+              : "",
+          visitorId: readString(row, "rollupVisitorId"),
+          sessionCount: readNumber(row, "rollupSessionCount"),
+          liveSessionCount: readNumber(row, "rollupLiveSessionCount"),
+          firstSeenUnixMs: readNumber(row, "rollupFirstSeenUnixMs"),
+          lastSeenUnixMs: readNumber(row, "rollupLastSeenUnixMs"),
+          totalDurationMs: readNumber(row, "rollupTotalDurationMs"),
+          errorCount: readNumber(row, "rollupErrorCount"),
+          frustrationCount: readNumber(row, "rollupFrustrationCount"),
+          errorSessionCount: readNumber(row, "rollupErrorSessionCount"),
+          pageCount: readNumber(row, "rollupPageCount"),
+          lastSessionId: readString(row, "rollupLastSessionId"),
+          lastEntryUrl: readString(row, "rollupLastEntryUrl"),
+          browserName: readString(row, "rollupBrowserName"),
+          browserVersion: readString(row, "rollupBrowserVersion"),
+          osName: readString(row, "rollupOsName"),
+          deviceType: readString(row, "rollupDeviceType"),
+          countryCode: readString(row, "rollupCountryCode"),
+        };
+
+        if (request.includeIdentifiedUserLabel) {
+          user.identifiedUserLabel = readString(
+            row,
+            "rollupIdentifiedUserLabel",
+          );
+          user.identifiedUserTraits = readStringMap(
+            row,
+            "rollupIdentifiedUserTraits",
+          );
+        }
+
+        return user;
+      },
+    );
+
+    const lastUser: SessionReplayUserRollup | undefined =
+      users[users.length - 1];
+
+    return {
+      users: users,
+      nextCursor:
+        hasMore && lastUser
+          ? {
+              lastSeenUnixMs: lastUser.lastSeenUnixMs,
+              groupKey: lastUser.groupKey,
             }
           : null,
     };
@@ -1235,6 +1717,8 @@ export default class SessionReplayReadService {
       activeMs: readNumber(row, "aggActiveMs"),
       firstErrorOffsetMs: readNumber(row, "aggFirstErrorOffsetMs"),
       recorderCapabilities: readRecorderCapabilities(row),
+      identifiedUserKey: readString(row, "aggIdentifiedUserKey"),
+      visitorId: readString(row, "aggVisitorId"),
     };
   }
 
@@ -2450,6 +2934,20 @@ export default class SessionReplayReadService {
         SQL` AND aggIdentifiedUserKey = ${{
           type: TableColumnType.Text,
           value: filters.identifiedUserKey,
+        }}`,
+      );
+    }
+
+    if (filters.visitorId) {
+      /*
+       * Over the argMax alias like the digest above: the raw column would
+       * match a superseded header version, and a provisional header
+       * written before the recorder's first meta chunk carries no id.
+       */
+      statement.append(
+        SQL` AND aggVisitorId = ${{
+          type: TableColumnType.Text,
+          value: filters.visitorId,
         }}`,
       );
     }

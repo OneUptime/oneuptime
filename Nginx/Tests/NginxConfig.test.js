@@ -1279,3 +1279,107 @@ test("the /api proxy budget stays above the app's own AI generation ceiling", ()
     `location /api gives a request ${proxyBudgetInMs}ms but the app allows an LLM call ${INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS}ms — the proxy would time out first and the user would see a 504 instead of the provider's error`,
   );
 });
+
+/*
+ * Framing protection on the browser-facing SPA locations.
+ *
+ * Three of the SPAs the ingress serves take credentials or act on an
+ * authenticated session with a click: /accounts is the sign-in and password
+ * flow, /admin is the instance-wide admin console, /dashboard is the product
+ * itself. Framing any of them is the classic clickjacking setup -- an attacker
+ * page overlays an invisible iframe and the victim's click lands on "delete
+ * project" or on a login form they think belongs to the attacker's site.
+ *
+ * Two of the SPAs are the opposite case by design: /status-page and
+ * /public-dashboard exist to be embedded in customers' own pages, and DENY
+ * there would break that. So this is not "every location gets the header" --
+ * it is a deliberate split, and the split is what these tests pin. Both halves
+ * are asserted, because a well-meaning "harden everything" change is exactly
+ * how the embeddable half would break.
+ *
+ * add_header never inherits sideways between sibling locations, so each block
+ * must carry its own copy; there is no server-level default to fall back on.
+ */
+const FRAME_PROTECTION_HEADERS = [
+  'add_header X-Frame-Options "DENY" always;',
+  'add_header X-XSS-Protection "1; mode=block" always;',
+];
+
+const CREDENTIAL_TAKING_SPA_LOCATIONS = ["/accounts", "/admin", "/dashboard"];
+
+// Meant to be iframed by customers; DENY here would be a regression.
+const EMBEDDABLE_SPA_LOCATIONS = ["/status-page", "/public-dashboard"];
+
+const findPrefixLocation = (spec) => {
+  return getLocationBlocks(primaryServerBlock.body).find((location) => {
+    return location.spec.trim() === spec;
+  });
+};
+
+for (const spec of CREDENTIAL_TAKING_SPA_LOCATIONS) {
+  test(`${spec} refuses to be framed`, () => {
+    const location = findPrefixLocation(spec);
+
+    assert.ok(location, `expected a ${spec} prefix location in the ingress`);
+
+    for (const header of FRAME_PROTECTION_HEADERS) {
+      assert.ok(
+        location.body.includes(header),
+        `${spec} serves an authenticated document but does not send "${header}", so an attacker page can frame it and steal clicks`,
+      );
+    }
+  });
+
+  test(`${spec} still sends nosniff and a no-store Cache-Control`, () => {
+    const location = findPrefixLocation(spec);
+
+    assert.ok(
+      location.body.includes(
+        'add_header X-Content-Type-Options "nosniff" always;',
+      ),
+      `${spec} must keep nosniff`,
+    );
+    assert.ok(
+      location.body.includes(
+        'add_header Cache-Control "no-cache, no-store, must-revalidate" always;',
+      ),
+      `${spec} serves an authenticated document and must not be cached`,
+    );
+  });
+}
+
+for (const spec of EMBEDDABLE_SPA_LOCATIONS) {
+  test(`${spec} stays embeddable`, () => {
+    const location = findPrefixLocation(spec);
+
+    assert.ok(location, `expected a ${spec} prefix location in the ingress`);
+
+    assert.ok(
+      !location.body.includes("X-Frame-Options"),
+      `${spec} is meant to be embedded in a customer's own page; X-Frame-Options here breaks that`,
+    );
+  });
+}
+
+test("every add_header on a browser-facing SPA location uses the always flag", () => {
+  /*
+   * Without `always`, nginx attaches the header only on 2xx/3xx (and a short
+   * list of redirects). The responses that matter most for framing are the
+   * ones that are NOT 2xx -- an error page rendered inside an iframe is still
+   * a page an attacker can overlay -- so a dropped `always` silently narrows
+   * the protection to the happy path.
+   */
+  for (const spec of [
+    ...CREDENTIAL_TAKING_SPA_LOCATIONS,
+    ...EMBEDDABLE_SPA_LOCATIONS,
+  ]) {
+    const location = findPrefixLocation(spec);
+
+    for (const directive of getDirectives(location.body, "add_header")) {
+      assert.ok(
+        /\balways\s*;$/.test(directive.trim()),
+        `${spec} has an add_header without the always flag, so it is dropped on error responses: ${directive}`,
+      );
+    }
+  }
+});

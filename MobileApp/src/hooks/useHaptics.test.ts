@@ -218,24 +218,28 @@ describe("useHaptics as a whole", () => {
     expect(impactSpy()).toHaveBeenCalledTimes(2);
   });
 
-  test("a native failure surfaces as a rejection rather than an unhandled one", async () => {
-    /*
-     * Recording what the helpers do today rather than what they ideally would:
-     * every helper AWAITS the native call, so a rejecting taptic engine rejects
-     * the helper too. That is safe as a promise - nothing goes unhandled - but
-     * it does mean a caller that awaits `successFeedback()` inside the same try
-     * block as its API request will treat a buzz that failed as a request that
-     * failed. If that is ever changed to swallow, this test is the place the
-     * decision gets made deliberately instead of by accident.
-     */
-    notificationSpy().mockRejectedValueOnce(
-      new Error("haptics unavailable") as never,
-    );
+  test.each<[keyof HapticsApi, () => jest.Mock]>([
+    ["successFeedback", notificationSpy],
+    ["errorFeedback", notificationSpy],
+    ["lightImpact", impactSpy],
+    ["mediumImpact", impactSpy],
+    ["selectionFeedback", selectionSpy],
+  ])(
+    "%s tolerates native feedback rejection",
+    async (name: keyof HapticsApi, spy: () => jest.Mock) => {
+      spy().mockRejectedValueOnce(new Error("haptics unavailable") as never);
+      const haptics: HapticsApi = await renderHaptics();
 
+      await expect(haptics[name]()).resolves.toBeUndefined();
+    },
+  );
+
+  test("a synchronous native exception also leaves feedback optional", async () => {
+    notificationSpy().mockImplementationOnce(() => {
+      throw new Error("native module unavailable");
+    });
     const haptics: HapticsApi = await renderHaptics();
 
-    await expect(haptics.successFeedback()).rejects.toThrow(
-      "haptics unavailable",
-    );
+    await expect(haptics.successFeedback()).resolves.toBeUndefined();
   });
 });

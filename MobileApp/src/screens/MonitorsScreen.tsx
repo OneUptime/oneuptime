@@ -5,7 +5,6 @@ import {
   ScrollView,
   RefreshControl,
   Text,
-  Pressable,
   SectionListRenderItemInfo,
   DefaultSectionT,
 } from "react-native";
@@ -17,7 +16,7 @@ import {
 } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
-import getToggleAccessibilityProps from "../utils/getToggleAccessibilityProps";
+import ListFilters from "../components/ListFilters";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import ScreenIntro from "../components/ScreenIntro";
 import SearchField from "../components/SearchField";
@@ -41,6 +40,7 @@ type NavProp = NativeStackNavigationProp<
 interface MonitorSection {
   title: string;
   kind: "issues" | "operational" | "disabled" | "unknown";
+  count: number;
   data: ProjectMonitorItem[];
 }
 
@@ -62,8 +62,12 @@ function MonitorSummary({
       style={{
         flexDirection: "row",
         gap: 16,
-        paddingVertical: 20,
-        marginBottom: 12,
+        padding: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: theme.colors.borderSubtle,
+        backgroundColor: theme.colors.backgroundElevated,
+        marginBottom: 16,
       }}
     >
       {[
@@ -295,6 +299,7 @@ export default function MonitorsScreen(): React.JSX.Element {
       sections.push({
         title: "Issues",
         kind: "issues",
+        count: issues.length,
         data: issues.slice(0, visibleCount),
       });
     }
@@ -302,6 +307,7 @@ export default function MonitorsScreen(): React.JSX.Element {
       sections.push({
         title: "Status unknown",
         kind: "unknown",
+        count: unknown.length,
         data: unknown.slice(0, visibleCount),
       });
     }
@@ -309,6 +315,7 @@ export default function MonitorsScreen(): React.JSX.Element {
       sections.push({
         title: "Disabled monitors",
         kind: "disabled",
+        count: disabled.length,
         data: disabled.slice(0, visibleCount),
       });
     }
@@ -316,6 +323,7 @@ export default function MonitorsScreen(): React.JSX.Element {
       sections.push({
         title: "Healthy",
         kind: "operational",
+        count: operational.length,
         data: operational.slice(0, visibleCount),
       });
     }
@@ -362,14 +370,21 @@ export default function MonitorsScreen(): React.JSX.Element {
   );
 
   const hasFilters: boolean = search.trim().length > 0 || filter !== "all";
+  const resetFilters: () => void = () => {
+    setSearch("");
+    setFilter("all");
+    setVisibleCount(PAGE_SIZE);
+  };
   const listHeader: React.JSX.Element = (
     <View style={{ marginBottom: 24 }}>
       <ScreenIntro
         compact
         title="Monitors"
-        description="A clear view of what’s up, and what needs a look."
+        description="Service health at a glance."
       />
-      {totalCount > 0 ? <MonitorSummary counts={counts} /> : null}
+      {totalCount > 0 && !isLoading && !isError ? (
+        <MonitorSummary counts={counts} />
+      ) : null}
       <SearchField
         value={search}
         onChangeText={(value: string) => {
@@ -391,64 +406,38 @@ export default function MonitorsScreen(): React.JSX.Element {
           Search covers the 100 most recent monitors.
         </Text>
       ) : null}
-      <View
-        style={{
-          flexDirection: "row",
-          flexWrap: "wrap",
-          gap: 8,
-          marginTop: 12,
+      <ListFilters
+        options={[
+          { key: "all", label: "All", accessibilityLabel: "All monitors" },
+          { key: "issues", label: "Issues", accessibilityLabel: "Has issues" },
+          {
+            key: "operational",
+            label: "Healthy",
+            accessibilityLabel: "Healthy",
+          },
+          {
+            key: "disabled",
+            label: "Disabled",
+            accessibilityLabel: "Disabled only",
+          },
+        ]}
+        selected={filter}
+        onSelect={(value: MonitorFilter) => {
+          setFilter(value);
+          setVisibleCount(PAGE_SIZE);
         }}
-      >
-        {(
-          [
-            { key: "all", label: "All monitors" },
-            { key: "issues", label: "Has issues" },
-            { key: "operational", label: "Healthy" },
-            { key: "disabled", label: "Disabled only" },
-          ] as const
-        ).map((option: { key: MonitorFilter; label: string }) => {
-          const selected: boolean = filter === option.key;
-          return (
-            <Pressable
-              key={option.key}
-              accessibilityRole="button"
-              accessibilityLabel={option.label}
-              {...getToggleAccessibilityProps(selected)}
-              onPress={() => {
-                setFilter(option.key);
-                setVisibleCount(PAGE_SIZE);
-              }}
-              style={{
-                minHeight: 48,
-                paddingHorizontal: 10,
-                justifyContent: "center",
-                borderRadius: 24,
-                backgroundColor: selected
-                  ? theme.colors.textPrimary
-                  : theme.colors.backgroundElevated,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: selected
-                    ? theme.colors.textInverse
-                    : theme.colors.textSecondary,
-                }}
-              >
-                {option.key === "all"
-                  ? "All"
-                  : option.key === "issues"
-                    ? "Issues"
-                    : option.key === "operational"
-                      ? "Healthy"
-                      : "Disabled"}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+        resultCount={
+          isLoading || isError
+            ? undefined
+            : monitorSections.reduce(
+                (total: number, section: MonitorSection) => {
+                  return total + section.count;
+                },
+                0,
+              )
+        }
+        onReset={hasFilters ? resetFilters : undefined}
+      />
       {filter === "issues" ? (
         <Text
           style={{
@@ -541,7 +530,7 @@ export default function MonitorsScreen(): React.JSX.Element {
           return (
             <SectionHeader
               title={params.section.title}
-              count={params.section.data.length}
+              count={params.section.count}
               kind={params.section.kind}
             />
           );

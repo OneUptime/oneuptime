@@ -72,12 +72,8 @@ export default function InboxScreen(): React.JSX.Element {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}>
-      <View style={{ paddingHorizontal: 20, paddingTop: 24 }}>
-        <ScreenIntro
-          title="Inbox"
-          description="Your team's response queue, in one place."
-          compact
-        />
+      <View style={{ paddingHorizontal: 20, paddingTop: 20 }}>
+        <ScreenIntro title="Inbox" compact />
         <View
           accessibilityRole="tablist"
           accessibilityLabel="Inbox categories"

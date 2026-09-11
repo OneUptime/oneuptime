@@ -108,6 +108,14 @@ export interface SessionReplayListFiltersDto {
   /* (not finalized OR has chunks) AND not recording-lost. */
   isPlayable?: boolean;
   hasTraces?: boolean;
+  /*
+   * Exact match on the recorder-minted anonymous visitor id (see
+   * SESSION_REPLAY_VISITOR_ID_PATTERN): "every session from this
+   * browser". Like identifiedUserKey it is a random token the list already
+   * returns to every caller, so it needs no identity gate. Refused with a
+   * 400 when it is not a visitor id shape.
+   */
+  visitorId?: string;
 }
 
 export interface SessionReplayListRequestDto {
@@ -177,6 +185,12 @@ export interface SessionReplayListItemDto {
   endTimeUnixMs?: number;
   /* Identity-gated like identifiedUserLabel. */
   identifiedUserTraits?: Record<string, string>;
+  /*
+   * The recorder's per-browser anonymous visitor id; "" for a session an
+   * older recorder produced. What the list groups anonymous sessions by
+   * and what the player's "other sessions from this visitor" reads.
+   */
+  visitorId?: string;
 }
 
 export interface SessionReplayListResponseDto {
@@ -193,6 +207,76 @@ export interface SessionReplayListResponseDto {
    * Dashboard reads as "nothing known to have been dropped".
    */
   ignoredFilters?: Array<string>;
+}
+
+/* ---- /users ---- */
+
+/*
+ * The session list rolled up by person: one row per identified user, one
+ * per anonymous visitor (a browser the recorder linked with a visitor id)
+ * and at most one "anonymous" bucket for sessions an older recorder left
+ * with neither key. It answers "who had trouble" where the flat list
+ * answers "what happened"; the two are different reads of the same
+ * headers, and a keyset page of sessions cannot be grouped client-side
+ * without lying at the page boundary, which is why this is its own route.
+ */
+export type SessionReplayUserKind = "identified" | "visitor" | "anonymous";
+
+/* Keyset cursor: the last row's sort key and its group key as the tiebreak. */
+export interface SessionReplayUsersCursorDto {
+  lastSeenUnixMs: number;
+  groupKey: string;
+}
+
+export interface SessionReplayUsersRequestDto {
+  rumApplicationId: string;
+  /* ISO-8601. Defaults server-side to the past 7 days, like /list. */
+  startTime?: string;
+  endTime?: string;
+  limit?: number;
+  cursor?: SessionReplayUsersCursorDto;
+}
+
+export interface SessionReplayUserRollupDto {
+  /*
+   * "u:<identifiedUserKey>" for an identified person, "v:<visitorId>" for
+   * a linked browser, "" for the anonymous bucket. Opaque to the client:
+   * it is the cursor tiebreak and the row key, nothing more.
+   */
+  groupKey: string;
+  kind: SessionReplayUserKind;
+  /* "" unless kind is "identified". */
+  identifiedUserKey: string;
+  /* The visitor id of the newest session in the group; "" when it had none. */
+  visitorId: string;
+  /* Present only when the caller holds the identity permission. */
+  identifiedUserLabel?: string;
+  identifiedUserTraits?: Record<string, string>;
+  sessionCount: number;
+  /* Sessions still being recorded (not finalized). */
+  liveSessionCount: number;
+  firstSeenUnixMs: number;
+  lastSeenUnixMs: number;
+  totalDurationMs: number;
+  /* Sums over the group's sessions. */
+  errorCount: number;
+  frustrationCount: number;
+  errorSessionCount: number;
+  pageCount: number;
+  /* The newest session, so "Watch latest" needs no second request. */
+  lastSessionId: string;
+  lastEntryUrl: string;
+  /* Device facts of the newest session. */
+  browserName: string;
+  browserVersion: string;
+  osName: string;
+  deviceType: string;
+  countryCode: string;
+}
+
+export interface SessionReplayUsersResponseDto {
+  users: Array<SessionReplayUserRollupDto>;
+  nextCursor: SessionReplayUsersCursorDto | null;
 }
 
 /* ---- /manifest ---- */
@@ -342,6 +426,15 @@ export interface SessionReplayManifestHeaderDto {
    * could not capture. Empty for recordings that predate the field.
    */
   recorderCapabilities?: Array<string>;
+  /*
+   * The pseudonymous identity key ("" when the page never identified the
+   * user) and the per-browser visitor id ("" from an older recorder). Both
+   * are what the player hands back to /list to find this person's other
+   * sessions; neither is identity-gated, because the list already returns
+   * both to every list-capable caller and neither names anyone.
+   */
+  identifiedUserKey?: string;
+  visitorId?: string;
 }
 
 export interface SessionReplayManifestTabDto {

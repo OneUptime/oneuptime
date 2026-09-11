@@ -225,6 +225,82 @@ describe("id: is an intent, not a filter", () => {
   });
 });
 
+describe("visitor: is an exact visitor id", () => {
+  const VISITOR: string = "7f3a2b1c9d8e4f5a6b7c8d9e0f1a2b3c";
+
+  test("a whole 32-hex id is the visitorId filter, lower-cased, and round-trips", () => {
+    const result: SessionReplaySearchParseResult = parseSessionReplaySearch(
+      `visitor:${VISITOR.toUpperCase()} /checkout`,
+    );
+
+    expect(result.advanced.visitorId).toBe(VISITOR);
+    expect(result.advanced.urlPrefix).toBe("/checkout");
+    expect(result.warnings).toEqual([]);
+
+    const filters: SessionReplayAdvancedFilters = {
+      ...EMPTY_ADVANCED_FILTERS,
+      visitorId: VISITOR,
+      browserName: "Chrome",
+    };
+
+    expect(stringifySessionReplaySearch(filters)).toBe(
+      `visitor:${VISITOR} browser:Chrome`,
+    );
+    expect(
+      parseSessionReplaySearch(stringifySessionReplaySearch(filters)).advanced,
+    ).toEqual(filters);
+  });
+
+  /*
+   * The server refuses anything but a whole id with a 400; a half-pasted
+   * id is dropped with a hint rather than sent, so the list never fails a
+   * request over it.
+   */
+  test("a malformed visitor value warns and is dropped, nothing else affected", () => {
+    const result: SessionReplaySearchParseResult = parseSessionReplaySearch(
+      "visitor:7f3a2b browser:Chrome",
+    );
+
+    expect(result.advanced.visitorId).toBe("");
+    expect(result.advanced.browserName).toBe("Chrome");
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain("visitor:");
+    expect(result.warnings[0]).toContain('"7f3a2b"');
+  });
+
+  test("visitor is in the token vocabulary", () => {
+    expect(SESSION_REPLAY_SEARCH_TOKEN_KEYS).toContain("visitor");
+  });
+});
+
+describe("the identity digest is chip-only", () => {
+  const USER_KEY: string =
+    "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08";
+
+  test("identifiedUserKey is carried from the base across a parse, never stringified", () => {
+    const base: SessionReplayAdvancedFilters = {
+      ...EMPTY_ADVANCED_FILTERS,
+      identifiedUserKey: USER_KEY,
+    };
+
+    const result: SessionReplaySearchParseResult = parseSessionReplaySearch(
+      "browser:Chrome",
+      base,
+    );
+
+    expect(result.advanced.identifiedUserKey).toBe(USER_KEY);
+    expect(result.advanced.browserName).toBe("Chrome");
+    /* A 64-character hash has no business in the box. */
+    expect(stringifySessionReplaySearch(base)).toBe("");
+    expect(
+      mergeSearchIntoFilters(
+        { ...EMPTY_ADVANCED_FILTERS, osName: "macOS" },
+        base,
+      ).identifiedUserKey,
+    ).toBe(USER_KEY);
+  });
+});
+
 describe("error: is dropped", () => {
   test("with an explanation, and nothing else is affected", () => {
     const result: SessionReplaySearchParseResult = parseSessionReplaySearch(

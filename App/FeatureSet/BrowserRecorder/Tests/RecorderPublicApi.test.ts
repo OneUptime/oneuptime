@@ -25,6 +25,7 @@ const INIT_OPTIONS: RecorderInitOptions = {
 };
 
 const SESSION_KEY: string = "oneuptime.replay.session";
+const VISITOR_KEY: string = "oneuptime.replay.visitor";
 
 function baseConfig(): SessionReplayConfigResponse {
   return {
@@ -760,6 +761,69 @@ describe("Recorder public API", (): void => {
       }
     });
 
+    /*
+     * The anonymous visitor id (#3705) through the public surface: the
+     * getter, the diagnostics, the wire and the storage key all agree, and
+     * the getter answers "" - not null, not undefined - whenever there is
+     * nothing to answer with.
+     */
+    it('exposes the visitor id once a recorder runs, and "" before and after', async (): Promise<void> => {
+      const index: typeof import("../src/Index") = await importIndex();
+
+      expect(index.getVisitorId()).toBe("");
+      expect(index.getDiagnostics().visitorId).toBeNull();
+
+      index.bootstrap(INIT_OPTIONS, { ...baseConfig(), samplePercentage: 100 });
+
+      const visitorId: string = index.getVisitorId();
+
+      expect(visitorId).toMatch(/^[0-9a-f]{32}$/);
+      expect(index.getDiagnostics().visitorId).toBe(visitorId);
+      expect(window.localStorage.getItem(VISITOR_KEY)).toBe(visitorId);
+
+      await tick();
+      await tick();
+
+      expect(posts()[0]?.envelope.chunkIndex).toBe(0);
+      expect(posts()[0]?.envelope.meta?.visitorId).toBe(visitorId);
+
+      index.stop();
+
+      expect(index.getVisitorId()).toBe("");
+      expect(index.getDiagnostics().visitorId).toBeNull();
+
+      /* stop() leaves storage alone, exactly as it does for the session id. */
+      expect(window.localStorage.getItem(VISITOR_KEY)).toBe(visitorId);
+    });
+
+    /*
+     * The point of the id: a page load is a new recorder, and often a new
+     * session, but the same browser - so it is the same visitor.
+     */
+    it("keeps one visitor id across page loads on the same browser", async (): Promise<void> => {
+      const first: typeof import("../src/Index") = await importIndex();
+
+      first.bootstrap(INIT_OPTIONS, baseConfig());
+
+      const visitorId: string = first.getVisitorId();
+
+      expect(visitorId).toMatch(/^[0-9a-f]{32}$/);
+
+      first.stop();
+
+      /* The next page load: a fresh module, a fresh recorder, same storage. */
+      delete globalRecord["__ONEUPTIME_SESSION_REPLAY_STARTED__"];
+
+      const second: typeof import("../src/Index") = await importIndex();
+
+      second.bootstrap(INIT_OPTIONS, baseConfig());
+
+      expect(second.getVisitorId()).toBe(visitorId);
+      expect(second.getDiagnostics().visitorId).toBe(visitorId);
+
+      second.stop();
+    });
+
     it("lists the capabilities this build advertises", async (): Promise<void> => {
       const index: typeof import("../src/Index") = await importIndex();
 
@@ -773,6 +837,7 @@ describe("Recorder public API", (): void => {
           "traits",
           "tags",
           "visibility",
+          "visitor-id",
         ]),
       );
 
@@ -787,6 +852,9 @@ describe("Recorder public API", (): void => {
       index.bootstrap(INIT_OPTIONS, { ...baseConfig(), samplePercentage: 100 });
 
       const firstSessionId: string = index.getSessionId() as string;
+      const firstVisitorId: string = index.getVisitorId();
+
+      expect(firstVisitorId).toMatch(/^[0-9a-f]{32}$/);
 
       await tick();
 
@@ -797,6 +865,15 @@ describe("Recorder public API", (): void => {
       expect(index.getDiagnostics().decisions?.uploadBlockedBy).toBe("consent");
       expect(window.localStorage.getItem(SESSION_KEY)).toBeNull();
 
+      /*
+       * The visitor id is withdrawn with the consent: "" on the getter and
+       * in the diagnostics (a recorder exists, it just holds no id), and
+       * gone from storage so a later visit cannot be linked back.
+       */
+      expect(index.getVisitorId()).toBe("");
+      expect(index.getDiagnostics().visitorId).toBe("");
+      expect(window.localStorage.getItem(VISITOR_KEY)).toBeNull();
+
       fetchMock.mockClear();
 
       index.grantConsent();
@@ -805,15 +882,23 @@ describe("Recorder public API", (): void => {
       await tick();
 
       const secondSessionId: string = index.getSessionId() as string;
+      const secondVisitorId: string = index.getVisitorId();
 
       expect(secondSessionId).not.toBe(firstSessionId);
       expect(index.getDiagnostics().isUploading).toBe(true);
+
+      /* A new anonymous identity too, never the withdrawn one. */
+      expect(secondVisitorId).toMatch(/^[0-9a-f]{32}$/);
+      expect(secondVisitorId).not.toBe(firstVisitorId);
+      expect(window.localStorage.getItem(VISITOR_KEY)).toBe(secondVisitorId);
 
       const first: CapturedPost | undefined = posts()[0];
 
       expect(first?.envelope.sessionId).toBe(secondSessionId);
       expect(first?.envelope.chunkIndex).toBe(0);
       expect(first?.envelope.hasFullSnapshot).toBe(true);
+      expect(first?.envelope.meta?.visitorId).toBe(secondVisitorId);
+      expect(allBytes()).not.toContain(firstVisitorId);
 
       index.stop();
     });

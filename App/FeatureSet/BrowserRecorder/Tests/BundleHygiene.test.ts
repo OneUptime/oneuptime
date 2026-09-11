@@ -211,6 +211,17 @@ describe("bundle hygiene", (): void => {
   it("exposes getDiagnostics on the artifact's public API", (): void => {
     expect(recorderBundle).toContain("getDiagnostics");
     expect(recorderBundle).toContain("setDebug");
+    expect(recorderBundle).toContain("getVisitorId");
+  });
+
+  /*
+   * The README tells a customer which localStorage key the anonymous visitor
+   * id lives under, so they can clear it from their own consent flow. The
+   * built artifact is the thing that has to agree with that sentence.
+   */
+  it("stores the visitor id under the documented localStorage key", (): void => {
+    expect(recorderBundle).toContain("oneuptime.replay.visitor");
+    expect(loaderBundle).not.toContain("oneuptime.replay.visitor");
   });
 
   /*

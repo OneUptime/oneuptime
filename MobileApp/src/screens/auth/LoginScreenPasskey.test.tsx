@@ -15,6 +15,8 @@ const mockLoginWithPasskey: jest.Mock = jest.fn();
 const mockNavigate: jest.Mock = jest.fn();
 const mockSetNeedsServerUrl: jest.Mock = jest.fn();
 let mockBlur: (() => void) | undefined;
+let mockFocus: (() => void) | undefined;
+const mockGetServerUrl: jest.Mock = jest.fn();
 jest.mock("../../hooks/useAuth", () => {
   return {
     useAuth: () => {
@@ -31,8 +33,12 @@ jest.mock("@react-navigation/native", () => {
     useNavigation: () => {
       return {
         navigate: mockNavigate,
-        addListener: (_type: string, listener: () => void) => {
-          mockBlur = listener;
+        addListener: (type: string, listener: () => void) => {
+          if (type === "blur") {
+            mockBlur = listener;
+          } else if (type === "focus") {
+            mockFocus = listener;
+          }
           return jest.fn();
         },
       };
@@ -41,8 +47,8 @@ jest.mock("@react-navigation/native", () => {
 });
 jest.mock("../../storage/serverUrl", () => {
   return {
-    getServerUrl: async () => {
-      return "https://selfhosted.example.com";
+    getServerUrl: () => {
+      return mockGetServerUrl();
     },
   };
 });
@@ -61,6 +67,10 @@ const session: LoginResponse = {
 let finish: ((response: LoginResponse | null) => void) | undefined;
 let options: PasskeySignInOptions | undefined;
 beforeEach(() => {
+  mockGetServerUrl.mockReset();
+  mockGetServerUrl.mockResolvedValue("https://selfhosted.example.com");
+  mockFocus = undefined;
+  mockBlur = undefined;
   finish = undefined;
   options = undefined;
   mockLogin.mockResolvedValue(session);
@@ -80,6 +90,30 @@ async function show(): Promise<void> {
   await render(<LoginScreen />);
   await screen.findByText("https://selfhosted.example.com");
 }
+
+test("returning from Change Server shows the workspace sign-in will use", async () => {
+  await show();
+  mockGetServerUrl.mockResolvedValue("https://second-workspace.example");
+
+  await act(() => {
+    mockFocus?.();
+  });
+
+  expect(screen.getByText("https://second-workspace.example")).toBeTruthy();
+  expect(screen.queryByText("https://selfhosted.example.com")).toBeNull();
+});
+
+test("a saved address read failure keeps sign-in usable and retries on focus", async () => {
+  mockGetServerUrl.mockRejectedValueOnce(new Error("Storage unavailable"));
+  await render(<LoginScreen />);
+  expect(screen.getByRole("button", { name: "Sign In" })).toBeTruthy();
+
+  await act(() => {
+    mockFocus?.();
+  });
+
+  expect(screen.getByText("https://selfhosted.example.com")).toBeTruthy();
+});
 
 test("keeps password sign-in first and offers passkeys as a credential-free alternative", async () => {
   await show();

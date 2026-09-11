@@ -90,6 +90,7 @@ Available on `window.OneUptimeReplay` once the artifact has loaded, and via
 | `onSessionChange(cb)`       | called with `(sessionId, tabId)` immediately when a session exists and again on every rotation; returns an unsubscribe. This is what puts `session.id` on the page's own OpenTelemetry resource |
 | `stop()`                    | stops recording                                                                            |
 | `getSessionId()`            | the current session id, or null                                                            |
+| `getVisitorId()`            | the anonymous visitor id every session from this browser profile carries (32 hex characters), or `""` before start, after `stop()` and while consent is withdrawn. See "Anonymous visitor id" under the privacy model |
 | `setDebug(bool)`            | turn the console diagnostics on or off for this page                                       |
 | `getDiagnostics()`          | the recorder's state plus its last 250 decisions, kept whether or not diagnostics were on  |
 
@@ -239,6 +240,24 @@ attribute and the SRI pin is inert.
 | `.oneuptime-block`      | element excluded from the DOM entirely                                                                                                                                                                                      |
 | `.oneuptime-mask`       | element's text masked                                                                                                                                                                                                       |
 | `.oneuptime-ignore`     | element's input events dropped                                                                                                                                                                                              |
+
+**Anonymous visitor id.** A session id lives for one visit (it rotates after
+30 minutes idle or four hours), so two visits from the same browser would
+share nothing a reader could group on. The recorder therefore also mints ONE
+random id per browser profile - 32 lowercase hex characters, the same shape
+as a session id - keeps it in `localStorage` under `oneuptime.replay.visitor`,
+and repeats it on every chunk that carries meta. It is what lets the session
+list group anonymous sessions by visitor ("this visitor came back three
+times") and the player offer "other sessions from this visitor" for an
+application whose pages never call `identify()`. It is **not** an identity:
+it is random, minted client-side, carries no meaning outside the recordings
+it links, and is **not** gated by the "Capture user identity" switch, because
+it is a token the recorder made rather than a reference the page supplied.
+It survives session rotation - that is its purpose - and is forgotten by
+`revokeConsent()` together with the session, so a user who withdraws consent
+is never re-linked to their earlier recordings; a later `grantConsent()`
+mints a new one. Under DNT / GPC the recorder never loads, so nothing is
+minted at all. `getVisitorId()` returns it.
 
 ### Known limits, stated plainly
 
@@ -404,7 +423,7 @@ defend in an incident review.
 | `src/Config.ts`              | init options and the fail-closed policy fetch                             |
 | `src/Consent.ts`             | DNT/GPC and the consent state machine                                     |
 | `src/Masking.ts`             | rrweb masking options and sticky per-node sensitivity                     |
-| `src/SessionId.ts`           | session / tab identity and the chunk counter, over fallible storage       |
+| `src/SessionId.ts`           | session / tab / visitor identity and the chunk counter, over fallible storage |
 | `src/RollingBuffer.ts`       | the pre-roll ring, evicting whole checkout segments                       |
 | `src/Chunker.ts`             | chunk boundaries, snapshot splitting, per-chunk counters                  |
 | `src/Transport.ts`           | compression, the envelope, retries and the circuit breaker                |

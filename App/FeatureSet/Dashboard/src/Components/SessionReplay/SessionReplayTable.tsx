@@ -85,6 +85,7 @@ import {
   SessionReplayAdvancedFilters,
   SessionReplayCursorMemory,
   SessionReplayListUrlState,
+  SessionReplayListView,
 } from "./SessionReplayListFilters";
 import {
   describeTriggerReason,
@@ -95,6 +96,16 @@ import {
   SessionReplayPlayabilitySeverity,
 } from "./SessionReplayPlayability";
 import { buildReplayMomentRoute } from "./ReplayPlayerUrlState";
+import {
+  describeSessionUser,
+  SessionUserDescription,
+} from "./SessionReplayUserIdentity";
+import SessionReplayUserAvatar from "./SessionReplayUserAvatar";
+import SessionReplayUsersTable from "./SessionReplayUsersTable";
+import SessionReplayIdentityNudge, {
+  hasAnyVisitorId,
+  shouldShowIdentityNudge,
+} from "./SessionReplayIdentityNudge";
 export {
   buildSessionReplayListFilters,
   EMPTY_ADVANCED_FILTERS,
@@ -137,6 +148,18 @@ export interface SessionReplaySummary {
   deviceType: string;
   countryCode: string;
   identifiedUserLabel: string;
+  /*
+   * The pseudonymous digest the label is stored under; "" when the page
+   * never identified anyone. Present for every role - it names nobody -
+   * and it is what "every session from this user" filters by when the
+   * label itself is withheld.
+   */
+  identifiedUserKey: string;
+  /*
+   * The recorder's per-browser anonymous visitor id; "" from a recorder
+   * that predates it. Groups one browser's sessions without identify().
+   */
+  visitorId: string;
   maskingMode: string;
   fidelityNotices: Array<string>;
 
@@ -208,6 +231,14 @@ export const SESSION_REPLAY_LIST_CURSOR_STORAGE_KEY_PREFIX: string =
 
 const MAX_ROUTE_PILLS: number = 3;
 
+/*
+ * Signal badges shown on a row before the rest fold into "+N". Three is
+ * what fits the column at the widths the table is laid out for; a row
+ * with errors, rage, dead clicks, traces and exception groups used to
+ * wrap to three lines and push every other row's height with it.
+ */
+const MAX_SIGNAL_BADGES: number = 3;
+
 export function parseSessionReplaySummary(
   row: JSONObject,
 ): SessionReplaySummary {
@@ -240,6 +271,8 @@ export function parseSessionReplaySummary(
     deviceType: readDtoString(record, "deviceType"),
     countryCode: readDtoString(record, "countryCode"),
     identifiedUserLabel: readDtoString(record, "identifiedUserLabel"),
+    identifiedUserKey: readDtoString(record, "identifiedUserKey"),
+    visitorId: readDtoString(record, "visitorId"),
     maskingMode: readDtoString(record, "maskingMode"),
     fidelityNotices: readDtoStringArray(record, "fidelityNotices"),
     samplePercentageAtCapture: readDtoOptionalNumber(
@@ -523,6 +556,12 @@ interface SessionReplayRowProps {
   rumApplicationId: string;
   nowUnixMs: number;
   onOpen: (route: Route, openInNewTab: boolean) => void;
+  /*
+   * "Every session from this person": the user cell hands back the one
+   * identity filter that selects them (see describeSessionUser) and the
+   * table applies it in place of any other identity filter.
+   */
+  onFilterByUser: (filter: Partial<SessionReplayAdvancedFilters>) => void;
 }
 
 function routeForSession(
@@ -589,49 +628,90 @@ function getSessionReplayCells(
       ? IconProp.DevicePhoneMobile
       : IconProp.ComputerDesktop;
 
-  const badges: Array<ReactElement> = SESSION_REPLAY_SIGNAL_BADGES.flatMap(
-    (badge: SessionReplaySignalBadge): Array<ReactElement> => {
-      const count: number | undefined = badge.getCount(row);
+  const signalEntries: Array<{ text: string; element: ReactElement }> =
+    SESSION_REPLAY_SIGNAL_BADGES.flatMap(
+      (
+        badge: SessionReplaySignalBadge,
+      ): Array<{ text: string; element: ReactElement }> => {
+        const count: number | undefined = badge.getCount(row);
 
-      if (count === undefined || count <= 0) {
-        return [];
-      }
+        if (count === undefined || count <= 0) {
+          return [];
+        }
 
-      const badgeRoute: Route | null = buildReplayMomentRoute({
-        rumApplicationId: props.rumApplicationId,
-        sessionId: row.sessionId,
-        rail: badge.rail,
-      });
-      const element: ReactElement = (
-        <StatusBadge
-          text={badge.getText(count)}
-          type={SEVERITY_TO_BADGE[badge.severity]}
-        />
-      );
+        const text: string = badge.getText(count);
+        const badgeRoute: Route | null = buildReplayMomentRoute({
+          rumApplicationId: props.rumApplicationId,
+          sessionId: row.sessionId,
+          rail: badge.rail,
+        });
+        const element: ReactElement = (
+          <StatusBadge text={text} type={SEVERITY_TO_BADGE[badge.severity]} />
+        );
 
-      return [
-        badgeRoute ? (
-          <Link
-            key={badge.key}
-            to={badgeRoute}
-            className="inline-flex"
-            title={`Open the ${badge.rail} rail of this session`}
-          >
-            {element}
-          </Link>
-        ) : (
-          <span key={badge.key} className="inline-flex">
-            {element}
-          </span>
-        ),
-      ];
-    },
-  );
+        return [
+          {
+            text: text,
+            element: badgeRoute ? (
+              <Link
+                key={badge.key}
+                to={badgeRoute}
+                className="inline-flex"
+                title={`Open the ${badge.rail} rail of this session`}
+              >
+                {element}
+              </Link>
+            ) : (
+              <span key={badge.key} className="inline-flex">
+                {element}
+              </span>
+            ),
+          },
+        ];
+      },
+    );
 
   if (row.triggerReason === SessionReplayTriggerReason.Performance) {
+    signalEntries.push({
+      text: "Slow",
+      element: (
+        <span key="slow" className="inline-flex">
+          <StatusBadge text="Slow" type={StatusBadgeType.Warning} />
+        </span>
+      ),
+    });
+  }
+
+  /*
+   * The first few badges, then one "+N" that names the rest on hover and
+   * for a screen reader: folding them must not lose a signal, only the
+   * space it took.
+   */
+  const shownSignals: Array<ReactElement> = signalEntries
+    .slice(0, MAX_SIGNAL_BADGES)
+    .map((entry: { text: string; element: ReactElement }): ReactElement => {
+      return entry.element;
+    });
+  const foldedSignals: Array<string> = signalEntries
+    .slice(MAX_SIGNAL_BADGES)
+    .map((entry: { text: string; element: ReactElement }): string => {
+      return entry.text;
+    });
+  const badges: Array<ReactElement> = [...shownSignals];
+
+  if (foldedSignals.length > 0) {
     badges.push(
-      <span key="slow" className="inline-flex">
-        <StatusBadge text="Slow" type={StatusBadgeType.Warning} />
+      <span
+        key="more"
+        className="inline-flex"
+        title={foldedSignals.join(", ")}
+        data-testid="session-row-more-signals"
+      >
+        <StatusBadge
+          text={`+${foldedSignals.length}`}
+          type={StatusBadgeType.Neutral}
+        />
+        <span className="sr-only">: {foldedSignals.join(", ")}</span>
       </span>,
     );
   }
@@ -660,27 +740,81 @@ function getSessionReplayCells(
         })
       : null;
 
-  const userLabel: ReactElement =
-    row.isIdentityVisible === false ? (
-      <Tooltip text="Your role cannot read end-user identity, so the label is not sent to you.">
-        <span
-          className="text-sm italic text-gray-500"
-          tabIndex={0}
-          aria-label="User hidden: your role cannot read end-user identity"
-        >
-          Hidden
-        </span>
-      </Tooltip>
-    ) : (
+  /*
+   * Who this session belongs to, ranked the one way every cell ranks it
+   * (SessionReplayUserIdentity): a readable label, a withheld one, a
+   * visitor id, or nothing. The name is a button whenever a fact on the
+   * row can select this person's other sessions - which is the question a
+   * support engineer opens this list to answer.
+   */
+  const user: SessionUserDescription = describeSessionUser({
+    identifiedUserLabel: row.identifiedUserLabel,
+    isIdentityVisible: row.isIdentityVisible !== false,
+    identifiedUserKey: row.identifiedUserKey,
+    visitorId: row.visitorId,
+  });
+
+  const userNameClassName: string =
+    user.kind === "identified"
+      ? "font-medium text-gray-900"
+      : user.kind === "hidden"
+        ? "italic text-gray-500"
+        : user.kind === "visitor"
+          ? "text-gray-700"
+          : "text-gray-500";
+
+  const userName: ReactElement = (
+    <span
+      className={`truncate text-sm ${userNameClassName}`}
+      data-testid="session-row-user"
+      data-user-kind={user.kind}
+    >
+      {user.text}
+    </span>
+  );
+
+  const userLabel: ReactElement = user.filter ? (
+    <button
+      type="button"
+      className={`block min-w-0 max-w-full truncate rounded text-left text-sm hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${userNameClassName}`}
+      title={user.title}
+      data-testid="session-row-user-filter"
+      onClick={(): void => {
+        props.onFilterByUser(
+          user.filter as Partial<SessionReplayAdvancedFilters>,
+        );
+      }}
+    >
+      {userName}
+    </button>
+  ) : (
+    <Tooltip text={user.title}>
       <span
-        className={`truncate text-sm ${
-          row.identifiedUserLabel ? "text-gray-900" : "text-gray-500"
-        }`}
-        data-testid="session-row-user"
+        className="block min-w-0 max-w-full truncate"
+        tabIndex={0}
+        aria-label={
+          user.kind === "hidden"
+            ? "User hidden: your role cannot read end-user identity"
+            : `${user.text}: ${user.title}`
+        }
       >
-        {row.identifiedUserLabel || "Anonymous"}
+        {userName}
       </span>
-    );
+    </Tooltip>
+  );
+
+  /*
+   * Active share of the wall clock as a bar: the "idle 40%" text beside
+   * the duration says it, the bar makes a page of rows scannable for the
+   * sessions where somebody was actually doing something.
+   */
+  const activePercent: number | null =
+    row.activeMs !== undefined && row.durationMs > 0
+      ? Math.max(
+          0,
+          Math.min(100, Math.round((row.activeMs / row.durationMs) * 100)),
+        )
+      : null;
 
   const triggerLabel: string = describeTriggerReason(
     row.triggerReason,
@@ -767,18 +901,25 @@ function getSessionReplayCells(
       </div>
     </div>,
     <div key="1">
-      <div className="min-w-0">
-        {userLabel}
-        <div className="mt-0.5 flex items-center gap-1 truncate text-xs text-gray-500">
-          <Icon
-            icon={deviceIcon}
-            className="h-3.5 w-3.5 flex-none text-gray-400"
-          />
-          <span className="truncate">
-            {deviceParts.length > 0
-              ? deviceParts.join(" · ")
-              : "Unknown device"}
-          </span>
+      <div className="flex min-w-0 items-center gap-2">
+        <SessionReplayUserAvatar
+          initials={user.initials}
+          hue={user.hue}
+          size="sm"
+        />
+        <div className="min-w-0">
+          {userLabel}
+          <div className="mt-0.5 flex items-center gap-1 truncate text-xs text-gray-500">
+            <Icon
+              icon={deviceIcon}
+              className="h-3.5 w-3.5 flex-none text-gray-400"
+            />
+            <span className="truncate">
+              {deviceParts.length > 0
+                ? deviceParts.join(" · ")
+                : "Unknown device"}
+            </span>
+          </div>
         </div>
       </div>
     </div>,
@@ -794,6 +935,18 @@ function getSessionReplayCells(
             : "counting"}
         {idleShare ? ` · ${idleShare}` : ""}
       </div>
+      {activePercent !== null && (
+        <div
+          className="mt-1 h-1 w-20 overflow-hidden rounded-full bg-gray-100"
+          title={`active ${activePercent}% · idle ${100 - activePercent}%`}
+          data-testid="session-row-activity-bar"
+        >
+          <div
+            className="h-full rounded-full bg-indigo-400"
+            style={{ width: `${activePercent}%` }}
+          />
+        </div>
+      )}
     </div>,
     <div key="3">
       {badges.length > 0 ? (
@@ -1030,6 +1183,14 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
   const [itemsOnPage, setItemsOnPage] = useState<number>(
     DEFAULT_SESSION_REPLAY_ITEMS_ON_PAGE,
   );
+  /*
+   * Sessions or Users. The two views share the time range and nothing
+   * else: the users view takes no filters, sort or page size, and the
+   * session list does not refetch while it is hidden (see load).
+   */
+  const [view, setView] = useState<SessionReplayListView>(initialState.view);
+  /* Bumped by Refresh while the users view shows; the users table refetches on it. */
+  const [usersReloadToken, setUsersReloadToken] = useState<number>(0);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
   const [isIdentityFilterIgnored, setIsIdentityFilterIgnored] =
     useState<boolean>(false);
@@ -1092,6 +1253,16 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
 
   const load: (generation: number) => Promise<void> = useCallback(
     async (generation: number): Promise<void> => {
+      /*
+       * The users view has its own fetch. Firing /list underneath it would
+       * cost a ClickHouse scan nobody looks at, and the rows it came back
+       * with would be stale by the time the viewer switched back - the
+       * switch refetches instead.
+       */
+      if (view !== "sessions") {
+        return;
+      }
+
       try {
         setIsLoading(true);
         setError(null);
@@ -1171,6 +1342,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
       }
     },
     [
+      view,
       rumApplicationIdString,
       signal,
       advancedFilters,
@@ -1192,7 +1364,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
       window.location.href,
       signal,
       advancedFilters,
-      { sortBy: sortBy, timeRange: timeRange, page: pageNumber },
+      { sortBy: sortBy, timeRange: timeRange, page: pageNumber, view: view },
     );
 
     window.history.replaceState(window.history.state, "", href);
@@ -1203,12 +1375,20 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
     if (backLink) {
       writeStorage(SESSION_REPLAY_LIST_URL_STORAGE_KEY, backLink);
     }
-  }, [signal, advancedFilters, sortBy, timeRange, pageNumber]);
+  }, [signal, advancedFilters, sortBy, timeRange, pageNumber, view]);
 
+  /* One Refresh button; it reloads whichever view is showing. */
   const reload: VoidFunction = useCallback((): void => {
+    if (view === "users") {
+      setUsersReloadToken((token: number): number => {
+        return token + 1;
+      });
+      return;
+    }
+
     loadGenerationRef.current += 1;
     void load(loadGenerationRef.current);
-  }, [load]);
+  }, [load, view]);
 
   useEffect((): (() => void) => {
     loadGenerationRef.current += 1;
@@ -1253,6 +1433,53 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
       setAdvancedFilters(next);
     }, []);
 
+  /*
+   * "Every session from this person", from a user cell or a Users row.
+   * Exactly one identity predicate is left standing: the reference, the
+   * digest and the visitor id each select a person on their own, and two
+   * of them together would either be redundant or - for two different
+   * people - select nobody. Everything else the viewer had applied
+   * (a URL, a device, the Errors signal) stays, because "this person's
+   * checkout errors" is a real question.
+   */
+  const filterByUser: (filter: Partial<SessionReplayAdvancedFilters>) => void =
+    useCallback((filter: Partial<SessionReplayAdvancedFilters>): void => {
+      setPageNumber(1);
+      setAdvancedFilters(
+        (
+          existing: SessionReplayAdvancedFilters,
+        ): SessionReplayAdvancedFilters => {
+          return {
+            ...existing,
+            identifiedUserRef: "",
+            identifiedUserKey: "",
+            visitorId: "",
+            ...filter,
+          };
+        },
+      );
+    }, []);
+
+  /* A Users row answers with the same filter, and lands on the sessions view. */
+  const viewUserSessions: (
+    filter: Partial<SessionReplayAdvancedFilters>,
+  ) => void = useCallback(
+    (filter: Partial<SessionReplayAdvancedFilters>): void => {
+      filterByUser(filter);
+      setView("sessions");
+    },
+    [filterByUser],
+  );
+
+  /* Switching view keeps every filter (they are only hidden) and restarts paging. */
+  const changeView: (next: SessionReplayListView) => void = useCallback(
+    (next: SessionReplayListView): void => {
+      setPageNumber(1);
+      setView(next);
+    },
+    [],
+  );
+
   const chips: Array<SessionReplayFilterChip> =
     useMemo((): Array<SessionReplayFilterChip> => {
       return buildSessionReplayFilterChips(
@@ -1293,10 +1520,15 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
             rumApplicationId: rumApplicationIdString,
             nowUnixMs,
             onOpen: openSession,
+            onFilterByUser: filterByUser,
           }),
         };
       });
-    }, [rows, rumApplicationIdString, nowUnixMs, openSession]);
+    }, [rows, rumApplicationIdString, nowUnixMs, openSession, filterByUser]);
+
+  const isUsersView: boolean = view === "users";
+  const showIdentityNudge: boolean =
+    !isUsersView && !error && shouldShowIdentityNudge(rows, isLoading);
   const additionalChips: Array<SessionReplayFilterChip> = chips.filter(
     (chip: SessionReplayFilterChip): boolean => {
       return !SESSION_REPLAY_FACETS.some(
@@ -1321,7 +1553,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
     },
     {
       ...getRefreshButton(),
-      tooltip: "Refresh sessions",
+      tooltip: isUsersView ? "Refresh users" : "Refresh sessions",
       className: "py-0 pr-0 pl-1 mt-1",
       onClick: reload,
     },
@@ -1356,19 +1588,45 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
               setIsFilterModalOpen(true);
             }}
             isIdentityFilterIgnored={isIdentityFilterIgnored}
-          />
-          <SessionReplayFacets
-            rows={rows}
-            filters={advancedFilters}
-            onFiltersChange={applyFilters}
-            signal={signal}
-            onSignalChange={(value: string): void => {
-              setPageNumber(1);
-              setSignal(value);
-            }}
+            view={view}
+            onViewChange={changeView}
           />
 
-          {isIdentityFilterIgnored &&
+          {isUsersView && (
+            <SessionReplayUsersTable
+              rumApplicationId={rumApplicationIdString}
+              timeRange={timeRange}
+              reloadToken={usersReloadToken}
+              onViewUserSessions={viewUserSessions}
+            />
+          )}
+
+          {!isUsersView && (
+            <SessionReplayFacets
+              rows={rows}
+              filters={advancedFilters}
+              onFiltersChange={applyFilters}
+              signal={signal}
+              onSignalChange={(value: string): void => {
+                setPageNumber(1);
+                setSignal(value);
+              }}
+            />
+          )}
+
+          {showIdentityNudge && (
+            <SessionReplayIdentityNudge
+              key={rumApplicationIdString}
+              rumApplicationId={rumApplicationIdString}
+              hasVisitorIds={hasAnyVisitorId(rows)}
+              onShowUsers={(): void => {
+                changeView("users");
+              }}
+            />
+          )}
+
+          {!isUsersView &&
+            isIdentityFilterIgnored &&
             advancedFilters.identifiedUserRef.trim().length > 0 && (
               <Alert
                 type={AlertType.WARNING}
@@ -1378,7 +1636,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
               />
             )}
 
-          {(chips.length > 0 || signal !== "all") && (
+          {!isUsersView && (chips.length > 0 || signal !== "all") && (
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <SessionReplayFilterChipList
                 chips={additionalChips}
@@ -1400,7 +1658,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
             </div>
           )}
 
-          {error ? (
+          {isUsersView ? null : error ? (
             <div
               role="alert"
               data-testid="list-error"
@@ -1444,6 +1702,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
                     rumApplicationId: rumApplicationIdString,
                     nowUnixMs,
                     onOpen: openSession,
+                    onFilterByUser: filterByUser,
                   });
                 }}
                 isLoading={isLoading}
@@ -1491,7 +1750,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
             </div>
           )}
 
-          {!error && (rows.length > 0 || pageNumber > 1) && (
+          {!isUsersView && !error && (rows.length > 0 || pageNumber > 1) && (
             <Pagination
               className="mt-4 border-t border-gray-200 pt-4"
               currentPageNumber={pageNumber}

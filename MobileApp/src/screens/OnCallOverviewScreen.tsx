@@ -11,6 +11,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useRefresh } from "../hooks/useRefresh";
 import ScreenIntro from "../components/ScreenIntro";
 import { useHaptics } from "../hooks/useHaptics";
 import { useOnCallDuty } from "../hooks/useOnCallDuty";
@@ -84,14 +85,14 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
     navigation.navigate("CreateOnCallOverride", buildCoverParams(shift));
   };
 
-  const onRefresh: () => Promise<void> = async (): Promise<void> => {
+  const { refreshing, onRefresh } = useRefresh(async (): Promise<void> => {
     lightImpact();
-    await Promise.all([
+    await Promise.allSettled([
       duty.refetch(),
       overrides.refetch(),
       myShifts.refetch(),
     ]);
-  };
+  });
 
   if (duty.isLoading) {
     return (
@@ -116,19 +117,35 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
 
   if (duty.isError) {
     return (
-      <View
+      <ScrollView
+        testID="oncall-overview-scroll"
+        contentInsetAdjustmentBehavior="automatic"
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+        contentContainerStyle={{
+          padding: 20,
+          paddingBottom: bottomPadding,
+          flexGrow: 1,
+        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.actionPrimary}
+          />
+        }
       >
+        <ScreenIntro
+          title="On call"
+          description="Your duty, coverage and upcoming shifts."
+        />
         <EmptyState
           title="Could not load your on-call status"
           subtitle="Pull to refresh or try again."
           icon="alerts"
           actionLabel="Retry"
-          onAction={() => {
-            return duty.refetch();
-          }}
+          onAction={onRefresh}
         />
-      </View>
+      </ScrollView>
     );
   }
 
@@ -145,7 +162,7 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
       contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
       refreshControl={
         <RefreshControl
-          refreshing={false}
+          refreshing={refreshing}
           onRefresh={onRefresh}
           tintColor={theme.colors.actionPrimary}
         />

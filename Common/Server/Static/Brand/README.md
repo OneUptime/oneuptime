@@ -22,11 +22,16 @@ absolute path, or from server code via the `OneUptimeLogoUrl` constant -
 
 ## Contents
 
-| Path                          | Source                                              |
-| ----------------------------- | --------------------------------------------------- |
-| `oneuptime-logo.svg`          | `Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg` |
-| `ou-wb.svg`, `hou-wb.svg`     | `Home/Static/img/`                                  |
-| `favicons/`                   | `Home/Static/img/favicons/`                         |
+| Path                      | Source                                                  |
+| ------------------------- | ------------------------------------------------------- |
+| `oneuptime-logo.svg`      | `Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg` |
+| `ou-wb.svg`, `hou-wb.svg` | `Home/Static/img/`                                      |
+| `favicons/`               | `Home/Static/img/favicons/`                             |
+
+`favicons/oneuptime-up-v1.svg` is the cache-versioned browser-tab icon shared
+by the Dashboard, Admin Dashboard, and Home page. It keeps the white `Up.` mark
+on its own dark background so the lettering remains visible in both light and
+dark browser chrome.
 
 `Common/Tests/Server/Utils/VendorAssets.test.ts` asserts `oneuptime-logo.svg` is
 byte-identical to the copies under `Common/UI` and `Home/Static`, so a rebrand

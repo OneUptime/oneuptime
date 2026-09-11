@@ -18,7 +18,8 @@ import {
 } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
-import getToggleAccessibilityProps from "../utils/getToggleAccessibilityProps";
+import ListFilters from "../components/ListFilters";
+import QueryErrorNotice from "../components/QueryErrorNotice";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import ScreenIntro from "../components/ScreenIntro";
 import SearchField from "../components/SearchField";
@@ -51,12 +52,14 @@ type NavProp = NativeStackNavigationProp<AlertsStackParamList, "AlertsList">;
 interface AlertSection {
   title: string;
   isActive: boolean;
+  count: number;
   data: ProjectAlertItem[];
 }
 
 interface EpisodeSection {
   title: string;
   isActive: boolean;
+  count: number;
   data: ProjectAlertEpisodeItem[];
 }
 
@@ -173,7 +176,11 @@ export default function AlertsScreen({
     isError,
     refetch,
   } = useAllProjectAlerts();
-  const { statesMap } = useAllProjectAlertStates();
+  const {
+    statesMap,
+    isLoading: statesLoading,
+    isError: statesError,
+  } = useAllProjectAlertStates();
   const {
     items: allEpisodes,
     isLoading: episodesLoading,
@@ -235,6 +242,7 @@ export default function AlertsScreen({
       sections.push({
         title: "Active",
         isActive: true,
+        count: active.length,
         data: active.slice(0, visibleCount),
       });
     }
@@ -242,6 +250,7 @@ export default function AlertsScreen({
       sections.push({
         title: "Resolved",
         isActive: false,
+        count: resolved.length,
         data: resolved.slice(0, visibleCount),
       });
     }
@@ -264,6 +273,7 @@ export default function AlertsScreen({
       sections.push({
         title: "Active",
         isActive: true,
+        count: active.length,
         data: active.slice(0, visibleEpisodeCount),
       });
     }
@@ -271,6 +281,7 @@ export default function AlertsScreen({
       sections.push({
         title: "Resolved",
         isActive: false,
+        count: resolved.length,
         data: resolved.slice(0, visibleEpisodeCount),
       });
     }
@@ -286,15 +297,27 @@ export default function AlertsScreen({
     try {
       if (segment === "alerts") {
         setVisibleCount(PAGE_SIZE);
-        await refetch();
+        await Promise.all([
+          refetch(),
+          queryClient.refetchQueries({
+            queryKey: ["alert-states"],
+            type: "active",
+          }),
+        ]);
       } else {
         setVisibleEpisodeCount(PAGE_SIZE);
-        await refetchEpisodes();
+        await Promise.all([
+          refetchEpisodes(),
+          queryClient.refetchQueries({
+            queryKey: ["alert-states"],
+            type: "active",
+          }),
+        ]);
       }
     } finally {
       setRefreshing(false);
     }
-  }, [refetch, refetchEpisodes, lightImpact, segment]);
+  }, [refetch, refetchEpisodes, lightImpact, segment, queryClient]);
 
   const loadMore: () => void = useCallback(() => {
     if (segment === "alerts") {
@@ -383,11 +406,21 @@ export default function AlertsScreen({
     );
 
   const showLoading: boolean =
-    segment === "alerts"
+    statesLoading ||
+    (segment === "alerts"
       ? isLoading && allAlerts.length === 0
-      : episodesLoading && allEpisodes.length === 0;
+      : episodesLoading && allEpisodes.length === 0);
 
-  const showError: boolean = segment === "alerts" ? isError : episodesError;
+  const hasStateMetadata: boolean =
+    statesMap.size > 0 &&
+    (segment === "alerts" ? allAlerts : allEpisodes).every(
+      (wrapped: { projectId: string }) => {
+        return statesMap.has(wrapped.projectId);
+      },
+    );
+  const showError: boolean =
+    (statesError && !hasStateMetadata) ||
+    (segment === "alerts" ? isError : episodesError);
 
   const hasFilters: boolean = search.trim().length > 0 || stateFilter !== "all";
   const resetFilters: () => void = () => {
@@ -397,7 +430,7 @@ export default function AlertsScreen({
     setVisibleEpisodeCount(PAGE_SIZE);
   };
   const listHeader: React.JSX.Element = (
-    <View style={{ marginBottom: 16 }}>
+    <View style={{ marginBottom: 8 }}>
       {!embedded ? (
         <ScreenIntro
           title="Alerts"
@@ -487,62 +520,41 @@ export default function AlertsScreen({
           </Text>
         ) : null}
       </View>
-      <View
-        style={{
-          flexDirection: "row",
-          flexWrap: "wrap",
-          gap: 8,
-          marginTop: 12,
+      {statesError && hasStateMetadata ? (
+        <QueryErrorNotice
+          message="Could not refresh alert states. Showing last loaded states."
+          retryLabel="Retry alert states"
+          onRetry={onRefresh}
+        />
+      ) : null}
+      <ListFilters
+        options={[
+          { key: "all", label: "All", accessibilityLabel: "All states" },
+          { key: "active", label: "Active", accessibilityLabel: "Active only" },
+          {
+            key: "resolved",
+            label: "Resolved",
+            accessibilityLabel: "Resolved only",
+          },
+        ]}
+        selected={stateFilter}
+        onSelect={(value: StateFilter) => {
+          setStateFilter(value);
+          setVisibleCount(PAGE_SIZE);
+          setVisibleEpisodeCount(PAGE_SIZE);
         }}
-      >
-        {(
-          [
-            { key: "all", label: "All states" },
-            { key: "active", label: "Active only" },
-            { key: "resolved", label: "Resolved only" },
-          ] as const
-        ).map((filter: { key: StateFilter; label: string }) => {
-          const selected: boolean = stateFilter === filter.key;
-          return (
-            <Pressable
-              key={filter.key}
-              accessibilityRole="button"
-              {...getToggleAccessibilityProps(selected)}
-              accessibilityLabel={filter.label}
-              onPress={() => {
-                setStateFilter(filter.key);
-                setVisibleCount(PAGE_SIZE);
-                setVisibleEpisodeCount(PAGE_SIZE);
-              }}
-              style={{
-                minHeight: 48,
-                justifyContent: "center",
-                paddingHorizontal: 14,
-                borderRadius: 24,
-                backgroundColor: selected
-                  ? theme.colors.textPrimary
-                  : theme.colors.backgroundElevated,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: selected
-                    ? theme.colors.textInverse
-                    : theme.colors.textSecondary,
-                }}
-              >
-                {filter.key === "all"
-                  ? "All"
-                  : filter.key === "active"
-                    ? "Active"
-                    : "Resolved"}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+        resultCount={
+          showLoading || showError
+            ? undefined
+            : (segment === "alerts" ? alertSections : episodeSections).reduce(
+                (total: number, section: { count: number }) => {
+                  return total + section.count;
+                },
+                0,
+              )
+        }
+        onReset={hasFilters ? resetFilters : undefined}
+      />
     </View>
   );
 
@@ -553,6 +565,9 @@ export default function AlertsScreen({
       >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
           contentContainerStyle={{
             padding: 20,
             paddingBottom: bottomPadding,
@@ -571,20 +586,15 @@ export default function AlertsScreen({
   }
 
   if (showError) {
-    const retryFn: () => void =
-      segment === "alerts"
-        ? () => {
-            return refetch();
-          }
-        : () => {
-            return refetchEpisodes();
-          };
     return (
       <View
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
           contentContainerStyle={{
             padding: 20,
             paddingBottom: bottomPadding,
@@ -595,13 +605,15 @@ export default function AlertsScreen({
           <EmptyState
             title="Something went wrong"
             subtitle={
-              segment === "alerts"
-                ? "Failed to load alerts. Pull to refresh or try again."
-                : "Failed to load alert episodes. Pull to refresh or try again."
+              statesError
+                ? "Could not load alert states. Retry to see which alerts are active or resolved."
+                : segment === "alerts"
+                  ? "Failed to load alerts. Pull to refresh or try again."
+                  : "Failed to load alert episodes. Pull to refresh or try again."
             }
             icon="alerts"
             actionLabel="Retry"
-            onAction={retryFn}
+            onAction={onRefresh}
           />
         </ScrollView>
       </View>
@@ -633,7 +645,7 @@ export default function AlertsScreen({
             return (
               <SectionHeader
                 title={params.section.title}
-                count={params.section.data.length}
+                count={params.section.count}
                 isActive={params.section.isActive}
               />
             );
@@ -722,7 +734,7 @@ export default function AlertsScreen({
             return (
               <SectionHeader
                 title={params.section.title}
-                count={params.section.data.length}
+                count={params.section.count}
                 isActive={params.section.isActive}
               />
             );

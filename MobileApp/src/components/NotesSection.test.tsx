@@ -5,6 +5,17 @@ import NotesSection from "./NotesSection";
 import { makeNote } from "../__tests__/testSupport";
 import type { NoteItem } from "../api/types";
 
+const mockOpenUrl: jest.Mock = jest.fn(async () => {
+  return true;
+});
+jest.mock("expo-linking", () => {
+  return {
+    openURL: (url: string) => {
+      return mockOpenUrl(url);
+    },
+  };
+});
+
 /*
  * The internal notes on an incident or an episode. They are the handover: what
  * the last responder tried, what they were watching, what they want the next
@@ -24,11 +35,74 @@ import type { NoteItem } from "../api/types";
 const ADD_NOTE: string = "Add Note";
 const EMPTY_MESSAGE: string = "No notes yet.";
 
+describe("Loading and recovering team notes", () => {
+  test("shows progress without claiming that a pending list is empty", async () => {
+    await render(
+      <NotesSection notes={[]} setNoteModalVisible={noop} isLoading />,
+    );
+    expect(screen.getByText("Loading notes…")).toBeTruthy();
+    expect(screen.queryByText(EMPTY_MESSAGE)).toBeNull();
+  });
+
+  test("a failed request explains that updates may be missing and can be retried", async () => {
+    const onRetry: jest.Mock = jest.fn();
+    await render(
+      <NotesSection
+        notes={[]}
+        setNoteModalVisible={noop}
+        isError
+        onRetry={onRetry}
+      />,
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /Your team's updates may be missing/,
+    );
+    expect(screen.queryByText(EMPTY_MESSAGE)).toBeNull();
+    await fireEvent.press(screen.getByRole("button", { name: "Retry notes" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  test("preserves cached notes and the add action after a refresh fails", async () => {
+    const setVisible: jest.Mock = jest.fn();
+    await render(
+      <NotesSection
+        notes={[makeNote({ note: "Rollback is in progress." })]}
+        setNoteModalVisible={setVisible}
+        isError
+        onRetry={noop}
+      />,
+    );
+    expect(screen.getByText("Rollback is in progress.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Retry notes" })).toBeTruthy();
+    await fireEvent.press(screen.getByRole("button", { name: ADD_NOTE }));
+    expect(setVisible).toHaveBeenCalledWith(true);
+  });
+});
+
 function noop(): void {
   return undefined;
 }
 
 describe("A section with notes on it", () => {
+  test("formats handover notes and opens their runbook links", async () => {
+    await render(
+      <NotesSection
+        notes={[
+          makeNote({
+            note: "**Recovery steps**\n\n- Restart workers\n- Follow the [runbook](https://example.com/runbook).",
+          }),
+        ]}
+        setNoteModalVisible={noop}
+      />,
+    );
+
+    expect(screen.getByText("Recovery steps")).toBeTruthy();
+    expect(screen.getByText("Restart workers")).toBeTruthy();
+    expect(screen.queryByText(/\*\*Recovery steps\*\*/)).toBeNull();
+    await fireEvent.press(screen.getByText("runbook"));
+    expect(mockOpenUrl).toHaveBeenCalledWith("https://example.com/runbook");
+  });
+
   test("each note's text is rendered", async () => {
     const notes: NoteItem[] = [
       makeNote({ _id: "note-1", note: "Restarted the checkout pods." }),
@@ -52,6 +126,24 @@ describe("A section with notes on it", () => {
     );
 
     expect(screen.getByText("Ada Lovelace")).toBeTruthy();
+  });
+
+  test("a serialized author name is rendered without Common model instances", async () => {
+    await render(
+      <NotesSection
+        notes={[
+          makeNote({
+            createdByUser: {
+              _id: "user-1",
+              name: { _type: "Name", value: "Grace Hopper" },
+            },
+          }),
+        ]}
+        setNoteModalVisible={noop}
+      />,
+    );
+
+    expect(screen.getByText("Grace Hopper")).toBeTruthy();
   });
 
   test("the note is timestamped", async () => {

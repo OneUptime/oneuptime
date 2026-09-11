@@ -248,8 +248,11 @@ const SessionReplayInstallSnippet: FunctionComponent<ComponentProps> = (
           </div>
           <p className="mb-2 mt-1 text-xs text-gray-500">
             Recordings are pseudonymous until your page says who the visitor is.
-            With a reference the session is searchable by <code>user:</code> in
-            the list, and traits become searchable too.
+            Without this call, sessions from the same browser are still grouped
+            under an anonymous visitor id the recorder mints itself, but nobody
+            is named. <code>identify()</code> is what groups sessions by person,
+            makes <code>user:</code> search work in the list, and attaches the
+            traits to the session.
           </p>
           <CodeBlock code={buildIdentifySnippet()} language="javascript" />
         </div>

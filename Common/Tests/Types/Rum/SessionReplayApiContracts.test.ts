@@ -10,6 +10,7 @@ import {
   SessionReplayExceptionSessionDto,
   SessionReplayForExceptionResponseDto,
   SessionReplayHeartbeatResponseDto,
+  SessionReplayListFiltersDto,
   SessionReplayListItemDto,
   SessionReplayListRequestDto,
   SessionReplayListResponseDto,
@@ -17,6 +18,11 @@ import {
   SessionReplayManifestRequestDto,
   SessionReplayManifestResponseDto,
   SessionReplayManifestTabDto,
+  SessionReplayUserKind,
+  SessionReplayUserRollupDto,
+  SessionReplayUsersCursorDto,
+  SessionReplayUsersRequestDto,
+  SessionReplayUsersResponseDto,
   SessionReplayViewDto,
   SessionReplayViewsRequestDto,
   SessionReplayViewsResponseDto,
@@ -32,7 +38,10 @@ import {
   readDtoStringMap,
   readDtoUnixMs,
 } from "../../../Types/Rum/SessionReplayApi";
-import { SessionReplayChunkManifestEntry } from "../../../Types/Rum/SessionReplay";
+import {
+  SESSION_REPLAY_VISITOR_ID_PATTERN,
+  SessionReplayChunkManifestEntry,
+} from "../../../Types/Rum/SessionReplay";
 
 /*
  * The DTOs are the wire between the Dashboard and TelemetryAPI's
@@ -53,6 +62,9 @@ import { SessionReplayChunkManifestEntry } from "../../../Types/Rum/SessionRepla
 
 const START_ISO: string = "2026-09-04T10:00:00.000Z";
 const END_ISO: string = "2026-09-04T10:04:12.000Z";
+
+/* A visitor id as the recorder mints it: 32 lowercase hex characters. */
+const VISITOR_ID: string = "0123456789abcdef0123456789abcdef";
 
 /* One row of /list as listSessions builds it, serialised. */
 const legacyListItem: SessionReplayListItemDto = {
@@ -355,6 +367,173 @@ describe("SessionReplayApi - the additive contracts the surfaces already ship", 
     expect(withIgnored.ignoredFilters).toEqual(["identifiedUserRef"]);
     expect(withNoneIgnored.ignoredFilters).toEqual([]);
     expect(withNoneIgnored.ignoredFilters).not.toBeUndefined();
+  });
+
+  /*
+   * The recorder-minted per-browser visitor id: an exact-match list filter
+   * ("every session from this browser") and a projection on every row.
+   * Neither is identity-gated - it is a random token the list already
+   * returns to every caller - and both are additive: an older server
+   * answers rows without it, which parse as "not measured".
+   */
+  it("/list: filters.visitorId and the visitorId projection are additive and shaped like the recorder mints them", () => {
+    expect(legacyListItem.visitorId).toBeUndefined();
+
+    const filters: SessionReplayListFiltersDto = { visitorId: VISITOR_ID };
+    const request: SessionReplayListRequestDto = {
+      rumApplicationId: "app-1",
+      filters: filters,
+    };
+
+    const withVisitor: SessionReplayListItemDto = {
+      ...legacyListItem,
+      visitorId: VISITOR_ID,
+    };
+    /* An older recorder's session: "", so the table has one branch. */
+    const fromOlderRecorder: SessionReplayListItemDto = {
+      ...legacyListItem,
+      visitorId: "",
+    };
+
+    expect(request.filters?.visitorId).toMatch(
+      SESSION_REPLAY_VISITOR_ID_PATTERN,
+    );
+    expect(withVisitor.visitorId).toBe(VISITOR_ID);
+    expect(fromOlderRecorder.visitorId).toBe("");
+  });
+
+  /*
+   * The manifest header carries the pseudonymous digest and the visitor
+   * id so the player can ask /list for this person's other sessions.
+   * Both are additive, and both are present WITHOUT the identity pair:
+   * neither names anyone, so neither is gated.
+   */
+  it("/manifest: identifiedUserKey and visitorId on the header are additive and independent of the identity pair", () => {
+    expect(legacyHeader.identifiedUserKey).toBeUndefined();
+    expect(legacyHeader.visitorId).toBeUndefined();
+
+    const withKeys: SessionReplayManifestHeaderDto = {
+      ...legacyHeader,
+      identifiedUserKey: "hmac-1",
+      visitorId: VISITOR_ID,
+    };
+    const neverIdentified: SessionReplayManifestHeaderDto = {
+      ...legacyHeader,
+      identifiedUserKey: "",
+      visitorId: "",
+    };
+
+    expect(withKeys.identifiedUserKey).toBe("hmac-1");
+    expect(withKeys.visitorId).toBe(VISITOR_ID);
+    expect(withKeys.identifiedUserLabel).toBeUndefined();
+    expect(withKeys.identifiedUserTraits).toBeUndefined();
+    expect(neverIdentified.identifiedUserKey).toBe("");
+    expect(neverIdentified.visitorId).toBe("");
+  });
+
+  /*
+   * POST /telemetry/rum/session-replay/users: the list rolled up by
+   * person. Its own route because a keyset page of sessions cannot be
+   * grouped client-side without lying at the page boundary. One row per
+   * identified user, one per linked browser, and at most one anonymous
+   * bucket whose key is "" - a row like any other, and a valid cursor
+   * tiebreak.
+   */
+  it("/users: the request is the list's window plus its own cursor, the response is one row per person with the identity pair gated", () => {
+    const cursor: SessionReplayUsersCursorDto = {
+      lastSeenUnixMs: Date.parse(END_ISO),
+      groupKey: "u:hmac-1",
+    };
+    const request: SessionReplayUsersRequestDto = {
+      rumApplicationId: "app-1",
+      startTime: START_ISO,
+      endTime: END_ISO,
+      limit: 50,
+      cursor: cursor,
+    };
+    const minimalRequest: SessionReplayUsersRequestDto = {
+      rumApplicationId: "app-1",
+    };
+
+    const identified: SessionReplayUserRollupDto = {
+      groupKey: "u:hmac-1",
+      kind: "identified",
+      identifiedUserKey: "hmac-1",
+      visitorId: VISITOR_ID,
+      sessionCount: 3,
+      liveSessionCount: 1,
+      firstSeenUnixMs: Date.parse(START_ISO),
+      lastSeenUnixMs: Date.parse(END_ISO),
+      totalDurationMs: 180000,
+      errorCount: 2,
+      frustrationCount: 4,
+      errorSessionCount: 1,
+      pageCount: 9,
+      lastSessionId: "sess-3",
+      lastEntryUrl: "https://acme.com/checkout",
+      browserName: "Chrome",
+      browserVersion: "128",
+      osName: "macOS",
+      deviceType: "desktop",
+      countryCode: "US",
+    };
+    const withLabel: SessionReplayUserRollupDto = {
+      ...identified,
+      identifiedUserLabel: "jane@acme.com",
+      identifiedUserTraits: { plan: "pro" },
+    };
+    const visitor: SessionReplayUserRollupDto = {
+      ...identified,
+      groupKey: `v:${VISITOR_ID}`,
+      kind: "visitor",
+      identifiedUserKey: "",
+    };
+    const anonymous: SessionReplayUserRollupDto = {
+      ...identified,
+      groupKey: "",
+      kind: "anonymous",
+      identifiedUserKey: "",
+      visitorId: "",
+    };
+
+    const page: SessionReplayUsersResponseDto = {
+      users: [withLabel, visitor, anonymous],
+      nextCursor: { lastSeenUnixMs: Date.parse(START_ISO), groupKey: "" },
+    };
+    const lastPage: SessionReplayUsersResponseDto = {
+      users: [identified],
+      nextCursor: null,
+    };
+
+    const kinds: Array<SessionReplayUserKind> = page.users.map(
+      (user: SessionReplayUserRollupDto): SessionReplayUserKind => {
+        return user.kind;
+      },
+    );
+
+    expect(kinds).toEqual(["identified", "visitor", "anonymous"]);
+    expect(request.cursor?.groupKey).toBe("u:hmac-1");
+    expect(minimalRequest.cursor).toBeUndefined();
+    expect(minimalRequest.limit).toBeUndefined();
+
+    /* The identity pair is absent unless the caller may read it. */
+    expect(identified.identifiedUserLabel).toBeUndefined();
+    expect(identified.identifiedUserTraits).toBeUndefined();
+    expect(withLabel.identifiedUserTraits?.["plan"]).toBe("pro");
+
+    /* The digest is "" unless identified; the visitor id may be "" too. */
+    expect(visitor.identifiedUserKey).toBe("");
+    expect(visitor.visitorId).toBe(VISITOR_ID);
+    expect(anonymous.visitorId).toBe("");
+
+    /* The bucket's own key is "", and it can be the cursor tiebreak. */
+    expect(anonymous.groupKey).toBe("");
+    expect(page.nextCursor?.groupKey).toBe("");
+    expect(lastPage.nextCursor).toBeNull();
+
+    /* Prefixes are opaque to the client: the row key and nothing more. */
+    expect(visitor.groupKey.startsWith("v:")).toBe(true);
+    expect(identified.groupKey.startsWith("u:")).toBe(true);
   });
 
   /*

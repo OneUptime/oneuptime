@@ -174,6 +174,8 @@ function traitsHeaderRow(): JSONObject {
     identifiedUserKey: "k".repeat(64),
     identifiedUserLabel: "ada@example.com",
     identifiedUserTraits: { plan: "pro", email: "ada@example.com" },
+    /* A recorder that predates the visitor id: the column reads "". */
+    visitorId: "",
     tags: {},
     traceIds: [],
     exceptionFingerprints: [],

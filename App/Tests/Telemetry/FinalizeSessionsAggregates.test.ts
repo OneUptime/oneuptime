@@ -122,6 +122,8 @@ function header(
     identifiedUserKey: "",
     identifiedUserLabel: "",
     identifiedUserTraits: {},
+    /* A recorder that predates the visitor id: the column reads "". */
+    visitorId: "",
     tags: {},
     traceIds: [],
     exceptionFingerprints: [],

@@ -126,6 +126,18 @@ import {
   buildTrackBands,
 } from "./ReplayTimelineMath";
 import { formatReplayOffset } from "./ReplayTimeFormat";
+import {
+  ReplayAdjacentUserSessions,
+  ReplayUserSessionItem,
+  ReplayUserSessionsKind,
+  ReplayUserSessionsState,
+  ReplayUserSessionsWindow,
+  buildReplayUserSessionsWindow,
+  fetchReplayUserSessions,
+  findAdjacentUserSessions,
+  mergeReplayUserSessions,
+  resolveReplayUserSessionsKind,
+} from "./ReplayUserSessions";
 
 /*
  * The composition root of the player: manifest transport, the chunk
@@ -397,6 +409,17 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   const [shellNotice, setShellNotice] = useState<string | null>(null);
   const [backendStore, setBackendStore] =
     useState<ReplayBackendSignalsStore | null>(null);
+  /*
+   * The other sessions of the person being watched (issue #3705). Starts
+   * "idle" with the current id so the header, which only mounts once the
+   * manifest is in, never sees a state that names another session.
+   */
+  const [userSessions, setUserSessions] = useState<ReplayUserSessionsState>({
+    status: "idle",
+    kind: "none",
+    sessions: [],
+    currentSessionId: sessionId,
+  });
 
   const rootRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
   const scrubberContainerRef: React.RefObject<HTMLDivElement> =
@@ -422,6 +445,9 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   const seekTokenRef: React.MutableRefObject<number> = useRef<number>(0);
   const hasRevealedSignalRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
+  /* Bumped per user-sessions lookup so a superseded response cannot land. */
+  const userSessionsGenerationRef: React.MutableRefObject<number> =
+    useRef<number>(0);
 
   engineRef.current = engine;
   manifestRef.current = manifest;
@@ -823,6 +849,126 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     getBackendSnapshot,
     getBackendSnapshot,
   );
+
+  /* ---- This user's other sessions: one lookup per session. ---- */
+
+  useEffect(() => {
+    /*
+     * Keyed on the two identity keys and the session clock rather than
+     * on the manifest object: the 30s live poll replaces the manifest
+     * every tick, and a lookup that re-ran with it would hit the list
+     * route twice a minute for a list that cannot have changed for that
+     * reason. The keys change exactly once - when the manifest first
+     * lands - and the page remounts the whole player on a new session.
+     * The manifest itself is read through the ref, which the render
+     * above has already pointed at the value the dependencies describe.
+     */
+    const current: SessionReplayManifest | null = manifestRef.current;
+
+    if (!current) {
+      return;
+    }
+
+    const identifiedUserKey: string = current.details.identifiedUserKey;
+    const visitorId: string = current.details.visitorId;
+
+    const kind: ReplayUserSessionsKind = resolveReplayUserSessionsKind({
+      identifiedUserKey: identifiedUserKey,
+      visitorId: visitorId,
+    });
+
+    userSessionsGenerationRef.current += 1;
+
+    const generation: number = userSessionsGenerationRef.current;
+    let isCancelled: boolean = false;
+
+    if (kind === "none") {
+      setUserSessions({
+        status: "ready",
+        kind: "none",
+        sessions: [],
+        currentSessionId: sessionId,
+      });
+
+      return;
+    }
+
+    setUserSessions({
+      status: "loading",
+      kind: kind,
+      sessions: [],
+      currentSessionId: sessionId,
+    });
+
+    /*
+     * The session on screen, in the list's shape, so the merge can put it
+     * in the list even when the index has not caught up with it (a live
+     * session a few seconds old) or the window has passed it.
+     */
+    const self: ReplayUserSessionItem = {
+      sessionId: current.sessionId || sessionId,
+      startTimeUnixMs: current.startTimeUnixMs ?? 0,
+      durationMs: current.durationMs,
+      entryUrl: current.details.entryUrl,
+      browserName: current.details.browserName,
+      deviceType: current.details.deviceType,
+      hasError: current.counts.errorCount > 0,
+      errorCount: current.counts.errorCount,
+      isFinalized: current.isFinalized,
+      identifiedUserKey: identifiedUserKey,
+      visitorId: visitorId,
+      identifiedUserLabel: current.details.identifiedUserLabel,
+    };
+
+    const lookupWindow: ReplayUserSessionsWindow =
+      buildReplayUserSessionsWindow(current.startTimeUnixMs, Date.now());
+
+    void (async (): Promise<void> => {
+      try {
+        const lists: Array<Array<ReplayUserSessionItem>> =
+          await fetchReplayUserSessions({
+            rumApplicationId: rumApplicationIdString,
+            identifiedUserKey: identifiedUserKey,
+            visitorId: visitorId,
+            startTime: lookupWindow.startTime,
+            endTime: lookupWindow.endTime,
+          });
+
+        if (isCancelled || generation !== userSessionsGenerationRef.current) {
+          return;
+        }
+
+        setUserSessions({
+          status: "ready",
+          kind: kind,
+          sessions: mergeReplayUserSessions(lists, self),
+          currentSessionId: sessionId,
+        });
+      } catch {
+        if (isCancelled || generation !== userSessionsGenerationRef.current) {
+          return;
+        }
+
+        /* The header says "couldn't load"; playback is unaffected. */
+        setUserSessions({
+          status: "error",
+          kind: kind,
+          sessions: [],
+          currentSessionId: sessionId,
+        });
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    rumApplicationIdString,
+    sessionId,
+    manifest?.details.identifiedUserKey,
+    manifest?.details.visitorId,
+    manifest?.startTimeUnixMs,
+  ]);
 
   /* ---- Live sessions: re-poll the manifest and append new footage. ---- */
 
@@ -1529,6 +1675,61 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     [rumApplicationIdString, sessionId, railTab],
   );
 
+  /*
+   * Open another recording of the same person (issue #3705). A full
+   * navigation to the player route rather than a state change: the page
+   * keys the player on `${modelId}:${sessionId}`, so the route change
+   * remounts everything - engine, loader, heartbeat, audit row - exactly
+   * as opening the session from the list would. The rail tab travels so
+   * a viewer stepping through a user's sessions on the Errors tab stays
+   * on Errors; the playhead does not (a different recording has its own
+   * clock), and the list's stamped back-link is left alone, since the
+   * viewer never went through the list.
+   */
+  const openUserSession: (targetSessionId: string) => void = useCallback(
+    (targetSessionId: string): void => {
+      if (!targetSessionId || targetSessionId === sessionId) {
+        return;
+      }
+
+      const route: Route | null = buildReplayMomentRoute({
+        rumApplicationId: rumApplicationIdString,
+        sessionId: targetSessionId,
+        rail: railTab,
+        preRollMs: 0,
+      });
+
+      if (!route) {
+        return;
+      }
+
+      Navigation.navigate(route);
+    },
+    [rumApplicationIdString, sessionId, railTab],
+  );
+
+  const adjacentUserSessions: ReplayAdjacentUserSessions = useMemo(
+    (): ReplayAdjacentUserSessions => {
+      return userSessions.status === "ready"
+        ? findAdjacentUserSessions(userSessions.sessions, sessionId)
+        : { newer: null, older: null };
+    },
+    [userSessions, sessionId],
+  );
+
+  /* "{" and "}": the same two steps the header's arrow buttons take. */
+  const openOlderUserSession: () => void = useCallback((): void => {
+    if (adjacentUserSessions.older) {
+      openUserSession(adjacentUserSessions.older.sessionId);
+    }
+  }, [adjacentUserSessions, openUserSession]);
+
+  const openNewerUserSession: () => void = useCallback((): void => {
+    if (adjacentUserSessions.newer) {
+      openUserSession(adjacentUserSessions.newer.sessionId);
+    }
+  }, [adjacentUserSessions, openUserSession]);
+
   const selectSignal: (signalId: string | null) => void = useCallback(
     (signalId: string | null): void => {
       setSelectedSignalId(signalId);
@@ -1976,6 +2177,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
           identity={{
             label: manifest.details.identifiedUserLabel,
             traits: manifest.details.identifiedUserTraits,
+            visitorId: manifest.details.visitorId,
           }}
           facts={facts}
           startTimeUnixMs={startTimeUnixMs}
@@ -1998,17 +2200,40 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
               sessionId={sessionId}
             />
           }
+          userSessions={userSessions}
+          onOpenUserSession={openUserSession}
         />
 
         {recordingNotes.length > 0 && (
           <details
-            className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5"
+            className="group mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5"
             data-testid="replay-recording-notes"
           >
-            <summary className="cursor-pointer text-xs text-amber-800">
-              <Icon icon={IconProp.Alert} className="mr-1 inline h-3 w-3" />
-              {recordingNotes.length} note
-              {recordingNotes.length === 1 ? "" : "s"} about this recording
+            {/*
+             * The summary is a flex row with the native marker hidden and
+             * an explicit caret. With the default `display: list-item`
+             * the browser's disclosure triangle, the icon and the text
+             * each took a line of their own inside the amber box (a
+             * customer's screenshot showed the banner three lines tall
+             * for one sentence); `list-none` plus the WebKit marker
+             * pseudo-element is what actually removes the triangle in
+             * every engine, and the caret rotates with `group-open`.
+             */}
+            <summary
+              className="flex cursor-pointer items-center gap-1.5 list-none text-xs text-amber-800 [&::-webkit-details-marker]:hidden"
+              data-testid="replay-recording-notes-summary"
+            >
+              <Icon
+                icon={IconProp.ChevronRight}
+                className="h-3 w-3 shrink-0 transition-transform group-open:rotate-90"
+              />
+              <span className="inline-flex shrink-0">
+                <Icon icon={IconProp.Alert} className="h-3 w-3" />
+              </span>
+              <span>
+                {recordingNotes.length} note
+                {recordingNotes.length === 1 ? "" : "s"} about this recording
+              </span>
             </summary>
             <ul className="mt-1 space-y-0.5 text-xs text-amber-800">
               {recordingNotes.map(
@@ -2145,6 +2370,8 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                     onRailClear={(): void => {
                       railRef.current?.clearSelection();
                     }}
+                    onOlderUserSession={openOlderUserSession}
+                    onNewerUserSession={openNewerUserSession}
                   />
                 </div>
               )}
@@ -2152,17 +2379,27 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
 
             {captureNotes.length > 0 && (
               <details
-                className="mt-3 rounded-lg border border-gray-200 bg-white px-3 py-1.5"
+                className="group mt-3 rounded-lg border border-gray-200 bg-white px-3 py-1.5"
                 data-testid="replay-capture-notes"
               >
-                <summary className="cursor-pointer text-xs text-gray-500">
-                  {captureNotes.length} capture note
-                  {captureNotes.length === 1 ? "" : "s"}:{" "}
-                  {captureNotes
-                    .map((note: FidelityNoticeCopy): string => {
-                      return note.title.toLowerCase();
-                    })
-                    .join(", ")}
+                {/* Same one-line summary as the recording notes above. */}
+                <summary
+                  className="flex cursor-pointer items-center gap-1.5 list-none text-xs text-gray-500 [&::-webkit-details-marker]:hidden"
+                  data-testid="replay-capture-notes-summary"
+                >
+                  <Icon
+                    icon={IconProp.ChevronRight}
+                    className="h-3 w-3 shrink-0 transition-transform group-open:rotate-90"
+                  />
+                  <span className="min-w-0 truncate">
+                    {captureNotes.length} capture note
+                    {captureNotes.length === 1 ? "" : "s"}:{" "}
+                    {captureNotes
+                      .map((note: FidelityNoticeCopy): string => {
+                        return note.title.toLowerCase();
+                      })
+                      .join(", ")}
+                  </span>
                 </summary>
                 <div className="mt-2 space-y-2">
                   {captureNotes.map(

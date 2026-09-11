@@ -67,6 +67,8 @@ import { SESSION_REPLAY_SEARCH_DEBOUNCE_MS } from "../../../../App/FeatureSet/Da
 const APP_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
 const SESSION_A: string = "a1b2c3d4e5f60718293a4b5c6d7e8f90";
 const SESSION_B: string = "b2c3d4e5f60718293a4b5c6d7e8f90a1";
+const SESSION_C: string = "c3d4e5f60718293a4b5c6d7e8f90a1b2";
+const VISITOR_A: string = "abc123def4567890abc123def4567890";
 const NOW: number = Date.now();
 const DAY_MS: number = 24 * 60 * 60 * 1000;
 
@@ -186,9 +188,48 @@ function listResponse(
   );
 }
 
+/* One row as /users serialises it. */
+function wireRollup(overrides?: JSONObject): JSONObject {
+  return {
+    groupKey: "u:k1",
+    kind: "identified",
+    identifiedUserKey: "k1",
+    visitorId: VISITOR_A,
+    identifiedUserLabel: "jane@acme.com",
+    identifiedUserTraits: { plan: "pro" },
+    sessionCount: 3,
+    liveSessionCount: 0,
+    firstSeenUnixMs: NOW - DAY_MS,
+    lastSeenUnixMs: NOW - 60_000,
+    totalDurationMs: 30 * 60_000,
+    errorCount: 2,
+    frustrationCount: 1,
+    errorSessionCount: 1,
+    pageCount: 9,
+    lastSessionId: SESSION_A,
+    lastEntryUrl: "https://app.acme.com/checkout",
+    browserName: "Chrome",
+    browserVersion: "126",
+    osName: "macOS",
+    deviceType: "desktop",
+    countryCode: "DE",
+    ...overrides,
+  };
+}
+
+function usersResponse(users: Array<JSONObject>): HTTPResponse<JSONObject> {
+  return new HTTPResponse<JSONObject>(
+    200,
+    { users: users, nextCursor: null },
+    {},
+  );
+}
+
 /*
  * Routes the mocked API by URL. `list` may be a function so a test can
- * answer differently per call (paging, errors).
+ * answer differently per call (paging, errors). `users` answers the
+ * rollup route; without it, /users gets the status body, which the users
+ * table reads as an empty page.
  */
 function mockApi(
   list: (
@@ -196,8 +237,13 @@ function mockApi(
     index: number,
   ) => HTTPResponse<JSONObject> | HTTPErrorResponse,
   status: JSONObject = wireStatus(),
+  users?: (
+    data: JSONObject,
+    index: number,
+  ) => HTTPResponse<JSONObject> | HTTPErrorResponse,
 ): void {
   let listCalls: number = 0;
+  let usersCalls: number = 0;
 
   postMock.mockImplementation((request: unknown): Promise<unknown> => {
     const typed: { url: { toString: () => string }; data: JSONObject } =
@@ -209,6 +255,14 @@ function mockApi(
       listCalls += 1;
 
       return Promise.resolve(list(typed.data, index));
+    }
+
+    if (users && typed.url.toString().includes("/session-replay/users")) {
+      const index: number = usersCalls;
+
+      usersCalls += 1;
+
+      return Promise.resolve(users(typed.data, index));
     }
 
     return Promise.resolve(new HTTPResponse<JSONObject>(200, status, {}));
@@ -269,6 +323,23 @@ describe("parseSessionReplaySummary", () => {
     delete hiddenRow["identifiedUserLabel"];
 
     expect(parseSessionReplaySummary(hiddenRow).isIdentityVisible).toBe(false);
+  });
+
+  it("reads the pseudonymous key and the visitor id, empty when absent", () => {
+    const row: SessionReplaySummary = parseSessionReplaySummary(
+      wireRow({ visitorId: VISITOR_A }),
+    );
+
+    expect(row.identifiedUserKey).toBe("k1");
+    expect(row.visitorId).toBe(VISITOR_A);
+
+    const legacy: JSONObject = wireRow();
+
+    delete legacy["identifiedUserKey"];
+    delete legacy["visitorId"];
+
+    expect(parseSessionReplaySummary(legacy).identifiedUserKey).toBe("");
+    expect(parseSessionReplaySummary(legacy).visitorId).toBe("");
   });
 
   it("an older server's row has undefined counters, never 0", () => {
@@ -538,6 +609,523 @@ describe("SessionReplayTable rendering", () => {
 
     expect(row).toHaveTextContent("Hidden");
     expect(row).not.toHaveTextContent("Anonymous");
+  });
+
+  /*
+   * Issue #3705: a page that never calls identify() used to read
+   * "Anonymous" on every row. With a recorder that mints a visitor id the
+   * row names the browser instead, so the same person is recognisable
+   * three rows down.
+   */
+  it("a session with no label but a visitor id reads as that visitor", async () => {
+    mockApi(() => {
+      return listResponse([
+        wireRow({
+          identifiedUserLabel: "",
+          identifiedUserKey: "",
+          visitorId: VISITOR_A,
+        }),
+      ]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    expect(screen.getByTestId("session-row-user")).toHaveTextContent(
+      "Visitor abc123",
+    );
+    expect(screen.getByTestId("session-row-user")).toHaveAttribute(
+      "data-user-kind",
+      "visitor",
+    );
+    expect(screen.getByTestId("session-user-avatar")).toHaveTextContent("V");
+  });
+
+  it("a session with neither label nor visitor id is still Anonymous, and not clickable", async () => {
+    mockApi(() => {
+      return listResponse([
+        wireRow({ identifiedUserLabel: "", identifiedUserKey: "" }),
+      ]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    expect(screen.getByTestId("session-row-user")).toHaveTextContent(
+      "Anonymous",
+    );
+    expect(screen.queryByTestId("session-row-user-filter")).toBeNull();
+  });
+
+  it("shows an active-share bar under the duration and folds signals past three", async () => {
+    mockApi(() => {
+      return listResponse([wireRow({ deadClickCount: 2 })]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+
+    /* 54 of 90 minutes active. */
+    expect(screen.getByTestId("session-row-activity-bar")).toHaveAttribute(
+      "title",
+      "active 60% · idle 40%",
+    );
+
+    /* errors, rage, dead shown; traces and exception groups fold into +2. */
+    const more: HTMLElement = screen.getByTestId("session-row-more-signals");
+
+    expect(more).toHaveTextContent("+2");
+    expect(more.getAttribute("title")).toBe("3 traces, 1 exception group");
+    /* Folded, not lost: the row still says what it carries. */
+    expect(row).toHaveTextContent("1 exception group");
+  });
+});
+
+describe("SessionReplayTable user filter", () => {
+  it("clicking a visible label narrows the list by that user's reference and does not navigate", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    fireEvent.click(screen.getByTestId("session-row-user-filter"));
+
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/list").length).toBe(2);
+    });
+
+    expect(requestsTo("/session-replay/list")[1]!.data["filters"]).toEqual({
+      identifiedUserRef: "jane@acme.com",
+    });
+    expect(navigateMock).not.toHaveBeenCalled();
+    /* The reference never reaches the address bar; the box shows it. */
+    expect(window.location.search).not.toContain("jane");
+    expect(screen.getByTestId("session-search-input")).toHaveValue(
+      "user:jane@acme.com",
+    );
+  });
+
+  it("clicking a visitor narrows by visitor id, writes it to the URL, and chips it short", async () => {
+    mockApi(() => {
+      return listResponse([
+        wireRow({
+          identifiedUserLabel: "",
+          identifiedUserKey: "",
+          visitorId: VISITOR_A,
+        }),
+      ]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    fireEvent.click(screen.getByTestId("session-row-user-filter"));
+
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/list").length).toBe(2);
+    });
+
+    expect(requestsTo("/session-replay/list")[1]!.data["filters"]).toEqual({
+      visitorId: VISITOR_A,
+    });
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(window.location.search).toContain(`visitor=${VISITOR_A}`);
+
+    const chip: HTMLElement = screen.getByTestId("session-filter-chip");
+
+    expect(chip).toHaveAttribute("data-field", "visitorId");
+    expect(chip).toHaveTextContent("Visitor");
+    expect(chip).toHaveTextContent("abc123…");
+    expect(chip).not.toHaveTextContent(VISITOR_A);
+  });
+
+  it("clicking a hidden identity with a key narrows by the digest without showing it", async () => {
+    const hidden: JSONObject = wireRow();
+
+    delete hidden["identifiedUserLabel"];
+
+    mockApi(() => {
+      return listResponse([hidden]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    fireEvent.click(screen.getByTestId("session-row-user-filter"));
+
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/list").length).toBe(2);
+    });
+
+    expect(requestsTo("/session-replay/list")[1]!.data["filters"]).toEqual({
+      identifiedUserKey: "k1",
+    });
+    expect(window.location.search).toContain("userKey=k1");
+
+    const chip: HTMLElement = screen.getByTestId("session-filter-chip");
+
+    expect(chip).toHaveAttribute("data-field", "identifiedUserKey");
+    expect(chip).toHaveTextContent("pseudonymous key");
+    /* The box has no token for a digest, so it stays empty. */
+    expect(screen.getByTestId("session-search-input")).toHaveValue("");
+  });
+
+  it("a user filter replaces any other identity filter and resets to page one", async () => {
+    mockApi((_data: JSONObject, index: number) => {
+      return listResponse(
+        [
+          wireRow({
+            sessionId: index === 1 ? SESSION_B : SESSION_A,
+            identifiedUserLabel: "",
+            identifiedUserKey: "",
+            visitorId: VISITOR_A,
+          }),
+        ],
+        index === 0
+          ? { startTimeUnixMs: NOW - 3 * 60_000, sessionId: SESSION_A }
+          : null,
+      );
+    });
+
+    window.history.replaceState(null, "", "/?userKey=k9");
+
+    renderTable();
+
+    await waitForRows(1);
+
+    expect(requestsTo("/session-replay/list")[0]!.data["filters"]).toEqual({
+      identifiedUserKey: "k9",
+    });
+
+    fireEvent.click(screen.getByTestId("pagination-next-button"));
+
+    await waitFor(() => {
+      expect(window.location.search).toContain("page=2");
+    });
+
+    fireEvent.click(screen.getByTestId("session-row-user-filter"));
+
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/list").length).toBe(3);
+    });
+
+    const sent: JSONObject = requestsTo("/session-replay/list")[2]!.data;
+
+    expect(sent["filters"]).toEqual({ visitorId: VISITOR_A });
+    expect(sent["cursor"]).toBeUndefined();
+    expect(window.location.search).not.toContain("page=");
+    expect(window.location.search).not.toContain("userKey=");
+  });
+});
+
+describe("SessionReplayTable identity nudge", () => {
+  function anonymousRows(
+    count: number,
+    visitorId: string = "",
+  ): Array<JSONObject> {
+    return [SESSION_A, SESSION_B, SESSION_C]
+      .slice(0, count)
+      .map((sessionId: string): JSONObject => {
+        return wireRow({
+          sessionId: sessionId,
+          identifiedUserLabel: "",
+          identifiedUserKey: "",
+          visitorId: visitorId,
+        });
+      });
+  }
+
+  it("appears when three or more rows are all anonymous, and says the recorder is old when none has a visitor id", async () => {
+    mockApi(() => {
+      return listResponse(anonymousRows(3));
+    });
+
+    renderTable();
+
+    await waitForRows(3);
+
+    const nudge: HTMLElement = screen.getByTestId("session-identity-nudge");
+
+    expect(nudge).toHaveTextContent(
+      "No session here is linked to a signed-in user.",
+    );
+    expect(nudge).toHaveTextContent("OneUptimeReplay.identify()");
+    expect(nudge).toHaveTextContent("carry no visitor id yet");
+  });
+
+  it("drops the recorder line when the rows carry visitor ids", async () => {
+    mockApi(() => {
+      return listResponse(anonymousRows(3, VISITOR_A));
+    });
+
+    renderTable();
+
+    await waitForRows(3);
+
+    expect(screen.getByTestId("session-identity-nudge")).not.toHaveTextContent(
+      "carry no visitor id yet",
+    );
+  });
+
+  it("does not appear with fewer than three rows, with one identified row, or when identity is hidden", async () => {
+    mockApi(() => {
+      return listResponse(anonymousRows(2));
+    });
+
+    const view: ReturnType<typeof render> = renderTable();
+
+    await waitForRows(2);
+
+    expect(screen.queryByTestId("session-identity-nudge")).toBeNull();
+
+    view.unmount();
+    postMock.mockReset();
+    mockApi(() => {
+      return listResponse([
+        ...anonymousRows(2),
+        wireRow({ sessionId: SESSION_C }),
+      ]);
+    });
+
+    const identified: ReturnType<typeof render> = renderTable();
+
+    await waitForRows(3);
+
+    expect(screen.queryByTestId("session-identity-nudge")).toBeNull();
+
+    identified.unmount();
+    postMock.mockReset();
+
+    const hiddenRows: Array<JSONObject> = anonymousRows(3).map(
+      (row: JSONObject): JSONObject => {
+        delete row["identifiedUserLabel"];
+        return row;
+      },
+    );
+
+    mockApi(() => {
+      return listResponse(hiddenRows);
+    });
+
+    renderTable();
+
+    await waitForRows(3);
+
+    expect(screen.queryByTestId("session-identity-nudge")).toBeNull();
+  });
+
+  it("dismiss hides it for the tab, See users switches view, and the guide link navigates", async () => {
+    mockApi(
+      () => {
+        return listResponse(anonymousRows(3));
+      },
+      wireStatus(),
+      () => {
+        return usersResponse([]);
+      },
+    );
+
+    renderTable();
+
+    await waitForRows(3);
+
+    fireEvent.click(screen.getByTestId("session-identity-nudge-guide"));
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(
+      (navigateMock.mock.calls[0]![0] as { toString: () => string }).toString(),
+    ).toContain("documentation");
+
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+
+    expect(screen.queryByTestId("session-identity-nudge")).toBeNull();
+    expect(
+      window.sessionStorage.getItem(
+        `oneuptime.replay.identityNudgeDismissed:${APP_ID}`,
+      ),
+    ).toBe("1");
+
+    /* Remembered: a re-render of the same list does not bring it back. */
+    fireEvent.click(screen.getByRole("button", { name: "Refresh sessions" }));
+
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/list").length).toBe(2);
+    });
+
+    expect(screen.queryByTestId("session-identity-nudge")).toBeNull();
+  });
+
+  it("See users switches to the users view", async () => {
+    mockApi(
+      () => {
+        return listResponse(anonymousRows(3));
+      },
+      wireStatus(),
+      () => {
+        return usersResponse([wireRollup()]);
+      },
+    );
+
+    renderTable();
+
+    await waitForRows(3);
+
+    fireEvent.click(screen.getByTestId("session-identity-nudge-users"));
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("session-user-row").length).toBe(1);
+    });
+
+    expect(window.location.search).toContain("view=users");
+    expect(screen.queryByTestId("session-identity-nudge")).toBeNull();
+  });
+});
+
+describe("SessionReplayTable users view", () => {
+  it("the toggle switches to the users view, stops /list, fetches /users and writes the URL", async () => {
+    mockApi(
+      () => {
+        return listResponse([wireRow()]);
+      },
+      wireStatus(),
+      () => {
+        return usersResponse([wireRollup()]);
+      },
+    );
+
+    renderTable();
+
+    await waitForRows(1);
+
+    expect(screen.getByTestId("session-view-sessions")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    fireEvent.click(screen.getByTestId("session-view-users"));
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("session-user-row").length).toBe(1);
+    });
+
+    expect(screen.getByTestId("session-view-users")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(window.location.search).toContain("view=users");
+    expect(requestsTo("/session-replay/users").length).toBe(1);
+    expect(requestsTo("/session-replay/users")[0]!.data).toEqual(
+      expect.objectContaining({ rumApplicationId: APP_ID, limit: 50 }),
+    );
+    /* No second list request for a view nobody is looking at. */
+    expect(requestsTo("/session-replay/list").length).toBe(1);
+    expect(screen.queryByTestId("session-row")).toBeNull();
+    expect(screen.queryByTestId("session-search-input")).toBeNull();
+    expect(screen.queryByTestId("session-replay-facets")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Refresh users" }),
+    ).toBeInTheDocument();
+  });
+
+  it("opens straight into the users view from the URL without ever calling /list", async () => {
+    mockApi(
+      () => {
+        return listResponse([wireRow()]);
+      },
+      wireStatus(),
+      () => {
+        return usersResponse([wireRollup()]);
+      },
+    );
+
+    window.history.replaceState(null, "", "/?view=users");
+
+    renderTable();
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("session-user-row").length).toBe(1);
+    });
+
+    expect(requestsTo("/session-replay/list").length).toBe(0);
+    expect(requestsTo("/session-replay/users").length).toBe(1);
+  });
+
+  it("a Users row's Sessions action lands on the session list narrowed to that person", async () => {
+    mockApi(
+      () => {
+        return listResponse([wireRow()]);
+      },
+      wireStatus(),
+      () => {
+        return usersResponse([
+          wireRollup({
+            groupKey: `v:${VISITOR_A}`,
+            kind: "visitor",
+            identifiedUserKey: "",
+            identifiedUserLabel: "",
+          }),
+        ]);
+      },
+    );
+
+    window.history.replaceState(null, "", "/?view=users");
+
+    renderTable();
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("session-user-row").length).toBe(1);
+    });
+
+    fireEvent.click(screen.getByTestId("session-user-view-sessions"));
+
+    await waitForRows(1);
+
+    expect(requestsTo("/session-replay/list").length).toBe(1);
+    expect(requestsTo("/session-replay/list")[0]!.data["filters"]).toEqual({
+      visitorId: VISITOR_A,
+    });
+    expect(window.location.search).not.toContain("view=");
+    expect(window.location.search).toContain(`visitor=${VISITOR_A}`);
+    expect(screen.getByTestId("session-view-sessions")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("Refresh in the users view refetches /users, not /list", async () => {
+    mockApi(
+      () => {
+        return listResponse([wireRow()]);
+      },
+      wireStatus(),
+      () => {
+        return usersResponse([wireRollup()]);
+      },
+    );
+
+    window.history.replaceState(null, "", "/?view=users");
+
+    renderTable();
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("session-user-row").length).toBe(1);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh users" }));
+
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/users").length).toBe(2);
+    });
+
+    expect(requestsTo("/session-replay/list").length).toBe(0);
   });
 });
 

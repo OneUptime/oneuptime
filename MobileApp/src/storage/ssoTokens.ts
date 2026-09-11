@@ -121,6 +121,10 @@ export async function removeGlobalSsoToken(): Promise<void> {
 export async function clearAllSsoTokens(): Promise<void> {
   cachedSsoTokens = {};
   cachedGlobalSsoToken = null;
-  await AsyncStorage.removeItem(STORAGE_KEY);
-  await AsyncStorage.removeItem(GLOBAL_STORAGE_KEY);
+  // Attempt both removals even when one storage key cannot be deleted.
+  try {
+    await AsyncStorage.removeItem(STORAGE_KEY);
+  } finally {
+    await AsyncStorage.removeItem(GLOBAL_STORAGE_KEY);
+  }
 }

@@ -4,6 +4,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useRefresh } from "../hooks/useRefresh";
 import ScreenIntro from "../components/ScreenIntro";
 import { useHaptics } from "../hooks/useHaptics";
 import { useOnCallOverrides } from "../hooks/useOnCallOverrides";
@@ -43,10 +44,10 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
 
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
-  const onRefresh: () => Promise<void> = async (): Promise<void> => {
+  const { refreshing, onRefresh } = useRefresh(async (): Promise<void> => {
     lightImpact();
     await overrides.refetch();
-  };
+  });
 
   const performCancel: (override: OnCallOverrideItem) => Promise<void> = async (
     override: OnCallOverrideItem,
@@ -102,21 +103,32 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
   if (overrides.isError) {
     return (
       <ScrollView
+        testID="overrides-scroll"
+        contentInsetAdjustmentBehavior="automatic"
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
         contentContainerStyle={{
           padding: 20,
           paddingBottom: bottomPadding,
           flexGrow: 1,
         }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.actionPrimary}
+          />
+        }
       >
+        <ScreenIntro
+          title="Coverage"
+          description="Know who is covering, and make the next handoff simple."
+        />
         <EmptyState
           title="Could not load overrides"
           subtitle="Pull to refresh or try again."
           icon="alerts"
           actionLabel="Retry"
-          onAction={() => {
-            return overrides.refetch();
-          }}
+          onAction={onRefresh}
         />
       </ScrollView>
     );
@@ -135,7 +147,7 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
       contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
       refreshControl={
         <RefreshControl
-          refreshing={false}
+          refreshing={refreshing}
           onRefresh={onRefresh}
           tintColor={theme.colors.actionPrimary}
         />

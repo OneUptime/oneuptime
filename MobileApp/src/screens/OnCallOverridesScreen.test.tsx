@@ -1,6 +1,7 @@
 import React from "react";
 import { Alert } from "react-native";
 import {
+  act,
   render,
   screen,
   fireEvent,
@@ -193,4 +194,51 @@ describe("Coverage management", () => {
     expect(screen.queryByText(/No overrides yet/)).toBeNull();
     expect(screen.queryByTestId("coverage-counts")).toBeNull();
   });
+});
+
+describe("Refresh recovery", () => {
+  test.each([false, true])(
+    "keeps refresh available and visible while pending (error: %s)",
+    async (isError: boolean) => {
+      let finish: () => void = (): void => {};
+      const refresh: jest.Mock = jest.fn(() => {
+        return new Promise<void>((resolve: () => void) => {
+          finish = resolve;
+        });
+      });
+      mockOverrides.current = {
+        active: [],
+        upcoming: [],
+        past: [],
+        isLoading: false,
+        isError,
+        refetch: refresh,
+        cancelOverride: jest.fn(),
+        isCancelling: false,
+        createOverride: jest.fn(),
+        isCreating: false,
+      };
+      await render(<OnCallOverridesScreen />);
+      expect(screen.getByText("Coverage")).toBeTruthy();
+      let request: Promise<void>;
+      await act(() => {
+        request = screen
+          .getByTestId("overrides-scroll")
+          .props.refreshControl.props.onRefresh();
+      });
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(
+        screen.getByTestId("overrides-scroll").props.refreshControl.props
+          .refreshing,
+      ).toBe(true);
+      await act(async () => {
+        finish();
+        await request;
+      });
+      expect(
+        screen.getByTestId("overrides-scroll").props.refreshControl.props
+          .refreshing,
+      ).toBe(false);
+    },
+  );
 });

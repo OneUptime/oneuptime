@@ -104,6 +104,15 @@ export interface SessionReplayApi {
   getSessionId: () => string | null;
 
   /*
+   * The anonymous visitor id: one random id per browser profile that every
+   * session recorded here carries, so the dashboard can group them even
+   * when the page never calls identify(). Not an identity and not gated by
+   * user-identity capture. "" before start, after stop, and while consent
+   * is withdrawn.
+   */
+  getVisitorId: () => string;
+
+  /*
    * Turn the console diagnostics on or off for this page only. The
    * localStorage switch in Debug.ts is the one to reach for when the
    * problem is that the recorder never starts, because this call needs an
@@ -138,6 +147,12 @@ export interface SessionReplayDiagnostics {
   version: string;
   sessionId: string | null;
   tabId: string | null;
+
+  /*
+   * Null until a recorder exists; "" while consent is withdrawn, because
+   * the recorder holds no id then and mints none until the next grant.
+   */
+  visitorId: string | null;
 
   /*
    * True only while the recorder is actually recording (into memory or
@@ -478,6 +493,7 @@ export function getDiagnostics(): SessionReplayDiagnostics {
     version: RECORDER_VERSION,
     sessionId: activeRecorder ? activeRecorder.getSessionId() : null,
     tabId: activeRecorder ? activeRecorder.getTabId() : null,
+    visitorId: activeRecorder ? activeRecorder.getVisitorId() : null,
     isRecording: state === "recording" || state === "uploading",
     isUploading: activeRecorder ? activeRecorder.isUploading() : false,
     state: state,
@@ -505,6 +521,19 @@ export function getSessionId(): string | null {
   return activeRecorder && !activeRecorder.isStopped()
     ? activeRecorder.getSessionId()
     : null;
+}
+
+/*
+ * Mirrors getSessionId() - nothing for a recorder that never ran or has
+ * stopped - but answers "" rather than null: the id is a string on the
+ * wire and inside the recorder, where "" already means "no visitor id
+ * right now" (consent withdrawn), and one empty value is easier for a host
+ * page to key its own analytics on than two.
+ */
+export function getVisitorId(): string {
+  return activeRecorder && !activeRecorder.isStopped()
+    ? activeRecorder.getVisitorId()
+    : "";
 }
 
 export const version: string = RECORDER_VERSION;

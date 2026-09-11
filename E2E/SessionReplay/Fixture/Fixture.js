@@ -78,9 +78,23 @@ ModelAPI.getItem = async (options) =>
 ModelAPI.getList = async () => ({ data: [], count: 0, skip: 0, limit: 50 });
 ModelAPI.getCount = async () => 0;
 ModelAPI.updateById = async () => app;
+// One visitor id per browser; the two anonymous rows share one so the list
+// and the Users view can show "the same browser came back".
+const visitorIds = [
+  "7f3a2b1c9d8e4f5a6b7c8d9e0f1a2b3c",
+  "1a2b3c4d5e6f708192a3b4c5d6e7f809",
+  "9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b",
+  "5c4b3a2f1e0d9c8b7a6f5e4d3c2b1a09",
+];
 const records = Array.from({ length: count }, (_, index) => {
   const startTimeUnixMs = started - index * 75 * 1000;
   const hasError = index % 3 === 0;
+  const identifiedUserLabel = [
+    "alex@example.com",
+    "jordan@example.com",
+    "",
+    "morgan@example.com",
+  ][index % 4];
   return {
     sessionId:
       index === 0 ? sessionId : (index + 1).toString(16).padStart(32, "0"),
@@ -120,12 +134,11 @@ const records = Array.from({ length: count }, (_, index) => {
     osName: ["macOS", "iOS", "Windows"][index % 3],
     deviceType: index % 3 === 1 ? "mobile" : "desktop",
     countryCode: ["GB", "US", "DE"][index % 3],
-    identifiedUserLabel: [
-      "alex@example.com",
-      "jordan@example.com",
-      "",
-      "morgan@example.com",
-    ][index % 4],
+    identifiedUserLabel,
+    identifiedUserKey: identifiedUserLabel
+      ? `k-${identifiedUserLabel.split("@")[0]}`
+      : "",
+    visitorId: visitorIds[index % 4],
     identifiedUserTraits:
       index % 4 === 2 ? {} : { plan: "Pro", account: "Commerce" },
     tags: { release: "2026.09.11", environment: "production" },
@@ -189,6 +202,14 @@ function listMatches(row, filters) {
     !row.identifiedUserLabel.includes(filters.identifiedUserRef)
   )
     return false;
+  // The digest goes only without a reference (the server ignores it beside one).
+  if (
+    !filters.identifiedUserRef &&
+    filters.identifiedUserKey &&
+    row.identifiedUserKey !== filters.identifiedUserKey
+  )
+    return false;
+  if (filters.visitorId && row.visitorId !== filters.visitorId) return false;
   if (
     filters.search &&
     !JSON.stringify(row).toLowerCase().includes(filters.search.toLowerCase())
@@ -236,6 +257,104 @@ function listResult(data) {
     ignoredFilters: [],
   };
 }
+// The /users rollup, as the server does it: one row per identified user
+// ("u:<key>"), one per visitor ("v:<visitorId>"), one anonymous bucket ("")
+// for rows with neither, newest last-seen first, keyset paged by
+// {lastSeenUnixMs, groupKey}.
+function usersResult(data) {
+  if (fixture.failList)
+    throw new HTTPErrorResponse(
+      503,
+      { message: "The recordings service is unavailable." },
+      {},
+    );
+  const groups = new Map();
+  for (const row of records) {
+    const groupKey = row.identifiedUserKey
+      ? `u:${row.identifiedUserKey}`
+      : row.visitorId
+        ? `v:${row.visitorId}`
+        : "";
+    const existing = groups.get(groupKey);
+    const frustration =
+      row.rageClickCount +
+      row.deadClickCount +
+      row.errorClickCount +
+      row.refreshRageCount;
+    if (!existing) {
+      groups.set(groupKey, {
+        groupKey,
+        kind: row.identifiedUserKey
+          ? "identified"
+          : row.visitorId
+            ? "visitor"
+            : "anonymous",
+        identifiedUserKey: row.identifiedUserKey,
+        visitorId: row.visitorId,
+        identifiedUserLabel: row.identifiedUserLabel,
+        identifiedUserTraits: row.identifiedUserTraits,
+        sessionCount: 1,
+        liveSessionCount: row.isFinalized ? 0 : 1,
+        firstSeenUnixMs: row.startTimeUnixMs,
+        lastSeenUnixMs: row.startTimeUnixMs,
+        totalDurationMs: row.durationMs,
+        errorCount: row.errorCount,
+        frustrationCount: frustration,
+        errorSessionCount: row.errorCount > 0 ? 1 : 0,
+        pageCount: row.pageCount,
+        lastSessionId: row.sessionId,
+        lastEntryUrl: row.entryUrl,
+        browserName: row.browserName,
+        browserVersion: row.browserVersion,
+        osName: row.osName,
+        deviceType: row.deviceType,
+        countryCode: row.countryCode,
+      });
+      continue;
+    }
+    existing.sessionCount += 1;
+    existing.liveSessionCount += row.isFinalized ? 0 : 1;
+    existing.firstSeenUnixMs = Math.min(
+      existing.firstSeenUnixMs,
+      row.startTimeUnixMs,
+    );
+    existing.totalDurationMs += row.durationMs;
+    existing.errorCount += row.errorCount;
+    existing.frustrationCount += frustration;
+    existing.errorSessionCount += row.errorCount > 0 ? 1 : 0;
+    existing.pageCount += row.pageCount;
+    if (row.startTimeUnixMs > existing.lastSeenUnixMs) {
+      existing.lastSeenUnixMs = row.startTimeUnixMs;
+      existing.lastSessionId = row.sessionId;
+      existing.lastEntryUrl = row.entryUrl;
+      existing.browserName = row.browserName;
+      existing.browserVersion = row.browserVersion;
+      existing.osName = row.osName;
+      existing.deviceType = row.deviceType;
+      existing.countryCode = row.countryCode;
+    }
+  }
+  let result = [...groups.values()].sort(
+    (a, b) =>
+      b.lastSeenUnixMs - a.lastSeenUnixMs ||
+      a.groupKey.localeCompare(b.groupKey),
+  );
+  if (data.cursor) {
+    const position = result.findIndex(
+      (row) => row.groupKey === data.cursor.groupKey,
+    );
+    result = result.slice(position + 1);
+  }
+  const page = result.slice(0, data.limit || 50);
+  const last = page[page.length - 1];
+  return {
+    users: page,
+    nextCursor:
+      result.length > page.length
+        ? { lastSeenUnixMs: last.lastSeenUnixMs, groupKey: last.groupKey }
+        : null,
+  };
+}
 const manifestChunks = Array.from({ length: 3 }, (_, index) => ({
   chunkIndex: index,
   tabId,
@@ -258,6 +377,7 @@ API.post = async ({ url, data }) => {
   const route = url.toString().split("/session-replay/")[1];
   requests.push({ route, data });
   if (route === "list") return new HTTPResponse(200, listResult(data), {});
+  if (route === "users") return new HTTPResponse(200, usersResult(data), {});
   if (route === "ingest-status") return new HTTPResponse(200, health, {});
   if (route === "manifest") {
     const row =

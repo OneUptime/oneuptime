@@ -1,5 +1,6 @@
 {
   "extends": "expo/tsconfig.base",
+  "exclude": ["node_modules", "dist-ui", "playwright-report", "test-results"],
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",

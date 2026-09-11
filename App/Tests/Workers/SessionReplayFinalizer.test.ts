@@ -182,6 +182,7 @@ import {
   MAX_SWEEP_SESSIONS_PER_RUN,
   MAX_TRACE_IDS_PER_SESSION,
   parseActiveSessionMember,
+  parseProvisionalHeaderRow,
   parseTabAggregateRow,
   PROJECT_INDEX_SCAN_CURSOR_KEY,
   ProvisionalSessionHeader,
@@ -205,6 +206,8 @@ import { getErasedSessionsKey } from "Common/Server/Utils/SessionReplay/SessionR
 
 const projectId: ObjectID = new ObjectID("6600000000000000000000a1");
 const sessionId: string = "1f0c9a4b6d2e47f8a1b3c5d7e9f00112";
+/* The recorder-minted per-browser id the fixture header was ingested with. */
+const visitorId: string = "3f1a9c7e5b2d4801f6a3c9e7b1d5028f";
 const databaseName: string = "oneuptime";
 
 /* Chunk 0 of the fixture session starts at this wall-clock instant. */
@@ -636,6 +639,7 @@ function makeProvisionalHeader(
     identifiedUserKey: "a".repeat(32),
     identifiedUserLabel: "",
     identifiedUserTraits: {},
+    visitorId: visitorId,
     tags: {},
     traceIds: ["trace-existing"],
     exceptionFingerprints: ["fingerprint-1"],
@@ -1278,6 +1282,23 @@ describe("Rum:FinalizeSessions header row", () => {
     expect(row["errorCount"]).toBe(0);
   });
 
+  /*
+   * The visitor id is stored by the ingest and CARRIED, never re-derived:
+   * the chunk rows do not hold it, so a session whose provisional header
+   * was lost has nothing to fall back to and reads "" - the same as a
+   * session from a recorder that predates the id - which the list renders
+   * as ungrouped rather than inventing a link.
+   */
+  test("the visitor id is carried from the provisional header, and a headerless session has none", () => {
+    const rows: Array<RawChunkRow> = [makeChunkRow({ chunkIndex: 0 })];
+
+    expect(rowFor(rows, makeProvisionalHeader())["visitorId"]).toBe(visitorId);
+    expect(
+      rowFor(rows, makeProvisionalHeader({ visitorId: "" }))["visitorId"],
+    ).toBe("");
+    expect(rowFor(rows, null)["visitorId"]).toBe("");
+  });
+
   test("a session whose provisional header was lost still gets a header", () => {
     /*
      * Otherwise a session with perfectly playable chunks would never
@@ -1470,6 +1491,21 @@ describe("Rum:FinalizeSessions queries", () => {
     expect(query).toContain("toString(startTime) AS startTimeText");
     /* rumApplicationId narrows the key range to one application. */
     expect(query).toContain("rumApplicationId =");
+  });
+
+  test("the header read carries the visitor id, which lives on the header row alone", () => {
+    const statement: Statement = buildProvisionalHeaderStatement({
+      databaseName: databaseName,
+      projectId: projectId,
+      rumApplicationId: "6600000000000000000000b2",
+      sessionId: sessionId,
+    });
+
+    /*
+     * The chunk rows never hold it, so a SELECT that forgot it would blank
+     * every finalized session's visitor link without any other symptom.
+     */
+    expect(statement.query).toContain("visitorId AS visitorId");
   });
 });
 
@@ -1776,6 +1812,23 @@ describe("Rum:FinalizeSessions row parsing", () => {
     expect(parsed.payloadBytes).toBe(3000);
     expect(parsed.hasFinalChunk).toBe(true);
     expect(parsed.sessionStartUnixMs).toBe(sessionStartUnixMs);
+  });
+
+  test("the provisional header's visitor id is mapped, and a row that predates the column reads as empty", () => {
+    expect(parseProvisionalHeaderRow(headerRowOf()).visitorId).toBe(visitorId);
+
+    /*
+     * A header written before the column existed comes back without the
+     * key at all on some server versions and as "" on others; both are
+     * "no visitor link", never a throw that would strand the session.
+     */
+    const legacy: JSONObject = headerRowOf();
+    delete legacy["visitorId"];
+
+    expect(parseProvisionalHeaderRow(legacy).visitorId).toBe("");
+    expect(
+      parseProvisionalHeaderRow(headerRowOf({ visitorId: "" })).visitorId,
+    ).toBe("");
   });
 });
 
@@ -2177,6 +2230,21 @@ describe("Rum:FinalizeSessions expired-session loop", () => {
     ).toBe(0);
   });
 
+  test("the finalized row carries the provisional header's visitor id", async () => {
+    const { inserted } = stubClickhouse({
+      tabRows: runGroupByOverChunkRows([makeChunkRow({ chunkIndex: 0 })]),
+      headerRows: [headerRowOf({ visitorId: visitorId })],
+    });
+
+    await seedActive(sessionId, idleSince);
+
+    await finalizeExpiredSessions();
+
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]!["isFinalized"]).toBe(true);
+    expect(inserted[0]!["visitorId"]).toBe(visitorId);
+  });
+
   /*
    * sessionId is minted in the browser from sessionStorage, which every RUM
    * application served from one origin shares - so one id legitimately
@@ -2413,6 +2481,12 @@ describe("Rum:SweepNeverFinalizedSessions loop", () => {
     );
     /* Chunk 0's evidence survives the seal. */
     expect(inserted[0]!["errorCount"]).toBe(2);
+    /*
+     * And so does the visitor link: the chunks are gone, the header is not,
+     * and a sealed row that dropped it would vanish from its visitor's
+     * group precisely when a reader is asking "what else did they hit".
+     */
+    expect(inserted[0]!["visitorId"]).toBe(visitorId);
   });
 
   test("skips an erased session without sealing or looping", async () => {
