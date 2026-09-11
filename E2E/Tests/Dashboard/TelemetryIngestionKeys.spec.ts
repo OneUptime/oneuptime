@@ -54,6 +54,9 @@ test.describe("Telemetry ingestion key creation wizard", () => {
   };
 
   const next: () => Promise<void> = async (): Promise<void> => {
+    await expect(
+      modal().getByRole("button", { name: "Back", exact: true }),
+    ).toHaveCount(0);
     await expect(nextButton()).toHaveText("Next");
     await nextButton().click();
   };
@@ -456,55 +459,49 @@ test.describe("Telemetry ingestion key creation wizard", () => {
     await modal().getByTestId("modal-footer-close-button").click();
   });
 
-  test("supports Back on a narrow screen while preserving Details and Browser Settings", async () => {
+  test("shows mobile step progress without a Back button and reviews the entered values", async () => {
     await ctx.page.setViewportSize({ width: 390, height: 844 });
     const name: string = "Mobile browser draft";
     const description: string = "Created from a narrow screen.";
     const serviceName: string = "mobile-storefront-web";
     const origin: string = "https://mobile.example.com";
+    const serverStepCount: number = IS_BILLING_ENABLED ? 4 : 3;
+    const browserStepCount: number = serverStepCount + 1;
+    const progress: Locator = modal().getByRole("status");
     const backButton: Locator = modal().getByRole("button", {
       name: "Back",
       exact: true,
     });
 
     await expect(backButton).toHaveCount(0);
+    await expect(progress).toBeVisible();
+    await expect(progress).toContainText(`Step 1 of ${serverStepCount}`);
+    await expect(progress).toContainText("Details");
     await fillDetails(name, description);
     await next();
-    await expect(backButton).toBeVisible();
-    const backBounds: { width: number } | null = await backButton.boundingBox();
-    const modalBounds: { width: number } | null = await modal().boundingBox();
-    expect(backBounds).not.toBeNull();
-    expect(modalBounds).not.toBeNull();
-    expect(backBounds!.width).toBeLessThan(modalBounds!.width / 2);
+    await expect(backButton).toHaveCount(0);
+    await expect(progress).toContainText(`Step 2 of ${serverStepCount}`);
+    await expect(progress).toContainText("Key Type");
     await modal().getByTestId("card-select-option-Browser").click();
+    await expect(progress).toContainText(`Step 2 of ${browserStepCount}`);
     await next();
+    await expect(progress).toContainText(`Step 3 of ${browserStepCount}`);
+    await expect(progress).toContainText("Browser Settings");
     await fillOrigins(JSON.stringify([origin]));
     await modal()
       .getByPlaceholder("storefront-web", { exact: true })
       .fill(serviceName);
 
-    await backButton.click();
-    await expect(
-      modal().getByTestId("card-select-option-Browser"),
-    ).toHaveAttribute("aria-checked", "true");
-    await backButton.click();
+    await review();
     await expect(backButton).toHaveCount(0);
-    await expect(
-      modal().getByPlaceholder("Ingestion Key Name", { exact: true }),
-    ).toHaveValue(name);
-    await expect(
-      modal().getByPlaceholder("Ingestion Key Description", { exact: true }),
-    ).toHaveValue(description);
-
-    await next();
-    await next();
-    await expect(
-      modal().getByPlaceholder("storefront-web", { exact: true }),
-    ).toHaveValue(serviceName);
-    await expect(modal().locator(".monaco-editor .view-lines")).toContainText(
-      origin,
+    await expect(progress).toContainText(
+      `Step ${browserStepCount} of ${browserStepCount}`,
     );
-    await expect(backButton).toBeVisible();
+    await expect(progress).toContainText("Summary");
+    await expect(modal().getByText(name, { exact: true })).toBeVisible();
+    await expect(modal().getByText(description, { exact: true })).toBeVisible();
+    await expect(modal().getByText(serviceName, { exact: true })).toBeVisible();
+    await expect(modal().getByTestId("modal-content")).toContainText(origin);
     await expect(nextButton()).toBeVisible();
     expect(await fetchKeys(name)).toEqual([]);
     await modal().getByTestId("modal-footer-close-button").click();

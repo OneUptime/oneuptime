@@ -453,7 +453,10 @@ describe("Telemetry ingestion key creation wizard", () => {
   test("preserves details when revisiting a completed step and submits the edited values", async () => {
     const user: UserEvent = await renderWizard();
     await enterDetails(user, DESCRIPTION);
-    await user.click(within(dialog()).getByRole("button", { name: "Back" }));
+    expect(
+      within(dialog()).queryByRole("button", { name: "Back" }),
+    ).not.toBeInTheDocument();
+    await goBackTo(user, "Details");
     expect(activeStep()).toBe("Details");
 
     await waitFor(() => {
