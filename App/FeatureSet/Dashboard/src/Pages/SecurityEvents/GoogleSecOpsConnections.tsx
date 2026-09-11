@@ -9,10 +9,7 @@ import { Green, Red, Yellow, LightGray } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import GoogleSecOpsConnection from "Common/Models/DatabaseModels/GoogleSecOpsConnection";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
@@ -32,8 +29,6 @@ import React, {
   ReactElement,
   useState,
 } from "react";
-
-const ERROR_PREVIEW_LENGTH: number = 160;
 
 const documentationMarkdown: string = `
 ### How the Google SecOps Connector Works
@@ -56,7 +51,7 @@ The managed connector polls your Google SecOps (Chronicle) tenant on the interva
 - **Diagnostics** shows the exact requested time range, returned, imported, duplicate, rejected and failed counts, warnings, connection checks and recent run history. An empty result means Google returned no detections in that window and scope; it does not establish that a detection elsewhere is absent.
 - Use **Preview detections** to read a selected time range without importing. **Import this time range** imports up to 7 days of history after confirmation. Scheduled first polls look back 15 minutes. A stale cursor catches up in 24 hour windows; use historical import for detections before the first poll.
 - A detection's original time may be earlier than its creation time. **View events in this time range** opens the returned detection-time range so late-created detections are visible.
-- **Last Error** stores the complete error message with credentials redacted. Select **View Full Error** to read it or **Copy Error** to copy it for support. It is cleared on the next successful poll, so a value here describes the most recent attempt rather than a permanent state. Read the prefix first; only two prefixes carry an HTTP status, and a message without one is not evidence of a fault on OneUptime's side:
+- **Last Error** stores the complete error message with credentials redacted. When a connection has an error, select **View Error** in its **Actions** column to read it, then **Copy Error** in the dialog to copy it for support. It is cleared on the next successful poll, so a value here describes the most recent attempt rather than a permanent state. Read the prefix first; only two prefixes carry an HTTP status, and a message without one is not evidence of a fault on OneUptime's side:
   - \`Google token exchange failed (HTTP ...)\` — the service-account credential was rejected at Google's OAuth endpoint, before Chronicle was reached. Usually a malformed, revoked, or wrong-project key.
   - \`Google token exchange returned ...\` — that same endpoint answered with something unusable (no access token, or a body that is not JSON), still before Chronicle. Usually a proxy or gateway in between.
   - \`Google SecOps alerts fetch failed (HTTP ...)\` — Chronicle itself rejected the request. \`403\` is usually a missing **Chronicle API Viewer** role; \`404\` is usually a wrong instance resource name or region.
@@ -276,6 +271,21 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
         showViewIdButton={true}
         actionButtons={[
           {
+            title: "View Error",
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            icon: IconProp.Error,
+            isVisible: (item: GoogleSecOpsConnection): boolean => {
+              return Boolean(item.lastError);
+            },
+            onClick: (
+              item: GoogleSecOpsConnection,
+              onCompleteAction: VoidFunction,
+            ): void => {
+              setCurrentlyViewingError(item.lastError || null);
+              onCompleteAction();
+            },
+          },
+          {
             title: "Test connection",
             buttonStyleType: ButtonStyleType.OUTLINE,
             disabled: !updateGate.isAllowed,
@@ -456,48 +466,6 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
             title: "Last Event Imported",
             type: FieldType.DateTime,
             noValueMessage: "Never",
-          },
-          {
-            field: {
-              lastError: true,
-            },
-            title: "Last Error",
-            type: FieldType.LongText,
-            noValueMessage: "-",
-            getElement: (item: GoogleSecOpsConnection): ReactElement => {
-              if (!item.lastError) {
-                return <span>-</span>;
-              }
-
-              const error: string = item.lastError;
-
-              return (
-                <div className="max-w-md space-y-2">
-                  <p className="whitespace-pre-wrap break-words text-sm">
-                    {error.length > ERROR_PREVIEW_LENGTH
-                      ? `${error.slice(0, ERROR_PREVIEW_LENGTH)}…`
-                      : error}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Button
-                      title="View Full Error"
-                      buttonStyle={ButtonStyleType.LINK}
-                      buttonSize={ButtonSize.ExtraSmall}
-                      ariaHaspopup="dialog"
-                      onClick={(): void => {
-                        setCurrentlyViewingError(error);
-                      }}
-                    />
-                    <CopyTextButton
-                      textToBeCopied={error}
-                      label="Copy Error"
-                      size="sm"
-                      variant="soft"
-                    />
-                  </div>
-                </div>
-              );
-            },
           },
         ]}
       />
