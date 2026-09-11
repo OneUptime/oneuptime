@@ -451,6 +451,162 @@ describe("the header", () => {
   });
 });
 
+/*
+ * github.com/OneUptime/oneuptime/issues/3705: "this user's other
+ * sessions" in the header. What only the shell can get wrong is pinned:
+ * the lookup is keyed on the identity keys and the session clock (so the
+ * 30s live poll, which replaces the manifest object every tick, never
+ * re-fetches it), a cancelled or superseded lookup never sets state, the
+ * header is handed the state and the navigation, and moving to another
+ * session is a route change through the shared moment builder so the
+ * page remounts the player exactly as the list would.
+ */
+describe("this user's other sessions", () => {
+  const lookup: string = slice(
+    SOURCE,
+    "const kind: ReplayUserSessionsKind = resolveReplayUserSessionsKind({",
+    "const isLive: boolean",
+  );
+
+  test("the lookup effect is keyed on the session, the identity keys and the clock, not the manifest object", () => {
+    const dependencies: string = slice(
+      lookup,
+      "}, [\n    rumApplicationIdString,",
+      "manifest?.startTimeUnixMs,",
+    );
+
+    expect(dependencies).toContain("sessionId,");
+    expect(dependencies).toContain("manifest?.details.identifiedUserKey,");
+    expect(dependencies).toContain("manifest?.details.visitorId,");
+    /* Listing the object would re-run the lookup on every live poll. */
+    expect(dependencies).not.toMatch(/\n\s+manifest,\n/);
+    expect(dependencies).not.toContain("viewId");
+    expect(dependencies).not.toContain("reloadToken");
+  });
+
+  test("the lookup goes through the shared fetch and merge, once per generation", () => {
+    expect(lookup).toContain("fetchReplayUserSessions({");
+    expect(lookup).toContain("mergeReplayUserSessions(lists, self)");
+    expect(lookup).toContain("buildReplayUserSessionsWindow(");
+    expect(lookup).toContain("userSessionsGenerationRef.current += 1;");
+    expect(lookup).toMatch(
+      /if \(isCancelled \|\| generation !== userSessionsGenerationRef\.current\) \{\s*return;\s*\}/,
+    );
+    expect(lookup).toMatch(/return \(\) => \{\s*isCancelled = true;\s*\};/);
+    /* A session with neither key never makes a request. */
+    expect(lookup).toMatch(
+      /if \(kind === "none"\) \{[\s\S]*?kind: "none",[\s\S]*?return;\s*\}/,
+    );
+  });
+
+  test("the header is handed the visitor id with the identity and the lookup state after the pin control", () => {
+    const headerProps: string = slice(SOURCE, "<ReplayHeader\n", "/>");
+
+    /* Inside the pinned identity block, next to the two existing keys. */
+    expect(headerProps).toContain("visitorId: manifest.details.visitorId");
+
+    const headerElement: string = slice(
+      SOURCE,
+      "<ReplayHeader\n",
+      "{recordingNotes.length > 0 && (",
+    );
+    const pinIndex: number = headerElement.indexOf("pinControl={");
+    const stateIndex: number = headerElement.indexOf(
+      "userSessions={userSessions}",
+    );
+    const openIndex: number = headerElement.indexOf(
+      "onOpenUserSession={openUserSession}",
+    );
+
+    expect(pinIndex).toBeGreaterThan(-1);
+    expect(stateIndex).toBeGreaterThan(pinIndex);
+    expect(openIndex).toBeGreaterThan(pinIndex);
+  });
+
+  test("opening another session is a route change through the moment builder, with the rail tab and no pre-roll", () => {
+    const opener: string = slice(
+      SOURCE,
+      "const openUserSession",
+      "const adjacentUserSessions",
+    );
+
+    expect(opener).toContain("buildReplayMomentRoute({");
+    expect(opener).toContain("sessionId: targetSessionId,");
+    expect(opener).toContain("rail: railTab,");
+    expect(opener).toContain("preRollMs: 0,");
+    expect(opener).toContain("Navigation.navigate(route)");
+    /* Never a state change: the page keys the player on the session. */
+    expect(opener).not.toContain("setManifest(");
+    expect(opener).not.toContain("setReloadToken(");
+    expect(opener).toMatch(
+      /if \(!targetSessionId \|\| targetSessionId === sessionId\) \{\s*return;\s*\}/,
+    );
+  });
+
+  test("the { and } keys reach the older/newer steps through the scrubber's shell-level handlers", () => {
+    const scrubberProps: string = slice(
+      SOURCE,
+      "<ReplayScrubber\n",
+      "/>",
+    );
+
+    expect(scrubberProps).toContain("onOlderUserSession={openOlderUserSession}");
+    expect(scrubberProps).toContain("onNewerUserSession={openNewerUserSession}");
+    expect(SOURCE).toContain(
+      "findAdjacentUserSessions(userSessions.sessions, sessionId)",
+    );
+  });
+
+  test("still never writes to the clipboard directly", () => {
+    expect(SOURCE).not.toContain("navigator.clipboard");
+  });
+});
+
+/*
+ * A customer's screenshot showed the amber "1 note about this recording"
+ * banner three lines tall: the browser's disclosure triangle, the icon
+ * and the text each on its own line, because <summary> defaults to
+ * display: list-item. Both note banners are one flex row now, with the
+ * native marker hidden and an explicit caret.
+ */
+describe("the notes banners", () => {
+  test("both summaries are one flex row with the native marker hidden", () => {
+    for (const testId of [
+      "replay-recording-notes-summary",
+      "replay-capture-notes-summary",
+    ]) {
+      const summaryIndex: number = SOURCE.indexOf(`data-testid="${testId}"`);
+
+      expect(summaryIndex).toBeGreaterThan(-1);
+
+      const openingTag: string = SOURCE.slice(
+        SOURCE.lastIndexOf("<summary", summaryIndex),
+        summaryIndex,
+      );
+
+      expect(openingTag).toContain("list-none");
+      expect(openingTag).toContain("[&::-webkit-details-marker]:hidden");
+      expect(openingTag).toMatch(/flex cursor-pointer items-center gap-1\.5/);
+    }
+  });
+
+  test("the caret rotates with the details element's open state", () => {
+    const banners: string = slice(
+      SOURCE,
+      'data-testid="replay-recording-notes"',
+      "</details>",
+    );
+
+    expect(banners).toContain("group-open:rotate-90");
+    expect(SOURCE).toMatch(
+      /className="group mb-3 rounded-lg border border-amber-200/,
+    );
+    expect(SOURCE).toMatch(
+      /className="group mt-3 rounded-lg border border-gray-200/,
+    );
+  });
+});
+
 describe("URL state", () => {
   test("the page parses the whole player URL model and keys the player on the session", () => {
     expect(VIEW_SOURCE).toContain("parseReplayPlayerUrlState(");

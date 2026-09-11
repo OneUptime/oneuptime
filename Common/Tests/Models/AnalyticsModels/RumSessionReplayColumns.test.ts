@@ -2,12 +2,15 @@ import { describe, expect, it, jest } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
+import AnalyticsTableColumn, {
+  SkipIndexType,
+} from "../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import Permission from "../../../Types/Permission";
 import RumSession from "../../../Models/AnalyticsModels/RumSession";
 import RumSessionChunk from "../../../Models/AnalyticsModels/RumSessionChunk";
 import AddSessionReplayEngagementColumns from "../../../../App/FeatureSet/Workers/DataMigrations/AddSessionReplayEngagementColumns";
+import AddSessionReplayVisitorIdColumn from "../../../../App/FeatureSet/Workers/DataMigrations/AddSessionReplayVisitorIdColumn";
 
 /*
  * The migration imports the two ClickHouse services for their column DDL
@@ -238,13 +241,21 @@ describe("AddSessionReplayEngagementColumns migration", () => {
     ).toHaveLength(2);
   });
 
-  it("is registered LAST in the data-migration chain", () => {
+  /*
+   * Pinned from the END of the chain, not by absolute index: the intent is
+   * that nothing was slipped in behind it, and only the visitor id
+   * migration - added later and registered after it - may follow.
+   */
+  it("is registered second-to-last in the data-migration chain, directly before the visitor id migration", () => {
     const instantiations: Array<string> =
       indexSource.match(/new [A-Za-z0-9_]+\(\)/g) || [];
 
-    expect(instantiations.length).toBeGreaterThan(0);
-    expect(instantiations[instantiations.length - 1]).toBe(
+    expect(instantiations.length).toBeGreaterThan(1);
+    expect(instantiations[instantiations.length - 2]).toBe(
       "new AddSessionReplayEngagementColumns()",
+    );
+    expect(instantiations[instantiations.length - 1]).toBe(
+      "new AddSessionReplayVisitorIdColumn()",
     );
   });
 
@@ -257,6 +268,118 @@ describe("AddSessionReplayEngagementColumns migration", () => {
   it("names itself so the runner records it under a stable key", () => {
     expect(new AddSessionReplayEngagementColumns().name).toBe(
       "AddSessionReplayEngagementColumns",
+    );
+  });
+});
+
+/*
+ * The anonymous visitor id column (github.com/OneUptime/oneuptime/issues/3705).
+ * The one privacy decision here is pinned by identity, the same way the
+ * traits column is: the id is a random token the RECORDER minted, not
+ * anything the host page said about a person, so it must sit behind
+ * exactly the ACL object the session id and identifiedUserKey use - and
+ * NOT the narrow identity object - or the anonymous applications it
+ * exists to serve could never read it from the session list.
+ */
+describe("RumSession visitor id column", () => {
+  const model: RumSession = new RumSession();
+
+  it("is declared exactly once", () => {
+    expect(
+      model.tableColumns.filter((column: AnalyticsTableColumn): boolean => {
+        return column.key === "visitorId";
+      }),
+    ).toHaveLength(1);
+  });
+
+  it("is a required String defaulting to \"\", so pre-existing rows read as 'predates the recorder'", () => {
+    const column: AnalyticsTableColumn = requireColumn(model, "visitorId");
+
+    expect(column.title).toBe("Visitor ID");
+    expect(column.type).toBe(TableColumnType.Text);
+    expect(column.required).toBe(true);
+    expect(column.defaultValue).toBe("");
+    expect(column.isLowCardinality).toBeFalsy();
+  });
+
+  it("is bloom-indexed for the equality lookup the visitor grouping performs", () => {
+    const column: AnalyticsTableColumn = requireColumn(model, "visitorId");
+
+    expect(column.skipIndex).toEqual({
+      name: "idx_visitor_id",
+      type: SkipIndexType.BloomFilter,
+      params: [0.01],
+      granularity: 1,
+    });
+  });
+
+  it("carries the SAME ACL object as identifiedUserKey and the session id, and NOT the label's", () => {
+    const column: AnalyticsTableColumn = requireColumn(model, "visitorId");
+    const key: AnalyticsTableColumn = requireColumn(model, "identifiedUserKey");
+    const label: AnalyticsTableColumn = requireColumn(
+      model,
+      "identifiedUserLabel",
+    );
+    const session: AnalyticsTableColumn = requireColumn(model, "sessionId");
+
+    expect(column.accessControl).toBeDefined();
+    expect(column.accessControl).toBe(key.accessControl);
+    expect(column.accessControl).toBe(session.accessControl);
+    expect(column.accessControl).not.toBe(label.accessControl);
+    /* The wide object: a plain list reader can group by visitor. */
+    expect(column.accessControl?.read).toContain(
+      Permission.ReadRumSessionReplay,
+    );
+  });
+
+  it("does not disturb the sort key or the no-projections rule", () => {
+    expect(model.sortKeys).toEqual([
+      "projectId",
+      "rumApplicationId",
+      "startTime",
+      "sessionId",
+    ]);
+    expect(model.projections).toEqual([]);
+  });
+});
+
+describe("AddSessionReplayVisitorIdColumn migration", () => {
+  const indexSource: string = fs.readFileSync(
+    path.resolve(
+      __dirname,
+      "../../../../App/FeatureSet/Workers/DataMigrations/Index.ts",
+    ),
+    "utf8",
+  );
+
+  it("is imported and instantiated in DataMigrations/Index.ts exactly once", () => {
+    expect(indexSource).toContain(
+      'import AddSessionReplayVisitorIdColumn from "./AddSessionReplayVisitorIdColumn";',
+    );
+    expect(
+      indexSource.split("new AddSessionReplayVisitorIdColumn()"),
+    ).toHaveLength(2);
+  });
+
+  it("is registered LAST in the data-migration chain", () => {
+    const instantiations: Array<string> =
+      indexSource.match(/new [A-Za-z0-9_]+\(\)/g) || [];
+
+    expect(instantiations.length).toBeGreaterThan(0);
+    expect(instantiations[instantiations.length - 1]).toBe(
+      "new AddSessionReplayVisitorIdColumn()",
+    );
+  });
+
+  it("does not run in cluster mode, because boot schema-sync performs the same ADD COLUMN there", () => {
+    expect(new AddSessionReplayVisitorIdColumn().runsInClusterMode()).toBe(
+      false,
+    );
+  });
+
+  it("names itself so the runner records it under a stable key", () => {
+    expect(new AddSessionReplayVisitorIdColumn().name).toBe(
+      "AddSessionReplayVisitorIdColumn",
     );
   });
 });

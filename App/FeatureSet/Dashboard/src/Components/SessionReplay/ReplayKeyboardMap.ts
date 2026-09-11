@@ -69,7 +69,17 @@ export type ReplayKeyboardAction =
   | { type: "rail-row-down" }
   | { type: "rail-row-up" }
   | { type: "rail-seek-selected" }
-  | { type: "rail-clear" };
+  | { type: "rail-clear" }
+  /*
+   * "{" and "}" step between the sessions of the person being watched
+   * (github.com/OneUptime/oneuptime/issues/3705). The brackets already
+   * step between rows, so the shifted brackets stepping between
+   * recordings is the same gesture one level up; both arrive as their
+   * own key value ("{" is what Shift+[ produces), which is why they
+   * never collide with the unshifted pair.
+   */
+  | { type: "older-user-session" }
+  | { type: "newer-user-session" };
 
 export type ReplayKeyboardActionType = ReplayKeyboardAction["type"];
 
@@ -343,6 +353,10 @@ export function resolveReplayKeyboardAction(
       return oneShot({ type: "prev-signal" });
     case "]":
       return oneShot({ type: "next-signal" });
+    case "{":
+      return oneShot({ type: "older-user-session" });
+    case "}":
+      return oneShot({ type: "newer-user-session" });
     case "/":
       return oneShot({ type: "focus-rail-search" });
     case "?":
@@ -563,6 +577,22 @@ export const REPLAY_SHORTCUT_GROUPS: Array<ReplayShortcutGroup> = [
         id: "rail-clear",
         keys: [["Escape"]],
         description: "Clear the selection",
+      },
+    ],
+  },
+  {
+    id: "sessions",
+    title: "Sessions",
+    shortcuts: [
+      {
+        id: "older-user-session",
+        keys: [["{"]],
+        description: "Older session by this user",
+      },
+      {
+        id: "newer-user-session",
+        keys: [["}"]],
+        description: "Newer session by this user",
       },
     ],
   },

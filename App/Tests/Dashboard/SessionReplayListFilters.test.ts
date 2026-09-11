@@ -34,6 +34,10 @@ import {
  * the endpoint ignores unknown fields — so the exact shapes are pinned.
  */
 
+const VISITOR: string = "7f3a2b1c9d8e4f5a6b7c8d9e0f1a2b3c";
+const USER_KEY: string =
+  "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08";
+
 describe("buildSessionReplayListFilters", () => {
   test("the frustration signal is a SERVER-side filter now", () => {
     expect(buildSessionReplayListFilters("frustration")).toEqual({
@@ -164,6 +168,74 @@ describe("buildSessionReplayListFilters", () => {
     expect(
       hasAnyAdvancedFilter({ ...EMPTY_ADVANCED_FILTERS, search: "jane" }),
     ).toBe(true);
+    /* The click-set identity filters count like any other. */
+    expect(
+      hasAnyAdvancedFilter({ ...EMPTY_ADVANCED_FILTERS, visitorId: VISITOR }),
+    ).toBe(true);
+    expect(
+      hasAnyAdvancedFilter({
+        ...EMPTY_ADVANCED_FILTERS,
+        identifiedUserKey: USER_KEY,
+      }),
+    ).toBe(true);
+  });
+
+  /*
+   * Issue #3705: "every session from this person" for a role that cannot
+   * read the label goes by the digest the list already returns, and
+   * "every session from this browser" by the recorder's visitor id.
+   */
+  test("the visitor id and the identity digest land under the endpoint's names", () => {
+    expect(
+      buildSessionReplayListFilters("all", {
+        ...EMPTY_ADVANCED_FILTERS,
+        visitorId: ` ${VISITOR} `,
+      }),
+    ).toEqual({ visitorId: VISITOR });
+
+    expect(
+      buildSessionReplayListFilters("all", {
+        ...EMPTY_ADVANCED_FILTERS,
+        identifiedUserKey: USER_KEY,
+      }),
+    ).toEqual({ identifiedUserKey: USER_KEY });
+  });
+
+  test("the digest is sent ONLY without a reference - the server ignores it beside one", () => {
+    expect(
+      buildSessionReplayListFilters("all", {
+        ...EMPTY_ADVANCED_FILTERS,
+        identifiedUserRef: "jane@example.com",
+        identifiedUserKey: USER_KEY,
+      }),
+    ).toEqual({ identifiedUserRef: "jane@example.com" });
+
+    /* A visitor id is a different predicate and rides along with either. */
+    expect(
+      buildSessionReplayListFilters("all", {
+        ...EMPTY_ADVANCED_FILTERS,
+        identifiedUserRef: "jane@example.com",
+        visitorId: VISITOR,
+      }),
+    ).toEqual({ identifiedUserRef: "jane@example.com", visitorId: VISITOR });
+  });
+
+  test("EMPTY_ADVANCED_FILTERS carries every field as an empty string", () => {
+    expect(EMPTY_ADVANCED_FILTERS).toEqual({
+      browserName: "",
+      osName: "",
+      deviceType: "",
+      countryCode: "",
+      identifiedUserRef: "",
+      identifiedUserKey: "",
+      visitorId: "",
+      route: "",
+      minDurationSeconds: "",
+      triggerReason: "",
+      urlPrefix: "",
+      tags: "",
+      search: "",
+    });
   });
 });
 
@@ -257,13 +329,77 @@ describe("filter URL round trip", () => {
     const url: string = buildFilteredUrl(
       "https://dash.example.com/replay",
       "all",
-      { ...EMPTY_ADVANCED_FILTERS, identifiedUserRef: "jane@example.com" },
+      {
+        ...EMPTY_ADVANCED_FILTERS,
+        identifiedUserRef: "jane@example.com",
+        /* Still true with the pseudonymous filters beside it. */
+        identifiedUserKey: USER_KEY,
+        visitorId: VISITOR,
+      },
     );
 
     expect(url).not.toContain("jane");
     expect(
       readFiltersFromSearch(new URL(url).search).advanced.identifiedUserRef,
     ).toBe("");
+  });
+
+  /*
+   * The two pseudonymous identity filters ARE shareable: a digest cannot
+   * be reversed and a visitor id was minted by the recorder, so a support
+   * engineer can paste "this person's sessions" into a ticket.
+   */
+  test("the visitor id and identity digest round-trip as visitor= and userKey=", () => {
+    expect(FILTER_URL_KEYS.visitorId).toBe("visitor");
+    expect(FILTER_URL_KEYS.identifiedUserKey).toBe("userKey");
+
+    const url: string = buildFilteredUrl(
+      "https://dash.example.com/replay",
+      "all",
+      {
+        ...EMPTY_ADVANCED_FILTERS,
+        visitorId: VISITOR,
+        identifiedUserKey: USER_KEY,
+      },
+    );
+
+    expect(url).toContain(`visitor=${VISITOR}`);
+    expect(url).toContain(`userKey=${USER_KEY}`);
+
+    const restored: SessionReplayListUrlState = readListStateFromSearch(
+      new URL(url).search,
+    );
+
+    expect(restored.advanced.visitorId).toBe(VISITOR);
+    expect(restored.advanced.identifiedUserKey).toBe(USER_KEY);
+  });
+
+  test("the view is absent for sessions, written for users, and garbage reads as sessions", () => {
+    expect(readListStateFromSearch("").view).toBe("sessions");
+    expect(readListStateFromSearch("?view=users").view).toBe("users");
+    expect(readListStateFromSearch("?view=sessions").view).toBe("sessions");
+    expect(readListStateFromSearch("?view=exfiltrate").view).toBe("sessions");
+
+    const sessionsUrl: string = buildFilteredUrl(
+      "https://dash.example.com/replay?view=users",
+      "all",
+      EMPTY_ADVANCED_FILTERS,
+      { view: "sessions" },
+    );
+
+    expect(sessionsUrl).toBe("https://dash.example.com/replay");
+
+    const usersUrl: string = buildFilteredUrl(
+      "https://dash.example.com/replay",
+      "all",
+      EMPTY_ADVANCED_FILTERS,
+      { view: "users" },
+    );
+
+    expect(usersUrl).toBe("https://dash.example.com/replay?view=users");
+    expect(readListStateFromSearch(new URL(usersUrl).search).view).toBe(
+      "users",
+    );
   });
 
   test("defaults are written as absence so a pristine list has a clean URL", () => {

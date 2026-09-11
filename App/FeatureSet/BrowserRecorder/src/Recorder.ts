@@ -397,6 +397,16 @@ export default class Recorder {
   private userRef: string | null = null;
 
   /*
+   * The per-browser anonymous visitor id (SessionId.resolveVisitorId),
+   * repeated on every meta-bearing chunk so the dashboard can group this
+   * browser's sessions even when the page never calls identify(). Empty
+   * only between revokeConsent() and the next grantConsent(): nothing may
+   * be written to the visitor's storage while consent is withdrawn, so it
+   * is not re-minted until a grant mints the fresh session it belongs to.
+   */
+  private visitorId: string = "";
+
+  /*
    * identify() traits and setTags() tags, already sanitised and masked.
    * Both ride the chunk meta; metaDirty asks the next flushed chunk to
    * carry meta even though it is neither chunk 0 nor final, which is how an
@@ -482,6 +492,13 @@ export default class Recorder {
     const tabId: string = SessionId.rotateTabId();
 
     this.identity = SessionId.resolveSession(Date.now(), tabId);
+
+    /*
+     * Resolved beside the session but not tied to it: the same id is
+     * repeated across every session this browser profile ever records,
+     * which is what makes the sessions of one anonymous visitor groupable.
+     */
+    this.visitorId = SessionId.resolveVisitorId();
 
     this.chunker = this.createChunker();
 
@@ -2164,7 +2181,10 @@ export default class Recorder {
    *
    * Nothing load-bearing is ever shed - ids, indexes, offsets, versions,
    * the masking mode and the consent state all stay - so a trimmed envelope
-   * is a complete one with less on it.
+   * is a complete one with less on it. meta.visitorId stays too: at 32
+   * bytes it cannot be what put the envelope over, and it is the only
+   * thing that links this browser's sessions to each other, so shedding it
+   * would save nothing and cost the grouping.
    */
   private fitEnvelope(envelope: SessionReplayChunkEnvelope): void {
     if (Recorder.envelopeBytes(envelope) <= MAX_ENVELOPE_JSON_BYTES) {
@@ -2281,6 +2301,19 @@ export default class Recorder {
 
     if (Object.keys(this.tags).length > 0) {
       meta.tags = { ...this.tags };
+    }
+
+    /*
+     * OUTSIDE the identity switch, like the tags. This is a random token
+     * the recorder minted, not a reference the host page supplied: it links
+     * this browser's recordings to each other, it does not name anyone, and
+     * so it follows the consent rules of the session id (cleared on revoke,
+     * never written while revoked) rather than the identity ACL that gates
+     * identifiedUserRef. Sent on every meta-bearing chunk, so a lost chunk 0
+     * does not lose the link.
+     */
+    if (this.visitorId) {
+      meta.visitorId = this.visitorId;
     }
 
     return meta;
@@ -2579,6 +2612,19 @@ export default class Recorder {
      * nothing from before the revoke attached to it - a new session, a new
      * chunk sequence, a snapshot of its own, and a new sampling draw.
      */
+    if (wasRevoked && !this.stopped) {
+      /*
+       * A NEW anonymous identity as well, never the withdrawn one: the
+       * revoke removed the stored id, so this mints. A re-granted user is
+       * grouped with what they record from here on, not with the sessions
+       * they asked us to forget. Done for a not-yet-started recorder too -
+       * a banner that fires reject-then-accept before start() - because
+       * the constructor's id was cleared by that revoke and start() never
+       * resolves identity again.
+       */
+      this.visitorId = SessionId.resolveVisitorId();
+    }
+
     if (wasRevoked && this.started && !this.stopped) {
       this.switchSession(
         Date.now(),
@@ -2612,6 +2658,15 @@ export default class Recorder {
     this.buffer.clear();
     this.transport.discardQueue();
     SessionId.clearAll();
+
+    /*
+     * Forgotten with the session, and NOT re-minted here: nothing may be
+     * written to the visitor's storage while consent is withdrawn (see
+     * maybeRotateSession for the same rule on the session id). Meta built
+     * from here on simply carries no visitor id until grantConsent() mints
+     * a fresh one alongside the fresh session.
+     */
+    this.visitorId = "";
 
     this.chunker = this.createChunker();
     this.detectFidelityNotices();
@@ -2797,6 +2852,11 @@ export default class Recorder {
 
   public getTabId(): string {
     return this.identity.tabId;
+  }
+
+  /* "" between revokeConsent() and the next grantConsent(); see visitorId. */
+  public getVisitorId(): string {
+    return this.visitorId;
   }
 
   public isUploading(): boolean {

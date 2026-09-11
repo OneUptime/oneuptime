@@ -50,6 +50,8 @@ function makeDetails(
     deviceType: "desktop",
     countryCode: "DE",
     identifiedUserLabel: "jane@acme.com",
+    identifiedUserKey: "5f4dcc3b5aa765d61d8327deb882cf99",
+    visitorId: "",
     maskingMode: SessionReplayMaskingMode.MaskAllText,
     consentState: "NotRequired",
     triggerReason: "error",

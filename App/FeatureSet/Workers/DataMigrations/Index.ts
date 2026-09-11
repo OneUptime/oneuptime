@@ -109,6 +109,7 @@ import BackfillNetworkSiteTypeParents from "./BackfillNetworkSiteTypeParents";
 import BackfillMonitorBackedDeviceReachability from "./BackfillMonitorBackedDeviceReachability";
 import NormalizeNetworkDeviceMonitoringMethod from "./NormalizeNetworkDeviceMonitoringMethod";
 import AddSessionReplayEngagementColumns from "./AddSessionReplayEngagementColumns";
+import AddSessionReplayVisitorIdColumn from "./AddSessionReplayVisitorIdColumn";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -419,6 +420,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    * rather than run there.
    */
   new AddSessionReplayEngagementColumns(),
+  /*
+   * Session replay visitor id: the recorder-minted per-browser anonymous id
+   * on the header table, so an application's sessions can be grouped by
+   * visitor when its pages never call identify(). Metadata-only ADD COLUMN
+   * IF NOT EXISTS with a "" default; boot schema-sync performs the same add
+   * on clusters, so this is recorded rather than run there.
+   */
+  new AddSessionReplayVisitorIdColumn(),
 ];
 
 export default DataMigrations;

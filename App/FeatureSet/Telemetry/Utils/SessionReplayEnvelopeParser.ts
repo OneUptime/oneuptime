@@ -18,6 +18,7 @@ import {
   SessionReplaySignalCounts,
 } from "Common/Types/Rum/SessionReplay";
 import { sanitizeSessionReplayStringMap } from "Common/Utils/Rum/SessionReplayStringMap";
+import SessionIdentity from "Common/Utils/Rum/SessionIdentity";
 import SessionReplayMaskingMode, {
   parseSessionReplayMaskingMode,
 } from "Common/Types/Rum/SessionReplayMaskingMode";
@@ -688,6 +689,23 @@ export default class SessionReplayEnvelopeParser {
 
     if (identifiedUserRef) {
       meta.identifiedUserRef = identifiedUserRef;
+    }
+
+    /*
+     * The recorder's per-browser anonymous visitor id. Attached only when it
+     * has exactly the shape the recorder mints (32 lowercase hex, checked by
+     * the SAME predicate the recorder stores against), so a hand-crafted
+     * POST can never file a recording under an arbitrary string. Anything
+     * else - wrong length, uppercase, a non-string - is DROPPED, never an
+     * error: the field is optional, and losing the visitor link costs a
+     * grouping whereas refusing the chunk costs the footage. Left off the
+     * parsed meta when absent from the wire, so an envelope from a recorder
+     * that predates it parses to the object it always parsed to.
+     */
+    const visitorId: unknown = raw["visitorId"];
+
+    if (SessionIdentity.isVisitorId(visitorId)) {
+      meta.visitorId = visitorId;
     }
 
     /*

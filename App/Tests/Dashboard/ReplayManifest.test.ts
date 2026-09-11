@@ -85,6 +85,9 @@ function fullResponse(): JSONObject {
       tags: { plan: "enterprise", region: 42 },
       identifiedUserLabel: "jane@acme.com",
       identifiedUserTraits: { plan: "pro", name: "Jane" },
+      identifiedUserKey:
+        "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      visitorId: "7f3a2b1c9d8e4f5a6b7c8d9e0f1a2b3c",
       recorderCapabilities: ["click", "custom"],
       entryUrl: "https://app.acme.com/checkout",
       exitUrl: "https://app.acme.com/thanks",
@@ -153,6 +156,21 @@ describe("parseManifest with the current server", () => {
     });
     expect(manifest.tags).toEqual({ plan: "enterprise", region: "42" });
     expect(manifest.details.tags).toEqual(manifest.tags);
+  });
+
+  /*
+   * issue #3705: the two keys the player hands back to /list to find
+   * this person's other sessions. Neither is identity-gated, so they
+   * are read as plain strings rather than through the label's
+   * present-or-null rule.
+   */
+  test("reads the identity key and the visitor id the sibling lookup needs", () => {
+    expect(manifest.details.identifiedUserKey).toBe(
+      "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+    );
+    expect(manifest.details.visitorId).toBe(
+      "7f3a2b1c9d8e4f5a6b7c8d9e0f1a2b3c",
+    );
   });
 
   test("reads the engagement counters, numeric strings included", () => {
@@ -242,6 +260,8 @@ describe("parseManifest with an older server", () => {
     "tags",
     "identifiedUserLabel",
     "identifiedUserTraits",
+    "identifiedUserKey",
+    "visitorId",
     "recorderCapabilities",
     "routes",
   ]) {
@@ -269,6 +289,11 @@ describe("parseManifest with an older server", () => {
   test("reports identity as null (not permitted / not served), never as anonymous", () => {
     expect(manifest.details.identifiedUserLabel).toBeNull();
     expect(manifest.details.identifiedUserTraits).toBeNull();
+  });
+
+  test("reads the absent identity key and visitor id as empty, which the player treats as 'not linked'", () => {
+    expect(manifest.details.identifiedUserKey).toBe("");
+    expect(manifest.details.visitorId).toBe("");
   });
 
   test("leaves unmeasured counters undefined rather than 0", () => {
@@ -315,6 +340,8 @@ describe("parseManifest with an older server", () => {
     expect(parsed.tabs).toEqual([]);
     expect(parsed.startTimeUnixMs).toBeNull();
     expect(parsed.details.identifiedUserLabel).toBeNull();
+    expect(parsed.details.identifiedUserKey).toBe("");
+    expect(parsed.details.visitorId).toBe("");
     expect(parsed.viewId).toBe("");
   });
 });

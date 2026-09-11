@@ -406,6 +406,13 @@ export interface ProvisionalSessionHeader {
    * stored and never re-derives them.
    */
   identifiedUserTraits: Record<string, string>;
+  /*
+   * The recorder's per-browser anonymous visitor id, "" for a recorder
+   * that predates it. The ingest carries it across header versions so the
+   * newest one still holds what chunk 0 established; the finalizer, as
+   * with identity, carries what was stored and never re-derives it.
+   */
+  visitorId: string;
   tags: Record<string, string>;
   traceIds: Array<string>;
   exceptionFingerprints: Array<string>;
@@ -724,6 +731,7 @@ export function buildProvisionalHeaderStatement(data: {
       identifiedUserKey AS identifiedUserKey,
       identifiedUserLabel AS identifiedUserLabel,
       identifiedUserTraits AS identifiedUserTraits,
+      visitorId AS visitorId,
       tags AS tags,
       traceIds AS traceIds,
       exceptionFingerprints AS exceptionFingerprints,
@@ -933,6 +941,7 @@ export function parseProvisionalHeaderRow(
     identifiedUserKey: toTextValue(row["identifiedUserKey"]),
     identifiedUserLabel: toTextValue(row["identifiedUserLabel"]),
     identifiedUserTraits: toStringMapValue(row["identifiedUserTraits"]),
+    visitorId: toTextValue(row["visitorId"]),
     tags: toStringMapValue(row["tags"]),
     traceIds: toTextArrayValue(row["traceIds"]),
     exceptionFingerprints: toTextArrayValue(row["exceptionFingerprints"]),
@@ -1485,6 +1494,7 @@ export function buildFinalizedSessionRow(data: {
     identifiedUserKey: header ? header.identifiedUserKey : "",
     identifiedUserLabel: header ? header.identifiedUserLabel : "",
     identifiedUserTraits: header ? header.identifiedUserTraits : {},
+    visitorId: header ? header.visitorId : "",
     tags: header ? header.tags : {},
 
     traceIds: mergeCappedArray(

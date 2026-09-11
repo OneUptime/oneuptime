@@ -74,6 +74,8 @@ describe("resolveReplayKeyboardAction: the documented vocabulary", () => {
       ["n", {}, { type: "next-frustration" }],
       ["[", {}, { type: "prev-signal" }],
       ["]", {}, { type: "next-signal" }],
+      ["{", { shiftKey: true }, { type: "older-user-session" }],
+      ["}", { shiftKey: true }, { type: "newer-user-session" }],
       ["f", {}, { type: "toggle-theater" }],
       ["w", {}, { type: "toggle-wide" }],
       ["m", {}, { type: "toggle-follow" }],
@@ -111,6 +113,31 @@ describe("resolveReplayKeyboardAction: the documented vocabulary", () => {
     expect(resolve("K", { shiftKey: true })).toBeNull();
     expect(resolve("J", { shiftKey: true })).toBeNull();
     expect(resolve("F", { shiftKey: true })).toBeNull();
+  });
+
+  /*
+   * issue #3705: "{" and "}" step between the sessions of the person
+   * being watched. They are their own key values (what Shift+[ and
+   * Shift+] produce), so the unshifted bracket pair keeps stepping rows
+   * and a keyboard layout that types a brace without Shift still works.
+   */
+  test("the braces step between the user's sessions without shadowing the brackets", () => {
+    expect(resolve("{")).toEqual({ type: "older-user-session" });
+    expect(resolve("}")).toEqual({ type: "newer-user-session" });
+    expect(resolve("[", { shiftKey: true })).toEqual({ type: "prev-signal" });
+    expect(resolve("]", { shiftKey: true })).toEqual({ type: "next-signal" });
+    /* One-shot: holding Shift+] must not fly through the whole list. */
+    expect(resolve("}", { shiftKey: true, repeat: true })).toBeNull();
+    /* Still ours from a focused button, still never with Alt/Ctrl/Meta. */
+    expect(resolve("{", { shiftKey: true, targetKind: "button" })).toEqual({
+      type: "older-user-session",
+    });
+    expect(resolve("{", { shiftKey: true, scope: "rail" })).toEqual({
+      type: "older-user-session",
+    });
+    expect(resolve("{", { shiftKey: true, metaKey: true })).toBeNull();
+    expect(resolve("}", { shiftKey: true, altKey: true })).toBeNull();
+    expect(resolve("{", { targetKind: "editable" })).toBeNull();
   });
 });
 
@@ -394,7 +421,7 @@ describe("getReplayKeyTargetKind", () => {
 
 describe("REPLAY_SHORTCUT_GROUPS", () => {
   test("every group has a title and every shortcut a description and keys", () => {
-    expect(REPLAY_SHORTCUT_GROUPS.length).toBeGreaterThanOrEqual(3);
+    expect(REPLAY_SHORTCUT_GROUPS.length).toBeGreaterThanOrEqual(4);
 
     for (const group of REPLAY_SHORTCUT_GROUPS) {
       expect(group.title.length).toBeGreaterThan(0);
@@ -409,6 +436,26 @@ describe("REPLAY_SHORTCUT_GROUPS", () => {
         }
       }
     }
+  });
+
+  test("the sheet has a Sessions group documenting the braces", () => {
+    const sessions: ReplayShortcutGroup | undefined = REPLAY_SHORTCUT_GROUPS.find(
+      (group: ReplayShortcutGroup): boolean => {
+        return group.id === "sessions";
+      },
+    );
+
+    expect(sessions?.title).toBe("Sessions");
+    expect(
+      sessions?.shortcuts.map(
+        (shortcut: ReplayShortcutDescription): [string, Array<Array<string>>] => {
+          return [shortcut.id, shortcut.keys];
+        },
+      ),
+    ).toEqual([
+      ["older-user-session", [["{"]]],
+      ["newer-user-session", [["}"]]],
+    ]);
   });
 
   test("shortcut ids are unique across the sheet", () => {

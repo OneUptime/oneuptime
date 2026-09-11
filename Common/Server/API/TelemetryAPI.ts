@@ -118,6 +118,7 @@ import RumApplicationService from "../Services/RumApplicationService";
 import Project from "../../Models/DatabaseModels/Project";
 import ProjectService from "../Services/ProjectService";
 import SessionReplayIdentity from "../Utils/SessionReplay/SessionReplayIdentity";
+import SessionIdentity from "../../Utils/Rum/SessionIdentity";
 import SessionReplayTargeting from "../Utils/SessionReplay/SessionReplayTargeting";
 import SessionReplayUsage from "../Utils/SessionReplay/SessionReplayUsage";
 import RumSessionReplayView from "../../Models/DatabaseModels/RumSessionReplayView";
@@ -126,8 +127,10 @@ import RumSessionReplayViewService, {
 } from "../Services/RumSessionReplayViewService";
 import SessionReplayReadService, {
   DEFAULT_SESSION_REPLAY_LIST_LIMIT,
+  DEFAULT_SESSION_REPLAY_USERS_LIMIT,
   MAX_SESSION_REPLAY_FOR_EXCEPTION_LIMIT,
   MAX_SESSION_REPLAY_LIST_LIMIT,
+  MAX_SESSION_REPLAY_USERS_LIMIT,
   SESSION_REPLAY_EXCEPTION_WINDOW_PADDING_MS,
   SessionReplayApplicationActivitySummary,
   SessionReplayChunkReadResult,
@@ -139,6 +142,8 @@ import SessionReplayReadService, {
   SessionReplayManifest,
   SessionReplaySessionHeader,
   SessionReplaySessionIdentity,
+  SessionReplayUsersCursor,
+  SessionReplayUsersResult,
 } from "../Utils/SessionReplay/SessionReplayReadService";
 import SessionReplayHealthCounters, {
   SessionReplayDropCount,
@@ -4858,6 +4863,32 @@ router.post(
       }
 
       /*
+       * "Every session from this browser". The visitor id is the
+       * recorder's own random per-browser token, and the list already
+       * hands it to every caller on every row, so - like the digest filter
+       * below - it needs no identity gate: filtering by it discloses
+       * nothing the caller does not have. But a value that is not one
+       * (the shape is strict; there is no legitimate "almost" visitor id)
+       * can match nothing, and a silently unfiltered list is the wrong
+       * answer to that question too.
+       */
+      const rawVisitorId: unknown = rawFilters["visitorId"];
+
+      if (
+        rawVisitorId !== undefined &&
+        rawVisitorId !== null &&
+        !SessionIdentity.isVisitorId(rawVisitorId)
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "visitorId must be a 32-character lowercase hex visitor id.",
+          ),
+        );
+      }
+
+      /*
        * A filter the server understood but did not apply, named in the
        * response.
        *
@@ -4947,6 +4978,10 @@ router.post(
               "identifiedUserKey",
             ),
           }),
+        /* Validated above; not identity-gated, for the reason given there. */
+        ...(SessionIdentity.isVisitorId(rawVisitorId) && {
+          visitorId: rawVisitorId,
+        }),
         ...(readBoundedStringFromBody(rawFilters, "route") && {
           route: readBoundedStringFromBody(rawFilters, "route"),
         }),
@@ -5089,6 +5124,182 @@ router.post(
          * filters" from "an older server that never said".
          */
         ignoredFilters: ignoredFilters as unknown as JSONArray,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Session Replay Users Endpoint ---
+
+/*
+ * The cursor /users emits and accepts: the last row's "last seen" clock
+ * and its group key as the tiebreak. A cursor that is present but not
+ * this shape is a bad request rather than a driver error - a non-finite
+ * or negative clock cannot be bound, and an unbounded key would reach
+ * ClickHouse as a parameter on a per-group predicate. The EMPTY key is
+ * valid: it is the anonymous bucket's own key, and that bucket can be the
+ * last row of a page like any other.
+ */
+const MAX_SESSION_REPLAY_USERS_GROUP_KEY_LENGTH: number = 128;
+
+type ParseSessionReplayUsersCursorFunction = (
+  value: unknown,
+) => SessionReplayUsersCursor | null;
+
+const parseSessionReplayUsersCursor: ParseSessionReplayUsersCursorFunction = (
+  value: unknown,
+): SessionReplayUsersCursor | null => {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const row: JSONObject = value as JSONObject;
+  const lastSeenUnixMs: unknown = row["lastSeenUnixMs"];
+  const groupKey: unknown = row["groupKey"];
+
+  if (
+    typeof lastSeenUnixMs !== "number" ||
+    !Number.isFinite(lastSeenUnixMs) ||
+    lastSeenUnixMs < 0
+  ) {
+    return null;
+  }
+
+  if (
+    typeof groupKey !== "string" ||
+    groupKey.length > MAX_SESSION_REPLAY_USERS_GROUP_KEY_LENGTH
+  ) {
+    return null;
+  }
+
+  return { lastSeenUnixMs: lastSeenUnixMs, groupKey: groupKey };
+};
+
+/*
+ * The session list rolled up by person - "who had trouble" where /list
+ * answers "what happened". One row per identified user, one per linked
+ * browser, and at most one anonymous bucket; see
+ * SessionReplayReadService.listUsers for why it is its own read rather
+ * than a client-side fold of a list page.
+ *
+ * Same guard, same prologue and same identity decision as /list: it
+ * projects nothing the list does not, only grouped. The identity pair is
+ * named at neither level of the statement unless canReadIdentifiedUserLabel
+ * passes for the application the caller was just authorized against.
+ */
+router.post(
+  "/telemetry/rum/session-replay/users",
+  ...requireSessionReplayListAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      assertSessionReplayPlan(databaseProps);
+
+      const projectId: ObjectID = databaseProps.tenantId;
+      const body: JSONObject = req.body as JSONObject;
+
+      const rumApplicationId: ObjectID = readObjectIdFromBody(
+        body,
+        "rumApplicationId",
+      );
+
+      /*
+       * Caller-supplied, and safe for the reason it is on /list: it is
+       * the thing being authorized, and the query is tenant-pinned
+       * regardless.
+       */
+      const application: RumApplication =
+        await assertSessionReplayApplicationAccess({
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+          databaseProps: databaseProps,
+          permissions: SESSION_REPLAY_LIST_PERMISSIONS,
+        });
+
+      const startTime: Date =
+        readOptionalDateFromBody(body, "startTime") ||
+        OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -7);
+
+      const endTime: Date =
+        readOptionalDateFromBody(body, "endTime") ||
+        OneUptimeDate.getCurrentDate();
+
+      /* An inverted window matches nothing; say so rather than answer []. */
+      if (startTime.getTime() > endTime.getTime()) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("startTime must not be after endTime"),
+        );
+      }
+
+      const limit: number = readLimitFromBody(
+        body,
+        DEFAULT_SESSION_REPLAY_USERS_LIMIT,
+        MAX_SESSION_REPLAY_USERS_LIMIT,
+      );
+
+      /*
+       * Decided against the application the access check loaded, exactly
+       * as on /list, and enforced by not naming the columns.
+       */
+      const includeIdentifiedUserLabel: boolean = canReadIdentifiedUserLabel({
+        databaseProps: databaseProps,
+        application: application,
+      });
+
+      const cursor: SessionReplayUsersCursor | null | undefined =
+        body["cursor"] !== undefined && body["cursor"] !== null
+          ? parseSessionReplayUsersCursor(body["cursor"])
+          : undefined;
+
+      if (cursor === null) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "cursor must be the nextCursor of a previous page.",
+          ),
+        );
+      }
+
+      const result: SessionReplayUsersResult =
+        await SessionReplayReadService.listUsers({
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+          startTime: startTime,
+          endTime: endTime,
+          limit: limit,
+          ...(cursor !== undefined && { cursor }),
+          includeIdentifiedUserLabel: includeIdentifiedUserLabel,
+        });
+
+      const nextCursor: JSONObject | null = result.nextCursor
+        ? {
+            lastSeenUnixMs: result.nextCursor.lastSeenUnixMs,
+            groupKey: result.nextCursor.groupKey,
+          }
+        : null;
+
+      return Response.sendJsonObjectResponse(req, res, {
+        users: result.users as unknown as JSONObject,
+        nextCursor: nextCursor,
       });
     } catch (err: unknown) {
       next(err);

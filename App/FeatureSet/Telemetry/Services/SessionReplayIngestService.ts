@@ -204,6 +204,14 @@ interface SessionHeaderCarry {
   entryUrl: string;
   triggerReason: string;
   isFinal: boolean;
+  /*
+   * The recorder's per-browser anonymous visitor id, "" until a
+   * meta-bearing chunk supplies one. Carried for the same reason as
+   * entryUrl: the final chunk writes a header version too, and a version
+   * whose meta lacks the id (an older recorder, a hand-crafted POST) must
+   * not blank what chunk 0 established.
+   */
+  visitorId: string;
 }
 
 /*
@@ -1452,6 +1460,11 @@ export default class SessionReplayIngestService {
       entryUrl: UrlScrubber.scrub(envelope.meta?.entryUrl || envelope.url, []),
       triggerReason: envelope.triggerReason,
       isFinal: envelope.isFinal,
+      /*
+       * Already shape-checked by the envelope parser, which drops anything
+       * the recorder could not have minted; absent meta reads as "".
+       */
+      visitorId: envelope.meta?.visitorId ?? "",
     };
 
     const key: string = `${SESSION_CARRY_KEY_PREFIX}${data.projectId.toString()}:${envelope.sessionId}`;
@@ -1552,6 +1565,13 @@ export default class SessionReplayIngestService {
        * one must not un-seal the session.
        */
       isFinal: previous.isFinal || next.isFinal,
+      /*
+       * First non-empty wins, like the entry URL: the id is per browser and
+       * the recorder repeats the same one, so the only way a later chunk
+       * disagrees is a recorder that stopped sending it (blank) or a
+       * hand-crafted POST, and neither should rewrite the link.
+       */
+      visitorId: previous.visitorId || next.visitorId,
     };
   }
 
@@ -1611,6 +1631,15 @@ export default class SessionReplayIngestService {
             ? view["triggerReason"]
             : "",
         isFinal: view["isFinal"] === true,
+        /*
+         * Re-checked against the recorder's shape even though we wrote it:
+         * the memo is the one place a value reaches the header row without
+         * passing the envelope parser, and a memo written before this field
+         * existed simply reads as "".
+         */
+        visitorId: SessionIdentity.isVisitorId(view["visitorId"])
+          ? view["visitorId"]
+          : "",
       };
     } catch {
       /* A memo we cannot read is a memo we do not have. */
@@ -2138,6 +2167,22 @@ export default class SessionReplayIngestService {
       identifiedUserKey: identifiedUserKey,
       identifiedUserLabel: identifiedUserLabel,
       identifiedUserTraits: identifiedUserTraits,
+      /*
+       * From the carry, like entryUrl: chunk 0 is the one chunk that always
+       * carries the id, and a later header version (the final chunk, an
+       * older recorder, a hand-crafted POST) whose meta lacks it must not
+       * blank what chunk 0 established - the list reads argMax(col, version).
+       *
+       * Deliberately NOT gated on policy.captureUserIdentity. That switch
+       * exists because identifiedUserRef is a reference the HOST PAGE
+       * supplied about a person, and traits describe that person. The
+       * visitor id is a random token the recorder minted for itself: it
+       * carries no identity, resolves to nothing outside this table, and is
+       * filed under the same ACL as the session id for that reason. Gating
+       * it would leave exactly the anonymous applications it exists for
+       * with nothing to group on.
+       */
+      visitorId: carry.visitorId,
       tags: tags,
       /*
        * Engagement counters are aggregates like eventCount: zero here, the

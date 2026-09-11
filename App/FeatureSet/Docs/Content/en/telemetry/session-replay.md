@@ -71,7 +71,7 @@ Under the _On error or frustration_ trigger, step 2 does not happen until a trig
 
 ## Identify your users
 
-Every session is anonymous until your page says who it belongs to. Call `identify()` as soon as you know, or queue it before the script has loaded — either way it is applied before the first chunk is uploaded, so the session is searchable by user from the moment it appears:
+Every session is anonymous until your page says who it belongs to. Without that, the list can still group the sessions of one browser under an anonymous visitor id (see [Anonymous visitors](#anonymous-visitors) below), but nothing names the person or links their second browser to their first. Call `identify()` as soon as you know, or queue it before the script has loaded — either way it is applied before the first chunk is uploaded, so the session is searchable by user from the moment it appears:
 
 ```js
 // After the script has loaded:
@@ -90,6 +90,19 @@ OneUptimeReplay.identify("user-123", { plan: "pro", tenant: "acme" });
 - One reference does leave the browser regardless of that switch, by design: the one your page supplies **at load time** via `data-oneuptime-user-ref` or `userRef` on the init global travels as a request header on the policy fetch of every page load, because that is how [Record a specific user's next session](#recording-a-specific-users-next-session) matches a visitor before any recorder exists. The server compares it against the armed target and discards it; it is not written to the session unless identity capture is on and the recorder sends it again with the recording. A reference passed to `identify()` is never sent this way.
 - Traits are capped at 20 keys, 40 characters per key and 200 per value, stringified, and passed through the application's masking mode: under _Mask all text_ they are masked before upload.
 - Reading identity back in the dashboard requires the same permission as watching the recording (see [Who can watch a recording](#who-can-watch-a-recording)); other roles see "Identity hidden".
+
+### Anonymous visitors
+
+A page that never calls `identify()` still needs its sessions to be groupable, or a list of forty _Anonymous_ rows cannot tell you whether one person hit the same error forty times or forty people hit it once. So the recorder mints **one random visitor id per browser profile** — 32 lowercase hex characters, kept in `localStorage` under `oneuptime.replay.visitor`, next to the session record — and sends it as `meta.visitorId` on every chunk that carries metadata: the first chunk, the closing chunk, and the chunk after an `identify()` or `setTags()` call. The server checks the shape and stores it on the session under the same access rules as the rest of the session header. It outlives the session id on purpose: the 30-minute idle rollover and the 4-hour cap start a new session, and the new session carries the same visitor id, so two visits from the same browser a week apart sit together in the [Users view](#the-users-view) and in the player's other-sessions menu (see [The player](#the-player)).
+
+Be precise about what it is not:
+
+- **It is not an identity.** It is random, minted in the browser, and derived from nothing your page supplied and nothing about the device. Two browsers on one laptop, or the same person on a phone and a desktop, are two visitors; only `identify()` joins them. A private window gets a fresh id that goes when the window does, and where storage cannot be written at all (Safari private mode, blocked site data) the id lasts one page load.
+- **It is not governed by Capture user identity.** That switch decides whether the reference and traits leave the browser; the visitor id is sent either way, because it names nobody. If you want no id minted at all, the answer is no recorder: turn Session Replay off for the application, or leave [Do Not Track](#do-not-track) honoured.
+- **It follows the consent rules of the session id.** `revokeConsent()` removes it from storage along with the session, nothing is written while consent is withdrawn, and a later `grantConsent()` mints a new one — so a user who withdraws consent and comes back is not re-linked to the sessions they asked you to forget. Under Do Not Track or Global Privacy Control no recorder runs, so no id is minted.
+- **It cannot be the target of an erasure request.** The request types are unchanged (see [Erasing sessions](#erasing-sessions)); a `visitor:` search narrows the list to one browser's sessions, from which you take the session ids to erase.
+
+`OneUptimeReplay.getVisitorId()` returns the current id, or an empty string before the recorder has started, after `stop()`, and between a `revokeConsent()` and the next `grantConsent()`. Recorders built before this existed sent none, so the sessions they recorded have an empty `visitorId`: the list shows them as _Anonymous_ and the Users view files them under **Unlinked sessions**. A recorder that mints one lists `visitor-id` among its `capabilities` in `getDiagnostics()` and on the health card.
 
 ## JavaScript API
 
@@ -116,6 +129,7 @@ The recorder publishes `window.OneUptimeReplay`. Because it loads asynchronously
 | `grantConsent()` | Under consent mode _Require explicit_, allow uploads. Nothing is uploaded before this. |
 | `revokeConsent()` | Drop everything buffered and stop uploading. The recorder keeps running into memory only, so a later `grantConsent()` continues on a fresh session id. |
 | `getSessionId()` | The current session id, or `null` when nothing is recording. Prefer `onSessionChange()`, which also follows rotations. |
+| `getVisitorId()` | The [anonymous visitor id](#anonymous-visitors) — 32 hex characters, one per browser profile, the same across session rotations — or `""` before the recorder has started, after `stop()`, and while consent is withdrawn. Random and not an identity; not governed by **Capture user identity**. |
 | `stop()` | Upload the last chunk, seal the session, and stop for the rest of the page's life. |
 | `setDebug(enabled)` | Print the recorder's decisions to the console from now on. |
 | `getDiagnostics()` | Everything the recorder decided, whether or not diagnostics were on. See below. |
@@ -134,8 +148,8 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 | `stopReason` | Why it stopped, when it has: `api` (your `stop()`), `server-directive`, `transport-failure` or `chunk-cap`. |
 | `bootstrapDecision` | Why the artifact did or did not build a recorder: `started`, `privacy-signal`, `directive-stop`, `already-started`, `cancelled-before-start` (a queued `revokeConsent`/`stop`) or `not-started`. |
 | `decisions` | Every gate's answer: `isSampled`, `captureTrigger`, `consentMode`, `consentState`, `uploadsAllowed`, `uploadBlockedBy` (`consent`, `transport` or `null`), `lastDirective` and its reason, and `startDecision` (`recording-and-uploading`, `recording-into-memory`, `not-sampled`, `not-started`). |
-| `capabilities` | What this recorder build captures: `click-events`, `web-vitals`, `custom-events`, `traits`, `tags`, `visibility`. The dashboard's health card shows the same list for the newest session, so an old cached artifact is easy to spot. |
-| `tags`, `hasTraits`, `triggerReason`, `isRecording`, `isUploading`, `sessionId`, `tabId`, `version` | The session's current state. `isRecording` is true only while the recorder is actually recording. |
+| `capabilities` | What this recorder build captures: `click-events`, `web-vitals`, `custom-events`, `traits`, `tags`, `visibility`, `visitor-id`. The dashboard's health card shows the same list for the newest session, so an old cached artifact is easy to spot. |
+| `tags`, `hasTraits`, `triggerReason`, `isRecording`, `isUploading`, `sessionId`, `tabId`, `visitorId`, `version` | The session's current state. `isRecording` is true only while the recorder is actually recording. `visitorId` is `null` until a recorder exists and `""` while consent is withdrawn. |
 | `records` | The last 250 decisions with stable codes — including the loader's, from before the artifact existed. Every code is explained in [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting#codes). |
 
 ## Privacy
@@ -150,7 +164,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 | Capture trigger | **Always** | Every sampled session uploads from its first event. Set *On error or frustration* to upload only when something goes wrong. |
 | Sample percentage | **100%** | Share of sessions eligible for recording. This is the dial for cost. Note that 0% together with *Always* records nothing at all; the policy page warns when you configure that. |
 | Allowed origins | **empty (any origin)** | List your domains to restrict who may send recordings. See the warning below. |
-| Capture user identity | **on** | The end-user reference and traits your page supplies are stored, so you can find a named customer's session. Turn it off to keep recordings pseudonymous — with it off nothing about the person is stored, including the key an erase-by-user request would have to match ([Identify your users](#identify-your-users)). |
+| Capture user identity | **on** | The end-user reference and traits your page supplies are stored, so you can find a named customer's session. Turn it off to keep recordings pseudonymous — with it off nothing about the person is stored, including the key an erase-by-user request would have to match ([Identify your users](#identify-your-users)). It does not govern the [anonymous visitor id](#anonymous-visitors), which is random, names nobody and is sent either way. |
 | Capture country | **on** | Country only, never an IP address. |
 | Record canvas | **off** | Canvas and WebGL are not recorded. |
 | Retention | **7 days** | Shorter than other telemetry, on purpose. 1, 14, 30 and 90 days are also available. |
@@ -235,6 +249,11 @@ Your banner usually resolves before the recorder script has loaded, so queue the
 
 Under _Require explicit_ the recorder records into memory from the first event and uploads the whole buffer once consent arrives, so the seconds before the banner was accepted are not lost. Until it arrives the **Recording health** card reads "waiting for consent", which is a policy answer rather than a fault.
 
+`revokeConsent()` forgets two things, and a later `grantConsent()` mints both afresh:
+
+- The **session id**, so a user who withdraws consent and comes back is not re-linked to the same session.
+- The **[anonymous visitor id](#anonymous-visitors)**, removed from storage with the session. Nothing is written while consent is withdrawn, and `getVisitorId()` answers `""` until the next grant — so the sessions recorded after a re-grant are grouped with each other, never with the ones the user asked you to forget.
+
 ### Do Not Track
 
 `navigator.doNotTrack` and `navigator.globalPrivacyControl` are honoured **before the config request is made**: a page that says nothing on its script tag stands down for a user who sends either signal, without a request being made about them just to find out whether they would have been recorded. The loader logs `privacy-signal` and nothing else happens.
@@ -286,7 +305,7 @@ Each row shows:
 | Column | What it shows |
 | --- | --- |
 | **Session** | The entry path, up to three route pills ("/cart → /checkout → /pay (3 pages)"), the short session id and when it started. A pulsing dot marks a session that is still recording. |
-| **User & device** | The identified user or _Anonymous_ ("Hidden" if your role cannot read identity), then browser, OS, device type and country. |
+| **User & device** | An avatar and a name: the identified user's reference; _Visitor a1b2c3_ (the first six characters of the [anonymous visitor id](#anonymous-visitors)) for an unidentified session from a current recorder; _Anonymous_ when the session carries neither; or _Hidden_ when your role cannot read identity. Then browser, OS, device type and country. Click the name to narrow the list to that person: a `user:` token for an identified user (it appears in the search box), a `visitor:` token for a visitor, and a pseudonymous-key filter when the label is hidden from you. |
 | **Activity** | Duration, pages, clicks and the idle share ("idle 40%"). Counts are only shown once they have been measured; a live session reads "counting". |
 | **Signals** | Errors, rage / dead / error clicks, refresh rage, traces, exception groups and _Slow_ (a performance budget fired). Each badge opens the player on the matching rail tab. A finished session with nothing to report reads _Clean_; a live one _Not counted yet_. |
 | **Recording** | One badge that says honestly whether there is footage to watch, plus the trigger reason ("Always-on", "Sampled (25%)", "Error", "Frustration", "Slow page", "Manual"). |
@@ -309,6 +328,7 @@ The Recording badge states:
 | Token | Matches |
 | --- | --- |
 | `user:jane@acme.com` | The identified user reference. Never written to the URL. |
+| `visitor:<id>` | Every session from one browser, by its full [anonymous visitor id](#anonymous-visitors). Clicking a _Visitor_ name, or **Sessions** on a Users-view row, sets it for you; it is written to the URL as `visitor`. |
 | `url:/checkout` or `page:/checkout` | Sessions whose entry URL or any visited route starts with the path (a full `https://` URL works too). |
 | `tag:build=1.4.2` | A tag set with `setTags()` / `addTag()`. Repeat the token for several tags. |
 | `browser:Chrome` `os:macOS` `device:mobile` `country:DE` | Device facts. `device:` is `desktop`, `mobile` or `tablet`. |
@@ -318,13 +338,34 @@ The Recording badge states:
 
 Bare text is routed by shape: something starting with `/` or `http` is a URL prefix, something containing `@` is a user reference, and anything else is a free-text search over the session id prefix, entry and exit URLs, visited routes, exact trace ids and — when your role may read it — the user label. Free text is capped at 200 characters and at a 30-day window; a wider range answers "narrow the range" rather than an empty list. Quote a value that contains spaces. The **Filters** button opens the same fields as a form, plus an exact-route filter the box does not cover.
 
-The list URL carries the whole state — `signal`, `browser`, `os`, `device`, `country`, `route`, `urlPrefix`, `tag` (repeatable), `minDuration`, `trigger`, `sort`, `q`, `range` or an absolute `startTime`/`endTime` pair, and `page` — so a filtered view can be linked from an incident. The user reference is the one filter never written to the URL.
+The list URL carries the whole state — `signal`, `browser`, `os`, `device`, `country`, `route`, `urlPrefix`, `tag` (repeatable), `minDuration`, `trigger`, `sort`, `q`, `visitor`, `userKey`, `view`, `range` or an absolute `startTime`/`endTime` pair, and `page` — so a filtered view can be linked from an incident. The user reference is the one filter never written to the URL. The two person filters that are written name nobody on their own: `visitor` is the recorder's random id, and `userKey` is the pseudonymous key the server stores an identified user under — the filter the list applies when you click a name your role sees as _Hidden_. The raw key is never shown; its filter chip reads "pseudonymous key".
 
-If your role cannot read end-user identity, a `user:` filter is dropped by the server and the list shows a **User filter ignored** notice rather than silently answering for everyone.
+If your role cannot read end-user identity, a `user:` filter is dropped by the server and the list shows a **User filter ignored** notice rather than silently answering for everyone. The `visitor:` and pseudonymous-key filters are not gated, because neither token says who the person is.
+
+**When every session is anonymous.** If every row on the page is unidentified, a quiet note above the list says so — _No session here is linked to a signed-in user_ — and explains that calling `OneUptimeReplay.identify()` when your page knows who is signed in groups sessions by person here and in the player, and that until then sessions from the same browser are grouped by visitor id. It links to the setup guide and to the Users view, and dismissing it silences it for the tab. It needs at least three rows before it appears, and it stays away when any row's identity is merely hidden from your role, since that row may well be an identified person.
+
+### The users view
+
+A **Sessions | Users** toggle above the list switches to the same time range rolled up by person (`view=users` in the URL). Where the session list answers "what happened", the Users view answers "who had trouble, and how often": one row per identified user, one per [anonymous visitor](#anonymous-visitors), and at most one **Unlinked sessions** row for recordings made by a recorder that sent no visitor id. Rows are ordered by when the person was last seen. The search, sort and filter controls are hidden in this view because the rollup takes none of them; only the time range applies.
+
+| Column | What it shows |
+| --- | --- |
+| **User** | The avatar and name by the same rules as the session list — the reference, _Visitor a1b2c3_, or _Hidden_ — with the browser, OS and country of the person's **newest** session and, for an identified user, how many traits it carried. |
+| **Sessions** | How many sessions in the range, and how many are still recording ("2 live") or, when none are, when the person was first seen. |
+| **Last seen** | When their newest session started. |
+| **Time** | Recorded time summed over their sessions, and the total number of pages. |
+| **Signals** | Error and frustration totals across their sessions (the error badge says how many sessions they fell in); _Clean_ when there are none. |
+| **Actions** | **Sessions** opens the Sessions view filtered to that person — `user:` for an identified user, `visitor:` for a visitor, the pseudonymous key when the label is hidden from you. **Watch latest** opens their newest session in the player. |
+
+Identified users are grouped by the pseudonymous key the server stores the reference under, so the rollup works for roles that cannot read identity; the label and traits are only sent to roles that can, and the row reads _Hidden_ otherwise. Visitors are grouped by visitor id. That is also the honest limit of the view: a person who browsed anonymously and then signed in on the same browser is counted under their visitor row for the sessions before `identify()` and under their user row after it. The player's other-sessions menu joins the two; the rollup does not. The **Unlinked sessions** row offers no **Sessions** filter — nothing on those sessions can select them as a group — though **Watch latest** still opens the newest of them.
+
+The rollup is computed on the server (`POST /telemetry/rum/session-replay/users`, under the same permissions as the list) rather than by grouping the session list in the browser, because the list is paginated by keyset: a page of 20 sessions would say "3 sessions" for a person who had 30, with the other 27 on pages you had not fetched. The server rolls up the whole range and pages the people instead.
 
 ### The player
 
-The player opens wide by default — the RUM side menu steps aside so the stage and the events rail get the width; press `W` or use **Wide** in the header to bring it back. The header shows the user (or _Anonymous_ / _Identity hidden_), browser, OS, viewport and country, the session start, and the playhead as both an offset and a wall-clock time so you can cross-reference dashboards by eye. **Sessions** takes you back to the list with your filters intact.
+The player opens wide by default — the RUM side menu steps aside so the stage and the events rail get the width; press `W` or use **Wide** in the header to bring it back. The header shows the user (or _Visitor a1b2c3_ for an anonymous session that carries a [visitor id](#anonymous-visitors), _Anonymous_ when it does not, _Identity hidden_ when your role cannot read identity), browser, OS, viewport and country, the session start, and the playhead as both an offset and a wall-clock time so you can cross-reference dashboards by eye. **Sessions** takes you back to the list with your filters intact.
+
+**This person's other sessions.** Beside the identity the header says **N sessions**: every session by the same person in the 30 days before this one, up to now — matched by the pseudonymous user key for an identified user, otherwise by the visitor id, and by both when the session carries both, so the sessions a user recorded before signing in on the same browser are included. Thirty days is the longest replay retention, so a wider window would only return what retention has already removed. The count opens a dropdown listing them newest first — when, the entry page, browser and device, duration, an error count, a red dot for one still recording, and _Watching_ on the one on screen — and **Older** / **Newer** buttons beside it step through them; `{` and `}` do the same from the keyboard and are on the `?` shortcuts sheet. A session with no sibling in the window reads _Only session in 30 days_. A session that carries neither a user key nor a visitor id — recorded by an older recorder for a page that never identified anyone — reads _Not linked to other sessions_, because there is nothing to look its siblings up by.
 
 Above the stage a URL bar shows the page the user was on at the playhead, with copy and open buttons, and a chip shows the recorded viewport and the scale it is drawn at, with a **Fit / 1:1** toggle. Mobile recordings are drawn in a phone-shaped frame.
 
@@ -336,7 +377,7 @@ The controls under the stage: play/pause, the current time and duration, −10s 
 - The activity lane shows how much was happening per chunk. Three marker lanes show Errors (client errors, server exceptions and error logs), Network / Traces (4xx, 5xx and failed requests, slow requests, error spans) and Navigation / Frustration (route changes, rage, dead and error clicks, refresh rage). Overlapping markers cluster into a count pill. Markers drawn hollow are approximate — the chunk they belong to has not been decoded yet — and turn solid as it loads.
 - Hover for a preview of the time, the nearest route and the signals within two seconds; click a marker to seek one second before it and select it in the rail; drag to scrub; wheel to nudge by a second.
 
-**Tabs.** A visitor with several tabs open records one recording per tab under one session. Pills in the header switch between them, keeping the playhead on the session clock ("Tab 2 · 30s · opened 2:14"); a tab with no stored footage is disabled and says so. When the tab you are watching ends while another has later footage, a **Continue in Tab 2** chip appears.
+**Tabs.** A visitor with several tabs open records one recording per tab under one session. Pills in the header switch between them, keeping the playhead on the session clock ("Tab 2 · 30s · opened 2:14"), and wrap onto further rows when there are many rather than scrolling sideways; a tab with no stored footage is disabled and says so. When the tab you are watching ends while another has later footage, a **Continue in Tab 2** chip appears.
 
 **Live sessions.** While a session is still recording the header shows a red **Live** pill and the player fetches new footage every 30 seconds without writing extra entries to the access log.
 
@@ -383,6 +424,7 @@ Press `?` in the player for this list. Shortcuts never fire while you are typing
 | `E` / `Shift + E` | Next / previous error |
 | `N` | Next frustration |
 | `[` / `]` | Previous / next row in the current rail tab |
+| `{` / `}` | Older / newer session by this user |
 | `J` / `K` (rail focused) | Next / previous rail row |
 | `Enter` (rail focused) | Seek to the selected rail row |
 | `Escape` | Clear the selection, or close a modal |
@@ -479,7 +521,7 @@ Watching a recording is a separate permission from listing sessions, and neither
 
 | Permission | Unlocks |
 | --- | --- |
-| `ReadRumSessionReplay` | The session list and each session's metadata: counts, signals, device — but not the recording, and not who the user was. A support engineer can triage which sessions errored without playing anyone's screen back. |
+| `ReadRumSessionReplay` | The session list, the Users view and each session's metadata: counts, signals, device, the visitor id — but not the recording, and not who the user was. A support engineer can triage which sessions errored without playing anyone's screen back. |
 | `ReadRumSessionReplayPayload` | Playing a recording back, and reading the identified user's reference and traits in the list, the player and the `user:` filter. |
 | `ReadRumSessionReplayAudit` | The **Replay Access Log** — who watched what. |
 | `DeleteRumSessionReplay` | Deleting recordings. |
