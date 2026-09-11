@@ -4,10 +4,13 @@ import http, {
   Server,
   ServerResponse,
 } from "http";
-import { AddressInfo } from "net";
+import https from "https";
+import net, { AddressInfo } from "net";
 import { Browser, BrowserContext, Page, chromium } from "playwright";
+import axios from "axios";
 import WorkerController from "../../../../Utils/Monitors/SyntheticRuntime/WorkerController";
 import { SandboxExecutionResult } from "../../../../Utils/Monitors/SyntheticRuntime/RpcProtocol";
+import SelfSignedCertificate from "../MonitorTypes/SslTestCertificates";
 
 jest.setTimeout(120_000);
 
@@ -17,7 +20,7 @@ interface RequestObservation {
   readonly url: string | undefined;
 }
 
-const PROXY_ENVIRONMENT_KEYS: ReadonlyArray<string> = [
+const SCOPED_ENVIRONMENT_KEYS: ReadonlyArray<string> = [
   "HTTP_PROXY",
   "HTTPS_PROXY",
   "NO_PROXY",
@@ -41,6 +44,47 @@ describe("SyntheticRuntime proxy contract", () => {
 
   test("routes axios, http, and https facades through the broker's proxy-aware request path", async () => {
     const proxyRequests: RequestObservation[] = [];
+    const httpsTargetRequests: RequestObservation[] = [];
+    const connectAuthorities: string[] = [];
+    const proxyClientSockets: Set<net.Socket> = new Set<net.Socket>();
+    const proxyUpstreamSockets: Set<net.Socket> = new Set<net.Socket>();
+    const httpsTargetSockets: Set<net.Socket> = new Set<net.Socket>();
+    const httpsTargetServer: https.Server = https.createServer(
+      {
+        cert: SelfSignedCertificate.cert,
+        key: SelfSignedCertificate.key,
+      },
+      (request: IncomingMessage, response: ServerResponse): void => {
+        httpsTargetRequests.push({
+          headers: request.headers,
+          method: request.method,
+          url: request.url,
+        });
+        response.writeHead(200, {
+          "Content-Type": "application/json; charset=utf-8",
+          Connection: "close",
+        });
+        response.end(
+          JSON.stringify({
+            facade: request.headers["x-synthetic-facade"],
+            proxyObservedUrl: `https://${request.headers.host}${request.url}`,
+          }),
+        );
+      },
+    );
+    httpsTargetServer.on("connection", (socket: net.Socket): void => {
+      httpsTargetSockets.add(socket);
+      socket.once("close", (): void => {
+        httpsTargetSockets.delete(socket);
+      });
+    });
+    await listen(httpsTargetServer);
+    const httpsTargetAddress: AddressInfo | string | null =
+      httpsTargetServer.address();
+    if (!httpsTargetAddress || typeof httpsTargetAddress === "string") {
+      throw new Error("Expected the HTTPS target to use a TCP address.");
+    }
+
     const proxyServer: Server = http.createServer(
       (request: IncomingMessage, response: ServerResponse): void => {
         proxyRequests.push({
@@ -60,8 +104,53 @@ describe("SyntheticRuntime proxy contract", () => {
         );
       },
     );
+    proxyServer.on(
+      "connect",
+      (
+        request: IncomingMessage,
+        clientSocket: net.Socket,
+        head: Buffer,
+      ): void => {
+        connectAuthorities.push(request.url || "");
+        proxyClientSockets.add(clientSocket);
+        clientSocket.once("close", (): void => {
+          proxyClientSockets.delete(clientSocket);
+        });
+        const upstreamSocket: net.Socket = net.connect({
+          host: "127.0.0.1",
+          port: httpsTargetAddress.port,
+        });
+        proxyUpstreamSockets.add(upstreamSocket);
+        upstreamSocket.once("close", (): void => {
+          proxyUpstreamSockets.delete(upstreamSocket);
+        });
+        upstreamSocket.once("connect", (): void => {
+          clientSocket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
+          if (head.length > 0) {
+            upstreamSocket.write(head);
+          }
+          clientSocket.pipe(upstreamSocket);
+          upstreamSocket.pipe(clientSocket);
+        });
+        upstreamSocket.once("error", (): void => {
+          if (!clientSocket.destroyed) {
+            clientSocket.end(
+              "HTTP/1.1 502 Bad Gateway\r\nConnection: close\r\n\r\n",
+            );
+          }
+        });
+        clientSocket.once("error", (): void => {
+          upstreamSocket.destroy();
+        });
+      },
+    );
     await listen(proxyServer);
     const proxyUrl: string = getServerUrl(proxyServer);
+    const originalHttpsAgent: unknown = axios.defaults.httpsAgent;
+    const trustedHttpsAgent: https.Agent = new https.Agent({
+      ca: SelfSignedCertificate.cert,
+    });
+    axios.defaults.httpsAgent = trustedHttpsAgent;
 
     try {
       const result: SandboxExecutionResult = await withProxyEnvironment(
@@ -102,7 +191,7 @@ describe("SyntheticRuntime proxy contract", () => {
             );
             const httpsResponse = await readWithNodeFacade(
               https,
-              "https://https.synthetic.invalid/from-https",
+              "https://localhost/from-https",
               "https"
             );
 
@@ -128,7 +217,7 @@ describe("SyntheticRuntime proxy contract", () => {
           },
           https: {
             facade: "https",
-            proxyObservedUrl: "https://https.synthetic.invalid/from-https",
+            proxyObservedUrl: "https://localhost/from-https",
           },
         },
       });
@@ -147,16 +236,34 @@ describe("SyntheticRuntime proxy contract", () => {
             "x-synthetic-facade": "http",
           }),
         }),
+      ]);
+      expect(connectAuthorities).toEqual(["localhost:443"]);
+      expect(httpsTargetRequests).toEqual([
         expect.objectContaining({
           method: "GET",
-          url: "https://https.synthetic.invalid/from-https",
+          url: "/from-https",
           headers: expect.objectContaining({
+            host: "localhost",
             "x-synthetic-facade": "https",
           }),
         }),
       ]);
     } finally {
-      await closeServer(proxyServer);
+      for (const socket of proxyClientSockets) {
+        socket.destroy();
+      }
+      for (const socket of proxyUpstreamSockets) {
+        socket.destroy();
+      }
+      for (const socket of httpsTargetSockets) {
+        socket.destroy();
+      }
+      axios.defaults.httpsAgent = originalHttpsAgent;
+      trustedHttpsAgent.destroy();
+      await Promise.all([
+        closeServer(proxyServer),
+        closeServer(httpsTargetServer),
+      ]);
     }
   });
 
@@ -296,14 +403,14 @@ async function withProxyEnvironment<Result>(
 ): Promise<Result> {
   const originalValues: Readonly<Record<string, string | undefined>> =
     Object.fromEntries(
-      PROXY_ENVIRONMENT_KEYS.map(
+      SCOPED_ENVIRONMENT_KEYS.map(
         (key: string): [string, string | undefined] => {
           return [key, process.env[key]];
         },
       ),
     );
 
-  for (const key of PROXY_ENVIRONMENT_KEYS) {
+  for (const key of SCOPED_ENVIRONMENT_KEYS) {
     delete process.env[key];
   }
   for (const [key, value] of Object.entries(values)) {
@@ -313,7 +420,7 @@ async function withProxyEnvironment<Result>(
   try {
     return await operation();
   } finally {
-    for (const key of PROXY_ENVIRONMENT_KEYS) {
+    for (const key of SCOPED_ENVIRONMENT_KEYS) {
       restoreEnvironment(key, originalValues[key]);
     }
   }
