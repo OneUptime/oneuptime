@@ -217,6 +217,8 @@
   margin: 12px 0 0;
 }
 .books-free-note svg {
+  display: block;
+  flex: 0 0 16px;
   width: 16px;
   height: 16px;
   color: #4b7063;
