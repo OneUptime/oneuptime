@@ -544,14 +544,14 @@ describe("this user's other sessions", () => {
   });
 
   test("the { and } keys reach the older/newer steps through the scrubber's shell-level handlers", () => {
-    const scrubberProps: string = slice(
-      SOURCE,
-      "<ReplayScrubber\n",
-      "/>",
-    );
+    const scrubberProps: string = slice(SOURCE, "<ReplayScrubber\n", "/>");
 
-    expect(scrubberProps).toContain("onOlderUserSession={openOlderUserSession}");
-    expect(scrubberProps).toContain("onNewerUserSession={openNewerUserSession}");
+    expect(scrubberProps).toContain(
+      "onOlderUserSession={openOlderUserSession}",
+    );
+    expect(scrubberProps).toContain(
+      "onNewerUserSession={openNewerUserSession}",
+    );
     expect(SOURCE).toContain(
       "findAdjacentUserSessions(userSessions.sessions, sessionId)",
     );

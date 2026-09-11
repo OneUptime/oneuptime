@@ -159,9 +159,20 @@ export interface ReplayToolButtonProps {
   dataTestId?: string | undefined;
   className?: string | undefined;
   onClick: () => void;
-  /* Passed straight through for the speed menu's aria wiring. */
-  hasPopup?: boolean | undefined;
+  /*
+   * aria-haspopup, for the menu triggers. `true` (rendered "true") is the
+   * generic "opens a menu" the speed trigger wants; a trigger whose panel
+   * is not role="menu" must say what it does open - the sessions switcher
+   * opens a listbox, and a screen reader promised a menu would then meet
+   * options where it expected menu items.
+   */
+  hasPopup?: boolean | "listbox" | "menu" | "dialog" | undefined;
   isExpanded?: boolean | undefined;
+  /*
+   * data-* hooks for tests and styling ("data-truncated" on the sessions
+   * trigger). Only data-*: everything aria has a named prop above.
+   */
+  dataAttributes?: Record<`data-${string}`, string> | undefined;
 }
 
 function toneClassFor(props: ReplayToolButtonProps): string {
@@ -227,6 +238,7 @@ export const ReplayToolButton: React.ForwardRefExoticComponent<
         aria-haspopup={props.hasPopup}
         aria-expanded={props.isExpanded}
         data-testid={props.dataTestId}
+        {...props.dataAttributes}
         className={`${BUTTON_BASE_CLASS} ${paddingClass} ${toneClassFor(
           props,
         )} ${props.className || ""}`}

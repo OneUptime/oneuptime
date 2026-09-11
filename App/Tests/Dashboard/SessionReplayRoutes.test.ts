@@ -3,7 +3,7 @@ import fs from "fs";
 import nodePath from "path";
 
 /*
- * Session replay adds four pages under the RUM application, and reaching any
+ * Session replay adds five pages under the RUM application, and reaching any
  * of them takes six independent hand-written wirings: a PageMap key, a
  * RumRoutePath entry, an absolute RouteMap Route, a PageRoute in
  * RumApplicationRoutes.tsx, a SideMenuItem, and a breadcrumb. Nothing ties
@@ -195,6 +195,7 @@ beforeAll(async () => {
   sessionReplayPageKeys = [
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY,
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW,
+    PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS,
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT,
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS,
     PageMap.RUM_SETTINGS_SESSION_REPLAY,
@@ -308,6 +309,7 @@ describe("Session replay page wiring", () => {
     for (const key of [
       "RUM_APPLICATION_VIEW_SESSION_REPLAY",
       "RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW",
+      "RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS",
       "RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT",
       "RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS",
     ]) {
@@ -417,6 +419,79 @@ describe("Session replay page wiring", () => {
     expect(auditPath.startsWith(playerPrefix)).toBe(false);
     expect(auditPath.endsWith("/session-replay-audit")).toBe(true);
     expect(auditPath.split("/").slice(-2)[0]).toBe(RouteParams.ModelID);
+  });
+
+  test("the users route ends with /session-replay-users and carries the model id", () => {
+    /*
+     * The page reads its id with Navigation.getLastParamAsObjectID(1), the
+     * same as the audit and settings pages, which only resolves for a route
+     * shaped ":id/session-replay-users".
+     */
+    const path: string =
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS]!.toString();
+    const segments: Array<string> = path.split("/");
+
+    expect(path.endsWith("/session-replay-users")).toBe(true);
+    expect(segments[segments.length - 2]).toBe(RouteParams.ModelID);
+  });
+
+  test("the users route cannot be shadowed by a session id", () => {
+    /*
+     * The obvious spelling, ":id/session-replay/users", is a session id to
+     * the player route registered beside it - a recording whose id was
+     * literally "users" would win or lose depending on registration order.
+     * A hyphenated sibling cannot collide at all.
+     */
+    const usersPath: string =
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS]!.toString();
+    const playerPath: string =
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW]!.toString();
+
+    const playerPrefix: string = playerPath.slice(
+      0,
+      playerPath.lastIndexOf("/") + 1,
+    );
+
+    expect(usersPath.startsWith(playerPrefix)).toBe(false);
+    expect(usersPath).not.toContain("/session-replay/");
+  });
+
+  test("the users page is registered like the audit page: one segment, no count", () => {
+    /*
+     * A single-segment sibling registers with the default count; passing
+     * 2 would register "app-1/session-replay-users"-shaped paths and the
+     * page would be unreachable.
+     */
+    expect(
+      RouteUtil.getLastPathForKey(
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS,
+      ),
+    ).toBe("session-replay-users");
+    expect(routeSource).toMatch(
+      /getLastPathForKey\(\s*PageMap\.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS\s*,?\s*\)/,
+    );
+  });
+
+  test("the users breadcrumb names the page as the side menu does", () => {
+    setNavigationLocation("/dashboard/proj-1/rum/app-1/session-replay-users");
+
+    const trail: Array<Link> | undefined = getRumBreadcrumbs(
+      RouteUtil.getRouteString(
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS,
+      ),
+    );
+
+    expect(trail).toBeDefined();
+    expect(
+      trail!.map((link: Link): string => {
+        return link.title;
+      }),
+    ).toEqual([
+      "Project",
+      "Real User Monitoring",
+      "View Application",
+      "Replay Users",
+    ]);
   });
 
   test("the per-application settings route is scoped to one application", () => {

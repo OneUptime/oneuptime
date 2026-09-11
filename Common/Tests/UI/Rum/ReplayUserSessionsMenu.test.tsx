@@ -94,7 +94,7 @@ describe("ReplayUserSessionsMenu", () => {
     );
 
     expect(button).toHaveTextContent("3 sessions");
-    expect(button).toHaveAttribute("aria-haspopup", "true");
+    expect(button).toHaveAttribute("aria-haspopup", "listbox");
     expect(button).toHaveAttribute("aria-expanded", "false");
     expect(
       screen.queryByTestId("replay-user-sessions-menu"),
@@ -111,6 +111,42 @@ describe("ReplayUserSessionsMenu", () => {
     expect(
       screen.queryByTestId("replay-user-sessions-menu"),
     ).not.toBeInTheDocument();
+  });
+
+  /*
+   * The trigger opens a listbox and must say so: a screen reader promised
+   * a menu would then meet options where it expected menu items. And when
+   * the shell could not page the whole list back to the current session
+   * (ReplayUserSessionsState.isTruncated), the trigger must not describe
+   * what it opens as "every session".
+   */
+  it("announces a listbox, and says when the list is only part of the story", () => {
+    const { rerender } = render(<ReplayUserSessionsMenu {...makeProps()} />);
+    const button: () => HTMLElement = (): HTMLElement => {
+      return screen.getByTestId("replay-user-sessions-button");
+    };
+
+    expect(button()).toHaveAttribute("aria-haspopup", "listbox");
+    expect(button()).not.toHaveAttribute("data-truncated");
+    expect(button()).toHaveAttribute(
+      "title",
+      expect.stringContaining("Every session from this"),
+    );
+
+    rerender(<ReplayUserSessionsMenu {...makeProps({ isTruncated: true })} />);
+
+    expect(button()).toHaveAttribute("data-truncated", "true");
+    expect(button()).toHaveAttribute(
+      "title",
+      expect.stringContaining("than the switcher can show"),
+    );
+
+    fireEvent.click(button());
+
+    expect(screen.getByTestId("replay-user-sessions-menu")).toHaveTextContent(
+      /Some sessions from this (user|visitor)/,
+    );
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
   });
 
   it("lists the sessions newest first in a listbox, with the current one marked", () => {
@@ -351,7 +387,9 @@ describe("ReplayUserSessionsMenu", () => {
 
   it("falls back to the first row when the current session is not in the list", () => {
     render(
-      <ReplayUserSessionsMenu {...makeProps({ currentSessionId: "missing" })} />,
+      <ReplayUserSessionsMenu
+        {...makeProps({ currentSessionId: "missing" })}
+      />,
     );
 
     const items: Array<HTMLElement> = within(openMenu()).getAllByRole("option");

@@ -75,17 +75,20 @@ import {
   buildCursorMemoryKey,
   buildFilteredUrl,
   buildSessionReplayListFilters,
+  buildTimeRangeSearch,
+  buildUserFilterLabelStorageKey,
   DEFAULT_SESSION_REPLAY_ITEMS_ON_PAGE,
   DEFAULT_SESSION_REPLAY_SORT_BY,
   EMPTY_ADVANCED_FILTERS,
+  HandedOffUserFilterLabel,
   parseCursorMemory,
   readListStateFromSearch,
+  resolveHandedOffUserFilter,
   serializeCursorMemory,
   SESSION_REPLAY_ITEMS_ON_PAGE_OPTIONS,
   SessionReplayAdvancedFilters,
   SessionReplayCursorMemory,
   SessionReplayListUrlState,
-  SessionReplayListView,
 } from "./SessionReplayListFilters";
 import {
   describeTriggerReason,
@@ -101,7 +104,6 @@ import {
   SessionUserDescription,
 } from "./SessionReplayUserIdentity";
 import SessionReplayUserAvatar from "./SessionReplayUserAvatar";
-import SessionReplayUsersTable from "./SessionReplayUsersTable";
 import SessionReplayIdentityNudge, {
   hasAnyVisitorId,
   shouldShowIdentityNudge,
@@ -547,6 +549,60 @@ function writeStorage(key: string, value: string): void {
   } catch {
     /* Private mode or a full store: the memory is a convenience. */
   }
+}
+
+function removeStorage(key: string): void {
+  try {
+    window.sessionStorage.removeItem(key);
+  } catch {
+    /* Nothing to clear, or nowhere to clear it from. */
+  }
+}
+
+/* What the mount reads: the list state, and the hand-off it was resolved from. */
+interface InitialListState {
+  state: SessionReplayListUrlState;
+  /*
+   * The digest the URL carried and the label it was swapped for, or null
+   * when nothing was handed off. Kept so the URL this list writes can keep
+   * saying userKey=<digest> for as long as the reference filter is that
+   * person (see SessionReplayListUrlExtras.handedOffUser).
+   */
+  handedOffUser: HandedOffUserFilterLabel | null;
+}
+
+/*
+ * The list state the URL names, with the Users page's hand-off resolved:
+ * when the URL carries userKey= and the Users page parked that person's
+ * label for us, the digest becomes the reference so the search box, the
+ * chip and the request all read as if the label had been clicked here.
+ * The entry is consumed on the way, but the digest stays in the address
+ * bar - so a reload of the same URL narrows by the digest, exactly like a
+ * pasted link would, rather than by nobody.
+ */
+function readInitialListState(rumApplicationId: string): InitialListState {
+  const state: SessionReplayListUrlState = readListStateFromSearch(
+    window.location.search,
+  );
+  const storageKey: string = buildUserFilterLabelStorageKey(rumApplicationId);
+  const resolved: SessionReplayListUrlState = resolveHandedOffUserFilter(
+    state,
+    readStorage(storageKey),
+  );
+
+  if (resolved === state) {
+    return { state: state, handedOffUser: null };
+  }
+
+  removeStorage(storageKey);
+
+  return {
+    state: resolved,
+    handedOffUser: {
+      identifiedUserKey: state.advanced.identifiedUserKey.trim(),
+      identifiedUserLabel: resolved.advanced.identifiedUserRef,
+    },
+  };
 }
 
 /* ---- Row ---- */
@@ -1157,11 +1213,11 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
    * Read once per mount: every later URL write comes from this component,
    * so re-reading the address bar would only echo our own state back.
    */
-  const [initialState] = useState<SessionReplayListUrlState>(
-    (): SessionReplayListUrlState => {
-      return readListStateFromSearch(window.location.search);
-    },
-  );
+  const [initial] = useState<InitialListState>((): InitialListState => {
+    return readInitialListState(rumApplicationIdString);
+  });
+  const initialState: SessionReplayListUrlState = initial.state;
+  const handedOffUser: HandedOffUserFilterLabel | null = initial.handedOffUser;
 
   const [rows, setRows] = useState<Array<SessionReplaySummary>>([]);
   const [hasMore, setHasMore] = useState<boolean>(false);
@@ -1183,14 +1239,6 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
   const [itemsOnPage, setItemsOnPage] = useState<number>(
     DEFAULT_SESSION_REPLAY_ITEMS_ON_PAGE,
   );
-  /*
-   * Sessions or Users. The two views share the time range and nothing
-   * else: the users view takes no filters, sort or page size, and the
-   * session list does not refetch while it is hidden (see load).
-   */
-  const [view, setView] = useState<SessionReplayListView>(initialState.view);
-  /* Bumped by Refresh while the users view shows; the users table refetches on it. */
-  const [usersReloadToken, setUsersReloadToken] = useState<number>(0);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
   const [isIdentityFilterIgnored, setIsIdentityFilterIgnored] =
     useState<boolean>(false);
@@ -1253,16 +1301,6 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
 
   const load: (generation: number) => Promise<void> = useCallback(
     async (generation: number): Promise<void> => {
-      /*
-       * The users view has its own fetch. Firing /list underneath it would
-       * cost a ClickHouse scan nobody looks at, and the rows it came back
-       * with would be stale by the time the viewer switched back - the
-       * switch refetches instead.
-       */
-      if (view !== "sessions") {
-        return;
-      }
-
       try {
         setIsLoading(true);
         setError(null);
@@ -1342,7 +1380,6 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
       }
     },
     [
-      view,
       rumApplicationIdString,
       signal,
       advancedFilters,
@@ -1364,7 +1401,12 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
       window.location.href,
       signal,
       advancedFilters,
-      { sortBy: sortBy, timeRange: timeRange, page: pageNumber, view: view },
+      {
+        sortBy: sortBy,
+        timeRange: timeRange,
+        page: pageNumber,
+        handedOffUser: handedOffUser,
+      },
     );
 
     window.history.replaceState(window.history.state, "", href);
@@ -1375,20 +1417,12 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
     if (backLink) {
       writeStorage(SESSION_REPLAY_LIST_URL_STORAGE_KEY, backLink);
     }
-  }, [signal, advancedFilters, sortBy, timeRange, pageNumber, view]);
+  }, [signal, advancedFilters, sortBy, timeRange, pageNumber, handedOffUser]);
 
-  /* One Refresh button; it reloads whichever view is showing. */
   const reload: VoidFunction = useCallback((): void => {
-    if (view === "users") {
-      setUsersReloadToken((token: number): number => {
-        return token + 1;
-      });
-      return;
-    }
-
     loadGenerationRef.current += 1;
     void load(loadGenerationRef.current);
-  }, [load, view]);
+  }, [load]);
 
   useEffect((): (() => void) => {
     loadGenerationRef.current += 1;
@@ -1434,13 +1468,13 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
     }, []);
 
   /*
-   * "Every session from this person", from a user cell or a Users row.
-   * Exactly one identity predicate is left standing: the reference, the
-   * digest and the visitor id each select a person on their own, and two
-   * of them together would either be redundant or - for two different
-   * people - select nobody. Everything else the viewer had applied
-   * (a URL, a device, the Errors signal) stays, because "this person's
-   * checkout errors" is a real question.
+   * "Every session from this person", from a user cell. Exactly one
+   * identity predicate is left standing: the reference, the digest and the
+   * visitor id each select a person on their own, and two of them together
+   * would either be redundant or - for two different people - select
+   * nobody. Everything else the viewer had applied (a URL, a device, the
+   * Errors signal) stays, because "this person's checkout errors" is a
+   * real question.
    */
   const filterByUser: (filter: Partial<SessionReplayAdvancedFilters>) => void =
     useCallback((filter: Partial<SessionReplayAdvancedFilters>): void => {
@@ -1460,25 +1494,23 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
       );
     }, []);
 
-  /* A Users row answers with the same filter, and lands on the sessions view. */
-  const viewUserSessions: (
-    filter: Partial<SessionReplayAdvancedFilters>,
-  ) => void = useCallback(
-    (filter: Partial<SessionReplayAdvancedFilters>): void => {
-      filterByUser(filter);
-      setView("sessions");
-    },
-    [filterByUser],
-  );
+  /*
+   * The Users page: the same window rolled up by person. Its own route,
+   * so the side menu, a bookmark and the identify() nudge can all name it.
+   * The time range is the one thing the two pages share, and it rides
+   * along so the rollup is of the sessions the viewer was just looking at;
+   * the default window is written as absence, like everywhere else.
+   */
+  const openUsersPage: VoidFunction = useCallback((): void => {
+    const usersRoute: Route = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS] as Route,
+      { modelId: new ObjectID(rumApplicationIdString) },
+    );
 
-  /* Switching view keeps every filter (they are only hidden) and restarts paging. */
-  const changeView: (next: SessionReplayListView) => void = useCallback(
-    (next: SessionReplayListView): void => {
-      setPageNumber(1);
-      setView(next);
-    },
-    [],
-  );
+    Navigation.navigate(
+      new Route(`${usersRoute.toString()}${buildTimeRangeSearch(timeRange)}`),
+    );
+  }, [rumApplicationIdString, timeRange]);
 
   const chips: Array<SessionReplayFilterChip> =
     useMemo((): Array<SessionReplayFilterChip> => {
@@ -1526,9 +1558,8 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
       });
     }, [rows, rumApplicationIdString, nowUnixMs, openSession, filterByUser]);
 
-  const isUsersView: boolean = view === "users";
   const showIdentityNudge: boolean =
-    !isUsersView && !error && shouldShowIdentityNudge(rows, isLoading);
+    !error && shouldShowIdentityNudge(rows, isLoading, advancedFilters);
   const additionalChips: Array<SessionReplayFilterChip> = chips.filter(
     (chip: SessionReplayFilterChip): boolean => {
       return !SESSION_REPLAY_FACETS.some(
@@ -1540,6 +1571,12 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
   );
 
   const cardButtons: Array<CardButtonSchema> = [
+    {
+      title: "Users",
+      icon: IconProp.UserGroup,
+      buttonStyle: ButtonStyleType.NORMAL,
+      onClick: openUsersPage,
+    },
     {
       title: "Set up recording",
       icon: IconProp.BookOpen,
@@ -1553,7 +1590,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
     },
     {
       ...getRefreshButton(),
-      tooltip: isUsersView ? "Refresh users" : "Refresh sessions",
+      tooltip: "Refresh sessions",
       className: "py-0 pr-0 pl-1 mt-1",
       onClick: reload,
     },
@@ -1588,45 +1625,29 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
               setIsFilterModalOpen(true);
             }}
             isIdentityFilterIgnored={isIdentityFilterIgnored}
-            view={view}
-            onViewChange={changeView}
           />
 
-          {isUsersView && (
-            <SessionReplayUsersTable
-              rumApplicationId={rumApplicationIdString}
-              timeRange={timeRange}
-              reloadToken={usersReloadToken}
-              onViewUserSessions={viewUserSessions}
-            />
-          )}
-
-          {!isUsersView && (
-            <SessionReplayFacets
-              rows={rows}
-              filters={advancedFilters}
-              onFiltersChange={applyFilters}
-              signal={signal}
-              onSignalChange={(value: string): void => {
-                setPageNumber(1);
-                setSignal(value);
-              }}
-            />
-          )}
+          <SessionReplayFacets
+            rows={rows}
+            filters={advancedFilters}
+            onFiltersChange={applyFilters}
+            signal={signal}
+            onSignalChange={(value: string): void => {
+              setPageNumber(1);
+              setSignal(value);
+            }}
+          />
 
           {showIdentityNudge && (
             <SessionReplayIdentityNudge
               key={rumApplicationIdString}
               rumApplicationId={rumApplicationIdString}
               hasVisitorIds={hasAnyVisitorId(rows)}
-              onShowUsers={(): void => {
-                changeView("users");
-              }}
+              onShowUsers={openUsersPage}
             />
           )}
 
-          {!isUsersView &&
-            isIdentityFilterIgnored &&
+          {isIdentityFilterIgnored &&
             advancedFilters.identifiedUserRef.trim().length > 0 && (
               <Alert
                 type={AlertType.WARNING}
@@ -1636,7 +1657,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
               />
             )}
 
-          {!isUsersView && (chips.length > 0 || signal !== "all") && (
+          {(chips.length > 0 || signal !== "all") && (
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <SessionReplayFilterChipList
                 chips={additionalChips}
@@ -1658,7 +1679,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
             </div>
           )}
 
-          {isUsersView ? null : error ? (
+          {error ? (
             <div
               role="alert"
               data-testid="list-error"
@@ -1750,7 +1771,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
             </div>
           )}
 
-          {!isUsersView && !error && (rows.length > 0 || pageNumber > 1) && (
+          {!error && (rows.length > 0 || pageNumber > 1) && (
             <Pagination
               className="mt-4 border-t border-gray-200 pt-4"
               currentPageNumber={pageNumber}

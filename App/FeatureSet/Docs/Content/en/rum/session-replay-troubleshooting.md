@@ -298,10 +298,11 @@ Those tabs show your own backend logs and spans that carried the replay's sessio
 
 The recorder does not know who your user is unless your page tells it. Call `OneUptimeReplay.identify(userRef, traits)` as soon as you know, or queue it on `window.OneUptimeReplayQueue` before the script loads — see [Identify your users](/docs/telemetry/session-replay#identify-your-users). Until then the list groups the sessions of one browser under _Visitor a1b2c3_, the recorder's random per-browser [visitor id](/docs/telemetry/session-replay#anonymous-visitors), which follows one browser and never a person across devices; the **Users** view and the player's other-sessions menu work from it, `user:` search does not.
 
-Three things the rows tell you:
+Four things the rows tell you:
 
 - **_Visitor_ on every row** — the recorder is current and your page is not calling `identify()`, or is calling it after the session ended. `hasTraits` in `getDiagnostics()` is `true` once an `identify()` with traits reached the recorder.
-- **_Anonymous_ rather than _Visitor_** — those sessions came from a recorder built before visitor ids existed, or one that could not write `localStorage`. Compare `version` in `getDiagnostics()` with the published recorder version on the _Replay Policy_ page and check that `visitor-id` is in its `capabilities`.
+- **_Anonymous_ rather than _Visitor_** — those sessions came from a recorder built before visitor ids existed. Compare `version` in `getDiagnostics()` with the published recorder version on the _Replay Policy_ page and check that `visitor-id` is in its `capabilities`.
+- **A different _Visitor_ id on every page load from one browser** — the recorder could not write `localStorage` (private browsing, blocked site data), so it minted a fresh id per load. Recording still works; only the grouping across visits is lost.
 - **_Visitor_ even though your page does call `identify()`** — check that **Capture user identity** is on for the application. With it off the reference never leaves the browser, by design, and the session stays a visitor. A row that reads _Hidden_ is different again: the page identified someone and your role may not read who.
 
 ## What the diagnostics never contain

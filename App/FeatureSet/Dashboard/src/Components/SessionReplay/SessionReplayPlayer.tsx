@@ -129,6 +129,7 @@ import { formatReplayOffset } from "./ReplayTimeFormat";
 import {
   ReplayAdjacentUserSessions,
   ReplayUserSessionItem,
+  ReplayUserSessionsFetchResult,
   ReplayUserSessionsKind,
   ReplayUserSessionsState,
   ReplayUserSessionsWindow,
@@ -419,6 +420,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     kind: "none",
     sessions: [],
     currentSessionId: sessionId,
+    isTruncated: false,
   });
 
   const rootRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
@@ -888,6 +890,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         kind: "none",
         sessions: [],
         currentSessionId: sessionId,
+        isTruncated: false,
       });
 
       return;
@@ -898,6 +901,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       kind: kind,
       sessions: [],
       currentSessionId: sessionId,
+      isTruncated: false,
     });
 
     /*
@@ -925,14 +929,23 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
 
     void (async (): Promise<void> => {
       try {
-        const lists: Array<Array<ReplayUserSessionItem>> =
+        /*
+         * Two anchored requests per key - older sessions up to this one,
+         * newer ones paged back towards it - so the neighbours are the
+         * real neighbours for a person with hundreds of sessions, and a
+         * flag for when the newer side could not be paged all the way.
+         */
+        const result: ReplayUserSessionsFetchResult =
           await fetchReplayUserSessions({
             rumApplicationId: rumApplicationIdString,
+            sessionId: self.sessionId,
             identifiedUserKey: identifiedUserKey,
             visitorId: visitorId,
             startTime: lookupWindow.startTime,
+            anchorTime: lookupWindow.anchorTime,
             endTime: lookupWindow.endTime,
           });
+        const lists: Array<Array<ReplayUserSessionItem>> = result.lists;
 
         if (isCancelled || generation !== userSessionsGenerationRef.current) {
           return;
@@ -943,6 +956,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
           kind: kind,
           sessions: mergeReplayUserSessions(lists, self),
           currentSessionId: sessionId,
+          isTruncated: result.isTruncated,
         });
       } catch {
         if (isCancelled || generation !== userSessionsGenerationRef.current) {
@@ -955,6 +969,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
           kind: kind,
           sessions: [],
           currentSessionId: sessionId,
+          isTruncated: false,
         });
       }
     })();
@@ -1708,14 +1723,12 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     [rumApplicationIdString, sessionId, railTab],
   );
 
-  const adjacentUserSessions: ReplayAdjacentUserSessions = useMemo(
-    (): ReplayAdjacentUserSessions => {
+  const adjacentUserSessions: ReplayAdjacentUserSessions =
+    useMemo((): ReplayAdjacentUserSessions => {
       return userSessions.status === "ready"
         ? findAdjacentUserSessions(userSessions.sessions, sessionId)
         : { newer: null, older: null };
-    },
-    [userSessions, sessionId],
-  );
+    }, [userSessions, sessionId]);
 
   /* "{" and "}": the same two steps the header's arrow buttons take. */
   const openOlderUserSession: () => void = useCallback((): void => {

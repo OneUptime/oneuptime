@@ -9,6 +9,7 @@ const artifacts: string = path.resolve(
 const applicationRoute: string =
   "/dashboard/10000000-0000-4000-8000-000000000001/rum/20000000-0000-4000-8000-000000000001";
 const listRoute: string = `${applicationRoute}/session-replay`;
+const usersRoute: string = `${applicationRoute}/session-replay-users`;
 const playerRoute: string = `${listRoute}/${"a".repeat(32)}`;
 interface FixtureRequest {
   route: string;
@@ -132,9 +133,13 @@ test("uses the shared table and groups replay navigation in its own category", a
     .locator("..");
   await expect(section.getByRole("link")).toHaveText([
     "Session Replay",
+    "Replay Users",
     "Replay Policy",
     "Replay Access Log",
   ]);
+  await expect(
+    section.getByRole("link", { name: "Replay Users" }),
+  ).toHaveAttribute("href", usersRoute);
   await expect(
     section.getByRole("link", { name: "Replay Policy" }),
   ).toHaveAttribute("href", `${applicationRoute}/session-replay-settings`);
@@ -155,6 +160,46 @@ test("uses the shared table and groups replay navigation in its own category", a
   await expect(
     section.getByRole("button", { name: "Session Replay", exact: true }),
   ).toHaveAttribute("aria-expanded", "true");
+});
+
+test("the users page rolls the window up by person and hands one person to the list", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.goto(usersRoute);
+  await expect(
+    page.locator('[data-testid="session-user-row"]:visible').first(),
+  ).toBeVisible();
+  await expect(page.getByTestId("session-search-input")).toHaveCount(0);
+  await expect(
+    page.getByRole("columnheader", { name: "Last seen", exact: true }),
+  ).toBeVisible();
+  await noHorizontalOverflow(page);
+  await screenshot(page, "session-replay-users");
+  /*
+   * A visitor row: its id crosses as visitor= and the request sends it
+   * back as visitorId, the one hand-off with nothing to look up on the
+   * way (an identified row's parked label is swapped in as the list
+   * mounts; its userKey= stays in the URL, see the list's unit tests).
+   */
+  await page
+    .locator('[data-testid="session-user-row"][data-group-key^="v:"]')
+    .first()
+    .getByTestId("session-user-view-sessions")
+    .click();
+  await expect(page).toHaveURL(/session-replay\?(.*&)?visitor=[0-9a-f]{32}/);
+  await expect(rows(page).first()).toBeVisible();
+  const request: Record<string, unknown> = await lastListRequest(page);
+  const filters: Record<string, unknown> = request["filters"] as Record<
+    string,
+    unknown
+  >;
+  expect(typeof filters["visitorId"]).toBe("string");
+  expect(filters["identifiedUserRef"]).toBeUndefined();
+  await page.getByRole("button", { name: "Users", exact: true }).click();
+  /* The default window crosses as absence: the bare route, no query. */
+  await expect(page).toHaveURL(new RegExp(`${usersRoute}$`));
 });
 
 test("combines facets, synchronizes URL and clears filters across the entire result", async ({

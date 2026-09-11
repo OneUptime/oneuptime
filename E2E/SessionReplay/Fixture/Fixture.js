@@ -13,6 +13,7 @@ import { initReactI18next } from "react-i18next";
 import Layout from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Layout";
 import Recordings from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplay";
 import Recording from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayView";
+import ReplayUsers from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayUsers";
 import Documentation from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Documentation";
 import ReplayPolicy from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplaySettings";
 import ReplayAccessLog from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayAudit";
@@ -79,7 +80,7 @@ ModelAPI.getList = async () => ({ data: [], count: 0, skip: 0, limit: 50 });
 ModelAPI.getCount = async () => 0;
 ModelAPI.updateById = async () => app;
 // One visitor id per browser; the two anonymous rows share one so the list
-// and the Users view can show "the same browser came back".
+// and the Users page can show "the same browser came back".
 const visitorIds = [
   "7f3a2b1c9d8e4f5a6b7c8d9e0f1a2b3c",
   "1a2b3c4d5e6f708192a3b4c5d6e7f809",
@@ -661,6 +662,7 @@ createRoot(document.getElementById("root")).render(
       <Route path="/dashboard/:projectId/rum/:id" element={<FixtureLayout />}>
         <Route path="session-replay" element={<Recordings />} />
         <Route path="session-replay/:subModelId" element={<Recording />} />
+        <Route path="session-replay-users" element={<ReplayUsers />} />
         <Route path="documentation" element={<Documentation />} />
         <Route path="session-replay-settings" element={<ReplayPolicy />} />
         <Route path="session-replay-audit" element={<ReplayAccessLog />} />
