@@ -336,8 +336,10 @@ describe("AI insight detail — triage activity", () => {
       jest.advanceTimersByTime(POLL_INTERVAL_MS * 4);
     });
 
-    // The same mounted page has settled: completion stops both polling and
-    // repeated insight refetches, and the old steps never reappear.
+    /*
+     * The same mounted page has settled: completion stops both polling and
+     * repeated insight refetches, and the old steps never reappear.
+     */
     expect(postMock).toHaveBeenCalledTimes(2);
     expect(getItemMock).toHaveBeenCalledTimes(2);
     expect(screen.getByText(RCA)).toBeVisible();
