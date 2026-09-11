@@ -8,6 +8,7 @@ import {
 } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import getToggleAccessibilityProps from "../utils/getToggleAccessibilityProps";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import ScreenIntro from "../components/ScreenIntro";
 import { useHaptics } from "../hooks/useHaptics";
@@ -221,263 +222,243 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
       >
         <ScreenIntro
           title={prefilledWindow ? "Cover this shift" : "Arrange coverage"}
-          description="Choose a teammate and a time window. Review where pages will go before confirming."
+          description="A clear handoff, for exactly as long as you need."
         />
-        {prefilledWindow ? (
-          <View
-            testID="prefilled-shift"
-            style={{
-              padding: 16,
-              borderRadius: 16,
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.oncallActive + "55",
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 13,
-                fontWeight: "600",
-                letterSpacing: 0.6,
-                textTransform: "uppercase",
-                color: theme.colors.textTertiary,
-              }}
-            >
-              Cover for my shift
-            </Text>
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: "600",
-                marginTop: 6,
-                color: theme.colors.textPrimary,
-              }}
-              numberOfLines={2}
-            >
-              {prefill?.scheduleName ?? "On-call shift"}
-            </Text>
-            <Text
-              style={{
-                fontSize: 15,
-                lineHeight: 22,
-                marginTop: 4,
-                color: theme.colors.textSecondary,
-              }}
-            >
-              {formatShiftWindow(
-                prefilledWindow.startsAt.toISOString(),
-                prefilledWindow.endsAt.toISOString(),
-              ) ?? ""}
-            </Text>
-          </View>
-        ) : (
-          <View>
-            <SectionHeader
-              title="1. Choose the direction"
-              iconName="swap-horizontal-outline"
-            />
-            <SegmentedControl<OverrideDirection>
-              style={{ marginHorizontal: 0, marginTop: 0 }}
-              segments={[
-                { key: "cover-me", label: "Cover for me" },
-                { key: "take-over", label: "I'll take over" },
-              ]}
-              selected={direction}
-              onSelect={(key: OverrideDirection) => {
-                selectionFeedback();
-                setDirection(key);
-                setError(null);
-              }}
-            />
-          </View>
-        )}
-
         <View
           style={{
-            marginTop: 20,
-            flexDirection: "row",
-            gap: 8,
-            alignItems: "center",
+            backgroundColor: theme.colors.backgroundElevated,
+            borderRadius: 22,
+            padding: 18,
           }}
         >
-          <Ionicons
-            name="folder-open-outline"
-            size={16}
-            color={theme.colors.textSecondary}
-          />
-          <Text
-            testID="coverage-project-name"
-            style={{ fontSize: 14, color: theme.colors.textSecondary, flex: 1 }}
-          >
-            {projectList[0]?.name ?? "No project available"}
-          </Text>
-        </View>
-
-        <View style={{ marginTop: 24 }}>
-          <SectionHeader
-            title={
-              prefilledWindow
-                ? "Who will cover this shift?"
-                : direction === "cover-me"
-                  ? "2. Who will cover for you?"
-                  : "2. Who are you covering for?"
-            }
-            iconName="person-outline"
-          />
-          <Pressable
-            testID="open-user-picker"
-            accessibilityRole="button"
-            accessibilityLabel={
-              counterpart
-                ? `Selected ${counterpartName}. Tap to change.`
-                : "Choose a teammate"
-            }
-            onPress={() => {
-              setIsPickerOpen(true);
-            }}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              paddingVertical: 16,
-              paddingHorizontal: 16,
-              minHeight: 64,
-              borderRadius: 16,
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderGlass,
-            }}
-          >
-            <Ionicons
-              name="person-circle-outline"
-              size={28}
-              color={theme.colors.actionPrimary}
-            />
-            <Text
-              style={{
-                flex: 1,
-                fontSize: 16,
-                fontWeight: counterpart ? "600" : "400",
-                marginLeft: 10,
-                color: counterpart
-                  ? theme.colors.textPrimary
-                  : theme.colors.textTertiary,
-              }}
-              numberOfLines={2}
-            >
-              {counterpart ? counterpartName : "Choose a teammate"}
-            </Text>
-            <Ionicons
-              name="chevron-forward"
-              size={14}
-              color={theme.colors.textTertiary}
-            />
-          </Pressable>
-        </View>
-
-        {prefilledWindow ? null : (
-          <View style={{ marginTop: 24 }}>
-            <SectionHeader
-              title="3. How long do you need?"
-              iconName="time-outline"
-            />
-            <Text
-              style={{
-                fontSize: 14,
-                color: theme.colors.textSecondary,
-                lineHeight: 21,
-                marginBottom: 12,
-              }}
-            >
-              Coverage starts as soon as you confirm. Your usual routing resumes
-              automatically when it ends.
-            </Text>
+          {prefilledWindow ? (
             <View
+              testID="prefilled-shift"
+              style={{
+                paddingBottom: 22,
+                borderBottomWidth: 1,
+                borderBottomColor: theme.colors.borderSubtle,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  lineHeight: 21,
+                  color: theme.colors.textSecondary,
+                }}
+              >
+                Cover for my shift
+              </Text>
+              <Text
+                style={{
+                  fontSize: 20,
+                  lineHeight: 28,
+                  fontWeight: "600",
+                  marginTop: 6,
+                  color: theme.colors.textPrimary,
+                }}
+              >
+                {prefill?.scheduleName ?? "On-call shift"}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 15,
+                  lineHeight: 22,
+                  marginTop: 6,
+                  color: theme.colors.textSecondary,
+                }}
+              >
+                {formatShiftWindow(
+                  prefilledWindow.startsAt.toISOString(),
+                  prefilledWindow.endsAt.toISOString(),
+                ) ?? ""}
+              </Text>
+            </View>
+          ) : (
+            <View>
+              <SectionHeader title="Coverage type" />
+              <SegmentedControl<OverrideDirection>
+                style={{ marginHorizontal: 0, marginTop: 0 }}
+                segments={[
+                  { key: "cover-me", label: "Cover for me" },
+                  { key: "take-over", label: "I'll take over" },
+                ]}
+                selected={direction}
+                onSelect={(key: OverrideDirection) => {
+                  selectionFeedback();
+                  setDirection(key);
+                  setError(null);
+                }}
+              />
+            </View>
+          )}
+          <View style={{ marginTop: 26 }}>
+            <SectionHeader
+              title={
+                prefilledWindow
+                  ? "Who will cover this shift?"
+                  : direction === "cover-me"
+                    ? "Who will cover for you?"
+                    : "Who are you covering for?"
+              }
+            />
+            <Pressable
+              testID="open-user-picker"
+              accessibilityRole="button"
+              accessibilityLabel={
+                counterpart
+                  ? `Selected ${counterpartName}. Tap to change.`
+                  : "Choose a teammate"
+              }
+              onPress={() => {
+                setIsPickerOpen(true);
+              }}
               style={{
                 flexDirection: "row",
-                flexWrap: "wrap",
-                gap: 8,
+                alignItems: "center",
+                paddingVertical: 14,
+                gap: 12,
+                minHeight: 64,
+                borderBottomWidth: 1,
+                borderBottomColor: theme.colors.borderDefault,
               }}
             >
-              {DURATION_PRESETS.map(
-                (preset: { label: string; hours: number }) => {
-                  const isSelected: boolean = preset.hours === durationHours;
-
-                  return (
-                    <Pressable
-                      key={preset.hours}
-                      testID={`duration-${preset.hours}`}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Override lasts ${preset.label}`}
-                      accessibilityState={{ selected: isSelected }}
-                      onPress={() => {
-                        selectionFeedback();
-                        setDurationHours(preset.hours);
-                        setError(null);
-                      }}
-                      style={{
-                        paddingVertical: 10,
-                        paddingHorizontal: 16,
-                        minHeight: 48,
-                        minWidth: 72,
-                        alignItems: "center",
-                        justifyContent: "center",
-                        borderRadius: 12,
-                        backgroundColor: isSelected
-                          ? theme.colors.iconBackground
-                          : theme.colors.backgroundElevated,
-                        borderWidth: 1,
-                        borderColor: isSelected
-                          ? theme.colors.actionPrimary
-                          : theme.colors.borderGlass,
-                      }}
-                    >
-                      <Text
+              <View
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 19,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: theme.colors.iconBackground,
+                }}
+              >
+                <Ionicons
+                  name="person-outline"
+                  size={19}
+                  color={theme.colors.actionPrimary}
+                />
+              </View>
+              <View style={{ flex: 1, gap: 3 }}>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    lineHeight: 23,
+                    fontWeight: "600",
+                    color: counterpart
+                      ? theme.colors.textPrimary
+                      : theme.colors.actionPrimary,
+                  }}
+                >
+                  {counterpart ? counterpartName : "Choose a teammate"}
+                </Text>
+                <Text
+                  testID="coverage-project-name"
+                  style={{
+                    fontSize: 13,
+                    lineHeight: 20,
+                    color: theme.colors.textSecondary,
+                  }}
+                >
+                  {projectList[0]?.name ?? "No project available"}
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={17}
+                color={theme.colors.textTertiary}
+              />
+            </Pressable>
+          </View>
+          {!prefilledWindow ? (
+            <View style={{ marginTop: 26 }}>
+              <SectionHeader title="How long?" />
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {DURATION_PRESETS.map(
+                  (preset: { label: string; hours: number }) => {
+                    const isSelected: boolean = preset.hours === durationHours;
+                    return (
+                      <Pressable
+                        key={preset.hours}
+                        testID={`duration-${preset.hours}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Override lasts ${preset.label}`}
+                        {...getToggleAccessibilityProps(isSelected)}
+                        onPress={() => {
+                          selectionFeedback();
+                          setDurationHours(preset.hours);
+                          setError(null);
+                        }}
                         style={{
-                          fontSize: 15,
-                          fontWeight: "600",
-                          color: isSelected
-                            ? theme.colors.actionPrimary
-                            : theme.colors.textSecondary,
+                          flexGrow: 1,
+                          flexBasis: "28%",
+                          paddingVertical: 12,
+                          paddingHorizontal: 8,
+                          minHeight: 48,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          borderRadius: 12,
+                          backgroundColor: isSelected
+                            ? theme.colors.textPrimary
+                            : theme.colors.backgroundPrimary,
                         }}
                       >
-                        {preset.label}
-                      </Text>
-                    </Pressable>
-                  );
-                },
-              )}
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            lineHeight: 21,
+                            fontWeight: "600",
+                            color: isSelected
+                              ? theme.colors.textInverse
+                              : theme.colors.textSecondary,
+                          }}
+                        >
+                          {preset.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  },
+                )}
+              </View>
+              <Text
+                style={{
+                  fontSize: 14,
+                  lineHeight: 22,
+                  color: theme.colors.textSecondary,
+                  marginTop: 14,
+                }}
+              >
+                Starts when you confirm. Your usual routing resumes
+                automatically when coverage ends.
+              </Text>
             </View>
-          </View>
-        )}
-
+          ) : null}
+        </View>
         <View
           testID="override-preview"
           style={{
-            marginTop: 24,
-            padding: 20,
-            borderRadius: 16,
-            backgroundColor: theme.colors.iconBackground,
-            borderWidth: 1,
-            borderColor: theme.colors.actionPrimary + "55",
+            marginTop: 28,
+            paddingBottom: 24,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.colors.borderSubtle,
           }}
         >
           <Text
             style={{
-              fontSize: 13,
+              fontSize: 14,
+              lineHeight: 21,
               fontWeight: "600",
-              letterSpacing: 0.6,
-              textTransform: "uppercase",
-              color: theme.colors.textTertiary,
+              color: theme.colors.textSecondary,
             }}
           >
             Review your coverage
           </Text>
           <Text
             style={{
-              fontSize: 17,
+              fontSize: 18,
+              lineHeight: 27,
               fontWeight: "600",
-              lineHeight: 25,
-              marginTop: 10,
+              marginTop: 8,
               color: theme.colors.textPrimary,
             }}
           >
@@ -487,38 +468,32 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
             <Text
               style={{
                 fontSize: 14,
-                lineHeight: 21,
-                marginTop: 6,
+                lineHeight: 22,
+                marginTop: 8,
                 color: theme.colors.textSecondary,
               }}
             >
               {startsNow
                 ? `Starts now, ends ${endsAtLabel}.`
-                : `Starts ${
-                    formatShiftTime(
-                      prefilledWindow?.startsAt.toISOString() ?? null,
-                    ) ?? "with the shift"
-                  }, ends ${endsAtLabel}.`}
+                : `Starts ${formatShiftTime(prefilledWindow?.startsAt.toISOString() ?? null) ?? "with the shift"}, ends ${endsAtLabel}.`}
             </Text>
           ) : null}
         </View>
-
         {error ? (
           <View
             testID="override-error"
+            accessibilityRole="alert"
             style={{
-              marginTop: 16,
-              padding: 14,
+              marginTop: 18,
+              padding: 16,
               borderRadius: 14,
               backgroundColor: theme.colors.statusErrorBg,
-              borderWidth: 1,
-              borderColor: theme.colors.statusError + "33",
             }}
           >
             <Text
               style={{
-                fontSize: 13,
-                lineHeight: 19,
+                fontSize: 14,
+                lineHeight: 22,
                 color: theme.colors.statusError,
               }}
             >
@@ -526,17 +501,14 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
             </Text>
           </View>
         ) : null}
-
         <GradientButton
           testID="submit-override"
           label="Confirm coverage"
-          icon="swap-horizontal-outline"
           loading={overrides.isCreating}
           onPress={onSubmit}
           style={{ marginTop: 24 }}
         />
       </ScrollView>
-
       <UserPickerModal
         visible={isPickerOpen}
         title={

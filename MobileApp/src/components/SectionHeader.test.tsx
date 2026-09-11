@@ -90,14 +90,14 @@ describe("What the header shows", () => {
     expect(screen.queryByText(glyphFor("time-outline"))).toBeNull();
   });
 
-  test("the icon is drawn in the accent colour, so the row reads as a heading", async () => {
+  test("decorative heading icons stay neutral so blue identifies actions", async () => {
     await render(<SectionHeader title="Details" iconName="time-outline" />);
 
     const icon: RenderedElement = screen.getByText(glyphFor("time-outline"));
     const iconStyles: Array<Record<string, unknown>> = icon.props
       .style as Array<Record<string, unknown>>;
 
-    expect(iconStyles[0].color).toBe(darkColors.actionPrimary);
+    expect(iconStyles[0].color).toBe(darkColors.textTertiary);
   });
 
   test("a title of one word, or of many, is rendered whole", async () => {

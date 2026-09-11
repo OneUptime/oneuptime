@@ -18,6 +18,7 @@ import {
 } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import getToggleAccessibilityProps from "../utils/getToggleAccessibilityProps";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import ScreenIntro from "../components/ScreenIntro";
 import SearchField from "../components/SearchField";
@@ -32,7 +33,6 @@ import EpisodeCard from "../components/EpisodeCard";
 import SwipeableCard from "../components/SwipeableCard";
 import SkeletonCard from "../components/SkeletonCard";
 import EmptyState from "../components/EmptyState";
-import SegmentedControl from "../components/SegmentedControl";
 import type { IncidentsStackParamList } from "../navigation/types";
 import type {
   IncidentState,
@@ -92,6 +92,7 @@ function SectionHeader({
         style={{ marginRight: 6 }}
       />
       <Text
+        accessibilityRole="header"
         style={{
           fontSize: 15,
           fontWeight: "600",
@@ -130,7 +131,13 @@ function SectionHeader({
   );
 }
 
-export default function IncidentsScreen(): React.JSX.Element {
+interface IncidentsScreenProps {
+  embedded?: boolean;
+}
+
+export default function IncidentsScreen({
+  embedded = false,
+}: IncidentsScreenProps = {}): React.JSX.Element {
   const { theme } = useTheme();
   const bottomPadding: number = useScreenPadding();
   const [search, setSearch] = useState("");
@@ -145,7 +152,13 @@ export default function IncidentsScreen(): React.JSX.Element {
   const [visibleEpisodeCount, setVisibleEpisodeCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
-    if (route.params?.initialSegment) {
+    if (route.params?.initialSegment || route.params?.initialFilter) {
+      setSearch("");
+    }
+    if (
+      route.params?.initialSegment === "incidents" ||
+      route.params?.initialSegment === "episodes"
+    ) {
       setSegment(route.params.initialSegment);
       setVisibleCount(PAGE_SIZE);
       setVisibleEpisodeCount(PAGE_SIZE);
@@ -389,30 +402,71 @@ export default function IncidentsScreen(): React.JSX.Element {
     setVisibleEpisodeCount(PAGE_SIZE);
   };
   const listHeader: React.JSX.Element = (
-    <View style={{ marginBottom: 24 }}>
-      <ScreenIntro
-        compact
-        title="Incident inbox"
-        description={
-          segment === "incidents"
-            ? "Triage and respond to incidents."
-            : "Respond to related incidents together."
-        }
-      />
-      <View style={{ marginHorizontal: 0 }}>
-        <SegmentedControl
-          style={{ marginHorizontal: 0, marginTop: 0 }}
-          segments={[
-            { key: "incidents" as const, label: "Incidents" },
-            { key: "episodes" as const, label: "Episodes" },
-          ]}
-          selected={segment}
-          onSelect={(next: Segment) => {
-            setSegment(next);
+    <View style={{ marginBottom: 16 }}>
+      {!embedded ? (
+        <ScreenIntro
+          title="Incidents"
+          description="One place to understand what needs your response."
+        />
+      ) : null}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <Text
+          style={{
+            flex: 1,
+            fontSize: 14,
+            lineHeight: 21,
+            color: theme.colors.textSecondary,
+          }}
+        >
+          {segment === "incidents"
+            ? "Individual incidents"
+            : "Related incidents, grouped"}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            segment === "incidents" ? "Episodes" : "Incidents"
+          }
+          accessibilityHint={
+            segment === "incidents"
+              ? "Show related incidents grouped into episodes"
+              : "Show individual incidents"
+          }
+          onPress={() => {
+            setSegment(segment === "incidents" ? "episodes" : "incidents");
             setVisibleCount(PAGE_SIZE);
             setVisibleEpisodeCount(PAGE_SIZE);
           }}
-        />
+          style={{
+            minHeight: 48,
+            paddingHorizontal: 4,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 5,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "600",
+              color: theme.colors.actionPrimary,
+            }}
+          >
+            {segment === "incidents" ? "Episodes" : "Incidents"}
+          </Text>
+          <Ionicons
+            name="swap-horizontal-outline"
+            size={16}
+            color={theme.colors.actionPrimary}
+          />
+        </Pressable>
       </View>
       <View style={{ marginTop: 12 }}>
         <SearchField
@@ -460,7 +514,7 @@ export default function IncidentsScreen(): React.JSX.Element {
             <Pressable
               key={filter.key}
               accessibilityRole="button"
-              accessibilityState={{ selected }}
+              {...getToggleAccessibilityProps(selected)}
               accessibilityLabel={filter.label}
               onPress={() => {
                 setStateFilter(filter.key);
@@ -471,13 +525,9 @@ export default function IncidentsScreen(): React.JSX.Element {
                 minHeight: 48,
                 justifyContent: "center",
                 paddingHorizontal: 14,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: selected
-                  ? theme.colors.actionPrimary
-                  : theme.colors.borderDefault,
+                borderRadius: 24,
                 backgroundColor: selected
-                  ? theme.colors.iconBackground
+                  ? theme.colors.textPrimary
                   : theme.colors.backgroundElevated,
               }}
             >
@@ -486,11 +536,15 @@ export default function IncidentsScreen(): React.JSX.Element {
                   fontSize: 14,
                   fontWeight: "600",
                   color: selected
-                    ? theme.colors.actionPrimary
+                    ? theme.colors.textInverse
                     : theme.colors.textSecondary,
                 }}
               >
-                {filter.label}
+                {filter.key === "all"
+                  ? "All"
+                  : filter.key === "active"
+                    ? "Active"
+                    : "Resolved"}
               </Text>
             </Pressable>
           );
@@ -615,7 +669,7 @@ export default function IncidentsScreen(): React.JSX.Element {
                     acknowledgeState._id
                     ? {
                         label: "Acknowledge",
-                        color: "#22C55E",
+                        color: theme.colors.stateResolved,
                         onAction: () => {
                           return handleAcknowledge(wrapped);
                         },

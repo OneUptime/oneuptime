@@ -14,6 +14,7 @@ import { useTheme } from "../theme";
 import type { ProjectUserItem } from "../api/types";
 import SearchField from "./SearchField";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import getToggleAccessibilityProps from "../utils/getToggleAccessibilityProps";
 
 interface UserPickerModalProps {
   visible: boolean;
@@ -125,6 +126,9 @@ export default function UserPickerModal({
             <Text
               accessibilityRole="header"
               style={{
+                flex: 1,
+                minWidth: 0,
+                marginRight: 12,
                 fontSize: 18,
                 fontWeight: "bold",
                 letterSpacing: -0.4,
@@ -140,6 +144,7 @@ export default function UserPickerModal({
               style={{
                 minWidth: 48,
                 minHeight: 48,
+                flexShrink: 0,
                 alignItems: "center",
                 justifyContent: "center",
               }}
@@ -193,14 +198,18 @@ export default function UserPickerModal({
                     key={user.userId}
                     testID={`user-option-${user.userId}`}
                     accessibilityRole="button"
-                    accessibilityState={{ selected: isSelected }}
+                    {...getToggleAccessibilityProps(isSelected)}
                     accessibilityLabel={`Select ${user.name || user.email}`}
+                    accessibilityHint={
+                      user.name && user.email ? user.email : undefined
+                    }
                     onPress={() => {
                       onSelect(user);
                     }}
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
+                      minHeight: 56,
                       paddingVertical: 14,
                       paddingHorizontal: 14,
                       borderRadius: 14,
@@ -214,25 +223,27 @@ export default function UserPickerModal({
                         : theme.colors.borderSubtle,
                     }}
                   >
-                    <View style={{ flex: 1 }}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
                       <Text
                         style={{
-                          fontSize: 14,
+                          fontSize: 15,
+                          lineHeight: 22,
                           fontWeight: "600",
                           color: theme.colors.textPrimary,
                         }}
-                        numberOfLines={1}
+                        numberOfLines={2}
                       >
                         {user.name || user.email}
                       </Text>
                       {user.name && user.email ? (
                         <Text
                           style={{
-                            fontSize: 12,
+                            fontSize: 13,
+                            lineHeight: 20,
                             marginTop: 2,
                             color: theme.colors.textTertiary,
                           }}
-                          numberOfLines={1}
+                          numberOfLines={2}
                         >
                           {user.email}
                         </Text>

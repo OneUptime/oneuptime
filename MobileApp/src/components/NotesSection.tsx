@@ -16,7 +16,7 @@ export default function NotesSection({
   setNoteModalVisible,
 }: NotesSectionProps): React.JSX.Element {
   const { theme } = useTheme();
-  const addNoteContentColor: string = theme.colors.backgroundPrimary;
+  const addNoteContentColor: string = theme.colors.actionPrimary;
 
   return (
     <View style={{ marginBottom: 8, marginTop: 4 }}>
@@ -25,6 +25,8 @@ export default function NotesSection({
           flexDirection: "row",
           justifyContent: "space-between",
           alignItems: "center",
+          flexWrap: "wrap",
+          gap: 8,
           marginBottom: 14,
         }}
       >
@@ -58,7 +60,7 @@ export default function NotesSection({
               borderRadius: 8,
               paddingHorizontal: 12,
               paddingVertical: 6,
-              backgroundColor: theme.colors.actionPrimary,
+              backgroundColor: theme.colors.cardAccent,
               opacity: pressed ? 0.85 : 1,
             };
           }}
@@ -93,17 +95,18 @@ export default function NotesSection({
               <View
                 key={note._id || `${note.createdAt}-${index}`}
                 style={{
-                  borderRadius: 16,
+                  borderRadius: 12,
                   overflow: "hidden",
                   marginBottom: 10,
                   backgroundColor: theme.colors.backgroundElevated,
-                  borderWidth: 1,
+                  borderWidth: 0,
+                  borderLeftWidth: 3,
                   borderColor: theme.colors.borderGlass,
                   shadowColor: "#000",
-                  shadowOpacity: 0.16,
+                  shadowOpacity: 0,
                   shadowOffset: { width: 0, height: 5 },
                   shadowRadius: 10,
-                  elevation: 3,
+                  elevation: 0,
                 }}
               >
                 <View style={{ padding: 16 }}>
@@ -120,6 +123,8 @@ export default function NotesSection({
                     style={{
                       flexDirection: "row",
                       justifyContent: "space-between",
+                      flexWrap: "wrap",
+                      gap: 4,
                       marginTop: 10,
                     }}
                   >

@@ -123,16 +123,30 @@ describe("OnCallPageCard status", () => {
     expect(screen.getByText("Failed to notify")).toBeTruthy();
   });
 
-  test("shows the project and policy that paged you", async (): Promise<void> => {
-    await render(<OnCallPageCard page={page()} />);
-
-    expect(screen.getByText("Acme · Database")).toBeTruthy();
+  test("an acknowledged response remains acknowledged even when a delivery attempt failed", async (): Promise<void> => {
+    await render(
+      <OnCallPageCard
+        page={page({
+          status: "Error",
+          acknowledgedAt: new Date().toISOString(),
+        })}
+      />,
+    );
+    expect(screen.getByText("Acknowledged")).toBeTruthy();
+    expect(screen.queryByText("Failed to notify")).toBeNull();
   });
 
-  test("falls back to just the project when the policy is unknown", async (): Promise<void> => {
+  test("shows the policy without repeating the selected project", async (): Promise<void> => {
+    await render(<OnCallPageCard page={page()} />);
+
+    expect(screen.getByText("Database")).toBeTruthy();
+    expect(screen.queryByText("Acme")).toBeNull();
+  });
+
+  test("says when the policy context is unavailable", async (): Promise<void> => {
     await render(<OnCallPageCard page={page({ policyName: undefined })} />);
 
-    expect(screen.getByText("Acme")).toBeTruthy();
+    expect(screen.getByText("On-call policy unavailable")).toBeTruthy();
   });
 });
 

@@ -52,7 +52,7 @@ test("compact login branding avoids a repeated wordmark without reducing safe-ar
     </SafeAreaInsetsContext.Provider>,
   );
   expect(screen.queryByText("ONEUPTIME")).toBeNull();
-  expect(screen.getByTestId("auth-brand").props.style.marginBottom).toBe(12);
+  expect(screen.getByTestId("auth-brand").props.style.marginBottom).toBe(24);
   const scroll: ReturnType<typeof screen.getByTestId> =
     screen.getByTestId("auth-scroll");
   expect(scroll.props.contentContainerStyle.paddingTop).toBeGreaterThanOrEqual(

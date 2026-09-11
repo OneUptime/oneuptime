@@ -256,6 +256,17 @@ function activeEpisode(): ProjectIncidentEpisodeItem {
   };
 }
 
+test("embedding in Inbox removes the repeated page title without hiding search or episode navigation", async () => {
+  mockIncidents.current = incidentsWith({ items: [activeIncident()] });
+  await render(<IncidentsScreen embedded />, {
+    wrapper: createQueryWrapper(createTestQueryClient()),
+  });
+  expect(screen.queryByRole("header", { name: "Incidents" })).toBeNull();
+  expect(screen.getByLabelText("Search incidents and episodes")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Episodes" })).toBeTruthy();
+  expect(screen.getByLabelText(ACTIVE_INCIDENT_LABEL)).toBeTruthy();
+});
+
 test("the search limit follows the loaded segment, even when a search has no matches", async () => {
   mockIncidents.current = incidentsWith({
     items: Array.from(
@@ -279,7 +290,7 @@ test("the search limit follows the loaded segment, even when a search has no mat
   expect(
     screen.getByText("Search covers the 100 most recent incidents."),
   ).toBeTruthy();
-  await fireEvent.press(screen.getByRole("tab", { name: "Episodes" }));
+  await fireEvent.press(screen.getByRole("button", { name: "Episodes" }));
   expect(screen.queryByText(/Search covers the 100 most recent/)).toBeNull();
   mockEpisodes.current = episodesWith({
     items: Array.from(
@@ -696,7 +707,7 @@ describe("Active and Resolved are decided by state id, never by state name", () 
     await renderIncidentsScreen();
 
     await waitFor(() => {
-      expect(screen.getByText("Active")).toBeTruthy();
+      expect(screen.getByRole("header", { name: "Active" })).toBeTruthy();
     });
 
     /*
@@ -704,7 +715,7 @@ describe("Active and Resolved are decided by state id, never by state name", () 
      * "Closed out" - so this heading is the screen's own verdict and not a
      * state name echoed back off a card.
      */
-    expect(screen.getByText("Resolved")).toBeTruthy();
+    expect(screen.getByRole("header", { name: "Resolved" })).toBeTruthy();
   });
 
   test("a live incident whose state is merely NAMED Resolved stays actionable", async () => {
@@ -735,7 +746,7 @@ describe("Active and Resolved are decided by state id, never by state name", () 
     await renderIncidentsScreen();
 
     await waitFor(() => {
-      expect(screen.getByText("Active")).toBeTruthy();
+      expect(screen.getByRole("header", { name: "Active" })).toBeTruthy();
     });
 
     expect(screen.getByText("Acknowledge")).toBeTruthy();
@@ -767,10 +778,10 @@ describe("Active and Resolved are decided by state id, never by state name", () 
     await renderIncidentsScreen();
 
     await waitFor(() => {
-      expect(screen.getByText("Resolved")).toBeTruthy();
+      expect(screen.getByRole("header", { name: "Resolved" })).toBeTruthy();
     });
 
-    expect(screen.queryByText("Active")).toBeNull();
+    expect(screen.queryByRole("header", { name: "Active" })).toBeNull();
     /* A resolved row has nothing left to acknowledge. */
     expect(screen.queryByText("Acknowledge")).toBeNull();
   });
@@ -781,10 +792,10 @@ describe("Active and Resolved are decided by state id, never by state name", () 
     await renderIncidentsScreen();
 
     await waitFor(() => {
-      expect(screen.getByText("Active")).toBeTruthy();
+      expect(screen.getByRole("header", { name: "Active" })).toBeTruthy();
     });
 
-    expect(screen.queryByText("Resolved")).toBeNull();
+    expect(screen.queryByRole("header", { name: "Resolved" })).toBeNull();
   });
 
   test("incidents whose project states have not arrived are left active", async () => {
@@ -806,16 +817,16 @@ describe("Active and Resolved are decided by state id, never by state name", () 
     await renderIncidentsScreen();
 
     await waitFor(() => {
-      expect(screen.getByText("Active")).toBeTruthy();
+      expect(screen.getByRole("header", { name: "Active" })).toBeTruthy();
     });
 
-    expect(screen.queryByText("Resolved")).toBeNull();
+    expect(screen.queryByRole("header", { name: "Resolved" })).toBeNull();
     /* With no states known there is no acknowledge state to swipe towards. */
     expect(screen.queryByText("Acknowledge")).toBeNull();
   });
 });
 
-describe("The segmented control switches between incidents and episodes", () => {
+describe("The episode link switches between incidents and episodes", () => {
   beforeEach(() => {
     mockIncidents.current = incidentsWith({ items: [activeIncident()] });
     mockEpisodes.current = episodesWith({ items: [activeEpisode()] });
@@ -856,7 +867,7 @@ describe("The segmented control switches between incidents and episodes", () => 
       expect(screen.getByText("Rolling checkout outage")).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByText("Incidents"));
+    fireEvent.press(screen.getByRole("button", { name: "Incidents" }));
 
     await waitFor(() => {
       expect(screen.getByLabelText(ACTIVE_INCIDENT_LABEL)).toBeTruthy();
@@ -1132,6 +1143,52 @@ describe("Searching and filtering the response inbox", () => {
       screen.getByRole("button", { name: "Active only" }).props
         .accessibilityState.selected,
     ).toBe(true);
+  });
+
+  test.each(["incidents", "episodes"] as const)(
+    "an explicit %s shortcut clears an old search before showing its response queue",
+    async (segment: "incidents" | "episodes") => {
+      const view: Awaited<ReturnType<typeof render>> = await render(
+        <IncidentsScreen />,
+        { wrapper: createQueryWrapper(createTestQueryClient()) },
+      );
+      await fireEvent.changeText(
+        screen.getByLabelText("Search incidents and episodes"),
+        "no matching title",
+      );
+      expect(screen.getByText("No matching incidents")).toBeTruthy();
+      mockRoute.params = { initialSegment: segment, initialFilter: "active" };
+      await view.rerender(<IncidentsScreen />);
+      expect(
+        screen.getByLabelText("Search incidents and episodes").props.value,
+      ).toBe("");
+      expect(
+        screen.getByRole("button", { name: "Active only" }).props
+          .accessibilityState.selected,
+      ).toBe(true);
+      if (segment === "incidents") {
+        expect(screen.getByLabelText(ACTIVE_INCIDENT_LABEL)).toBeTruthy();
+      } else {
+        expect(screen.getByText("Rolling checkout outage")).toBeTruthy();
+      }
+    },
+  );
+
+  test("a normal rerender with unchanged route params preserves the reader's search", async () => {
+    mockRoute.params = { initialSegment: "incidents", initialFilter: "active" };
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      <IncidentsScreen />,
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("Search incidents and episodes"),
+      "no matching title",
+    );
+    await view.rerender(<IncidentsScreen />);
+    expect(
+      screen.getByLabelText("Search incidents and episodes").props.value,
+    ).toBe("no matching title");
+    expect(screen.getByText("No matching incidents")).toBeTruthy();
   });
 
   test("inbox, episode and empty results keep enough bottom space for the navigation", async () => {

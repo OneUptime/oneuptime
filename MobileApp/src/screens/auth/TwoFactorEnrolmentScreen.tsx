@@ -150,9 +150,10 @@ export default function TwoFactorEnrolmentScreen(): React.JSX.Element {
 
   return (
     <AuthLayout
-      title="Set Up Two Factor Authentication"
-      eyebrow="SECURE YOUR ACCOUNT"
-      description="Your administrator requires two factor authentication on this account. Set it up now to finish signing in."
+      title="Protect your account"
+      eyebrow="TWO-FACTOR SETUP"
+      compact
+      description="Set up an authenticator in two steps to finish signing in securely."
     >
       <AuthStep
         number={1}
@@ -218,7 +219,14 @@ export default function TwoFactorEnrolmentScreen(): React.JSX.Element {
         </View>
       ) : null}
 
-      <View style={{ marginTop: 24 }}>
+      <View
+        style={{
+          marginTop: 24,
+          paddingTop: 16,
+          borderTopWidth: 1,
+          borderTopColor: theme.colors.borderSubtle,
+        }}
+      >
         <AuthStep
           number={2}
           title="Confirm the setup"
@@ -259,7 +267,8 @@ export default function TwoFactorEnrolmentScreen(): React.JSX.Element {
             style={{
               flex: 1,
               minWidth: 0,
-              fontSize: 16,
+              fontSize: 24,
+              letterSpacing: 5,
               color: theme.colors.textPrimary,
             }}
             value={code}

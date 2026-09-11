@@ -1,9 +1,22 @@
 # Mobile UI and visual testing
 
-The mobile app uses a shared navy theme, clearer page introductions, larger
-controls and readable cards. Home surfaces current work; the main tabs open
-monitors, incidents, alerts, on-call and settings. Search, filters, empty states
-and recovery actions use consistent controls.
+The mobile app uses a light, paper-and-ink design: soft white surfaces, graphite
+text, cobalt actions, compact information rows and clear editorial headings.
+The five destinations are **Home, Monitors, Inbox, On-Call and Settings**. Inbox
+unifies incidents and alerts with explicit categories; grouped episodes remain
+one tap away. Home prioritizes active work, then duty status and service health.
+Detail pages lead with the resource title and response actions, followed by
+full-width sections instead of nested cards.
+
+Sign-in leads with email and password; passkeys and team SSO are secondary
+choices. Recovery screens explain the next step, Settings separates account
+and workspace controls, and the on-call hub prioritizes handoff times and
+coverage. Private calendar URLs are concealed until explicitly revealed;
+copy/share controls keep the credential warning visible. The native launch
+screen uses the same light background and the existing official wordmark.
+Regenerate its transparent raster asset with
+`node scripts/generate-launch-asset.js` after installing Playwright Chromium;
+the generator reuses the repository's brand SVG without new dependencies.
 
 The project name in the header is the global switcher. Operational screens use
 `useActiveProject`; only the switcher and project management use the complete
@@ -22,8 +35,11 @@ server totals, so they can exceed the matching rows in these recent lists.
 
 - Use `ScreenIntro` for a page's title and short guidance, and `SearchField` for
   searchable lists.
-- Use 20-point page gutters, 16-point card corners, readable body text and
-  controls at least 48 points tall.
+- Use 20-point page gutters, 12–20-point grouped-surface corners, readable body
+  text and controls at least 48 points tall (54 for response actions).
+- Prefer divider-separated sections and compact rows to repeated boxed panels.
+  Blue identifies actions, while state labels and small markers convey status.
+  Text, action labels and semantic status tints have 4.5:1 contrast tests.
 - Use `useScreenPadding()` on scrollable pages, including the nested coverage
   modal. It includes the 72-point navigation bar, the greater of the bottom safe
   area or a 12-point gap, and another 40 points after the content. The minimum
@@ -54,6 +70,10 @@ Project isolation tests cover selected-tenant requests, cache changes during a
 switch, inaccessible SSO projects, and rejection of coverage mutations for a
 different project. Screen tests cover navigation, filtering, truthful loading
 and error states, and bottom clearance.
+
+Inbox integration tests also cover cold notification entry, category-correct
+Back navigation from individual and grouped resources, and Home shortcuts
+replacing previous filters without leaving a stale search or stacking lists.
 
 ## Browser journeys and screenshots
 
@@ -86,7 +106,8 @@ UPDATE_SCREENSHOTS=1 npm run test-ui -- --project=iphone-size
 
 Images are written to `docs/screenshots/<viewport>-<screen>.png`. Normal runs
 write images to Playwright's test output and attach them to its report. Captures
-wait for content and fonts; journeys also assert navigation, tenant headers and
+wait for content, fonts and navigation transitions; journeys also assert
+navigation, tenant headers, private-link visibility, touch-target dimensions and
 that the last controls can be reached above the bottom bar. To inspect failures:
 
 ```bash

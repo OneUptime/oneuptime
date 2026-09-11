@@ -129,7 +129,7 @@ describe("What the locked screen says", () => {
   test("it states that the app is locked", async () => {
     await renderLockScreen(jest.fn());
 
-    expect(screen.getByText("OneUptime is Locked")).toBeTruthy();
+    expect(screen.getByText("Unlock your workspace")).toBeTruthy();
   });
 
   test("Face ID reaches the instruction", async () => {
@@ -330,7 +330,7 @@ describe("An authentication that does not succeed", () => {
     await renderLockScreen(jest.fn());
     await settleAuthentication();
 
-    expect(screen.getByText("OneUptime is Locked")).toBeTruthy();
+    expect(screen.getByText("Unlock your workspace")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Unlock" })).toBeTruthy();
   });
 

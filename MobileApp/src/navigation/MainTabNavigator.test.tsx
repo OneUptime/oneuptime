@@ -39,9 +39,9 @@ jest.mock("../components/ProjectSwitcher", () => {
 });
 
 /*
- * The tab bar is the only way into five of the six things this app does, so
+ * The tab bar is the direct way into the app's five destinations, so
  * the questions worth asking of it are the ones a responder would ask at 3am:
- * can I find Incidents, and does pressing it get me there.
+ * can I find Inbox, and does pressing it get me there.
  *
  * Every screen behind a tab is stubbed. What is under test is the navigator's
  * own configuration - which routes exist, what they are called, what the
@@ -93,7 +93,7 @@ jest.mock("./MonitorsStackNavigator", () => {
   };
 });
 
-jest.mock("./IncidentsStackNavigator", () => {
+jest.mock("./InboxStackNavigator", () => {
   const ReactModule: typeof React = jest.requireActual("react");
   const { Text: TextComponent } = jest.requireActual("react-native") as {
     Text: React.ComponentType<Record<string, unknown>>;
@@ -101,29 +101,11 @@ jest.mock("./IncidentsStackNavigator", () => {
 
   return {
     __esModule: true,
-    default: function IncidentsStackStub(): React.JSX.Element {
+    default: function InboxStackStub(): React.JSX.Element {
       return ReactModule.createElement(
         TextComponent,
-        { testID: "screen-incidents" },
-        "incidents",
-      );
-    },
-  };
-});
-
-jest.mock("./AlertsStackNavigator", () => {
-  const ReactModule: typeof React = jest.requireActual("react");
-  const { Text: TextComponent } = jest.requireActual("react-native") as {
-    Text: React.ComponentType<Record<string, unknown>>;
-  };
-
-  return {
-    __esModule: true,
-    default: function AlertsStackStub(): React.JSX.Element {
-      return ReactModule.createElement(
-        TextComponent,
-        { testID: "screen-alerts" },
-        "alerts",
+        { testID: "screen-inbox" },
+        "inbox",
       );
     },
   };
@@ -184,8 +166,7 @@ interface TabExpectation {
 const EVERY_DECLARED_TAB: Record<keyof MainTabParamList, TabExpectation> = {
   Home: { accessibleName: "Home", testID: "screen-home" },
   Monitors: { accessibleName: "Monitors", testID: "screen-monitors" },
-  Incidents: { accessibleName: "Incidents", testID: "screen-incidents" },
-  Alerts: { accessibleName: "Alerts", testID: "screen-alerts" },
+  Inbox: { accessibleName: "Inbox", testID: "screen-inbox" },
   OnCall: { accessibleName: "On-Call", testID: "screen-oncall" },
   Settings: { accessibleName: "Settings", testID: "screen-settings" },
 };
@@ -272,7 +253,7 @@ describe("What the tab bar announces to a screen reader", () => {
     expect(screen.queryByLabelText("OnCall")).toBeNull();
   });
 
-  test("finding Incidents by name and pressing it opens Incidents", async () => {
+  test("finding Inbox by name opens the combined response workspace", async () => {
     /*
      * The name has to be on the control that actually moves, not on some
      * decorative wrapper next to it - so this presses what the label query
@@ -281,10 +262,10 @@ describe("What the tab bar announces to a screen reader", () => {
     const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
       await renderTabs();
 
-    await pressTab("Incidents");
+    await pressTab("Inbox");
 
-    expect(navigationRef.getCurrentRoute()?.name).toBe("Incidents");
-    expect(screen.getByTestId("screen-incidents")).toBeTruthy();
+    expect(navigationRef.getCurrentRoute()?.name).toBe("Inbox");
+    expect(screen.getByTestId("screen-inbox")).toBeTruthy();
   });
 });
 
@@ -316,7 +297,7 @@ describe("The routes the navigator registers", () => {
 
     expect(navigationRef.getCurrentRoute()?.name).toBe("Home");
     expect(screen.getByTestId("screen-home")).toBeTruthy();
-    expect(screen.queryByTestId("screen-incidents")).toBeNull();
+    expect(screen.queryByTestId("screen-inbox")).toBeNull();
   });
 });
 
@@ -329,7 +310,7 @@ describe("The header each tab is given", () => {
 
   test("a tab that owns a stack is left to draw its own header", async () => {
     /*
-     * The five stack tabs set headerShown: false so their nested native stack
+     * The four stack tabs set headerShown: false so their nested native stack
      * can render one header rather than two stacked bars. With the stack
      * stubbed there is nothing left to draw, which is exactly the assertion:
      * the tab navigator contributed no header of its own.
@@ -373,8 +354,9 @@ describe("How wide the device is", () => {
       await renderTabs();
 
       expect(screen.getByText("Monitors")).toBeTruthy();
-      expect(screen.getByText("Incidents")).toBeTruthy();
-      expect(screen.getByText("Alerts")).toBeTruthy();
+      expect(screen.getByText("Inbox")).toBeTruthy();
+      expect(screen.queryByText("Incidents")).toBeNull();
+      expect(screen.queryByText("Alerts")).toBeNull();
       expect(screen.getByText("On-Call")).toBeTruthy();
       expect(screen.getByText("Settings")).toBeTruthy();
       expect(screen.getByLabelText("Monitors")).toBeTruthy();
@@ -396,11 +378,9 @@ describe("The tab bar this platform gets", () => {
     "it clears a %dpt system gesture area and leaves 40pt after the last item",
     async (bottomInset: number) => {
       /*
-       * The bar floats above the content rather than sitting on the bottom edge,
-       * so it has to be lifted past whatever the OS puts down there: the home
-       * indicator on iOS, the shorter navigation area on Android. Collapsing the
-       * two to one number puts the bar under the system's own control on one of
-       * them, and this is the assertion that says which is which.
+       * The white bar extends to the bottom edge, while its controls remain
+       * above the system gesture area. Scroll content reserves the whole bar
+       * plus at least 40 points so the final item is never pinned against it.
        *
        * Platform.OS is inlined by babel-preset-expo per Jest project, so each
        * project checks its own numbers and neither can satisfy the other's.
@@ -410,25 +390,27 @@ describe("The tab bar this platform gets", () => {
 
       const tabBarStyle: ViewStyle = currentTabBarStyle(navigationRef);
 
-      expect(tabBarStyle.bottom).toBe(Math.max(bottomInset, 12));
-      expect(tabBarStyle.height).toBe(72);
-      expect(tabBarStyle.paddingBottom).toBe(8);
+      expect(tabBarStyle.bottom).toBe(0);
+      expect(tabBarStyle.height).toBe(72 + bottomInset);
+      expect(tabBarStyle.paddingBottom).toBe(8 + bottomInset);
       expect(
         getScreenBottomPadding(bottomInset) -
           Number(tabBarStyle.bottom) -
           Number(tabBarStyle.height),
-      ).toBe(40);
+      ).toBeGreaterThanOrEqual(40);
     },
   );
 
-  test("it floats, on both platforms", async () => {
+  test("the full-width bar is anchored to the bottom edge on both platforms", async () => {
     const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
       await renderTabs();
 
     const tabBarStyle: ViewStyle = currentTabBarStyle(navigationRef);
 
     expect(tabBarStyle.position).toBe("absolute");
-    expect(tabBarStyle.left).toBe(8);
-    expect(tabBarStyle.right).toBe(8);
+    expect(tabBarStyle.left).toBe(0);
+    expect(tabBarStyle.right).toBe(0);
+    expect(tabBarStyle.borderTopWidth).toBe(1);
+    expect(tabBarStyle.borderRadius).toBeUndefined();
   });
 });

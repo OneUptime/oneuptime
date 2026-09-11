@@ -1,6 +1,11 @@
 import React from "react";
 import { Alert, type AlertButton } from "react-native";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import SettingsScreen from "./SettingsScreen";
 
@@ -19,7 +24,10 @@ jest.mock("@react-navigation/native", () => {
 jest.mock("../hooks/useAuth", () => {
   return {
     useAuth: () => {
-      return { logout: mockLogout };
+      return {
+        logout: mockLogout,
+        user: { name: "Alex Morgan", email: "alex@example.test" },
+      };
     },
   };
 });
@@ -77,6 +85,22 @@ test("project management opens directly from its labeled row", async () => {
     screen.getByRole("button", { name: "Manage Projects" }),
   );
   expect(mockNavigate).toHaveBeenCalledWith("ProjectsList");
+});
+
+test("makes account identity distinct from grouped project and server settings", async () => {
+  await render(<SettingsScreen />);
+  const account: ReturnType<typeof within> = within(
+    screen.getByTestId("settings-account-identity"),
+  );
+  expect(account.getByText("Alex Morgan")).toBeTruthy();
+  expect(account.getByText("alex@example.test").props.selectable).toBe(true);
+  const workspace: ReturnType<typeof within> = within(
+    screen.getByTestId("settings-workspace-section"),
+  );
+  expect(
+    workspace.getByRole("button", { name: "Manage Projects" }),
+  ).toBeTruthy();
+  expect(workspace.getByText("Server URL")).toBeTruthy();
 });
 
 test("both device security and urgent alert toggles have accessible names on each platform", async () => {

@@ -1,5 +1,11 @@
 import React from "react";
-import { Text, View } from "react-native";
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  View,
+  type ViewStyle,
+} from "react-native";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fireEvent, render, screen } from "@testing-library/react-native";
@@ -54,6 +60,10 @@ beforeEach(async () => {
   mockFetchProjects.mockResolvedValue(makeListResponse([first, second]));
 });
 
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 async function show(): Promise<void> {
   await render(
     <SafeAreaInsetsContext.Provider
@@ -91,6 +101,34 @@ test("the header names the active project and selection changes the real scoped 
     second._id,
   );
   expect(screen.queryByRole("header", { name: "Switch project" })).toBeNull();
+});
+
+test("ARIA aliases preserve expanded and checked native states when choosing and reopening", async () => {
+  await show();
+  expect(
+    screen.getByTestId("project-switcher").props.accessibilityState.expanded,
+  ).toBe(false);
+  await fireEvent.press(screen.getByTestId("project-switcher"));
+  expect(
+    screen.getByTestId("project-switcher").props.accessibilityState.expanded,
+  ).toBe(true);
+  expect(
+    screen.getByRole("radio", { name: first.name, checked: true }),
+  ).toBeTruthy();
+  expect(
+    screen.getByRole("radio", { name: second.name, checked: false }),
+  ).toBeTruthy();
+  await fireEvent.press(screen.getByRole("radio", { name: second.name }));
+  expect(
+    screen.getByTestId("project-switcher").props.accessibilityState.expanded,
+  ).toBe(false);
+  await fireEvent.press(screen.getByTestId("project-switcher"));
+  expect(
+    screen.getByRole("radio", { name: first.name, checked: false }),
+  ).toBeTruthy();
+  expect(
+    screen.getByRole("radio", { name: second.name, checked: true }),
+  ).toBeTruthy();
 });
 
 test("search finds a project by name without changing the active context until selection", async () => {
@@ -156,3 +194,43 @@ test("a failed initial load offers retry from the global chooser", async () => {
   expect(screen.getByRole("radio", { name: first.name })).toBeTruthy();
   expect(mockFetchProjects).toHaveBeenCalledTimes(2);
 });
+
+test("dismissing the sheet backdrop leaves the active project unchanged", async () => {
+  await show();
+  await fireEvent.press(screen.getByTestId("project-switcher"));
+  await fireEvent.press(
+    screen.getByRole("button", {
+      name: "Dismiss project switcher",
+      includeHiddenElements: true,
+    }),
+  );
+  expect(screen.queryByRole("header", { name: "Switch project" })).toBeNull();
+  expect(screen.getByTestId("visible-projects").props.children).toBe(first._id);
+});
+
+test.each([
+  { width: 320, height: 740 },
+  { width: 390, height: 844 },
+  { width: 768, height: 1024 },
+])(
+  "the project sheet fits a $width × $height display and can shrink above the keyboard",
+  async ({ width, height }: { width: number; height: number }) => {
+    jest
+      .spyOn(Dimensions, "get")
+      .mockReturnValue({ width, height, scale: 2, fontScale: 1 });
+    await show();
+    await fireEvent.press(screen.getByTestId("project-switcher"));
+    const sheetStyle: ViewStyle = StyleSheet.flatten(
+      screen.getByTestId("project-switcher-sheet").props.style,
+    ) as ViewStyle;
+    expect(Number(sheetStyle.height)).toBeLessThanOrEqual(height - 59 - 32);
+    expect(sheetStyle.maxWidth).toBe(640);
+    expect(sheetStyle.flexShrink).toBe(1);
+    expect(sheetStyle.borderTopLeftRadius).toBe(28);
+    expect(
+      screen.getByText(
+        "One project at a time. Your selection stays with you when you reopen the app.",
+      ),
+    ).toBeTruthy();
+  },
+);

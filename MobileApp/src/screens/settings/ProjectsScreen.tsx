@@ -308,9 +308,9 @@ export default function ProjectsScreen({
       }
     >
       <ScreenIntro
-        title="Your Projects"
-        eyebrow="WORKSPACE ACCESS"
-        description="See where you have access and sign in to projects that require SSO."
+        title="Project access"
+        compact
+        description="Manage your access. Switch projects from the name at the top of any screen."
       />
       {projects.length > 0 ? (
         <View style={{ marginBottom: 24 }}>
@@ -336,7 +336,7 @@ export default function ProjectsScreen({
               flexDirection: "row",
               alignItems: "center",
               minHeight: 52,
-              borderRadius: 16,
+              borderRadius: 12,
               borderWidth: 1,
               borderColor: theme.colors.borderDefault,
               backgroundColor: theme.colors.backgroundSecondary,
@@ -434,8 +434,8 @@ export default function ProjectsScreen({
           style={{
             padding: 24,
             alignItems: "center",
-            borderRadius: 16,
-            backgroundColor: theme.colors.backgroundElevated,
+            borderRadius: 12,
+            backgroundColor: theme.colors.backgroundSecondary,
             borderWidth: 1,
             borderColor: theme.colors.borderGlass,
           }}
@@ -459,7 +459,7 @@ export default function ProjectsScreen({
         <View
           style={{
             padding: 24,
-            borderRadius: 16,
+            borderRadius: 12,
             backgroundColor: theme.colors.backgroundSecondary,
           }}
         >
@@ -486,9 +486,9 @@ export default function ProjectsScreen({
       ) : (
         <View
           style={{
-            borderRadius: 16,
+            borderRadius: 14,
             overflow: "hidden",
-            backgroundColor: theme.colors.backgroundElevated,
+            backgroundColor: theme.colors.backgroundSecondary,
             borderWidth: 1,
             borderColor: theme.colors.borderGlass,
           }}
@@ -525,16 +525,16 @@ export default function ProjectsScreen({
                       width: 40,
                       height: 40,
                       borderRadius: 10,
-                      backgroundColor: theme.colors.accentCyanBg,
+                      backgroundColor: theme.colors.iconBackground,
                       alignItems: "center",
                       justifyContent: "center",
                       marginRight: 14,
                     }}
                   >
                     <Ionicons
-                      name="business-outline"
+                      name="folder-outline"
                       size={18}
-                      color={theme.colors.accentCyan}
+                      color={theme.colors.actionPrimary}
                     />
                   </View>
 
@@ -629,6 +629,8 @@ export default function ProjectsScreen({
                       disabled: authenticatingProjectId !== null,
                       busy: isAuthenticating,
                     }}
+                    aria-disabled={authenticatingProjectId !== null}
+                    aria-busy={isAuthenticating}
                     style={{
                       marginTop: 12,
                       minHeight: 52,
@@ -643,7 +645,7 @@ export default function ProjectsScreen({
                     {isAuthenticating ? (
                       <ActivityIndicator
                         size="small"
-                        color={theme.colors.backgroundPrimary}
+                        color={theme.colors.textInverse}
                       />
                     ) : (
                       <View
@@ -655,14 +657,14 @@ export default function ProjectsScreen({
                         <Ionicons
                           name="shield-checkmark-outline"
                           size={14}
-                          color={theme.colors.backgroundPrimary}
+                          color={theme.colors.textInverse}
                           style={{ marginRight: 6 }}
                         />
                         <Text
                           style={{
                             fontSize: 15,
                             fontWeight: "700",
-                            color: theme.colors.backgroundPrimary,
+                            color: theme.colors.textInverse,
                           }}
                         >
                           Authenticate with SSO

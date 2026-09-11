@@ -316,23 +316,23 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
     >
       <ScreenIntro
         title="Who's on call"
-        description="Find a teammate, check handoffs and spot gaps in coverage."
+        description="A clear view of your team’s coverage."
       />
       <View
         testID="coverage-summary"
         style={{
-          padding: 18,
+          padding: 16,
           marginBottom: 20,
-          borderRadius: 16,
-          backgroundColor: theme.colors.backgroundElevated,
-          borderWidth: 1,
-          borderColor: theme.colors.borderSubtle,
+          borderRadius: 12,
+          backgroundColor: theme.colors.cardAccent,
+          borderLeftWidth: 3,
+          borderLeftColor: theme.colors.actionPrimary,
         }}
       >
         <Text
           style={{
             color: theme.colors.textPrimary,
-            fontSize: 18,
+            fontSize: 16,
             fontWeight: "700",
           }}
         >
@@ -384,7 +384,7 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
       {uncovered.length > 0 && coverageFilter !== "covered" ? (
         <View testID="section-uncovered" style={{ marginBottom: 28 }}>
           <SectionHeader title="Nobody on call" iconName="warning-outline" />
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: 0, borderRadius: 16, overflow: "hidden" }}>
             {uncovered.map((entry: ProjectOnCallScheduleItem) => {
               return (
                 <RosterScheduleCard
@@ -406,7 +406,7 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
       {covered.length > 0 && coverageFilter !== "uncovered" ? (
         <View testID="section-covered">
           <SectionHeader title="On call now" iconName="people-outline" />
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: 0, borderRadius: 16, overflow: "hidden" }}>
             {covered.map((entry: ProjectOnCallScheduleItem) => {
               return (
                 <RosterScheduleCard

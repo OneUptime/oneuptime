@@ -450,7 +450,8 @@ export default function TwoFactorScreen(): React.JSX.Element {
             style={{
               flex: 1,
               minWidth: 0,
-              fontSize: 16,
+              fontSize: 24,
+              letterSpacing: 5,
               color: theme.colors.textPrimary,
             }}
             value={code}
@@ -651,8 +652,11 @@ export default function TwoFactorScreen(): React.JSX.Element {
 
   return (
     <AuthLayout
-      title="Two Factor Authentication"
-      eyebrow={isUsingBackupCode ? "ACCOUNT RECOVERY" : "VERIFY YOUR IDENTITY"}
+      title="Verify your identity"
+      compact
+      eyebrow={
+        isUsingBackupCode ? "ACCOUNT RECOVERY" : "TWO-FACTOR AUTHENTICATION"
+      }
       description={subtitle}
     >
       {renderBody()}

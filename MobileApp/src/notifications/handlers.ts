@@ -39,10 +39,9 @@ function tabRouteForEntityType(entityType: string): string | null {
   switch (entityType) {
     case "incident":
     case "incident-episode":
-      return "Incidents";
     case "alert":
     case "alert-episode":
-      return "Alerts";
+      return "Inbox";
     case "monitor":
       return "Monitors";
     default:
@@ -56,7 +55,7 @@ function tabRouteForEntityType(entityType: string): string | null {
  * isReady() on its own is not enough, and trusting it is what threw pages
  * away. The auth stack and the main tabs are two different navigators swapped
  * into the same NavigationContainer, and the container's onReady fires as soon
- * as the AUTH stack mounts. Asking that stack for "Incidents" is not an error
+ * as the AUTH stack mounts. Asking that stack for "Inbox" is not an error
  * - React Navigation warns at most and does nothing - so a page tapped from
  * the lock screen while signed out used to be consumed against a navigator
  * that could not show it, and the responder landed on Home with no idea which
@@ -82,28 +81,28 @@ function executeNavigation(data: NotificationData): void {
 
   switch (data.entityType) {
     case "incident":
-      navigationRef.navigate("Incidents", {
+      navigationRef.navigate("Inbox", {
         screen: "IncidentDetail",
         initial: false,
         params: { incidentId: data.entityId, projectId },
       });
       break;
     case "alert":
-      navigationRef.navigate("Alerts", {
+      navigationRef.navigate("Inbox", {
         screen: "AlertDetail",
         initial: false,
         params: { alertId: data.entityId, projectId },
       });
       break;
     case "incident-episode":
-      navigationRef.navigate("Incidents", {
+      navigationRef.navigate("Inbox", {
         screen: "IncidentEpisodeDetail",
         initial: false,
         params: { episodeId: data.entityId, projectId },
       });
       break;
     case "alert-episode":
-      navigationRef.navigate("Alerts", {
+      navigationRef.navigate("Inbox", {
         screen: "AlertEpisodeDetail",
         initial: false,
         params: { episodeId: data.entityId, projectId },

@@ -8,6 +8,7 @@ import {
   Pressable,
   Text,
   View,
+  useWindowDimensions,
   type ListRenderItemInfo,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -36,6 +37,7 @@ export default function ProjectSwitcher(): React.JSX.Element {
   const [visible, setVisible] = useState(false);
   const [search, setSearch] = useState("");
   const insets: EdgeInsets | null = useContext(SafeAreaInsetsContext);
+  const { width, height } = useWindowDimensions();
   const paddingBottom: number = useScreenPadding({ tabBar: false });
   const filtered: ProjectItem[] = projectList.filter(
     (project: ProjectItem): boolean => {
@@ -60,6 +62,7 @@ export default function ProjectSwitcher(): React.JSX.Element {
         }
         accessibilityHint="Select the project shown across the app."
         accessibilityState={{ expanded: visible }}
+        aria-expanded={visible}
         onPress={() => {
           setSearch("");
           setVisible(true);
@@ -67,7 +70,7 @@ export default function ProjectSwitcher(): React.JSX.Element {
         style={({ pressed }: { pressed: boolean }) => {
           return {
             minHeight: 48,
-            maxWidth: 250,
+            maxWidth: Math.min(300, Math.max(160, width - 128)),
             flexDirection: "row",
             alignItems: "center",
             gap: 10,
@@ -80,29 +83,44 @@ export default function ProjectSwitcher(): React.JSX.Element {
             width: 32,
             height: 32,
             borderRadius: 10,
-            backgroundColor: theme.colors.iconBackground,
+            backgroundColor: theme.colors.actionPrimary,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Ionicons
-            name="layers-outline"
-            size={18}
-            color={theme.colors.actionPrimary}
-          />
+          <Text
+            style={{
+              color: theme.colors.textInverse,
+              fontWeight: "800",
+              fontSize: 15,
+            }}
+          >
+            {activeProject?.name.trim().charAt(0).toUpperCase() || "P"}
+          </Text>
         </View>
-        <Text
-          numberOfLines={1}
-          style={{
-            flexShrink: 1,
-            fontSize: 16,
-            fontWeight: "700",
-            color: theme.colors.textPrimary,
-          }}
-        >
-          {activeProject?.name ||
-            (isLoadingProjects ? "Loading project…" : "Choose project")}
-        </Text>
+        <View style={{ flexShrink: 1, gap: 2 }}>
+          <Text
+            style={{
+              fontSize: 10,
+              fontWeight: "700",
+              letterSpacing: 1,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            PROJECT
+          </Text>
+          <Text
+            numberOfLines={1}
+            style={{
+              fontSize: 14,
+              fontWeight: "700",
+              color: theme.colors.textPrimary,
+            }}
+          >
+            {activeProject?.name ||
+              (isLoadingProjects ? "Loading project…" : "Choose project")}
+          </Text>
+        </View>
         <Ionicons
           name="chevron-down"
           size={16}
@@ -111,19 +129,58 @@ export default function ProjectSwitcher(): React.JSX.Element {
       </Pressable>
       <Modal
         visible={visible}
+        transparent
         animationType="slide"
-        presentationStyle="pageSheet"
+        presentationStyle="overFullScreen"
         onRequestClose={close}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+          style={{
+            flex: 1,
+            justifyContent: "flex-end",
+            backgroundColor: "rgba(23, 33, 47, 0.36)",
+          }}
         >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss project switcher"
+            onPress={close}
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: 0,
+            }}
+          />
           <View
+            testID="project-switcher-sheet"
             accessibilityViewIsModal
-            style={{ flex: 1, paddingTop: Math.max(insets?.top ?? 0, 20) }}
+            style={{
+              height: Math.min(660, height - (insets?.top ?? 0) - 32),
+              flexShrink: 1,
+              width: "100%",
+              maxWidth: 640,
+              alignSelf: "center",
+              backgroundColor: theme.colors.backgroundSecondary,
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
+              paddingTop: 12,
+              overflow: "hidden",
+            }}
           >
-            <View style={{ paddingHorizontal: 20, paddingBottom: 20 }}>
+            <View
+              style={{
+                width: 36,
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: theme.colors.borderDefault,
+                alignSelf: "center",
+                marginBottom: 12,
+              }}
+            />
+            <View style={{ paddingHorizontal: 24, paddingBottom: 20 }}>
               <View
                 style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
               >
@@ -131,7 +188,7 @@ export default function ProjectSwitcher(): React.JSX.Element {
                   accessibilityRole="header"
                   style={{
                     flex: 1,
-                    fontSize: 26,
+                    fontSize: 24,
                     fontWeight: "700",
                     color: theme.colors.textPrimary,
                   }}
@@ -165,8 +222,8 @@ export default function ProjectSwitcher(): React.JSX.Element {
                   marginBottom: 20,
                 }}
               >
-                Choose one workspace. Everything in the app will follow your
-                selection, and we will remember it next time.
+                One project at a time. Your selection stays with you when you
+                reopen the app.
               </Text>
               <SearchField
                 value={search}
@@ -251,6 +308,7 @@ export default function ProjectSwitcher(): React.JSX.Element {
                     accessibilityRole="radio"
                     accessibilityLabel={item.name}
                     accessibilityState={{ checked: selected }}
+                    aria-checked={selected}
                     accessibilityHint="Show only this project's services and on-call work."
                     onPress={() => {
                       selectProject(item._id);
@@ -258,17 +316,17 @@ export default function ProjectSwitcher(): React.JSX.Element {
                     }}
                     style={({ pressed }: { pressed: boolean }) => {
                       return {
-                        minHeight: 76,
-                        padding: 18,
+                        minHeight: 80,
+                        padding: 16,
                         borderWidth: 1,
                         borderColor: selected
                           ? theme.colors.actionPrimary
-                          : theme.colors.borderDefault,
-                        borderRadius: 16,
+                          : theme.colors.borderSubtle,
+                        borderRadius: 14,
                         backgroundColor: selected
                           ? theme.colors.iconBackground
                           : theme.colors.backgroundSecondary,
-                        marginBottom: 12,
+                        marginBottom: 10,
                         flexDirection: "row",
                         alignItems: "center",
                         gap: 12,
@@ -276,6 +334,30 @@ export default function ProjectSwitcher(): React.JSX.Element {
                       };
                     }}
                   >
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 12,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: selected
+                          ? theme.colors.actionPrimary
+                          : theme.colors.backgroundTertiary,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: selected
+                            ? theme.colors.textInverse
+                            : theme.colors.textSecondary,
+                          fontWeight: "700",
+                          fontSize: 17,
+                        }}
+                      >
+                        {item.name.trim().charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
                     <View style={{ flex: 1 }}>
                       <Text
                         style={{

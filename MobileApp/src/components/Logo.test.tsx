@@ -54,6 +54,24 @@ describe("How large the logo is drawn", () => {
 });
 
 describe("What the logo is made of", () => {
+  test("renders a readable dark wordmark on the new light sign-in canvas", async () => {
+    await render(<Logo variant="wordmark" size={25} color="#17212F" />);
+    expect(svg().props.width).toBeCloseTo(130.36, 2);
+    expect(svg().props.height).toBe(25);
+    const xml: string = svg().props.xml as string;
+    expect(xml).toContain('fill="#17212F"');
+    expect(xml).toContain('viewBox="0 -62 438 84"');
+    expect(Array.from(xml.matchAll(/<use /g))).toHaveLength(9);
+    expect(xml).not.toContain("rgb(100%, 100%, 100%)");
+  });
+
+  test("allows an inverse square mark without changing the supplied artwork", async () => {
+    await render(<Logo color="#FFFFFF" />);
+    const xml: string = svg().props.xml as string;
+    expect(xml).toContain('fill="#FFFFFF"');
+    expect(xml).toContain("49.409485%");
+  });
+
   test("co-mounted navigation screens have independent SVG glyph IDs and references", async () => {
     await render(
       <View>

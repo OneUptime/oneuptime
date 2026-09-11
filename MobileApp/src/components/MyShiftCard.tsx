@@ -13,25 +13,15 @@ import {
   toTimestamp,
 } from "../oncall/shiftGroups";
 import type { MyOnCallShift } from "../api/types";
+import ShiftSummary from "./ShiftSummary";
 
 interface MyShiftCardProps {
   shift: MyOnCallShift;
   now: number;
-
-  /* When given, an eligible shift shows a "Get cover" action. */
   onRequestCover?: (shift: MyOnCallShift) => void;
 }
 
-/*
- * One materialized shift from `/my-shifts`.
- *
- * The same silhouette as ShiftCard (schedule, project, a badge with the one
- * number the reader wants, the window underneath) so the two lists look like
- * the same list - the overview swaps between them depending on what the
- * server could answer. What this card adds is what only the server knows:
- * that the shift is held on somebody else's behalf, that it applies to one
- * policy only, and a way to hand it to somebody else.
- */
+/** A precise duty window, with context and a clear, eligible handoff action. */
 export default function MyShiftCard({
   shift,
   now,
@@ -39,245 +29,117 @@ export default function MyShiftCard({
 }: MyShiftCardProps): React.JSX.Element {
   const { theme } = useTheme();
   const { lightImpact } = useHaptics();
-
   const isActive: boolean = isShiftActive(shift, now);
   const hasEnded: boolean = hasShiftEnded(shift, now);
-
   const accent: string = isActive
     ? theme.colors.oncallActive
     : hasEnded
       ? theme.colors.textTertiary
       : theme.colors.severityInfo;
-
-  const accentBackground: string = isActive
-    ? theme.colors.oncallActiveBg
-    : hasEnded
-      ? theme.colors.oncallInactiveBg
-      : theme.colors.severityInfoBg;
-
-  const badgeText: string = isActive
+  const timing: string = isActive
     ? `${formatDuration(toTimestamp(shift.end) - now)} left`
     : hasEnded
       ? "Ended"
       : `in ${formatDuration(toTimestamp(shift.start) - now)}`;
-
-  const window: string | null = formatShiftWindow(shift.start, shift.end, now);
   const covering: string | null = describeCovering(shift);
   const policyVariant: string | null = describePolicyVariant(shift);
   const offersCover: boolean =
     Boolean(onRequestCover) && canRequestCover(shift, now);
-
   return (
     <View
       testID={`my-shift-card-${shift.shiftKey}`}
       style={{
-        borderRadius: 16,
+        borderRadius: 18,
         padding: 18,
         backgroundColor: theme.colors.backgroundElevated,
-        borderWidth: 1,
-        borderColor: theme.colors.borderGlass,
       }}
     >
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-          <View
-            style={{
-              width: 42,
-              height: 42,
-              borderRadius: 12,
-              alignItems: "center",
-              justifyContent: "center",
-              marginRight: 10,
-              backgroundColor: accentBackground,
-            }}
-          >
-            <Ionicons
-              name={covering ? "swap-horizontal-outline" : "calendar-outline"}
-              size={15}
-              color={accent}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "600",
-                color: theme.colors.textPrimary,
-              }}
-              numberOfLines={2}
-            >
-              {shift.scheduleName}
-            </Text>
-            <Text
-              style={{
-                fontSize: 14,
-                marginTop: 2,
-                color: theme.colors.textTertiary,
-              }}
-              numberOfLines={1}
-            >
-              {shift.layerName
-                ? `${shift.projectName ?? "Project"} · ${shift.layerName}`
-                : shift.projectName ?? "Project"}
-            </Text>
-          </View>
-        </View>
-
-        <View
-          style={{
-            paddingHorizontal: 10,
-            paddingVertical: 5,
-            borderRadius: 9999,
-            marginLeft: 10,
-            backgroundColor: accentBackground,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 13,
-              fontWeight: "700",
-              color: accent,
-              fontVariant: ["tabular-nums"],
-            }}
-          >
-            {badgeText}
-          </Text>
-        </View>
-      </View>
-
-      {window ? (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginTop: 12,
-          }}
-        >
-          <Ionicons
-            name="time-outline"
-            size={13}
-            color={theme.colors.textTertiary}
-          />
-          <Text
-            style={{
-              fontSize: 14,
-              lineHeight: 21,
-              marginLeft: 6,
-              flex: 1,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {window}
-          </Text>
-        </View>
-      ) : null}
-
+      <ShiftSummary
+        name={shift.scheduleName}
+        layer={shift.layerName}
+        timing={timing}
+        window={formatShiftWindow(shift.start, shift.end, now)}
+        accent={accent}
+      />
       {covering || policyVariant ? (
         <View
           style={{
-            flexDirection: "row",
-            flexWrap: "wrap",
-            gap: 8,
-            marginTop: 10,
+            marginTop: 12,
+            paddingLeft: 12,
+            borderLeftWidth: 2,
+            borderLeftColor: theme.colors.borderDefault,
+            gap: 5,
           }}
         >
           {covering ? (
-            <View
+            <Text
               testID={`covering-badge-${shift.shiftKey}`}
               style={{
-                paddingHorizontal: 9,
-                paddingVertical: 4,
-                borderRadius: 9999,
-                backgroundColor: theme.colors.severityInfoBg,
+                color: theme.colors.textSecondary,
+                fontSize: 14,
+                lineHeight: 21,
               }}
             >
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: "600",
-                  color: theme.colors.severityInfo,
-                }}
-                numberOfLines={2}
-              >
-                {covering}
-              </Text>
-            </View>
+              {covering}
+            </Text>
           ) : null}
-
           {policyVariant ? (
-            <View
+            <Text
               testID={`policy-variant-badge-${shift.shiftKey}`}
               style={{
-                paddingHorizontal: 9,
-                paddingVertical: 4,
-                borderRadius: 9999,
-                backgroundColor: theme.colors.severityWarningBg,
+                color: theme.colors.textSecondary,
+                fontSize: 14,
+                lineHeight: 21,
               }}
             >
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: "600",
-                  color: theme.colors.severityWarning,
-                }}
-                numberOfLines={2}
-              >
-                {policyVariant}
-              </Text>
-            </View>
+              {policyVariant}
+            </Text>
           ) : null}
         </View>
       ) : null}
-
       {offersCover ? (
         <Pressable
           testID={`get-cover-${shift.shiftKey}`}
           accessibilityRole="button"
           accessibilityLabel={`Get cover for ${shift.scheduleName}`}
-          onPress={() => {
+          onPress={(): void => {
             lightImpact();
             onRequestCover?.(shift);
           }}
           style={({ pressed }: { pressed: boolean }) => {
             return {
-              marginTop: 12,
-              paddingTop: 12,
-              paddingBottom: 4,
+              marginTop: 14,
+              paddingHorizontal: 12,
               minHeight: 48,
-              borderTopWidth: 1,
-              borderTopColor: theme.colors.borderSubtle,
+              borderRadius: 12,
+              backgroundColor: pressed
+                ? theme.colors.backgroundTertiary
+                : theme.colors.iconBackground,
               flexDirection: "row",
               alignItems: "center",
-              opacity: pressed ? 0.7 : 1,
+              gap: 8,
             };
           }}
         >
           <Ionicons
             name="swap-horizontal-outline"
-            size={14}
+            size={18}
             color={theme.colors.actionPrimary}
           />
           <Text
             style={{
+              flex: 1,
+              color: theme.colors.actionPrimary,
               fontSize: 15,
               fontWeight: "600",
-              marginLeft: 6,
-              color: theme.colors.actionPrimary,
             }}
           >
             Get cover
           </Text>
-          <View style={{ flex: 1 }} />
           <Ionicons
-            name="chevron-forward"
-            size={14}
-            color={theme.colors.textTertiary}
+            name="arrow-forward"
+            size={17}
+            color={theme.colors.actionPrimary}
           />
         </Pressable>
       ) : null}

@@ -275,7 +275,7 @@ test("the search limit follows the loaded segment, even when a search has no mat
   expect(
     screen.getByText("Search covers the 100 most recent alerts."),
   ).toBeTruthy();
-  await fireEvent.press(screen.getByRole("tab", { name: "Episodes" }));
+  await fireEvent.press(screen.getByRole("button", { name: "Episodes" }));
   expect(screen.queryByText(/Search covers the 100 most recent/)).toBeNull();
   mockEpisodes.current = episodesWith({
     items: Array.from(
@@ -687,7 +687,7 @@ describe("Active and Resolved are decided by state id, never by state name", () 
     await renderAlertsScreen();
 
     await waitFor(() => {
-      expect(screen.getByText("Active")).toBeTruthy();
+      expect(screen.getByRole("header", { name: "Active" })).toBeTruthy();
     });
 
     /*
@@ -695,7 +695,7 @@ describe("Active and Resolved are decided by state id, never by state name", () 
      * "Closed out" - so this heading is the screen's own verdict and not a
      * state name echoed back off a card.
      */
-    expect(screen.getByText("Resolved")).toBeTruthy();
+    expect(screen.getByRole("header", { name: "Resolved" })).toBeTruthy();
   });
 
   test("a live alert whose state is merely NAMED Resolved stays actionable", async () => {
@@ -726,7 +726,7 @@ describe("Active and Resolved are decided by state id, never by state name", () 
     await renderAlertsScreen();
 
     await waitFor(() => {
-      expect(screen.getByText("Active")).toBeTruthy();
+      expect(screen.getByRole("header", { name: "Active" })).toBeTruthy();
     });
 
     expect(screen.getByText("Acknowledge")).toBeTruthy();
@@ -758,10 +758,10 @@ describe("Active and Resolved are decided by state id, never by state name", () 
     await renderAlertsScreen();
 
     await waitFor(() => {
-      expect(screen.getByText("Resolved")).toBeTruthy();
+      expect(screen.getByRole("header", { name: "Resolved" })).toBeTruthy();
     });
 
-    expect(screen.queryByText("Active")).toBeNull();
+    expect(screen.queryByRole("header", { name: "Active" })).toBeNull();
     /* A resolved row has nothing left to acknowledge. */
     expect(screen.queryByText("Acknowledge")).toBeNull();
   });
@@ -772,10 +772,10 @@ describe("Active and Resolved are decided by state id, never by state name", () 
     await renderAlertsScreen();
 
     await waitFor(() => {
-      expect(screen.getByText("Active")).toBeTruthy();
+      expect(screen.getByRole("header", { name: "Active" })).toBeTruthy();
     });
 
-    expect(screen.queryByText("Resolved")).toBeNull();
+    expect(screen.queryByRole("header", { name: "Resolved" })).toBeNull();
   });
 
   test("alerts whose project states have not arrived are left active", async () => {
@@ -797,16 +797,16 @@ describe("Active and Resolved are decided by state id, never by state name", () 
     await renderAlertsScreen();
 
     await waitFor(() => {
-      expect(screen.getByText("Active")).toBeTruthy();
+      expect(screen.getByRole("header", { name: "Active" })).toBeTruthy();
     });
 
-    expect(screen.queryByText("Resolved")).toBeNull();
+    expect(screen.queryByRole("header", { name: "Resolved" })).toBeNull();
     /* With no states known there is no acknowledge state to swipe towards. */
     expect(screen.queryByText("Acknowledge")).toBeNull();
   });
 });
 
-describe("The segmented control switches between alerts and episodes", () => {
+describe("The episode link switches between alerts and episodes", () => {
   beforeEach(() => {
     mockAlerts.current = alertsWith({ items: [activeAlert()] });
     mockEpisodes.current = episodesWith({ items: [activeEpisode()] });
@@ -847,7 +847,7 @@ describe("The segmented control switches between alerts and episodes", () => {
       expect(screen.getByText("Repeated disk pressure")).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByText("Alerts"));
+    fireEvent.press(screen.getByRole("button", { name: "Alerts" }));
 
     await waitFor(() => {
       expect(screen.getByLabelText(ACTIVE_ALERT_LABEL)).toBeTruthy();
@@ -1116,6 +1116,52 @@ describe("Searching and filtering the response inbox", () => {
       screen.getByRole("button", { name: "Active only" }).props
         .accessibilityState.selected,
     ).toBe(true);
+  });
+
+  test.each(["alerts", "episodes"] as const)(
+    "an explicit %s shortcut clears an old search before showing its response queue",
+    async (segment: "alerts" | "episodes") => {
+      const view: Awaited<ReturnType<typeof render>> = await render(
+        <AlertsScreen />,
+        { wrapper: createQueryWrapper(createTestQueryClient()) },
+      );
+      await fireEvent.changeText(
+        screen.getByLabelText("Search alerts and episodes"),
+        "no matching title",
+      );
+      expect(screen.getByText("No matching alerts")).toBeTruthy();
+      mockRoute.params = { initialSegment: segment, initialFilter: "active" };
+      await view.rerender(<AlertsScreen />);
+      expect(
+        screen.getByLabelText("Search alerts and episodes").props.value,
+      ).toBe("");
+      expect(
+        screen.getByRole("button", { name: "Active only" }).props
+          .accessibilityState.selected,
+      ).toBe(true);
+      if (segment === "alerts") {
+        expect(screen.getByLabelText(ACTIVE_ALERT_LABEL)).toBeTruthy();
+      } else {
+        expect(screen.getByText("Repeated disk pressure")).toBeTruthy();
+      }
+    },
+  );
+
+  test("a normal rerender with unchanged route params preserves the reader's search", async () => {
+    mockRoute.params = { initialSegment: "alerts", initialFilter: "active" };
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      <AlertsScreen />,
+      { wrapper: createQueryWrapper(createTestQueryClient()) },
+    );
+    await fireEvent.changeText(
+      screen.getByLabelText("Search alerts and episodes"),
+      "no matching title",
+    );
+    await view.rerender(<AlertsScreen />);
+    expect(
+      screen.getByLabelText("Search alerts and episodes").props.value,
+    ).toBe("no matching title");
+    expect(screen.getByText("No matching alerts")).toBeTruthy();
   });
 
   test("inbox, episode and empty results keep enough bottom space for the navigation", async () => {

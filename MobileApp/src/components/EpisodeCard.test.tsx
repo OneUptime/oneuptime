@@ -88,7 +88,7 @@ describe("An incident episode", () => {
       />,
     );
 
-    expect(screen.getByText("INCIDENT EPISODE")).toBeTruthy();
+    expect(screen.getByText("Incident episode")).toBeTruthy();
     expect(screen.getByText("#2")).toBeTruthy();
     expect(screen.getByText("Rolling checkout outage")).toBeTruthy();
   });
@@ -153,7 +153,7 @@ describe("An alert episode", () => {
       <EpisodeCard episode={makeAlertEpisode()} type="alert" onPress={noop} />,
     );
 
-    expect(screen.getByText("ALERT EPISODE")).toBeTruthy();
+    expect(screen.getByText("Alert episode")).toBeTruthy();
     expect(screen.getByText("#3")).toBeTruthy();
     expect(screen.getByText("Repeated disk pressure")).toBeTruthy();
   });
@@ -342,8 +342,8 @@ describe("An episode missing the pieces the type promises", () => {
   });
 });
 
-describe("The colours on the pills are the ones the API sent", () => {
-  test("the state pill and its dot are painted from the state's colour", async () => {
+describe("State markers preserve server colours while text stays readable", () => {
+  test("the marker carries the server colour and text remains readable", async () => {
     const episode: IncidentEpisodeItem = makeIncidentEpisode({
       currentIncidentState: makeNamedEntityWithColor({
         name: "Resolved",
@@ -356,10 +356,9 @@ describe("The colours on the pills are the ones the API sent", () => {
     );
 
     const label: RenderedElement = screen.getByText("Resolved");
-    const dot: RenderedElement = (label.parent as RenderedElement)
-      .children[0] as RenderedElement;
+    const dot: RenderedElement = screen.getByTestId("response-status-marker");
 
-    expect(styleOf(label).color).toBe(rgbToHex({ r: 34, g: 197, b: 94 }));
+    expect(styleOf(label).color).toBe(darkColors.textPrimary);
     expect(styleOf(dot).backgroundColor).toBe(
       rgbToHex({ r: 34, g: 197, b: 94 }),
     );
@@ -376,12 +375,12 @@ describe("The colours on the pills are the ones the API sent", () => {
     await render(<EpisodeCard episode={episode} type="alert" onPress={noop} />);
 
     expect(styleOf(screen.getByText("Unclassified")).color).toBe(
-      rgbToHex({} as ColorField),
+      darkColors.textSecondary,
     );
     expect(styleOf(screen.getByText("Unclassified")).color).not.toBe("#000000");
   });
 
-  test("a severity carrying no colour field falls back to the muted text token", async () => {
+  test("a severity carrying no colour field retains a high-contrast label", async () => {
     const episode: AlertEpisodeItem = makeAlertEpisode({
       alertSeverity: makeNamedEntityWithColor({
         name: "Unclassified",
@@ -392,7 +391,7 @@ describe("The colours on the pills are the ones the API sent", () => {
     await render(<EpisodeCard episode={episode} type="alert" onPress={noop} />);
 
     expect(styleOf(screen.getByText("Unclassified")).color).toBe(
-      darkColors.textTertiary,
+      darkColors.textSecondary,
     );
   });
 });
@@ -456,7 +455,9 @@ describe("Pressing the card", () => {
       />,
     );
 
-    expect(styleOf(cardSurface()).opacity).toBe(1);
+    expect(styleOf(cardSurface()).backgroundColor).toBe(
+      darkColors.backgroundElevated,
+    );
 
     await fireEvent.press(screen.getByText("Rolling checkout outage"));
 
@@ -472,7 +473,9 @@ describe("Pressing the card", () => {
       />,
     );
 
-    expect(styleOf(cardSurface()).opacity).toBe(1);
+    expect(styleOf(cardSurface()).backgroundColor).toBe(
+      darkColors.backgroundElevated,
+    );
   });
 
   test("holding a finger on a muted card still visibly answers the touch", async () => {
@@ -487,6 +490,8 @@ describe("Pressing the card", () => {
 
     await holdDown(cardSurface());
 
-    expect(styleOf(cardSurface()).opacity).toBe(0.7);
+    expect(styleOf(cardSurface()).backgroundColor).toBe(
+      darkColors.backgroundTertiary,
+    );
   });
 });

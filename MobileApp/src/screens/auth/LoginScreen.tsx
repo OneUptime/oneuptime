@@ -180,194 +180,6 @@ export default function LoginScreen(): React.JSX.Element {
       title="Welcome back"
       description="Sign in to your workspace."
     >
-      {serverUrl ? (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "flex-start",
-            gap: 8,
-            marginBottom: 20,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 14,
-              lineHeight: 21,
-              fontWeight: "600",
-              color: theme.colors.textTertiary,
-            }}
-          >
-            Server
-          </Text>
-          <Text
-            selectable
-            style={{
-              flex: 1,
-              minWidth: 0,
-              fontSize: 14,
-              lineHeight: 21,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {serverUrl}
-          </Text>
-        </View>
-      ) : null}
-
-      <View
-        style={{
-          padding: 14,
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: theme.colors.borderDefault,
-          backgroundColor: theme.colors.backgroundSecondary,
-          marginBottom: 20,
-        }}
-      >
-        <Text
-          style={{
-            fontSize: 18,
-            fontWeight: "600",
-            color: theme.colors.textPrimary,
-          }}
-        >
-          Use a saved passkey
-        </Text>
-        <Text
-          style={{
-            fontSize: 14,
-            lineHeight: 20,
-            marginTop: 4,
-            marginBottom: 12,
-            color: theme.colors.textSecondary,
-          }}
-        >
-          Use your device’s passkey in a secure browser.
-        </Text>
-        <GradientButton
-          testID="passkey-sign-in"
-          label={
-            passkeyProgress === "preparing"
-              ? "Preparing passkey sign-in…"
-              : passkeyProgress === "browser"
-                ? "Continue in your browser…"
-                : passkeyProgress === "verifying"
-                  ? "Completing sign-in…"
-                  : passkeyError || passkeyNotice
-                    ? "Try passkey again"
-                    : "Sign in with a passkey"
-          }
-          onPress={(): void => {
-            void handlePasskeyLogin();
-          }}
-          loading={isPasskeyLoading}
-          disabled={isLoading || isPasskeyLoading}
-          icon="finger-print-outline"
-        />
-        {isPasskeyLoading ? (
-          <Text
-            accessibilityLiveRegion="polite"
-            style={{
-              marginTop: 12,
-              fontSize: 14,
-              lineHeight: 21,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {passkeyProgress === "preparing"
-              ? "Preparing a secure sign-in…"
-              : passkeyProgress === "browser"
-                ? "Choose your passkey in the browser, then return to OneUptime."
-                : "Passkey confirmed. Completing your sign-in…"}
-          </Text>
-        ) : null}
-        {isPasskeyLoading && passkeyProgress !== "verifying" ? (
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel="Cancel passkey sign-in"
-            onPress={handleCancelPasskey}
-            style={{
-              minHeight: 48,
-              alignItems: "center",
-              justifyContent: "center",
-              marginTop: 4,
-            }}
-          >
-            <Text style={{ color: theme.colors.actionPrimary, fontSize: 14 }}>
-              Cancel
-            </Text>
-          </TouchableOpacity>
-        ) : null}
-        {passkeyError ? (
-          <Text
-            accessibilityRole="alert"
-            accessible
-            accessibilityLiveRegion="polite"
-            style={{
-              marginTop: 12,
-              fontSize: 14,
-              lineHeight: 21,
-              color: theme.colors.statusError,
-            }}
-          >
-            {passkeyError}
-          </Text>
-        ) : null}
-        {passkeyNotice ? (
-          <Text
-            accessibilityLiveRegion="polite"
-            style={{
-              marginTop: 12,
-              fontSize: 14,
-              lineHeight: 21,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {passkeyNotice}
-          </Text>
-        ) : null}
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityState={{ expanded: showPasskeyHelp }}
-          onPress={(): void => {
-            setShowPasskeyHelp(!showPasskeyHelp);
-          }}
-          style={{
-            minHeight: 48,
-            justifyContent: "center",
-            marginTop: 0,
-          }}
-        >
-          <Text style={{ fontSize: 14, color: theme.colors.actionPrimary }}>
-            New to passkeys?
-          </Text>
-        </TouchableOpacity>
-        {showPasskeyHelp ? (
-          <Text
-            style={{
-              fontSize: 14,
-              lineHeight: 21,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            Sign in on the OneUptime website with your password or SSO. In your
-            profile, open Passkeys &amp; Two Factor Auth to add a passkey. Use
-            that passkey here on the same server.
-          </Text>
-        ) : null}
-      </View>
-
-      <Text
-        style={{
-          marginBottom: 12,
-          fontSize: 18,
-          fontWeight: "600",
-          color: theme.colors.textPrimary,
-        }}
-      >
-        Or use your password
-      </Text>
-
       <View>
         <Text
           style={{
@@ -562,7 +374,6 @@ export default function LoginScreen(): React.JSX.Element {
             onPress={handleLogin}
             loading={isLoading}
             disabled={isLoading || isPasskeyLoading}
-            variant="secondary"
           />
         </View>
       </View>
@@ -591,7 +402,117 @@ export default function LoginScreen(): React.JSX.Element {
         </Text>
       </TouchableOpacity>
 
-      <View style={{ marginTop: 16 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          marginVertical: 16,
+        }}
+      >
+        <View
+          style={{
+            flex: 1,
+            height: 1,
+            backgroundColor: theme.colors.borderSubtle,
+          }}
+        />
+        <Text style={{ fontSize: 13, color: theme.colors.textTertiary }}>
+          Other ways to sign in
+        </Text>
+        <View
+          style={{
+            flex: 1,
+            height: 1,
+            backgroundColor: theme.colors.borderSubtle,
+          }}
+        />
+      </View>
+      <View testID="alternative-sign-in" style={{ gap: 10 }}>
+        <GradientButton
+          testID="passkey-sign-in"
+          label={
+            passkeyProgress === "preparing"
+              ? "Preparing passkey sign-in…"
+              : passkeyProgress === "browser"
+                ? "Continue in your browser…"
+                : passkeyProgress === "verifying"
+                  ? "Completing sign-in…"
+                  : passkeyError || passkeyNotice
+                    ? "Try passkey again"
+                    : "Sign in with a passkey"
+          }
+          onPress={(): void => {
+            void handlePasskeyLogin();
+          }}
+          loading={isPasskeyLoading}
+          disabled={isLoading || isPasskeyLoading}
+          icon="finger-print-outline"
+          variant="secondary"
+        />
+        {isPasskeyLoading ? (
+          <Text
+            accessibilityLiveRegion="polite"
+            style={{
+              marginTop: 12,
+              fontSize: 14,
+              lineHeight: 21,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            {passkeyProgress === "preparing"
+              ? "Preparing a secure sign-in…"
+              : passkeyProgress === "browser"
+                ? "Choose your passkey in the browser, then return to OneUptime."
+                : "Passkey confirmed. Completing your sign-in…"}
+          </Text>
+        ) : null}
+        {isPasskeyLoading && passkeyProgress !== "verifying" ? (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Cancel passkey sign-in"
+            onPress={handleCancelPasskey}
+            style={{
+              minHeight: 48,
+              alignItems: "center",
+              justifyContent: "center",
+              marginTop: 4,
+            }}
+          >
+            <Text style={{ color: theme.colors.actionPrimary, fontSize: 14 }}>
+              Cancel
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+        {passkeyError ? (
+          <Text
+            accessibilityRole="alert"
+            accessible
+            accessibilityLiveRegion="polite"
+            style={{
+              marginTop: 12,
+              fontSize: 14,
+              lineHeight: 21,
+              color: theme.colors.statusError,
+            }}
+          >
+            {passkeyError}
+          </Text>
+        ) : null}
+        {passkeyNotice ? (
+          <Text
+            accessibilityLiveRegion="polite"
+            style={{
+              marginTop: 12,
+              fontSize: 14,
+              lineHeight: 21,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            {passkeyNotice}
+          </Text>
+        ) : null}
+
         <GradientButton
           label="Sign in with SSO"
           onPress={handleSSOLogin}
@@ -600,15 +521,89 @@ export default function LoginScreen(): React.JSX.Element {
           disabled={isLoading || isPasskeyLoading}
         />
       </View>
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityState={{ expanded: showPasskeyHelp }}
+        aria-expanded={showPasskeyHelp}
+        onPress={(): void => {
+          setShowPasskeyHelp(!showPasskeyHelp);
+        }}
+        style={{
+          minHeight: 48,
+          justifyContent: "center",
+          marginTop: 0,
+        }}
+      >
+        <Text style={{ fontSize: 14, color: theme.colors.actionPrimary }}>
+          New to passkeys?
+        </Text>
+      </TouchableOpacity>
+      {showPasskeyHelp ? (
+        <Text
+          style={{
+            fontSize: 14,
+            lineHeight: 21,
+            color: theme.colors.textSecondary,
+          }}
+        >
+          Sign in on the OneUptime website with your password or SSO. In your
+          profile, open Passkeys &amp; Two Factor Auth to add a passkey. Use
+          that passkey here on the same server.
+        </Text>
+      ) : null}
 
-      <View style={{ marginTop: 12 }}>
-        <GradientButton
-          label="Change Server"
+      <View
+        style={{
+          marginTop: 20,
+          paddingTop: 16,
+          borderTopWidth: 1,
+          borderTopColor: theme.colors.borderSubtle,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 12,
+            fontWeight: "600",
+            color: theme.colors.textTertiary,
+            letterSpacing: 1,
+          }}
+        >
+          CONNECTED SERVER
+        </Text>
+        {serverUrl ? (
+          <Text
+            selectable
+            style={{
+              marginTop: 6,
+              fontSize: 14,
+              lineHeight: 21,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            {serverUrl}
+          </Text>
+        ) : null}
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Change Server"
           onPress={handleChangeServer}
-          variant="secondary"
-          icon="swap-horizontal-outline"
           disabled={isLoading || passkeyProgress === "verifying"}
-        />
+          style={{
+            minHeight: 48,
+            justifyContent: "center",
+            alignSelf: "flex-start",
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "600",
+              color: theme.colors.actionPrimary,
+            }}
+          >
+            Change Server
+          </Text>
+        </TouchableOpacity>
       </View>
     </AuthLayout>
   );

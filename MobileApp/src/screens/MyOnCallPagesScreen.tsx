@@ -92,7 +92,7 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
     }
 
     if (subject.kind === "incident") {
-      parent.navigate("Incidents", {
+      parent.navigate("Inbox", {
         screen: "IncidentDetail",
         initial: false,
         params: { incidentId: subject.id, projectId: page.projectId },
@@ -101,7 +101,7 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
     }
 
     if (subject.kind === "incident-episode") {
-      parent.navigate("Incidents", {
+      parent.navigate("Inbox", {
         screen: "IncidentEpisodeDetail",
         initial: false,
         params: { episodeId: subject.id, projectId: page.projectId },
@@ -110,7 +110,7 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
     }
 
     if (subject.kind === "alert") {
-      parent.navigate("Alerts", {
+      parent.navigate("Inbox", {
         screen: "AlertDetail",
         initial: false,
         params: { alertId: subject.id, projectId: page.projectId },
@@ -119,7 +119,7 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
     }
 
     if (subject.kind === "alert-episode") {
-      parent.navigate("Alerts", {
+      parent.navigate("Inbox", {
         screen: "AlertEpisodeDetail",
         initial: false,
         params: { episodeId: subject.id, projectId: page.projectId },
@@ -192,13 +192,14 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
     >
       <ScreenIntro
         title="My pages"
-        description="Recent notifications sent to you. Open a page to review its incident or alert."
+        description="Your response history, all in one place."
       />
       <View
         style={{
-          padding: 18,
+          paddingVertical: 14,
+          paddingHorizontal: 16,
           marginBottom: 20,
-          borderRadius: 16,
+          borderRadius: 12,
           backgroundColor:
             unacknowledgedCount > 0
               ? theme.colors.severityWarningBg
@@ -207,7 +208,7 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
       >
         <Text
           style={{
-            fontSize: 20,
+            fontSize: 16,
             fontWeight: "700",
             color: theme.colors.textPrimary,
           }}
@@ -245,7 +246,9 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
         }}
       />
 
-      <View style={{ marginTop: 20, gap: 12 }}>
+      <View
+        style={{ marginTop: 20, gap: 0, borderRadius: 16, overflow: "hidden" }}
+      >
         {visiblePages.length === 0 ? (
           <View
             style={{

@@ -57,184 +57,120 @@ export function getPageSubject(page: OnCallPageItem): PageSubject {
   return { title: "On-call notification", kind: "unknown", id: null };
 }
 
-/*
- * One page, and whether anything came of it.
- *
- * Acknowledgement is the headline, not the delivery status: "Completed" only
- * means the server finished running the notification rules, and a responder
- * reading "Completed" on a page nobody answered would draw exactly the wrong
- * conclusion. So an acknowledged page says Acknowledged, and an unacknowledged
- * one says so plainly whatever the execution status was.
- */
+/** Delivery completion never substitutes for a responder's acknowledgement. */
 export default function OnCallPageCard({
   page,
   onPress,
 }: OnCallPageCardProps): React.JSX.Element {
   const { theme } = useTheme();
-
   const subject: PageSubject = getPageSubject(page);
   const isAcknowledged: boolean = Boolean(page.acknowledgedAt);
   const isError: boolean = page.status === "Error";
-
   const accent: string = isAcknowledged
     ? theme.colors.oncallActive
     : isError
       ? theme.colors.severityCritical
       : theme.colors.severityWarning;
-
-  const accentBackground: string = isAcknowledged
-    ? theme.colors.oncallActiveBg
-    : isError
-      ? theme.colors.severityCriticalBg
-      : theme.colors.severityWarningBg;
-
   const statusLabel: string = isAcknowledged
     ? "Acknowledged"
     : isError
       ? "Failed to notify"
       : "Not acknowledged";
-
-  const iconName: keyof typeof Ionicons.glyphMap =
-    subject.kind === "incident" || subject.kind === "incident-episode"
-      ? "warning-outline"
-      : subject.kind === "unknown"
-        ? "notifications-outline"
-        : "alert-circle-outline";
-
   const body: React.JSX.Element = (
     <View
       testID={`page-card-${page._id}`}
       style={{
-        borderRadius: 16,
+        borderRadius: 18,
         padding: 18,
         backgroundColor: theme.colors.backgroundElevated,
-        borderWidth: 1,
-        borderColor: theme.colors.borderGlass,
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
+      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
         <View
           style={{
-            width: 42,
-            height: 42,
-            borderRadius: 12,
-            alignItems: "center",
-            justifyContent: "center",
-            marginRight: 10,
-            backgroundColor: accentBackground,
+            width: 4,
+            minHeight: 42,
+            borderRadius: 2,
+            backgroundColor: accent,
+            marginTop: 3,
           }}
-        >
-          <Ionicons name={iconName} size={15} color={accent} />
-        </View>
-
-        <View style={{ flex: 1 }}>
+        />
+        <View style={{ flex: 1, gap: 8 }}>
           <Text
             style={{
               fontSize: 17,
               lineHeight: 24,
               fontWeight: "600",
+              letterSpacing: -0.2,
               color: theme.colors.textPrimary,
             }}
-            numberOfLines={2}
           >
             {subject.title}
           </Text>
           <Text
             style={{
-              fontSize: 14,
-              marginTop: 2,
-              color: theme.colors.textTertiary,
+              fontSize: 13,
+              lineHeight: 20,
+              color: theme.colors.textSecondary,
             }}
-            numberOfLines={2}
           >
-            {page.policyName
-              ? `${page.projectName} · ${page.policyName}`
-              : page.projectName}
+            {page.policyName || "On-call policy unavailable"}
           </Text>
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: 8,
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginTop: 2,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 13,
+                lineHeight: 20,
+                fontWeight: "600",
+                color: accent,
+              }}
+            >
+              {statusLabel}
+            </Text>
+            <Text
+              style={{
+                fontSize: 13,
+                lineHeight: 20,
+                color: theme.colors.textSecondary,
+              }}
+            >
+              {page.createdAt ? formatRelativeTime(page.createdAt) : ""}
+            </Text>
+          </View>
         </View>
-
         {onPress && subject.id ? (
           <Ionicons
             name="chevron-forward"
-            size={14}
+            size={17}
             color={theme.colors.textTertiary}
-            style={{ marginLeft: 8 }}
+            style={{ marginTop: 4 }}
           />
         ) : null}
       </View>
-
-      <View
-        style={{
-          flexDirection: "row",
-          flexWrap: "wrap",
-          gap: 10,
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginTop: 14,
-          paddingTop: 12,
-          borderTopWidth: 1,
-          borderTopColor: theme.colors.borderSubtle,
-        }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 9,
-            paddingVertical: 4,
-            borderRadius: 9999,
-            backgroundColor: accentBackground,
-          }}
-        >
-          <Ionicons
-            name={
-              isAcknowledged
-                ? "checkmark-circle"
-                : isError
-                  ? "close-circle"
-                  : "ellipse-outline"
-            }
-            size={11}
-            color={accent}
-          />
-          <Text
-            style={{
-              fontSize: 13,
-              fontWeight: "700",
-              marginLeft: 5,
-              color: accent,
-            }}
-          >
-            {statusLabel}
-          </Text>
-        </View>
-
-        <Text
-          style={{
-            fontSize: 14,
-            color: theme.colors.textTertiary,
-          }}
-        >
-          {page.createdAt ? formatRelativeTime(page.createdAt) : ""}
-        </Text>
-      </View>
     </View>
   );
-
   if (!onPress || !subject.id) {
     return body;
   }
-
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${subject.title}. ${statusLabel}.`}
       accessibilityHint={`Open ${subject.kind.replace("-", " ")} details`}
-      onPress={() => {
+      onPress={(): void => {
         onPress(page);
       }}
       style={({ pressed }: { pressed: boolean }) => {
-        return { opacity: pressed ? 0.8 : 1 };
+        return { opacity: pressed ? 0.75 : 1 };
       }}
     >
       {body}

@@ -1,4 +1,4 @@
-# Mobile redesign screenshots
+# Mobile experience v2 screenshots
 
 These are screenshots of the actual Expo / React Native Web application using
 synthetic projects, accounts and incident data. They are not native iOS or
@@ -8,6 +8,10 @@ non-production fixtures.
 The browser journeys cover every screen that can run on web, plus search,
 recovery, project switching and bottom-scroll states. Biometric lock is covered
 by native-platform component tests, not a fabricated browser capability.
+
+This second redesign introduces the paper-and-ink theme, five-tab navigation,
+a unified Inbox, compact response layouts and simpler authentication. These
+captures replace the earlier navy design and wait for navigation to settle.
 
 | Project-focused overview | Remembered project switcher | Incident inbox |
 | --- | --- | --- |

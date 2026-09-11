@@ -56,18 +56,19 @@ function SettingsRow({
   const content: React.JSX.Element = (
     <View
       style={{
-        padding: 18,
-        minHeight: 72,
+        paddingHorizontal: 16,
+        paddingVertical: 16,
+        minHeight: 64,
         flexDirection: "row",
         alignItems: "center",
-        gap: 14,
+        gap: 12,
       }}
     >
       <View
         style={{
-          width: 40,
-          height: 40,
-          borderRadius: 12,
+          width: 32,
+          height: 32,
+          borderRadius: 8,
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: destructive
@@ -77,7 +78,7 @@ function SettingsRow({
       >
         <Ionicons
           name={iconName}
-          size={20}
+          size={18}
           color={
             destructive
               ? theme.colors.actionDestructive
@@ -88,7 +89,7 @@ function SettingsRow({
       <View style={{ flex: 1 }}>
         <Text
           style={{
-            fontSize: 16,
+            fontSize: 15,
             lineHeight: 23,
             fontWeight: "600",
             color: destructive
@@ -101,9 +102,9 @@ function SettingsRow({
         {description ? (
           <Text
             style={{
-              fontSize: 14,
-              lineHeight: 21,
-              marginTop: 4,
+              fontSize: 13,
+              lineHeight: 20,
+              marginTop: 2,
               color: theme.colors.textSecondary,
             }}
           >
@@ -135,9 +136,6 @@ function SettingsRow({
     </View>
   );
   const surface: ViewStyle = {
-    borderWidth: 1,
-    borderColor: theme.colors.borderDefault,
-    borderRadius: 16,
     backgroundColor: theme.colors.backgroundSecondary,
   };
   return onPress ? (
@@ -171,26 +169,56 @@ function SettingsSection({
 }): React.JSX.Element {
   const { theme } = useTheme();
   return (
-    <View testID={testID} style={{ marginBottom: 28 }}>
+    <View testID={testID} style={{ marginBottom: 24 }}>
       <Text
         accessibilityRole="header"
         style={{
-          fontSize: 18,
+          fontSize: 12,
+          letterSpacing: 1,
           fontWeight: "700",
-          color: theme.colors.textPrimary,
-          marginBottom: 12,
+          color: theme.colors.textTertiary,
+          textTransform: "uppercase",
+          marginBottom: 10,
         }}
       >
         {title}
       </Text>
-      {children}
+      <View
+        style={{
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: theme.colors.borderSubtle,
+          backgroundColor: theme.colors.backgroundSecondary,
+          overflow: "hidden",
+        }}
+      >
+        {React.Children.toArray(children).map(
+          (child: React.ReactNode, index: number): React.JSX.Element => {
+            return (
+              <View
+                key={index}
+                style={
+                  index > 0
+                    ? {
+                        borderTopWidth: 1,
+                        borderTopColor: theme.colors.borderSubtle,
+                      }
+                    : undefined
+                }
+              >
+                {child}
+              </View>
+            );
+          },
+        )}
+      </View>
     </View>
   );
 }
 
 export default function SettingsScreen(): React.JSX.Element {
   const { theme } = useTheme();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigation: SettingsNavigationProp =
     useNavigation<SettingsNavigationProp>();
   const biometric: ReturnType<typeof useBiometric> = useBiometric();
@@ -249,16 +277,83 @@ export default function SettingsScreen(): React.JSX.Element {
     >
       <ScreenIntro
         title="Settings"
-        eyebrow="YOUR WORKSPACE"
-        description="Make OneUptime work the way you do."
+        description="Your account, workspace and preferences."
+        compact
       />
+
+      <View
+        testID="settings-account-identity"
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 14,
+          paddingVertical: 8,
+          marginBottom: 28,
+        }}
+      >
+        <View
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 26,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: theme.colors.iconBackground,
+          }}
+        >
+          <Ionicons
+            name="person-outline"
+            size={24}
+            color={theme.colors.actionPrimary}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{
+              fontSize: 20,
+              fontWeight: "700",
+              lineHeight: 27,
+              color: theme.colors.textPrimary,
+            }}
+          >
+            {user?.name || "Your account"}
+          </Text>
+          <Text
+            selectable
+            style={{
+              fontSize: 14,
+              lineHeight: 21,
+              marginTop: 3,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            {user?.email || "Signed in to OneUptime"}
+          </Text>
+        </View>
+      </View>
+
+      <SettingsSection title="Workspace" testID="settings-workspace-section">
+        <SettingsRow
+          label="Manage Projects"
+          description="Project access and single sign-on"
+          iconName="grid-outline"
+          onPress={() => {
+            navigation.navigate("ProjectsList");
+          }}
+        />
+        <SettingsRow
+          label="Server URL"
+          value={serverUrl || "Loading server…"}
+          iconName="globe-outline"
+        />
+      </SettingsSection>
 
       {criticalAlerts.isSupported ? (
         <SettingsSection title="Notifications">
           <SettingsRow
             label="Critical On-Call Alerts"
             iconName="notifications-outline"
-            description="Play a sound for on-call pages even when this device is silenced or in Do Not Disturb. Only urgent on-call notifications override silent mode."
+            description="Only urgent on-call notifications override silent mode or Do Not Disturb."
             rightElement={
               <Switch
                 accessibilityLabel="Critical On-Call Alerts"
@@ -279,6 +374,7 @@ export default function SettingsScreen(): React.JSX.Element {
               accessibilityRole="alert"
               accessibilityLiveRegion="polite"
               style={{
+                padding: 16,
                 fontSize: 14,
                 marginTop: 12,
                 lineHeight: 21,
@@ -291,6 +387,7 @@ export default function SettingsScreen(): React.JSX.Element {
             <Text
               accessibilityLiveRegion="polite"
               style={{
+                padding: 16,
                 fontSize: 14,
                 marginTop: 12,
                 lineHeight: 21,
@@ -339,26 +436,6 @@ export default function SettingsScreen(): React.JSX.Element {
           />
         </SettingsSection>
       ) : null}
-
-      <SettingsSection title="Projects">
-        <SettingsRow
-          label="Manage Projects"
-          description="View projects and authenticate with SSO providers"
-          iconName="business-outline"
-          onPress={() => {
-            navigation.navigate("ProjectsList");
-          }}
-        />
-      </SettingsSection>
-
-      <SettingsSection title="Server">
-        <SettingsRow
-          label="Server URL"
-          value={serverUrl || "Loading server…"}
-          description="The OneUptime instance you are signed in to."
-          iconName="globe-outline"
-        />
-      </SettingsSection>
 
       <SettingsSection title="Account">
         <SettingsRow

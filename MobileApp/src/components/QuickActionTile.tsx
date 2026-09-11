@@ -52,9 +52,9 @@ export default function QuickActionTile({
     >
       <View
         style={{
-          borderRadius: 16,
+          borderRadius: 14,
           padding: 16,
-          minHeight: 128,
+          minHeight: 100,
           justifyContent: "space-between",
           backgroundColor: theme.colors.backgroundElevated,
           borderWidth: 1,
@@ -63,18 +63,18 @@ export default function QuickActionTile({
       >
         <View
           style={{
-            width: 34,
-            height: 34,
-            borderRadius: 12,
+            width: 28,
+            height: 28,
+            borderRadius: 8,
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: accent + "1F",
+            backgroundColor: "transparent",
           }}
         >
-          <Ionicons name={iconName} size={16} color={accent} />
+          <Ionicons name={iconName} size={22} color={accent} />
         </View>
 
-        <View style={{ marginTop: 12 }}>
+        <View style={{ marginTop: 10 }}>
           <Text
             style={{
               fontSize: 15,

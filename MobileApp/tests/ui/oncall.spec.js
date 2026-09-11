@@ -7,6 +7,8 @@ async function capture(page, name, testInfo) {
   await page.evaluate(() => {
     return document.fonts.ready;
   });
+  // Let the native-stack transition finish before freezing the rendered screen.
+  await page.waitForTimeout(350);
   const destination = process.env.UPDATE_SCREENSHOTS
     ? path.join(
         __dirname,
@@ -54,7 +56,7 @@ test("on-call roster, coverage, pages, policies and calendar stay in the selecte
     failures.push(error.message);
   });
   await page.goto("/");
-  await expect(page.getByText("Your overview", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "On-Call", exact: true }).click();
   await expect(page.getByTestId("oncall-status-card")).toContainText(
     "You're on call",
@@ -62,6 +64,8 @@ test("on-call roster, coverage, pages, policies and calendar stay in the selecte
   await expect(
     page.getByText("Engineering primary", { exact: true }),
   ).toBeVisible();
+  await expect(page.getByTestId("quick-action-cover")).toContainText("Cover for me");
+  await expect(page.getByTestId("quick-action-roster")).toContainText("Who's on call");
   await capture(page, "oncall-overview", testInfo);
   await checkClearance(page, "oncall-overview-scroll", "row-calendar");
   await capture(page, "oncall-bottom-clearance", testInfo);
@@ -89,6 +93,10 @@ test("on-call roster, coverage, pages, policies and calendar stay in the selecte
   await capture(page, "oncall-arrange-coverage", testInfo);
   await page.getByTestId("open-user-picker").click();
   await expect(page.getByTestId("user-option-responder-2")).toBeVisible();
+  const closePicker = await page.getByRole("button", { name: "Close user picker", exact: true }).boundingBox();
+  expect(closePicker.width).toBeGreaterThanOrEqual(48);
+  expect(closePicker.height).toBeGreaterThanOrEqual(48);
+  expect(closePicker.x + closePicker.width).toBeLessThanOrEqual(page.viewportSize().width - 12);
   await capture(page, "oncall-teammate-picker", testInfo);
   await page.getByTestId("user-picker-search").fill("Priya");
   await page.getByTestId("user-option-responder-2").click();
@@ -116,6 +124,7 @@ test("on-call roster, coverage, pages, policies and calendar stay in the selecte
   await expect(
     page.getByText("Your pages go to Priya Shah", { exact: true }),
   ).toBeVisible();
+  await expect(page.getByTestId("override-card-override-1")).toContainText("In effect");
   await capture(page, "oncall-coverage", testInfo);
   await backToOverview(page);
 
@@ -127,13 +136,14 @@ test("on-call roster, coverage, pages, policies and calendar stay in the selecte
     .click();
   await expect(page.getByTestId("page-card-page-2")).toHaveCount(0);
   await page.getByTestId("page-card-page-1").click();
-  await expect(page.getByText("Impact", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Acknowledge incident", exact: true })).toBeVisible();
   const incidentBack = page.getByRole("button", { name: /back/i }).first();
   await expect(incidentBack).toBeVisible();
   await incidentBack.click();
   await expect(
-    page.getByText("Incident inbox", { exact: true }),
+    page.getByRole("heading", { name: "Inbox", exact: true }),
   ).toBeVisible();
+  await expect(page.getByTestId("inbox-category-incidents")).toHaveAttribute("aria-selected", "true");
   await page.getByRole("tab", { name: "On-Call", exact: true }).click();
   await backToOverview(page);
 
@@ -151,6 +161,14 @@ test("on-call roster, coverage, pages, policies and calendar stay in the selecte
   await capture(page, "oncall-calendar-setup", testInfo);
   await page.getByTestId("generate-feed").click();
   await expect(page.getByTestId("feed-link-box")).toBeVisible();
+  await expect(page.getByTestId("feed-https-url")).toHaveCount(0);
+  await expect(page.getByTestId("toggle-private-link")).toHaveAttribute("aria-expanded", "false");
+  await page.getByRole("button", { name: "Show private link", exact: true }).click();
+  await expect(page.getByTestId("feed-https-url")).toBeVisible();
+  await expect(page.getByTestId("toggle-private-link")).toHaveAttribute("aria-expanded", "true");
+  await page.getByRole("button", { name: "Hide private link", exact: true }).click();
+  await expect(page.getByTestId("toggle-private-link")).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByTestId("feed-https-url")).toHaveCount(0);
   await capture(page, "oncall-calendar", testInfo);
   await checkClearance(page, "calendar-feed-scroll", "regenerate-feed");
   await capture(page, "oncall-calendar-bottom", testInfo);

@@ -89,7 +89,7 @@ describe("A root cause nobody has written yet", () => {
     expect(style.color).toBe(darkColors.textTertiary);
   });
 
-  test("the card is still drawn around it, so the section does not collapse", async () => {
+  test("the empty context retains spacing without nesting another card", async () => {
     /*
      * The section header above this card says "Root Cause". A card that
      * vanished when empty would leave that heading hanging over the next
@@ -98,6 +98,6 @@ describe("A root cause nobody has written yet", () => {
     await render(<RootCauseCard />);
 
     expect(surfaceStyle().borderColor).toBe(darkColors.borderGlass);
-    expect(surfaceStyle().backgroundColor).toBe(darkColors.backgroundElevated);
+    expect(surfaceStyle().backgroundColor).toBe("transparent");
   });
 });

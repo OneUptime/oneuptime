@@ -130,6 +130,12 @@ with both `jest-expo/ios` and `jest-expo/android`. Tests live next to the code t
 See [UI redesign and visual testing](docs/UI_REDESIGN.md) for browser journeys,
 screenshot capture, project isolation checks and the limits of browser previews.
 
+The light interface has five destinations: **Home, Monitors, Inbox, On-Call,
+Settings**. Inbox brings incidents and alerts together, including their grouped
+episodes. Pick a project in any workspace header; the selection is remembered
+for this account and server across restarts. Switching returns to Home and
+clears open forms and details so projects never share an editing context.
+
 ## On-Call
 
 The On-Call tab answers the three questions a responder actually has on a
@@ -156,7 +162,8 @@ handset, in this order:
 requires confirmation. **My pages** highlights unanswered notifications and
 opens the corresponding incident, alert or episode. **My policies** explains
 the assignments that can currently page you. **Calendar sync** creates a private
-subscription link for your shifts in the selected project.
+subscription link for your shifts in the selected project. Its raw credential
+is hidden by default, with explicit reveal, copy and share controls.
 
 Scrollable screens reserve space for the entire bottom navigation bar, the
 device's safe area and an additional 40 points of breathing room. The coverage

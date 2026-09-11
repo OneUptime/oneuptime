@@ -110,7 +110,7 @@ describe("OverrideCard state", () => {
       />,
     );
 
-    expect(screen.getByText("IN EFFECT")).toBeTruthy();
+    expect(screen.getByText("In effect")).toBeTruthy();
     expect(screen.getByText(/ends in 6h/)).toBeTruthy();
   });
 
@@ -124,7 +124,7 @@ describe("OverrideCard state", () => {
       />,
     );
 
-    expect(screen.getByText("SCHEDULED")).toBeTruthy();
+    expect(screen.getByText("Scheduled")).toBeTruthy();
     expect(screen.queryByText(/ends in/)).toBeNull();
   });
 
@@ -142,7 +142,8 @@ describe("OverrideCard state", () => {
       />,
     );
 
-    expect(screen.getByText("Acme · All on-call policies")).toBeTruthy();
+    expect(screen.getByText("All on-call policies")).toBeTruthy();
+    expect(screen.queryByText(/Acme/)).toBeNull();
   });
 
   test("a policy-scoped override names the policy", async (): Promise<void> => {
@@ -157,7 +158,7 @@ describe("OverrideCard state", () => {
       />,
     );
 
-    expect(screen.getByText("Acme · Database")).toBeTruthy();
+    expect(screen.getByText("Database")).toBeTruthy();
   });
 });
 
@@ -212,5 +213,33 @@ describe("OverrideCard cancelling", () => {
     );
 
     expect(screen.queryByTestId("override-cancel-override-1")).toBeNull();
+  });
+
+  test("a cancelling override announces progress and cannot submit the action twice", async (): Promise<void> => {
+    const onCancel: jest.Mock = jest.fn();
+    await render(
+      <OverrideCard
+        override={override()}
+        state="active"
+        currentUserId={ME}
+        now={NOW}
+        onCancel={onCancel}
+        isCancelling
+      />,
+    );
+    const control: ReturnType<typeof screen.getByTestId> = screen.getByTestId(
+      "override-cancel-override-1",
+    );
+    expect(control).toHaveStyle({ minHeight: 48 });
+    expect(screen.getByRole("button").props.accessibilityState.disabled).toBe(
+      true,
+    );
+    expect(screen.getByRole("button").props.accessibilityState.busy).toBe(true);
+    expect(control.props.accessibilityState).toEqual({
+      disabled: true,
+      busy: true,
+    });
+    await fireEvent.press(control);
+    expect(onCancel).not.toHaveBeenCalled();
   });
 });
