@@ -5,13 +5,14 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import ObjectID from "Common/Types/ObjectID";
-import Navigation from "Common/UI/Utils/Navigation";
+import { useParams } from "react-router-dom";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const RumApplicationSettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const { id } = useParams();
+  const modelId: ObjectID = new ObjectID(id || "");
 
   return (
     <ArchiveResourceCard<RumApplication>

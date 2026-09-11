@@ -5,13 +5,14 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import ObjectID from "Common/Types/ObjectID";
-import Navigation from "Common/UI/Utils/Navigation";
+import { useParams } from "react-router-dom";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const ServerlessFunctionSettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const { id } = useParams();
+  const modelId: ObjectID = new ObjectID(id || "");
 
   return (
     <ArchiveResourceCard<ServerlessFunction>
