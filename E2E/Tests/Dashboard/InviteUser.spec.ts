@@ -1,4 +1,4 @@
-import { BASE_URL } from "../../Config";
+import { BASE_URL, IS_BILLING_ENABLED } from "../../Config";
 import { Browser, Locator, Page, expect, test } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 import Faker from "Common/Utils/Faker";
@@ -40,6 +40,16 @@ const usersPageUrl: UsersPageUrlFunction = (projectId: string): string => {
 
 const EMAIL_PLACEHOLDER: string = "member@company.com";
 
+/*
+ * Inviting is plan-gated when billing is on: the Free plan holds exactly one
+ * member, and the owner who signed up already fills it, so TeamMemberService
+ * refuses every invitation into a Free project with "You have reached the user
+ * limit for the free plan". That is the product working - this spec needs a
+ * project that is allowed a second member, the way the other plan-gated specs
+ * ask for one. Self-hosted runs have no plans, which is why only SaaS failed.
+ */
+const PREFERRED_PLAN_NAME: string = "Growth";
+
 interface SharedContext {
   page: Page;
   projectId: string;
@@ -57,6 +67,7 @@ test.describe("Invite user", () => {
     ctx.projectId = await registerAndCreateProject({
       page: ctx.page,
       projectNamePrefix: "E2E Invite User Project",
+      preferredPlanName: IS_BILLING_ENABLED ? PREFERRED_PLAN_NAME : undefined,
     });
   });
 
