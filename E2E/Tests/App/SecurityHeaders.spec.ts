@@ -47,6 +47,15 @@ import URL from "Common/Types/API/URL";
 
 const HARDENED_ROUTES: Array<string> = ["/dashboard", "/accounts", "/admin"];
 
+/*
+ * The deliberate other half. These two are embedded in customers' own pages,
+ * so DENY here is a product regression rather than a hardening win — and it is
+ * the kind of regression a well-meaning "add the header everywhere" change
+ * introduces. IngressRoutes.spec.ts already proves both serve a non-error
+ * response in this environment.
+ */
+const EMBEDDABLE_ROUTES: Array<string> = ["/status-page", "/public-dashboard"];
+
 interface ExpectedHeader {
   name: string;
   // Substring the header value must contain (case-insensitive).
@@ -145,6 +154,35 @@ test.describe("Ingress security headers on browser-facing routes", () => {
       const contentType: string | undefined =
         response.headers()["content-type"];
       expect(contentType).toBeTruthy();
+    });
+  }
+
+  for (const route of EMBEDDABLE_ROUTES) {
+    test(`${route} stays embeddable`, async ({ page }: { page: Page }) => {
+      page.setDefaultNavigationTimeout(120000); // 2 minutes
+
+      const response: APIResponse = await fetchRoute(page, route);
+
+      expect(response.status()).toBeGreaterThanOrEqual(200);
+      expect(response.status()).toBeLessThan(400);
+
+      expect(
+        response.headers()["x-frame-options"],
+        `${route} is meant to be embedded in a customer's own page; X-Frame-Options here breaks that`,
+      ).toBeUndefined();
+    });
+
+    test(`${route} still refuses to be MIME-sniffed`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      // Embeddable is not the same as unhardened.
+      page.setDefaultNavigationTimeout(120000); // 2 minutes
+
+      const response: APIResponse = await fetchRoute(page, route);
+
+      expect(response.headers()["x-content-type-options"]).toContain("nosniff");
     });
   }
 });
