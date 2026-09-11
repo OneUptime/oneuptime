@@ -74,6 +74,7 @@ import API from "../../Utils/API";
 import Slug from "../../Utils/Slug";
 import { getRuleCriteriaValidationError } from "../../Utils/Rules/RuleCriteriaMatcher";
 import RuleCriteria, {
+  RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN,
   RuleCriteriaOperator,
 } from "../../Types/Rules/RuleCriteria";
 import { getRuleCriteriaFieldsForModel } from "../../Types/Rules/RuleCriteriaFieldRegistry";
@@ -100,16 +101,6 @@ const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
     RuleCriteriaOperator.HasAllOf,
     RuleCriteriaOperator.HasNoneOf,
   ]);
-
-/*
- * A configured criteria document is authoritative, but an older application
- * worker in a rolling deployment only knows about the legacy match columns.
- * Leaving those columns empty would make that worker interpret a newly saved
- * rule as "match everything". A valid regular expression that can never
- * match gives legacy workers a safe, fail-closed view of the rule until every
- * worker understands the criteria document.
- */
-const RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN: string = "(?!)";
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   public modelType!: { new (): TBaseModel };
@@ -696,6 +687,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
     }
 
+    if (
+      criteria.isEnabled !== undefined &&
+      !(this.model instanceof RelationOnlyRuleBaseModel)
+    ) {
+      throw new BadDataException(
+        `Rule criteria isEnabled is only supported for relation-only rules.`,
+      );
+    }
+
     for (const filter of criteria.filters) {
       if (!allowedFields.includes(filter.field)) {
         throw new BadDataException(
@@ -828,7 +828,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     const record: Record<string, unknown> = data as Record<string, unknown>;
-    const requestedEnabledState: unknown = record["isEnabled"];
+    const criteria: RuleCriteria = record["criteria"] as RuleCriteria;
+    const requestedEnabledState: unknown =
+      typeof criteria.isEnabled === "boolean"
+        ? criteria.isEnabled
+        : record["isEnabled"];
 
     if (options.isUpdate && typeof requestedEnabledState !== "boolean") {
       throw new BadDataException(
@@ -836,12 +840,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
     }
 
-    record["isEnabled"] =
-      typeof requestedEnabledState === "boolean"
-        ? requestedEnabledState
-          ? null
-          : false
-        : null;
+    const logicalEnabledState: boolean =
+      typeof requestedEnabledState === "boolean" ? requestedEnabledState : true;
+
+    record["criteria"] = {
+      ...criteria,
+      isEnabled: logicalEnabledState,
+    };
+    record["isEnabled"] = logicalEnabledState ? null : false;
   }
 
   private applyLegacyRuleCriteriaSafetyShadow(
@@ -855,8 +861,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     if (this.model instanceof RelationOnlyRuleBaseModel) {
+      /*
+       * Omit legacy many-to-many fields from the server-side write. An empty
+       * array would clear existing junction rows and route updates through
+       * repository.save(), whose upsert semantics can resurrect a deleted row.
+       * The fail-closed isEnabled shadow keeps these rules hidden from older
+       * workers without touching their legacy relations.
+       */
       for (const field of allowedFields) {
-        (data as Record<string, unknown>)[field] = [];
+        delete (data as Record<string, unknown>)[field];
       }
 
       return;
@@ -891,8 +904,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         continue;
       }
 
-      (data as Record<string, unknown>)[field] =
-        metadata.type === TableColumnType.EntityArray ? [] : null;
+      if (metadata.type === TableColumnType.EntityArray) {
+        // Preserve existing junction rows and keep this on repository.update().
+        delete (data as Record<string, unknown>)[field];
+      } else {
+        (data as Record<string, unknown>)[field] = null;
+      }
     }
 
     (data as Record<string, unknown>)[safetyPatternField] =
@@ -2956,9 +2973,23 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             undefined &&
           (item as unknown as RelationOnlyRuleBaseModel).criteria !== null
         ) {
-          (dataForItem as Record<string, unknown>)["isEnabled"] = (
-            data as Record<string, unknown>
-          )["isEnabled"]
+          const logicalEnabled: boolean = (data as Record<string, unknown>)[
+            "isEnabled"
+          ] as boolean;
+          const existingCriteria: RuleCriteria = (
+            item as unknown as RelationOnlyRuleBaseModel
+          ).criteria!;
+
+          /*
+           * Keep the transport shadow synchronized with the physical state.
+           * Otherwise a later criteria edit that round-trips this JSON without
+           * a top-level isEnabled value can restore a stale enabled state.
+           */
+          (dataForItem as Record<string, unknown>)["criteria"] = {
+            ...existingCriteria,
+            isEnabled: logicalEnabled,
+          };
+          (dataForItem as Record<string, unknown>)["isEnabled"] = logicalEnabled
             ? null
             : false;
         }
@@ -3120,13 +3151,30 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const { item, updatedItem } = data;
     const columns: string[] = Object.keys(updatedItem);
     for (const column of columns) {
+      const currentValue: unknown = item.getColumnValue(column);
+      const updatedValue: unknown = updatedItem[column];
+      const isJSONColumn: boolean =
+        item.getTableColumnMetadata(column)?.type === TableColumnType.JSON;
+
+      /*
+       * Plain JSON objects all stringify through Object.toString as
+       * "[object Object]". Compare their contents instead, while ignoring
+       * insignificant object-key ordering.
+       */
       if (
+        isJSONColumn &&
+        !JSONFunctions.deepEqual(currentValue, updatedValue)
+      ) {
+        return false;
+      }
+
+      if (
+        !isJSONColumn &&
         /*
          * `toString()` is necessary so we can compare wrapped values
          * (e.g. `ObjectID`) with raw values (e.g. `string`)
          */
-        item.getColumnValue(column)?.toString() !==
-        updatedItem[column]?.toString()
+        currentValue?.toString() !== updatedValue?.toString()
       ) {
         return false;
       }

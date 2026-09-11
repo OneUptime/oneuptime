@@ -1,5 +1,99 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
+const RULE_CRITERIA_LEGACY_SHADOW_FUNCTION_NAME: string =
+  "set_rule_criteria_legacy_shadow_1792400000000";
+const RULE_CRITERIA_LEGACY_SHADOW_TRIGGER_NAME: string =
+  "TRG_rule_criteria_legacy_shadow_1792400000000";
+const RELATION_ONLY_RULE_CRITERIA_SHADOW_FUNCTION_NAME: string =
+  "set_relation_only_rule_criteria_shadow_1792400000000";
+const RELATION_ONLY_RULE_CRITERIA_SHADOW_TRIGGER_NAME: string =
+  "TRG_relation_only_rule_criteria_shadow_1792400000000";
+const RELATION_ONLY_RULE_CRITERIA_SHADOW_TABLES: ReadonlyArray<string> = [
+  "IncidentReminderRule",
+  "AlertReminderRule",
+  "ScheduledMaintenanceReminderRule",
+];
+
+/*
+ * This is a historical schema contract, not an application registry lookup.
+ * A criteria-backed row must retain one positive legacy pattern that can
+ * never match so an older worker cannot act on it during a rolling deploy.
+ */
+const RULE_CRITERIA_LEGACY_SHADOWS: ReadonlyArray<
+  readonly [tableName: string, fieldName: string]
+> = [
+  ["AlertEpisodeLabelRule", "episodeTitlePattern"],
+  ["AlertEpisodeOnCallRule", "episodeTitlePattern"],
+  ["AlertEpisodeOwnerRule", "episodeTitlePattern"],
+  ["AlertEpisodePrivacyRule", "episodeTitlePattern"],
+  ["AlertGroupingRule", "alertTitlePattern"],
+  ["AlertLabelRule", "alertTitlePattern"],
+  ["AlertOnCallRule", "alertTitlePattern"],
+  ["AlertOwnerRule", "alertTitlePattern"],
+  ["AlertPrivacyRule", "alertTitlePattern"],
+  ["AutoRemediationRule", "titlePattern"],
+  ["CephClusterLabelRule", "cephClusterNamePattern"],
+  ["CephClusterOwnerRule", "cephClusterNamePattern"],
+  ["CloudResourceLabelRule", "nameRegexPattern"],
+  ["CloudResourceOwnerRule", "nameRegexPattern"],
+  ["DashboardLabelRule", "dashboardNamePattern"],
+  ["DashboardOwnerRule", "dashboardNamePattern"],
+  ["DockerHostLabelRule", "dockerHostNamePattern"],
+  ["DockerHostOwnerRule", "dockerHostNamePattern"],
+  ["DockerSwarmClusterLabelRule", "dockerSwarmClusterNamePattern"],
+  ["DockerSwarmClusterOwnerRule", "dockerSwarmClusterNamePattern"],
+  ["HostLabelRule", "hostNamePattern"],
+  ["HostOwnerRule", "hostNamePattern"],
+  ["IncidentEpisodeLabelRule", "episodeTitlePattern"],
+  ["IncidentEpisodeOnCallRule", "episodeTitlePattern"],
+  ["IncidentEpisodeOwnerRule", "episodeTitlePattern"],
+  ["IncidentEpisodePrivacyRule", "episodeTitlePattern"],
+  ["IncidentGroupingRule", "incidentTitlePattern"],
+  ["IncidentLabelRule", "incidentTitlePattern"],
+  ["IncidentOnCallRule", "incidentTitlePattern"],
+  ["IncidentOwnerRule", "incidentTitlePattern"],
+  ["IncidentPrivacyRule", "incidentTitlePattern"],
+  ["IncidentSlaRule", "incidentTitlePattern"],
+  ["IncomingCallPolicyLabelRule", "incomingCallPolicyNamePattern"],
+  ["IncomingCallPolicyOwnerRule", "incomingCallPolicyNamePattern"],
+  ["IoTFleetLabelRule", "iotFleetNamePattern"],
+  ["IoTFleetOwnerRule", "iotFleetNamePattern"],
+  ["KubernetesClusterLabelRule", "kubernetesClusterNamePattern"],
+  ["KubernetesClusterOwnerRule", "kubernetesClusterNamePattern"],
+  ["MonitorLabelRule", "monitorNamePattern"],
+  ["MonitorOwnerRule", "monitorNamePattern"],
+  ["NetworkDeviceAutoImportRule", "sysNamePattern"],
+  ["NetworkDeviceLabelRule", "networkDeviceNamePattern"],
+  ["NetworkDeviceOwnerRule", "networkDeviceNamePattern"],
+  ["NetworkSiteAssignmentRule", "hostnamePattern"],
+  ["OnCallDutyPolicyLabelRule", "onCallDutyPolicyNamePattern"],
+  ["OnCallDutyPolicyOwnerRule", "onCallDutyPolicyNamePattern"],
+  ["OnCallDutyPolicyScheduleLabelRule", "onCallDutyPolicyScheduleNamePattern"],
+  ["OnCallDutyPolicyScheduleOwnerRule", "onCallDutyPolicyScheduleNamePattern"],
+  ["PodmanHostLabelRule", "podmanHostNamePattern"],
+  ["PodmanHostOwnerRule", "podmanHostNamePattern"],
+  ["ProxmoxClusterLabelRule", "proxmoxClusterNamePattern"],
+  ["ProxmoxClusterOwnerRule", "proxmoxClusterNamePattern"],
+  ["RumApplicationLabelRule", "nameRegexPattern"],
+  ["RumApplicationOwnerRule", "nameRegexPattern"],
+  ["RunbookLabelRule", "runbookNamePattern"],
+  ["RunbookOwnerRule", "runbookNamePattern"],
+  ["RunbookRule", "titlePattern"],
+  ["ScheduledMaintenanceLabelRule", "titlePattern"],
+  ["ScheduledMaintenanceOwnerRule", "titlePattern"],
+  ["ServerlessFunctionLabelRule", "nameRegexPattern"],
+  ["ServerlessFunctionOwnerRule", "nameRegexPattern"],
+  ["ServiceLabelRule", "serviceNamePattern"],
+  ["ServiceOwnerRule", "serviceNamePattern"],
+  ["StatusPageLabelRule", "statusPageNamePattern"],
+  ["StatusPageMonitorRule", "monitorNamePattern"],
+  ["StatusPageOwnerRule", "statusPageNamePattern"],
+  ["VMwareVCenterLabelRule", "vmwareVCenterNamePattern"],
+  ["VMwareVCenterOwnerRule", "vmwareVCenterNamePattern"],
+  ["WorkflowLabelRule", "workflowNamePattern"],
+  ["WorkflowOwnerRule", "workflowNamePattern"],
+];
+
 export class AddConfigurableRuleCriteria1792400000000
   implements MigrationInterface
 {
@@ -220,6 +314,29 @@ export class AddConfigurableRuleCriteria1792400000000
       `ALTER TABLE "DashboardLabelRule" ADD "criteria" jsonb`,
     );
     await queryRunner.query(
+      `CREATE FUNCTION "${RULE_CRITERIA_LEGACY_SHADOW_FUNCTION_NAME}"()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NEW."criteria" IS NOT NULL THEN
+    NEW := jsonb_populate_record(
+      NEW,
+      jsonb_build_object(TG_ARGV[0], '(?!)')
+    );
+  END IF;
+
+  RETURN NEW;
+END;
+$$`,
+    );
+
+    for (const [tableName, fieldName] of RULE_CRITERIA_LEGACY_SHADOWS) {
+      await queryRunner.query(
+        `CREATE TRIGGER "${RULE_CRITERIA_LEGACY_SHADOW_TRIGGER_NAME}" BEFORE INSERT OR UPDATE ON "${tableName}" FOR EACH ROW EXECUTE FUNCTION "${RULE_CRITERIA_LEGACY_SHADOW_FUNCTION_NAME}"('${fieldName}')`,
+      );
+    }
+    await queryRunner.query(
       `ALTER TABLE "IncidentReminderRule" ALTER COLUMN "isEnabled" DROP NOT NULL`,
     );
     await queryRunner.query(
@@ -228,6 +345,29 @@ export class AddConfigurableRuleCriteria1792400000000
     await queryRunner.query(
       `ALTER TABLE "ScheduledMaintenanceReminderRule" ALTER COLUMN "isEnabled" DROP NOT NULL`,
     );
+    await queryRunner.query(
+      `CREATE FUNCTION "${RELATION_ONLY_RULE_CRITERIA_SHADOW_FUNCTION_NAME}"()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NEW."criteria" IS NOT NULL THEN
+    NEW."isEnabled" := CASE
+      WHEN NEW."criteria" -> 'isEnabled' = 'true'::jsonb THEN NULL
+      ELSE false
+    END;
+  END IF;
+
+  RETURN NEW;
+END;
+$$`,
+    );
+
+    for (const tableName of RELATION_ONLY_RULE_CRITERIA_SHADOW_TABLES) {
+      await queryRunner.query(
+        `CREATE TRIGGER "${RELATION_ONLY_RULE_CRITERIA_SHADOW_TRIGGER_NAME}" BEFORE INSERT OR UPDATE ON "${tableName}" FOR EACH ROW EXECUTE FUNCTION "${RELATION_ONLY_RULE_CRITERIA_SHADOW_FUNCTION_NAME}"()`,
+      );
+    }
     await queryRunner.query(
       `ALTER TABLE "IncidentReminderRule" ADD CONSTRAINT "CHK_621666eeeadb32738407f5260f" CHECK ("criteria" IS NULL OR "isEnabled" IS DISTINCT FROM true)`,
     );
@@ -240,6 +380,22 @@ export class AddConfigurableRuleCriteria1792400000000
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    for (const tableName of RELATION_ONLY_RULE_CRITERIA_SHADOW_TABLES) {
+      await queryRunner.query(
+        `DROP TRIGGER "${RELATION_ONLY_RULE_CRITERIA_SHADOW_TRIGGER_NAME}" ON "${tableName}"`,
+      );
+    }
+    await queryRunner.query(
+      `DROP FUNCTION "${RELATION_ONLY_RULE_CRITERIA_SHADOW_FUNCTION_NAME}"()`,
+    );
+    for (const [tableName] of RULE_CRITERIA_LEGACY_SHADOWS) {
+      await queryRunner.query(
+        `DROP TRIGGER "${RULE_CRITERIA_LEGACY_SHADOW_TRIGGER_NAME}" ON "${tableName}"`,
+      );
+    }
+    await queryRunner.query(
+      `DROP FUNCTION "${RULE_CRITERIA_LEGACY_SHADOW_FUNCTION_NAME}"()`,
+    );
     await queryRunner.query(
       `ALTER TABLE "ScheduledMaintenanceReminderRule" DROP CONSTRAINT "CHK_5f385c6a0dd4b598a9b3c7ca1c"`,
     );
@@ -248,6 +404,15 @@ export class AddConfigurableRuleCriteria1792400000000
     );
     await queryRunner.query(
       `ALTER TABLE "IncidentReminderRule" DROP CONSTRAINT "CHK_621666eeeadb32738407f5260f"`,
+    );
+    await queryRunner.query(
+      `UPDATE "ScheduledMaintenanceReminderRule" SET "isEnabled" = true WHERE "isEnabled" IS NULL`,
+    );
+    await queryRunner.query(
+      `UPDATE "AlertReminderRule" SET "isEnabled" = true WHERE "isEnabled" IS NULL`,
+    );
+    await queryRunner.query(
+      `UPDATE "IncidentReminderRule" SET "isEnabled" = true WHERE "isEnabled" IS NULL`,
     );
     await queryRunner.query(
       `ALTER TABLE "ScheduledMaintenanceReminderRule" ALTER COLUMN "isEnabled" SET NOT NULL`,

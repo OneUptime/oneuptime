@@ -182,7 +182,7 @@ const FIELDS: Array<Field<TestEntity>> = [
 interface HarnessProps {
   initialValue?: RuleCriteria | undefined;
   legacyValues?: Record<string, unknown> | undefined;
-  onChange: jest.Mock;
+  onChange: ReturnType<typeof jest.fn>;
   fields?: Array<Field<TestEntity>> | undefined;
   error?: string | undefined;
 }
@@ -208,7 +208,7 @@ const Harness: React.FunctionComponent<HarnessProps> = (
   );
 };
 
-function latestCriteria(onChange: jest.Mock): RuleCriteria {
+function latestCriteria(onChange: ReturnType<typeof jest.fn>): RuleCriteria {
   const lastCall: Array<unknown> | undefined =
     onChange.mock.calls[onChange.mock.calls.length - 1];
 
@@ -242,7 +242,7 @@ describe("RuleCriteriaBuilder", () => {
   });
 
   test("explains an empty rule and adds and removes a condition", async () => {
-    const onChange: jest.Mock = jest.fn();
+    const onChange: ReturnType<typeof jest.fn> = jest.fn();
     const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
 
     render(<Harness onChange={onChange} />);
@@ -274,7 +274,7 @@ describe("RuleCriteriaBuilder", () => {
   });
 
   test("switches the global connector between match-all and match-any", async () => {
-    const onChange: jest.Mock = jest.fn();
+    const onChange: ReturnType<typeof jest.fn> = jest.fn();
     const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
 
     render(
@@ -296,7 +296,7 @@ describe("RuleCriteriaBuilder", () => {
   });
 
   test("offers text operators and stores text edits", async () => {
-    const onChange: jest.Mock = jest.fn();
+    const onChange: ReturnType<typeof jest.fn> = jest.fn();
     const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
 
     render(
@@ -329,7 +329,7 @@ describe("RuleCriteriaBuilder", () => {
   });
 
   test("uses EntityDropdown for relations and stores selected ids", async () => {
-    const onChange: jest.Mock = jest.fn();
+    const onChange: ReturnType<typeof jest.fn> = jest.fn();
     const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
 
     render(
@@ -356,7 +356,7 @@ describe("RuleCriteriaBuilder", () => {
   });
 
   test("uses a static dropdown for enumerated values", async () => {
-    const onChange: jest.Mock = jest.fn();
+    const onChange: ReturnType<typeof jest.fn> = jest.fn();
     const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
 
     render(
@@ -416,7 +416,7 @@ describe("RuleCriteriaBuilder", () => {
   });
 
   test("hydrates legacy values once but leaves existing criteria untouched", () => {
-    const legacyOnChange: jest.Mock = jest.fn();
+    const legacyOnChange: ReturnType<typeof jest.fn> = jest.fn();
 
     const { unmount } = render(
       <Harness
@@ -436,7 +436,7 @@ describe("RuleCriteriaBuilder", () => {
       RuleCriteriaOperator.DoesNotMatchPattern,
       "staging-*",
     );
-    const storedOnChange: jest.Mock = jest.fn();
+    const storedOnChange: ReturnType<typeof jest.fn> = jest.fn();
 
     render(
       <Harness
@@ -472,7 +472,7 @@ describe("RuleCriteriaBuilder", () => {
   });
 
   test("does not offer a conditional field while its showIf is false", async () => {
-    const onChange: jest.Mock = jest.fn();
+    const onChange: ReturnType<typeof jest.fn> = jest.fn();
     const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
     const conditionalFields: Array<Field<TestEntity>> = [
       {

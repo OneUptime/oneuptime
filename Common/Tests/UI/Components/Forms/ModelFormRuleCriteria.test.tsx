@@ -1,12 +1,15 @@
 import { describe, expect, jest, test } from "@jest/globals";
 import { ReactElement } from "react";
 import RuleBaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/RuleBaseModel";
+import AlertReminderRule from "../../../../Models/DatabaseModels/AlertReminderRule";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import StatusPageMonitorRule from "../../../../Models/DatabaseModels/StatusPageMonitorRule";
 import type Field from "../../../../UI/Components/Forms/Types/Field";
 import Fields from "../../../../UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import {
   addRuleCriteriaToSelect,
+  applyRuleCriteriaLegacySafetyShadow,
   replaceLegacyRuleCriteriaFields,
   RULE_CRITERIA_FIELD_NAME,
 } from "../../../../UI/Components/RuleCriteria/RuleCriteriaModelForm";
@@ -46,6 +49,29 @@ function ruleFields(): Fields<any> {
   ];
 }
 
+function reminderRuleFields(): Fields<any> {
+  return [
+    {
+      field: { isEnabled: true },
+      title: "Is Enabled",
+      stepId: "basic-info",
+      fieldType: FormFieldSchemaType.Toggle,
+    },
+    {
+      field: { labels: true },
+      title: "Labels",
+      stepId: "match-criteria",
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
+    },
+    {
+      field: { alertSeverities: true },
+      title: "Alert Severities",
+      stepId: "match-criteria",
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
+    },
+  ];
+}
+
 describe("ModelForm rule criteria integration", () => {
   test("keeps legacy match fields in the API select and adds criteria", () => {
     const select: Record<string, unknown> = {
@@ -66,6 +92,69 @@ describe("ModelForm rule criteria integration", () => {
       criteria: true,
     });
   });
+
+  test("sends a fail-closed legacy shadow with criteria for old API pods", () => {
+    const values: Record<string, unknown> = {
+      criteria: {
+        schemaVersion: 1,
+        filterCondition: "All",
+        filters: [
+          {
+            field: "monitorNamePattern",
+            operator: "Contains",
+            value: "api",
+          },
+        ],
+      },
+      monitorLabels: ["dddddddd-dddd-4ddd-8ddd-dddddddddddd"],
+      monitorNamePattern: "api-*",
+    };
+
+    applyRuleCriteriaLegacySafetyShadow({
+      model: new StatusPageMonitorRule(),
+      fields: ruleFields(),
+      values: values,
+    });
+
+    expect(values["monitorLabels"]).toEqual([]);
+    expect(values["monitorNamePattern"]).toBe("(?!)");
+    expect(values["criteria"]).toMatchObject({
+      filterCondition: "All",
+    });
+  });
+
+  test.each([true, false])(
+    "carries logical reminder enabled=%p inside criteria while old APIs see disabled",
+    (isEnabled: boolean) => {
+      const values: Record<string, unknown> = {
+        criteria: {
+          schemaVersion: 1,
+          filterCondition: "All",
+          filters: [
+            {
+              field: "labels",
+              operator: "HasAnyOf",
+              value: ["dddddddd-dddd-4ddd-8ddd-dddddddddddd"],
+            },
+          ],
+        },
+        isEnabled: isEnabled,
+        labels: ["dddddddd-dddd-4ddd-8ddd-dddddddddddd"],
+        alertSeverities: ["eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee"],
+      };
+
+      applyRuleCriteriaLegacySafetyShadow({
+        model: new AlertReminderRule(),
+        fields: reminderRuleFields(),
+        values: values,
+      });
+
+      expect(values["labels"]).toEqual([]);
+      expect(values["alertSeverities"]).toEqual([]);
+      expect(values["isEnabled"]).toBe(false);
+      expect(values["criteria"]).toMatchObject({ isEnabled: isEnabled });
+    },
+  );
 
   test("replaces only visible match fields with one full-width builder", () => {
     const result: Fields<any> = replaceLegacyRuleCriteriaFields(
@@ -150,16 +239,17 @@ describe("ModelForm rule criteria integration", () => {
       monitorLabels: ["production-label"],
       monitorNamePattern: "^api-",
     };
-    const onChange: jest.Mock = jest.fn();
+    const onChange: ReturnType<typeof jest.fn> = jest.fn();
 
-    const element: ReactElement = criteriaField!.getCustomElement!(
+    const element: ReactElement | undefined = criteriaField!.getCustomElement!(
       currentValues,
       { onChange: onChange },
     );
+    expect(element).toBeDefined();
     const elementProps: {
       legacyValues: Record<string, unknown>;
       value?: unknown;
-    } = element.props as {
+    } = element!.props as {
       legacyValues: Record<string, unknown>;
       value?: unknown;
     };
@@ -190,7 +280,7 @@ describe("ModelForm rule criteria integration", () => {
       ],
     };
 
-    const element: ReactElement = criteriaField!.getCustomElement!(
+    const element: ReactElement | undefined = criteriaField!.getCustomElement!(
       {
         criteria: storedCriteria,
         monitorNamePattern: "legacy-*",
@@ -198,7 +288,8 @@ describe("ModelForm rule criteria integration", () => {
       { onChange: jest.fn() },
     );
 
-    expect((element.props as { value?: unknown }).value).toBe(storedCriteria);
+    expect(element).toBeDefined();
+    expect((element!.props as { value?: unknown }).value).toBe(storedCriteria);
   });
 
   test("leaves non-rule forms unchanged", () => {

@@ -5,6 +5,9 @@ type RuleCriteriaSchemaVersion = 1;
 export const RULE_CRITERIA_SCHEMA_VERSION: RuleCriteriaSchemaVersion =
   1 as const;
 
+/** A legacy regular expression that can never match any resource value. */
+export const RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN: string = "(?!)";
+
 export enum RuleCriteriaOperator {
   Equals = "Equals",
   NotEquals = "NotEquals",
@@ -38,4 +41,11 @@ export default interface RuleCriteria {
   schemaVersion: typeof RULE_CRITERIA_SCHEMA_VERSION;
   filterCondition: FilterCondition;
   filters: Array<RuleCriteriaFilter>;
+
+  /**
+   * Logical state carried only for relation-only rules during rolling deploys.
+   * Their legacy `isEnabled` column is deliberately sent as false so an old
+   * API cannot create an enabled match-all rule after dropping `criteria`.
+   */
+  isEnabled?: boolean;
 }

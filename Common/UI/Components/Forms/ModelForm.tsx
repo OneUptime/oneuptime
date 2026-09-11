@@ -22,6 +22,7 @@ import Loader, { LoaderType } from "../Loader/Loader";
 import Pill, { PillSize } from "../Pill/Pill";
 import {
   addRuleCriteriaToSelect,
+  applyRuleCriteriaLegacySafetyShadow,
   replaceLegacyRuleCriteriaFields,
 } from "../RuleCriteria/RuleCriteriaModelForm";
 import { FormErrors, FormProps, FormSummaryConfig } from "./BasicForm";
@@ -886,6 +887,12 @@ const ModelForm: <TBaseModel extends BaseModel>(
       for (const key in getSelectFields()) {
         (valuesToSend as any)[key] = values[key];
       }
+
+      applyRuleCriteriaLegacySafetyShadow({
+        model: model,
+        fields: props.fields,
+        values: valuesToSend,
+      });
 
       if (props.formType === FormType.Update && props.modelIdToEdit) {
         (valuesToSend as any)["_id"] = props.modelIdToEdit.toString();

@@ -9,11 +9,38 @@ import RuleCriteria, {
   RuleCriteriaFilter,
   RuleCriteriaOperator,
 } from "../../../Types/Rules/RuleCriteria";
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it, jest } from "@jest/globals";
+
+jest.mock("@faker-js/faker", () => {
+  return {
+    faker: {
+      company: {
+        name: (): string => {
+          return "Test Company";
+        },
+      },
+      internet: {
+        email: (): string => {
+          return "test@example.com";
+        },
+      },
+      person: {
+        fullName: (): string => {
+          return "Test User";
+        },
+      },
+      string: {
+        alphanumeric: (): string => {
+          return "test-value";
+        },
+      },
+    },
+  };
+});
 
 type SanitizeFunction = (
   data: unknown,
-  props: DatabaseCommonInteractionProps,
+  props?: DatabaseCommonInteractionProps,
   isUpdate?: boolean,
 ) => Promise<JSONObject>;
 
@@ -53,7 +80,7 @@ function criteriaFor(filter: RuleCriteriaFilter): JSONObject {
   return {
     schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
     filterCondition: FilterCondition.All,
-    filters: [filter],
+    filters: [filter as unknown as JSONObject],
   };
 }
 
@@ -85,23 +112,23 @@ describe("DatabaseService rule criteria validation", () => {
         value: "api",
       });
 
-      await expect(
-        sanitize(
-          {
-            criteria: criteria,
-            monitorLabels: ["11111111-1111-4111-8111-111111111111"],
-            monitorNamePattern: "legacy-api-*",
-            monitorDescriptionPattern: "legacy production",
-          },
-          { isRoot: true },
-          isUpdate,
-        ),
-      ).resolves.toMatchObject({
+      const result: JSONObject = await sanitize(
+        {
+          criteria: criteria,
+          monitorLabels: ["11111111-1111-4111-8111-111111111111"],
+          monitorNamePattern: "legacy-api-*",
+          monitorDescriptionPattern: "legacy production",
+        },
+        { isRoot: true },
+        isUpdate,
+      );
+
+      expect(result).toMatchObject({
         criteria: criteria,
-        monitorLabels: [],
         monitorNamePattern: "(?!)",
         monitorDescriptionPattern: null,
       });
+      expect(result["monitorLabels"]).toBeUndefined();
     },
   );
 
@@ -135,13 +162,49 @@ describe("DatabaseService rule criteria validation", () => {
 
       expect(result).toMatchObject({
         criteria: criteria,
-        labels: [],
-        alertSeverities: [],
       });
+      expect(result["labels"]).toBeUndefined();
+      expect(result["alertSeverities"]).toBeUndefined();
       expect(result["isEnabled"]).toBe(isEnabled ? null : false);
       expect(result["criteriaIsEnabled"]).toBeUndefined();
     },
   );
+
+  it("recovers the logical reminder state from a fail-closed browser payload", async () => {
+    const criteria: JSONObject = {
+      schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+      filterCondition: FilterCondition.All,
+      filters: [],
+      isEnabled: true,
+    };
+
+    const result: JSONObject = await sanitizeAlertReminder(
+      {
+        criteria: criteria,
+        isEnabled: false,
+      },
+      { isRoot: true },
+      false,
+    );
+
+    expect(result["isEnabled"]).toBeNull();
+    expect(result["criteria"]).toMatchObject({ isEnabled: true });
+  });
+
+  it("rejects relation-only compatibility state on pattern-backed rules", async () => {
+    await expect(
+      sanitize({
+        criteria: {
+          ...criteriaFor({
+            field: "monitorNamePattern",
+            operator: RuleCriteriaOperator.Contains,
+            value: "api",
+          }),
+          isEnabled: true,
+        },
+      }),
+    ).rejects.toThrow("isEnabled is only supported for relation-only rules");
+  });
 
   it("defaults a criteria-only reminder create to logically enabled but legacy disabled", async () => {
     const labelId: string = "11111111-1111-4111-8111-111111111111";
@@ -157,20 +220,20 @@ describe("DatabaseService rule criteria validation", () => {
       ],
     };
 
-    await expect(
-      sanitizeAlertReminder(
-        {
-          criteria: criteria,
-        },
-        { isRoot: true },
-        false,
-      ),
-    ).resolves.toMatchObject({
+    const result: JSONObject = await sanitizeAlertReminder(
+      {
+        criteria: criteria,
+      },
+      { isRoot: true },
+      false,
+    );
+
+    expect(result).toMatchObject({
       criteria: criteria,
       isEnabled: null,
-      labels: [],
-      alertSeverities: [],
     });
+    expect(result["labels"]).toBeUndefined();
+    expect(result["alertSeverities"]).toBeUndefined();
   });
 
   it("requires an explicit logical enabled state for relation-only criteria updates", async () => {
@@ -279,7 +342,7 @@ describe("DatabaseService rule criteria validation", () => {
       filterCondition: FilterCondition.All,
       filters: [],
     };
-    rule.isEnabled = undefined;
+    delete (rule as unknown as Record<string, unknown>)["isEnabled"];
 
     (
       alertReminderService as unknown as {
@@ -385,7 +448,7 @@ describe("DatabaseService rule criteria validation", () => {
         }),
         metadata: { payload: "x".repeat(100_000) },
       },
-      "may only contain schemaVersion, filterCondition, and filters",
+      "may only contain schemaVersion, filterCondition, filters, and optional isEnabled",
     ],
     [
       criteriaFor({

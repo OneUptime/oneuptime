@@ -33,6 +33,7 @@ const RULE_CRITERIA_KEYS: ReadonlySet<string> = new Set([
   "schemaVersion",
   "filterCondition",
   "filters",
+  "isEnabled",
 ]);
 
 const RULE_CRITERIA_FILTER_KEYS: ReadonlySet<string> = new Set([
@@ -248,8 +249,19 @@ export function getRuleCriteriaValidationError(value: unknown): string | null {
     return `Rule criteria cannot contain more than ${RULE_CRITERIA_MAX_FILTERS} filters.`;
   }
 
-  if (!hasExactlyKeys(value, RULE_CRITERIA_KEYS)) {
-    return "Rule criteria may only contain schemaVersion, filterCondition, and filters.";
+  if (
+    Object.keys(value).some((key: string): boolean => {
+      return !RULE_CRITERIA_KEYS.has(key);
+    })
+  ) {
+    return "Rule criteria may only contain schemaVersion, filterCondition, filters, and optional isEnabled.";
+  }
+
+  if (
+    value["isEnabled"] !== undefined &&
+    typeof value["isEnabled"] !== "boolean"
+  ) {
+    return "Rule criteria isEnabled must be a boolean when supplied.";
   }
 
   for (let index: number = 0; index < value["filters"].length; index++) {
