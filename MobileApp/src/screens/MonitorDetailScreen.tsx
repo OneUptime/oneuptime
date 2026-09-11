@@ -1,8 +1,10 @@
-import React, { useCallback } from "react";
+import React from "react";
 import { View, Text, ScrollView, RefreshControl } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useRefresh } from "../hooks/useRefresh";
+import QueryErrorNotice from "../components/QueryErrorNotice";
 import {
   useMonitorDetail,
   useMonitorStatusTimeline,
@@ -66,25 +68,31 @@ export default function MonitorDetailScreen({
     isError,
     refetch: refetchMonitor,
   } = useMonitorDetail(projectId, monitorId);
-  const { data: statusTimeline, refetch: refetchTimeline } =
-    useMonitorStatusTimeline(projectId, monitorId);
-  const { data: probeItems, refetch: refetchProbes } = useMonitorProbes(
-    projectId,
-    monitorId,
-  );
-  const { data: feed, refetch: refetchFeed } = useMonitorFeed(
-    projectId,
-    monitorId,
-  );
+  const {
+    data: statusTimeline,
+    isError: timelineError,
+    refetch: refetchTimeline,
+  } = useMonitorStatusTimeline(projectId, monitorId);
+  const {
+    data: probeItems,
+    isLoading: probesLoading,
+    isError: probesError,
+    refetch: refetchProbes,
+  } = useMonitorProbes(projectId, monitorId);
+  const {
+    data: feed,
+    isError: feedError,
+    refetch: refetchFeed,
+  } = useMonitorFeed(projectId, monitorId);
 
-  const onRefresh: () => Promise<void> = useCallback(async () => {
-    await Promise.all([
+  const { refreshing, onRefresh } = useRefresh(async () => {
+    await Promise.allSettled([
       refetchMonitor(),
       refetchTimeline(),
       refetchProbes(),
       refetchFeed(),
     ]);
-  }, [refetchMonitor, refetchTimeline, refetchProbes, refetchFeed]);
+  });
 
   if (isLoading) {
     return (
@@ -147,7 +155,7 @@ export default function MonitorDetailScreen({
       contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
       refreshControl={
         <RefreshControl
-          refreshing={false}
+          refreshing={refreshing}
           onRefresh={onRefresh}
           tintColor={theme.colors.actionPrimary}
         />
@@ -191,10 +199,27 @@ export default function MonitorDetailScreen({
         </View>
       ) : null}
       <ResponseSection title="Monitor Summary">
-        <MonitorSummaryView
-          monitorType={monitor.monitorType}
-          probeItems={probeItems ?? []}
-        />
+        {probesError ? (
+          <QueryErrorNotice
+            message="Unable to load the latest monitor measurements."
+            retryLabel="Retry monitor summary"
+            onRetry={refetchProbes}
+          />
+        ) : null}
+        {probesLoading ? (
+          <Text
+            accessibilityLiveRegion="polite"
+            style={{ color: theme.colors.textSecondary }}
+          >
+            Loading monitor measurements…
+          </Text>
+        ) : null}
+        {probeItems || (!probesError && !probesLoading) ? (
+          <MonitorSummaryView
+            monitorType={monitor.monitorType}
+            probeItems={probeItems ?? []}
+          />
+        ) : null}
       </ResponseSection>
       {descriptionText ? (
         <ResponseSection title="Description">
@@ -219,6 +244,13 @@ export default function MonitorDetailScreen({
           value={formatDateTime(monitor.createdAt)}
         />
       </ResponseSection>
+      {timelineError ? (
+        <QueryErrorNotice
+          message="Unable to load the latest status history."
+          retryLabel="Retry status history"
+          onRetry={refetchTimeline}
+        />
+      ) : null}
       {statusTimeline && statusTimeline.length > 0 ? (
         <ResponseSection title="Status History">
           {statusTimeline.map(
@@ -285,6 +317,13 @@ export default function MonitorDetailScreen({
             },
           )}
         </ResponseSection>
+      ) : null}
+      {feedError ? (
+        <QueryErrorNotice
+          message="Unable to load the latest activity."
+          retryLabel="Retry activity"
+          onRetry={refetchFeed}
+        />
       ) : null}
       {feed && feed.length > 0 ? (
         <ResponseSection title="Activity Feed">

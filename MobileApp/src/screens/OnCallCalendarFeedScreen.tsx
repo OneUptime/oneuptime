@@ -13,6 +13,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useRefresh } from "../hooks/useRefresh";
 import ScreenIntro from "../components/ScreenIntro";
 import { useHaptics } from "../hooks/useHaptics";
 import { useActiveProject } from "../hooks/useProject";
@@ -101,10 +102,10 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
     },
   );
 
-  const onRefresh: () => Promise<void> = async (): Promise<void> => {
+  const { refreshing, onRefresh } = useRefresh(async (): Promise<void> => {
     lightImpact();
     await feed.refetch();
-  };
+  });
 
   const rotate: () => Promise<void> = async (): Promise<void> => {
     setNotice(null);
@@ -292,9 +293,8 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
             testID="retry-feed"
             label="Try again"
             variant="secondary"
-            onPress={() => {
-              feed.refetch();
-            }}
+            loading={refreshing}
+            onPress={onRefresh}
             style={{ marginTop: 12 }}
           />
         </View>
@@ -313,9 +313,8 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
             testID="retry-feed"
             label="Try again"
             variant="secondary"
-            onPress={() => {
-              feed.refetch();
-            }}
+            loading={refreshing}
+            onPress={onRefresh}
             style={{ marginTop: 12 }}
           />
         </View>
@@ -668,7 +667,7 @@ export default function OnCallCalendarFeedScreen(): React.JSX.Element {
       contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
       refreshControl={
         <RefreshControl
-          refreshing={false}
+          refreshing={refreshing}
           onRefresh={onRefresh}
           tintColor={theme.colors.actionPrimary}
         />

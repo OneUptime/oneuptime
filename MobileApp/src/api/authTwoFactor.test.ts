@@ -92,7 +92,7 @@ const SERIALIZED_PASSWORD: Record<string, unknown> = {
   value: PASSWORD,
 };
 
-/* What sendEntityResponse puts under `data` on every one of these responses. */
+/* The user fields sendEntityResponse puts at the response root. */
 const USER_ENTITY: Record<string, unknown> = {
   _id: "55555555-5555-5555-5555-555555555555",
   email: EMAIL,
@@ -112,13 +112,13 @@ function postSpy(): jest.SpyInstance {
 }
 
 /**
- * Queue the identity envelope the server sends: the user under `data`, and
+ * Queue the identity envelope the server sends: the user at the root, and
  * everything the two-factor flow needs under `_miscData`.
  */
 function respondWith(misc: Record<string, unknown>): void {
   postSpy().mockResolvedValue({
     data: {
-      data: USER_ENTITY,
+      ...USER_ENTITY,
       _miscData: misc,
     },
   } as never);
@@ -158,6 +158,30 @@ beforeEach(async () => {
 });
 
 describe("login() on an account that has a second factor", () => {
+  test("reads serialized identity fields from the server's entity response", async () => {
+    postSpy().mockResolvedValue({
+      data: {
+        _id: { _type: "ObjectID", value: USER_ENTITY["_id"] },
+        email: { _type: "Email", value: EMAIL },
+        name: { _type: "Name", value: "On Call Engineer" },
+        isMasterAdmin: true,
+        _miscData: SESSION_MISC,
+      },
+    } as never);
+
+    const result: LoginResponse = await login(EMAIL, PASSWORD);
+
+    expect(result.user).toEqual({ ...USER_ENTITY, isMasterAdmin: true });
+  });
+
+  test("continues to accept a nested user envelope", async () => {
+    postSpy().mockResolvedValue({
+      data: { data: USER_ENTITY, _miscData: SESSION_MISC },
+    } as never);
+
+    expect((await login(EMAIL, PASSWORD)).user).toEqual(USER_ENTITY);
+  });
+
   test("reports the challenge instead of pretending to be a session", async () => {
     respondWith({
       totpAuthList: [{ _id: PHONE_TOTP_ID, name: "Phone" }],

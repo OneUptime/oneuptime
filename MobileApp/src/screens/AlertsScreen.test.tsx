@@ -778,30 +778,19 @@ describe("Active and Resolved are decided by state id, never by state name", () 
     expect(screen.queryByRole("header", { name: "Resolved" })).toBeNull();
   });
 
-  test("alerts whose project states have not arrived are left active", async () => {
-    /*
-     * On the very first render the per-project state queries have not
-     * answered, so nothing is known to be resolved. Guessing in the other
-     * direction would file a live alert under Resolved for as long as those
-     * queries take.
-     */
+  test("alerts wait for state metadata before claiming active or resolved", async () => {
     mockStates.current = {
-      statesMap: new Map<string, AlertState[]>(),
+      ...statesWith(),
+      statesMap: new Map(),
       isLoading: true,
-      isError: false,
     };
     mockAlerts.current = alertsWith({
       items: [activeAlert(), resolvedAlert()],
     });
-
     await renderAlertsScreen();
-
-    await waitFor(() => {
-      expect(screen.getByRole("header", { name: "Active" })).toBeTruthy();
-    });
-
+    expect(screen.queryByRole("header", { name: "Active" })).toBeNull();
     expect(screen.queryByRole("header", { name: "Resolved" })).toBeNull();
-    /* With no states known there is no acknowledge state to swipe towards. */
+    expect(screen.queryByText(/results?$/)).toBeNull();
     expect(screen.queryByText("Acknowledge")).toBeNull();
   });
 });
@@ -1185,4 +1174,100 @@ describe("Searching and filtering the response inbox", () => {
         .paddingBottom,
     ).toBe(248);
   });
+});
+
+describe("Filter totals and metadata recovery", () => {
+  test("reports all matching records before pagination and resets a combined search/filter", async () => {
+    mockAlerts.current = alertsWith({
+      items: [
+        ...Array.from({ length: 25 }, (_: unknown, index: number) => {
+          return {
+            ...activeAlert(),
+            item: {
+              ...activeAlert().item,
+              _id: `active-${index}`,
+              title: `Checkout ${index}`,
+            },
+          };
+        }),
+        resolvedAlert(),
+      ],
+    });
+    await renderAlertsScreen();
+    expect(screen.getByText("26 results")).toBeTruthy();
+    expect(screen.getByText("25")).toBeTruthy();
+    await fireEvent.press(screen.getByRole("button", { name: "Active only" }));
+    expect(screen.getByText("25 results")).toBeTruthy();
+    await fireEvent.changeText(
+      screen.getByLabelText("Search alerts and episodes"),
+      "Checkout 24",
+    );
+    expect(screen.getByText("1 result")).toBeTruthy();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Reset filters" }),
+    );
+    expect(screen.getByLabelText("Search alerts and episodes")).toHaveProp(
+      "value",
+      "",
+    );
+    expect(screen.getByText("26 results")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Reset filters" })).toBeNull();
+  });
+
+  test("episode totals follow their own state filter and reset", async () => {
+    mockEpisodes.current = episodesWith({ items: [activeEpisode()] });
+    await renderAlertsScreen();
+    await fireEvent.press(screen.getByRole("button", { name: "Episodes" }));
+    expect(screen.getByText("1 result")).toBeTruthy();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Resolved only" }),
+    );
+    expect(screen.getByText("0 results")).toBeTruthy();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Reset filters" }),
+    );
+    expect(screen.getByText("1 result")).toBeTruthy();
+  });
+
+  test("failed state metadata has an explicit retry that refreshes states too", async () => {
+    mockStates.current = {
+      ...statesWith(),
+      statesMap: new Map(),
+      isError: true,
+    };
+    mockAlerts.current = alertsWith({
+      items: [activeAlert(), resolvedAlert()],
+    });
+    const client: ReturnType<typeof createTestQueryClient> =
+      createTestQueryClient();
+    const retry: jest.SpyInstance = jest.spyOn(client, "refetchQueries");
+    await render(<AlertsScreen />, { wrapper: createQueryWrapper(client) });
+    expect(
+      screen.getByText(
+        "Could not load alert states. Retry to see which alerts are active or resolved.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByRole("header", { name: "Active" })).toBeNull();
+    expect(screen.queryByText("2 results")).toBeNull();
+    await fireEvent.press(screen.getByRole("button", { name: "Retry" }));
+    expect(retry).toHaveBeenCalledWith({
+      queryKey: ["alert-states"],
+      type: "active",
+    });
+    expect(mockRefetchAlerts).toHaveBeenCalledTimes(1);
+  });
+});
+
+test("a state refresh failure keeps cached alerts readable with a retry notice", async () => {
+  mockStates.current = { ...statesWith(), isError: true };
+  mockAlerts.current = alertsWith({ items: [activeAlert(), resolvedAlert()] });
+  await renderAlertsScreen();
+  expect(
+    screen.getByText(
+      "Could not refresh alert states. Showing last loaded states.",
+    ),
+  ).toBeTruthy();
+  expect(screen.getByRole("header", { name: "Active" })).toBeTruthy();
+  expect(screen.getByRole("header", { name: "Resolved" })).toBeTruthy();
+  expect(screen.getByText("2 results")).toBeTruthy();
 });

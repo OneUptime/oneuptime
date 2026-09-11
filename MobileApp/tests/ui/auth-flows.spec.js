@@ -157,6 +157,8 @@ test("a backup code can recover a sign-in without access to the authenticator", 
   await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
   const verification = requests.find((request) => request.path === "/identity/verify-backup-code");
   expect(verification.body.data.backupCode).toBe("DEMO-1234");
+  await page.getByRole("tab", { name: "Settings", exact: true }).click();
+  await expect(page.getByTestId("settings-account-identity")).toContainText("Alex Morgan");
 });
 
 test("required authenticator setup explains both steps and protects recovery codes", async ({ page }, testInfo) => {
@@ -222,4 +224,56 @@ test("settings project access makes required SSO and provider choices clear with
   expect(navigationBounds).not.toBeNull();
   expect(providerBounds.y + providerBounds.height).toBeLessThanOrEqual(navigationBounds.y - 20);
   await capture(page, "settings-sso-providers-bottom", testInfo);
+});
+
+test("changing workspace preserves the saved address, recovers from connection errors, and updates sign-in", async ({ page }, testInfo) => {
+  await openLogin(page);
+  const originalServer = "http://127.0.0.1:8096";
+  const nextServer = `${originalServer}/team`;
+  await page.route("**/typo/api/status", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ message: "Unavailable" }) }));
+  await page.route("**/team/api/status", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ status: "ok" }) }));
+
+  await page.getByRole("button", { name: "Change Server", exact: true }).click();
+  const address = page.getByLabel("Server URL", { exact: true }).filter({ visible: true });
+  await expect(address).toHaveValue(originalServer);
+  await address.fill(`${originalServer}/typo`);
+  await page.getByRole("button", { name: "Connect", exact: true }).click();
+  await expect(page.getByRole("alert").filter({ visible: true })).toContainText("Could not connect to the server");
+  expect(await page.evaluate(() => localStorage.getItem("oneuptime_server_url"))).toBe(originalServer);
+  await capture(page, "workspace-connection-recovery", testInfo);
+
+  await address.fill(`${nextServer}/`);
+  await page.getByRole("button", { name: "Connect", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Welcome back", exact: true })).toBeVisible();
+  await expect(page.getByText(nextServer, { exact: true }).filter({ visible: true })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("oneuptime_server_url"))).toBe(nextServer);
+  await page.getByRole("button", { name: "Change Server", exact: true }).click();
+  await expect(address).toHaveValue(/\/team\/?$/);
+});
+
+test("project SSO discovery failures explain retry and recover to provider selection", async ({ page }, testInfo) => {
+  await installFixtures(page, { requireProjectSso: true });
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
+  let discoveryUnavailable = true;
+  await page.route(/\/(identity\/(global-sso|global-oidc)\/service-provider-login|api\/project-sso\/project-atlas\/sso-list)$/, async (route) => {
+    if (discoveryUnavailable) {
+      return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ message: "Temporarily unavailable" }) });
+    }
+    return route.fallback();
+  });
+  await page.getByRole("tab", { name: "Settings", exact: true }).click();
+  await page.getByRole("button", { name: "Manage Projects", exact: true }).click();
+  const authenticate = page.getByRole("button", { name: "Authenticate with SSO for Atlas Staging", exact: true });
+  await authenticate.click();
+  await expect(page.getByRole("alert").filter({ visible: true })).toContainText("Could not load SSO providers. Check your connection and try again.");
+  await expect(page.getByText(/No SSO providers are configured/)).toHaveCount(0);
+  await expect(authenticate).toBeEnabled();
+  await capture(page, "project-sso-recovery", testInfo);
+
+  discoveryUnavailable = false;
+  await authenticate.click();
+  await expect(page.getByRole("heading", { name: "Choose your provider", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Company single sign-on", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Atlas SSO", exact: true })).toBeVisible();
 });

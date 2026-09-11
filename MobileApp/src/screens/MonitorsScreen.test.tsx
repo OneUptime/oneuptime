@@ -767,21 +767,12 @@ describe("Pulling the list down to refresh", () => {
 });
 
 describe("Paging through a large fleet", () => {
-  test("only the first page of monitors is put on the list", async () => {
-    /*
-     * The section header counts the rows the section was given, not the rows
-     * the fleet holds, so it is where the page size is visible. Handing a
-     * virtualised list several hundred rows at once is what this slice
-     * exists to avoid.
-     */
+  test("section totals describe the whole matching fleet before scrolling", async () => {
     mockMonitors.current = stateWith({ items: offlineFleet(25) });
-
     await render(<MonitorsScreen />);
-
-    await waitFor(() => {
-      expect(countsBesideLabel("Issues")).toEqual(["20"]);
-      expect(countsBesideLabel("Has issues")).toEqual(["25"]);
-    });
+    expect(countsBesideLabel("Issues")).toEqual(["25"]);
+    expect(countsBesideLabel("Has issues")).toEqual(["25"]);
+    expect(screen.getByText("25 results")).toBeTruthy();
   });
 
   test("a fleet that fits on one page is not truncated", async () => {
@@ -1129,4 +1120,36 @@ describe("Semantic monitor health", () => {
     expect(screen.getByText("Paused API")).toBeTruthy();
     expect(screen.queryByText("Serving API")).toBeNull();
   });
+});
+
+test("combined monitor filters show their matching total and reset in one tap", async () => {
+  mockMonitors.current = stateWith({
+    items: [
+      wrap(offlineMonitor("issue", "Checkout API")),
+      wrap(healthyMonitor("up", "Customer portal")),
+    ],
+  });
+  await render(<MonitorsScreen />);
+  expect(screen.getByText("2 results")).toBeTruthy();
+  await fireEvent.press(screen.getByRole("button", { name: "Has issues" }));
+  expect(screen.getByText("1 result")).toBeTruthy();
+  await fireEvent.changeText(
+    screen.getByLabelText("Search monitors"),
+    "Customer portal",
+  );
+  expect(screen.getByText("0 results")).toBeTruthy();
+  await fireEvent.press(screen.getByRole("button", { name: "Reset filters" }));
+  expect(screen.getByLabelText("Search monitors")).toHaveProp("value", "");
+  expect(screen.getByText("2 results")).toBeTruthy();
+});
+
+test("a failed refresh does not present cached health totals as current", async () => {
+  mockMonitors.current = stateWith({
+    items: [wrap(healthyMonitor("up", "API"))],
+    isError: true,
+  });
+  await render(<MonitorsScreen />);
+  expect(screen.queryByTestId("monitor-summary-Healthy")).toBeNull();
+  expect(screen.queryByText("1 result")).toBeNull();
+  expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
 });

@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  act,
   render,
   screen,
   fireEvent,
@@ -266,4 +267,40 @@ describe("While the answer is still being fetched", () => {
       expect(screen.queryByText("Something went wrong")).toBeNull();
     });
   });
+});
+
+describe("Refresh recovery", () => {
+  test.each([false, true])(
+    "keeps refresh available and visible while pending (error: %s)",
+    async (isError: boolean) => {
+      let finish: () => void = (): void => {};
+      const refresh: jest.Mock = jest.fn(() => {
+        return new Promise<void>((resolve: () => void) => {
+          finish = resolve;
+        });
+      });
+      mockOnCallPolicies.current = resultWith({ isError, refetch: refresh });
+      await render(<MyOnCallPoliciesScreen />);
+      expect(screen.getByText("My policies")).toBeTruthy();
+      let request: Promise<void>;
+      await act(() => {
+        request = screen
+          .getByTestId("oncall-policies-scroll")
+          .props.refreshControl.props.onRefresh();
+      });
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(
+        screen.getByTestId("oncall-policies-scroll").props.refreshControl.props
+          .refreshing,
+      ).toBe(true);
+      await act(async () => {
+        finish();
+        await request;
+      });
+      expect(
+        screen.getByTestId("oncall-policies-scroll").props.refreshControl.props
+          .refreshing,
+      ).toBe(false);
+    },
+  );
 });

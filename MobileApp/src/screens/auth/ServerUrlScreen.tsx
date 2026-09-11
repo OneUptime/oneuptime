@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { View, Text, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -6,7 +6,7 @@ import { useNavigation } from "@react-navigation/native";
 import { AuthStackParamList } from "../../navigation/types";
 import { useTheme } from "../../theme";
 import { useAuth } from "../../hooks/useAuth";
-import { setServerUrl } from "../../storage/serverUrl";
+import { getServerUrl, setServerUrl } from "../../storage/serverUrl";
 import { validateServerUrl } from "../../api/auth";
 import AuthLayout from "../../components/AuthLayout";
 import GradientButton from "../../components/GradientButton";
@@ -25,6 +25,23 @@ export default function ServerUrlScreen(): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [urlFocused, setUrlFocused] = useState(false);
+  const hasEditedUrl: React.MutableRefObject<boolean> = useRef(false);
+
+  useEffect(() => {
+    let mounted: boolean = true;
+    void getServerUrl()
+      .then((storedUrl: string): void => {
+        if (mounted && !hasEditedUrl.current) {
+          setUrl(storedUrl);
+        }
+      })
+      .catch((): void => {
+        // Keep the editable default available when local storage is unreadable.
+      });
+    return (): void => {
+      mounted = false;
+    };
+  }, []);
 
   const handleConnect: () => Promise<void> = async (): Promise<void> => {
     if (isLoading) {
@@ -119,6 +136,7 @@ export default function ServerUrlScreen(): React.JSX.Element {
             }}
             value={url}
             onChangeText={(text: string) => {
+              hasEditedUrl.current = true;
               setUrl(text);
               setError(null);
             }}

@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react-native";
+import { act, render, screen, fireEvent } from "@testing-library/react-native";
 import { describe, test, expect, beforeEach } from "@jest/globals";
 import MyOnCallPagesScreen from "./MyOnCallPagesScreen";
 import type { OnCallPageItem } from "../api/types";
@@ -198,4 +198,45 @@ describe("My pages response workflow", () => {
     await rendered.rerender(<MyOnCallPagesScreen />);
     expect(screen.getByText("No pages yet")).toBeTruthy();
   });
+});
+
+describe("Refresh recovery", () => {
+  test.each([false, true])(
+    "keeps refresh available and visible while pending (error: %s)",
+    async (isError: boolean) => {
+      let finish: () => void = (): void => {};
+      const refresh: jest.Mock = jest.fn(() => {
+        return new Promise<void>((resolve: () => void) => {
+          finish = resolve;
+        });
+      });
+      mockPages.current = {
+        pages: [],
+        isLoading: false,
+        isError,
+        refetch: refresh,
+      };
+      await render(<MyOnCallPagesScreen />);
+      expect(screen.getByText("My pages")).toBeTruthy();
+      let request: Promise<void>;
+      await act(() => {
+        request = screen
+          .getByTestId("my-pages-scroll")
+          .props.refreshControl.props.onRefresh();
+      });
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(
+        screen.getByTestId("my-pages-scroll").props.refreshControl.props
+          .refreshing,
+      ).toBe(true);
+      await act(async () => {
+        finish();
+        await request;
+      });
+      expect(
+        screen.getByTestId("my-pages-scroll").props.refreshControl.props
+          .refreshing,
+      ).toBe(false);
+    },
+  );
 });

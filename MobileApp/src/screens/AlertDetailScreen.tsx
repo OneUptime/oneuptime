@@ -3,6 +3,8 @@ import { Text, ScrollView, RefreshControl, Alert } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useRefresh } from "../hooks/useRefresh";
+import QueryErrorNotice from "../components/QueryErrorNotice";
 import {
   useAlertDetail,
   useAlertStates,
@@ -48,30 +50,41 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
     isError,
     refetch: refetchAlert,
   } = useAlertDetail(projectId, alertId);
-  const { data: states } = useAlertStates(projectId);
+  const {
+    data: states,
+    isError: statesError,
+    refetch: refetchStates,
+  } = useAlertStates(projectId);
   const { refetch: refetchTimeline } = useAlertStateTimeline(
     projectId,
     alertId,
   );
-  const { data: feed, refetch: refetchFeed } = useAlertFeed(projectId, alertId);
-  const { data: notes, refetch: refetchNotes } = useAlertNotes(
-    projectId,
-    alertId,
-  );
+  const {
+    data: feed,
+    isError: feedError,
+    refetch: refetchFeed,
+  } = useAlertFeed(projectId, alertId);
+  const {
+    data: notes,
+    isLoading: notesLoading,
+    isError: notesError,
+    refetch: refetchNotes,
+  } = useAlertNotes(projectId, alertId);
 
   const { successFeedback, errorFeedback } = useHaptics();
   const [changingState, setChangingState] = useState(false);
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
 
-  const onRefresh: () => Promise<void> = useCallback(async () => {
-    await Promise.all([
+  const { refreshing, onRefresh } = useRefresh(async () => {
+    await Promise.allSettled([
       refetchAlert(),
+      refetchStates(),
       refetchTimeline(),
       refetchFeed(),
       refetchNotes(),
     ]);
-  }, [refetchAlert, refetchTimeline, refetchFeed, refetchNotes]);
+  });
 
   const handleStateChange: (
     stateId: string,
@@ -270,7 +283,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
       contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
       refreshControl={
         <RefreshControl
-          refreshing={false}
+          refreshing={refreshing}
           onRefresh={onRefresh}
           tintColor={theme.colors.actionPrimary}
         />
@@ -284,6 +297,13 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
         stateColor={stateColor}
         severity={alert.alertSeverity?.name}
       />
+      {statesError ? (
+        <QueryErrorNotice
+          message="Unable to load the latest response actions."
+          retryLabel="Retry actions"
+          onRetry={refetchStates}
+        />
+      ) : null}
       <Text
         accessibilityLiveRegion="polite"
         style={{
@@ -319,12 +339,25 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
       <ResponseSection title="Root Cause">
         <RootCauseCard rootCauseText={rootCauseText} />
       </ResponseSection>
+      {feedError ? (
+        <QueryErrorNotice
+          message="Unable to load the latest activity."
+          retryLabel="Retry activity"
+          onRetry={refetchFeed}
+        />
+      ) : null}
       {feed && feed.length > 0 ? (
         <ResponseSection title="Activity Feed">
           <FeedTimeline feed={feed} />
         </ResponseSection>
       ) : null}
-      <NotesSection notes={notes} setNoteModalVisible={setNoteModalVisible} />
+      <NotesSection
+        notes={notes}
+        setNoteModalVisible={setNoteModalVisible}
+        isLoading={notesLoading}
+        isError={notesError}
+        onRetry={refetchNotes}
+      />
       <AddNoteModal
         visible={noteModalVisible}
         onClose={() => {

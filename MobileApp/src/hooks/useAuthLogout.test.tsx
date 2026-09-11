@@ -22,6 +22,10 @@ import {
   makeNote,
 } from "../__tests__/testSupport";
 import type { AlertItem, IncidentItem, NoteItem } from "../api/types";
+import {
+  getSsoDeniedProjectIds,
+  markProjectSsoDenied,
+} from "../sso/ssoDenials";
 
 /*
  * Signing out has to end the SESSION, and the react-query cache is part of the
@@ -257,6 +261,27 @@ beforeEach(() => {
 });
 
 describe("AuthProvider empties the shared query cache when a user signs out", () => {
+  test("a failed SSO storage removal still ends the session and clears private rows", async () => {
+    await renderAuthProvider();
+    seedPreviousUsersCache();
+    markProjectSsoDenied("project-1");
+    clearAllSsoTokensSpy().mockRejectedValueOnce(
+      new Error("Storage unavailable") as never,
+    );
+    expect(currentAuth().isAuthenticated).toBe(true);
+
+    await act(async () => {
+      await expect(currentAuth().logout()).resolves.toBeUndefined();
+    });
+
+    expect(currentAuth().isAuthenticated).toBe(false);
+    expect(currentAuth().user).toBeNull();
+    expect(cachedKeyCount()).toBe(0);
+    expect(getSsoDeniedProjectIds()).toEqual([]);
+    expect(apiLogoutSpy()).toHaveBeenCalledTimes(1);
+    expect(unregisterPushTokenSpy()).toHaveBeenCalledTimes(1);
+  });
+
   test("the previous user's cached rows do not survive the sign out", async () => {
     seedPreviousUsersCache();
     expect(cachedKeyCount()).toBe(3);

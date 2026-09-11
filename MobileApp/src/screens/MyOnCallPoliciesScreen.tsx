@@ -3,6 +3,7 @@ import { View, Text, ScrollView, RefreshControl } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useRefresh } from "../hooks/useRefresh";
 import ScreenIntro from "../components/ScreenIntro";
 import { useHaptics } from "../hooks/useHaptics";
 import { useAllProjectOnCallPolicies } from "../hooks/useAllProjectOnCallPolicies";
@@ -94,10 +95,10 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
     return `${summary} ${failedProjectCount} ${failedLabel} did not answer, so this list may be incomplete.`;
   }, [failedProjectCount, projectCount, totalAssignments]);
 
-  const onRefresh: () => Promise<void> = async (): Promise<void> => {
+  const { refreshing, onRefresh } = useRefresh(async (): Promise<void> => {
     lightImpact();
     await refetch();
-  };
+  });
 
   if (isLoading) {
     return (
@@ -151,19 +152,35 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
 
   if (cannotEstablishDuty) {
     return (
-      <View
+      <ScrollView
+        testID="oncall-policies-scroll"
+        contentInsetAdjustmentBehavior="automatic"
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+        contentContainerStyle={{
+          padding: 20,
+          paddingBottom: bottomPadding,
+          flexGrow: 1,
+        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.actionPrimary}
+          />
+        }
       >
+        <ScreenIntro
+          title="My policies"
+          description="Understand how this project reaches you."
+        />
         <EmptyState
           title="Something went wrong"
           subtitle="Your on-call duty could not be established, which is not the same as being off duty. Try again."
           icon="alerts"
           actionLabel="Retry"
-          onAction={() => {
-            return refetch();
-          }}
+          onAction={onRefresh}
         />
-      </View>
+      </ScrollView>
     );
   }
 
@@ -175,7 +192,7 @@ export default function MyOnCallPoliciesScreen(): React.JSX.Element {
       contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
       refreshControl={
         <RefreshControl
-          refreshing={false}
+          refreshing={refreshing}
           onRefresh={onRefresh}
           tintColor={theme.colors.actionPrimary}
         />

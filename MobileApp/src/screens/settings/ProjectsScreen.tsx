@@ -182,13 +182,27 @@ export default function ProjectsScreen({
     setError(null);
 
     try {
-      const [projectProviders, globalResult]: [
-        Array<SSOProvider>,
+      const [projectResult, globalResult]: [
+        SsoDiscoveryResult<SSOProvider>,
         SsoDiscoveryResult<GlobalSSOProvider>,
       ] = await Promise.all([
-        fetchSSOProvidersForProject(projectId).catch(() => {
-          return [] as Array<SSOProvider>;
-        }),
+        fetchSSOProvidersForProject(projectId)
+          .then(
+            (
+              providers: Array<SSOProvider>,
+            ): SsoDiscoveryResult<SSOProvider> => {
+              return { providers, failed: false };
+            },
+          )
+          .catch((error: unknown): SsoDiscoveryResult<SSOProvider> => {
+            const status: number | undefined = (
+              error as { response?: { status?: number } } | undefined
+            )?.response?.status;
+            return {
+              providers: [],
+              failed: typeof status !== "number" || status >= 500,
+            };
+          }),
         fetchAllGlobalProviders(),
       ]);
 
@@ -201,7 +215,7 @@ export default function ProjectsScreen({
             kind: provider.type,
           };
         }),
-        ...projectProviders.map((provider: SSOProvider) => {
+        ...projectResult.providers.map((provider: SSOProvider) => {
           return {
             _id: provider._id,
             name: provider.name,
@@ -214,7 +228,9 @@ export default function ProjectsScreen({
 
       if (selectable.length === 0) {
         setError(
-          "No SSO providers are configured or enabled for this project. Please contact your admin.",
+          projectResult.failed || globalResult.failed
+            ? "Could not load SSO providers. Check your connection and try again."
+            : "No SSO providers are configured or enabled for this project. Please contact your admin.",
         );
         return;
       }
@@ -429,7 +445,7 @@ export default function ProjectsScreen({
         </View>
       ) : null}
 
-      {projects.length === 0 ? (
+      {projects.length === 0 && !error ? (
         <View
           style={{
             padding: 24,
@@ -455,7 +471,7 @@ export default function ProjectsScreen({
             No projects found.
           </Text>
         </View>
-      ) : visibleProjects.length === 0 ? (
+      ) : projects.length > 0 && visibleProjects.length === 0 ? (
         <View
           style={{
             padding: 24,
@@ -483,7 +499,7 @@ export default function ProjectsScreen({
             Try another name or clear the search to see all your projects.
           </Text>
         </View>
-      ) : (
+      ) : projects.length > 0 ? (
         <View
           style={{
             borderRadius: 14,
@@ -677,7 +693,7 @@ export default function ProjectsScreen({
             );
           })}
         </View>
-      )}
+      ) : null}
 
       <Text
         style={{

@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react-native";
+import { act, render, screen, fireEvent } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 import OnCallOverviewScreen from "./OnCallOverviewScreen";
 import type { OnCallDutySummary } from "../oncall/duty";
@@ -45,6 +45,7 @@ const mockDuty: {
 const mockOverrides: { current: { active: OnCallOverrideItem[] } } = {
   current: { active: [] },
 };
+const mockRefetchOverrides: jest.Mock = jest.fn();
 
 const mockNavigate: { calls: Array<[string, unknown]> } = { calls: [] };
 
@@ -153,7 +154,7 @@ jest.mock("../hooks/useOnCallOverrides", () => {
         past: [],
         isLoading: false,
         isError: false,
-        refetch: jest.fn(),
+        refetch: mockRefetchOverrides,
         createOverride: jest.fn(),
         isCreating: false,
         cancelOverride: jest.fn(),
@@ -670,4 +671,55 @@ describe("OnCallOverviewScreen calendar row", () => {
 
     expect(screen.getByTestId("row-calendar")).toBeTruthy();
   });
+});
+
+describe("Overview refresh recovery", () => {
+  test.each([false, true])(
+    "retries every source and keeps feedback until all finish (error: %s)",
+    async (isError: boolean) => {
+      let finishShifts: () => void = (): void => {};
+      const refreshShifts: jest.Mock = jest.fn(() => {
+        return new Promise<void>((resolve: () => void) => {
+          finishShifts = resolve;
+        });
+      });
+      const refreshDuty: jest.Mock = jest
+        .fn()
+        .mockRejectedValue(new Error("Status unavailable"));
+      mockRefetchOverrides.mockReset();
+      mockRefetchOverrides.mockResolvedValue(undefined);
+      mockOverrides.current = { active: [] };
+      mockDuty.current = {
+        summary: emptySummary(),
+        assignmentsByProject: [],
+        schedules: [],
+        isLoading: false,
+        isError,
+        refetch: refreshDuty,
+      };
+      mockMyShifts.current = emptyMyShifts({ refetch: refreshShifts });
+      await render(<OnCallOverviewScreen />);
+      let request: Promise<void>;
+      await act(() => {
+        request = screen
+          .getByTestId("oncall-overview-scroll")
+          .props.refreshControl.props.onRefresh();
+      });
+      expect(refreshDuty).toHaveBeenCalledTimes(1);
+      expect(mockRefetchOverrides).toHaveBeenCalledTimes(1);
+      expect(refreshShifts).toHaveBeenCalledTimes(1);
+      expect(
+        screen.getByTestId("oncall-overview-scroll").props.refreshControl.props
+          .refreshing,
+      ).toBe(true);
+      await act(async () => {
+        finishShifts();
+        await request;
+      });
+      expect(
+        screen.getByTestId("oncall-overview-scroll").props.refreshControl.props
+          .refreshing,
+      ).toBe(false);
+    },
+  );
 });

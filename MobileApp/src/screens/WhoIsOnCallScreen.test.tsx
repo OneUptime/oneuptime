@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  act,
   render,
   screen,
   fireEvent,
@@ -575,4 +576,45 @@ describe("WhoIsOnCallScreen share team calendar link", () => {
 
     expect(screen.getByTestId("roster-share-s-uncovered")).toBeTruthy();
   });
+});
+
+describe("Refresh recovery", () => {
+  test.each([false, true])(
+    "keeps refresh available and visible while pending (error: %s)",
+    async (isError: boolean) => {
+      let finish: () => void = (): void => {};
+      const refresh: jest.Mock = jest.fn(() => {
+        return new Promise<void>((resolve: () => void) => {
+          finish = resolve;
+        });
+      });
+      mockSchedules.current = {
+        schedules: [],
+        isLoading: false,
+        isError,
+        refetch: refresh,
+      };
+      await render(<WhoIsOnCallScreen />);
+      expect(screen.getByText("Who's on call")).toBeTruthy();
+      let request: Promise<void>;
+      await act(() => {
+        request = screen
+          .getByTestId("who-is-on-call-scroll")
+          .props.refreshControl.props.onRefresh();
+      });
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(
+        screen.getByTestId("who-is-on-call-scroll").props.refreshControl.props
+          .refreshing,
+      ).toBe(true);
+      await act(async () => {
+        finish();
+        await request;
+      });
+      expect(
+        screen.getByTestId("who-is-on-call-scroll").props.refreshControl.props
+          .refreshing,
+      ).toBe(false);
+    },
+  );
 });

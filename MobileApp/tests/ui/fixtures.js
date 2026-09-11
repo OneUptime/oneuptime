@@ -83,14 +83,14 @@ async function installFixtures(page, { signedIn = true, loginMode = "normal", re
     }
     if (url.pathname === "/api/status") { return reply({ status: "ok" }); }
     if (url.pathname === "/identity/login") {
-      if (loginMode === "two-factor") { return reply({ data: user, _miscData: { totpAuthList: [{ _id: "totp-1", name: "Authenticator app" }], backupCodeCount: 8 } }); }
-      if (loginMode === "enrolment") { return reply({ data: user, _miscData: { twoFactorEnrolmentRequired: true, twoFactorAuthId: "totp-1", twoFactorOtpUrl: "otpauth://totp/OneUptime:alex%40example.test?secret=JBSWY3DPEHPK3PXP&issuer=OneUptime" } }); }
-      return reply({ data: user, _miscData: { ...tokens, hasBackupCodes: true } });
+      if (loginMode === "two-factor") { return reply({ ...user, _miscData: { totpAuthList: [{ _id: "totp-1", name: "Authenticator app" }], backupCodeCount: 8 } }); }
+      if (loginMode === "enrolment") { return reply({ ...user, _miscData: { twoFactorEnrolmentRequired: true, twoFactorAuthId: "totp-1", twoFactorOtpUrl: "otpauth://totp/OneUptime:alex%40example.test?secret=JBSWY3DPEHPK3PXP&issuer=OneUptime" } }); }
+      return reply({ ...user, _miscData: { ...tokens, hasBackupCodes: true } });
     }
-    if (url.pathname.includes("verify-totp")) { return reply({ data: user, _miscData: { ...tokens, backupCodes: ["DEMO-1234", "DEMO-2345", "DEMO-3456", "DEMO-4567", "DEMO-5678", "DEMO-6789", "DEMO-7890", "DEMO-8901"] } }); }
+    if (url.pathname.includes("verify-totp")) { return reply({ ...user, _miscData: { ...tokens, backupCodes: ["DEMO-1234", "DEMO-2345", "DEMO-3456", "DEMO-4567", "DEMO-5678", "DEMO-6789", "DEMO-7890", "DEMO-8901"] } }); }
     if (url.pathname === "/identity/global-sso/service-provider-login") { return reply({ data: [{ _id: "global-saml", name: "Company single sign-on", description: "Use your work account" }] }); }
     if (url.pathname === "/identity/service-provider-login") { return reply({ data: [{ _id: "aurora-sso", name: "Aurora SSO", projectId: "project-aurora", project: { name: "Aurora Production" } }] }); }
-    if (url.pathname === "/identity/verify-backup-code") { return reply({ data: user, _miscData: { ...tokens, hasBackupCodes: true } }); }
+    if (url.pathname === "/identity/verify-backup-code") { return reply({ ...user, _miscData: { ...tokens, hasBackupCodes: true } }); }
     if (url.pathname.startsWith("/identity/")) { return reply({ data: [] }); }
     if (url.pathname === "/api/project/get-list") {
       const memberships = projects.map((project) => ({ ...project, requireSsoForLogin: requireProjectSso && project._id === "project-atlas" }));

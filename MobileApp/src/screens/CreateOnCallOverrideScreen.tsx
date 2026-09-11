@@ -10,6 +10,8 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import getToggleAccessibilityProps from "../utils/getToggleAccessibilityProps";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useNow } from "../hooks/useNow";
+import { useRefresh } from "../hooks/useRefresh";
 import ScreenIntro from "../components/ScreenIntro";
 import { useHaptics } from "../hooks/useHaptics";
 import { useActiveProject } from "../hooks/useProject";
@@ -50,8 +52,8 @@ type CreateOverrideRouteProp = RouteProp<
  * The shift window a "Get cover" tap carried in, or null when the sheet was
  * opened from "Cover for me" and the window is "now plus a duration".
  *
- * Unparseable params read as "no prefill" rather than as a broken window: the
- * sheet is still usable, the user just picks a duration.
+ * Unparseable params return null so they are never formatted as dates. The
+ * submit handler also rejects them instead of changing the requested window.
  */
 export function readPrefilledWindow(
   params: CreateOnCallOverrideParams | undefined,
@@ -90,6 +92,7 @@ export function readPrefilledWindow(
 export default function CreateOnCallOverrideScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const bottomPadding: number = useScreenPadding();
+  const now: number = useNow();
   const { successFeedback, errorFeedback, selectionFeedback } = useHaptics();
   const navigation: CreateOverrideNavProp =
     useNavigation<CreateOverrideNavProp>();
@@ -118,6 +121,9 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
 
   const projectUsers: ReturnType<typeof useProjectUsers> =
     useProjectUsers(projectId);
+  const { refreshing: isRetryingUsers, onRefresh: retryUsers } = useRefresh(
+    projectUsers.refetch,
+  );
 
   /*
    * Changing project invalidates the person: the picker lists that project's
@@ -126,6 +132,8 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
    */
   useEffect((): void => {
     setCounterpart(null);
+    setIsPickerOpen(false);
+    setError(null);
   }, [projectId]);
 
   const counterpartName: string = counterpart
@@ -164,15 +172,23 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
     }
 
     return formatShiftTime(
-      new Date(Date.now() + durationHours * 60 * 60 * 1000).toISOString(),
+      new Date(now + durationHours * 60 * 60 * 1000).toISOString(),
     );
-  }, [durationHours, prefilledWindow]);
+  }, [durationHours, prefilledWindow, now]);
 
   const startsNow: boolean =
-    !prefilledWindow || prefilledWindow.startsAt.getTime() <= Date.now();
+    !prefilledWindow || prefilledWindow.startsAt.getTime() <= now;
 
   const onSubmit: () => Promise<void> = async (): Promise<void> => {
     setError(null);
+
+    if (prefill && !prefilledWindow) {
+      setError(
+        "This shift's times could not be read. Return to On call and choose the shift again.",
+      );
+      errorFeedback();
+      return;
+    }
 
     if (prefill && prefill.projectId !== projectId) {
       setError(
@@ -311,7 +327,9 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
                   : "Choose a teammate"
               }
               onPress={() => {
-                setIsPickerOpen(true);
+                if (!projectUsers.isError) {
+                  setIsPickerOpen(true);
+                }
               }}
               style={{
                 flexDirection: "row",
@@ -369,6 +387,32 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
                 color={theme.colors.textTertiary}
               />
             </Pressable>
+            {projectUsers.isError ? (
+              <View
+                testID="coverage-teammates-error"
+                accessibilityRole="alert"
+                style={{ marginTop: 14 }}
+              >
+                <Text
+                  style={{
+                    color: theme.colors.statusError,
+                    fontSize: 14,
+                    lineHeight: 21,
+                  }}
+                >
+                  Could not load your teammates. Try again to choose who will
+                  handle this coverage.
+                </Text>
+                <GradientButton
+                  testID="retry-coverage-teammates"
+                  label="Retry loading teammates"
+                  variant="secondary"
+                  loading={isRetryingUsers}
+                  onPress={retryUsers}
+                  style={{ marginTop: 12 }}
+                />
+              </View>
+            ) : null}
           </View>
           {!prefilledWindow ? (
             <View style={{ marginTop: 26 }}>
@@ -510,7 +554,7 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
         />
       </ScrollView>
       <UserPickerModal
-        visible={isPickerOpen}
+        visible={isPickerOpen && !projectUsers.isError}
         title={
           direction === "cover-me" ? "Route my pages to" : "Take over from"
         }

@@ -187,3 +187,64 @@ test("on-call roster, coverage, pages, policies and calendar stay in the selecte
   }
   expect(failures).toEqual([]);
 });
+
+test("coverage recovers from a teammate loading failure and confirms the requested direction", async ({ page }, testInfo) => {
+  const { mutations } = await installFixtures(page);
+  let teammatesAvailable = false;
+  await page.route(/\/api\/team-member\/get-list/, async (route) => {
+    if (!teammatesAvailable) {
+      return route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ message: "Team directory is temporarily unavailable" }),
+      });
+    }
+    return route.fallback();
+  });
+  await page.goto("/");
+  await page.getByRole("tab", { name: "On-Call", exact: true }).click();
+  await page.getByTestId("quick-action-cover").click();
+  await expect(page.getByTestId("coverage-teammates-error")).toBeVisible();
+  await page.getByTestId("open-user-picker").click();
+  await expect(page.getByTestId("user-picker-search")).toHaveCount(0);
+  await capture(page, "oncall-teammates-retry", testInfo);
+  teammatesAvailable = true;
+  await page.getByTestId("retry-coverage-teammates").click();
+  await expect(page.getByTestId("coverage-teammates-error")).toHaveCount(0);
+  await page.getByRole("tab", { name: "I'll take over", exact: true }).click();
+  await page.getByTestId("open-user-picker").click();
+  await page.getByTestId("user-option-responder-2").click();
+  await page.getByTestId("duration-2").click();
+  await expect(page.getByTestId("override-preview")).toContainText("Priya Shah's on-call pages come to you for the next 2 hours.");
+  await page.getByTestId("submit-override").click();
+  await expect(page.getByTestId("oncall-overview-scroll")).toBeVisible();
+  const created = mutations.filter((request) => {
+    return request.path === "/api/on-call-duty-policy-user-override";
+  });
+  expect(created).toHaveLength(1);
+  expect(created[0].projectId).toBe(projects[0]._id);
+  expect(created[0].body.data.overrideUserId).toBe("responder-2");
+  expect(created[0].body.data.routeAlertsToUserId).toBe("responder-1");
+  expect(new Date(created[0].body.data.endsAt) - new Date(created[0].body.data.startsAt)).toBe(2 * 60 * 60 * 1000);
+});
+
+test("covering a current shift preserves its end time and does not offer a new duration", async ({ page }) => {
+  const { mutations } = await installFixtures(page);
+  await page.goto("/");
+  await page.getByRole("tab", { name: "On-Call", exact: true }).click();
+  await page.getByTestId("get-cover-shift-1").click();
+  await expect(page.getByTestId("prefilled-shift")).toContainText("Engineering primary");
+  await expect(page.getByTestId("duration-4")).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: "I'll take over", exact: true })).toHaveCount(0);
+  await page.getByTestId("open-user-picker").click();
+  await page.getByTestId("user-option-responder-2").click();
+  await page.getByTestId("submit-override").click();
+  await expect(page.getByTestId("oncall-overview-scroll")).toBeVisible();
+  const created = mutations.find((request) => {
+    return request.path === "/api/on-call-duty-policy-user-override";
+  });
+  expect(created.body.data.overrideUserId).toBe("responder-1");
+  expect(created.body.data.routeAlertsToUserId).toBe("responder-2");
+  expect(created.body.data.startsAt).toBe("2026-09-10T10:00:00.000Z");
+  expect(created.body.data.endsAt).toBe("2026-09-10T16:00:00.000Z");
+});

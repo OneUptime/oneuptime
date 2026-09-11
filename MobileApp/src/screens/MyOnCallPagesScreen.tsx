@@ -5,6 +5,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useTheme } from "../theme";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useRefresh } from "../hooks/useRefresh";
 import ScreenIntro from "../components/ScreenIntro";
 import { useHaptics } from "../hooks/useHaptics";
 import { useMyOnCallPages } from "../hooks/useMyOnCallPages";
@@ -63,10 +64,10 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
     }).length;
   }, [pages]);
 
-  const onRefresh: () => Promise<void> = async (): Promise<void> => {
+  const { refreshing, onRefresh } = useRefresh(async (): Promise<void> => {
     lightImpact();
     await refetch();
-  };
+  });
 
   /*
    * The incident and alert detail screens live in sibling tabs, so the jump
@@ -144,35 +145,41 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
     );
   }
 
-  if (isError) {
+  if (isError || pages.length === 0) {
     return (
-      <View
+      <ScrollView
+        testID="my-pages-scroll"
+        contentInsetAdjustmentBehavior="automatic"
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+        contentContainerStyle={{
+          padding: 20,
+          paddingBottom: bottomPadding,
+          flexGrow: 1,
+        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.actionPrimary}
+          />
+        }
       >
-        <EmptyState
-          title="Could not load your pages"
-          subtitle="Pull to refresh or try again."
-          icon="alerts"
-          actionLabel="Retry"
-          onAction={() => {
-            return refetch();
-          }}
+        <ScreenIntro
+          title="My pages"
+          description="Your response history, all in one place."
         />
-      </View>
-    );
-  }
-
-  if (pages.length === 0) {
-    return (
-      <View
-        style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
-      >
         <EmptyState
-          title="No pages yet"
-          subtitle="On-call notifications sent to you will show up here."
+          title={isError ? "Could not load your pages" : "No pages yet"}
+          subtitle={
+            isError
+              ? "Pull to refresh or try again."
+              : "On-call notifications sent to you will show up here. Pull to refresh for new pages."
+          }
           icon="alerts"
+          actionLabel={isError ? "Retry" : "Refresh"}
+          onAction={onRefresh}
         />
-      </View>
+      </ScrollView>
     );
   }
 
@@ -184,7 +191,7 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
       contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
       refreshControl={
         <RefreshControl
-          refreshing={false}
+          refreshing={refreshing}
           onRefresh={onRefresh}
           tintColor={theme.colors.actionPrimary}
         />

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState, type RefObject } from "react";
 import { View, TextInput, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
@@ -20,6 +20,7 @@ export default function SearchField({
 }: SearchFieldProps): React.JSX.Element {
   const { theme } = useTheme();
   const [focused, setFocused] = useState(false);
+  const inputRef: RefObject<TextInput | null> = useRef<TextInput>(null);
   return (
     <View
       style={{
@@ -41,6 +42,7 @@ export default function SearchField({
         style={{ marginLeft: 16 }}
       />
       <TextInput
+        ref={inputRef}
         testID={testID}
         value={value}
         onChangeText={onChangeText}
@@ -71,6 +73,7 @@ export default function SearchField({
           accessibilityLabel="Clear search"
           onPress={() => {
             onChangeText("");
+            inputRef.current?.focus();
           }}
           hitSlop={4}
           style={{

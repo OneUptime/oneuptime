@@ -47,6 +47,9 @@ const mockGoBack: jest.Mock = jestGlobal.fn() as unknown as jest.Mock;
 
 const mockProjects: { current: ProjectItem[] } = { current: PROJECTS };
 const mockUsers: { current: ProjectUserItem[] } = { current: USERS };
+const mockUsersError: { current: boolean } = { current: false };
+const mockRefetchUsers: jest.Mock = jest.fn();
+const mockNow: { current: number | null } = { current: null };
 const mockUserId: { current: string | null } = { current: ME };
 const mockRouteParams: { current: CreateOnCallOverrideParams | undefined } = {
   current: undefined,
@@ -81,9 +84,17 @@ jest.mock("../hooks/useProjectUsers", () => {
       return {
         users: mockUsers.current,
         isLoading: false,
-        isError: false,
-        refetch: jest.fn(),
+        isError: mockUsersError.current,
+        refetch: mockRefetchUsers,
       };
+    },
+  };
+});
+
+jest.mock("../hooks/useNow", () => {
+  return {
+    useNow: () => {
+      return mockNow.current ?? Date.now();
     },
   };
 });
@@ -94,6 +105,84 @@ jest.mock("../hooks/useCurrentUserId", () => {
       return mockUserId.current;
     },
   };
+});
+
+describe("Coverage form recovery", () => {
+  beforeEach(() => {
+    mockCreateOverride.mockReset();
+    mockCreateOverride.mockResolvedValue(undefined);
+    mockRefetchUsers.mockReset();
+    mockUsersError.current = false;
+    mockNow.current = null;
+    mockProjects.current = PROJECTS;
+    mockUsers.current = USERS;
+    mockUserId.current = ME;
+    mockRouteParams.current = undefined;
+  });
+
+  test("shows a recoverable teammate loading error instead of an empty picker", async () => {
+    mockUsersError.current = true;
+    mockRefetchUsers.mockResolvedValue(undefined);
+    const rendered: Awaited<ReturnType<typeof render>> = await render(
+      <CreateOnCallOverrideScreen />,
+    );
+    expect(screen.getByText(/Could not load your teammates/)).toBeTruthy();
+    await fireEvent.press(screen.getByTestId("open-user-picker"));
+    expect(screen.queryByText("No teammates found")).toBeNull();
+    expect(screen.queryByTestId(`user-option-${TEAMMATE}`)).toBeNull();
+
+    await fireEvent.press(screen.getByTestId("retry-coverage-teammates"));
+    expect(mockRefetchUsers).toHaveBeenCalledTimes(1);
+    mockUsersError.current = false;
+    await rendered.rerender(<CreateOnCallOverrideScreen />);
+    expect(screen.queryByTestId("coverage-teammates-error")).toBeNull();
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+    expect(lastCreateInput().routeAlertsToUserId).toBe(TEAMMATE);
+  });
+
+  test("advances the coverage end-time preview while the form stays open", async () => {
+    mockNow.current = new Date("2026-09-11T08:00:00Z").getTime();
+    const rendered: Awaited<ReturnType<typeof render>> = await render(
+      <CreateOnCallOverrideScreen />,
+    );
+    const firstPreview: string =
+      screen.getByText(/^Starts now, ends /).props.children;
+    mockNow.current += 60 * 60 * 1000;
+    await rendered.rerender(<CreateOnCallOverrideScreen />);
+    expect(screen.getByText(/^Starts now, ends /).props.children).not.toBe(
+      firstPreview,
+    );
+    mockNow.current = null;
+  });
+
+  test("does not turn unreadable shift times into ordinary coverage", async () => {
+    mockRouteParams.current = {
+      projectId: "project-1",
+      scheduleId: "schedule-1",
+      scheduleName: "Primary",
+      startsAt: "unreadable",
+      endsAt: "2026-09-12T17:00:00Z",
+    };
+    await render(<CreateOnCallOverrideScreen />);
+    await pickTeammate();
+    await fireEvent.press(screen.getByTestId("submit-override"));
+    expect(mockCreateOverride).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(/This shift's times could not be read/),
+    ).toBeTruthy();
+  });
+
+  test("closes the previous project's teammate picker when the selected project changes", async () => {
+    const rendered: Awaited<ReturnType<typeof render>> = await render(
+      <CreateOnCallOverrideScreen />,
+    );
+    await fireEvent.press(screen.getByTestId("open-user-picker"));
+    expect(screen.getByTestId(`user-option-${TEAMMATE}`)).toBeTruthy();
+    mockProjects.current = [PROJECTS[1]!];
+    await rendered.rerender(<CreateOnCallOverrideScreen />);
+    expect(screen.queryByTestId(`user-option-${TEAMMATE}`)).toBeNull();
+  });
 });
 
 jest.mock("../hooks/useOnCallOverrides", () => {
