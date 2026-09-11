@@ -34,7 +34,11 @@ import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
 import fsp from "fs/promises";
 import Handlebars from "handlebars";
-import nodemailer, { Transporter } from "nodemailer";
+import nodemailer, {
+  type SMTPSentMessageInfo,
+  type SMTPTransportOptions,
+  type Transporter,
+} from "nodemailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 import Path from "path";
 import * as tls from "tls";
@@ -44,7 +48,8 @@ import * as tls from "tls";
  * Exported so the SSRF guard on tenant-supplied SMTP hosts can be tested.
  */
 export class TransporterPool {
-  private static pools: Map<string, Transporter> = new Map();
+  private static pools: Map<string, Transporter<SMTPSentMessageInfo>> =
+    new Map();
   private static semaphore: Map<string, number> = new Map();
   private static readonly MAX_CONCURRENT_CONNECTIONS = 100;
 
@@ -141,7 +146,7 @@ export class TransporterPool {
   public static async getTransporter(
     emailServer: EmailServer,
     options: { timeout?: number | undefined },
-  ): Promise<Transporter> {
+  ): Promise<Transporter<SMTPSentMessageInfo>> {
     await this.assertMailServerHostIsAllowed(emailServer);
 
     /*
@@ -155,10 +160,8 @@ export class TransporterPool {
     const key: string = this.getPoolKey(emailServer);
 
     if (!this.pools.has(key)) {
-      const transporter: Transporter = this.createTransporter(
-        emailServer,
-        options,
-      );
+      const transporter: Transporter<SMTPSentMessageInfo> =
+        this.createTransporter(emailServer, options);
       this.pools.set(key, transporter);
       this.semaphore.set(key, 0);
     }
@@ -169,7 +172,7 @@ export class TransporterPool {
   private static async createOAuthTransporter(
     emailServer: EmailServer,
     options: { timeout?: number | undefined },
-  ): Promise<Transporter> {
+  ): Promise<Transporter<SMTPSentMessageInfo>> {
     const { portNumber, wantsSecureConnection, secureConnection, requireTLS } =
       this.resolveConnectionSettings(emailServer);
 
@@ -231,13 +234,13 @@ export class TransporterPool {
         accessToken: accessToken,
       },
       connectionTimeout: options.timeout || 60000,
-    } as nodemailer.TransportOptions);
+    } as SMTPTransportOptions);
   }
 
   private static createTransporter(
     emailServer: EmailServer,
     options: { timeout?: number | undefined },
-  ): Transporter {
+  ): Transporter<SMTPSentMessageInfo> {
     const { portNumber, wantsSecureConnection, secureConnection, requireTLS } =
       this.resolveConnectionSettings(emailServer);
 
@@ -569,7 +572,7 @@ export default class MailService {
     options: {
       timeout?: number | undefined;
     },
-  ): Promise<Transporter> {
+  ): Promise<Transporter<SMTPSentMessageInfo>> {
     return await TransporterPool.getTransporter(emailServer, options);
   }
 
@@ -597,9 +600,12 @@ export default class MailService {
       return;
     }
 
-    const mailer: Transporter = await this.createMailer(options.emailServer, {
-      timeout: options.timeout,
-    });
+    const mailer: Transporter<SMTPSentMessageInfo> = await this.createMailer(
+      options.emailServer,
+      {
+        timeout: options.timeout,
+      },
+    );
 
     let lastError: any;
     const maxRetries: number = 3;

@@ -1,5 +1,10 @@
 import React from "react";
-import { Alert, Linking as ReactNativeLinking } from "react-native";
+import {
+  Alert,
+  Image,
+  Linking as ReactNativeLinking,
+  StyleSheet,
+} from "react-native";
 import {
   render,
   screen,
@@ -46,6 +51,13 @@ function renderedTextCount(): number {
 
 beforeEach(() => {
   mockOpenUrl.mockResolvedValue(true);
+  jest
+    .spyOn(Image, "getSize")
+    .mockImplementation(
+      async (): Promise<{ width: number; height: number }> => {
+        return { width: 320, height: 240 };
+      },
+    );
 });
 
 afterEach(() => {
@@ -98,7 +110,7 @@ describe("Rendering what the server sent", () => {
     );
 
     const text: Rendered = screen.getByText("Supporting detail.");
-    expect((text.props.style as { color: string }[])[0].color).toBe(
+    expect(StyleSheet.flatten(text.props.style).color).toBe(
       darkColors.textSecondary,
     );
   });
@@ -107,7 +119,7 @@ describe("Rendering what the server sent", () => {
     await render(<MarkdownContent content="The headline detail." />);
 
     const text: Rendered = screen.getByText("The headline detail.");
-    expect((text.props.style as { color: string }[])[0].color).toBe(
+    expect(StyleSheet.flatten(text.props.style).color).toBe(
       darkColors.textPrimary,
     );
   });
@@ -160,6 +172,12 @@ describe("Following a link", () => {
     expect(screen.getByText("runbook")).toBeTruthy();
   });
 
+  test("an untitled link keeps its visible text as its accessible name", async () => {
+    await render(<MarkdownContent content={CONTENT} />);
+
+    expect(screen.getByRole("link", { name: "runbook" })).toBeTruthy();
+  });
+
   test("pressing it opens that exact URL", async () => {
     await render(<MarkdownContent content={CONTENT} />);
 
@@ -185,9 +203,9 @@ describe("Following a link", () => {
 
   test("the markdown library is not left to open it a second time", async () => {
     /*
-     * react-native-markdown-display opens the URL itself with React Native's
-     * own Linking whenever the handler returns true. Two openURL calls for one
-     * tap is two browser tabs, or on Android two Activity launches.
+     * The renderer dependency has its own React Native Linking handler. Our
+     * custom renderer must bypass it, or a tap can launch two browser tabs (or
+     * two Android Activities) after this dependency migration.
      */
     const nativeOpen: jest.SpyInstance = jest
       .spyOn(ReactNativeLinking, "openURL")
@@ -212,6 +230,73 @@ describe("Following a link", () => {
     });
 
     expect(alert).not.toHaveBeenCalled();
+  });
+});
+
+describe("The marked renderer migration", () => {
+  test("keeps inline code readable with the app theme", async () => {
+    await render(<MarkdownContent content="Run `kubectl get pods` first." />);
+
+    const code: Rendered = screen.getByText("kubectl get pods");
+    expect(StyleSheet.flatten(code.props.style).color).toBe(
+      darkColors.textPrimary,
+    );
+  });
+
+  test("renders raw HTML as text rather than executing or dropping it", async () => {
+    await render(
+      <MarkdownContent content={'<script>alert("incident")</script>'} />,
+    );
+
+    expect(screen.getByText(/alert\("incident"\)/)).toBeTruthy();
+  });
+
+  test("a linked image uses the same single-open link handler", async () => {
+    const nativeOpen: jest.SpyInstance = jest
+      .spyOn(ReactNativeLinking, "openURL")
+      .mockResolvedValue(true);
+
+    await render(
+      <MarkdownContent
+        content={
+          "[![runbook diagram](https://example.com/runbook.png)](https://example.com/runbook)"
+        }
+      />,
+    );
+
+    await fireEvent.press(
+      screen.getByRole("link", { name: "runbook diagram" }),
+    );
+
+    expect(mockOpenUrl).toHaveBeenCalledWith("https://example.com/runbook");
+    expect(mockOpenUrl).toHaveBeenCalledTimes(1);
+    expect(nativeOpen).not.toHaveBeenCalled();
+  });
+
+  test("a linked-image failure is surfaced to the responder", async () => {
+    const alert: jest.SpyInstance = jest.spyOn(Alert, "alert");
+    mockOpenUrl.mockRejectedValue(
+      new Error("No Activity found to handle Intent"),
+    );
+
+    await render(
+      <MarkdownContent
+        content={
+          "[![runbook diagram](https://example.com/runbook.png)](oneuptime://missing)"
+        }
+      />,
+    );
+
+    await fireEvent.press(
+      screen.getByRole("link", { name: "runbook diagram" }),
+    );
+
+    await waitFor(() => {
+      expect(alert).toHaveBeenCalledWith(
+        "Could not open link",
+        "Nothing on this device could open that link.",
+      );
+    });
   });
 });
 

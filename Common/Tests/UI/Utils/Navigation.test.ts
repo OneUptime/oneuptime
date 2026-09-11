@@ -184,6 +184,36 @@ describe("Navigation URL query string helpers", () => {
   });
 });
 
+describe("Navigation route matching", () => {
+  test("returns the matched route path through React Router's public API", () => {
+    Navigation.setLocation({
+      pathname: "/dashboard/monitors/monitor-id",
+      search: "",
+      hash: "",
+      state: null,
+      key: "navigation-route-match",
+    });
+
+    expect(
+      Navigation.getRoutePath([{ path: "/dashboard/monitors/:monitorId" }]),
+    ).toBe("/dashboard/monitors/:monitorId");
+  });
+
+  test("returns an empty path when no route matches", () => {
+    Navigation.setLocation({
+      pathname: "/dashboard/monitors",
+      search: "",
+      hash: "",
+      state: null,
+      key: "navigation-route-miss",
+    });
+
+    expect(Navigation.getRoutePath([{ path: "/dashboard/incidents" }])).toBe(
+      "",
+    );
+  });
+});
+
 describe("Navigation internal route safety", () => {
   beforeEach(() => {
     setUrl("/dashboard/monitors");

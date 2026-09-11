@@ -162,9 +162,10 @@ export class PodWatcher {
       NODE_OS_INCLUDE,
       async (nodeName: string): Promise<string> => {
         try {
-          const res: { body: k8s.V1Node } =
-            await this.coreApi.readNode(nodeName);
-          return res.body.metadata?.labels?.["kubernetes.io/os"] || "";
+          const node: k8s.V1Node = await this.coreApi.readNode({
+            name: nodeName,
+          });
+          return node.metadata?.labels?.["kubernetes.io/os"] || "";
         } catch (err: unknown) {
           /*
            * NodeOsFilter swallows reader failures (returns unresolved), so
@@ -181,12 +182,9 @@ export class PodWatcher {
   }
 
   public async start(): Promise<void> {
-    const listFn: k8s.ListPromise<k8s.V1Pod> = ((): Promise<{
-      response: import("http").IncomingMessage;
-      body: k8s.V1PodList;
-    }> => {
+    const listFn: k8s.ListPromise<k8s.V1Pod> = (): Promise<k8s.V1PodList> => {
       return this.coreApi.listPodForAllNamespaces();
-    }) as k8s.ListPromise<k8s.V1Pod>;
+    };
     this.informer = k8s.makeInformer<k8s.V1Pod>(
       this.kubeConfig,
       "/api/v1/pods",

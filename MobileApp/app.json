@@ -7,21 +7,10 @@
     "icon": "./assets/icon.png",
     "scheme": "oneuptime",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-light.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#F6F7F9"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.oneuptime.oncall",
       "icon": "./assets/icon.png",
-      "splash": {
-        "image": "./assets/splash-light.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#F6F7F9"
-      },
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"],
         "NSFaceIDUsageDescription": "Authenticate to access OneUptime On-Call",
@@ -33,7 +22,6 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "edgeToEdgeEnabled": true,
       "package": "com.oneuptime.oncall",
       "versionCode": 2,
       "googleServicesFile": "./google-services.json",

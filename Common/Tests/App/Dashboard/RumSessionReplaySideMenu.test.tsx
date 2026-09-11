@@ -48,6 +48,12 @@ async function renderApplicationMenu(): Promise<void> {
   );
 }
 
+/*
+ * Every page the Session Replay category holds. Named once so the length
+ * assertions and the list above cannot disagree about what "every" means.
+ */
+const REPLAY_PAGE_COUNT: number = 4;
+
 describe("RUM application Session Replay navigation", () => {
   beforeEach(() => {
     setViewportWidth(DESKTOP_WIDTH);
@@ -58,7 +64,7 @@ describe("RUM application Session Replay navigation", () => {
     cleanup();
   });
 
-  test("groups all three replay pages in one expanded category", async () => {
+  test("groups every replay page in one expanded category", async () => {
     await renderApplicationMenu();
 
     expect(sectionTitlesInOrder()).toEqual([
@@ -72,6 +78,10 @@ describe("RUM application Session Replay navigation", () => {
     expect(linksIn("Session Replay")).toEqual([
       { title: "Session Replay", href: `${APPLICATION_PATH}/session-replay` },
       {
+        title: "Replay Users",
+        href: `${APPLICATION_PATH}/session-replay-users`,
+      },
+      {
         title: "Replay Policy",
         href: `${APPLICATION_PATH}/session-replay-settings`,
       },
@@ -80,7 +90,7 @@ describe("RUM application Session Replay navigation", () => {
         href: `${APPLICATION_PATH}/session-replay-audit`,
       },
     ]);
-    expect(iconCountIn("Session Replay")).toBe(3);
+    expect(iconCountIn("Session Replay")).toBe(REPLAY_PAGE_COUNT);
   });
 
   test("preserves observability and advanced destinations without duplicate replay links", async () => {
@@ -108,11 +118,12 @@ describe("RUM application Session Replay navigation", () => {
     expect(isExpanded("Session Replay")).toBe(false);
     fireEvent.click(sectionToggle("Session Replay"));
     expect(isExpanded("Session Replay")).toBe(true);
-    expect(linksIn("Session Replay")).toHaveLength(3);
+    expect(linksIn("Session Replay")).toHaveLength(REPLAY_PAGE_COUNT);
   });
 
   test.each([
     ["session-replay", "Session Replay"],
+    ["session-replay-users", "Replay Users"],
     ["session-replay-settings", "Replay Policy"],
     ["session-replay-audit", "Replay Access Log"],
   ])(

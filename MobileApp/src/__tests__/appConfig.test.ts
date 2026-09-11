@@ -41,8 +41,7 @@ interface SplashDefinition {
 
 const staticApp: {
   userInterfaceStyle: string;
-  splash: SplashDefinition;
-  ios: { splash: SplashDefinition; bundleIdentifier: string; icon: string };
+  ios: { bundleIdentifier: string; icon: string };
   android: {
     package: string;
     adaptiveIcon: { foregroundImage: string; backgroundColor: string };
@@ -52,6 +51,19 @@ const staticApp: {
   plugins: Array<string | [string, Record<string, unknown>]>;
   extra: { eas: { projectId: string } };
 } = require("../../app.json").expo;
+
+function splashPluginOptions(): SplashDefinition {
+  const plugin: string | [string, Record<string, unknown>] | undefined =
+    staticApp.plugins.find(
+      (item: string | [string, Record<string, unknown>]): boolean => {
+        return Array.isArray(item) && item[0] === "expo-splash-screen";
+      },
+    );
+  if (!Array.isArray(plugin)) {
+    throw new Error("expo-splash-screen plugin is not configured");
+  }
+  return plugin[1] as unknown as SplashDefinition;
+}
 
 function baseConfig(): Record<string, unknown> {
   return {
@@ -189,24 +201,9 @@ describe("The entitlement is applied when explicitly switched on", () => {
 
 describe("The native launch screen matches the light app", () => {
   test("every iOS and Android splash declaration uses the same light canvas and wordmark", () => {
-    const plugin: string | [string, Record<string, unknown>] | undefined =
-      staticApp.plugins.find(
-        (item: string | [string, Record<string, unknown>]): boolean => {
-          return Array.isArray(item) && item[0] === "expo-splash-screen";
-        },
-      );
-    expect(Array.isArray(plugin)).toBe(true);
-    const options: SplashDefinition = (
-      plugin as [string, Record<string, unknown>]
-    )[1] as unknown as SplashDefinition;
+    const options: SplashDefinition = splashPluginOptions();
     expect(staticApp.userInterfaceStyle).toBe("light");
-    for (const splash of [
-      staticApp.splash,
-      staticApp.ios.splash,
-      options,
-      options.ios,
-      options.android,
-    ]) {
+    for (const splash of [options, options.ios, options.android]) {
       expect(splash).toMatchObject({
         backgroundColor: "#F6F7F9",
         image: "./assets/splash-light.png",
@@ -217,9 +214,17 @@ describe("The native launch screen matches the light app", () => {
     expect(options.android?.imageWidth).toBe(200);
   });
 
+  test("uses the Expo 57 plugin schema instead of removed legacy fields", () => {
+    expect("newArchEnabled" in staticApp).toBe(false);
+    expect("splash" in staticApp).toBe(false);
+    expect("splash" in staticApp.ios).toBe(false);
+    expect("edgeToEdgeEnabled" in staticApp.android).toBe(false);
+  });
+
   test("the checked-in launch artwork is a transparent-capable PNG at the wordmark's aspect ratio", () => {
+    const options: SplashDefinition = splashPluginOptions();
     const artwork: Buffer = readFileSync(
-      path.resolve(__dirname, "../..", staticApp.splash.image),
+      path.resolve(__dirname, "../..", options.image),
     );
     expect(artwork.subarray(0, 8)).toEqual(
       Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
