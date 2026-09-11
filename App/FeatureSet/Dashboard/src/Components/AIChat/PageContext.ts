@@ -184,7 +184,7 @@ const areaPageRules: Array<AreaPageRule> = [
   {
     /*
      * The exceptions area has no plain base entry in RouteMap (EXCEPTIONS
-     * points at /exceptions/overview and EXCEPTIONS_ROOT is a `/*` wildcard
+     * points at /exceptions/unresolved and EXCEPTIONS_ROOT is a `/*` wildcard
      * that segment-matching cannot use), so build the base route here.
      */
     baseRoute: new Route(`/dashboard/${RouteParams.ProjectID}/exceptions`),

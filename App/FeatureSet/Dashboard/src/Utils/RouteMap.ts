@@ -603,7 +603,7 @@ export const TopologyRoutePath: Dictionary<string> = {
 };
 
 export const ExceptionsRoutePath: Dictionary<string> = {
-  [PageMap.EXCEPTIONS]: "overview",
+  [PageMap.EXCEPTIONS]: "unresolved",
   [PageMap.EXCEPTIONS_OVERVIEW]: "overview",
   [PageMap.EXCEPTIONS_UNRESOLVED]: "unresolved",
   [PageMap.EXCEPTIONS_RESOLVED]: "resolved",
