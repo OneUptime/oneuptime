@@ -389,8 +389,10 @@ const Icon: FunctionComponent<ComponentProps> = ({
       />,
     );
   } else if (icon === IconProp.Pencil || icon === IconProp.Edit) {
-    // A short, wide barrel keeps the pencil legible beside button labels and
-    // table actions. Keep the shared stroke weight and 24px box for both aliases.
+    /*
+     * A short, wide barrel keeps the pencil legible beside button labels and
+     * table actions. Keep the shared stroke weight and 24px box for both aliases.
+     */
     return getSvgWrapper(
       <path
         strokeLinecap="round"

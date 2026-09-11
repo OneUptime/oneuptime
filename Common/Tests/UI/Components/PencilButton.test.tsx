@@ -49,9 +49,11 @@ describe.each([IconProp.Edit, IconProp.Pencil])(
         const svg: SVGSVGElement | null = button.querySelector("svg");
         const path: SVGPathElement | null = button.querySelector("path");
 
-        // Centering matters when a mobile label has a 24px line height and the
-        // icon occupies 20px. jsdom cannot lay out these boxes; the shared class
-        // is the CSS contract also exercised by the browser regression.
+        /*
+         * Centering matters when a mobile label has a 24px line height and the
+         * icon occupies 20px. jsdom cannot lay out these boxes; the shared class
+         * is the CSS contract also exercised by the browser regression.
+         */
         expect(button).toHaveClass("items-center");
         expect(button).toBeEnabled();
         expect(svg).toHaveClass("w-5", "h-5");

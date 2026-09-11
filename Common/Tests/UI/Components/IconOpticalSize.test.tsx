@@ -237,8 +237,10 @@ const measurePath: MeasurePathFunction = (pathData: string): number => {
   return longestSpan(parsePathVertices(pathData));
 };
 
-// Project onto the axis perpendicular to the pencil's 45-degree barrel.
-// Its axis-aligned bounding box cannot distinguish a wide pencil from a line.
+/*
+ * Project onto the axis perpendicular to the pencil's 45-degree barrel.
+ * Its axis-aligned bounding box cannot distinguish a wide pencil from a line.
+ */
 type DiagonalWidthFunction = (vertices: Array<Point>) => number;
 
 const diagonalWidth: DiagonalWidthFunction = (
@@ -277,8 +279,10 @@ const inkExtent: InkExtentFunction = (icon: IconProp): number => {
 const OVERSIZED_HEROICONS_PENCIL: string =
   "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125";
 
-// The previous 80% pencil had an approximately three-unit barrel. Keeping it
-// as a control proves that length checks alone do not prevent this regression.
+/*
+ * The previous 80% pencil had an approximately three-unit barrel. Keeping it
+ * as a control proves that length checks alone do not prevent this regression.
+ */
 const NARROW_PENCIL: string =
   "M15.89 5.99l1.35-1.35a1.5 1.5 0 112.122 2.122L7.866 18.256a3.6 3.6 0 01-1.518.904l-2.148.64.64-2.148a3.6 3.6 0 01.904-1.518L15.89 5.99zm0 0L18 8.1";
 
@@ -338,8 +342,10 @@ describe("Icon optical size", () => {
      */
     expect(pencil).toBeLessThanOrEqual(trash * 1.05);
 
-    // A compact pencil still needs to be legible. Its rounded cap extends
-    // past these vertices, so allow more inset than for an upright glyph.
+    /*
+     * A compact pencil still needs to be legible. Its rounded cap extends
+     * past these vertices, so allow more inset than for an upright glyph.
+     */
     expect(pencil).toBeGreaterThanOrEqual(list * 0.8);
   });
 
@@ -362,8 +368,10 @@ describe("Icon optical size", () => {
       const width: number = diagonalWidth(vertices);
       const length: number = longestSpan(vertices);
 
-      // At 20px, this leaves a visible barrel interior even after the 1.5-unit
-      // outline is drawn. A width ceiling preserves the familiar pencil shape.
+      /*
+       * At 20px, this leaves a visible barrel interior even after the 1.5-unit
+       * outline is drawn. A width ceiling preserves the familiar pencil shape.
+       */
       expect(width).toBeGreaterThanOrEqual(4.5);
       expect(width).toBeLessThanOrEqual(6.5);
       expect(length / width).toBeGreaterThanOrEqual(2.5);
