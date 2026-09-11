@@ -195,7 +195,7 @@ test.describe("Security settings card layout", () => {
             }
             await expect(
               credentialCard.getByText("Existing credential", { exact: true }),
-            ).toHaveCount(2);
+            ).toHaveCount(0);
             if (settings.route === "two-factor-auth") {
               await expect(page.getByText(authenticatorName)).toBeVisible();
               await expect(

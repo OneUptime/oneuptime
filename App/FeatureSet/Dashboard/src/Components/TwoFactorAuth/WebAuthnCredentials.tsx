@@ -224,7 +224,6 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
           // Credentials created before purposes were recorded stay manageable.
           isPasskey: new EqualToOrNull(props.isPasskey ? "true" : "false"),
         }}
-        selectMoreFields={{ isPasskey: true }}
         onFetchSuccess={(_items: Array<UserWebAuthn>, totalCount: number) => {
           setCredentialCount(totalCount);
         }}
@@ -305,11 +304,6 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
                   </span>
                   <div className="min-w-0">
                     <p className="font-medium text-gray-900">{item.name}</p>
-                    {item.isPasskey === null || item.isPasskey === undefined ? (
-                      <span className="mt-1 inline-flex rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                        Existing credential
-                      </span>
-                    ) : null}
                   </div>
                 </div>
               );

@@ -466,7 +466,7 @@ describe("Passkey settings registration", () => {
   );
 
   test.each([true, false])(
-    "omits the legacy notice while keeping mixed saved credentials manageable: passkeys %s",
+    "omits legacy notices and badges while keeping mixed saved credentials manageable: passkeys %s",
     async (isPasskey: boolean) => {
       const storedKey: UserWebAuthn = new UserWebAuthn();
       storedKey._id = "44444444-4444-4444-8444-444444444444";
@@ -486,7 +486,11 @@ describe("Passkey settings registration", () => {
       currentKey.name = "New device";
       currentKey.isVerified = false;
       currentKey.isPasskey = isPasskey;
-      mockPasskeyTable([storedKey, olderKey, currentKey]);
+      const namedKey: UserWebAuthn = new UserWebAuthn();
+      namedKey._id = "77777777-7777-4777-8777-777777777777";
+      namedKey.name = "Existing credential";
+      namedKey.isVerified = true;
+      mockPasskeyTable([storedKey, olderKey, currentKey, namedKey]);
       renderPage(isPasskey);
       expect(await screen.findByText("Existing device")).toBeVisible();
       expect(
@@ -498,7 +502,12 @@ describe("Passkey settings registration", () => {
         screen.queryByText(/They continue to work as before/),
       ).not.toBeInTheDocument();
 
-      for (const name of ["Existing device", "Older device", "New device"]) {
+      for (const name of [
+        "Existing device",
+        "Older device",
+        "New device",
+        "Existing credential",
+      ]) {
         const row: HTMLElement = screen.getByRole("row", {
           name: new RegExp(name),
         });
@@ -509,16 +518,20 @@ describe("Passkey settings registration", () => {
         expect(
           within(row).getByRole("button", { name: "Delete", exact: true }),
         ).toBeEnabled();
-        if (name === "New device") {
+        if (name !== "Existing credential") {
           expect(
             within(row).queryByText("Existing credential"),
           ).not.toBeInTheDocument();
+        }
+        if (name === "New device") {
           expect(within(row).getByText("Setup incomplete")).toBeVisible();
         } else {
-          expect(within(row).getByText("Existing credential")).toBeVisible();
           expect(within(row).getByText("Ready")).toBeVisible();
         }
       }
+      expect(
+        screen.getAllByText("Existing credential", { exact: true }),
+      ).toHaveLength(1);
       expect(
         screen.getByRole("button", {
           name: isPasskey ? "Add Passkey" : "Add Security Key",
