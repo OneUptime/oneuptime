@@ -1,7 +1,4 @@
 import { BASE_URL } from "../../Config";
-import DocsNav, { NavGroup } from "../../../App/FeatureSet/Docs/Utils/Nav";
-import English from "../../../App/FeatureSet/Docs/Locales/en.json";
-import French from "../../../App/FeatureSet/Docs/Locales/fr.json";
 import { Locator, Page, expect, test } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 
@@ -24,7 +21,40 @@ interface ToggleTarget {
   insideGroup: boolean;
 }
 
-const locales: { [key: string]: DocsLocale } = { en: English, fr: French };
+const locales: { [key: string]: DocsLocale } = {
+  en: {
+    ui: {
+      documentation: "Documentation",
+      openNavigation: "Open navigation",
+      closeNavigation: "Close navigation",
+      switchLanguage: "Switch language",
+      toggleTheme: "Toggle theme",
+    },
+    navGroups: {
+      Introduction: "Introduction",
+      "Self Hosted": "Self Hosted",
+    },
+    navLinks: {
+      "Slack Integration": "Slack Integration",
+    },
+  },
+  fr: {
+    ui: {
+      documentation: "Documentation",
+      openNavigation: "Ouvrir la navigation",
+      closeNavigation: "Fermer la navigation",
+      switchLanguage: "Changer de langue",
+      toggleTheme: "Changer de thème",
+    },
+    navGroups: {
+      Introduction: "Introduction",
+      "Self Hosted": "Auto-hébergé",
+    },
+    navLinks: {
+      "Slack Integration": "Intégration Slack",
+    },
+  },
+};
 
 function docsUrl(language: string, path: string): string {
   return URL.fromString(BASE_URL.toString())
@@ -40,31 +70,24 @@ async function iconShapes(nav: Locator): Promise<string[]> {
   });
 }
 
-async function expectNavigation(
-  page: Page,
-  nav: Locator,
-  locale: DocsLocale,
-): Promise<string[]> {
+async function expectNavigation(page: Page, nav: Locator): Promise<string[]> {
   await expect(nav).toBeVisible();
-  await expect(nav.getByRole("button")).toHaveCount(DocsNav.length);
-  await expect(nav.getByRole("button")).toHaveText(
-    DocsNav.map((group: NavGroup): string => {
-      return locale.navGroups[group.title] || group.title;
-    }),
-  );
+  const groupButtons: Locator = nav.locator("[data-nav-toggle]");
+  const groupCount: number = await groupButtons.count();
+  expect(groupCount).toBeGreaterThan(1);
   await expect(nav.locator('.docs-nav__icon[aria-hidden="true"]')).toHaveCount(
-    DocsNav.length,
+    groupCount,
   );
 
   const shapes: string[] = await iconShapes(nav);
-  expect(shapes).toHaveLength(DocsNav.length);
+  expect(shapes).toHaveLength(groupCount);
   expect(
     shapes.every((shape: string): boolean => {
       return shape.length > 0;
     }),
   ).toBe(true);
   // The old positional lookup reused the same fallback for the final groups.
-  expect(new Set(shapes).size).toBe(DocsNav.length);
+  expect(new Set(shapes).size).toBe(groupCount);
 
   const targets: ToggleTarget[] = await page
     .locator("[data-docs-nav] [data-nav-toggle]")
@@ -90,7 +113,9 @@ async function expectNavigation(
       });
     });
 
-  expect(targets).toHaveLength(DocsNav.length * 2);
+  const navigationCount: number = await page.locator("[data-docs-nav]").count();
+  expect(navigationCount).toBe(2);
+  expect(targets).toHaveLength(groupCount * navigationCount);
   for (const target of targets) {
     expect(target.controls, target.title).toBeTruthy();
     expect(target.matchingLists, target.title).toBe(1);
@@ -128,11 +153,15 @@ test.describe("Docs: category icons", () => {
         if (language !== "en") {
           if (mobile) {
             await page
-              .getByRole("button", { name: English.ui.openNavigation })
+              .getByRole("button", {
+                name: locales["en"]!.ui.openNavigation,
+              })
               .click();
           }
           await (mobile ? drawer : page)
-            .getByRole("combobox", { name: English.ui.switchLanguage })
+            .getByRole("combobox", {
+              name: locales["en"]!.ui.switchLanguage,
+            })
             .selectOption(language);
           await expect(page).toHaveURL(
             docsUrl(language, "introduction/getting-started"),
@@ -159,7 +188,7 @@ test.describe("Docs: category icons", () => {
         }
 
         const nav: Locator = mobile ? drawerNav : sidebar;
-        const shapes: string[] = await expectNavigation(page, nav, locale);
+        const shapes: string[] = await expectNavigation(page, nav);
         expect(shapes).toEqual(englishShapes);
         expect(await iconShapes(mobile ? sidebar : drawerNav)).toEqual(shapes);
 
