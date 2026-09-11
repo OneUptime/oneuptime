@@ -6,6 +6,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Pressable,
+  useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -48,6 +49,18 @@ function StatCard({
 }: StatCardProps): React.JSX.Element {
   const { theme } = useTheme();
   const { lightImpact } = useHaptics();
+  const countLabel: React.JSX.Element = (
+    <Text
+      style={{
+        fontSize: compact ? 20 : 36,
+        fontWeight: "700",
+        fontVariant: ["tabular-nums"],
+        color: compact || count === 0 ? theme.colors.textPrimary : accentColor,
+      }}
+    >
+      {isLoading ? "--" : count ?? 0}
+    </Text>
+  );
   return (
     <Pressable
       onPress={() => {
@@ -62,35 +75,58 @@ function StatCard({
       accessibilityRole="button"
       style={({ pressed }: { pressed: boolean }) => {
         return {
-          minHeight: compact ? 66 : 82,
+          flex: compact ? undefined : 1,
+          minHeight: compact ? 66 : 152,
           paddingHorizontal: 16,
           paddingVertical: 14,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 14,
+          flexDirection: compact ? "row" : "column",
+          alignItems: compact ? "center" : "flex-start",
+          gap: compact ? 14 : 10,
           backgroundColor: pressed
             ? theme.colors.backgroundTertiary
             : theme.colors.backgroundElevated,
+          borderRadius: compact ? 0 : 16,
+          borderWidth: compact ? 0 : 1,
+          borderColor: theme.colors.borderSubtle,
           borderBottomWidth: 1,
           borderBottomColor: theme.colors.borderSubtle,
         };
       }}
     >
-      <View
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 11,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: accentColor + "10",
-        }}
-      >
-        <Ionicons name={iconName} size={20} color={accentColor} />
-      </View>
+      {compact ? (
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 11,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: accentColor + "10",
+          }}
+        >
+          <Ionicons name={iconName} size={20} color={accentColor} />
+        </View>
+      ) : (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            alignSelf: "stretch",
+            justifyContent: "space-between",
+          }}
+        >
+          <Ionicons name={iconName} size={21} color={accentColor} />
+          <Ionicons
+            name="arrow-forward"
+            size={16}
+            color={theme.colors.textTertiary}
+          />
+        </View>
+      )}
+      {!compact ? countLabel : null}
       <Text
         style={{
-          flex: 1,
+          flex: compact ? 1 : undefined,
           fontSize: compact ? 15 : 16,
           lineHeight: 23,
           fontWeight: "600",
@@ -99,21 +135,14 @@ function StatCard({
       >
         {label}
       </Text>
-      <Text
-        style={{
-          fontSize: compact ? 20 : 28,
-          fontWeight: "700",
-          fontVariant: ["tabular-nums"],
-          color: compact ? theme.colors.textPrimary : accentColor,
-        }}
-      >
-        {isLoading ? "--" : count ?? 0}
-      </Text>
-      <Ionicons
-        name="chevron-forward"
-        size={16}
-        color={theme.colors.textTertiary}
-      />
+      {compact ? countLabel : null}
+      {compact ? (
+        <Ionicons
+          name="chevron-forward"
+          size={16}
+          color={theme.colors.textTertiary}
+        />
+      ) : null}
     </Pressable>
   );
 }
@@ -130,6 +159,7 @@ function getGreeting(): string {
 
 export default function HomeScreen(): React.JSX.Element {
   const { theme } = useTheme();
+  const { fontScale } = useWindowDimensions();
   const bottomPadding: number = useScreenPadding();
   const [refreshing, setRefreshing] = useState(false);
   const { projectList, isLoadingProjects, projectLoadError, refreshProjects } =
@@ -375,7 +405,7 @@ export default function HomeScreen(): React.JSX.Element {
       <ScreenIntro
         eyebrow={getGreeting()}
         title="Overview"
-        description="Your project. A clear picture of what matters."
+        description="Your response queue and service health."
         style={{ marginBottom: 0 }}
       />
       {unauthenticatedSsoProjects.length > 0 ? (
@@ -454,10 +484,8 @@ export default function HomeScreen(): React.JSX.Element {
         ) : null}
         <View
           style={{
-            borderRadius: 18,
-            overflow: "hidden",
-            borderWidth: 1,
-            borderColor: theme.colors.borderSubtle,
+            flexDirection: fontScale > 1.3 ? "column" : "row",
+            gap: 12,
           }}
         >
           <StatCard

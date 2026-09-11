@@ -8,6 +8,12 @@ one tap away. Home prioritizes active work, then duty status and service health.
 Detail pages lead with the resource title and response actions, followed by
 full-width sections instead of nested cards.
 
+The [September 2026 polish and audit](UI_AUDIT_2026_09.md) adds prominent Home
+response tiles, shared list filters with matching totals and reset actions,
+and recovery for failed reads throughout authentication, response and on-call
+flows. Its [screenshot gallery](../../.github/pr-assets/mobile-experience-polish/README.md)
+contains the current review captures and before/after comparisons.
+
 Sign-in leads with email and password; passkeys and team SSO are secondary
 choices. Recovery screens explain the next step, Settings separates account
 and workspace controls, and the on-call hub prioritizes handoff times and

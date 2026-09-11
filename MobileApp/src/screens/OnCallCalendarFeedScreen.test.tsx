@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  act,
   render,
   screen,
   fireEvent,
@@ -745,4 +746,42 @@ describe("OnCallCalendarFeedScreen", () => {
     expect(screen.getByTestId("feed-no-projects")).toBeTruthy();
     expect(screen.queryByTestId("generate-feed")).toBeNull();
   });
+});
+
+describe("Refresh recovery", () => {
+  test.each([false, true])(
+    "keeps refresh available and visible while pending (error: %s)",
+    async (isError: boolean) => {
+      let finish: () => void = (): void => {};
+      const refresh: jest.Mock = jest.fn(() => {
+        return new Promise<void>((resolve: () => void) => {
+          finish = resolve;
+        });
+      });
+      mockProjects.current = PROJECTS;
+      mockFeedByProject.current = null;
+      mockFeed.current = feedState({ isError, refetch: refresh });
+      await render(<OnCallCalendarFeedScreen />);
+
+      let request: Promise<void>;
+      await act(() => {
+        request = screen
+          .getByTestId("calendar-feed-scroll")
+          .props.refreshControl.props.onRefresh();
+      });
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(
+        screen.getByTestId("calendar-feed-scroll").props.refreshControl.props
+          .refreshing,
+      ).toBe(true);
+      await act(async () => {
+        finish();
+        await request;
+      });
+      expect(
+        screen.getByTestId("calendar-feed-scroll").props.refreshControl.props
+          .refreshing,
+      ).toBe(false);
+    },
+  );
 });

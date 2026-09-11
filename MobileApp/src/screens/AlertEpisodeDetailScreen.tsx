@@ -3,6 +3,8 @@ import { Text, ScrollView, RefreshControl, Alert } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useRefresh } from "../hooks/useRefresh";
+import QueryErrorNotice from "../components/QueryErrorNotice";
 import {
   useAlertEpisodeDetail,
   useAlertEpisodeStates,
@@ -52,33 +54,41 @@ export default function AlertEpisodeDetailScreen({
     isError,
     refetch: refetchEpisode,
   } = useAlertEpisodeDetail(projectId, episodeId);
-  const { data: states } = useAlertEpisodeStates(projectId);
+  const {
+    data: states,
+    isError: statesError,
+    refetch: refetchStates,
+  } = useAlertEpisodeStates(projectId);
   const { refetch: refetchTimeline } = useAlertEpisodeStateTimeline(
     projectId,
     episodeId,
   );
-  const { data: feed, refetch: refetchFeed } = useAlertEpisodeFeed(
-    projectId,
-    episodeId,
-  );
-  const { data: notes, refetch: refetchNotes } = useAlertEpisodeNotes(
-    projectId,
-    episodeId,
-  );
+  const {
+    data: feed,
+    isError: feedError,
+    refetch: refetchFeed,
+  } = useAlertEpisodeFeed(projectId, episodeId);
+  const {
+    data: notes,
+    isLoading: notesLoading,
+    isError: notesError,
+    refetch: refetchNotes,
+  } = useAlertEpisodeNotes(projectId, episodeId);
 
   const { successFeedback, errorFeedback } = useHaptics();
   const [changingState, setChangingState] = useState(false);
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
 
-  const onRefresh: () => Promise<void> = useCallback(async () => {
-    await Promise.all([
+  const { refreshing, onRefresh } = useRefresh(async () => {
+    await Promise.allSettled([
       refetchEpisode(),
+      refetchStates(),
       refetchTimeline(),
       refetchFeed(),
       refetchNotes(),
     ]);
-  }, [refetchEpisode, refetchTimeline, refetchFeed, refetchNotes]);
+  });
 
   const handleStateChange: (
     stateId: string,
@@ -298,7 +308,7 @@ export default function AlertEpisodeDetailScreen({
       contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
       refreshControl={
         <RefreshControl
-          refreshing={false}
+          refreshing={refreshing}
           onRefresh={onRefresh}
           tintColor={theme.colors.actionPrimary}
         />
@@ -312,6 +322,13 @@ export default function AlertEpisodeDetailScreen({
         stateColor={stateColor}
         severity={episode.alertSeverity?.name}
       />
+      {statesError ? (
+        <QueryErrorNotice
+          message="Unable to load the latest response actions."
+          retryLabel="Retry actions"
+          onRetry={refetchStates}
+        />
+      ) : null}
       <Text
         accessibilityLiveRegion="polite"
         style={{
@@ -345,12 +362,25 @@ export default function AlertEpisodeDetailScreen({
       <ResponseSection title="Root Cause">
         <RootCauseCard rootCauseText={rootCauseText} />
       </ResponseSection>
+      {feedError ? (
+        <QueryErrorNotice
+          message="Unable to load the latest activity."
+          retryLabel="Retry activity"
+          onRetry={refetchFeed}
+        />
+      ) : null}
       {feed && feed.length > 0 ? (
         <ResponseSection title="Activity Feed">
           <FeedTimeline feed={feed} />
         </ResponseSection>
       ) : null}
-      <NotesSection notes={notes} setNoteModalVisible={setNoteModalVisible} />
+      <NotesSection
+        notes={notes}
+        setNoteModalVisible={setNoteModalVisible}
+        isLoading={notesLoading}
+        isError={notesError}
+        onRetry={refetchNotes}
+      />
       <AddNoteModal
         visible={noteModalVisible}
         onClose={() => {

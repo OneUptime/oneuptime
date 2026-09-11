@@ -43,11 +43,22 @@ export default function LoginScreen(): React.JSX.Element {
 
   useEffect(() => {
     let mounted: boolean = true;
-    getServerUrl().then((url: string): void => {
-      if (mounted) {
-        setServerUrlState(url);
-      }
-    });
+    const refreshServerUrl: () => void = (): void => {
+      void getServerUrl()
+        .then((url: string): void => {
+          if (mounted) {
+            setServerUrlState(url);
+          }
+        })
+        .catch((): void => {
+          // A failed storage read should leave sign-in available for retry.
+        });
+    };
+    refreshServerUrl();
+    const removeFocus: (() => void) | undefined = navigation.addListener?.(
+      "focus",
+      refreshServerUrl,
+    );
     const removeBlur: (() => void) | undefined = navigation.addListener?.(
       "blur",
       (): void => {
@@ -58,6 +69,7 @@ export default function LoginScreen(): React.JSX.Element {
     );
     return (): void => {
       mounted = false;
+      removeFocus?.();
       removeBlur?.();
       passkeyAttempt.current?.abort();
       passkeyAttempt.current = null;

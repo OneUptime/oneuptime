@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useTheme } from "../theme";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useRefresh } from "../hooks/useRefresh";
 import ScreenIntro from "../components/ScreenIntro";
 import SearchField from "../components/SearchField";
 import SegmentedControl from "../components/SegmentedControl";
@@ -245,10 +246,10 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
     };
   }, [schedules, searchTerm]);
 
-  const onRefresh: () => Promise<void> = async (): Promise<void> => {
+  const { refreshing, onRefresh } = useRefresh(async (): Promise<void> => {
     lightImpact();
     await refetch();
-  };
+  });
 
   if (isLoading) {
     return (
@@ -267,35 +268,45 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
     );
   }
 
-  if (isError) {
+  if (isError || schedules.length === 0) {
     return (
-      <View
+      <ScrollView
+        testID="who-is-on-call-scroll"
+        contentInsetAdjustmentBehavior="automatic"
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+        contentContainerStyle={{
+          padding: 20,
+          paddingBottom: bottomPadding,
+          flexGrow: 1,
+        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.actionPrimary}
+          />
+        }
       >
-        <EmptyState
-          title="Could not load the on-call roster"
-          subtitle="Pull to refresh or try again."
-          icon="alerts"
-          actionLabel="Retry"
-          onAction={() => {
-            return refetch();
-          }}
+        <ScreenIntro
+          title="Who's on call"
+          description="A clear view of your team’s coverage."
         />
-      </View>
-    );
-  }
-
-  if (schedules.length === 0) {
-    return (
-      <View
-        style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
-      >
         <EmptyState
-          title="No on-call schedules"
-          subtitle="The selected project has no on-call schedules yet."
+          title={
+            isError
+              ? "Could not load the on-call roster"
+              : "No on-call schedules"
+          }
+          subtitle={
+            isError
+              ? "Pull to refresh or try again."
+              : "The selected project has no on-call schedules yet. Pull to refresh after a schedule is added."
+          }
           icon="alerts"
+          actionLabel={isError ? "Retry" : "Refresh"}
+          onAction={onRefresh}
         />
-      </View>
+      </ScrollView>
     );
   }
 
@@ -308,7 +319,7 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
       keyboardShouldPersistTaps="handled"
       refreshControl={
         <RefreshControl
-          refreshing={false}
+          refreshing={refreshing}
           onRefresh={onRefresh}
           tintColor={theme.colors.actionPrimary}
         />

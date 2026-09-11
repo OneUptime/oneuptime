@@ -479,6 +479,8 @@ describe("When the projects could not be fetched", () => {
     await renderLoadedProjectsScreen();
 
     expect(screen.getByText("Failed to load projects.")).toBeTruthy();
+    expect(screen.queryByText("No projects found.")).toBeNull();
+    expect(screen.queryByText("No matching projects")).toBeNull();
   });
 
   test("no project row is invented for a request that never landed", async () => {
@@ -817,6 +819,62 @@ describe("Starting an SSO login", () => {
     ).toBeTruthy();
     expect(mockOpenSsoAuthSession).not.toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  test.each(["project", "global"])(
+    "%s discovery outages are retryable instead of claiming SSO is unconfigured",
+    async (source: string) => {
+      if (source === "project") {
+        mockFetchSSOProvidersForProject.mockRejectedValueOnce(
+          new Error("Network down"),
+        );
+      } else {
+        mockFetchAllGlobalProviders.mockResolvedValueOnce({
+          providers: [],
+          failed: true,
+        });
+      }
+      await renderLoadedProjectsScreen();
+      await pressAuthenticate(SSO_PROJECT);
+      await settleSso();
+
+      expect(
+        screen.getByText(
+          "Could not load SSO providers. Check your connection and try again.",
+        ),
+      ).toBeTruthy();
+      expect(screen.queryByText(/No SSO providers are configured/)).toBeNull();
+      expect(mockOpenSsoAuthSession).not.toHaveBeenCalled();
+
+      mockFetchAllGlobalProviders.mockResolvedValue({
+        providers: [GLOBAL_PROVIDER],
+        failed: false,
+      });
+      await pressAuthenticate(SSO_PROJECT);
+      await settleSso();
+      expect(mockOpenSsoAuthSession).toHaveBeenCalledTimes(1);
+      expect(
+        screen.queryByText(
+          "Could not load SSO providers. Check your connection and try again.",
+        ),
+      ).toBeNull();
+    },
+  );
+
+  test("a project endpoint reporting no configuration does not suggest a network outage", async () => {
+    mockFetchSSOProvidersForProject.mockRejectedValue({
+      response: { status: 400 },
+    });
+    await renderLoadedProjectsScreen();
+    await pressAuthenticate(SSO_PROJECT);
+    await settleSso();
+
+    expect(screen.getByText(/No SSO providers are configured/)).toBeTruthy();
+    expect(
+      screen.queryByText(
+        "Could not load SSO providers. Check your connection and try again.",
+      ),
+    ).toBeNull();
   });
 
   test("discovery failing outright is reported rather than swallowed", async () => {

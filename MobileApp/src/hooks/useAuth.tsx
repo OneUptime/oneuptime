@@ -470,7 +470,14 @@ export function AuthProvider({
   const logout: () => Promise<void> = useCallback(async (): Promise<void> => {
     await unregisterPushToken();
     await apiLogout();
-    await clearAllSsoTokens();
+    try {
+      await clearAllSsoTokens();
+    } catch {
+      /*
+       * The SSO store clears its memory caches before touching disk. A failed
+       * removal must still let the user leave the account on this device.
+       */
+    }
     /*
      * The denial set is module-scope and in-memory, so without this a project
      * the previous user was refused would still read as "needs SSO" for

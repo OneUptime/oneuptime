@@ -18,7 +18,8 @@ import {
 } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
-import getToggleAccessibilityProps from "../utils/getToggleAccessibilityProps";
+import ListFilters from "../components/ListFilters";
+import QueryErrorNotice from "../components/QueryErrorNotice";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import ScreenIntro from "../components/ScreenIntro";
 import SearchField from "../components/SearchField";
@@ -54,12 +55,14 @@ type NavProp = NativeStackNavigationProp<
 interface IncidentSection {
   title: string;
   isActive: boolean;
+  count: number;
   data: ProjectIncidentItem[];
 }
 
 interface EpisodeSection {
   title: string;
   isActive: boolean;
+  count: number;
   data: ProjectIncidentEpisodeItem[];
 }
 
@@ -176,7 +179,11 @@ export default function IncidentsScreen({
     isError,
     refetch,
   } = useAllProjectIncidents();
-  const { statesMap } = useAllProjectIncidentStates();
+  const {
+    statesMap,
+    isLoading: statesLoading,
+    isError: statesError,
+  } = useAllProjectIncidentStates();
   const {
     items: allEpisodes,
     isLoading: episodesLoading,
@@ -239,6 +246,7 @@ export default function IncidentsScreen({
       sections.push({
         title: "Active",
         isActive: true,
+        count: active.length,
         data: active.slice(0, visibleCount),
       });
     }
@@ -246,6 +254,7 @@ export default function IncidentsScreen({
       sections.push({
         title: "Resolved",
         isActive: false,
+        count: resolved.length,
         data: resolved.slice(0, visibleCount),
       });
     }
@@ -269,6 +278,7 @@ export default function IncidentsScreen({
       sections.push({
         title: "Active",
         isActive: true,
+        count: active.length,
         data: active.slice(0, visibleEpisodeCount),
       });
     }
@@ -276,6 +286,7 @@ export default function IncidentsScreen({
       sections.push({
         title: "Resolved",
         isActive: false,
+        count: resolved.length,
         data: resolved.slice(0, visibleEpisodeCount),
       });
     }
@@ -291,15 +302,27 @@ export default function IncidentsScreen({
     try {
       if (segment === "incidents") {
         setVisibleCount(PAGE_SIZE);
-        await refetch();
+        await Promise.all([
+          refetch(),
+          queryClient.refetchQueries({
+            queryKey: ["incident-states"],
+            type: "active",
+          }),
+        ]);
       } else {
         setVisibleEpisodeCount(PAGE_SIZE);
-        await refetchEpisodes();
+        await Promise.all([
+          refetchEpisodes(),
+          queryClient.refetchQueries({
+            queryKey: ["incident-states"],
+            type: "active",
+          }),
+        ]);
       }
     } finally {
       setRefreshing(false);
     }
-  }, [refetch, refetchEpisodes, lightImpact, segment]);
+  }, [refetch, refetchEpisodes, lightImpact, segment, queryClient]);
 
   const loadMore: () => void = useCallback(() => {
     if (segment === "incidents") {
@@ -388,11 +411,21 @@ export default function IncidentsScreen({
     );
 
   const showLoading: boolean =
-    segment === "incidents"
+    statesLoading ||
+    (segment === "incidents"
       ? isLoading && allIncidents.length === 0
-      : episodesLoading && allEpisodes.length === 0;
+      : episodesLoading && allEpisodes.length === 0);
 
-  const showError: boolean = segment === "incidents" ? isError : episodesError;
+  const hasStateMetadata: boolean =
+    statesMap.size > 0 &&
+    (segment === "incidents" ? allIncidents : allEpisodes).every(
+      (wrapped: { projectId: string }) => {
+        return statesMap.has(wrapped.projectId);
+      },
+    );
+  const showError: boolean =
+    (statesError && !hasStateMetadata) ||
+    (segment === "incidents" ? isError : episodesError);
 
   const hasFilters: boolean = search.trim().length > 0 || stateFilter !== "all";
   const resetFilters: () => void = () => {
@@ -402,7 +435,7 @@ export default function IncidentsScreen({
     setVisibleEpisodeCount(PAGE_SIZE);
   };
   const listHeader: React.JSX.Element = (
-    <View style={{ marginBottom: 16 }}>
+    <View style={{ marginBottom: 8 }}>
       {!embedded ? (
         <ScreenIntro
           title="Incidents"
@@ -494,62 +527,41 @@ export default function IncidentsScreen({
           </Text>
         ) : null}
       </View>
-      <View
-        style={{
-          flexDirection: "row",
-          flexWrap: "wrap",
-          gap: 8,
-          marginTop: 12,
+      {statesError && hasStateMetadata ? (
+        <QueryErrorNotice
+          message="Could not refresh incident states. Showing last loaded states."
+          retryLabel="Retry incident states"
+          onRetry={onRefresh}
+        />
+      ) : null}
+      <ListFilters
+        options={[
+          { key: "all", label: "All", accessibilityLabel: "All states" },
+          { key: "active", label: "Active", accessibilityLabel: "Active only" },
+          {
+            key: "resolved",
+            label: "Resolved",
+            accessibilityLabel: "Resolved only",
+          },
+        ]}
+        selected={stateFilter}
+        onSelect={(value: StateFilter) => {
+          setStateFilter(value);
+          setVisibleCount(PAGE_SIZE);
+          setVisibleEpisodeCount(PAGE_SIZE);
         }}
-      >
-        {(
-          [
-            { key: "all", label: "All states" },
-            { key: "active", label: "Active only" },
-            { key: "resolved", label: "Resolved only" },
-          ] as const
-        ).map((filter: { key: StateFilter; label: string }) => {
-          const selected: boolean = stateFilter === filter.key;
-          return (
-            <Pressable
-              key={filter.key}
-              accessibilityRole="button"
-              {...getToggleAccessibilityProps(selected)}
-              accessibilityLabel={filter.label}
-              onPress={() => {
-                setStateFilter(filter.key);
-                setVisibleCount(PAGE_SIZE);
-                setVisibleEpisodeCount(PAGE_SIZE);
-              }}
-              style={{
-                minHeight: 48,
-                justifyContent: "center",
-                paddingHorizontal: 14,
-                borderRadius: 24,
-                backgroundColor: selected
-                  ? theme.colors.textPrimary
-                  : theme.colors.backgroundElevated,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: selected
-                    ? theme.colors.textInverse
-                    : theme.colors.textSecondary,
-                }}
-              >
-                {filter.key === "all"
-                  ? "All"
-                  : filter.key === "active"
-                    ? "Active"
-                    : "Resolved"}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+        resultCount={
+          showLoading || showError
+            ? undefined
+            : (segment === "incidents"
+                ? incidentSections
+                : episodeSections
+              ).reduce((total: number, section: { count: number }) => {
+                return total + section.count;
+              }, 0)
+        }
+        onReset={hasFilters ? resetFilters : undefined}
+      />
     </View>
   );
 
@@ -560,6 +572,9 @@ export default function IncidentsScreen({
       >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
           contentContainerStyle={{
             padding: 20,
             paddingBottom: bottomPadding,
@@ -578,20 +593,15 @@ export default function IncidentsScreen({
   }
 
   if (showError) {
-    const retryFn: () => void =
-      segment === "incidents"
-        ? () => {
-            return refetch();
-          }
-        : () => {
-            return refetchEpisodes();
-          };
     return (
       <View
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
           contentContainerStyle={{
             padding: 20,
             paddingBottom: bottomPadding,
@@ -602,13 +612,15 @@ export default function IncidentsScreen({
           <EmptyState
             title="Something went wrong"
             subtitle={
-              segment === "incidents"
-                ? "Failed to load incidents. Pull to refresh or try again."
-                : "Failed to load incident episodes. Pull to refresh or try again."
+              statesError
+                ? "Could not load incident states. Retry to see which incidents are active or resolved."
+                : segment === "incidents"
+                  ? "Failed to load incidents. Pull to refresh or try again."
+                  : "Failed to load incident episodes. Pull to refresh or try again."
             }
             icon="incidents"
             actionLabel="Retry"
-            onAction={retryFn}
+            onAction={onRefresh}
           />
         </ScrollView>
       </View>
@@ -640,7 +652,7 @@ export default function IncidentsScreen({
             return (
               <SectionHeader
                 title={params.section.title}
-                count={params.section.data.length}
+                count={params.section.count}
                 isActive={params.section.isActive}
               />
             );
@@ -730,7 +742,7 @@ export default function IncidentsScreen({
             return (
               <SectionHeader
                 title={params.section.title}
-                count={params.section.data.length}
+                count={params.section.count}
                 isActive={params.section.isActive}
               />
             );

@@ -17,7 +17,6 @@ import type OnCallDutyPolicyEscalationRuleModel from "Common/Models/DatabaseMode
 import type OnCallDutyPolicyScheduleModel from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule.js";
 import type ProjectModel from "Common/Models/DatabaseModels/Project.js";
 import type TeamModel from "Common/Models/DatabaseModels/Team.js";
-import type UserModel from "Common/Models/DatabaseModels/User.js";
 
 type Alert = InstanceType<typeof AlertModel>;
 type AlertEpisode = InstanceType<typeof AlertEpisodeModel>;
@@ -44,7 +43,6 @@ type OnCallDutyPolicySchedule = InstanceType<
 >;
 type Project = InstanceType<typeof ProjectModel>;
 type Team = InstanceType<typeof TeamModel>;
-type User = InstanceType<typeof UserModel>;
 
 type RequiredModelFields<T, K extends keyof T> = {
   [P in K]-?: NonNullable<T[P]>;
@@ -245,12 +243,11 @@ type NoteItemFromCommon = RequiredModelFields<
 export interface NoteItem
   extends Omit<NoteItemFromCommon, "createdAt" | "createdByUser"> {
   createdAt: string;
-  createdByUser:
-    | (RequiredModelFields<User, "_id" | "name"> & {
-        _id: string;
-        name: string;
-      })
-    | null;
+  createdByUser: {
+    _id: string;
+    // API values are serialized data, never Common's Name class instance.
+    name: string | { _type: "Name"; value: string };
+  } | null;
 }
 
 type FeedItemFromCommon = RequiredModelFields<

@@ -170,6 +170,22 @@ function serializedString(value: unknown): string {
   return "";
 }
 
+function userOf(responseData: Record<string, unknown>): LoginResponse["user"] {
+  /*
+   * sendEntityResponse serializes the user at the response root. Also accept
+   * a nested data envelope for compatibility.
+   */
+  const user: Record<string, unknown> = responseData["_id"]
+    ? responseData
+    : ((responseData["data"] || {}) as Record<string, unknown>);
+  return {
+    _id: serializedString(user["_id"]),
+    email: serializedString(user["email"]),
+    name: serializedString(user["name"]),
+    isMasterAdmin: user["isMasterAdmin"] === true,
+  };
+}
+
 /*
  * The serialized shape every identity route expects. The web client gets this
  * for free from `User.toJSON`; here it is written out, and it has to match --
@@ -288,7 +304,7 @@ async function completeSession(
     accessToken,
     refreshToken,
     refreshTokenExpiresAt,
-    user: (responseData["data"] || {}) as LoginResponse["user"],
+    user: userOf(responseData),
     ...(backupCodes.length > 0 ? { backupCodes } : {}),
     ...(misc["hasBackupCodes"] === true ? { hasBackupCodes: true } : {}),
   };
@@ -317,7 +333,7 @@ export async function login(
       accessToken: "",
       refreshToken: "",
       refreshTokenExpiresAt: "",
-      user: (responseData["data"] || {}) as LoginResponse["user"],
+      user: userOf(responseData),
       twoFactorRequired: true,
       twoFactorEnrolmentRequired: true,
       twoFactorAuthId: String(misc["twoFactorAuthId"] || ""),
@@ -335,7 +351,7 @@ export async function login(
       accessToken: "",
       refreshToken: "",
       refreshTokenExpiresAt: "",
-      user: (responseData["data"] || {}) as LoginResponse["user"],
+      user: userOf(responseData),
       twoFactorRequired: true,
       totpAuthList,
       webAuthnList,

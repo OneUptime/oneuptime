@@ -1,4 +1,5 @@
 import React from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   act,
   fireEvent,
@@ -13,6 +14,7 @@ import {
   clearServerUrl,
   getServerUrl,
   hasServerUrl,
+  setServerUrl,
 } from "../../storage/serverUrl";
 
 /*
@@ -161,6 +163,50 @@ beforeEach(async (): Promise<void> => {
 });
 
 describe("What the self-hoster is handed on first launch", () => {
+  test("changing servers starts with the saved workspace address", async () => {
+    await setServerUrl(SELF_HOSTED_URL);
+    await render(<ServerUrlScreen />);
+
+    await screen.findByDisplayValue(SELF_HOSTED_URL);
+    expect(mockValidateServerUrl).not.toHaveBeenCalled();
+  });
+
+  test("a delayed stored address cannot overwrite a URL being edited", async () => {
+    let finishRead: ((value: string | null) => void) | undefined;
+    (AsyncStorage.getItem as jest.Mock).mockImplementationOnce(() => {
+      return new Promise<string | null>(
+        (resolve: (value: string | null) => void) => {
+          finishRead = resolve;
+        },
+      );
+    });
+    await render(<ServerUrlScreen />);
+    await typeUrl("https://new-workspace.example");
+    await act(() => {
+      finishRead?.(SELF_HOSTED_URL);
+    });
+
+    expect(
+      screen.getByDisplayValue("https://new-workspace.example"),
+    ).toBeTruthy();
+    await pressConnect();
+    expect(mockValidateServerUrl).toHaveBeenCalledWith(
+      "https://new-workspace.example",
+    );
+  });
+
+  test("an unreadable saved address leaves the connection form usable", async () => {
+    (AsyncStorage.getItem as jest.Mock).mockRejectedValueOnce(
+      new Error("Storage unavailable") as never,
+    );
+    await render(<ServerUrlScreen />);
+
+    expect(screen.getByDisplayValue(HOSTED_URL)).toBeTruthy();
+    await connectWith(SELF_HOSTED_URL);
+    expect(await getServerUrl()).toBe(SELF_HOSTED_URL);
+    expect(mockNavigate).toHaveBeenCalledWith("Login");
+  });
+
   test("the field starts on the hosted instance, so the common case is one tap", async () => {
     await render(<ServerUrlScreen />);
 

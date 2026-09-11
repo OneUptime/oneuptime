@@ -3,6 +3,8 @@ import { Text, ScrollView, RefreshControl, Alert } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useRefresh } from "../hooks/useRefresh";
+import QueryErrorNotice from "../components/QueryErrorNotice";
 import {
   useIncidentDetail,
   useIncidentStates,
@@ -50,33 +52,41 @@ export default function IncidentDetailScreen({
     isError,
     refetch: refetchIncident,
   } = useIncidentDetail(projectId, incidentId);
-  const { data: states } = useIncidentStates(projectId);
+  const {
+    data: states,
+    isError: statesError,
+    refetch: refetchStates,
+  } = useIncidentStates(projectId);
   const { refetch: refetchTimeline } = useIncidentStateTimeline(
     projectId,
     incidentId,
   );
-  const { data: feed, refetch: refetchFeed } = useIncidentFeed(
-    projectId,
-    incidentId,
-  );
-  const { data: notes, refetch: refetchNotes } = useIncidentNotes(
-    projectId,
-    incidentId,
-  );
+  const {
+    data: feed,
+    isError: feedError,
+    refetch: refetchFeed,
+  } = useIncidentFeed(projectId, incidentId);
+  const {
+    data: notes,
+    isLoading: notesLoading,
+    isError: notesError,
+    refetch: refetchNotes,
+  } = useIncidentNotes(projectId, incidentId);
 
   const { successFeedback, errorFeedback } = useHaptics();
   const [changingState, setChangingState] = useState(false);
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
 
-  const onRefresh: () => Promise<void> = useCallback(async () => {
-    await Promise.all([
+  const { refreshing, onRefresh } = useRefresh(async () => {
+    await Promise.allSettled([
       refetchIncident(),
+      refetchStates(),
       refetchTimeline(),
       refetchFeed(),
       refetchNotes(),
     ]);
-  }, [refetchIncident, refetchTimeline, refetchFeed, refetchNotes]);
+  });
 
   const handleStateChange: (
     stateId: string,
@@ -285,7 +295,7 @@ export default function IncidentDetailScreen({
       contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
       refreshControl={
         <RefreshControl
-          refreshing={false}
+          refreshing={refreshing}
           onRefresh={onRefresh}
           tintColor={theme.colors.actionPrimary}
         />
@@ -301,6 +311,13 @@ export default function IncidentDetailScreen({
         stateColor={stateColor}
         severity={incident.incidentSeverity?.name}
       />
+      {statesError ? (
+        <QueryErrorNotice
+          message="Unable to load the latest response actions."
+          retryLabel="Retry actions"
+          onRetry={refetchStates}
+        />
+      ) : null}
       <Text
         accessibilityLiveRegion="polite"
         style={{
@@ -349,12 +366,25 @@ export default function IncidentDetailScreen({
       <ResponseSection title="Root Cause">
         <RootCauseCard rootCauseText={rootCauseText} />
       </ResponseSection>
+      {feedError ? (
+        <QueryErrorNotice
+          message="Unable to load the latest activity."
+          retryLabel="Retry activity"
+          onRetry={refetchFeed}
+        />
+      ) : null}
       {feed && feed.length > 0 ? (
         <ResponseSection title="Activity Feed">
           <FeedTimeline feed={feed} />
         </ResponseSection>
       ) : null}
-      <NotesSection notes={notes} setNoteModalVisible={setNoteModalVisible} />
+      <NotesSection
+        notes={notes}
+        setNoteModalVisible={setNoteModalVisible}
+        isLoading={notesLoading}
+        isError={notesError}
+        onRetry={refetchNotes}
+      />
       <AddNoteModal
         visible={noteModalVisible}
         onClose={() => {

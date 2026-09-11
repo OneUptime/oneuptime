@@ -5,15 +5,23 @@ import { useTheme } from "../theme";
 import { formatDateTime } from "../utils/date";
 import { toPlainText } from "../utils/text";
 import type { NoteItem } from "../api/types";
+import QueryErrorNotice from "./QueryErrorNotice";
+import MarkdownContent from "./MarkdownContent";
 
 interface NotesSectionProps {
   notes: NoteItem[] | undefined;
   setNoteModalVisible: (visible: boolean) => void;
+  isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => unknown;
 }
 
 export default function NotesSection({
   notes,
   setNoteModalVisible,
+  isLoading = false,
+  isError = false,
+  onRetry,
 }: NotesSectionProps): React.JSX.Element {
   const { theme } = useTheme();
   const addNoteContentColor: string = theme.colors.actionPrimary;
@@ -86,6 +94,22 @@ export default function NotesSection({
         </Pressable>
       </View>
 
+      {isLoading ? (
+        <Text
+          accessibilityLiveRegion="polite"
+          style={{ color: theme.colors.textSecondary, paddingVertical: 16 }}
+        >
+          Loading notes…
+        </Text>
+      ) : null}
+      {isError && onRetry ? (
+        <QueryErrorNotice
+          message="Unable to load the latest notes. Your team's updates may be missing."
+          retryLabel="Retry notes"
+          onRetry={onRetry}
+        />
+      ) : null}
+
       {notes && notes.length > 0
         ? notes.map((note: NoteItem, index: number) => {
             const noteText: string = toPlainText(note.note);
@@ -110,15 +134,7 @@ export default function NotesSection({
                 }}
               >
                 <View style={{ padding: 16 }}>
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      lineHeight: 22,
-                      color: theme.colors.textPrimary,
-                    }}
-                  >
-                    {noteText}
-                  </Text>
+                  <MarkdownContent content={noteText} />
                   <View
                     style={{
                       flexDirection: "row",
@@ -153,7 +169,7 @@ export default function NotesSection({
           })
         : null}
 
-      {notes && notes.length === 0 ? (
+      {notes && notes.length === 0 && !isLoading && !isError ? (
         <View
           style={{
             borderRadius: 16,
