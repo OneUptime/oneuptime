@@ -128,7 +128,9 @@ describe("Alert variants and accessibility", () => {
       const actualIcon: SVGSVGElement | null = screen
         .getByRole("alert")
         .querySelector("svg");
-      const expectedIcon: RenderResult = render(<Icon icon={IconProp.Billing} />);
+      const expectedIcon: RenderResult = render(
+        <Icon icon={IconProp.Billing} />,
+      );
 
       expect(actualIcon?.innerHTML).toBe(
         expectedIcon.container.querySelector("svg")?.innerHTML,
@@ -169,7 +171,9 @@ describe("Alert variants and accessibility", () => {
     rerender(<Alert type={AlertType.SUCCESS} title="Status" />);
 
     const alert: HTMLElement = screen.getByRole("alert");
-    const expectedIcon: RenderResult = render(<Icon icon={IconProp.CheckCircle} />);
+    const expectedIcon: RenderResult = render(
+      <Icon icon={IconProp.CheckCircle} />,
+    );
     expect(alert).toHaveClass("bg-emerald-50", "border-emerald-200");
     expect(alert).not.toHaveClass("bg-blue-50", "border-blue-200");
     expect(alert.querySelector("svg")?.innerHTML).toBe(
@@ -245,10 +249,9 @@ describe("Alert content and caller customizations", () => {
       ),
     });
 
-    expect(screen.getByRole("link", { name: "project settings" })).toHaveAttribute(
-      "href",
-      "/settings",
-    );
+    expect(
+      screen.getByRole("link", { name: "project settings" }),
+    ).toHaveAttribute("href", "/settings");
     fireEvent.click(screen.getByRole("button", { name: "Review now" }));
     expect(onAction).toHaveBeenCalledTimes(1);
     expect(onAlertClick).not.toHaveBeenCalled();
@@ -292,7 +295,12 @@ describe("Alert content and caller customizations", () => {
   });
 
   test.each([
-    { label: "default", size: undefined, expected: "text-sm", absent: "text-lg" },
+    {
+      label: "default",
+      size: undefined,
+      expected: "text-sm",
+      absent: "text-lg",
+    },
     {
       label: "normal",
       size: AlertSize.Normal,
@@ -305,15 +313,26 @@ describe("Alert content and caller customizations", () => {
       expected: "text-lg",
       absent: "text-sm",
     },
-  ])("uses a single message size for $label alerts", ({ size, expected, absent }) => {
-    renderAlert({ size, title: "Readable message" });
+  ])(
+    "uses a single message size for $label alerts",
+    ({
+      size,
+      expected,
+      absent,
+    }: {
+      size: AlertSize | undefined;
+      expected: string;
+      absent: string;
+    }) => {
+      renderAlert({ size, title: "Readable message" });
 
-    const message: Element | null = screen
-      .getByRole("alert")
-      .querySelector(".alert-message");
-    expect(message).toHaveClass(expected);
-    expect(message).not.toHaveClass(absent);
-  });
+      const message: Element | null = screen
+        .getByRole("alert")
+        .querySelector(".alert-message");
+      expect(message).toHaveClass(expected);
+      expect(message).not.toHaveClass(absent);
+    },
+  );
 });
 
 describe("Alert actions and dismissal", () => {
@@ -339,7 +358,9 @@ describe("Alert actions and dismissal", () => {
       const onClick: () => void = jest.fn();
       renderAlert({ title: "View incident", onClick });
 
-      const action: HTMLElement = screen.getByRole("button", { name: "View incident" });
+      const action: HTMLElement = screen.getByRole("button", {
+        name: "View incident",
+      });
       expect(action).toHaveAttribute("type", "button");
       await user.tab();
       expect(action).toHaveFocus();
@@ -355,12 +376,18 @@ describe("Alert actions and dismissal", () => {
     const onParentClick: () => void = jest.fn();
     render(
       <div onClick={onParentClick}>
-        <Alert title="Dismiss this notice" onClick={onAlertClick} onClose={onClose} />
+        <Alert
+          title="Dismiss this notice"
+          onClick={onAlertClick}
+          onClose={onClose}
+        />
       </div>,
       { wrapper: TranslationWrapper },
     );
 
-    const closeButton: HTMLElement = screen.getByRole("button", { name: "Close" });
+    const closeButton: HTMLElement = screen.getByRole("button", {
+      name: "Close",
+    });
     fireEvent.click(closeButton);
 
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -415,7 +442,9 @@ describe("Alert actions and dismissal", () => {
       const onClick: () => void = jest.fn();
       renderAlert({ title: "Dismiss with the keyboard", onClose, onClick });
 
-      const closeButton: HTMLElement = screen.getByRole("button", { name: "Close" });
+      const closeButton: HTMLElement = screen.getByRole("button", {
+        name: "Close",
+      });
       closeButton.focus();
       expect(closeButton).toHaveFocus();
       await user.keyboard(key);
@@ -436,7 +465,9 @@ describe("Alert actions and dismissal", () => {
     expect(firstOnClose).not.toHaveBeenCalled();
 
     rerender(<Alert />);
-    expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Close" }),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -474,7 +505,9 @@ describe("Alert translation integration", () => {
     expect(screen.getByText("Projet : v1.0")).toBeVisible();
     expect(screen.getByText("12 jours restants")).toBeVisible();
     expect(screen.getByRole("button", { name: "Fermer" })).toBeVisible();
-    expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Close" }),
+    ).not.toBeInTheDocument();
 
     await act(async () => {
       await translations.changeLanguage("en");
@@ -509,9 +542,8 @@ describe("Alert translation integration", () => {
     );
 
     expect(screen.getByText("Action requise")).toBeVisible();
-    expect(screen.getByRole("link", { name: "Project settings" })).toHaveAttribute(
-      "href",
-      "/settings",
-    );
+    expect(
+      screen.getByRole("link", { name: "Project settings" }),
+    ).toHaveAttribute("href", "/settings");
   });
 });

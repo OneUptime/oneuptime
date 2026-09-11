@@ -107,8 +107,10 @@ const Alert: FunctionComponent<ComponentProps> = (
   const onClick: (event: MouseEvent<HTMLDivElement>) => void = (
     event: MouseEvent<HTMLDivElement>,
   ): void => {
-    // Rich messages can contain their own links and controls. Activating one
-    // must not also activate the banner's action.
+    /*
+     * Rich messages can contain their own links and controls. Activating one
+     * must not also activate the banner's action.
+     */
     const control: Element | null =
       event.target instanceof Element
         ? event.target.closest(
