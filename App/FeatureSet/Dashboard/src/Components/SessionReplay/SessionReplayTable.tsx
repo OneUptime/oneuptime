@@ -975,14 +975,17 @@ const SESSION_REPLAY_COLUMNS: Columns<SessionReplayTableRow> = [
       wrapMaxWidthClassName?: string;
     },
     index: number,
-  ) => ({
-    ...column,
-    key: column.key as keyof SessionReplayTableRow | null,
-    type: FieldType.Element,
-    disableSort: true,
-    getElement: (row: SessionReplayTableRow): ReactElement =>
-      row.cells[index] as ReactElement,
-  }),
+  ) => {
+    return {
+      ...column,
+      key: column.key as keyof SessionReplayTableRow | null,
+      type: FieldType.Element,
+      disableSort: true,
+      getElement: (row: SessionReplayTableRow): ReactElement => {
+        return row.cells[index] as ReactElement;
+      },
+    };
+  },
 );
 
 /* ---- Table ---- */
@@ -1280,10 +1283,10 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
     setAdvancedFilters(EMPTY_ADVANCED_FILTERS);
   }, []);
 
-  const tableRows: Array<SessionReplayTableRow> = useMemo(
-    (): Array<SessionReplayTableRow> =>
-      rows.map(
-        (row: SessionReplaySummary): SessionReplayTableRow => ({
+  const tableRows: Array<SessionReplayTableRow> =
+    useMemo((): Array<SessionReplayTableRow> => {
+      return rows.map((row: SessionReplaySummary): SessionReplayTableRow => {
+        return {
           ...row,
           cells: getSessionReplayCells({
             row,
@@ -1291,15 +1294,17 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
             nowUnixMs,
             onOpen: openSession,
           }),
-        }),
-      ),
-    [rows, rumApplicationIdString, nowUnixMs, openSession],
-  );
+        };
+      });
+    }, [rows, rumApplicationIdString, nowUnixMs, openSession]);
   const additionalChips: Array<SessionReplayFilterChip> = chips.filter(
-    (chip: SessionReplayFilterChip): boolean =>
-      !SESSION_REPLAY_FACETS.some(
-        (facet: SessionReplayFacet): boolean => facet.field === chip.field,
-      ),
+    (chip: SessionReplayFilterChip): boolean => {
+      return !SESSION_REPLAY_FACETS.some(
+        (facet: SessionReplayFacet): boolean => {
+          return facet.field === chip.field;
+        },
+      );
+    },
   );
 
   const cardButtons: Array<CardButtonSchema> = [
@@ -1307,11 +1312,12 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
       title: "Set up recording",
       icon: IconProp.BookOpen,
       buttonStyle: ButtonStyleType.NORMAL,
-      onClick: (): void =>
-        Navigation.navigate(
+      onClick: (): void => {
+        return Navigation.navigate(
           getRecordingHealthActionLink("setup-guide", rumApplicationIdString)
             .to,
-        ),
+        );
+      },
     },
     {
       ...getRefreshButton(),
@@ -1432,14 +1438,14 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
                 columns={SESSION_REPLAY_COLUMNS}
                 getRowProps={(
                   row: SessionReplayTableRow,
-                ): React.HTMLAttributes<HTMLElement> =>
-                  getSessionReplayRowProps({
+                ): React.HTMLAttributes<HTMLElement> => {
+                  return getSessionReplayRowProps({
                     row,
                     rumApplicationId: rumApplicationIdString,
                     nowUnixMs,
                     onOpen: openSession,
-                  })
-                }
+                  });
+                }}
                 isLoading={isLoading}
                 error=""
                 singularLabel="Session"

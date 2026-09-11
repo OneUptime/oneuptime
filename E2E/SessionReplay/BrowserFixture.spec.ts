@@ -20,24 +20,27 @@ interface FixtureState {
 }
 const state: (page: Page) => Promise<FixtureState> = async (
   page: Page,
-): Promise<FixtureState> =>
-  page.evaluate(
-    (): FixtureState =>
-      (window as unknown as { __sessionReplayFixture: FixtureState })
-        .__sessionReplayFixture,
-  );
+): Promise<FixtureState> => {
+  return page.evaluate((): FixtureState => {
+    return (window as unknown as { __sessionReplayFixture: FixtureState })
+      .__sessionReplayFixture;
+  });
+};
 const lastListRequest: (
   page: Page,
 ) => Promise<Record<string, unknown>> = async (
   page: Page,
 ): Promise<Record<string, unknown>> => {
   const requests: Array<FixtureRequest> = (await state(page)).requests.filter(
-    (request: FixtureRequest): boolean => request.route === "list",
+    (request: FixtureRequest): boolean => {
+      return request.route === "list";
+    },
   );
   return requests[requests.length - 1]!.data;
 };
-const rows: (page: Page) => Locator = (page: Page): Locator =>
-  page.locator('[data-testid="session-row"]:visible');
+const rows: (page: Page) => Locator = (page: Page): Locator => {
+  return page.locator('[data-testid="session-row"]:visible');
+};
 const openList: (page: Page, query?: string) => Promise<void> = async (
   page: Page,
   query: string = "",
@@ -93,16 +96,18 @@ const clockSeconds: (text: string) => number = (text: string): number => {
   const match: RegExpMatchArray | null = text.match(
     /(\d+):(\d+(?:\.\d+)?)\s*\//,
   );
-  if (!match) throw new Error(`Unreadable replay clock: ${text}`);
+  if (!match) {
+    throw new Error(`Unreadable replay clock: ${text}`);
+  }
   return Number(match[1]) * 60 + Number(match[2]);
 };
 const noHorizontalOverflow: (page: Page) => Promise<void> = async (
   page: Page,
 ): Promise<void> => {
   expect(
-    await page.evaluate(
-      (): number => document.documentElement.scrollWidth - window.innerWidth,
-    ),
+    await page.evaluate((): number => {
+      return document.documentElement.scrollWidth - window.innerWidth;
+    }),
   ).toBeLessThanOrEqual(1);
 };
 
@@ -161,15 +166,15 @@ test("combines facets, synchronizes URL and clears filters across the entire res
   await facet(page, "browserName", "Chrome");
   await expect(rows(page)).toHaveCount(3);
   await expect
-    .poll(
-      async (): Promise<unknown> => (await lastListRequest(page))["filters"],
-    )
+    .poll(async (): Promise<unknown> => {
+      return (await lastListRequest(page))["filters"];
+    })
     .toMatchObject({ browserNames: ["Chrome"] });
   await facet(page, "signal", "Errors");
   await expect
-    .poll(
-      async (): Promise<unknown> => (await lastListRequest(page))["filters"],
-    )
+    .poll(async (): Promise<unknown> => {
+      return (await lastListRequest(page))["filters"];
+    })
     .toMatchObject({ browserNames: ["Chrome"], hasError: true });
   await expect(page).toHaveURL(/browser=Chrome/);
   await expect(page).toHaveURL(/signal=errors/);
@@ -184,9 +189,9 @@ test("combines facets, synchronizes URL and clears filters across the entire res
   await page.getByTestId("session-clear-filters").click();
   await expect(rows(page)).toHaveCount(8);
   await expect
-    .poll(
-      async (): Promise<unknown> => (await lastListRequest(page))["filters"],
-    )
+    .poll(async (): Promise<unknown> => {
+      return (await lastListRequest(page))["filters"];
+    })
     .toEqual({});
 });
 
@@ -208,16 +213,16 @@ test("country search and duration facets issue the expected endpoint values", as
     .click();
   await expect(rows(page)).toHaveCount(3);
   await expect
-    .poll(
-      async (): Promise<unknown> => (await lastListRequest(page))["filters"],
-    )
+    .poll(async (): Promise<unknown> => {
+      return (await lastListRequest(page))["filters"];
+    })
     .toMatchObject({ countryCodes: ["GB"] });
   await facet(page, "minDurationSeconds", "At least 2 minutes");
   await expect(rows(page)).toHaveCount(1);
   await expect
-    .poll(
-      async (): Promise<unknown> => (await lastListRequest(page))["filters"],
-    )
+    .poll(async (): Promise<unknown> => {
+      return (await lastListRequest(page))["filters"];
+    })
     .toMatchObject({ countryCodes: ["GB"], minDurationMs: 120000 });
   await page
     .getByRole("button", { name: "Clear Country filter", exact: true })
@@ -308,13 +313,17 @@ test("pagination forwards the opaque cursor and changing the sort resets it", as
     .click();
   await expect(rows(page)).toHaveCount(5);
   await expect
-    .poll(async (): Promise<unknown> => (await lastListRequest(page))["cursor"])
+    .poll(async (): Promise<unknown> => {
+      return (await lastListRequest(page))["cursor"];
+    })
     .toMatchObject({ sessionId: "00000000000000000000000000000014" });
   await page.getByRole("combobox", { name: "Sort sessions" }).click();
   await page.getByRole("option", { name: "Longest", exact: true }).click();
   await expect(rows(page)).toHaveCount(20);
   await expect
-    .poll(async (): Promise<unknown> => (await lastListRequest(page))["sortBy"])
+    .poll(async (): Promise<unknown> => {
+      return (await lastListRequest(page))["sortBy"];
+    })
     .toBe("durationMs");
   expect(await lastListRequest(page)).not.toHaveProperty("cursor");
 });
@@ -359,10 +368,9 @@ test("plays incremental frames, pauses, seeks and keeps speed options visible ab
   );
   await page.getByTestId("replay-seek-forward").click();
   await expect
-    .poll(
-      async (): Promise<number> =>
-        clockSeconds(await page.getByTestId("replay-time").innerText()),
-    )
+    .poll(async (): Promise<number> => {
+      return clockSeconds(await page.getByTestId("replay-time").innerText());
+    })
     .toBeGreaterThanOrEqual(before + 10);
   await page.getByTestId("replay-speed").click();
   const option: Locator = page.getByTestId("replay-speed-option-2");
@@ -493,13 +501,21 @@ test("playback controls fit the initial laptop viewport without scrolling", asyn
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await openPlayer(page);
-  const stage = await page.getByTestId("replay-stage").boundingBox();
-  const controls = await page.getByTestId("replay-play-pause").boundingBox();
+  const stage: Awaited<ReturnType<Locator["boundingBox"]>> = await page
+    .getByTestId("replay-stage")
+    .boundingBox();
+  const controls: Awaited<ReturnType<Locator["boundingBox"]>> = await page
+    .getByTestId("replay-play-pause")
+    .boundingBox();
   expect(stage).not.toBeNull();
   expect(stage!.height).toBeGreaterThanOrEqual(256);
   expect(controls).not.toBeNull();
   expect(controls!.y).toBeGreaterThan(0);
   expect(controls!.y + controls!.height).toBeLessThanOrEqual(900);
-  expect(await page.evaluate((): number => window.scrollY)).toBe(0);
+  expect(
+    await page.evaluate((): number => {
+      return window.scrollY;
+    }),
+  ).toBe(0);
   await screenshot(page, "session-replay-player-laptop");
 });

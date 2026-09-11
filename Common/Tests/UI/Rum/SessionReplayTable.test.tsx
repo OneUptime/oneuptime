@@ -1004,14 +1004,14 @@ describe("SessionReplayTable honesty", () => {
 
 describe("SessionReplayTable facet integration", () => {
   it("applies facets to the server, restarts pagination, synchronizes search and clears one selection", async () => {
-    mockApi((_data: JSONObject, index: number) =>
-      listResponse(
+    mockApi((_data: JSONObject, index: number) => {
+      return listResponse(
         [wireRow({ sessionId: index === 1 ? SESSION_B : SESSION_A })],
         index === 0
           ? { startTimeUnixMs: NOW - 3 * 60_000, sessionId: SESSION_A }
           : null,
-      ),
-    );
+      );
+    });
     renderTable();
     await waitForRows(1);
     fireEvent.click(screen.getByTestId("pagination-next-button"));
@@ -1054,7 +1054,9 @@ describe("SessionReplayTable facet integration", () => {
       "",
       "/?browser=Firefox&device=mobile&country=gb&minDuration=120",
     );
-    mockApi(() => listResponse([wireRow()]));
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
     renderTable();
     await waitForRows(1);
     expect(screen.getByTestId("session-facet-browserName")).toHaveTextContent(

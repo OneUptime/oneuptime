@@ -33,21 +33,21 @@ export interface SessionReplayFacet {
 const toOptions: (values: Array<string>) => Array<FilterChipDropdownOption> = (
   values: Array<string>,
 ): Array<FilterChipDropdownOption> => {
-  return values.map(
-    (value: string): FilterChipDropdownOption => ({ value, label: value }),
-  );
+  return values.map((value: string): FilterChipDropdownOption => {
+    return { value, label: value };
+  });
 };
 const fromDropdownOptions: (
   values: Array<DropdownOption>,
 ) => Array<FilterChipDropdownOption> = (
   values: Array<DropdownOption>,
 ): Array<FilterChipDropdownOption> => {
-  return values.map(
-    (option: DropdownOption): FilterChipDropdownOption => ({
+  return values.map((option: DropdownOption): FilterChipDropdownOption => {
+    return {
       value: option.value.toString(),
       label: option.label,
-    }),
-  );
+    };
+  });
 };
 
 export const SESSION_REPLAY_FACETS: Array<SessionReplayFacet> = [
@@ -85,10 +85,12 @@ export const SESSION_REPLAY_FACETS: Array<SessionReplayFacet> = [
     field: "countryCode",
     label: "Country",
     options: Countries.map(
-      (country: CountryOption): FilterChipDropdownOption => ({
-        value: country.value,
-        label: `${country.label} (${country.value})`,
-      }),
+      (country: CountryOption): FilterChipDropdownOption => {
+        return {
+          value: country.value,
+          label: `${country.label} (${country.value})`,
+        };
+      },
     ),
   },
   {
@@ -139,14 +141,20 @@ export function getSessionReplayFacetOptions(
     facet.options.map(
       (
         option: FilterChipDropdownOption,
-      ): [string, FilterChipDropdownOption] => [option.value, option],
+      ): [string, FilterChipDropdownOption] => {
+        return [option.value, option];
+      },
     ),
   );
   const values: Array<string> = [selected];
   if (facet.field !== "minDurationSeconds") {
     const field: Exclude<SessionReplayFacetField, "minDurationSeconds"> =
       facet.field;
-    values.push(...rows.map((row: SessionReplaySummary): string => row[field]));
+    values.push(
+      ...rows.map((row: SessionReplaySummary): string => {
+        return row[field];
+      }),
+    );
   }
   for (const value of values) {
     if (value.trim() && !options.has(value)) {
@@ -172,36 +180,39 @@ interface SessionReplayFacetsProps {
 
 const SIGNAL_OPTIONS: Array<FilterChipDropdownOption> =
   SESSION_REPLAY_SIGNAL_OPTIONS.filter(
-    (option: SessionReplaySignalOption): boolean => option.value !== "all",
-  ).map(
-    (option: SessionReplaySignalOption): FilterChipDropdownOption => ({
+    (option: SessionReplaySignalOption): boolean => {
+      return option.value !== "all";
+    },
+  ).map((option: SessionReplaySignalOption): FilterChipDropdownOption => {
+    return {
       value: option.value,
       label: option.label,
       sublabel: option.description,
-    }),
-  );
+    };
+  });
 
 const SessionReplayFacets: FunctionComponent<SessionReplayFacetsProps> = (
   props: SessionReplayFacetsProps,
 ): ReactElement => {
-  const facets: Array<SessionReplayFacet> = useMemo(
-    (): Array<SessionReplayFacet> =>
-      SESSION_REPLAY_FACETS.map(
-        (facet: SessionReplayFacet): SessionReplayFacet => ({
-          ...facet,
-          options: getSessionReplayFacetOptions(
-            facet,
-            props.rows,
-            getSessionReplayFacetValue(
-              facet.field,
-              props.filters,
-              props.signal,
+  const facets: Array<SessionReplayFacet> =
+    useMemo((): Array<SessionReplayFacet> => {
+      return SESSION_REPLAY_FACETS.map(
+        (facet: SessionReplayFacet): SessionReplayFacet => {
+          return {
+            ...facet,
+            options: getSessionReplayFacetOptions(
+              facet,
+              props.rows,
+              getSessionReplayFacetValue(
+                facet.field,
+                props.filters,
+                props.signal,
+              ),
             ),
-          ),
-        }),
-      ),
-    [props.rows, props.filters, props.signal],
-  );
+          };
+        },
+      );
+    }, [props.rows, props.filters, props.signal]);
   return (
     <div
       className="mb-4 flex flex-wrap items-center gap-2"
@@ -216,13 +227,15 @@ const SessionReplayFacets: FunctionComponent<SessionReplayFacetsProps> = (
           options={SIGNAL_OPTIONS}
           value={props.signal === "all" ? null : props.signal}
           supportedOperators={["is"]}
-          onChange={(value: string | Array<string> | null): void =>
-            props.onSignalChange(typeof value === "string" ? value : "all")
-          }
+          onChange={(value: string | Array<string> | null): void => {
+            return props.onSignalChange(
+              typeof value === "string" ? value : "all",
+            );
+          }}
         />
       </div>
-      {facets.map(
-        (facet: SessionReplayFacet): ReactElement => (
+      {facets.map((facet: SessionReplayFacet): ReactElement => {
+        return (
           <div key={facet.field} data-testid={`session-facet-${facet.field}`}>
             <FilterChipDropdown
               label={facet.label}
@@ -249,8 +262,8 @@ const SessionReplayFacets: FunctionComponent<SessionReplayFacetsProps> = (
               }}
             />
           </div>
-        ),
-      )}
+        );
+      })}
     </div>
   );
 };

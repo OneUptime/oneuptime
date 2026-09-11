@@ -204,19 +204,21 @@ describe("optional table row attributes", () => {
       const clicked: Array<string> = [];
       const keyed: Array<string> = [];
       renderTable({
-        getRowProps: (row: Row): React.HTMLAttributes<HTMLElement> => ({
-          "aria-label": `Open ${row.name}`,
-          tabIndex: 0,
-          className: "custom-row",
-          onClick: (): void => {
-            clicked.push(row.name as string);
-          },
-          onKeyDown: (event: React.KeyboardEvent<HTMLElement>): void => {
-            if (event.key === "Enter") {
-              keyed.push(row.name as string);
-            }
-          },
-        }),
+        getRowProps: (row: Row): React.HTMLAttributes<HTMLElement> => {
+          return {
+            "aria-label": `Open ${row.name}`,
+            tabIndex: 0,
+            className: "custom-row",
+            onClick: (): void => {
+              clicked.push(row.name as string);
+            },
+            onKeyDown: (event: React.KeyboardEvent<HTMLElement>): void => {
+              if (event.key === "Enter") {
+                keyed.push(row.name as string);
+              }
+            },
+          };
+        },
       });
       const row: HTMLElement = screen.getByLabelText("Open Alpha");
       expect(row.tagName).toBe(width < 768 ? "DIV" : "TR");

@@ -272,7 +272,9 @@ const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
           type="button"
           className="shrink-0 text-xs text-gray-500 hover:text-indigo-600 focus-visible:outline-indigo-600"
           aria-expanded={showSearchHelp}
-          onClick={(): void => setShowSearchHelp(!showSearchHelp)}
+          onClick={(): void => {
+            return setShowSearchHelp(!showSearchHelp);
+          }}
         >
           Search help
         </button>

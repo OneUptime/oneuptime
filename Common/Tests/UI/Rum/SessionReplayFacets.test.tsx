@@ -158,10 +158,9 @@ describe("session replay standard facets", () => {
         "Saved browser",
       );
     expect(
-      options.filter(
-        (option: FilterChipDropdownOption): boolean =>
-          option.value === "Customer browser",
-      ),
+      options.filter((option: FilterChipDropdownOption): boolean => {
+        return option.value === "Customer browser";
+      }),
     ).toHaveLength(1);
     expect(options).toContainEqual({
       value: "Saved browser",
@@ -169,9 +168,9 @@ describe("session replay standard facets", () => {
     });
     expect(options).toContainEqual({ value: "Chrome", label: "Chrome" });
     expect(
-      options.every(
-        (option: FilterChipDropdownOption): boolean => !("count" in option),
-      ),
+      options.every((option: FilterChipDropdownOption): boolean => {
+        return !("count" in option);
+      }),
     ).toBe(true);
   });
 

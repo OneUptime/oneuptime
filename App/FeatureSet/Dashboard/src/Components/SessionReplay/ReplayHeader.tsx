@@ -26,8 +26,10 @@ import {
   getReplaySegmentClassName,
 } from "./ReplayUi";
 
-/* Recording context uses the same card and actions as other detail pages.
- * Playback-specific controls stay with the recording surface below it. */
+/*
+ * Recording context uses the same card and actions as other detail pages.
+ * Playback-specific controls stay with the recording surface below it.
+ */
 
 export interface ReplayHeaderFact {
   label: string;

@@ -400,8 +400,10 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
       });
       observer.observe(outer);
 
-      // Header notices and clipboard fallbacks move the stage without
-      // resizing it. Observe that sibling even in a fixed-height theater.
+      /*
+       * Header notices and clipboard fallbacks move the stage without
+       * resizing it. Observe that sibling even in a fixed-height theater.
+       */
       const layout: Element | null = outer.closest("[data-replay-layout]");
       const header: Element | null = layout?.querySelector("header") ?? null;
       if (layout) {
