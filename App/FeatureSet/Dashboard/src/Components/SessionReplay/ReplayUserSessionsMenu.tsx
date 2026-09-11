@@ -258,7 +258,7 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
                       select(item.sessionId);
                     }}
                   >
-                    <span className="w-24 shrink-0">
+                    <span className="w-28 shrink-0">
                       <span className="block text-sm font-medium text-gray-900">
                         {description.when}
                       </span>

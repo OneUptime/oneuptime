@@ -86,15 +86,18 @@ const visitorIds = [
   "9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b",
   "5c4b3a2f1e0d9c8b7a6f5e4d3c2b1a09",
 ];
+// ?identity=none: no row is identified, so the list shows the "call
+// identify()" nudge and every user cell reads "Visitor ..." - the shape of
+// the customer's screenshots in #3705.
+const isAnonymousFixture = params.get("identity") === "none";
 const records = Array.from({ length: count }, (_, index) => {
   const startTimeUnixMs = started - index * 75 * 1000;
   const hasError = index % 3 === 0;
-  const identifiedUserLabel = [
-    "alex@example.com",
-    "jordan@example.com",
-    "",
-    "morgan@example.com",
-  ][index % 4];
+  const identifiedUserLabel = isAnonymousFixture
+    ? ""
+    : ["alex@example.com", "jordan@example.com", "", "morgan@example.com"][
+        index % 4
+      ];
   return {
     sessionId:
       index === 0 ? sessionId : (index + 1).toString(16).padStart(32, "0"),
