@@ -53,24 +53,24 @@ function shift(overrides: Partial<MyOnCallShift> = {}): MyOnCallShift {
 }
 
 describe("MyShiftCard", () => {
-  test("names the schedule and project and shows the window", async (): Promise<void> => {
+  test("names the schedule and exact window without repeating the selected project", async (): Promise<void> => {
     await render(<MyShiftCard shift={shift()} now={NOW} />);
 
     expect(screen.getByTestId("my-shift-card-schedule-1:100")).toBeTruthy();
     expect(screen.getByText("Primary")).toBeTruthy();
-    expect(screen.getByText("Acme")).toBeTruthy();
+    expect(screen.queryByText("Acme")).toBeNull();
     expect(
       screen.getByText("Tomorrow 9:00 AM → Tomorrow 5:00 PM"),
     ).toBeTruthy();
     expect(screen.getByText("in 21h")).toBeTruthy();
   });
 
-  test("shows the layer next to the project when the server named one", async (): Promise<void> => {
+  test("shows the useful schedule layer when the server named one", async (): Promise<void> => {
     await render(
       <MyShiftCard shift={shift({ layerName: "Weekdays" })} now={NOW} />,
     );
 
-    expect(screen.getByText("Acme · Weekdays")).toBeTruthy();
+    expect(screen.getByText("Weekdays")).toBeTruthy();
   });
 
   test("an active shift counts down what is left", async (): Promise<void> => {
@@ -154,6 +154,10 @@ describe("MyShiftCard", () => {
       <MyShiftCard shift={mine} now={NOW} onRequestCover={onRequestCover} />,
     );
 
+    expect(screen.getByTestId("get-cover-schedule-1:100")).toHaveStyle({
+      minHeight: 48,
+    });
+
     await fireEvent.press(screen.getByTestId("get-cover-schedule-1:100"));
 
     expect(onRequestCover).toHaveBeenCalledTimes(1);
@@ -164,6 +168,19 @@ describe("MyShiftCard", () => {
     await render(<MyShiftCard shift={shift()} now={NOW} />);
 
     expect(screen.queryByTestId("get-cover-schedule-1:100")).toBeNull();
+  });
+
+  test("long schedule names and exact dates are allowed to wrap instead of being clipped", async (): Promise<void> => {
+    const name: string =
+      "Global infrastructure secondary response for customer-facing services";
+    await render(
+      <MyShiftCard shift={shift({ scheduleName: name })} now={NOW} />,
+    );
+    expect(screen.getByText(name).props.numberOfLines).toBeUndefined();
+    expect(
+      screen.getByText("Tomorrow 9:00 AM → Tomorrow 5:00 PM").props
+        .numberOfLines,
+    ).toBeUndefined();
   });
 
   test("still shows a project-less shift, but without the cover action", async (): Promise<void> => {

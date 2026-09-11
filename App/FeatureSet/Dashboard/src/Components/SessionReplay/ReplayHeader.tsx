@@ -11,6 +11,8 @@ import React, {
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
+import Card from "Common/UI/Components/Card/Card";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import {
   formatReplayDuration,
   formatReplayOffset,
@@ -25,39 +27,8 @@ import {
 } from "./ReplayUi";
 
 /*
- * The player's header: who, what, when - and the handful of actions that
- * belong to the whole recording rather than to a moment of it.
- *
- * Row 1 answers "is this the right session" before the viewer presses
- * anything: a "Sessions" link back to the filtered list they came from,
- * the identified user (or an honest "anonymous" / "hidden") with the
- * Live and sealed pills beside it, the browser, OS and viewport facts as
- * its subtitle, and the clock - the session's start time and the
- * playhead as WALL-CLOCK time, so a viewer can line the picture up with
- * a dashboard by eye (design: REPLAY -> OUT 7).
- *
- * Row 2, under a hairline, is the transport-independent controls: tab
- * pills for multi-tab recordings (with real labels - ordinal, duration,
- * when the tab opened - instead of a hex fragment; player-shell-8 /
- * product-gap-19), and the actions: pin, copy link, wide, theater,
- * details.
- *
- * The two rows exist because one did not. Everything used to run at
- * text-xs on a single wrapping line broken up by a literal "|", so the
- * identity, four device facts, a clock, five action chips and the Live
- * pill all shouted at the same volume and the header re-flowed into a
- * different shape at every width. The hierarchy is now: identity at
- * text-sm, facts muted underneath, actions on their own shelf, and no
- * chip carries its own outline unless it is the one thing on the row a
- * viewer is meant to press.
- *
- * Copying never fails silently and never relabels a button
- * (player-shell-12, ux-19): every copyable value on this header - the
- * moment link, the session id, and the rail's row link through
- * handle.copyUrl - goes through one path that announces success in a live
- * region and, where the clipboard is unavailable (plain-http self-hosted
- * installs) or refuses, shows the value in a read-only field to copy by
- * hand.
+ * Recording context uses the same card and actions as other detail pages.
+ * Playback-specific controls stay with the recording surface below it.
  */
 
 export interface ReplayHeaderFact {
@@ -236,6 +207,9 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
     }
   }, [copyState.status]);
 
+  const tabRefs: React.MutableRefObject<Map<string, HTMLButtonElement>> =
+    useRef<Map<string, HTMLButtonElement>>(new Map());
+
   const { buildMomentUrl } = props;
 
   /*
@@ -372,58 +346,89 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
     })
     .join(" · ");
 
+  const focusableTabs: Array<ReplayHeaderTab> = props.tabs.filter(
+    (tab: ReplayHeaderTab): boolean => {
+      return tab.hasFootage;
+    },
+  );
+  const focusableTabId: string | undefined =
+    focusableTabs.find((tab: ReplayHeaderTab): boolean => {
+      return tab.isActive;
+    })?.tabId ?? focusableTabs[0]?.tabId;
+
+  const handleTabKeyDown: (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    tabId: string,
+  ) => void = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    tabId: string,
+  ): void => {
+    if (
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      focusableTabs.length === 0
+    ) {
+      return;
+    }
+
+    const currentIndex: number = focusableTabs.findIndex(
+      (tab: ReplayHeaderTab): boolean => {
+        return tab.tabId === tabId;
+      },
+    );
+    let nextIndex: number;
+
+    switch (event.key) {
+      case "ArrowRight":
+        nextIndex = (currentIndex + 1) % focusableTabs.length;
+        break;
+      case "ArrowLeft":
+        nextIndex =
+          (currentIndex - 1 + focusableTabs.length) % focusableTabs.length;
+        break;
+      case "Home":
+        nextIndex = 0;
+        break;
+      case "End":
+        nextIndex = focusableTabs.length - 1;
+        break;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const nextTab: ReplayHeaderTab | undefined = focusableTabs[nextIndex];
+
+    if (nextTab) {
+      tabRefs.current.get(nextTab.tabId)?.focus();
+
+      if (!nextTab.isActive) {
+        props.onSwitchTab(nextTab.tabId);
+      }
+    }
+  };
+
   return (
-    <header
-      data-testid="replay-header"
-      className={`mb-3 rounded-xl border border-gray-200 bg-white px-4 py-3 ${
-        props.isTheater ? "shadow-md" : "shadow-sm"
-      }`}
-    >
-      {/*
-       * ROW 1 - who and when.
-       *
-       * The old row ran everything at text-xs through a literal "|"
-       * separator: the back link, the identity, a traits chip, four
-       * device facts and the clock all carried the same weight, so the
-       * one thing a viewer opens the page to check - is this the right
-       * session - had to be hunted for. The identity is now the only
-       * text-sm item on the header and the facts sit under it as a
-       * subtitle, which is the whole hierarchy this page needed.
-       */}
-      <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
-        <a
-          href={props.backHref}
-          onClick={handleBackClick}
-          data-testid="replay-back-link"
-          title="Back to the session list"
-          className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-        >
-          <Icon icon={IconProp.ArrowLeft} className="h-3.5 w-3.5" />
-          Sessions
-        </a>
+    <header data-testid="replay-header" className="mb-5 min-w-0">
+      <a
+        href={props.backHref}
+        onClick={handleBackClick}
+        data-testid="replay-back-link"
+        title="Back to the session list"
+        className="mb-3 inline-flex items-center gap-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+      >
+        <Icon icon={IconProp.ArrowLeft} className="h-4 w-4" />
+        All recordings
+      </a>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span
-              data-testid="replay-header-user"
-              className={`max-w-xs truncate text-sm ${identityClassName}`}
-              title={identityTitle}
-            >
-              {identityText}
-            </span>
-
-            {traitCount > 0 && (
-              <button
-                type="button"
-                className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900"
-                title="Open the details panel to read the traits"
-                onClick={props.onOpenDetails}
-                data-testid="replay-header-traits"
-              >
-                {traitCount} trait{traitCount === 1 ? "" : "s"}
-              </button>
-            )}
-
+      <Card
+        className="mb-0"
+        title={
+          <span className="flex flex-wrap items-center gap-2">
+            Session recording
             {props.isLive && (
               <ReplayPill
                 dataTestId="replay-live-pill"
@@ -434,7 +439,6 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
                 Live
               </ReplayPill>
             )}
-
             {props.sealedReason && props.sealedReason.severity === "warn" && (
               <ReplayPill
                 dataTestId="replay-sealed-pill"
@@ -445,183 +449,30 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
                 {props.sealedReason.title}
               </ReplayPill>
             )}
-          </div>
-
-          {/*
-           * The facts as one subtitle line rather than N free-floating
-           * spans. ux-16: they used to disappear outright below md, so on
-           * a tablet in portrait the viewer could not see which browser,
-           * OS or viewport they were watching without opening Details.
-           * Both renderings are kept - one truncated line when the header
-           * is narrow, the separated facts when there is room - because
-           * the compact line is what makes them survive a narrow viewport.
-           */}
-          {props.facts.length > 0 && (
-            <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500">
-              <span
-                className="min-w-0 max-w-full truncate md:hidden"
-                title={factsTitle}
-                data-testid="replay-header-facts-compact"
-              >
-                {factsLine}
-              </span>
-
-              {props.facts.map(
-                (fact: ReplayHeaderFact, index: number): ReactElement => {
-                  return (
-                    <React.Fragment key={fact.label}>
-                      {index > 0 && (
-                        <span
-                          aria-hidden="true"
-                          className="hidden h-1 w-1 shrink-0 rounded-full bg-gray-300 md:inline-block"
-                        />
-                      )}
-                      <span
-                        className="hidden max-w-[14rem] truncate md:inline"
-                        title={`${fact.label}: ${fact.value}`}
-                        data-testid="replay-header-fact"
-                      >
-                        {fact.value}
-                      </span>
-                    </React.Fragment>
-                  );
-                },
-              )}
-            </div>
-          )}
-        </div>
-
-        {/*
-         * The clock, as its own right-hand block: the wall-clock time at
-         * the playhead is the number a viewer lines up against a
-         * dashboard, so it leads, with the session's start date and the
-         * offset pair under it (design: REPLAY -> OUT 7).
-         */}
-        <div
-          className="shrink-0 text-right tabular-nums"
-          data-testid="replay-header-clock"
-        >
-          {wallClock && (
-            <div
-              className="font-mono text-sm font-semibold text-gray-900"
-              title="Wall-clock time at the playhead"
-              data-testid="replay-header-wall-clock"
-            >
-              {wallClock}
-            </div>
-          )}
-          <div className="mt-0.5 flex items-center justify-end gap-1.5 whitespace-nowrap text-[11px] text-gray-500">
-            {startedAt && (
-              <span title="When the session started (your local time)">
-                {startedAt}
-              </span>
-            )}
-            {startedAt && (
-              <span
-                aria-hidden="true"
-                className="h-1 w-1 shrink-0 rounded-full bg-gray-300"
-              />
-            )}
-            <span title="Playhead / recording length">{offsetText}</span>
-          </div>
-        </div>
-      </div>
-
-      {/*
-       * ROW 2 - the actions, on their own hairline-separated shelf so
-       * they stop competing with the facts above them.
-       */}
-      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-2.5">
-        {props.tabs.length > 1 && (
-          <ReplayButtonGroup
-            role="tablist"
-            ariaLabel="Browser tabs in this recording"
-            className="flex-wrap"
-          >
-            {props.tabs.map((tab: ReplayHeaderTab): ReactElement => {
-              return (
-                <button
-                  key={tab.tabId}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab.isActive}
-                  data-testid="replay-tab-pill"
-                  data-tab-id={tab.tabId}
-                  disabled={!tab.hasFootage}
-                  title={
-                    tab.hasFootage
-                      ? `Switch to ${tab.label}; the playhead stays where it is`
-                      : "No footage stored for this tab"
-                  }
-                  className={getReplaySegmentClassName({
-                    isSelected: tab.isActive,
-                    isDisabled: !tab.hasFootage,
-                  })}
-                  onClick={(): void => {
-                    if (tab.hasFootage && !tab.isActive) {
-                      props.onSwitchTab(tab.tabId);
-                    }
-                  }}
-                >
-                  {formatReplayTabLabel(tab)}
-                </button>
-              );
-            })}
-          </ReplayButtonGroup>
-        )}
-
-        {props.continueInTab && (
-          <button
-            type="button"
-            data-testid="replay-continue-in-tab"
-            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-amber-500 px-2.5 text-xs font-medium text-white transition-colors hover:bg-amber-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1"
-            title="This tab has played out; the session continues in another tab"
-            onClick={(): void => {
-              props.onSwitchTab(props.continueInTab?.tabId ?? "");
-            }}
-          >
-            <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
-            Continue in {props.continueInTab.label}
-          </button>
-        )}
-
-        {/*
-         * The id chip. Common/UI's Button was rendering its "Copy id"
-         * title as visible text stacked under the icon, which blew the
-         * chip's height out and pushed the row around; the copy action
-         * is an icon with an accessible name, like every other icon-only
-         * control in the chrome.
-         */}
-        <span
-          className="hidden h-8 shrink-0 items-center gap-1 rounded-lg bg-gray-100 pl-2.5 pr-1 text-[11px] text-gray-500 sm:inline-flex"
-          title={props.sessionId}
-        >
-          <span className="font-mono">{shortSessionId}</span>
-          <ReplayToolButton
-            dataTestId="replay-copy-session-id"
-            icon={IconProp.Copy}
-            title="Copy the session id"
-            ariaLabel="Copy the session id"
-            className="h-6 w-6"
-            onClick={(): void => {
-              /* ux-19: the same announced path the Link button uses. */
-              copyValue(props.sessionId, "session-id");
-            }}
-          />
-        </span>
-
-        <div className="ml-auto flex flex-wrap items-center gap-1.5">
-          {props.pinControl}
-
-          <ReplayToolButton
+          </span>
+        }
+        bodyClassName="mt-3"
+        buttons={[
+          ...(props.pinControl ? [props.pinControl] : []),
+          <Button
+            key="copy-link"
             dataTestId="replay-copy-link"
-            label="Link"
+            title="Copy link"
             icon={IconProp.Link}
-            title="Copy a link to this moment (c)"
+            tooltip="Copy a link to this moment (c)"
+            buttonStyle={ButtonStyleType.OUTLINE}
             onClick={handleCopyLink}
-          />
-
-          <ReplayButtonGroup ariaLabel="Player layout">
+          />,
+          <Button
+            key="details"
+            dataTestId="replay-open-details"
+            title="Session details"
+            icon={IconProp.Info}
+            tooltip="Session details (i)"
+            buttonStyle={ButtonStyleType.OUTLINE}
+            onClick={props.onOpenDetails}
+          />,
+          <ReplayButtonGroup key="layout" ariaLabel="Player layout">
             <ReplayToolButton
               dataTestId="replay-toggle-wide"
               label="Wide"
@@ -644,17 +495,200 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
               title={props.isTheater ? "Exit theater (Esc)" : "Theater (f)"}
               onClick={props.onToggleTheater}
             />
-          </ReplayButtonGroup>
+          </ReplayButtonGroup>,
+        ]}
+      >
+        <div>
+          <dl className="grid min-w-0 grid-cols-2 gap-x-6 gap-y-3 xl:grid-cols-3">
+            <div className="col-span-2 min-w-0 xl:col-span-1">
+              <dt className="text-xs font-medium text-gray-500">
+                User and device
+              </dt>
+              <dd className="mt-1">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    data-testid="replay-header-user"
+                    className={`min-w-0 truncate text-sm ${identityClassName}`}
+                    title={identityTitle}
+                  >
+                    {identityText}
+                  </span>
+                  {traitCount > 0 && (
+                    <button
+                      type="button"
+                      className="shrink-0 text-xs font-medium text-indigo-600 hover:text-indigo-700"
+                      title="Open the details panel to read the traits"
+                      onClick={props.onOpenDetails}
+                      data-testid="replay-header-traits"
+                    >
+                      {traitCount} trait{traitCount === 1 ? "" : "s"}
+                    </button>
+                  )}
+                </div>
+                {props.facts.length > 0 && (
+                  <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500">
+                    <span
+                      className="min-w-0 max-w-full truncate md:hidden"
+                      title={factsTitle}
+                      data-testid="replay-header-facts-compact"
+                    >
+                      {factsLine}
+                    </span>
+                    {props.facts.map(
+                      (fact: ReplayHeaderFact, index: number): ReactElement => {
+                        return (
+                          <React.Fragment key={fact.label}>
+                            {index > 0 && (
+                              <span
+                                aria-hidden="true"
+                                className="hidden text-gray-300 md:inline"
+                              >
+                                ·
+                              </span>
+                            )}
+                            <span
+                              className="hidden max-w-full truncate md:inline"
+                              title={`${fact.label}: ${fact.value}`}
+                              data-testid="replay-header-fact"
+                            >
+                              {fact.value}
+                            </span>
+                          </React.Fragment>
+                        );
+                      },
+                    )}
+                  </div>
+                )}
+              </dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-xs font-medium text-gray-500">Recorded</dt>
+              <dd className="mt-1 text-sm text-gray-900">
+                {startedAt ?? "Start time unavailable"}
+                <span
+                  className="mt-1 flex items-center gap-1 text-xs text-gray-500"
+                  title={props.sessionId}
+                >
+                  Session <span className="font-mono">{shortSessionId}</span>
+                  <button
+                    type="button"
+                    data-testid="replay-copy-session-id"
+                    title="Copy the session id"
+                    aria-label="Copy the session id"
+                    className="inline-flex h-5 w-5 items-center justify-center rounded text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    onClick={(): void => {
+                      copyValue(props.sessionId, "session-id");
+                    }}
+                  >
+                    <Icon icon={IconProp.Copy} className="h-3.5 w-3.5" />
+                  </button>
+                </span>
+              </dd>
+            </div>
+            <div
+              data-testid="replay-header-clock"
+              className="min-w-0 tabular-nums"
+            >
+              <dt className="text-xs font-medium text-gray-500">
+                Playback position
+              </dt>
+              <dd className="mt-1">
+                {wallClock && (
+                  <span
+                    className="font-mono text-sm font-semibold text-gray-900"
+                    title="Wall-clock time at the playhead"
+                    data-testid="replay-header-wall-clock"
+                  >
+                    {wallClock}
+                  </span>
+                )}
+                <span
+                  className="mt-1 block text-xs text-gray-500"
+                  title="Playhead / recording length"
+                >
+                  {offsetText}
+                </span>
+              </dd>
+            </div>
+          </dl>
 
-          <ReplayToolButton
-            dataTestId="replay-open-details"
-            label="Details"
-            icon={IconProp.Info}
-            title="Session details (i)"
-            onClick={props.onOpenDetails}
-          />
+          {(props.tabs.length > 1 || props.continueInTab) && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-3">
+              <div className="min-w-0 flex-1">
+                {props.tabs.length > 1 ? (
+                  <div
+                    role="tablist"
+                    aria-label="Browser tabs in this recording"
+                    className="flex items-center gap-1 overflow-x-auto"
+                  >
+                    {props.tabs.map((tab: ReplayHeaderTab): ReactElement => {
+                      return (
+                        <button
+                          key={tab.tabId}
+                          ref={(element: HTMLButtonElement | null): void => {
+                            if (element) {
+                              tabRefs.current.set(tab.tabId, element);
+                            } else {
+                              tabRefs.current.delete(tab.tabId);
+                            }
+                          }}
+                          type="button"
+                          role="tab"
+                          aria-selected={tab.isActive}
+                          tabIndex={tab.tabId === focusableTabId ? 0 : -1}
+                          data-testid="replay-tab-pill"
+                          data-tab-id={tab.tabId}
+                          disabled={!tab.hasFootage}
+                          title={
+                            tab.hasFootage
+                              ? `Switch to ${tab.label}; the playhead stays where it is`
+                              : "No footage stored for this tab"
+                          }
+                          className={getReplaySegmentClassName({
+                            isSelected: tab.isActive,
+                            isDisabled: !tab.hasFootage,
+                          })}
+                          onKeyDown={(
+                            event: React.KeyboardEvent<HTMLButtonElement>,
+                          ): void => {
+                            handleTabKeyDown(event, tab.tabId);
+                          }}
+                          onClick={(): void => {
+                            if (tab.hasFootage && !tab.isActive) {
+                              props.onSwitchTab(tab.tabId);
+                            }
+                          }}
+                        >
+                          {formatReplayTabLabel(tab)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-xs text-gray-500">
+                    <Icon icon={IconProp.Window} className="h-4 w-4" />
+                    {props.tabs[0]?.label ?? "Browser recording"}
+                  </span>
+                )}
+                {props.continueInTab && (
+                  <button
+                    type="button"
+                    data-testid="replay-continue-in-tab"
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                    title="This tab has played out; the session continues in another tab"
+                    onClick={(): void => {
+                      props.onSwitchTab(props.continueInTab?.tabId ?? "");
+                    }}
+                  >
+                    <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
+                    Continue in {props.continueInTab.label}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      </Card>
 
       {/*
        * Announced, not relabelled: the button keeps its width and a
@@ -687,7 +721,7 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
             readOnly={true}
             value={copyState.value}
             aria-label={COPY_KIND_COPY[copyState.kind].fieldLabel}
-            className="min-w-[16rem] flex-1 rounded-md border border-gray-300 bg-white px-2 py-1 font-mono text-[11px] text-gray-800"
+            className="min-w-0 w-full flex-1 rounded-md border border-gray-300 bg-white px-2 py-1 font-mono text-[11px] text-gray-800"
             onFocus={(event: React.FocusEvent<HTMLInputElement>): void => {
               event.currentTarget.select();
             }}

@@ -746,52 +746,6 @@ const NetworkTopologyExplorer: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        <div
-          className="mb-5 grid gap-3 rounded-xl border border-indigo-100 bg-indigo-50 p-4 sm:grid-cols-3"
-          data-testid="topology-hierarchy-guide"
-        >
-          {[
-            {
-              step: "1",
-              title: "Choose a site",
-              description: "Open a location to explore the sites inside it.",
-            },
-            {
-              step: "2",
-              title: "Follow the network",
-              description: "At the last level, see how its devices connect.",
-            },
-            {
-              step: "3",
-              title: "Find the problem",
-              description:
-                "Filter by health, then select a device for details.",
-            },
-          ].map(
-            (item: {
-              step: string;
-              title: string;
-              description: string;
-            }): ReactElement => {
-              return (
-                <div key={item.step} className="flex items-start gap-3">
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-indigo-600">
-                    {item.step}
-                  </span>
-                  <div>
-                    <p className="text-sm font-medium text-indigo-900">
-                      {translateString(item.title) || item.title}
-                    </p>
-                    <p className="mt-1 text-xs leading-5 text-indigo-700">
-                      {translateString(item.description) || item.description}
-                    </p>
-                  </div>
-                </div>
-              );
-            },
-          )}
-        </div>
-
         <div className="mb-4 flex flex-col gap-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
             <div className="md:w-72">

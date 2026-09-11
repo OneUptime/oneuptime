@@ -14,6 +14,7 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import SessionReplaySetupGuide from "../../../Components/SessionReplay/SessionReplaySetupGuide";
 import ResourceDocumentationCard from "../../../Components/TelemetryResource/ResourceDocumentationCard";
 import { getRumDocMarkdown } from "../../../Components/TelemetryResource/documentationMarkdown";
 
@@ -71,6 +72,7 @@ const RumApplicationDocumentation: FunctionComponent<
 
   return (
     <Fragment>
+      <SessionReplaySetupGuide rumApplicationId={modelId} />
       <ResourceDocumentationCard
         title="Instrument your app for RUM"
         description={`Send browser / mobile telemetry so ${label} reports real-user monitoring to OneUptime.`}

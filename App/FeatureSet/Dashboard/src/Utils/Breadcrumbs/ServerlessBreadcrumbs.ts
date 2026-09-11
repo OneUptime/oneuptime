@@ -16,6 +16,12 @@ export function getServerlessBreadcrumbs(
       "Serverless Functions",
       "View Function",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVERLESS_FUNCTION_VIEW_SETTINGS, [
+      "Project",
+      "Serverless Functions",
+      "View Function",
+      "Settings",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVERLESS_FUNCTION_VIEW_METRICS, [
       "Project",
       "Serverless Functions",

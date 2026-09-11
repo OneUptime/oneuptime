@@ -6,21 +6,21 @@
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "oneuptime",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash-light.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0D1117"
+      "backgroundColor": "#F6F7F9"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.oneuptime.oncall",
       "icon": "./assets/icon.png",
       "splash": {
-        "image": "./assets/splash-icon.png",
+        "image": "./assets/splash-light.png",
         "resizeMode": "contain",
-        "backgroundColor": "#0D1117"
+        "backgroundColor": "#F6F7F9"
       },
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"],
@@ -49,17 +49,17 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0D1117",
-          "image": "./assets/splash-icon.png",
+          "backgroundColor": "#F6F7F9",
+          "image": "./assets/splash-light.png",
           "imageWidth": 200,
           "ios": {
-            "backgroundColor": "#0D1117",
-            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#F6F7F9",
+            "image": "./assets/splash-light.png",
             "imageWidth": 200
           },
           "android": {
-            "backgroundColor": "#0D1117",
-            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#F6F7F9",
+            "image": "./assets/splash-light.png",
             "imageWidth": 200
           }
         }

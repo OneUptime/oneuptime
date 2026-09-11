@@ -2,12 +2,15 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import IconProp from "Common/Types/Icon/IconProp";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
+import OriginAllowList from "Common/Utils/Telemetry/OriginAllowList";
 import {
   TelemetryPayAsYouGoCard,
   getTelemetryPayAsYouGoFormFields,
@@ -32,12 +35,15 @@ const isBrowserKey: IsBrowserKeyFunction = (
 };
 
 const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const billingFields: Array<ModelField<TelemetryIngestionKey>> =
+    getTelemetryPayAsYouGoFormFields();
+
   return (
     <Fragment>
       {/*
        * Telemetry is metered and nothing about it is included in the Free
        * plan, so a Free plan project is told what an ingestion key costs
-       * before it creates one - and has to acknowledge it in the modal.
+       * before it creates one, including a dedicated step in the modal.
        */}
       <TelemetryPayAsYouGoCard />
       <ModelTable<TelemetryIngestionKey>
@@ -63,13 +69,40 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
             "These keys are used to ingest telemetry data like Logs, Traces and Metrics for your project.",
         }}
         noItemsMessage={"No telemetry ingestion keys found."}
+        formSteps={[
+          { id: "details", title: "Details" },
+          { id: "key-type", title: "Key Type" },
+          {
+            id: "browser-settings",
+            title: "Browser Settings",
+            showIf: isBrowserKey,
+          },
+          ...(billingFields.length > 0
+            ? [{ id: "billing", title: "Billing" }]
+            : []),
+        ]}
+        formSummary={{ enabled: true }}
+        onBeforeCreate={async (
+          item: TelemetryIngestionKey,
+        ): Promise<TelemetryIngestionKey> => {
+          // The JSON editor holds text; the API expects an array of origins.
+          const origins: unknown = item.allowedOrigins;
+          if (
+            item.keyType === TelemetryIngestionKeyType.Browser &&
+            typeof origins === "string"
+          ) {
+            item.allowedOrigins = JSON.parse(origins) as Array<string>;
+          }
+          return item;
+        }}
         formFields={[
-          ...getTelemetryPayAsYouGoFormFields(),
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "details",
+            description: "Give this key a name you will recognize later.",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Ingestion Key Name",
@@ -82,6 +115,8 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
               description: true,
             },
             title: "Description",
+            stepId: "details",
+            description: "Describe where this key will be used.",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Ingestion Key Description",
@@ -91,40 +126,124 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
               keyType: true,
             },
             title: "Key Type",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnumWithReadableLabels(
-                TelemetryIngestionKeyType,
-              ),
+            stepId: "key-type",
+            fieldType: FormFieldSchemaType.CardSelect,
+            cardSelectSingleColumn: true,
+            cardSelectOptions: [
+              {
+                value: TelemetryIngestionKeyType.Server,
+                title: "Server",
+                icon: IconProp.Server,
+                description:
+                  "For servers, containers and OpenTelemetry collectors. Writes every kind of telemetry without origin restrictions. Keep it secret: never include it in browser JavaScript or a mobile app.",
+              },
+              {
+                value: TelemetryIngestionKeyType.Browser,
+                title: "Browser",
+                icon: IconProp.Globe,
+                description:
+                  "For public web pages. Writes traces, logs, metrics and session replays only from the origins you allow, with a per-key rate limit. Configure those origins in the next step.",
+              },
+            ],
             required: true,
             defaultValue: TelemetryIngestionKeyType.Server,
+            onChange: (
+              value: string,
+              values: FormValues<TelemetryIngestionKey>,
+              setValues: (values: FormValues<TelemetryIngestionKey>) => void,
+            ): void => {
+              if (value === TelemetryIngestionKeyType.Server) {
+                /*
+                 * Browser-only drafts must not reach JSON parsing or the API
+                 * after the user chooses a Server key.
+                 */
+                setValues({
+                  ...values,
+                  allowedOrigins: undefined,
+                  pinnedServiceName: undefined,
+                });
+              }
+            },
             description:
-              "A Server key is a secret. It can write every kind of telemetry and nothing else about the request is checked, so it belongs in your servers, containers and OpenTelemetry collectors - never in browser JavaScript, a mobile bundle, or anywhere else your users can read it. A Browser key is safe to publish in a page: it is accepted only from the origins you list, it can write only traces, logs, metrics and session replays, and it is rate limited per key. The type cannot be changed later - create a second key instead.",
+              "Choose where you will send telemetry from. The key type cannot be changed after creation.",
           },
           {
             field: {
               allowedOrigins: true,
             },
             title: "Allowed Origins",
+            stepId: "browser-settings",
             fieldType: FormFieldSchemaType.JSON,
             showIf: isBrowserKey,
             required: isBrowserKey,
+            customValidation: (
+              values: FormValues<TelemetryIngestionKey>,
+            ): string | null => {
+              if (!values.allowedOrigins) {
+                return null; // Let the required-field validation explain this.
+              }
+              let origins: unknown = values.allowedOrigins;
+              if (typeof origins === "string") {
+                try {
+                  origins = JSON.parse(origins);
+                } catch {
+                  return "Allowed Origins is not valid JSON. Enter a JSON array of origins.";
+                }
+              }
+              if (
+                !Array.isArray(origins) ||
+                !origins.some((origin: unknown): boolean => {
+                  return typeof origin === "string" && origin.trim().length > 0;
+                })
+              ) {
+                return "Enter at least one allowed origin as a JSON array.";
+              }
+              for (const origin of origins as Array<unknown>) {
+                if (typeof origin !== "string") {
+                  return "Every allowed origin must be text.";
+                }
+                if (origin.trim()) {
+                  const error: string | null =
+                    OriginAllowList.validateOriginPattern(origin);
+                  if (error) {
+                    return error;
+                  }
+                }
+              }
+              return null;
+            },
             placeholder: '["https://app.example.com"]',
             description:
-              'JSON array of the origins this key may be used from. Required on a browser key and enforced on the server for every request: telemetry from an origin that is not listed, or with no Origin header at all, is refused. Include the scheme and the port. One leading "*." host wildcard is allowed - "https://*.example.com" matches "https://app.example.com" but not "https://example.com". Ignored on a server key.',
+              'List allowed origins as a JSON array, including the scheme and any port. Requests with a missing or unlisted Origin are refused. A leading host wildcard is supported: "https://*.example.com" matches "https://app.example.com", but not "https://example.com".',
           },
           {
             field: {
               pinnedServiceName: true,
             },
             title: "Pinned Service Name",
+            stepId: "browser-settings",
             fieldType: FormFieldSchemaType.Text,
             showIf: isBrowserKey,
             required: false,
             placeholder: "storefront-web",
             description:
-              "Forces service.name to this value on everything the key writes, replacing whatever the sender set. Anyone who copies the key out of your page can then only write into this one service, instead of forging telemetry that looks like it came from one of your backend services.",
+              "Set service.name on all telemetry sent with this key. This prevents someone who copies the public key from writing telemetry under a different service name.",
           },
+          ...billingFields.map(
+            (
+              field: ModelField<TelemetryIngestionKey>,
+            ): ModelField<TelemetryIngestionKey> => {
+              return {
+                ...field,
+                stepId: "billing",
+                getSummaryElement: (
+                  values: FormValues<TelemetryIngestionKey>,
+                ): ReactElement => {
+                  return field.getCustomElement?.(values, {}) || <></>;
+                },
+              };
+            },
+          ),
         ]}
         showRefreshButton={true}
         searchableFields={["name", "description"]}

@@ -15,15 +15,7 @@ interface OverrideCardProps {
   isCancelling?: boolean;
 }
 
-/*
- * A substitution, phrased as a sentence rather than as two columns of names.
- *
- * "Priya's pages → you" and "your pages → Priya" are opposite facts that look
- * identical in a table, and getting them the wrong way round means somebody
- * goes to bed believing they are covered when they are the cover. The card
- * therefore always names the direction explicitly and marks whichever end is
- * the reader.
- */
+/** A substitution names the direction: being covered is not covering someone. */
 export default function OverrideCard({
   override,
   state,
@@ -33,52 +25,36 @@ export default function OverrideCard({
   isCancelling = false,
 }: OverrideCardProps): React.JSX.Element {
   const { theme } = useTheme();
-
   const accent: string =
     state === "active"
       ? theme.colors.oncallActive
       : state === "upcoming"
         ? theme.colors.severityInfo
         : theme.colors.textTertiary;
-
-  const accentBackground: string =
-    state === "active"
-      ? theme.colors.oncallActiveBg
-      : state === "upcoming"
-        ? theme.colors.severityInfoBg
-        : theme.colors.oncallInactiveBg;
-
   const label: string =
     state === "active"
-      ? "IN EFFECT"
+      ? "In effect"
       : state === "upcoming"
-        ? "SCHEDULED"
-        : "ENDED";
-
+        ? "Scheduled"
+        : "Ended";
   const fromIsMe: boolean = Boolean(
     currentUserId && override.overrideUser?._id === currentUserId,
   );
-
   const toIsMe: boolean = Boolean(
     currentUserId && override.routeAlertsToUser?._id === currentUserId,
   );
-
   const fromName: string = fromIsMe
     ? "Your"
     : `${displayNameForUser(override.overrideUser)}'s`;
-
   const toName: string = toIsMe
     ? "you"
     : displayNameForUser(override.routeAlertsToUser);
-
   const sentence: string = `${fromName} pages go to ${toName}`;
-
   const window: string | null = formatShiftWindow(
     override.startsAt,
     override.endsAt,
     now,
   );
-
   const endsIn: string | null =
     state === "active" ? formatTimeUntil(override.endsAt, now) : null;
 
@@ -86,123 +62,58 @@ export default function OverrideCard({
     <View
       testID={`override-card-${override._id}`}
       style={{
-        borderRadius: 16,
+        borderRadius: 18,
         padding: 18,
         backgroundColor: theme.colors.backgroundElevated,
-        borderWidth: 1,
-        borderColor: theme.colors.borderGlass,
+        gap: 11,
       }}
     >
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
         <View
           style={{
-            paddingHorizontal: 9,
-            paddingVertical: 4,
-            borderRadius: 9999,
-            backgroundColor: accentBackground,
+            width: 7,
+            height: 7,
+            borderRadius: 4,
+            backgroundColor: accent,
+          }}
+        />
+        <Text
+          style={{
+            fontSize: 13,
+            lineHeight: 20,
+            fontWeight: "600",
+            color: accent,
           }}
         >
-          <Text
-            style={{
-              fontSize: 12,
-              fontWeight: "700",
-              letterSpacing: 0.6,
-              color: accent,
-            }}
-          >
-            {label}
-          </Text>
-        </View>
-
-        {onCancel && state !== "past" ? (
-          <Pressable
-            testID={`override-cancel-${override._id}`}
-            accessibilityRole="button"
-            accessibilityLabel={`Cancel override: ${sentence}`}
-            disabled={isCancelling}
-            accessibilityState={{ disabled: isCancelling, busy: isCancelling }}
-            onPress={() => {
-              onCancel(override);
-            }}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              paddingHorizontal: 10,
-              paddingVertical: 6,
-              minHeight: 48,
-              minWidth: 88,
-              justifyContent: "center",
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: theme.colors.borderDefault,
-              opacity: isCancelling ? 0.5 : 1,
-            }}
-          >
-            {isCancelling ? (
-              <ActivityIndicator
-                size="small"
-                color={theme.colors.actionDestructive}
-              />
-            ) : (
-              <>
-                <Ionicons
-                  name="close-circle-outline"
-                  size={13}
-                  color={theme.colors.actionDestructive}
-                />
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: "600",
-                    marginLeft: 5,
-                    color: theme.colors.actionDestructive,
-                  }}
-                >
-                  Cancel
-                </Text>
-              </>
-            )}
-          </Pressable>
-        ) : null}
+          {label}
+        </Text>
       </View>
-
       <Text
         style={{
-          fontSize: 18,
+          fontSize: 17,
           fontWeight: "600",
-          marginTop: 12,
-          lineHeight: 26,
+          lineHeight: 24,
+          letterSpacing: -0.2,
           color: theme.colors.textPrimary,
         }}
       >
         {sentence}
       </Text>
-
       {window ? (
         <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginTop: 10,
-          }}
+          style={{ flexDirection: "row", alignItems: "flex-start", gap: 7 }}
         >
           <Ionicons
             name="time-outline"
-            size={13}
-            color={theme.colors.textTertiary}
+            size={15}
+            color={theme.colors.textSecondary}
+            style={{ marginTop: 3 }}
           />
           <Text
             style={{
+              flex: 1,
               fontSize: 14,
               lineHeight: 21,
-              marginLeft: 6,
-              flex: 1,
               color: theme.colors.textSecondary,
             }}
           >
@@ -211,33 +122,71 @@ export default function OverrideCard({
           </Text>
         </View>
       ) : null}
-
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
-          marginTop: 8,
+          gap: 12,
+          borderTopWidth: 1,
+          borderTopColor: theme.colors.borderSubtle,
+          paddingTop: 10,
         }}
       >
-        <Ionicons
-          name="folder-open-outline"
-          size={13}
-          color={theme.colors.textTertiary}
-        />
         <Text
           style={{
+            flex: 1,
             fontSize: 14,
             lineHeight: 21,
-            marginLeft: 6,
-            flex: 1,
-            color: theme.colors.textTertiary,
+            color: theme.colors.textSecondary,
           }}
-          numberOfLines={2}
         >
-          {override.onCallDutyPolicy?.name
-            ? `${override.projectName} · ${override.onCallDutyPolicy.name}`
-            : `${override.projectName} · All on-call policies`}
+          {override.onCallDutyPolicy?.name || "All on-call policies"}
         </Text>
+        {onCancel && state !== "past" ? (
+          <Pressable
+            testID={`override-cancel-${override._id}`}
+            accessibilityRole="button"
+            accessibilityLabel={`Cancel override: ${sentence}`}
+            disabled={isCancelling}
+            accessibilityState={{ disabled: isCancelling, busy: isCancelling }}
+            aria-disabled={isCancelling}
+            aria-busy={isCancelling}
+            onPress={(): void => {
+              onCancel(override);
+            }}
+            style={({ pressed }: { pressed: boolean }) => {
+              return {
+                minHeight: 48,
+                minWidth: 76,
+                paddingHorizontal: 12,
+                borderRadius: 12,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: pressed
+                  ? theme.colors.statusErrorBg
+                  : theme.colors.backgroundPrimary,
+                opacity: isCancelling ? 0.5 : 1,
+              };
+            }}
+          >
+            {isCancelling ? (
+              <ActivityIndicator
+                size="small"
+                color={theme.colors.actionDestructive}
+              />
+            ) : (
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: "600",
+                  color: theme.colors.actionDestructive,
+                }}
+              >
+                Cancel
+              </Text>
+            )}
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );

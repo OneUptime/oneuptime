@@ -1,4 +1,4 @@
-import { darkColors } from "./colors";
+import { lightColors as darkColors } from "./colors";
 
 function luminance(hex: string): number {
   const values: number[] = [1, 3, 5].map((offset: number) => {
@@ -8,6 +8,15 @@ function luminance(hex: string): number {
       : ((channel + 0.055) / 1.055) ** 2.4;
   });
   return values[0]! * 0.2126 + values[1]! * 0.7152 + values[2]! * 0.0722;
+}
+
+function contrast(first: string, second: string): number {
+  const values: number[] = [luminance(first), luminance(second)].sort(
+    (a: number, b: number) => {
+      return b - a;
+    },
+  );
+  return (values[0]! + 0.05) / (values[1]! + 0.05);
 }
 
 describe("readable text on every solid app surface", () => {
@@ -27,9 +36,7 @@ describe("readable text on every solid app surface", () => {
     "body, secondary, helper and link text meet 4.5:1 on %s",
     (surface: string) => {
       for (const foreground of foregrounds) {
-        expect(
-          (luminance(foreground) + 0.05) / (luminance(surface) + 0.05),
-        ).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(foreground, surface)).toBeGreaterThanOrEqual(4.5);
       }
     },
   );
@@ -38,9 +45,25 @@ describe("readable text on every solid app surface", () => {
     darkColors.stateAcknowledged,
     darkColors.stateResolved,
   ])("action button labels meet 4.5:1 on %s", (background: string) => {
-    expect(
-      (luminance(background) + 0.05) /
-        (luminance(darkColors.backgroundPrimary) + 0.05),
-    ).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(background, darkColors.textInverse)).toBeGreaterThanOrEqual(
+      4.5,
+    );
   });
+
+  test.each([
+    [darkColors.severityCritical, darkColors.severityCriticalBg],
+    [darkColors.severityMajor, darkColors.severityMajorBg],
+    [darkColors.severityMinor, darkColors.severityMinorBg],
+    [darkColors.severityWarning, darkColors.severityWarningBg],
+    [darkColors.severityInfo, darkColors.severityInfoBg],
+    [darkColors.oncallActive, darkColors.oncallActiveBg],
+    [darkColors.oncallInactive, darkColors.oncallInactiveBg],
+    [darkColors.statusError, darkColors.statusErrorBg],
+    [darkColors.accentCyan, darkColors.accentCyanBg],
+  ])(
+    "status text %s is readable on its %s tint",
+    (foreground: string, background: string) => {
+      expect(contrast(foreground, background)).toBeGreaterThanOrEqual(4.5);
+    },
+  );
 });

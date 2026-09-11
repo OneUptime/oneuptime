@@ -255,7 +255,10 @@ export default function BackupCodesScreen(): React.JSX.Element {
             marginTop: 18,
             padding: 16,
             borderRadius: 12,
-            backgroundColor: theme.colors.backgroundSecondary,
+            backgroundColor: theme.colors.backgroundPrimary,
+            flexDirection: "row",
+            flexWrap: "wrap",
+            justifyContent: "space-between",
             borderWidth: 1,
             borderColor: theme.colors.borderDefault,
           }}
@@ -267,10 +270,11 @@ export default function BackupCodesScreen(): React.JSX.Element {
                 testID="backup-code-value"
                 selectable={true}
                 style={{
-                  fontSize: 16,
+                  fontSize: 15,
                   fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-                  letterSpacing: 1.5,
+                  letterSpacing: 1,
                   paddingVertical: 8,
+                  minWidth: "48%",
                   color: theme.colors.textPrimary,
                 }}
               >
@@ -296,6 +300,7 @@ export default function BackupCodesScreen(): React.JSX.Element {
           accessibilityRole="checkbox"
           accessibilityLabel="I have saved these codes somewhere safe."
           accessibilityState={{ checked: hasSavedCodes }}
+          aria-checked={hasSavedCodes}
           testID="backup-codes-saved-checkbox"
           onPress={() => {
             setHasSavedCodes(!hasSavedCodes);
@@ -417,8 +422,9 @@ export default function BackupCodesScreen(): React.JSX.Element {
 
   return (
     <AuthLayout
-      title={isShowingCodes ? "Save Your Backup Codes" : "Set Up Backup Codes"}
-      eyebrow="KEEP ACCESS TO YOUR ACCOUNT"
+      title={isShowingCodes ? "Keep a way back in" : "Add backup codes"}
+      eyebrow="ACCOUNT RECOVERY"
+      compact
       description={
         isShowingCodes
           ? "Use one of these to sign in if you ever lose access to your authenticator app."

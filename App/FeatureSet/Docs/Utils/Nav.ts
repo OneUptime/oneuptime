@@ -10,16 +10,15 @@ export interface NavGroup {
   links: NavLink[];
 }
 
-/*
- * Localized variants used at render time. The shape matches NavGroup/NavLink
- * so EJS templates do not need to change.
- */
+// Localized variants used at render time.
 export interface LocalizedNavLink {
   title: string;
   url: string;
 }
 
 export interface LocalizedNavGroup {
+  // Canonical English title, preserved for icon lookup across languages.
+  key: string;
   title: string;
   links: LocalizedNavLink[];
 }

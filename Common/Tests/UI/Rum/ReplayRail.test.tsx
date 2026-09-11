@@ -17,6 +17,7 @@ import {
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, jest } from "@jest/globals";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import ObjectID from "../../../Types/ObjectID";
 import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
@@ -904,6 +905,59 @@ describe("ReplayRail keyboard and stepping", () => {
 });
 
 describe("ReplayRail filtering", () => {
+  it("clears event search from its visible action and restores keyboard focus", () => {
+    const result: RenderResult = renderRail();
+    const search: HTMLElement = screen.getByTestId("rail-search-input");
+
+    expect(
+      screen.queryByRole("button", { name: "Clear event search" }),
+    ).not.toBeInTheDocument();
+    fireEvent.change(search, { target: { value: "status:>=400" } });
+    expect(rowTitles()).toEqual(["rec:0:1"]);
+    fireEvent.click(screen.getByRole("button", { name: "Clear event search" }));
+
+    expect(result.queries).toEqual(["status:>=400", ""]);
+    expect(search).toHaveValue("");
+    expect(search).toHaveFocus();
+    expect(rowTitles()).toEqual(["rec:0:1", "rec:0:2", "rec:0:3", "rec:0:4"]);
+    expect(
+      screen.queryByRole("button", { name: "Clear event search" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("clearing text preserves the selected event type and quick filter", () => {
+    renderRail({ activeTab: "network" });
+    fireEvent.click(screen.getByTestId("rail-chip-network-2xx"));
+    fireEvent.change(screen.getByTestId("rail-search-input"), {
+      target: { value: "checkout" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Clear event search" }));
+
+    expect(screen.getByTestId("rail-tab-network")).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByTestId("rail-chip-network-2xx")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(rows()).toHaveLength(0);
+  });
+
+  it("places collapse in the Events header only when a collapse action is supplied", () => {
+    const collapse: MockFunction = getJestMockFunction();
+    const result: RenderResult = renderRail({ onCollapse: collapse });
+    expect(screen.getByRole("heading", { name: "Events" })).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Collapse the events rail" }),
+    );
+    expect(collapse).toHaveBeenCalledTimes(1);
+    result.rerender({ onCollapse: undefined });
+    expect(
+      screen.queryByRole("button", { name: "Collapse the events rail" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("filters rows by query tokens and reports the query", () => {
     const result: RenderResult = renderRail();
 
@@ -939,7 +993,11 @@ describe("ReplayRail filtering", () => {
       ],
     });
 
-    fireEvent.click(screen.getByText("±30s"));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Scope: within 30 seconds of the playhead",
+      }),
+    );
 
     expect(rowTitles()).toEqual(["rec:0:1"]);
   });

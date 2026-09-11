@@ -28,6 +28,8 @@ export interface BulkActionProps<T extends GenericObject> {
 
 export interface ComponentProps<T extends GenericObject> {
   data: Array<T>;
+  /** Optional row attributes and navigation, shared by desktop and mobile rows. */
+  getRowProps?: ((item: T) => React.HTMLAttributes<HTMLElement>) | undefined;
   id: string;
   columns: Columns<T>;
   className?: string;
@@ -280,6 +282,7 @@ const Table: TableFunction = <T extends GenericObject>(
       <TableBody
         id={`${props.id}-body`}
         data={props.data}
+        getRowProps={props.getRowProps}
         columns={props.columns}
         actionButtons={props.actionButtons}
         enableDragAndDrop={props.enableDragAndDrop}

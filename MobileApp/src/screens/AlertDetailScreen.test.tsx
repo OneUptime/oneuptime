@@ -979,12 +979,13 @@ describe("Readable response controls and bottom reachability", () => {
 
   test("response actions are placed before context so they are immediately discoverable", async () => {
     await renderScreen(createTestQueryClient());
-    const headings: string[] = screen
-      .getAllByText(/^(Actions|Description)$/)
+    const contentOrder: string[] = screen
+      .getAllByText(/^(Acknowledge|Description)$/)
       .map((element: ReturnType<typeof screen.getByText>) => {
         return String(element.props.children);
       });
-    expect(headings).toEqual(["Actions", "Description"]);
+    expect(contentOrder).toEqual(["Acknowledge", "Description"]);
+    expect(screen.queryByText("Actions")).toBeNull();
     expect(
       screen.getByText(
         "Acknowledge to let your team know you are responding. Resolve once recovery is confirmed.",

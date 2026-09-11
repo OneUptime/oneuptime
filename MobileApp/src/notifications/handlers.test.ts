@@ -55,8 +55,7 @@ const AUTH_STACK_ROUTES: Array<string> = [
 const MAIN_TAB_ROUTES: Array<string> = [
   "Home",
   "Monitors",
-  "Incidents",
-  "Alerts",
+  "Inbox",
   "OnCall",
   "Settings",
 ];
@@ -193,7 +192,7 @@ describe("a page tapped before the app can show it", () => {
 
     expect(container.navigations).toEqual([
       {
-        routeName: "Incidents",
+        routeName: "Inbox",
         screen: "IncidentDetail",
         params: { incidentId: "inc-1", projectId: "proj-1" },
       },
@@ -225,7 +224,7 @@ describe("a page tapped before the app can show it", () => {
 
     expect(container.navigations).toEqual([
       {
-        routeName: "Alerts",
+        routeName: "Inbox",
         screen: "AlertDetail",
         params: { alertId: "alert-1", projectId: "proj-1" },
       },
@@ -248,7 +247,7 @@ describe("a page tapped before the app can show it", () => {
 
     expect(container.navigations).toEqual([
       {
-        routeName: "Incidents",
+        routeName: "Inbox",
         screen: "IncidentDetail",
         params: { incidentId: "inc-9", projectId: "proj-1" },
       },
@@ -271,7 +270,7 @@ describe("a page tapped before the app can show it", () => {
 
     expect(container.navigations).toEqual([
       {
-        routeName: "Incidents",
+        routeName: "Inbox",
         screen: "IncidentDetail",
         params: { incidentId: "inc-3", projectId: "proj-2" },
       },
@@ -351,7 +350,7 @@ describe("routing each entityType the server sends", () => {
 
     expect(container.navigations).toEqual([
       {
-        routeName: "Incidents",
+        routeName: "Inbox",
         screen: "IncidentDetail",
         params: { incidentId: "inc-1", projectId: "proj-1" },
       },
@@ -365,7 +364,7 @@ describe("routing each entityType the server sends", () => {
 
     expect(container.navigations).toEqual([
       {
-        routeName: "Alerts",
+        routeName: "Inbox",
         screen: "AlertDetail",
         params: { alertId: "alert-1", projectId: "proj-1" },
       },
@@ -383,7 +382,7 @@ describe("routing each entityType the server sends", () => {
 
     expect(container.navigations).toEqual([
       {
-        routeName: "Incidents",
+        routeName: "Inbox",
         screen: "IncidentEpisodeDetail",
         params: { episodeId: "ep-1", projectId: "proj-1" },
       },
@@ -401,7 +400,7 @@ describe("routing each entityType the server sends", () => {
 
     expect(container.navigations).toEqual([
       {
-        routeName: "Alerts",
+        routeName: "Inbox",
         screen: "AlertEpisodeDetail",
         params: { episodeId: "ep-2", projectId: "proj-1" },
       },
@@ -466,7 +465,7 @@ describe("routing each entityType the server sends", () => {
 
     expect(container.navigations).toEqual([
       {
-        routeName: "Incidents",
+        routeName: "Inbox",
         screen: "IncidentDetail",
         params: { incidentId: "inc-7", projectId: "" },
       },
@@ -535,7 +534,7 @@ describe("a payload that cannot be shown never displaces one that can", () => {
 
     expect(container.navigations).toEqual([
       {
-        routeName: "Incidents",
+        routeName: "Inbox",
         screen: "IncidentDetail",
         params: { incidentId: "inc-1", projectId: "proj-1" },
       },
@@ -550,7 +549,7 @@ describe("a payload that cannot be shown never displaces one that can", () => {
 
     expect(container.navigations).toEqual([
       {
-        routeName: "Incidents",
+        routeName: "Inbox",
         screen: "IncidentDetail",
         params: { incidentId: "inc-1", projectId: "proj-1" },
       },

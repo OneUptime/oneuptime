@@ -232,7 +232,7 @@ async function renderLoadedProjectsScreen(): Promise<void> {
   await renderProjectsScreen();
 
   await waitFor(() => {
-    expect(screen.getByText("Your Projects")).toBeTruthy();
+    expect(screen.getByText("Project access")).toBeTruthy();
   });
 }
 
@@ -406,7 +406,7 @@ describe("While the projects are still being fetched", () => {
     await renderProjectsScreen();
 
     expect(screen.queryByText("No projects found.")).toBeNull();
-    expect(screen.queryByText("Your Projects")).toBeNull();
+    expect(screen.queryByText("Project access")).toBeNull();
 
     releaseProjects(makeListResponse<ProjectItem>([OPEN_PROJECT]));
 
@@ -421,7 +421,7 @@ describe("While the projects are still being fetched", () => {
     releaseProjects(makeListResponse<ProjectItem>([OPEN_PROJECT, SSO_PROJECT]));
 
     await waitFor(() => {
-      expect(screen.getByText("Your Projects")).toBeTruthy();
+      expect(screen.getByText("Project access")).toBeTruthy();
     });
 
     expect(screen.getByText(OPEN_PROJECT.name)).toBeTruthy();
@@ -897,6 +897,18 @@ describe("While one browser session is open", () => {
 
     /* Only the other row still has a label; this one has a spinner. */
     expect(screen.getAllByText("Authenticate with SSO")).toHaveLength(1);
+    expect(
+      screen.getAllByRole("button", {
+        name: /^Authenticate with SSO for/,
+        disabled: true,
+      }),
+    ).toHaveLength(2);
+    expect(
+      screen.getAllByRole("button", {
+        name: /^Authenticate with SSO for/,
+        busy: true,
+      }),
+    ).toHaveLength(1);
 
     await finishSession();
   });

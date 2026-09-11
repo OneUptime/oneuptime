@@ -34,8 +34,7 @@ export type AuthStackParamList = {
 export type MainTabParamList = {
   Home: undefined;
   Monitors: NavigatorScreenParams<MonitorsStackParamList> | undefined;
-  Incidents: NavigatorScreenParams<IncidentsStackParamList> | undefined;
-  Alerts: NavigatorScreenParams<AlertsStackParamList> | undefined;
+  Inbox: NavigatorScreenParams<InboxStackParamList> | undefined;
   OnCall: NavigatorScreenParams<OnCallStackParamList> | undefined;
   Settings: NavigatorScreenParams<SettingsStackParamList> | undefined;
 };
@@ -127,6 +126,18 @@ export type AlertsStackParamList = {
   AlertDetail: { alertId: string; projectId: string };
   AlertEpisodeDetail: { episodeId: string; projectId: string };
 };
+
+/** One response workspace, with incident and alert details sharing a Back path. */
+export type InboxStackParamList = {
+  InboxList:
+    | {
+        initialView?: "incidents" | "alerts";
+        initialSegment?: "incidents" | "alerts" | "episodes";
+        initialFilter?: "all" | "active" | "resolved";
+      }
+    | undefined;
+} & Pick<IncidentsStackParamList, "IncidentDetail" | "IncidentEpisodeDetail"> &
+  Pick<AlertsStackParamList, "AlertDetail" | "AlertEpisodeDetail">;
 
 export type MonitorsStackParamList = {
   MonitorsList:

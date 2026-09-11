@@ -1,5 +1,8 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { type NavigationContainerRefWithCurrent } from "@react-navigation/native";
+import {
+  type NavigationContainerRefWithCurrent,
+  type NavigationState,
+} from "@react-navigation/native";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import {
   act,
@@ -18,7 +21,11 @@ import {
   setProjectNavigationGuard,
 } from "../notifications/handlers";
 import RootNavigator from "./RootNavigator";
-import type { MainTabParamList, IncidentsStackParamList } from "./types";
+import type {
+  MainTabParamList,
+  IncidentsStackParamList,
+  InboxStackParamList,
+} from "./types";
 import type { ProjectItem } from "../api/types";
 import type { useProject } from "../hooks/useProject";
 import { makeProject } from "../__tests__/testSupport";
@@ -150,6 +157,67 @@ jest.mock("../screens/IncidentEpisodeDetailScreen", () => {
     },
   };
 });
+jest.mock("../screens/AlertEpisodeDetailScreen", () => {
+  return {
+    __esModule: true,
+    default: () => {
+      return null;
+    },
+  };
+});
+jest.mock("../screens/AlertsScreen", () => {
+  const ReactModule: typeof React = jest.requireActual("react");
+  const Native: typeof import("react-native") =
+    jest.requireActual("react-native");
+  return {
+    __esModule: true,
+    default: function AlertListLeaf(): React.JSX.Element {
+      const project: ProjectItem | null =
+        ReactModule.useContext(mockProjectContext)!.activeProject;
+      return ReactModule.createElement(
+        Native.Text,
+        null,
+        project?.name + " alert list",
+      );
+    },
+  };
+});
+jest.mock("../screens/AlertDetailScreen", () => {
+  const ReactModule: typeof React = jest.requireActual("react");
+  const Native: typeof import("react-native") =
+    jest.requireActual("react-native");
+  return {
+    __esModule: true,
+    default: function AlertDetailLeaf({
+      route,
+      navigation,
+    }: NativeStackScreenProps<
+      InboxStackParamList,
+      "AlertDetail"
+    >): React.JSX.Element {
+      return ReactModule.createElement(
+        Native.View,
+        null,
+        ReactModule.createElement(
+          Native.Text,
+          { testID: "alert-project" },
+          route.params.projectId,
+        ),
+        ReactModule.createElement(
+          Native.Pressable,
+          {
+            accessibilityRole: "button",
+            accessibilityLabel: "Back to alert list",
+            onPress: (): void => {
+              navigation.goBack();
+            },
+          },
+          ReactModule.createElement(Native.Text, null, "Back"),
+        ),
+      );
+    },
+  };
+});
 jest.mock("../screens/IncidentsScreen", () => {
   const ReactModule: typeof React = jest.requireActual("react");
   const Native: typeof import("react-native") =
@@ -271,7 +339,7 @@ test("a cross-project page survives the real keyed navigator remount and Back re
   await render(<ProjectHarness />);
   const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
     mockRootRef.current!;
-  await fireEvent.press(screen.getByLabelText("Incidents"));
+  await fireEvent.press(screen.getByLabelText("Inbox"));
   expect(screen.getByText("Production incident list")).toBeTruthy();
   const originalNavigatorKey: string = navigationRef.getRootState().key;
 
@@ -311,7 +379,7 @@ test("a cross-project page survives the real keyed navigator remount and Back re
     screen.getByRole("button", { name: "Back to incident list" }),
   );
   await waitFor(() => {
-    expect(navigationRef.getCurrentRoute()?.name).toBe("IncidentsList");
+    expect(navigationRef.getCurrentRoute()?.name).toBe("InboxList");
   });
   expect(screen.getByText("Staging incident list")).toBeTruthy();
   expect(screen.queryByText("Production incident list")).toBeNull();
@@ -322,7 +390,7 @@ test("a manual project switch clears old detail routes and returns to Home befor
   const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
     mockRootRef.current!;
   await act(() => {
-    navigationRef.navigate("Incidents", {
+    navigationRef.navigate("Inbox", {
       screen: "IncidentDetail",
       initial: false,
       params: { projectId: "project-a", incidentId: "incident-a" },
@@ -337,16 +405,16 @@ test("a manual project switch clears old detail routes and returns to Home befor
   });
   expect(navigationRef.getCurrentRoute()?.name).toBe("Home");
   expect(screen.queryByTestId("detail-project")).toBeNull();
-  await fireEvent.press(screen.getByLabelText("Incidents"));
-  expect(navigationRef.getCurrentRoute()?.name).toBe("IncidentsList");
+  await fireEvent.press(screen.getByLabelText("Inbox"));
+  expect(navigationRef.getCurrentRoute()?.name).toBe("InboxList");
   expect(screen.getByText("Staging incident list")).toBeTruthy();
   expect(screen.queryByText("Production incident list")).toBeNull();
   await act(() => {
     mockSelectProject.current!("project-a");
   });
   expect(navigationRef.getCurrentRoute()?.name).toBe("Home");
-  await fireEvent.press(screen.getByLabelText("Incidents"));
-  expect(navigationRef.getCurrentRoute()?.name).toBe("IncidentsList");
+  await fireEvent.press(screen.getByLabelText("Inbox"));
+  expect(navigationRef.getCurrentRoute()?.name).toBe("InboxList");
   expect(screen.queryByTestId("detail-project")).toBeNull();
 });
 
@@ -389,7 +457,245 @@ test("a cold-start page waits for project hydration without rendering its detail
   await fireEvent.press(
     screen.getByRole("button", { name: "Back to incident list" }),
   );
-  expect(navigationRef.getCurrentRoute()?.name).toBe("IncidentsList");
+  expect(navigationRef.getCurrentRoute()?.name).toBe("InboxList");
   expect(screen.getByText("Staging incident list")).toBeTruthy();
   expect(screen.queryByText("Production incident list")).toBeNull();
 });
+
+test("Inbox switches categories without adding a Back entry and keeps its choice when revisited", async () => {
+  await render(<ProjectHarness />);
+  const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+    mockRootRef.current!;
+  await fireEvent.press(screen.getByLabelText("Inbox"));
+  expect(screen.getByText("Production incident list")).toBeTruthy();
+  expect(
+    screen.getByTestId("inbox-category-incidents").props.accessibilityState
+      .selected,
+  ).toBe(true);
+  await fireEvent.press(screen.getByTestId("inbox-category-alerts"));
+  expect(screen.getByText("Production alert list")).toBeTruthy();
+  expect(
+    screen.getByTestId("inbox-category-alerts").props.accessibilityState
+      .selected,
+  ).toBe(true);
+  expect(navigationRef.getCurrentRoute()?.name).toBe("InboxList");
+  const inboxState: NavigationState["routes"][number]["state"] = navigationRef
+    .getRootState()
+    .routes.find((route: NavigationState["routes"][number]) => {
+      return route.name === "Inbox";
+    })?.state;
+  expect(inboxState?.routes).toHaveLength(1);
+  await fireEvent.press(screen.getByLabelText("Home"));
+  await fireEvent.press(screen.getByLabelText("Inbox"));
+  expect(screen.getByText("Production alert list")).toBeTruthy();
+});
+
+test.each([false, true])(
+  "an alert page returns to Alerts when Inbox was %s already open",
+  async (openInbox: boolean) => {
+    await render(<ProjectHarness />);
+    const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+      mockRootRef.current!;
+    if (openInbox) {
+      await fireEvent.press(screen.getByLabelText("Inbox"));
+      expect(screen.getByText("Production incident list")).toBeTruthy();
+    }
+    await act(() => {
+      handleNotificationResponse({
+        actionIdentifier: "VIEW",
+        notification: {
+          request: {
+            content: {
+              data: {
+                entityType: "alert",
+                entityId: "alert-a",
+                projectId: "project-a",
+              },
+            },
+          },
+        },
+      } as unknown as NotificationResponse);
+    });
+    await waitFor(() => {
+      expect(navigationRef.getCurrentRoute()?.name).toBe("AlertDetail");
+    });
+    expect(screen.getByTestId("alert-project").props.children).toBe(
+      "project-a",
+    );
+    await fireEvent.press(screen.getByLabelText("Back to alert list"));
+    expect(navigationRef.getCurrentRoute()?.name).toBe("InboxList");
+    expect(screen.getByText("Production alert list")).toBeTruthy();
+    expect(
+      screen.getByTestId("inbox-category-alerts").props.accessibilityState
+        .selected,
+    ).toBe(true);
+  },
+);
+
+test("a cross-project alert page changes project and returns to that project's Alerts view", async () => {
+  await render(<ProjectHarness />);
+  const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+    mockRootRef.current!;
+  await act(() => {
+    handleNotificationResponse({
+      actionIdentifier: "VIEW",
+      notification: {
+        request: {
+          content: {
+            data: {
+              entityType: "alert",
+              entityId: "alert-b",
+              projectId: "project-b",
+            },
+          },
+        },
+      },
+    } as unknown as NotificationResponse);
+  });
+  await waitFor(() => {
+    expect(navigationRef.getCurrentRoute()?.name).toBe("AlertDetail");
+  });
+  expect(screen.getByTestId("alert-project").props.children).toBe("project-b");
+  await fireEvent.press(screen.getByLabelText("Back to alert list"));
+  expect(screen.getByText("Staging alert list")).toBeTruthy();
+  expect(screen.queryByText("Production incident list")).toBeNull();
+});
+
+test("Home shortcuts select the requested Inbox category and filter without adding a list route", async () => {
+  await render(<ProjectHarness />);
+  const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+    mockRootRef.current!;
+  await act(() => {
+    navigationRef.navigate("Inbox", {
+      screen: "InboxList",
+      params: {
+        initialView: "alerts",
+        initialSegment: "episodes",
+        initialFilter: "active",
+      },
+    });
+  });
+  expect(screen.getByText("Production alert list")).toBeTruthy();
+  expect(navigationRef.getCurrentRoute()?.params).toEqual({
+    initialView: "alerts",
+    initialSegment: "episodes",
+    initialFilter: "active",
+  });
+  await fireEvent.press(screen.getByTestId("inbox-category-incidents"));
+  expect(navigationRef.getCurrentRoute()?.params).toEqual({
+    initialView: "incidents",
+    initialSegment: "incidents",
+    initialFilter: "all",
+  });
+});
+
+test.each([
+  {
+    entityType: "incident-episode",
+    detail: "IncidentEpisodeDetail",
+    category: "incidents",
+  },
+  {
+    entityType: "alert-episode",
+    detail: "AlertEpisodeDetail",
+    category: "alerts",
+  },
+])(
+  "a first-open $entityType page returns to its grouped Inbox view",
+  async ({
+    entityType,
+    detail,
+    category,
+  }: {
+    entityType: string;
+    detail: string;
+    category: string;
+  }) => {
+    await render(<ProjectHarness />);
+    const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+      mockRootRef.current!;
+    await act(() => {
+      handleNotificationResponse({
+        actionIdentifier: "VIEW",
+        notification: {
+          request: {
+            content: {
+              data: {
+                entityType,
+                entityId: "episode-a",
+                projectId: "project-a",
+              },
+            },
+          },
+        },
+      } as unknown as NotificationResponse);
+    });
+    await waitFor(() => {
+      expect(navigationRef.getCurrentRoute()?.name).toBe(detail);
+    });
+    await act(() => {
+      navigationRef.goBack();
+    });
+    expect(navigationRef.getCurrentRoute()?.name).toBe("InboxList");
+    expect(navigationRef.getCurrentRoute()?.params).toEqual({
+      initialView: category,
+      initialSegment: "episodes",
+    });
+    expect(
+      screen.getByTestId(`inbox-category-${category}`).props.accessibilityState
+        .selected,
+    ).toBe(true);
+  },
+);
+
+test.each<NonNullable<InboxStackParamList["InboxList"]>>([
+  {
+    initialView: "incidents",
+    initialSegment: "incidents",
+    initialFilter: "active",
+  },
+  { initialView: "alerts", initialSegment: "alerts", initialFilter: "active" },
+  {
+    initialView: "incidents",
+    initialSegment: "episodes",
+    initialFilter: "active",
+  },
+  {
+    initialView: "alerts",
+    initialSegment: "episodes",
+    initialFilter: "active",
+  },
+])(
+  "a Home $initialView/$initialSegment shortcut replaces the previous resolved view",
+  async (request: NonNullable<InboxStackParamList["InboxList"]>) => {
+    await render(<ProjectHarness />);
+    const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+      mockRootRef.current!;
+    await act(() => {
+      navigationRef.navigate("Inbox", {
+        screen: "InboxList",
+        params: {
+          initialView: "alerts",
+          initialSegment: "episodes",
+          initialFilter: "resolved",
+        },
+      });
+    });
+    await fireEvent.press(screen.getByLabelText("Home"));
+    await act(() => {
+      navigationRef.navigate("Inbox", { screen: "InboxList", params: request });
+    });
+    expect(navigationRef.getCurrentRoute()?.name).toBe("InboxList");
+    expect(navigationRef.getCurrentRoute()?.params).toEqual(request);
+    expect(
+      screen.getByTestId(`inbox-category-${request.initialView}`).props
+        .accessibilityState.selected,
+    ).toBe(true);
+    const inboxState: NavigationState["routes"][number]["state"] = navigationRef
+      .getRootState()
+      .routes.find((route: NavigationState["routes"][number]) => {
+        return route.name === "Inbox";
+      })?.state;
+    expect(inboxState?.routes).toHaveLength(1);
+  },
+);

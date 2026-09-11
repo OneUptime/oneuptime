@@ -16,7 +16,11 @@ import type { MonitorsStackParamList } from "../navigation/types";
 import type { MonitorStatusTimelineItem } from "../api/monitors";
 import FeedTimeline from "../components/FeedTimeline";
 import SkeletonCard from "../components/SkeletonCard";
-import SectionHeader from "../components/SectionHeader";
+import {
+  ResponseDetailHeader,
+  ResponseInfoRow,
+  ResponseSection,
+} from "../components/ResponseDetailLayout";
 import MarkdownContent from "../components/MarkdownContent";
 import MonitorSummaryView from "../components/MonitorSummaryView";
 import EmptyState from "../components/EmptyState";
@@ -149,133 +153,17 @@ export default function MonitorDetailScreen({
         />
       }
     >
-      {/* Header card */}
-      <View
-        style={{
-          borderRadius: 16,
-          overflow: "hidden",
-          marginBottom: 20,
-          backgroundColor: theme.colors.backgroundElevated,
-          borderWidth: 1,
-          borderColor: theme.colors.borderGlass,
-          shadowColor: "#000",
-          shadowOpacity: 0.06,
-          shadowOffset: { width: 0, height: 2 },
-          shadowRadius: 6,
-          elevation: 1,
-        }}
-      >
-        <View
-          style={{
-            height: 3,
-            backgroundColor: isDisabled
-              ? theme.colors.textTertiary
-              : statusColor,
-          }}
-        />
-        <View style={{ padding: 20 }}>
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "600",
-              marginBottom: 8,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {getMonitorTypeLabel(monitor.monitorType)}
-          </Text>
-
-          <Text
-            style={{
-              fontSize: 28,
-              lineHeight: 36,
-              fontWeight: "bold",
-              color: theme.colors.textPrimary,
-              letterSpacing: -0.6,
-            }}
-          >
-            {monitor.name}
-          </Text>
-
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 8,
-              marginTop: 12,
-            }}
-          >
-            {isDisabled ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingHorizontal: 10,
-                  paddingVertical: 6,
-                  borderRadius: 6,
-                  backgroundColor: theme.colors.backgroundTertiary,
-                }}
-              >
-                <View
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 9999,
-                    marginRight: 6,
-                    backgroundColor: theme.colors.textTertiary,
-                  }}
-                />
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: "600",
-                    color: theme.colors.textSecondary,
-                  }}
-                >
-                  Disabled
-                </Text>
-              </View>
-            ) : monitor.currentMonitorStatus ? (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingHorizontal: 10,
-                  paddingVertical: 6,
-                  borderRadius: 6,
-                  backgroundColor: statusColor + "14",
-                }}
-              >
-                <View
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 9999,
-                    marginRight: 6,
-                    backgroundColor: statusColor,
-                  }}
-                />
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: "600",
-                    color: statusColor,
-                  }}
-                >
-                  {monitor.currentMonitorStatus.name}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        </View>
-      </View>
-
-      {/* Description */}
+      <ResponseDetailHeader
+        title={monitor.name}
+        kind={getMonitorTypeLabel(monitor.monitorType)}
+        state={isDisabled ? "Disabled" : monitor.currentMonitorStatus?.name}
+        stateColor={isDisabled ? theme.colors.textTertiary : statusColor}
+      />
       {isDisabled ? (
         <View
           style={{
-            padding: 16,
-            marginBottom: 24,
+            padding: 18,
+            marginBottom: 26,
             borderRadius: 16,
             backgroundColor: theme.colors.backgroundTertiary,
           }}
@@ -285,7 +173,7 @@ export default function MonitorDetailScreen({
               fontSize: 16,
               fontWeight: "600",
               color: theme.colors.textPrimary,
-              marginBottom: 4,
+              marginBottom: 6,
             }}
           >
             Monitoring is paused
@@ -302,195 +190,106 @@ export default function MonitorDetailScreen({
           </Text>
         </View>
       ) : null}
-      {descriptionText ? (
-        <View style={{ marginBottom: 24 }}>
-          <SectionHeader title="Description" iconName="document-text-outline" />
-          <View
-            style={{
-              borderRadius: 16,
-              padding: 16,
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderGlass,
-            }}
-          >
-            <MarkdownContent content={descriptionText} />
-          </View>
-        </View>
-      ) : null}
-
-      {/* Monitor Summary */}
-      <View style={{ marginBottom: 24 }}>
-        <SectionHeader title="Monitor Summary" iconName="analytics-outline" />
+      <ResponseSection title="Monitor Summary">
         <MonitorSummaryView
           monitorType={monitor.monitorType}
           probeItems={probeItems ?? []}
         />
-      </View>
-
-      {/* Details */}
-      <View style={{ marginBottom: 24 }}>
-        <SectionHeader title="Details" iconName="information-circle-outline" />
-        <View
-          style={{
-            borderRadius: 16,
-            overflow: "hidden",
-            backgroundColor: theme.colors.backgroundElevated,
-            borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
-          }}
-        >
-          <View style={{ padding: 16 }}>
-            <View style={{ flexDirection: "row", marginBottom: 12 }}>
-              <Text
-                style={{
-                  fontSize: 14,
-                  width: 90,
-                  flexShrink: 0,
-                  color: theme.colors.textSecondary,
-                }}
-              >
-                Type
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  flexShrink: 1,
-                  color: theme.colors.textPrimary,
-                }}
-              >
-                {getMonitorTypeLabel(monitor.monitorType)}
-              </Text>
-            </View>
-
-            <View style={{ flexDirection: "row", marginBottom: 12 }}>
-              <Text
-                style={{
-                  fontSize: 14,
-                  width: 90,
-                  flexShrink: 0,
-                  color: theme.colors.textSecondary,
-                }}
-              >
-                Status
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  color: isDisabled ? theme.colors.textTertiary : statusColor,
-                }}
-              >
-                {isDisabled
-                  ? "Disabled"
-                  : monitor.currentMonitorStatus?.name ?? "Unknown"}
-              </Text>
-            </View>
-
-            <View style={{ flexDirection: "row" }}>
-              <Text
-                style={{
-                  fontSize: 14,
-                  width: 90,
-                  flexShrink: 0,
-                  color: theme.colors.textSecondary,
-                }}
-              >
-                Created
-              </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  flexShrink: 1,
-                  color: theme.colors.textPrimary,
-                }}
-              >
-                {formatDateTime(monitor.createdAt)}
-              </Text>
-            </View>
-          </View>
-        </View>
-      </View>
-
-      {/* Status Timeline */}
+      </ResponseSection>
+      {descriptionText ? (
+        <ResponseSection title="Description">
+          <MarkdownContent content={descriptionText} />
+        </ResponseSection>
+      ) : null}
+      <ResponseSection title="Details">
+        <ResponseInfoRow
+          label="Type"
+          value={getMonitorTypeLabel(monitor.monitorType)}
+        />
+        <ResponseInfoRow
+          label="Status"
+          value={
+            isDisabled
+              ? "Disabled"
+              : monitor.currentMonitorStatus?.name ?? "Unknown"
+          }
+        />
+        <ResponseInfoRow
+          label="Created"
+          value={formatDateTime(monitor.createdAt)}
+        />
+      </ResponseSection>
       {statusTimeline && statusTimeline.length > 0 ? (
-        <View style={{ marginBottom: 24 }}>
-          <SectionHeader title="Status History" iconName="time-outline" />
-          <View
-            style={{
-              borderRadius: 16,
-              overflow: "hidden",
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderGlass,
-            }}
-          >
-            {statusTimeline.map(
-              (entry: MonitorStatusTimelineItem, index: number) => {
-                const entryColor: string = entry.monitorStatus?.color
-                  ? rgbToHex(entry.monitorStatus.color)
-                  : theme.colors.textTertiary;
-                return (
-                  <View
-                    key={entry._id}
-                    style={{
-                      padding: 14,
-                      flexDirection: "row",
-                      alignItems: "center",
-                      borderTopWidth: index > 0 ? 1 : 0,
-                      borderTopColor: theme.colors.borderSubtle,
-                    }}
-                  >
+        <ResponseSection title="Status History">
+          {statusTimeline.map(
+            (entry: MonitorStatusTimelineItem, index: number) => {
+              const entryColor: string = entry.monitorStatus?.color
+                ? rgbToHex(entry.monitorStatus.color)
+                : theme.colors.textTertiary;
+              return (
+                <View
+                  key={entry._id}
+                  style={{ flexDirection: "row", gap: 12, paddingVertical: 15 }}
+                >
+                  <View style={{ alignItems: "center", width: 10 }}>
                     <View
                       style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: 9999,
-                        marginRight: 12,
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        marginTop: 7,
                         backgroundColor: entryColor,
                       }}
                     />
-                    <View style={{ flex: 1 }}>
-                      <Text
+                    {index < statusTimeline.length - 1 ? (
+                      <View
                         style={{
-                          fontSize: 14,
-                          fontWeight: "600",
-                          color: entryColor,
+                          width: 1,
+                          flex: 1,
+                          backgroundColor: theme.colors.borderDefault,
+                          marginTop: 7,
+                          marginBottom: -21,
                         }}
-                      >
-                        {entry.monitorStatus?.name ?? "Unknown"}
-                      </Text>
-                      {entry.rootCause ? (
-                        <View style={{ marginTop: 2 }}>
-                          <MarkdownContent
-                            content={entry.rootCause}
-                            variant="secondary"
-                          />
-                        </View>
-                      ) : null}
-                    </View>
+                      />
+                    ) : null}
+                  </View>
+                  <View style={{ flex: 1, gap: 5 }}>
                     <Text
                       style={{
-                        fontSize: 14,
+                        fontSize: 15,
+                        lineHeight: 22,
+                        fontWeight: "600",
+                        color: theme.colors.textPrimary,
+                      }}
+                    >
+                      {entry.monitorStatus?.name ?? "Unknown"}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        lineHeight: 20,
                         color: theme.colors.textSecondary,
-                        marginLeft: 8,
                       }}
                     >
                       {formatRelativeTime(entry.startsAt ?? entry.createdAt)}
                     </Text>
+                    {entry.rootCause ? (
+                      <MarkdownContent
+                        content={entry.rootCause}
+                        variant="secondary"
+                      />
+                    ) : null}
                   </View>
-                );
-              },
-            )}
-          </View>
-        </View>
+                </View>
+              );
+            },
+          )}
+        </ResponseSection>
       ) : null}
-
-      {/* Activity Feed */}
       {feed && feed.length > 0 ? (
-        <View style={{ marginBottom: 24 }}>
-          <SectionHeader title="Activity Feed" iconName="list-outline" />
+        <ResponseSection title="Activity Feed">
           <FeedTimeline feed={feed} />
-        </View>
+        </ResponseSection>
       ) : null}
     </ScrollView>
   );

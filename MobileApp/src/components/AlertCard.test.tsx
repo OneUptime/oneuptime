@@ -39,9 +39,8 @@ function cardSurface(): RenderedElement {
  * The dot drawn to the left of a pill's text, which is painted separately from
  * the text and so can drift away from it.
  */
-function dotBeside(label: RenderedElement): RenderedElement {
-  const pill: RenderedElement = label.parent as RenderedElement;
-  return pill.children[0] as RenderedElement;
+function statusMarker(): RenderedElement {
+  return screen.getByTestId("response-status-marker");
 }
 
 /**
@@ -96,7 +95,7 @@ describe("What an ordinary alert row shows", () => {
 
     expect(screen.getByText("Disk almost full")).toBeTruthy();
     expect(screen.getByText("#12")).toBeTruthy();
-    expect(screen.getByText("ALERT")).toBeTruthy();
+    expect(screen.getByText("Alert")).toBeTruthy();
   });
 
   test("the current state and the severity, by name", async () => {
@@ -155,8 +154,8 @@ describe("What an ordinary alert row shows", () => {
   });
 });
 
-describe("The colours on the pills are the ones the API sent", () => {
-  test("the state pill is painted from the state's own colour", async () => {
+describe("State markers preserve server colours while text stays readable", () => {
+  test("the marker uses the server colour and its label uses high-contrast text", async () => {
     const alert: AlertItem = makeAlert({
       currentAlertState: makeNamedEntityWithColor({
         name: "Acknowledged",
@@ -167,13 +166,13 @@ describe("The colours on the pills are the ones the API sent", () => {
     await render(<AlertCard alert={alert} onPress={noop} />);
 
     const label: RenderedElement = screen.getByText("Acknowledged");
-    expect(styleOf(label).color).toBe(rgbToHex({ r: 245, g: 158, b: 11 }));
-    expect(styleOf(dotBeside(label)).backgroundColor).toBe(
+    expect(styleOf(label).color).toBe(darkColors.textPrimary);
+    expect(styleOf(statusMarker()).backgroundColor).toBe(
       rgbToHex({ r: 245, g: 158, b: 11 }),
     );
   });
 
-  test("so is the severity pill", async () => {
+  test("a bright severity colour cannot make its label unreadable", async () => {
     const alert: AlertItem = makeAlert({
       alertSeverity: makeNamedEntityWithColor({
         name: "Warning",
@@ -184,7 +183,7 @@ describe("The colours on the pills are the ones the API sent", () => {
     await render(<AlertCard alert={alert} onPress={noop} />);
 
     expect(styleOf(screen.getByText("Warning")).color).toBe(
-      rgbToHex({ r: 250, g: 204, b: 21 }),
+      darkColors.textSecondary,
     );
   });
 
@@ -192,7 +191,7 @@ describe("The colours on the pills are the ones the API sent", () => {
     /*
      * An empty colour object is what a project that never picked a colour for
      * one of its own states sends. Reading each missing channel as zero would
-     * paint the label #000000 - black text on this app's near-black card, so
+     * paint the label #000000 - black text on a surface, so
      * the state name simply vanishes. rgbToHex is what protects against that,
      * and asserting through it is what keeps this test honest if the neutral
      * ever changes.
@@ -207,11 +206,11 @@ describe("The colours on the pills are the ones the API sent", () => {
     await render(<AlertCard alert={alert} onPress={noop} />);
 
     const label: RenderedElement = screen.getByText("Triaged");
-    expect(styleOf(label).color).toBe(rgbToHex({} as ColorField));
+    expect(styleOf(label).color).toBe(darkColors.textPrimary);
     expect(styleOf(label).color).not.toBe("#000000");
   });
 
-  test("a state carrying no colour field falls back to the muted text token", async () => {
+  test("a state carrying no colour field retains a high-contrast label", async () => {
     const alert: AlertItem = makeAlert({
       currentAlertState: makeNamedEntityWithColor({
         name: "Triaged",
@@ -222,7 +221,7 @@ describe("The colours on the pills are the ones the API sent", () => {
     await render(<AlertCard alert={alert} onPress={noop} />);
 
     expect(styleOf(screen.getByText("Triaged")).color).toBe(
-      darkColors.textTertiary,
+      darkColors.textPrimary,
     );
   });
 });
@@ -367,7 +366,9 @@ describe("Pressing the row", () => {
 
     await render(<AlertCard alert={makeAlert()} onPress={onPress} muted />);
 
-    expect(styleOf(cardSurface()).opacity).toBe(1);
+    expect(styleOf(cardSurface()).backgroundColor).toBe(
+      darkColors.backgroundElevated,
+    );
 
     await fireEvent.press(screen.getByText("Disk almost full"));
 
@@ -377,7 +378,9 @@ describe("Pressing the row", () => {
   test("an ordinary row is drawn at full strength", async () => {
     await render(<AlertCard alert={makeAlert()} onPress={noop} />);
 
-    expect(styleOf(cardSurface()).opacity).toBe(1);
+    expect(styleOf(cardSurface()).backgroundColor).toBe(
+      darkColors.backgroundElevated,
+    );
   });
 
   test("holding a finger on the row provides visible touch feedback", async () => {
@@ -385,7 +388,9 @@ describe("Pressing the row", () => {
 
     await holdDown(cardSurface());
 
-    expect(styleOf(cardSurface()).opacity).toBe(0.7);
+    expect(styleOf(cardSurface()).backgroundColor).toBe(
+      darkColors.backgroundTertiary,
+    );
   });
 
   test("a resolved row still answers a touch", async () => {
@@ -398,6 +403,8 @@ describe("Pressing the row", () => {
 
     await holdDown(cardSurface());
 
-    expect(styleOf(cardSurface()).opacity).toBe(0.7);
+    expect(styleOf(cardSurface()).backgroundColor).toBe(
+      darkColors.backgroundTertiary,
+    );
   });
 });

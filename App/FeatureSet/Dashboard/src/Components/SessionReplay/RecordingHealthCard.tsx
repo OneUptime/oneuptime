@@ -93,7 +93,7 @@ export function getRecordingHealthActionLink(
     case "setup-guide":
       return {
         to: RouteUtil.populateRouteParams(
-          RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY] as Route,
+          RouteMap[PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION] as Route,
           { modelId: modelId },
         ),
         openInNewTab: false,

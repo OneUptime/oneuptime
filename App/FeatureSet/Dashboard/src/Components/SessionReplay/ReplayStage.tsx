@@ -53,6 +53,8 @@ export interface ReplayStageProps {
   isMobile?: boolean | undefined;
   /* The scale in force, for the "1440x900 -> 62%" chip. */
   onScaleChange?: ((scale: number) => void) | undefined;
+  /* Reserve space for the timeline and transport on desktop. */
+  reservedBottomHeightPx?: number | undefined;
   className?: string | undefined;
 }
 
@@ -208,6 +210,14 @@ interface BoxSize {
   height: number;
 }
 
+export function computeReplayStageHeight(
+  viewportHeight: number,
+  stageTop: number,
+  reservedBottomHeight: number,
+): number {
+  return Math.max(256, viewportHeight - stageTop - reservedBottomHeight);
+}
+
 const ReplayStage: FunctionComponent<ReplayStageProps> = (
   props: ReplayStageProps,
 ): ReactElement => {
@@ -239,6 +249,9 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
     useRef<HTMLDivElement>(null);
 
   const [boxSize, setBoxSize] = useState<BoxSize | null>(null);
+  const [viewportHeightLimit, setViewportHeightLimit] = useState<number | null>(
+    null,
+  );
   const [touchRings, setTouchRings] = useState<Array<TouchRing>>([]);
   const ringIdRef: React.MutableRefObject<number> = useRef<number>(0);
 
@@ -357,6 +370,17 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
       const width: number = outer.clientWidth;
       const height: number = outer.clientHeight;
 
+      setViewportHeightLimit(
+        props.reservedBottomHeightPx !== undefined && window.innerWidth >= 1280
+          ? computeReplayStageHeight(
+              window.innerHeight,
+              outer.getBoundingClientRect().top +
+                (isTheater ? 0 : window.scrollY),
+              props.reservedBottomHeightPx,
+            )
+          : null,
+      );
+
       setBoxSize((current: BoxSize | null): BoxSize | null => {
         if (current && current.width === width && current.height === height) {
           return current;
@@ -375,6 +399,19 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
         measure();
       });
       observer.observe(outer);
+
+      /*
+       * Header notices and clipboard fallbacks move the stage without
+       * resizing it. Observe that sibling even in a fixed-height theater.
+       */
+      const layout: Element | null = outer.closest("[data-replay-layout]");
+      const header: Element | null = layout?.querySelector("header") ?? null;
+      if (layout) {
+        observer.observe(layout);
+      }
+      if (header) {
+        observer.observe(header);
+      }
     }
 
     window.addEventListener("resize", measure);
@@ -383,7 +420,7 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
       observer?.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [isTheater, fit]);
+  }, [isTheater, fit, props.reservedBottomHeightPx]);
 
   const scale: number = useMemo((): number => {
     if (fit === "actual" || !recorded || !boxSize) {
@@ -445,12 +482,14 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
         };
 
   const outerStyle: CSSProperties & Record<string, string> = {
-    minHeight: `${REPLAY_STAGE_MIN_HEIGHT_REM}rem`,
-    maxHeight: `${
-      isTheater
-        ? REPLAY_STAGE_THEATER_MAX_HEIGHT_VH
-        : REPLAY_STAGE_MAX_HEIGHT_VH
-    }vh`,
+    minHeight:
+      viewportHeightLimit !== null
+        ? "16rem"
+        : `${REPLAY_STAGE_MIN_HEIGHT_REM}rem`,
+    maxHeight:
+      viewportHeightLimit !== null
+        ? `${viewportHeightLimit}px`
+        : `${isTheater ? REPLAY_STAGE_THEATER_MAX_HEIGHT_VH : REPLAY_STAGE_MAX_HEIGHT_VH}vh`,
     /* Aspect reserved from the recorded viewport before the first frame. */
     aspectRatio: `${aspect.width} / ${aspect.height}`,
     "--oneuptime-replay-cursor-ms": `${Math.max(
@@ -474,7 +513,7 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
       role="region"
       aria-label="Session replay"
       aria-busy={isBusy}
-      className={`oneuptime-replay-stage relative w-full bg-gray-900 ${
+      className={`oneuptime-replay-stage relative w-full bg-gray-100 ${
         fit === "actual" ? "overflow-auto" : "overflow-hidden"
       } ${props.className ?? ""}`}
       style={outerStyle}
@@ -499,7 +538,7 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
         className={
           isMobile
             ? "overflow-hidden rounded-xl ring-8 ring-gray-800 bg-black"
-            : "bg-white"
+            : "bg-white shadow-sm ring-1 ring-gray-200"
         }
         style={frameStyle}
       >

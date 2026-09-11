@@ -166,3 +166,17 @@ npx playwright install-deps
 ```bash
 npm run clear-modules
 ```
+
+## Pencil button UI regression tests
+
+Run the shared pencil icon and button checks without starting the app or database:
+
+```bash
+cd E2E
+npm run test-pencil-button-ui
+```
+
+The fixture renders the production components with the shared theme and bundled
+Tailwind. Desktop and mobile checks cover the pencil's proportions, label
+alignment, button sizes, and keyboard activation. Screenshots and failure traces
+are written to `output/playwright/pencil-button/test-results/` at the repository root.

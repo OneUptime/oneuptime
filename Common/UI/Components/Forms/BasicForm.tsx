@@ -165,9 +165,21 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       props.initialValues || {},
     );
 
+    const getVisibleFormSteps: () => Array<FormStep<T>> | undefined = () => {
+      return getFormSteps()?.filter((step: FormStep<T>): boolean => {
+        return !step.showIf || step.showIf(refCurrentValue.current);
+      });
+    };
+
     const [currentFormStepId, setCurrentFormStepId] = useState<string | null>(
       null,
     );
+
+    const activeStepIndex: number =
+      formSteps?.findIndex((step: FormStep<T>) => {
+        return step.id === currentFormStepId;
+      }) ?? -1;
+    const activeStep: FormStep<T> | undefined = formSteps?.[activeStepIndex];
 
     const isOnLastFormStep: boolean =
       !currentFormStepId ||
@@ -212,15 +224,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     const [touched, setTouched] = useState<Dictionary<boolean>>({});
 
     useEffect(() => {
-      setFormSteps(
-        getFormSteps()?.filter((step: FormStep<T>) => {
-          if (!step.showIf) {
-            return true;
-          }
-
-          return step.showIf(refCurrentValue.current);
-        }),
-      );
+      setFormSteps(getVisibleFormSteps());
     }, [refCurrentValue.current]);
 
     const [formFields, setFormFields] = useState<Fields<T>>([]);
@@ -264,7 +268,14 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         setFieldValue,
         submitForm,
       };
-    }, [currentValue, errors, touched, formFields]);
+    }, [
+      currentValue,
+      errors,
+      touched,
+      formFields,
+      currentFormStepId,
+      formSteps,
+    ]);
 
     useAsyncEffect(async () => {
       const fields: Fields<T> = [
@@ -404,16 +415,14 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         return;
       }
 
-      // if last step then submit.
+      // Use current values because conditional-step state can lag a field edit.
+
+      const steps: Array<FormStep<T>> | undefined = getVisibleFormSteps();
 
       if (
-        (formSteps &&
-          formSteps.length > 0 &&
-          (
-            (formSteps as Array<FormStep<T>>)[
-              formSteps.length - 1
-            ] as FormStep<T>
-          ).id === currentFormStepId) ||
+        (steps &&
+          steps.length > 0 &&
+          (steps[steps.length - 1] as FormStep<T>).id === currentFormStepId) ||
         currentFormStepId === null
       ) {
         const values: FormValues<T> = refCurrentValue.current;
@@ -493,9 +502,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         props.onSubmit(values, () => {
           setDidSomethingChange(false);
         });
-      } else if (formSteps && formSteps.length > 0) {
-        const steps: Array<FormStep<T>> = formSteps;
-
+      } else if (steps && steps.length > 0) {
         const currentStepIndex: number = steps.findIndex(
           (step: FormStep<T>) => {
             return step.id === currentFormStepId;
@@ -706,6 +713,20 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 }`}
                 style={{ flex: "1 1 auto" }}
               >
+                {activeStep && (
+                  <div className="mb-5 flex items-center justify-between gap-3 lg:hidden">
+                    <p
+                      className="ml-auto text-right text-sm text-gray-500 lg:hidden"
+                      role="status"
+                    >
+                      {translateString("Step") ?? "Step"} {activeStepIndex + 1}{" "}
+                      {translateString("of") ?? "of"} {formSteps?.length}
+                      <span className="block font-medium text-gray-900">
+                        {translateString(activeStep.title) ?? activeStep.title}
+                      </span>
+                    </p>
+                  </div>
+                )}
                 {props.error && (
                   <div className="mb-3">
                     <Alert title={props.error} type={AlertType.DANGER} />

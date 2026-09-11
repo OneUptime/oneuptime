@@ -5,6 +5,8 @@ const { installFixtures } = require("./fixtures");
 
 async function capture(page, name, testInfo) {
   await page.evaluate(() => document.fonts.ready);
+  // React Navigation's screen transitions outlive visibility and CSS animation disabling.
+  await page.waitForTimeout(350);
   const scroll = page.getByTestId("auth-scroll").filter({ visible: true });
   if (await scroll.count()) {
     await scroll.evaluate((element) => element.scrollTo({ top: 0, behavior: "instant" }));
@@ -36,6 +38,23 @@ async function signInWithPassword(page) {
 test("password visibility, keyboard entry, and recovery give clear next steps", async ({ page }, testInfo) => {
   const { requests } = await openLogin(page);
   await expect(page.getByRole("button", { name: "Sign In", exact: true })).toBeInViewport({ ratio: 1 });
+  const primary = page.getByRole("button", { name: "Sign In", exact: true });
+  const alternatives = page.getByTestId("alternative-sign-in");
+  const primaryBounds = await primary.boundingBox();
+  const alternativesBounds = await alternatives.boundingBox();
+  expect(primaryBounds.height).toBeGreaterThanOrEqual(48);
+  expect(primaryBounds.y + primaryBounds.height).toBeLessThan(alternativesBounds.y);
+  expect(primaryBounds.y + primaryBounds.height).toBeLessThan(page.viewportSize().height - 40);
+  const brand = await page.getByTestId("auth-brand").filter({ visible: true }).boundingBox();
+  expect(brand.width).toBeGreaterThan(120);
+  expect(brand.width).toBeLessThan(page.viewportSize().width - 40);
+  await expect(page.getByText("Use a saved passkey", { exact: true })).toHaveCount(0);
+  const passkeyHelp = page.getByRole("button", { name: "New to passkeys?", exact: true });
+  await expect(passkeyHelp).toHaveAttribute("aria-expanded", "false");
+  await passkeyHelp.click();
+  await expect(passkeyHelp).toHaveAttribute("aria-expanded", "true");
+  await passkeyHelp.click();
+  await expect(passkeyHelp).toHaveAttribute("aria-expanded", "false");
   const password = page.getByLabel("Password", { exact: true });
   await password.fill("fixture-password");
   await expect(password).toHaveAttribute("type", "password");
@@ -45,7 +64,7 @@ test("password visibility, keyboard entry, and recovery give clear next steps", 
   await page.getByRole("button", { name: "Hide password", exact: true }).click();
   await expect(password).toHaveAttribute("type", "password");
   await page.getByTestId("forgot-password-link").click();
-  await expect(page.getByRole("heading", { name: "Forgot Password", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Reset your password", exact: true })).toBeVisible();
   await page.getByTestId("send-reset-link").click();
   await expect(page.getByRole("alert")).toContainText("Enter the email address on your account.");
   await page.getByTestId("forgot-password-email-input").fill("alex@example.test");
@@ -70,7 +89,7 @@ test("password visibility, keyboard entry, and recovery give clear next steps", 
 test("SSO offers organization sign-in and groups email-discovered providers by project", async ({ page }, testInfo) => {
   const { requests } = await openLogin(page);
   await page.getByRole("button", { name: "Sign in with SSO", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "SSO Login", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sign in with your team", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Company single sign-on", exact: true })).toBeVisible();
   await capture(page, "sso-login", testInfo);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
@@ -90,7 +109,7 @@ test("SSO offers organization sign-in and groups email-discovered providers by p
 test("two-factor verification preserves recovery routes and requires saving newly issued codes", async ({ page }, testInfo) => {
   const { requests } = await openLogin(page, "two-factor");
   await signInWithPassword(page);
-  await expect(page.getByRole("heading", { name: "Two Factor Authentication", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Verify your identity", exact: true })).toBeVisible();
   await capture(page, "two-factor-methods", testInfo);
   await page.getByTestId("totp-method-totp-1").click();
   await expect(page.getByLabel("Authenticator code", { exact: true })).toBeVisible();
@@ -100,14 +119,29 @@ test("two-factor verification preserves recovery routes and requires saving newl
   await page.getByLabel("Authenticator code", { exact: true }).fill("123456");
   await capture(page, "two-factor-code-entry", testInfo);
   await page.getByRole("button", { name: "Verify", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Save Your Backup Codes", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Keep a way back in", exact: true })).toBeVisible();
   await expect(page.getByTestId("backup-code-value")).toHaveCount(8);
+  const codeLayout = await page.getByTestId("backup-codes-list").evaluate((element) => {
+    const sheet = element.getBoundingClientRect();
+    const codes = Array.from(element.querySelectorAll('[data-testid="backup-code-value"]')).map((code) => {
+      const bounds = code.getBoundingClientRect();
+      return { left: bounds.left, right: bounds.right, top: bounds.top };
+    });
+    return { left: sheet.left, right: sheet.right, codes };
+  });
+  expect(codeLayout.codes[0].top).toBe(codeLayout.codes[1].top);
+  for (const code of codeLayout.codes) {
+    expect(code.left).toBeGreaterThanOrEqual(codeLayout.left + 8);
+    expect(code.right).toBeLessThanOrEqual(codeLayout.right - 8);
+  }
   await expect(page.getByTestId("backup-codes-continue")).toBeDisabled();
+  await expect(page.getByTestId("backup-codes-saved-checkbox")).toHaveAttribute("aria-checked", "false");
   await capture(page, "backup-codes", testInfo);
   await page.getByTestId("backup-codes-saved-checkbox").click();
+  await expect(page.getByTestId("backup-codes-saved-checkbox")).toHaveAttribute("aria-checked", "true");
   await expect(page.getByTestId("backup-codes-continue")).toBeEnabled();
   await page.getByTestId("backup-codes-continue").click();
-  await expect(page.getByText("Your overview", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
   const verification = requests.find((request) => request.path === "/identity/verify-totp-auth");
   expect(verification.body.data).toMatchObject({ code: "123456", twoFactorAuthId: "totp-1" });
 });
@@ -120,7 +154,7 @@ test("a backup code can recover a sign-in without access to the authenticator", 
   await page.getByLabel("Backup code", { exact: true }).fill("DEMO-1234");
   await capture(page, "backup-code-recovery", testInfo);
   await page.getByRole("button", { name: "Sign In", exact: true }).filter({ visible: true }).click();
-  await expect(page.getByText("Your overview", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
   const verification = requests.find((request) => request.path === "/identity/verify-backup-code");
   expect(verification.body.data.backupCode).toBe("DEMO-1234");
 });
@@ -128,25 +162,30 @@ test("a backup code can recover a sign-in without access to the authenticator", 
 test("required authenticator setup explains both steps and protects recovery codes", async ({ page }, testInfo) => {
   const { requests } = await openLogin(page, "enrolment");
   await signInWithPassword(page);
-  await expect(page.getByRole("heading", { name: "Set Up Two Factor Authentication", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Protect your account", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Add your account", exact: true })).toBeVisible();
   await expect(page.getByTestId("enrolment-secret")).toHaveText("JBSWY3DPEHPK3PXP");
   await capture(page, "authenticator-setup", testInfo);
   await page.getByLabel("Authenticator code", { exact: true }).fill("654321");
   await page.getByRole("button", { name: "Verify and Sign In", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Save Your Backup Codes", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Keep a way back in", exact: true })).toBeVisible();
   await expect(page.getByTestId("backup-codes-continue")).toBeDisabled();
   const verification = requests.find((request) => request.path === "/identity/verify-totp-enrolment");
   expect(verification.body.data).toMatchObject({ code: "654321", twoFactorAuthId: "totp-1" });
 });
 
 test("settings project access makes required SSO and provider choices clear without switching workspaces", async ({ page }, testInfo) => {
-  const { requests } = await installFixtures(page, { requireProjectSso: true });
+  const { requests } = await installFixtures(page, { signedIn: false, requireProjectSso: true });
   await page.goto("/");
-  await expect(page.getByText("Your overview", { exact: true })).toBeVisible();
+  await page.getByLabel("Server URL", { exact: true }).fill("http://127.0.0.1:8096");
+  await page.getByRole("button", { name: "Connect", exact: true }).click();
+  await signInWithPassword(page);
+  await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "Settings", exact: true }).click();
+  await expect(page.getByTestId("settings-account-identity")).toContainText("Alex Morgan");
+  await expect(page.getByTestId("settings-workspace-section")).toContainText("Manage Projects");
   await page.getByRole("button", { name: "Manage Projects", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Your Projects", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Project access", exact: true })).toBeVisible();
   await expect(page.getByText("2 projects · 1 need SSO sign-in", { exact: true })).toBeVisible();
   await expect(page.getByText("SSO Required", { exact: true })).toBeVisible();
   await capture(page, "projects-access", testInfo);

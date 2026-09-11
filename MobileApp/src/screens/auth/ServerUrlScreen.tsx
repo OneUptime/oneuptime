@@ -62,17 +62,13 @@ export default function ServerUrlScreen(): React.JSX.Element {
   return (
     <AuthLayout
       showBrand
+      compact
       title="Connect your workspace"
-      description="Choose where your team uses OneUptime. You will sign in next."
-      eyebrow="WELCOME TO ONEUPTIME"
+      description="Enter your team's OneUptime address to get started."
     >
       <View
         style={{
-          padding: 20,
-          borderRadius: 16,
-          backgroundColor: theme.colors.backgroundSecondary,
-          borderWidth: 1,
-          borderColor: theme.colors.borderDefault,
+          paddingVertical: 8,
         }}
       >
         <Text
@@ -183,14 +179,15 @@ export default function ServerUrlScreen(): React.JSX.Element {
 
       <Text
         style={{
-          fontSize: 12,
-          textAlign: "center",
+          fontSize: 14,
+          textAlign: "left",
           marginTop: 24,
           lineHeight: 20,
           color: theme.colors.textTertiary,
         }}
       >
-        Self-hosting? Enter your OneUptime server URL above.
+        Using OneUptime Cloud? Keep the address above. Self-hosting? Enter your
+        own server URL.
       </Text>
     </AuthLayout>
   );

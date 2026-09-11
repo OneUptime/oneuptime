@@ -454,18 +454,16 @@ describe("UserService.onBeforeUpdate — a password reset link dies with the add
       expect(stubs.findBy).toHaveBeenCalledTimes(1);
     });
 
-    test("turning off two factor auth as a non-root caller is still refused", async () => {
-      /*
-       * The guard that lives immediately after the new code in the same hook.
-       * Cheap to assert here, and it is the thing an edit to this method is
-       * most likely to displace.
-       */
+    test("turning off two factor auth on another account is still refused", async () => {
       await expect(
         userService().onBeforeUpdate(
-          updatePayload({ patch: { enableTwoFactorAuth: false } }),
+          updatePayload({
+            patch: { enableTwoFactorAuth: false },
+            query: { _id: OTHER_USER_ID.toString() },
+          }),
         ),
       ).rejects.toThrow(
-        "Only an administrator can turn off two factor authentication for this account.",
+        "You can only turn off two factor authentication for your own account.",
       );
     });
   });

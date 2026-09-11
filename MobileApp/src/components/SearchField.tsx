@@ -26,12 +26,12 @@ export default function SearchField({
         flexDirection: "row",
         alignItems: "center",
         minHeight: 52,
-        borderRadius: 14,
-        backgroundColor: theme.colors.backgroundElevated,
+        borderRadius: 12,
+        backgroundColor: theme.colors.backgroundSecondary,
         borderWidth: 1,
         borderColor: focused
           ? theme.colors.actionPrimary
-          : theme.colors.borderDefault,
+          : theme.colors.borderSubtle,
       }}
     >
       <Ionicons

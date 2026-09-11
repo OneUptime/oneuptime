@@ -30,7 +30,6 @@ const SESSION_ID: string = "a1b2c3d4e5f60718293a4b5c6d7e8f90";
 
 const onFiltersChange: MockFunction = getJestMockFunction();
 const onNavigateToSession: MockFunction = getJestMockFunction();
-const onSignalChange: MockFunction = getJestMockFunction();
 const onSortChange: MockFunction = getJestMockFunction();
 const onTimeRangeChange: MockFunction = getJestMockFunction();
 const onOpenAdvancedFilters: MockFunction = getJestMockFunction();
@@ -43,8 +42,6 @@ function renderBar(
       filters={EMPTY_ADVANCED_FILTERS}
       onFiltersChange={onFiltersChange}
       onNavigateToSession={onNavigateToSession}
-      signal="all"
-      onSignalChange={onSignalChange}
       sortBy="startTime"
       onSortChange={onSortChange}
       timeRange={{ range: TimeRange.PAST_ONE_DAY }}
@@ -63,7 +60,6 @@ beforeEach(() => {
   jest.useFakeTimers();
   onFiltersChange.mockReset();
   onNavigateToSession.mockReset();
-  onSignalChange.mockReset();
   onSortChange.mockReset();
   onTimeRangeChange.mockReset();
   onOpenAdvancedFilters.mockReset();
@@ -203,8 +199,6 @@ describe("SessionReplaySearchBar follows external changes", () => {
         }}
         onFiltersChange={onFiltersChange}
         onNavigateToSession={onNavigateToSession}
-        signal="all"
-        onSignalChange={onSignalChange}
         sortBy="startTime"
         onSortChange={onSortChange}
         timeRange={{ range: TimeRange.PAST_ONE_DAY }}
@@ -233,8 +227,6 @@ describe("SessionReplaySearchBar follows external changes", () => {
         filters={emitted}
         onFiltersChange={onFiltersChange}
         onNavigateToSession={onNavigateToSession}
-        signal="all"
-        onSignalChange={onSignalChange}
         sortBy="startTime"
         onSortChange={onSortChange}
         timeRange={{ range: TimeRange.PAST_ONE_DAY }}
@@ -245,6 +237,30 @@ describe("SessionReplaySearchBar follows external changes", () => {
 
     /* The person typed "/checkout"; the box keeps their spelling. */
     expect(input().value).toBe("/checkout");
+  });
+});
+
+describe("SessionReplaySearchBar facet changes", () => {
+  it("cancels pending typing when an external facet replaces the filters", () => {
+    const view: ReturnType<typeof render> = renderBar();
+    fireEvent.change(input(), { target: { value: "browser:Chrome" } });
+    view.rerender(
+      <SessionReplaySearchBar
+        filters={{ ...EMPTY_ADVANCED_FILTERS, browserName: "Safari" }}
+        onFiltersChange={onFiltersChange}
+        onNavigateToSession={onNavigateToSession}
+        sortBy="startTime"
+        onSortChange={onSortChange}
+        timeRange={{ range: TimeRange.PAST_ONE_DAY }}
+        onTimeRangeChange={onTimeRangeChange}
+        onOpenAdvancedFilters={onOpenAdvancedFilters}
+      />,
+    );
+    act(() => {
+      jest.advanceTimersByTime(SESSION_REPLAY_SEARCH_DEBOUNCE_MS);
+    });
+    expect(input().value).toBe("browser:Safari");
+    expect(onFiltersChange).not.toHaveBeenCalled();
   });
 });
 
@@ -279,9 +295,7 @@ describe("SessionReplaySearchBar hints", () => {
 
     fireEvent.change(input(), { target: { value: "url:/checkout" } });
 
-    expect(screen.getByTestId("session-search-hint")).toHaveTextContent(
-      "Tokens: user:, url:",
-    );
+    expect(screen.queryByTestId("session-search-hint")).toBeNull();
   });
 
   it("says when the server ignores the user filter", () => {
@@ -298,27 +312,25 @@ describe("SessionReplaySearchBar hints", () => {
     );
   });
 
-  it("shows the grammar when there is nothing to warn about", () => {
+  it("keeps syntax help collapsed until requested", () => {
     renderBar();
 
+    expect(screen.queryByTestId("session-search-hint")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Search help" }));
     expect(screen.getByTestId("session-search-hint")).toHaveTextContent(
-      "Tokens: user:, url:",
+      "tag:plan=pro",
     );
+    expect(screen.getByRole("button", { name: "Search help" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(input()).toHaveAttribute("aria-describedby", "session-search-help");
+    fireEvent.click(screen.getByRole("button", { name: "Search help" }));
+    expect(screen.queryByTestId("session-search-hint")).toBeNull();
   });
 });
 
 describe("SessionReplaySearchBar controls", () => {
-  it("quick filters call onSignalChange with the predicate's value", () => {
-    renderBar();
-
-    fireEvent.click(screen.getByText("Playable"));
-
-    expect(onSignalChange).toHaveBeenCalledWith("playable");
-    expect(screen.getByTestId("session-signal-description")).toHaveTextContent(
-      "Every session in the range.",
-    );
-  });
-
   it("the sort dropdown calls onSortChange with the server key", () => {
     renderBar();
 

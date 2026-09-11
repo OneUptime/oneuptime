@@ -26,7 +26,7 @@ export default function OnCallStackNavigator(): React.JSX.Element {
           return <ProjectSwitcher />;
         },
         headerStyle: {
-          backgroundColor: theme.colors.backgroundPrimary,
+          backgroundColor: theme.colors.backgroundSecondary,
         },
         headerTintColor: theme.colors.actionPrimary,
         headerTitleStyle: {
@@ -35,11 +35,12 @@ export default function OnCallStackNavigator(): React.JSX.Element {
           color: theme.colors.textPrimary,
         },
         headerShadowVisible: false,
+        headerBackButtonDisplayMode: "minimal",
         ...(Platform.OS === "ios"
           ? {
               headerLargeTitle: false,
               headerLargeStyle: {
-                backgroundColor: theme.colors.backgroundPrimary,
+                backgroundColor: theme.colors.backgroundSecondary,
               },
             }
           : {}),

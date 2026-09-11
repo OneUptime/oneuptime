@@ -63,8 +63,10 @@ describe("Pay as you go wiring", () => {
       expect(source).toContain("<TelemetryPayAsYouGoCard />");
     });
 
-    test("spreads the pricing notice into the create modal's form", () => {
-      expect(source).toContain("...getTelemetryPayAsYouGoFormFields()");
+    test("places the pricing notice on the create modal's billing step", () => {
+      expect(source).toContain("getTelemetryPayAsYouGoFormFields()");
+      expect(source).toContain("...billingFields.map(");
+      expect(source).toContain('stepId: "billing"');
     });
 
     test("imports both from the billing component", () => {

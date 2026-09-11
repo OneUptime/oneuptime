@@ -264,6 +264,22 @@ describe("transport row", () => {
     });
   });
 
+  it("keeps primary playback controls together and event navigation in a separate group", () => {
+    render(<ReplayScrubber {...makeScrubberProps()} />);
+
+    const playback: HTMLElement = screen.getByRole("group", {
+      name: "Playback controls",
+    });
+    const navigation: HTMLElement = screen.getByRole("group", {
+      name: "Jump between signals",
+    });
+    expect(playback).toContainElement(screen.getByTestId("replay-play-pause"));
+    expect(playback).toContainElement(screen.getByTestId("replay-speed"));
+    expect(playback).toContainElement(screen.getByTestId("replay-skip-idle"));
+    expect(playback).not.toContainElement(navigation);
+    expect(comesBefore(playback, navigation)).toBe(true);
+  });
+
   it("groups the controls that belong together on shared tracks", () => {
     render(<ReplayScrubber {...makeScrubberProps()} />);
 
@@ -343,11 +359,13 @@ describe("header hierarchy", () => {
   it("names the action buttons by the word printed on them", () => {
     render(<ReplayHeader {...makeHeaderProps()} />);
 
-    ["Link", "Wide", "Theater", "Details"].forEach((label: string): void => {
-      expect(screen.getByRole("button", { name: label })).toHaveTextContent(
-        label,
-      );
-    });
+    ["Copy link", "Wide", "Theater", "Session details"].forEach(
+      (label: string): void => {
+        expect(screen.getByRole("button", { name: label })).toHaveTextContent(
+          label,
+        );
+      },
+    );
   });
 
   it("puts the layout toggles on one shared track", () => {

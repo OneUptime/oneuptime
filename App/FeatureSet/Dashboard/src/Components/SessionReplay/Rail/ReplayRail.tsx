@@ -187,6 +187,7 @@ export interface ReplayRailProps {
         alignment: ReplayClockAlignmentState,
       ) => void)
     | undefined;
+  onCollapse?: (() => void) | undefined;
   className?: string | undefined;
 }
 
@@ -1561,12 +1562,15 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
       }`}
       data-testid="replay-rail"
     >
-      <div className="flex items-center justify-between gap-2 border-b border-gray-200 bg-gray-50/70 px-3 py-2.5">
-        <div className="min-w-0 text-xs font-semibold uppercase tracking-wide text-gray-500">
-          Signals
+      <div className="flex items-start justify-between gap-2 border-b border-gray-200 px-4 py-4">
+        <div className="min-w-0">
+          <h3 className="text-base font-semibold text-gray-900">Events</h3>
+          <p className="mt-1 text-xs text-gray-500">
+            Explore activity at each moment.
+          </p>
           {alignmentNote && (
             <span
-              className="ml-1.5 font-normal normal-case tracking-normal text-gray-400"
+              className="mt-1 block text-xs text-gray-400"
               data-testid="rail-alignment-note"
             >
               {alignmentNote}
@@ -1575,11 +1579,21 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
+          {props.onCollapse && (
+            <ReplayToolButton
+              dataTestId="replay-rail-collapse"
+              icon={IconProp.ChevronRight}
+              ariaLabel="Collapse the events rail"
+              title="Collapse the events rail"
+              className="hidden xl:inline-flex"
+              onClick={props.onCollapse}
+            />
+          )}
           {!follow && (
             <button
               type="button"
               data-testid="rail-resume-follow"
-              className="rounded-full bg-indigo-600 px-2.5 py-1 text-[11px] font-medium text-white transition-colors hover:bg-indigo-700"
+              className="rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-indigo-700"
               title="Keep the now divider in view as playback moves (m)"
               onClick={(): void => {
                 setFollow(true);
@@ -1601,10 +1615,10 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
           )}
           {follow && (
             <span
-              className="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-gray-400"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400"
               title="The list follows the playhead; scroll to pause it"
             >
-              following
+              Following
             </span>
           )}
         </div>
@@ -1612,7 +1626,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
 
       {coverageNote && (
         <div
-          className="px-3 pt-1 text-[10px] text-gray-400"
+          className="px-4 pt-2 text-xs text-gray-500"
           data-testid="rail-coverage-note"
         >
           {coverageNote}
@@ -1623,14 +1637,14 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
         role="tablist"
         aria-label="Signal tabs"
         data-testid="rail-tablist"
-        className="mx-3 mt-2.5 flex flex-wrap items-center gap-0.5 rounded-xl bg-gray-100 p-0.5"
+        className="mx-4 mt-3 flex flex-wrap items-center gap-1 border-b border-gray-100 pb-3"
         onKeyDown={handleTabsKeyDown}
       >
         {tabModels.map(renderTab)}
       </div>
 
-      <div className="flex items-center gap-2 px-3 pb-1 pt-2.5">
-        <div className="relative min-w-0 flex-1">
+      <div className="flex flex-wrap items-center gap-2 px-4 pb-3 pt-3">
+        <div className="relative w-full min-w-0">
           <Icon
             icon={IconProp.Search}
             className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
@@ -1640,9 +1654,10 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
             type="text"
             value={query}
             data-testid="rail-search-input"
-            placeholder="Filter: text, status:>=400, level:error, trace:…"
+            placeholder="Search events"
+            title="Search text, status:>=400, level:error, or trace: followed by an ID"
             aria-label="Filter signals"
-            className="h-8 w-full rounded-lg bg-gray-100 pl-8 pr-2 text-xs text-gray-800 ring-1 ring-inset ring-transparent transition-colors placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="h-9 w-full rounded-md border border-gray-300 bg-white pl-8 pr-9 text-sm text-gray-800 shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
               setQuery(event.target.value);
             }}
@@ -1658,11 +1673,26 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
               }
             }}
           />
+          {query && (
+            <button
+              type="button"
+              data-testid="rail-search-clear"
+              aria-label="Clear event search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded text-gray-400 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              onClick={(): void => {
+                setQuery("");
+                searchRef.current?.focus();
+              }}
+            >
+              <Icon icon={IconProp.Close} className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
+        <span className="text-xs text-gray-500">Show events</span>
         <ReplayButtonGroup ariaLabel="Scope" dataTestId="rail-scope-toggle">
           <ReplayToolButton
-            label="All"
+            label="Whole session"
             variant="segment"
             isPressed={scope === "session"}
             title="Every signal in the recording"
@@ -1672,7 +1702,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
             }}
           />
           <ReplayToolButton
-            label="±30s"
+            label="Around playhead"
             variant="segment"
             isPressed={scope === "playhead"}
             title="Only rows within 30 seconds of the playhead"
@@ -1686,7 +1716,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
 
       {tabChips.length > 0 && (
         <div
-          className="flex flex-wrap gap-1 px-3 pb-2"
+          className="flex flex-wrap gap-1.5 px-4 pb-3"
           role="group"
           aria-label="Quick filters"
         >
@@ -1699,10 +1729,10 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
                 type="button"
                 aria-pressed={isOn}
                 data-testid={`rail-chip-${chip.id}`}
-                className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                   isOn
-                    ? "bg-indigo-600 text-white hover:bg-indigo-700"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900"
+                    ? "bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-200"
+                    : "bg-gray-50 text-gray-600 ring-1 ring-inset ring-gray-200 hover:bg-gray-100 hover:text-gray-900"
                 }`}
                 onClick={(): void => {
                   setActiveChips(

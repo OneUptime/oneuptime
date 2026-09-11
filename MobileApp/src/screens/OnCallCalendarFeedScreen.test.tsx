@@ -375,14 +375,28 @@ describe("OnCallCalendarFeedScreen", () => {
     expect(alertSpy).not.toHaveBeenCalled();
   });
 
-  test("shows the link, the fetch status and the platform's actions", async (): Promise<void> => {
+  test("keeps the private link concealed while showing fetch status and platform actions", async (): Promise<void> => {
     await render(<OnCallCalendarFeedScreen />);
 
     await waitForLinks();
+    const disclosure: () => ReturnType<typeof screen.getByTestId> = () => {
+      return screen.getByTestId("toggle-private-link");
+    };
+    expect(disclosure().props.accessibilityState.expanded).toBe(false);
 
+    expect(screen.queryByTestId("feed-https-url")).toBeNull();
+    expect(screen.getByTestId("feed-privacy-warning")).toBeTruthy();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Show private link" }),
+    );
     expect(screen.getByTestId("feed-https-url").props.children).toBe(
       SERVER_HTTPS,
     );
+    expect(disclosure().props.accessibilityState.expanded).toBe(true);
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Hide private link" }),
+    );
+    expect(screen.queryByTestId("feed-https-url")).toBeNull();
     expect(
       screen.getByText(
         "Last fetched 2h ago by Google Calendar · 143 fetches · link ending in …k3Qx",
@@ -628,11 +642,66 @@ describe("OnCallCalendarFeedScreen", () => {
     await render(<OnCallCalendarFeedScreen />);
     await waitForLinks();
 
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Show private link" }),
+    );
     expect(screen.getByTestId("feed-https-url").props.children).toBe(
       "https://oncall.internal:8443/api/on-call-calendar/user/tokentokentokentokentokentokentokentoken123/shifts.ics",
     );
     expect(screen.getByTestId("feed-rebuilt-note")).toBeTruthy();
     expect(screen.getByText(/oneuptime\.example\.com/)).toBeTruthy();
+  });
+
+  test("a revealed private link is hidden immediately when switching projects, including on return", async (): Promise<void> => {
+    mockProjects.current = [PROJECTS[0]!];
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      <OnCallCalendarFeedScreen />,
+    );
+    await waitForLinks();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Show private link" }),
+    );
+    expect(screen.getByTestId("feed-https-url")).toBeTruthy();
+    mockProjects.current = [PROJECTS[1]!];
+    await view.rerender(<OnCallCalendarFeedScreen />);
+    expect(screen.queryByTestId("feed-https-url")).toBeNull();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Show private link" }),
+    );
+    mockProjects.current = [PROJECTS[0]!];
+    await view.rerender(<OnCallCalendarFeedScreen />);
+    expect(screen.queryByTestId("feed-https-url")).toBeNull();
+  });
+
+  test("rotating a revealed link never reveals the replacement token automatically", async (): Promise<void> => {
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      <OnCallCalendarFeedScreen />,
+    );
+    await waitForLinks();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Show private link" }),
+    );
+    const replacement: string = SERVER_HTTPS.replace(
+      "tokentokentoken",
+      "replacementtoken",
+    );
+    mockFeed.current = feedState({
+      status: status({
+        urls: {
+          https: replacement,
+          webcal: replacement.replace("https://", "webcals://"),
+          googleAdd: "",
+        },
+      }),
+    });
+    await view.rerender(<OnCallCalendarFeedScreen />);
+    expect(screen.queryByTestId("feed-https-url")).toBeNull();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Show private link" }),
+    );
+    expect(screen.getByTestId("feed-https-url").props.children).toBe(
+      replacement,
+    );
   });
 
   test("warns when the last render was shortened", async (): Promise<void> => {

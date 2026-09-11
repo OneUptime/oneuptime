@@ -14,7 +14,6 @@ import {
 import useSessionReplayHealth, {
   SessionReplayHealthSnapshot,
 } from "./useSessionReplayHealth";
-import SessionReplaySetupGuide from "./SessionReplaySetupGuide";
 import {
   describeSessionReplayListError,
   describeTimeRange,
@@ -186,16 +185,16 @@ export const SessionReplayEmptyStateView: FunctionComponent<
     <div
       data-testid="list-empty"
       data-variant={reason.variant}
-      className="mt-2"
+      className="py-4"
     >
       <span className="sr-only" data-testid="list-empty-variant">
         {reason.variant}
       </span>
-      <div className="flex rounded-md border border-dashed border-gray-200 bg-white px-6 py-12">
+      <div className="flex bg-white px-6 py-12">
         <div className="m-auto max-w-xl text-center">
           <Icon
             icon={VARIANT_ICONS[reason.variant]}
-            className="mx-auto h-10 w-10 text-gray-400"
+            className="mx-auto h-10 w-10 rounded-lg bg-indigo-50 p-2 text-indigo-500"
           />
           <h3
             className="mt-3 text-sm font-semibold text-gray-900"
@@ -225,14 +224,6 @@ export const SessionReplayEmptyStateView: FunctionComponent<
           {reason.action && <div className="mt-5">{renderAction()}</div>}
         </div>
       </div>
-
-      {reason.showSetupGuide && (
-        <div className="mt-4">
-          <SessionReplaySetupGuide
-            rumApplicationId={new ObjectID(props.rumApplicationId.toString())}
-          />
-        </div>
-      )}
     </div>
   );
 };

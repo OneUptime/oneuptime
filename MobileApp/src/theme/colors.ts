@@ -70,74 +70,77 @@ export interface ColorTokens {
   statusErrorBg: string;
 }
 
-export const darkColors: ColorTokens = {
-  // Background — rich near-black, not pure black
-  backgroundPrimary: "#0B1220",
-  backgroundSecondary: "#101A2B",
-  backgroundTertiary: "#1C2A40",
-  backgroundElevated: "#142035",
+export const lightColors: ColorTokens = {
+  // Warm paper surfaces and graphite text.
+  backgroundPrimary: "#F6F7F9",
+  backgroundSecondary: "#FFFFFF",
+  backgroundTertiary: "#EDF0F5",
+  backgroundElevated: "#FFFFFF",
 
   // Accent
-  cardAccent: "#1A2E4B",
-  backgroundGlass: "#101C30",
-  iconBackground: "#21324C",
+  cardAccent: "#E9EEFF",
+  backgroundGlass: "#FBFCFE",
+  iconBackground: "#EBEFF8",
 
   // Blue identifies interactive controls; status colors keep their meaning.
-  accentGradientStart: "#60A5FA",
-  accentGradientMid: "#3B82F6",
-  accentGradientEnd: "#2563EB",
-  accentCyan: "#67D5E8",
-  accentCyanBg: "rgba(103, 213, 232, 0.12)",
-  surfaceGlow: "rgba(255, 255, 255, 0.05)",
-  headerGradient: "rgba(255, 255, 255, 0.03)",
-  gradientStart: "rgba(255, 255, 255, 0.07)",
+  accentGradientStart: "#3155D9",
+  accentGradientMid: "#2949BA",
+  accentGradientEnd: "#233EA5",
+  accentCyan: "#096B78",
+  accentCyanBg: "#E6F4F5",
+  surfaceGlow: "transparent",
+  headerGradient: "transparent",
+  gradientStart: "transparent",
   gradientEnd: "transparent",
 
   // Border
-  borderDefault: "#32435D",
-  borderSubtle: "#26364E",
-  borderGlass: "#2B3C55",
+  borderDefault: "#CCD3DD",
+  borderSubtle: "#E6E9EF",
+  borderGlass: "#E1E5EB",
 
   // Text
-  textPrimary: "#F4F7FC",
-  textSecondary: "#B4C2D6",
-  textTertiary: "#94A6C0",
+  textPrimary: "#17212F",
+  textSecondary: "#526073",
+  textTertiary: "#5E6B7D",
   textInverse: "#FFFFFF",
 
   // Severity
-  severityCritical: "#FF8585",
-  severityCriticalBg: "rgba(239, 68, 68, 0.12)",
-  severityMajor: "#FFAB70",
-  severityMajorBg: "rgba(249, 115, 22, 0.12)",
-  severityMinor: "#EAB308",
-  severityMinorBg: "rgba(234, 179, 8, 0.12)",
-  severityWarning: "#F59E0B",
-  severityWarningBg: "rgba(245, 158, 11, 0.12)",
-  severityInfo: "#80B7FF",
-  severityInfoBg: "rgba(59, 130, 246, 0.12)",
+  severityCritical: "#B42318",
+  severityCriticalBg: "#FFF0EE",
+  severityMajor: "#A04311",
+  severityMajorBg: "#FFF3E8",
+  severityMinor: "#795B00",
+  severityMinorBg: "#FFF8DC",
+  severityWarning: "#8D4C08",
+  severityWarningBg: "#FFF5E6",
+  severityInfo: "#3155D9",
+  severityInfoBg: "#E9EEFF",
 
   // State
-  stateCreated: "#FF8585",
-  stateAcknowledged: "#F59E0B",
-  stateResolved: "#5BD6A2",
-  stateInvestigating: "#F97316",
-  stateMuted: "#94A6C0",
+  stateCreated: "#B42318",
+  stateAcknowledged: "#8D4C08",
+  stateResolved: "#087653",
+  stateInvestigating: "#A04311",
+  stateMuted: "#5E6B7D",
 
   // On-Call
-  oncallActive: "#5BD6A2",
-  oncallActiveBg: "rgba(34, 197, 94, 0.12)",
-  oncallInactive: "#94A6C0",
-  oncallInactiveBg: "rgba(82, 82, 91, 0.12)",
+  oncallActive: "#087653",
+  oncallActiveBg: "#E7F6F0",
+  oncallInactive: "#5E6B7D",
+  oncallInactiveBg: "#EDF0F5",
 
-  // Light blue supports both links on navy and dark labels on filled buttons.
-  actionPrimary: "#80B7FF",
-  actionPrimaryPressed: "#A5CCFF",
-  actionDestructive: "#FF8585",
-  actionDestructivePressed: "#DC2626",
+  // Cobalt indicates action; filled controls use textInverse.
+  actionPrimary: "#3155D9",
+  actionPrimaryPressed: "#233EA5",
+  actionDestructive: "#B42318",
+  actionDestructivePressed: "#851A12",
 
   // Status
-  statusSuccess: "#5BD6A2",
-  statusSuccessBg: "rgba(34, 197, 94, 0.12)",
-  statusError: "#FF8585",
-  statusErrorBg: "rgba(239, 68, 68, 0.12)",
+  statusSuccess: "#087653",
+  statusSuccessBg: "#E7F6F0",
+  statusError: "#B42318",
+  statusErrorBg: "#FFF0EE",
 };
+
+/** Compatibility export for existing consumers; the app is now light-first. */
+export const darkColors: ColorTokens = lightColors;

@@ -40,7 +40,7 @@ export default function AuthLayout({
   return (
     <KeyboardAvoidingView
       testID="auth-keyboard"
-      style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+      style={{ flex: 1, backgroundColor: theme.colors.backgroundSecondary }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
@@ -50,31 +50,35 @@ export default function AuthLayout({
         contentContainerStyle={{
           flexGrow: 1,
           paddingHorizontal: 20,
-          paddingTop: Math.max(insets?.top ?? 0, 20) + (compact ? 4 : 16),
+          paddingTop: Math.max(insets?.top ?? 0, 16) + (compact ? 0 : 8),
           paddingBottom,
         }}
       >
-        <View style={{ width: "100%", maxWidth: 480, alignSelf: "center" }}>
+        <View style={{ width: "100%", maxWidth: 440, alignSelf: "center" }}>
           {showBrand ? (
             <View
               testID="auth-brand"
               style={{
                 alignSelf: "flex-start",
-                marginBottom: compact ? 12 : 28,
-                borderRadius: 16,
-                overflow: "hidden",
+                marginBottom: compact ? 24 : 36,
               }}
             >
-              <Logo size={56} />
+              <Logo
+                size={25}
+                variant="wordmark"
+                color={theme.colors.textPrimary}
+              />
             </View>
           ) : null}
           <ScreenIntro
             title={title}
             description={description}
-            eyebrow={eyebrow ?? (showBrand ? undefined : "ONEUPTIME")}
+            eyebrow={eyebrow}
             compact={compact}
           />
-          {children}
+          <View testID="auth-form" style={{ marginTop: compact ? 0 : 8 }}>
+            {children}
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -96,19 +100,19 @@ export function AuthStep({
       style={{
         flexDirection: "row",
         alignItems: "flex-start",
-        marginTop: 8,
-        marginBottom: 18,
+        marginTop: 12,
+        marginBottom: 20,
       }}
     >
       <View
         style={{
           minWidth: 32,
           minHeight: 32,
-          borderRadius: 16,
+          borderRadius: 8,
           padding: 6,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: theme.colors.iconBackground,
+          backgroundColor: theme.colors.backgroundPrimary,
           marginRight: 12,
         }}
       >

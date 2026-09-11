@@ -101,8 +101,13 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
 
   if (overrides.isError) {
     return (
-      <View
+      <ScrollView
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
+        contentContainerStyle={{
+          padding: 20,
+          paddingBottom: bottomPadding,
+          flexGrow: 1,
+        }}
       >
         <EmptyState
           title="Could not load overrides"
@@ -113,7 +118,7 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
             return overrides.refetch();
           }}
         />
-      </View>
+      </ScrollView>
     );
   }
 
@@ -138,26 +143,29 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
     >
       <ScreenIntro
         title="Coverage"
-        description="Arrange a handoff and see who receives pages while someone is away."
+        description="Know who is covering, and make the next handoff simple."
       />
       {hasAny ? (
         <View
           testID="coverage-counts"
-          style={{ flexDirection: "row", gap: 12, marginBottom: 20 }}
+          style={{
+            flexDirection: "row",
+            gap: 24,
+            paddingBottom: 24,
+            marginBottom: 22,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.colors.borderSubtle,
+          }}
         >
-          <View
-            style={{
-              flex: 1,
-              padding: 18,
-              borderRadius: 16,
-              backgroundColor: theme.colors.oncallActiveBg,
-            }}
-          >
+          <View style={{ flex: 1, gap: 5 }}>
             <Text
               style={{
-                fontSize: 28,
-                fontWeight: "700",
-                color: theme.colors.oncallActive,
+                fontSize: 36,
+                lineHeight: 42,
+                fontWeight: "600",
+                letterSpacing: -1,
+                color: theme.colors.textPrimary,
+                fontVariant: ["tabular-nums"],
               }}
             >
               {overrides.active.length}
@@ -165,28 +173,22 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
             <Text
               style={{
                 fontSize: 14,
-                marginTop: 4,
+                lineHeight: 21,
                 color: theme.colors.textSecondary,
               }}
             >
               Active now
             </Text>
           </View>
-          <View
-            style={{
-              flex: 1,
-              padding: 18,
-              borderRadius: 16,
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderSubtle,
-            }}
-          >
+          <View style={{ flex: 1, gap: 5 }}>
             <Text
               style={{
-                fontSize: 28,
-                fontWeight: "700",
+                fontSize: 36,
+                lineHeight: 42,
+                fontWeight: "600",
+                letterSpacing: -1,
                 color: theme.colors.textPrimary,
+                fontVariant: ["tabular-nums"],
               }}
             >
               {overrides.upcoming.length}
@@ -194,7 +196,7 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
             <Text
               style={{
                 fontSize: 14,
-                marginTop: 4,
+                lineHeight: 21,
                 color: theme.colors.textSecondary,
               }}
             >
@@ -217,17 +219,15 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
         <View
           style={{
             marginTop: 24,
-            borderRadius: 16,
-            padding: 18,
-            backgroundColor: theme.colors.backgroundElevated,
-            borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
+            paddingVertical: 24,
+            borderTopWidth: 1,
+            borderTopColor: theme.colors.borderSubtle,
           }}
         >
           <Text
             style={{
-              fontSize: 14,
-              lineHeight: 20,
+              fontSize: 15,
+              lineHeight: 23,
               color: theme.colors.textSecondary,
             }}
           >
@@ -238,8 +238,8 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
       ) : null}
 
       {overrides.active.length > 0 ? (
-        <View style={{ marginTop: 28 }}>
-          <SectionHeader title="In effect now" iconName="flash-outline" />
+        <View style={{ marginTop: 30 }}>
+          <SectionHeader title="In effect now" />
           <View style={{ gap: 12 }}>
             {overrides.active.map((override: OnCallOverrideItem) => {
               return (
@@ -259,8 +259,8 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
       ) : null}
 
       {overrides.upcoming.length > 0 ? (
-        <View style={{ marginTop: 28 }}>
-          <SectionHeader title="Scheduled" iconName="calendar-outline" />
+        <View style={{ marginTop: 30 }}>
+          <SectionHeader title="Scheduled" />
           <View style={{ gap: 12 }}>
             {overrides.upcoming.map((override: OnCallOverrideItem) => {
               return (
@@ -280,8 +280,8 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
       ) : null}
 
       {overrides.past.length > 0 ? (
-        <View style={{ marginTop: 28 }}>
-          <SectionHeader title="Ended" iconName="checkmark-done-outline" />
+        <View style={{ marginTop: 30 }}>
+          <SectionHeader title="Ended" />
           <View style={{ gap: 12 }}>
             {overrides.past.map((override: OnCallOverrideItem) => {
               return (

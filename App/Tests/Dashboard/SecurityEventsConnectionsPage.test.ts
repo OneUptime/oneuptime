@@ -28,9 +28,10 @@ import nodePath from "path";
  *     renamed segment leaves the Events tab lit on the Connections page,
  *     or the breadcrumb trail empty, and nothing looks wrong on screen.
  *
- *  2. The content. lastPolledAt and lastError have to stay on the table,
- *     with "Never" on Last Polled, because their absence from the product
- *     is the whole reason this ticket happened. And the docs have to keep
+ *  2. The content. lastPolledAt and lastError have to stay accessible,
+ *     with "Never" on Last Polled and a View Error action for failures,
+ *     because their absence from the product is the whole reason this
+ *     ticket happened. And the docs have to keep
  *     describing the page that actually shipped — they previously told the
  *     reader to open a "Security Events -> Google SecOps Connections" nav
  *     entry that never existed.
@@ -72,6 +73,10 @@ const TAB_RULE_PATTERN: RegExp =
 const FIELD_HEAD_PATTERN: RegExp = /field:\s*\{\s*(\w+):\s*true/g;
 /* Matches `title: "..."` inside a single extracted entry. */
 const TITLE_PATTERN: RegExp = /title:\s*"([^"]*)"/;
+/* Fields fetched for row actions even when they are not visible columns. */
+const SELECT_MORE_FIELDS_PATTERN: RegExp =
+  /selectMoreFields=\{\{([\s\S]*?)\}\}/;
+const LAST_ERROR_SELECTION_PATTERN: RegExp = /\blastError:\s*true/;
 /* Matches the page import in SecurityEventsRoutes.tsx. */
 const CONNECTIONS_PAGE_IMPORT_PATTERN: RegExp =
   /import\s+(\w+)\s+from\s+"\.\.\/Pages\/SecurityEvents\/GoogleSecOpsConnections"/;
@@ -544,14 +549,22 @@ describe("Security events connections page content", () => {
    * had never polled looked identical to one polling happily and the only
    * readout was a raw SQL query against the customer's database.
    */
-  test("both poller-health columns are on the table", () => {
+  test("polling attempts stay visible while errors move to row actions", () => {
     expect(columnNames).toContain("lastPolledAt");
-    expect(columnNames).toContain("lastError");
+    expect(columnNames).not.toContain("lastError");
 
     expect(titleOf(getEntry(columnEntries, "lastPolledAt"))).toBe(
       "Last Polled",
     );
-    expect(titleOf(getEntry(columnEntries, "lastError"))).toBe("Last Error");
+    expect(actionButtonsBlock).toContain('title: "View Error"');
+  });
+
+  test("the row action can fetch the error without a Last Error column", () => {
+    const selectedFields: RegExpMatchArray | null =
+      SELECT_MORE_FIELDS_PATTERN.exec(connectionsPageSource);
+
+    expect(selectedFields).not.toBeNull();
+    expect(selectedFields![1]).toMatch(LAST_ERROR_SELECTION_PATTERN);
   });
 
   /*
@@ -704,6 +717,19 @@ describe("Google SecOps integration docs", () => {
 
     // And the rotate action the docs point at is the button's real title.
     expect(docsSource).toContain("**Update Service Account JSON**");
+  });
+
+  test("the docs direct readers to View Error in Actions instead of a table column", () => {
+    const columnSummary: string = docsSource
+      .slice(docsSource.indexOf("The connections list shows "))
+      .split("\n")[0] as string;
+
+    expect(columnSummary).not.toContain("**Last Error**");
+    expect(columnSummary).toContain("When a connection has an error");
+    expect(columnSummary).toContain("**View Error**");
+    expect(columnSummary).toContain("**Actions** column");
+    expect(docsSource).not.toContain("**View Full Error**");
+    expect(docsSource).not.toContain("The table shows a short preview");
   });
 
   /*

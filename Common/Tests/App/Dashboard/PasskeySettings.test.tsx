@@ -373,13 +373,31 @@ describe("Passkey settings registration", () => {
     },
   );
 
-  test("shows a concise empty state for passkeys", () => {
-    renderPage();
-    expect(screen.getByText("No passkeys added yet.")).toBeVisible();
-    expect(
-      screen.queryByText("No passkeys or security keys found."),
-    ).not.toBeInTheDocument();
-  });
+  test.each([true, false])(
+    "shows a concise empty state without the legacy credential notice: passkeys %s",
+    async (isPasskey: boolean) => {
+      mockPasskeyTable([]);
+      renderPage(isPasskey);
+      expect(
+        await screen.findByText(
+          isPasskey ? "No passkeys added yet." : "No security keys added yet.",
+        ),
+      ).toBeVisible();
+      expect(
+        screen.queryByText("No passkeys or security keys found."),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          /Existing credentials appear on both security pages/,
+        ),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("button", {
+          name: isPasskey ? "Add Passkey" : "Add Security Key",
+        }),
+      ).toBeEnabled();
+    },
+  );
 
   test.each([false, true])(
     "uses the shared table header and standard add action when a saved passkey is present: %s",
@@ -448,25 +466,81 @@ describe("Passkey settings registration", () => {
   );
 
   test.each([true, false])(
-    "keeps existing credentials manageable when their original purpose is unknown: passkeys %s",
+    "omits legacy notices and badges while keeping mixed saved credentials manageable: passkeys %s",
     async (isPasskey: boolean) => {
       const storedKey: UserWebAuthn = new UserWebAuthn();
       storedKey._id = "44444444-4444-4444-8444-444444444444";
       storedKey.name = "Existing device";
       storedKey.isVerified = true;
-      mockPasskeyTable([storedKey]);
+      const olderKey: UserWebAuthn = UserWebAuthn.fromJSONObject(
+        {
+          _id: "55555555-5555-4555-8555-555555555555",
+          name: "Older device",
+          isVerified: true,
+          isPasskey: null,
+        },
+        UserWebAuthn,
+      );
+      const currentKey: UserWebAuthn = new UserWebAuthn();
+      currentKey._id = "66666666-6666-4666-8666-666666666666";
+      currentKey.name = "New device";
+      currentKey.isVerified = false;
+      currentKey.isPasskey = isPasskey;
+      const namedKey: UserWebAuthn = new UserWebAuthn();
+      namedKey._id = "77777777-7777-4777-8777-777777777777";
+      namedKey.name = "Existing credential";
+      namedKey.isVerified = true;
+      mockPasskeyTable([storedKey, olderKey, currentKey, namedKey]);
       renderPage(isPasskey);
       expect(await screen.findByText("Existing device")).toBeVisible();
-      expect(screen.getByText("Existing credential")).toBeVisible();
       expect(
-        screen.getByText(/Existing credentials appear on both security pages/),
-      ).toBeVisible();
+        screen.queryByText(
+          /Existing credentials appear on both security pages/,
+        ),
+      ).not.toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Rename", exact: true }),
+        screen.queryByText(/They continue to work as before/),
+      ).not.toBeInTheDocument();
+
+      for (const name of [
+        "Existing device",
+        "Older device",
+        "New device",
+        "Existing credential",
+      ]) {
+        const row: HTMLElement = screen.getByRole("row", {
+          name: new RegExp(name),
+        });
+        expect(within(row).getByText(name)).toBeVisible();
+        expect(
+          within(row).getByRole("button", { name: "Rename", exact: true }),
+        ).toBeEnabled();
+        expect(
+          within(row).getByRole("button", { name: "Delete", exact: true }),
+        ).toBeEnabled();
+        if (name !== "Existing credential") {
+          expect(
+            within(row).queryByText("Existing credential"),
+          ).not.toBeInTheDocument();
+        }
+        if (name === "New device") {
+          expect(within(row).getByText("Setup incomplete")).toBeVisible();
+        } else {
+          expect(within(row).getByText("Ready")).toBeVisible();
+        }
+      }
+      expect(
+        screen.getAllByText("Existing credential", { exact: true }),
+      ).toHaveLength(1);
+      expect(
+        screen.getByRole("button", {
+          name: isPasskey ? "Add Passkey" : "Add Security Key",
+        }),
       ).toBeEnabled();
-      expect(
-        screen.getByRole("button", { name: "Delete", exact: true }),
-      ).toBeEnabled();
+      expect(mockCredentialTableProps?.query).toEqual({
+        userId: UserUtil.getUserId(),
+        isPasskey: new EqualToOrNull(isPasskey ? "true" : "false"),
+      });
     },
   );
 
@@ -541,16 +615,37 @@ describe("Passkey settings registration", () => {
     ).toHaveTextContent("Passkey added. Use it the next time you sign in.");
   });
 
-  test("registers a security key as a second factor from the two-factor page", async () => {
+  test("registers security keys, closes registration and refreshes the list without a success banner", async () => {
     renderPage(false);
-    await register(false);
-    expect(posted[0]?.data).toEqual({ isPasskey: false });
-    expect(posted[1]?.data).toMatchObject({ name: "My laptop" });
-    expect(
-      screen.getByTestId("passkey-registration-success"),
-    ).toHaveTextContent(
-      "Security key added. It is ready to use for two-factor authentication.",
-    );
+    for (const registrationNumber of [1, 2]) {
+      const refreshBefore: string | null = screen
+        .getByTestId("security-keys-table")
+        .getAttribute("data-refresh");
+      await register(false);
+
+      expect(posted).toHaveLength(registrationNumber * 2);
+      expect(posted[(registrationNumber - 1) * 2]?.data).toEqual({
+        isPasskey: false,
+      });
+      expect(posted[registrationNumber * 2 - 1]?.data).toMatchObject({
+        name: "My laptop",
+      });
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId("security-keys-table").getAttribute("data-refresh"),
+      ).not.toBe(refreshBefore);
+      expect(
+        screen.queryByTestId("passkey-registration-success"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          "Security key added. It is ready to use for two-factor authentication.",
+        ),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Add Security Key" }),
+      ).toBeEnabled();
+    }
   });
 
   test.each([true, false])(
@@ -562,6 +657,16 @@ describe("Passkey settings registration", () => {
       expect(screen.getByTestId("enrolment-backup-codes")).toHaveTextContent(
         "ABCDE-12345,FGHIJ-67890",
       );
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      if (isPasskey) {
+        expect(
+          screen.getByTestId("passkey-registration-success"),
+        ).toHaveTextContent("Passkey added. Use it the next time you sign in.");
+      } else {
+        expect(
+          screen.queryByTestId("passkey-registration-success"),
+        ).not.toBeInTheDocument();
+      }
     },
   );
 
@@ -597,6 +702,11 @@ describe("Passkey settings registration", () => {
       });
       expect(posted).toHaveLength(3);
       expect(posted[2]?.data).toMatchObject({ name: "My laptop" });
+      if (!isPasskey) {
+        expect(
+          screen.queryByTestId("passkey-registration-success"),
+        ).not.toBeInTheDocument();
+      }
     },
   );
 
@@ -750,49 +860,65 @@ describe("Passkey settings registration", () => {
     ).toHaveTextContent("Passkey added");
   });
 
-  test("keeps verification visible until saving finishes and preserves returned recovery codes", async () => {
-    let finish: ((value: HTTPResponse<JSONObject>) => void) | undefined;
-    jest
-      .spyOn(API, "post")
-      .mockResolvedValueOnce(
-        new HTTPResponse<JSONObject>(200, { options: registrationOptions }, {}),
-      )
-      .mockImplementationOnce(() => {
-        return new Promise<HTTPResponse<JSONObject>>(
-          (resolve: (value: HTTPResponse<JSONObject>) => void) => {
-            finish = resolve;
-          },
+  test.each([true, false])(
+    "keeps verification visible until saving finishes and preserves returned recovery codes: passkey %s",
+    async (isPasskey: boolean) => {
+      let finish: ((value: HTTPResponse<JSONObject>) => void) | undefined;
+      jest
+        .spyOn(API, "post")
+        .mockResolvedValueOnce(
+          new HTTPResponse<JSONObject>(
+            200,
+            { options: registrationOptions },
+            {},
+          ),
+        )
+        .mockImplementationOnce(() => {
+          return new Promise<HTTPResponse<JSONObject>>(
+            (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+              finish = resolve;
+            },
+          );
+        });
+      renderPage(isPasskey);
+      await register(isPasskey);
+      expect(screen.getByRole("status")).toHaveTextContent("Saving your key");
+      expect(
+        screen.queryByRole("button", { name: "Cancel" }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Close" }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("passkey-registration-success"),
+      ).not.toBeInTheDocument();
+      await keyboard("{Escape}");
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      await act(async () => {
+        finish!(
+          new HTTPResponse<JSONObject>(
+            200,
+            { verified: true, backupCodes: ["ABCDE-12345"] },
+            {},
+          ),
         );
       });
-    renderPage();
-    await register();
-    expect(screen.getByRole("status")).toHaveTextContent("Saving your key");
-    expect(
-      screen.queryByRole("button", { name: "Cancel" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Close" }),
-    ).not.toBeInTheDocument();
-    await keyboard("{Escape}");
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    await act(async () => {
-      finish!(
-        new HTTPResponse<JSONObject>(
-          200,
-          { verified: true, backupCodes: ["ABCDE-12345"] },
-          {},
-        ),
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.getByTestId("enrolment-backup-codes")).toHaveTextContent(
+        "ABCDE-12345",
       );
-    });
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.getByTestId("enrolment-backup-codes")).toHaveTextContent(
-      "ABCDE-12345",
-    );
-    expect(
-      screen.getByTestId("passkey-registration-success"),
-    ).toHaveTextContent("Passkey added");
-  });
+      if (isPasskey) {
+        expect(
+          screen.getByTestId("passkey-registration-success"),
+        ).toHaveTextContent("Passkey added");
+      } else {
+        expect(
+          screen.queryByTestId("passkey-registration-success"),
+        ).not.toBeInTheDocument();
+      }
+    },
+  );
 
   test.each([true, false])(
     "lets the owner rename a key without updating credential or verification fields: passkey %s",

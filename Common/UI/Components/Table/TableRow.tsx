@@ -21,6 +21,7 @@ import LongTextViewer from "../LongText/LongTextViewer";
 
 export interface ComponentProps<T extends GenericObject> {
   item: T;
+  rowProps?: React.HTMLAttributes<HTMLElement> | undefined;
   columns: Columns<T>;
   actionButtons?: Array<ActionButtonSchema<T>> | undefined;
   enableDragAndDrop?: boolean | undefined;
@@ -164,9 +165,10 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
       return (
         <>
           <div
+            {...props.rowProps}
             {...provided?.draggableProps}
             ref={provided?.innerRef}
-            className="p-4 bg-white border-b border-gray-200"
+            className={`p-4 bg-white border-b border-gray-200 ${props.rowProps?.className || ""}`}
           >
             {props.enableDragAndDrop ? (
               <div
@@ -377,7 +379,11 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     // Desktop view: render as table row
     return (
       <>
-        <tr {...provided?.draggableProps} ref={provided?.innerRef}>
+        <tr
+          {...props.rowProps}
+          {...provided?.draggableProps}
+          ref={provided?.innerRef}
+        >
           {props.enableDragAndDrop && (
             <td
               className="ml-5 py-4 w-10 align-top"

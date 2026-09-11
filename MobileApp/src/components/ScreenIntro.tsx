@@ -27,10 +27,10 @@ export default function ScreenIntro({
       {eyebrow ? (
         <Text
           style={{
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: "700",
-            letterSpacing: 1.2,
-            color: theme.colors.actionPrimary,
+            letterSpacing: 1.5,
+            color: theme.colors.textTertiary,
           }}
         >
           {eyebrow.toUpperCase()}
@@ -41,10 +41,10 @@ export default function ScreenIntro({
           accessibilityRole="header"
           style={{
             flex: 1,
-            fontSize: 30,
-            lineHeight: 38,
-            fontWeight: "700",
-            letterSpacing: -0.8,
+            fontSize: compact ? 28 : 34,
+            lineHeight: compact ? 35 : 42,
+            fontWeight: "800",
+            letterSpacing: -1.2,
             color: theme.colors.textPrimary,
           }}
         >

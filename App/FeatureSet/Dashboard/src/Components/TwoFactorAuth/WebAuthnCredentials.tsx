@@ -35,8 +35,6 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
   const [credentialCount, setCredentialCount] = React.useState<number | null>(
     null,
   );
-  const [hasExistingCredentials, setHasExistingCredentials] =
-    React.useState<boolean>(false);
   const [tableRefreshToggle, setTableRefreshToggle] =
     React.useState<string>("0");
 
@@ -174,7 +172,7 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
       setWebAuthnRegistrationSuccess(
         isRegisteringPasskey
           ? "Passkey added. Use it the next time you sign in."
-          : "Security key added. It is ready to use for two-factor authentication.",
+          : null,
       );
       setTableRefreshToggle((previous: string) => {
         return String(Number(previous) + 1);
@@ -226,14 +224,8 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
           // Credentials created before purposes were recorded stay manageable.
           isPasskey: new EqualToOrNull(props.isPasskey ? "true" : "false"),
         }}
-        selectMoreFields={{ isPasskey: true }}
-        onFetchSuccess={(items: Array<UserWebAuthn>, totalCount: number) => {
+        onFetchSuccess={(_items: Array<UserWebAuthn>, totalCount: number) => {
           setCredentialCount(totalCount);
-          setHasExistingCredentials(
-            items.some((item: UserWebAuthn) => {
-              return item.isPasskey === null || item.isPasskey === undefined;
-            }),
-          );
         }}
         isEditable={true}
         editButtonText="Rename"
@@ -257,15 +249,6 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
             },
           ],
         }}
-        topContent={
-          hasExistingCredentials ? (
-            <p className="border-b border-gray-100 bg-gray-50 px-6 py-3 text-xs leading-5 text-gray-500">
-              Existing credentials appear on both security pages because their
-              original setup type was not recorded. They continue to work as
-              before.
-            </p>
-          ) : undefined
-        }
         noItemsMessage={
           <div className="px-4 py-7 text-center">
             <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-500">
@@ -321,11 +304,6 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
                   </span>
                   <div className="min-w-0">
                     <p className="font-medium text-gray-900">{item.name}</p>
-                    {item.isPasskey === null || item.isPasskey === undefined ? (
-                      <span className="mt-1 inline-flex rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                        Existing credential
-                      </span>
-                    ) : null}
                   </div>
                 </div>
               );

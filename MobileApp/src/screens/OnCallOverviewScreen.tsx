@@ -153,8 +153,7 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
     >
       <ScreenIntro
         title="On call"
-        eyebrow="YOUR WORKSPACE"
-        description="Your duty, coverage and upcoming shifts."
+        description="Your team, your shifts, your peace of mind."
       />
       <OnCallStatusCard summary={duty.summary} now={now} />
 
@@ -162,7 +161,7 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
         <QuickActionTile
           testID="quick-action-cover"
           label="Cover for me"
-          sublabel="Choose a teammate to take your pages"
+          sublabel="Arrange a handoff"
           iconName="swap-horizontal-outline"
           accentColor={theme.colors.severityInfo}
           onPress={() => {
@@ -172,7 +171,7 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
         <QuickActionTile
           testID="quick-action-roster"
           label="Who's on call"
-          sublabel="Find the right person to contact"
+          sublabel="See the team roster"
           iconName="people-outline"
           accentColor={theme.colors.oncallActive}
           onPress={() => {
@@ -186,7 +185,7 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
           testID="row-pages"
           iconName="notifications-outline"
           title="Pages sent to me"
-          subtitle="Review notifications and open the incident or alert"
+          subtitle="Your recent response requests"
           onPress={() => {
             navigation.navigate("MyOnCallPages");
           }}
@@ -362,7 +361,7 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
         </View>
       ) : null}
 
-      <View style={{ marginTop: 28, gap: 12 }}>
+      <View style={{ marginTop: 28, gap: 0 }}>
         <SectionHeader title="Manage on-call" iconName="options-outline" />
 
         <NavigationRow
@@ -443,29 +442,30 @@ function NavigationRow({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          padding: 16,
+          paddingVertical: 16,
+          paddingHorizontal: 14,
           minHeight: 80,
-          borderRadius: 16,
+          borderRadius: 0,
           backgroundColor: theme.colors.backgroundElevated,
-          borderWidth: 1,
-          borderColor: theme.colors.borderGlass,
+          borderBottomWidth: 1,
+          borderBottomColor: theme.colors.borderSubtle,
         }}
       >
         <View
           style={{
-            width: 42,
-            height: 42,
-            borderRadius: 12,
+            width: 30,
+            height: 30,
+            borderRadius: 0,
             alignItems: "center",
             justifyContent: "center",
             marginRight: 12,
-            backgroundColor: theme.colors.iconBackground,
+            backgroundColor: "transparent",
           }}
         >
           <Ionicons
             name={iconName}
-            size={15}
-            color={theme.colors.actionPrimary}
+            size={21}
+            color={theme.colors.textSecondary}
           />
         </View>
 

@@ -31,6 +31,7 @@ describe("Roster coverage cards", () => {
     expect(screen.getByText(/Next: Priya/)).toBeTruthy();
     expect(screen.getByText("YOU")).toBeTruthy();
     expect(screen.getByText("Handoff")).toBeTruthy();
+    expect(screen.queryByText("Production")).toBeNull();
   });
 
   test("does not count a future responder as current coverage", async (): Promise<void> => {
@@ -41,6 +42,9 @@ describe("Roster coverage cards", () => {
     expect(screen.getByText(/Next: Priya/)).toBeTruthy();
     expect(screen.queryByText("YOU")).toBeNull();
     expect(screen.queryByText("Handoff")).toBeNull();
+    expect(screen.getByTestId("roster-card-schedule")).toHaveStyle({
+      borderLeftWidth: 3,
+    });
   });
 
   test("shares the specific schedule through a labelled 48-point control", async (): Promise<void> => {
@@ -78,6 +82,10 @@ describe("Roster coverage cards", () => {
       />,
     );
     expect(screen.getByTestId("roster-share-schedule")).toBeDisabled();
+    expect(screen.getByRole("button").props.accessibilityState.disabled).toBe(
+      true,
+    );
+    expect(screen.getByRole("button").props.accessibilityState.busy).toBe(true);
     expect(
       screen.getByTestId("roster-share-schedule").props.accessibilityState.busy,
     ).toBe(true);

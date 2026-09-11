@@ -217,31 +217,52 @@ describe("Home shortcuts open the view their labels promise", () => {
   test.each([
     [
       "Active Incidents",
-      "Incidents",
-      "IncidentsList",
-      { initialSegment: "incidents", initialFilter: "active" },
+      "Inbox",
+      "InboxList",
+      {
+        initialView: "incidents",
+        initialSegment: "incidents",
+        initialFilter: "active",
+      },
     ],
     [
       "Active Alerts",
-      "Alerts",
-      "AlertsList",
-      { initialSegment: "alerts", initialFilter: "active" },
+      "Inbox",
+      "InboxList",
+      {
+        initialView: "alerts",
+        initialSegment: "alerts",
+        initialFilter: "active",
+      },
     ],
     [
       "Incident Episodes",
-      "Incidents",
-      "IncidentsList",
-      { initialSegment: "episodes", initialFilter: "active" },
+      "Inbox",
+      "InboxList",
+      {
+        initialView: "incidents",
+        initialSegment: "episodes",
+        initialFilter: "active",
+      },
     ],
     [
       "Alert Episodes",
-      "Alerts",
-      "AlertsList",
-      { initialSegment: "episodes", initialFilter: "active" },
+      "Inbox",
+      "InboxList",
+      {
+        initialView: "alerts",
+        initialSegment: "episodes",
+        initialFilter: "active",
+      },
     ],
-    ["Inoperational", "Monitors", "MonitorsList", { initialFilter: "issues" }],
-    ["Disabled", "Monitors", "MonitorsList", { initialFilter: "disabled" }],
-    ["Total Monitors", "Monitors", "MonitorsList", { initialFilter: "all" }],
+    ["Monitor issues", "Monitors", "MonitorsList", { initialFilter: "issues" }],
+    [
+      "Disabled monitors",
+      "Monitors",
+      "MonitorsList",
+      { initialFilter: "disabled" },
+    ],
+    ["All monitors", "Monitors", "MonitorsList", { initialFilter: "all" }],
   ])(
     "%s opens its matching segment and filter",
     async (
@@ -299,12 +320,16 @@ describe("A stat card never claims a count it does not have", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByLabelText("Inoperational, not available yet. Tap to view."),
+        screen.getByLabelText(
+          "Monitor issues, not available yet. Tap to view.",
+        ),
       ).toBeTruthy();
     });
 
     expect(
-      screen.getByLabelText("Disabled, not available yet. Tap to view."),
+      screen.getByLabelText(
+        "Disabled monitors, not available yet. Tap to view.",
+      ),
     ).toBeTruthy();
 
     /*
@@ -321,11 +346,13 @@ describe("A stat card never claims a count it does not have", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByLabelText("0 Inoperational. Tap to view."),
+        screen.getByLabelText("0 Monitor issues. Tap to view."),
       ).toBeTruthy();
     });
 
-    expect(screen.getByLabelText("0 Disabled. Tap to view.")).toBeTruthy();
+    expect(
+      screen.getByLabelText("0 Disabled monitors. Tap to view."),
+    ).toBeTruthy();
     expect(screen.queryByText("--")).toBeNull();
   });
 
@@ -336,12 +363,16 @@ describe("A stat card never claims a count it does not have", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByLabelText("Inoperational, not available yet. Tap to view."),
+        screen.getByLabelText(
+          "Monitor issues, not available yet. Tap to view.",
+        ),
       ).toBeTruthy();
     });
 
     expect(
-      screen.getByLabelText("Disabled, not available yet. Tap to view."),
+      screen.getByLabelText(
+        "Disabled monitors, not available yet. Tap to view.",
+      ),
     ).toBeTruthy();
     expect(screen.queryByText("0")).toBeNull();
   });
@@ -400,8 +431,12 @@ describe("A stat card never claims a count it does not have", () => {
       expect(screen.getByText("12")).toBeTruthy();
     });
 
-    expect(screen.getByLabelText("5 Disabled. Tap to view.")).toBeTruthy();
-    expect(screen.getByLabelText("6 Inoperational. Tap to view.")).toBeTruthy();
+    expect(
+      screen.getByLabelText("5 Disabled monitors. Tap to view."),
+    ).toBeTruthy();
+    expect(
+      screen.getByLabelText("6 Monitor issues. Tap to view."),
+    ).toBeTruthy();
 
     // Related episodes are not added to their incidents as a misleading total.
     expect(screen.queryByText("Total active items")).toBeNull();

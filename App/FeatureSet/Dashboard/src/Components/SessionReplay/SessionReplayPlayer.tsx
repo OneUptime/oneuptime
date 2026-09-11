@@ -15,6 +15,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Skeleton from "Common/UI/Components/Skeleton/Skeleton";
+import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -380,6 +381,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   const [activeTabId, setActiveTabId] = useState<string>("");
   const [fit, setFit] = useState<ReplayStageFit>("contain");
   const [scale, setScale] = useState<number>(1);
+  const [scrubberHeightPx, setScrubberHeightPx] = useState<number>(240);
   const [isTheater, setIsTheater] = useState<boolean>(false);
   const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(
@@ -397,6 +399,8 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     useState<ReplayBackendSignalsStore | null>(null);
 
   const rootRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+  const scrubberContainerRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
   const railContainerRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
   const railRef: React.RefObject<ReplayRailHandle> =
@@ -1752,6 +1756,29 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     });
   }, []);
 
+  /* Fit the recording above its actual controls, including wrapped layouts. */
+  useEffect(() => {
+    const container: HTMLDivElement | null = scrubberContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const measure: () => void = (): void => {
+      setScrubberHeightPx(container.getBoundingClientRect().height);
+    };
+    measure();
+    const observer: ResizeObserver | null =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(measure)
+        : null;
+    observer?.observe(container);
+    window.addEventListener("resize", measure);
+    return (): void => {
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [manifest !== null, engine]);
+
   /* ---- Render. ---- */
 
   if (manifestFailure) {
@@ -1835,14 +1862,18 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
      */
     return (
       <div data-testid="replay-loading" className="flex flex-col">
-        <div className="mb-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
-          <Skeleton className="h-4" widthVariantIndex={0} />
-          <Skeleton className="mt-2 h-4" widthVariantIndex={1} />
-        </div>
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-stretch">
+        <Skeleton className="mb-3 h-4" widthVariantIndex={0} />
+        <Card title="Session recording">
+          <div className="grid grid-cols-1 gap-4 border-t border-gray-100 pt-4 sm:grid-cols-2 xl:grid-cols-3">
+            <Skeleton className="h-10" widthVariantIndex={0} />
+            <Skeleton className="h-10" widthVariantIndex={1} />
+            <Skeleton className="h-10" widthVariantIndex={0} />
+          </div>
+        </Card>
+        <div className="flex min-w-0 flex-col gap-5 xl:flex-row xl:items-stretch">
           <div className="flex min-w-0 flex-1 flex-col">
             <div
-              className="w-full animate-pulse rounded-lg bg-gray-900"
+              className="w-full animate-pulse rounded-lg bg-gray-100"
               style={{
                 aspectRatio: "16 / 9",
                 minHeight: "24rem",
@@ -1852,7 +1883,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
               aria-label="Loading the recording"
             />
           </div>
-          <div className="w-full shrink-0 xl:w-[30rem]">
+          <div className="w-full shrink-0 xl:w-[30rem] xl:max-w-[40%]">
             <ReplayRail
               signals={NO_SIGNALS}
               sessionId={sessionId}
@@ -1919,6 +1950,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
        * and scroll. `h-full` resolved to the rail's full CONTENT height,
        * which is why nothing in the rail ever scrolled (ux-02).
        */
+      onCollapse={toggleRailCollapsed}
       className="min-h-0 flex-1"
     />
   );
@@ -1928,10 +1960,11 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       <div
         ref={rootRef}
         data-testid="replay-player"
+        data-replay-layout="true"
         data-replay-live={isLive ? "true" : "false"}
         className={
           isTheater
-            ? "flex h-full flex-col overflow-auto bg-gray-950 p-3"
+            ? "flex h-full flex-col overflow-auto bg-gray-50 p-4"
             : "flex flex-col"
         }
       >
@@ -1988,7 +2021,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         )}
 
         <div
-          className="flex flex-col gap-4 xl:flex-row xl:items-stretch"
+          className="flex min-w-0 flex-col gap-5 xl:flex-row xl:items-stretch"
           style={railWidthStyle}
         >
           <div className="flex min-w-0 flex-1 flex-col">
@@ -2002,10 +2035,10 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
              * unrelated widgets that happened to be stacked. They are now
              * sections of a single surface, in the order every media
              * player uses: address -> picture -> track -> transport.
-             * `overflow-hidden` is what lets the dark stage run flush to
-             * the card's rounded edges.
+             * Menus may extend beyond this card; clipping here would hide
+             * playback speed options and the overflow menu.
              */}
-            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
               <ReplayStageOverlays
                 snapshot={snapshot}
                 signals={recordingSignals}
@@ -2036,11 +2069,12 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                     isTheater={isTheater}
                     fit={fit}
                     onScaleChange={setScale}
+                    reservedBottomHeightPx={scrubberHeightPx + 24}
                   />
                 )}
                 {isPlayable && !engine && (
                   <div
-                    className="w-full animate-pulse rounded-lg bg-gray-900"
+                    className="w-full animate-pulse rounded-lg bg-gray-100"
                     style={{
                       aspectRatio:
                         recordedSize && recordedSize.height > 0
@@ -2057,7 +2091,10 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
               </ReplayStageOverlays>
 
               {isPlayable && (
-                <div className="border-t border-gray-200">
+                <div
+                  ref={scrubberContainerRef}
+                  className="border-t border-gray-200"
+                >
                   <ReplayScrubber
                     snapshot={snapshot}
                     bands={bands}
@@ -2158,16 +2195,16 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
            * overflowed: follow, the 40% now-divider anchoring, "Jump to
            * now" and the >500-row windowing were all inert, and an
            * 800-signal session produced a page tens of thousands of pixels
-           * tall beside a 70vh stage. Stacked below xl the design's
-           * 22rem sheet applies; beside the stage the column tracks the
-           * viewport. Every wrapper down to ReplayRail's own list carries
+           * tall beside a 70vh stage. Beside the stage the column tracks the
+           * viewport, with extra room when stacked below the player.
+           * Every wrapper down to ReplayRail's own list carries
            * min-h-0 so the overflow lands on the list, not on the page.
            */}
           <div
             ref={railContainerRef}
             data-testid="replay-rail-column"
             data-collapsed={prefs.railCollapsed ? "true" : "false"}
-            className={`relative flex max-h-[22rem] w-full shrink-0 xl:max-h-[calc(100vh-11rem)] ${
+            className={`relative flex min-h-0 max-h-[32rem] w-full shrink-0 xl:max-h-[calc(100vh-15rem)] xl:max-w-[40%] ${
               prefs.railCollapsed
                 ? "xl:w-10"
                 : isTheater
@@ -2206,23 +2243,6 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                 prefs.railCollapsed ? "xl:hidden" : ""
               }`}
             >
-              {!prefs.railCollapsed && (
-                <div className="mb-1 hidden justify-end xl:flex">
-                  <button
-                    type="button"
-                    data-testid="replay-rail-collapse"
-                    className="rounded px-1.5 py-0.5 text-[11px] text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-                    title="Collapse the events rail"
-                    onClick={toggleRailCollapsed}
-                  >
-                    <Icon
-                      icon={IconProp.ChevronRight}
-                      className="inline h-3 w-3"
-                    />{" "}
-                    Collapse
-                  </button>
-                </div>
-              )}
               {railElement}
             </div>
           </div>

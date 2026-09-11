@@ -16,14 +16,10 @@ import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
-import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
-import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import {
   SessionReplayAdvancedFilters,
-  SessionReplaySignalOption,
   SessionReplaySortOption,
-  SESSION_REPLAY_SIGNAL_OPTIONS,
   SESSION_REPLAY_SORT_OPTIONS,
   isSessionReplaySortBy,
 } from "./SessionReplayListFilters";
@@ -51,8 +47,6 @@ export interface SessionReplaySearchBarProps {
   filters: SessionReplayAdvancedFilters;
   onFiltersChange: (next: SessionReplayAdvancedFilters) => void;
   onNavigateToSession: (sessionId: string) => void;
-  signal: string;
-  onSignalChange: (signal: string) => void;
   sortBy: SessionReplaySortBy;
   onSortChange: (sortBy: SessionReplaySortBy) => void;
   timeRange: RangeStartAndEndDateTime;
@@ -84,6 +78,7 @@ function filtersEqual(
 const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
   props: SessionReplaySearchBarProps,
 ): ReactElement => {
+  const [showSearchHelp, setShowSearchHelp] = useState<boolean>(false);
   const debounceMs: number =
     props.debounceMs ?? SESSION_REPLAY_SEARCH_DEBOUNCE_MS;
 
@@ -102,6 +97,10 @@ const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
 
   useEffect((): void => {
     if (!filtersEqual(props.filters, lastEmittedRef.current)) {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
       lastEmittedRef.current = props.filters;
       setText(stringifySessionReplaySearch(props.filters));
     }
@@ -189,7 +188,7 @@ const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
   return (
     <div className="mb-3" data-testid="session-search-bar">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-[16rem] flex-1">
+        <div className="relative min-w-0 basis-72 flex-1">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
             <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
           </div>
@@ -197,11 +196,15 @@ const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
             type="search"
             data-testid="session-search-input"
             aria-label="Search sessions"
-            aria-describedby="session-search-help"
+            aria-describedby={
+              hints.length > 0 || showSearchHelp
+                ? "session-search-help"
+                : undefined
+            }
             autoComplete="off"
             spellCheck={false}
             className="block w-full rounded-md border-0 py-1.5 pl-9 pr-3 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600"
-            placeholder="Search: jane@acme.com, /checkout, a session or trace id, tag:build=1.4.2, min:2m"
+            placeholder="Search by URL, user, session or trace ID"
             value={text}
             onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
               setText(event.target.value);
@@ -241,7 +244,7 @@ const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
         />
 
         <Button
-          title="Filters"
+          title="Advanced filters"
           icon={IconProp.Filter}
           buttonStyle={ButtonStyleType.OUTLINE}
           dataTestId="session-open-filters"
@@ -250,54 +253,31 @@ const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
         />
       </div>
 
-      <p
-        id="session-search-help"
-        className={`mt-1 text-xs ${
-          hints.length > 0 ? "text-amber-700" : "text-gray-500"
-        }`}
-        data-testid="session-search-hint"
-        aria-live="polite"
-      >
-        {hints.length > 0
-          ? hints.join(" ")
-          : "Bare text searches URLs, session and trace ids. Tokens: user:, url: (a path like /checkout, or a full URL), tag:key=value, browser:, os:, device:, country:, trigger:, min:, id:."}
-      </p>
-
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        <FilterButtons
-          options={SESSION_REPLAY_SIGNAL_OPTIONS.map(
-            (
-              option: SessionReplaySignalOption,
-            ): { label: string; value: string } => {
-              return { label: option.label, value: option.value };
-            },
+      <div className="mt-2 flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          {(hints.length > 0 || showSearchHelp) && (
+            <p
+              id="session-search-help"
+              className={`text-xs ${hints.length > 0 ? "text-amber-700" : "text-gray-500"}`}
+              data-testid="session-search-hint"
+              aria-live="polite"
+            >
+              {hints.length > 0
+                ? hints.join(" ")
+                : "Search URLs, session and trace IDs, or use filters such as user:jane@example.com, url:/checkout, tag:plan=pro, browser:Chrome and min:2m. Use id: followed by a full session ID and press Enter to open it."}
+            </p>
           )}
-          selectedValue={props.signal}
-          onSelect={props.onSignalChange}
-        />
-        <Tooltip
-          text={
-            SESSION_REPLAY_SIGNAL_OPTIONS.find(
-              (option: SessionReplaySignalOption): boolean => {
-                return option.value === props.signal;
-              },
-            )?.description ?? ""
-          }
+        </div>
+        <button
+          type="button"
+          className="shrink-0 text-xs text-gray-500 hover:text-indigo-600 focus-visible:outline-indigo-600"
+          aria-expanded={showSearchHelp}
+          onClick={(): void => {
+            return setShowSearchHelp(!showSearchHelp);
+          }}
         >
-          <span
-            className="text-xs text-gray-500"
-            data-testid="session-signal-description"
-            tabIndex={0}
-          >
-            {
-              SESSION_REPLAY_SIGNAL_OPTIONS.find(
-                (option: SessionReplaySignalOption): boolean => {
-                  return option.value === props.signal;
-                },
-              )?.description
-            }
-          </span>
-        </Tooltip>
+          Search help
+        </button>
       </div>
     </div>
   );

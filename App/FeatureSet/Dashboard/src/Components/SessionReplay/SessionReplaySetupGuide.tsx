@@ -43,24 +43,7 @@ import SessionReplayInstallSnippet, {
 } from "./SessionReplayInstallSnippet";
 import { RecordingHealthDiagnosisBanner } from "./RecordingHealthCard";
 
-/*
- * SessionReplaySetupGuide: "there are no recordings - what now?", as a live
- * stepper rather than a static page.
- *
- * Shown in place of an empty session list for an application that has
- * never recorded. Five steps: an ingestion key, one script tag, the CSP
- * lines, the correlation hook, and then a step that is not an instruction
- * at all but three live checks fed by the same health poll the settings
- * page uses (10s while this guide is on screen). The customer pastes the
- * tag, reloads their site, and watches the rows flip here - no "run the
- * test again" button, no guessing which of the four causes of an empty
- * list applies. Each unchecked row names its most likely cause from the
- * policy and the health counters.
- *
- * "Send a test chunk from the dashboard" was considered and dropped: the
- * origin allowlist would refuse a dashboard-origin post. The live poll is
- * the proof instead.
- */
+/* Installation instructions and live checks on the application documentation page. */
 
 const SESSION_REPLAY_LIST_ROUTE: string = "/telemetry/rum/session-replay/list";
 
@@ -395,7 +378,7 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
 
   return (
     <Card
-      title="No recordings yet - here's how to get the first one"
+      title="Set up Session Replay"
       description="Session replay needs one script tag on your site. The checks at the end of this page update live while you set it up."
     >
       <div data-testid="setup-guide">
@@ -407,7 +390,13 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
         {!health.isLoading && health.status !== null && (
           <div className="mb-5" data-testid="setup-guide-diagnosis">
             <RecordingHealthDiagnosisBanner
-              diagnosis={health.diagnosis}
+              diagnosis={{
+                ...health.diagnosis,
+                action:
+                  health.diagnosis.action?.target === "setup-guide"
+                    ? null
+                    : health.diagnosis.action,
+              }}
               rumApplicationId={props.rumApplicationId}
             />
           </div>

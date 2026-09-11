@@ -17,6 +17,7 @@ import {
 } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import getToggleAccessibilityProps from "../utils/getToggleAccessibilityProps";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import ScreenIntro from "../components/ScreenIntro";
 import SearchField from "../components/SearchField";
@@ -50,65 +51,6 @@ interface MonitorCounts {
   disabled: number;
 }
 
-function SummaryPill({
-  count,
-  label,
-  iconName,
-  color,
-}: {
-  count: number;
-  label: string;
-  iconName: keyof typeof Ionicons.glyphMap;
-  color: string;
-}): React.JSX.Element {
-  const { theme } = useTheme();
-  return (
-    <View
-      style={{
-        flex: 1,
-        alignItems: "center",
-        paddingVertical: 10,
-      }}
-    >
-      <View
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 12,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: color + "14",
-          marginBottom: 6,
-        }}
-      >
-        <Ionicons name={iconName} size={16} color={color} />
-      </View>
-      <Text
-        style={{
-          fontSize: 20,
-          fontWeight: "bold",
-          color: theme.colors.textPrimary,
-          fontVariant: ["tabular-nums"],
-          letterSpacing: -0.5,
-        }}
-      >
-        {count}
-      </Text>
-      <Text
-        style={{
-          fontSize: 13,
-          fontWeight: "600",
-          color: theme.colors.textTertiary,
-          marginTop: 2,
-          letterSpacing: 0.2,
-        }}
-      >
-        {label}
-      </Text>
-    </View>
-  );
-}
-
 function MonitorSummary({
   counts,
 }: {
@@ -118,56 +60,72 @@ function MonitorSummary({
   return (
     <View
       style={{
-        marginHorizontal: 0,
-        marginTop: 8,
+        flexDirection: "row",
+        gap: 16,
+        paddingVertical: 20,
         marginBottom: 12,
-        borderRadius: 16,
-        backgroundColor: theme.colors.backgroundElevated,
-        borderWidth: 1,
-        borderColor: theme.colors.borderGlass,
-        overflow: "hidden",
       }}
     >
-      <View
-        style={{
-          flexDirection: "row",
-          paddingHorizontal: 8,
-          paddingVertical: 4,
-        }}
-      >
-        <SummaryPill
-          count={counts.operational}
-          label="Healthy"
-          iconName="checkmark-circle"
-          color={theme.colors.oncallActive}
-        />
-        <View
-          style={{
-            width: 1,
-            marginVertical: 10,
-            backgroundColor: theme.colors.borderSubtle,
-          }}
-        />
-        <SummaryPill
-          count={counts.inoperational}
-          label="Has issues"
-          iconName="close-circle"
-          color={theme.colors.severityCritical}
-        />
-        <View
-          style={{
-            width: 1,
-            marginVertical: 10,
-            backgroundColor: theme.colors.borderSubtle,
-          }}
-        />
-        <SummaryPill
-          count={counts.disabled}
-          label="Disabled"
-          iconName="pause-circle"
-          color={theme.colors.textTertiary}
-        />
-      </View>
+      {[
+        {
+          label: "Healthy",
+          count: counts.operational,
+          color: theme.colors.statusSuccess,
+        },
+        {
+          label: "Has issues",
+          count: counts.inoperational,
+          color: theme.colors.statusError,
+        },
+        {
+          label: "Disabled",
+          count: counts.disabled,
+          color: theme.colors.textSecondary,
+        },
+      ].map((item: { label: string; count: number; color: string }) => {
+        return (
+          <View
+            key={item.label}
+            style={{ flex: 1, gap: 6 }}
+            testID={`monitor-summary-${item.label}`}
+          >
+            <Text
+              style={{
+                fontSize: 32,
+                lineHeight: 38,
+                fontWeight: "600",
+                letterSpacing: -1,
+                color: theme.colors.textPrimary,
+                fontVariant: ["tabular-nums"],
+              }}
+            >
+              {item.count}
+            </Text>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+            >
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: item.color,
+                }}
+              />
+              <Text
+                style={{
+                  flexShrink: 1,
+                  fontSize: 13,
+                  lineHeight: 19,
+                  color: theme.colors.textSecondary,
+                }}
+              >
+                {item.label}
+              </Text>
+            </View>
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -210,6 +168,7 @@ function SectionHeader({
         style={{ marginRight: 6 }}
       />
       <Text
+        accessibilityRole="header"
         style={{
           fontSize: 15,
           fontWeight: "600",
@@ -262,6 +221,7 @@ export default function MonitorsScreen(): React.JSX.Element {
 
   useEffect(() => {
     if (route.params?.initialFilter) {
+      setSearch("");
       setFilter(route.params.initialFilter);
       setVisibleCount(PAGE_SIZE);
     }
@@ -406,8 +366,8 @@ export default function MonitorsScreen(): React.JSX.Element {
     <View style={{ marginBottom: 24 }}>
       <ScreenIntro
         compact
-        title="Service health"
-        description="Check availability and explore what changed."
+        title="Monitors"
+        description="A clear view of what’s up, and what needs a look."
       />
       {totalCount > 0 ? <MonitorSummary counts={counts} /> : null}
       <SearchField
@@ -453,22 +413,18 @@ export default function MonitorsScreen(): React.JSX.Element {
               key={option.key}
               accessibilityRole="button"
               accessibilityLabel={option.label}
-              accessibilityState={{ selected }}
+              {...getToggleAccessibilityProps(selected)}
               onPress={() => {
                 setFilter(option.key);
                 setVisibleCount(PAGE_SIZE);
               }}
               style={{
                 minHeight: 48,
-                paddingHorizontal: 14,
+                paddingHorizontal: 10,
                 justifyContent: "center",
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: selected
-                  ? theme.colors.actionPrimary
-                  : theme.colors.borderDefault,
+                borderRadius: 24,
                 backgroundColor: selected
-                  ? theme.colors.iconBackground
+                  ? theme.colors.textPrimary
                   : theme.colors.backgroundElevated,
               }}
             >
@@ -477,11 +433,17 @@ export default function MonitorsScreen(): React.JSX.Element {
                   fontSize: 14,
                   fontWeight: "600",
                   color: selected
-                    ? theme.colors.actionPrimary
+                    ? theme.colors.textInverse
                     : theme.colors.textSecondary,
                 }}
               >
-                {option.label}
+                {option.key === "all"
+                  ? "All"
+                  : option.key === "issues"
+                    ? "Issues"
+                    : option.key === "operational"
+                      ? "Healthy"
+                      : "Disabled"}
               </Text>
             </Pressable>
           );

@@ -41,7 +41,6 @@ import ResourceOverview, {
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
-import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import {
@@ -537,15 +536,6 @@ const CloudResourceOverview: FunctionComponent<
       ) : (
         <></>
       )}
-
-      <ArchiveResourceCard<CloudResource>
-        modelType={CloudResource}
-        modelId={modelId}
-        singularName="cloud environment"
-        listRoute={RouteUtil.populateRouteParams(
-          RouteMap[PageMap.CLOUD_RESOURCES] as Route,
-        )}
-      />
     </Fragment>
   );
 };

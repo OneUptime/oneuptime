@@ -112,9 +112,9 @@ export default function SSOProviderSelectScreen({
     return (
       <View
         style={{
-          borderRadius: 16,
+          borderRadius: 14,
           overflow: "hidden",
-          backgroundColor: theme.colors.backgroundElevated,
+          backgroundColor: theme.colors.backgroundSecondary,
           borderWidth: 1,
           borderColor: theme.colors.borderGlass,
         }}
@@ -133,6 +133,8 @@ export default function SSOProviderSelectScreen({
                 disabled: authenticatingId !== null,
                 busy: isAuthenticating,
               }}
+              aria-disabled={authenticatingId !== null}
+              aria-busy={isAuthenticating}
               onPress={() => {
                 return handleSelectProvider(provider);
               }}
@@ -228,9 +230,9 @@ export default function SSOProviderSelectScreen({
       <Text
         accessibilityRole="header"
         style={{
-          fontSize: 16,
+          fontSize: 12,
           fontWeight: "600",
-          marginBottom: 8,
+          marginBottom: 10,
           marginLeft: 4,
           color: theme.colors.textTertiary,
           letterSpacing: 0.8,
@@ -249,19 +251,17 @@ export default function SSOProviderSelectScreen({
     >
       <ScreenIntro
         title="Choose your provider"
-        eyebrow="PROJECT SIGN-IN"
-        description="Continue with the account your team uses for work."
+        compact
+        description="Continue with your work account."
       />
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
           marginBottom: 20,
-          padding: 16,
-          borderRadius: 16,
-          backgroundColor: theme.colors.backgroundElevated,
-          borderWidth: 1,
-          borderColor: theme.colors.borderGlass,
+          paddingVertical: 16,
+          borderBottomWidth: 1,
+          borderColor: theme.colors.borderSubtle,
         }}
       >
         <View
@@ -269,16 +269,16 @@ export default function SSOProviderSelectScreen({
             width: 40,
             height: 40,
             borderRadius: 10,
-            backgroundColor: theme.colors.accentCyanBg,
+            backgroundColor: theme.colors.iconBackground,
             alignItems: "center",
             justifyContent: "center",
             marginRight: 14,
           }}
         >
           <Ionicons
-            name="business-outline"
+            name="folder-outline"
             size={18}
-            color={theme.colors.accentCyan}
+            color={theme.colors.actionPrimary}
           />
         </View>
         <View style={{ flex: 1 }}>

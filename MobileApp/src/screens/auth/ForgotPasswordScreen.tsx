@@ -69,8 +69,9 @@ export default function ForgotPasswordScreen(): React.JSX.Element {
 
   return (
     <AuthLayout
-      title={isSent ? "Check your email" : "Forgot Password"}
+      title={isSent ? "Check your email" : "Reset your password"}
       eyebrow="ACCOUNT RECOVERY"
+      compact
     >
       <View style={{ marginBottom: 24 }}>
         {isSent ? (
@@ -99,11 +100,7 @@ export default function ForgotPasswordScreen(): React.JSX.Element {
       {!isSent ? (
         <View
           style={{
-            padding: 20,
-            borderRadius: 16,
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderWidth: 1,
-            borderColor: theme.colors.borderDefault,
+            paddingVertical: 8,
           }}
         >
           <Text

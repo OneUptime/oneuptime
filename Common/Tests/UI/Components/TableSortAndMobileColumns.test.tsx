@@ -51,6 +51,7 @@ const data: Array<Row> = [
 ];
 
 interface RenderTableOptions {
+  getRowProps?: ((item: Row) => React.HTMLAttributes<HTMLElement>) | undefined;
   sortBy?: keyof Row | null | undefined;
   sortOrder?: SortOrder | undefined;
   onSortChanged?:
@@ -67,6 +68,7 @@ const renderTable: RenderTableFunction = (
     <Table<Row>
       id="test-table"
       data={data}
+      getRowProps={options?.getRowProps}
       columns={columns}
       currentPageNumber={1}
       totalItemsCount={data.length}
@@ -191,5 +193,53 @@ describe("hideOnMobile columns", () => {
 
     expect(screen.getByText("Up")).toBeInTheDocument();
     expect(screen.getByText("Down")).toBeInTheDocument();
+  });
+});
+
+describe("optional table row attributes", () => {
+  test.each([1024, 390])(
+    "preserves row navigation and classes at width %i",
+    (width: number) => {
+      setViewportWidth(width);
+      const clicked: Array<string> = [];
+      const keyed: Array<string> = [];
+      renderTable({
+        getRowProps: (row: Row): React.HTMLAttributes<HTMLElement> => {
+          return {
+            "aria-label": `Open ${row.name}`,
+            tabIndex: 0,
+            className: "custom-row",
+            onClick: (): void => {
+              clicked.push(row.name as string);
+            },
+            onKeyDown: (event: React.KeyboardEvent<HTMLElement>): void => {
+              if (event.key === "Enter") {
+                keyed.push(row.name as string);
+              }
+            },
+          };
+        },
+      });
+      const row: HTMLElement = screen.getByLabelText("Open Alpha");
+      expect(row.tagName).toBe(width < 768 ? "DIV" : "TR");
+      expect(row).toHaveClass("custom-row");
+      if (width < 768) {
+        expect(row).toHaveClass("p-4", "bg-white");
+      }
+      row.focus();
+      expect(row).toHaveFocus();
+      fireEvent.click(row);
+      fireEvent.keyDown(row, { key: "Enter" });
+      expect(clicked).toEqual(["Alpha"]);
+      expect(keyed).toEqual(["Alpha"]);
+    },
+  );
+
+  test("keeps rows non-focusable when no attributes are supplied", () => {
+    renderTable();
+    expect(screen.getByText("Alpha").closest("tr")).not.toHaveAttribute(
+      "tabindex",
+    );
+    expect(screen.queryByLabelText("Open Alpha")).toBeNull();
   });
 });

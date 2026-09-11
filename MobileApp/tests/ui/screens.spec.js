@@ -5,6 +5,8 @@ const { installFixtures, projects } = require("./fixtures");
 
 async function capture(page, name, testInfo) {
   await page.evaluate(() => { return document.fonts.ready; });
+  // Allow the native-stack header and tab transitions to finish laying out.
+  await page.waitForTimeout(350);
   const destination = process.env.UPDATE_SCREENSHOTS
     ? path.join(__dirname, "../../docs/screenshots", `${testInfo.project.name}-${name}.png`)
     : testInfo.outputPath(`${name}.png`);
@@ -15,6 +17,21 @@ async function capture(page, name, testInfo) {
 }
 
 async function tab(page, name) {
+  if (name === "Incidents" || name === "Alerts") {
+    const inbox = page.getByRole("tab", { name: "Inbox", exact: true });
+    // Reselecting an active tab pops its stack. Do not race that transition
+    // with a second Back press while an outgoing detail is still mounted.
+    if (await inbox.getAttribute("aria-selected") !== "true") {
+      await inbox.click();
+    }
+    const category = page.getByTestId(`inbox-category-${name.toLowerCase()}`);
+    if (!(await category.isVisible())) {
+      await page.getByRole("button", { name: /back/i }).first().click();
+    }
+    await expect(category).toBeVisible();
+    await category.click();
+    return;
+  }
   await page.getByRole("tab", { name, exact: true }).click();
 }
 
@@ -29,7 +46,7 @@ async function bottomClearance(page) {
     const scroller = scrollers.sort((a, b) => { return b.clientHeight - a.clientHeight; })[0];
     if (!scroller) { return null; }
     scroller.scrollTop = scroller.scrollHeight;
-    const navigation = document.querySelector('[role="tablist"]');
+    const navigation = document.querySelector('[role="tablist"]:not([aria-label="Inbox categories"])');
     const controls = Array.from(scroller.querySelectorAll('[role="button"], input, [role="radio"]')).filter((control) => {
       const rect = control.getBoundingClientRect();
       return rect.width > 0 && rect.height > 0;
@@ -45,11 +62,11 @@ test("main screens, searching, project switching and cold restoration", async ({
   const failures = [];
   page.on("pageerror", (error) => { failures.push(error.message); });
   await page.goto("/");
-  await expect(page.getByText("Your overview", { exact: true })).toBeVisible();
+  await expect(page.getByText("Overview", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Switch project, current project/ })).toContainText(projects[0].name);
   await expect(page.getByRole("button", { name: "2 Active Incidents. Tap to view.", exact: true })).toBeVisible();
   await expect(page.getByText("You're on call", { exact: true })).toBeVisible();
-  for (const name of ["Home", "Monitors", "Incidents", "Alerts", "On-Call", "Settings"]) {
+  for (const name of ["Home", "Monitors", "Inbox", "On-Call", "Settings"]) {
     const label = page.getByRole("tab", { name, exact: true }).getByText(name, { exact: true });
     expect(await label.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   }
@@ -95,7 +112,7 @@ test("main screens, searching, project switching and cold restoration", async ({
   await page.getByRole("button", { name: /^Switch project, current project/ }).click();
   await capture(page, "project-switcher", testInfo);
   await page.getByRole("radio", { name: projects[1].name, exact: true }).click();
-  await expect(page.getByText("Your overview", { exact: true })).toBeVisible();
+  await expect(page.getByText("Overview", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Switch project, current project/ })).toContainText(projects[1].name);
   await tab(page, "Incidents");
   await expect(page.getByText("Staging deployment health check", { exact: true })).toBeVisible();
@@ -104,7 +121,7 @@ test("main screens, searching, project switching and cold restoration", async ({
   const beforeReload = requests.length;
   await page.reload();
   await expect(page.getByRole("button", { name: /^Switch project, current project/ })).toContainText(projects[1].name);
-  await expect(page.getByText("Your overview", { exact: true })).toBeVisible();
+  await expect(page.getByText("Overview", { exact: true })).toBeVisible();
   const operational = requests.slice(beforeReload).filter((request) => { return request.path.startsWith("/api/") && request.path !== "/api/project/get-list"; });
   expect(operational.length).toBeGreaterThan(0);
   for (const request of operational) {
@@ -117,9 +134,9 @@ test("main screens, searching, project switching and cold restoration", async ({
 test("grouped incidents and alerts expose context and a usable note composer", async ({ page }, testInfo) => {
   const { mutations } = await installFixtures(page);
   await page.goto("/");
-  await expect(page.getByText("Your overview", { exact: true })).toBeVisible();
+  await expect(page.getByText("Overview", { exact: true })).toBeVisible();
   await tab(page, "Incidents");
-  await page.getByRole("tab", { name: "Episodes", exact: true }).click();
+  await page.getByRole("button", { name: "Episodes", exact: true }).click();
   await expect(page.getByText("Checkout service degradation", { exact: true })).toBeVisible();
   await capture(page, "incident-episodes", testInfo);
   await page.getByText("Checkout service degradation", { exact: true }).click();
@@ -136,7 +153,7 @@ test("grouped incidents and alerts expose context and a usable note composer", a
   expect(mutations.some((request) => request.path.includes("incident-episode-internal-note") && request.projectId === projects[0]._id)).toBe(true);
 
   await tab(page, "Alerts");
-  await page.getByRole("tab", { name: "Episodes", exact: true }).click();
+  await page.getByRole("button", { name: "Episodes", exact: true }).click();
   await expect(page.getByText("Database resource pressure", { exact: true })).toBeVisible();
   await capture(page, "alert-episodes", testInfo);
   await page.getByText("Database resource pressure", { exact: true }).click();
@@ -157,4 +174,46 @@ test("server setup, login and password recovery remain reachable", async ({ page
   await capture(page, "login", testInfo);
   await page.getByRole("button", { name: /Forgot password/i }).click();
   await capture(page, "forgot-password", testInfo);
+});
+
+test("Home shortcuts reset old searches while detail Back preserves context", async ({ page }, testInfo) => {
+  await installFixtures(page);
+  await page.goto("/");
+  const activeAlerts = page.getByRole("button", { name: "2 Active Alerts. Tap to view.", exact: true });
+  await activeAlerts.click();
+  await expect(page.getByTestId("inbox-category-alerts")).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("button", { name: "Active only", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.getByPlaceholder("Search title or ID").fill("Database");
+  await page.getByText("Database CPU usage above 80%", { exact: true }).click();
+  await page.getByRole("button", { name: /back/i }).first().click();
+  await expect(page.getByTestId("inbox-category-alerts")).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByPlaceholder("Search title or ID")).toHaveValue("Database");
+  await page.getByPlaceholder("Search title or ID").fill("nothing matches this");
+  await expect(page.getByText(/No matching/).first()).toBeVisible();
+
+  await tab(page, "Home");
+  await activeAlerts.click();
+  await expect(page.getByPlaceholder("Search title or ID")).toHaveValue("");
+  await expect(page.getByRole("button", { name: "Active only", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText("Database CPU usage above 80%", { exact: true })).toBeVisible();
+  await tab(page, "Home");
+  await page.getByRole("button", { name: /Incident Episodes\. Tap to view\./ }).click();
+  await expect(page.getByTestId("inbox-category-incidents")).toHaveAttribute("aria-selected", "true");
+  const episode = page.getByTestId("response-list").getByText("Checkout service degradation", { exact: true });
+  await expect(episode).toBeVisible();
+  await episode.click();
+  await page.getByRole("button", { name: /back/i }).first().click();
+  await expect(episode).toBeVisible();
+  await capture(page, "inbox-shortcut", testInfo);
+
+  await tab(page, "Monitors");
+  for (const shortcut of ["Monitor issues", "All monitors", "Disabled monitors"]) {
+    await page.getByPlaceholder("Search name or ID").fill("nothing matches this");
+    await expect(page.getByText("No matching monitors", { exact: true })).toBeVisible();
+    await tab(page, "Home");
+    await page.getByRole("button", { name: new RegExp(`${shortcut}\\. Tap to view\\.`) }).click();
+    await expect(page.getByPlaceholder("Search name or ID")).toHaveValue("");
+    await expect(page.getByText("No matching monitors", { exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Monitor .*\. Status/ }).first()).toBeVisible();
+  }
 });

@@ -56,23 +56,23 @@ export default function BiometricLockScreen({
   return (
     <AuthLayout
       showBrand
-      title="OneUptime is Locked"
+      title="Unlock your workspace"
       eyebrow="WELCOME BACK"
+      compact
       description={`Use ${biometricType.toLowerCase()} to unlock`}
     >
       <View
         style={{
-          padding: 24,
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: theme.colors.borderDefault,
-          backgroundColor: theme.colors.backgroundSecondary,
+          paddingVertical: 24,
+          borderTopWidth: 1,
+          borderBottomWidth: 1,
+          borderColor: theme.colors.borderSubtle,
           marginBottom: 24,
         }}
       >
         <Ionicons
           name="lock-closed-outline"
-          size={40}
+          size={32}
           color={theme.colors.actionPrimary}
           style={{ marginBottom: 16 }}
         />

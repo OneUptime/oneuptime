@@ -62,18 +62,17 @@ function StatCard({
       accessibilityRole="button"
       style={({ pressed }: { pressed: boolean }) => {
         return {
-          flex: compact ? undefined : 1,
-          minWidth: compact ? undefined : 128,
-          padding: 16,
-          borderRadius: 16,
-          gap: compact ? 12 : 14,
-          flexDirection: compact ? "row" : "column",
-          alignItems: compact ? "center" : undefined,
+          minHeight: compact ? 66 : 82,
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 14,
           backgroundColor: pressed
             ? theme.colors.backgroundTertiary
             : theme.colors.backgroundElevated,
-          borderWidth: 1,
-          borderColor: theme.colors.borderGlass,
+          borderBottomWidth: 1,
+          borderBottomColor: theme.colors.borderSubtle,
         };
       }}
     >
@@ -81,63 +80,40 @@ function StatCard({
         style={{
           width: 36,
           height: 36,
-          borderRadius: 12,
+          borderRadius: 11,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: accentColor + "18",
+          backgroundColor: accentColor + "10",
         }}
       >
-        <Ionicons name={iconName} size={19} color={accentColor} />
+        <Ionicons name={iconName} size={20} color={accentColor} />
       </View>
-      {compact ? (
-        <Text
-          style={{
-            flex: 1,
-            fontSize: 15,
-            fontWeight: "600",
-            color: theme.colors.textPrimary,
-          }}
-        >
-          {label}
-        </Text>
-      ) : null}
       <Text
         style={{
-          fontSize: compact ? 24 : 36,
+          flex: 1,
+          fontSize: compact ? 15 : 16,
+          lineHeight: 23,
+          fontWeight: "600",
+          color: theme.colors.textPrimary,
+        }}
+      >
+        {label}
+      </Text>
+      <Text
+        style={{
+          fontSize: compact ? 20 : 28,
           fontWeight: "700",
           fontVariant: ["tabular-nums"],
-          letterSpacing: -1,
-          color: theme.colors.textPrimary,
+          color: compact ? theme.colors.textPrimary : accentColor,
         }}
       >
         {isLoading ? "--" : count ?? 0}
       </Text>
-      {!compact ? (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-          <Text
-            style={{
-              flex: 1,
-              fontSize: 14,
-              lineHeight: 20,
-              fontWeight: "600",
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {label}
-          </Text>
-          <Ionicons
-            name="arrow-forward"
-            size={16}
-            color={theme.colors.textSecondary}
-          />
-        </View>
-      ) : (
-        <Ionicons
-          name="chevron-forward"
-          size={16}
-          color={theme.colors.textTertiary}
-        />
-      )}
+      <Ionicons
+        name="chevron-forward"
+        size={16}
+        color={theme.colors.textTertiary}
+      />
     </Pressable>
   );
 }
@@ -386,7 +362,7 @@ export default function HomeScreen(): React.JSX.Element {
       contentContainerStyle={{
         padding: 20,
         paddingBottom: bottomPadding,
-        gap: 28,
+        gap: 24,
       }}
       refreshControl={
         <RefreshControl
@@ -396,14 +372,12 @@ export default function HomeScreen(): React.JSX.Element {
         />
       }
     >
-      <View>
-        <ScreenIntro
-          eyebrow={getGreeting()}
-          title="Your overview"
-          description="Check active issues and your next handoff."
-          style={{ marginBottom: 0 }}
-        />
-      </View>
+      <ScreenIntro
+        eyebrow={getGreeting()}
+        title="Overview"
+        description="Your project. A clear picture of what matters."
+        style={{ marginBottom: 0 }}
+      />
       {unauthenticatedSsoProjects.length > 0 ? (
         <Pressable
           accessibilityRole="button"
@@ -417,11 +391,9 @@ export default function HomeScreen(): React.JSX.Element {
           }}
           style={{
             padding: 16,
-            borderRadius: 16,
+            borderRadius: 14,
             gap: 8,
             backgroundColor: theme.colors.severityWarningBg,
-            borderWidth: 1,
-            borderColor: theme.colors.severityWarning + "55",
           }}
         >
           <Text
@@ -458,87 +430,6 @@ export default function HomeScreen(): React.JSX.Element {
         </Pressable>
       ) : null}
       <View>
-        <SectionHeader title="Your on-call status" iconName="call-outline" />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${onCallSpokenStatus}. ${onCallDetailLine}. Tap to open the on-call tab.`}
-          onPress={() => {
-            lightImpact();
-            navigation.navigate("OnCall");
-          }}
-          style={({ pressed }: { pressed: boolean }) => {
-            return {
-              padding: 20,
-              borderRadius: 16,
-              backgroundColor: pressed
-                ? theme.colors.backgroundTertiary
-                : theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: dutyActive
-                ? theme.colors.oncallActive + "60"
-                : theme.colors.borderGlass,
-              gap: 12,
-            };
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <View
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: dutyColor,
-              }}
-            />
-            <Text
-              style={{
-                flex: 1,
-                fontSize: 12,
-                fontWeight: "700",
-                letterSpacing: 1,
-                color: dutyColor,
-              }}
-            >
-              {onCallBadgeLabel}
-            </Text>
-            <Ionicons
-              name="arrow-forward"
-              size={20}
-              color={theme.colors.textSecondary}
-            />
-          </View>
-          <Text
-            style={{
-              fontSize: 23,
-              lineHeight: 30,
-              fontWeight: "700",
-              letterSpacing: -0.4,
-              color: theme.colors.textPrimary,
-            }}
-          >
-            {onCallHeadline}
-          </Text>
-          <Text
-            style={{
-              fontSize: 15,
-              lineHeight: 22,
-              color: theme.colors.textSecondary,
-            }}
-          >
-            {onCallDetailLine}
-          </Text>
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "600",
-              color: theme.colors.actionPrimary,
-            }}
-          >
-            View shifts & coverage
-          </Text>
-        </Pressable>
-      </View>
-      <View>
         <SectionHeader title="Needs attention" iconName="flash-outline" />
         {countsError ? (
           <View style={{ marginBottom: 16, gap: 12 }}>
@@ -561,7 +452,14 @@ export default function HomeScreen(): React.JSX.Element {
             />
           </View>
         ) : null}
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+        <View
+          style={{
+            borderRadius: 18,
+            overflow: "hidden",
+            borderWidth: 1,
+            borderColor: theme.colors.borderSubtle,
+          }}
+        >
           <StatCard
             count={incidentCount}
             label="Active Incidents"
@@ -569,9 +467,10 @@ export default function HomeScreen(): React.JSX.Element {
             iconName="warning-outline"
             isLoading={!countIsKnown}
             onPress={() => {
-              navigation.navigate("Incidents", {
-                screen: "IncidentsList",
+              return navigation.navigate("Inbox", {
+                screen: "InboxList",
                 params: {
+                  initialView: "incidents",
                   initialSegment: "incidents",
                   initialFilter: "active",
                 },
@@ -585,26 +484,110 @@ export default function HomeScreen(): React.JSX.Element {
             iconName="notifications-outline"
             isLoading={!countIsKnown}
             onPress={() => {
-              navigation.navigate("Alerts", {
-                screen: "AlertsList",
-                params: { initialSegment: "alerts", initialFilter: "active" },
+              return navigation.navigate("Inbox", {
+                screen: "InboxList",
+                params: {
+                  initialView: "alerts",
+                  initialSegment: "alerts",
+                  initialFilter: "active",
+                },
               });
             }}
           />
         </View>
       </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${onCallSpokenStatus}. ${onCallDetailLine}. Tap to open the on-call tab.`}
+        onPress={() => {
+          lightImpact();
+          navigation.navigate("OnCall");
+        }}
+        style={({ pressed }: { pressed: boolean }) => {
+          return {
+            padding: 18,
+            borderRadius: 18,
+            backgroundColor: pressed
+              ? theme.colors.backgroundTertiary
+              : theme.colors.cardAccent,
+            flexDirection: "row",
+            gap: 14,
+            alignItems: "center",
+          };
+        }}
+      >
+        <View
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: theme.colors.backgroundSecondary,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Ionicons
+            name="call-outline"
+            size={20}
+            color={theme.colors.actionPrimary}
+          />
+        </View>
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text
+            style={{
+              fontSize: 10,
+              fontWeight: "700",
+              letterSpacing: 1.2,
+              color: dutyColor,
+            }}
+          >
+            {onCallBadgeLabel}
+          </Text>
+          <Text
+            style={{
+              fontSize: 18,
+              lineHeight: 24,
+              fontWeight: "700",
+              color: theme.colors.textPrimary,
+            }}
+          >
+            {onCallHeadline}
+          </Text>
+          <Text
+            style={{
+              fontSize: 14,
+              lineHeight: 21,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            {onCallDetailLine}
+          </Text>
+        </View>
+        <Ionicons
+          name="arrow-forward"
+          size={20}
+          color={theme.colors.actionPrimary}
+        />
+      </Pressable>
       <View>
         <SectionHeader title="Service health" iconName="pulse-outline" />
-        <View style={{ gap: 10 }}>
+        <View
+          style={{
+            borderRadius: 18,
+            overflow: "hidden",
+            borderWidth: 1,
+            borderColor: theme.colors.borderSubtle,
+          }}
+        >
           <StatCard
             compact
             count={inoperationalMonitorCount}
-            label="Inoperational"
+            label="Monitor issues"
             accentColor={theme.colors.severityCritical}
             iconName="alert-circle-outline"
             isLoading={!countIsKnown}
             onPress={() => {
-              navigation.navigate("Monitors", {
+              return navigation.navigate("Monitors", {
                 screen: "MonitorsList",
                 params: { initialFilter: "issues" },
               });
@@ -613,12 +596,12 @@ export default function HomeScreen(): React.JSX.Element {
           <StatCard
             compact
             count={monitorCount}
-            label="Total Monitors"
+            label="All monitors"
             accentColor={theme.colors.oncallActive}
             iconName="pulse-outline"
             isLoading={!countIsKnown}
             onPress={() => {
-              navigation.navigate("Monitors", {
+              return navigation.navigate("Monitors", {
                 screen: "MonitorsList",
                 params: { initialFilter: "all" },
               });
@@ -627,12 +610,12 @@ export default function HomeScreen(): React.JSX.Element {
           <StatCard
             compact
             count={disabledMonitorCount}
-            label="Disabled"
+            label="Disabled monitors"
             accentColor={theme.colors.textTertiary}
             iconName="pause-circle-outline"
             isLoading={!countIsKnown}
             onPress={() => {
-              navigation.navigate("Monitors", {
+              return navigation.navigate("Monitors", {
                 screen: "MonitorsList",
                 params: { initialFilter: "disabled" },
               });
@@ -647,12 +630,19 @@ export default function HomeScreen(): React.JSX.Element {
             fontSize: 14,
             lineHeight: 22,
             color: theme.colors.textSecondary,
-            marginBottom: 14,
+            marginBottom: 12,
           }}
         >
           Episodes bring related incidents or alerts together.
         </Text>
-        <View style={{ gap: 10 }}>
+        <View
+          style={{
+            borderRadius: 18,
+            overflow: "hidden",
+            borderWidth: 1,
+            borderColor: theme.colors.borderSubtle,
+          }}
+        >
           <StatCard
             compact
             count={incidentEpisodeCount}
@@ -661,9 +651,13 @@ export default function HomeScreen(): React.JSX.Element {
             iconName="layers-outline"
             isLoading={!countIsKnown}
             onPress={() => {
-              navigation.navigate("Incidents", {
-                screen: "IncidentsList",
-                params: { initialSegment: "episodes", initialFilter: "active" },
+              return navigation.navigate("Inbox", {
+                screen: "InboxList",
+                params: {
+                  initialView: "incidents",
+                  initialSegment: "episodes",
+                  initialFilter: "active",
+                },
               });
             }}
           />
@@ -675,9 +669,13 @@ export default function HomeScreen(): React.JSX.Element {
             iconName="layers-outline"
             isLoading={!countIsKnown}
             onPress={() => {
-              navigation.navigate("Alerts", {
-                screen: "AlertsList",
-                params: { initialSegment: "episodes", initialFilter: "active" },
+              return navigation.navigate("Inbox", {
+                screen: "InboxList",
+                params: {
+                  initialView: "alerts",
+                  initialSegment: "episodes",
+                  initialFilter: "active",
+                },
               });
             }}
           />
