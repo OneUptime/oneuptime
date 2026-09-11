@@ -95,11 +95,9 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Globe}
         />
-        {/*
-         * Navigation.isOnThisPage bails when the segment count differs, so
-         * this item does not highlight while the player page is open - the
-         * same pre-existing behaviour as Host > Processes > ProcessView.
-         */}
+      </SideMenuSection>
+
+      <SideMenuSection title="Session Replay">
         <SideMenuItem
           link={{
             title: "Session Replay",
@@ -110,21 +108,6 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Film}
         />
-      </SideMenuSection>
-
-      <SideMenuSection title="Settings">
-        {/*
-         * This application's replay policy, health, installation test and
-         * targeted capture. It lives here rather than on a project-wide
-         * settings page because it governs THIS application's recordings
-         * and belongs next to them. Only the project master switch is
-         * project-shaped and lives in Real User Monitoring > Settings >
-         * Session Replay.
-         *
-         * settings-setup-5: named "Replay Policy" rather than "Session
-         * Replay" so it cannot be confused with the recordings entry under
-         * Observability, which used to share the name.
-         */}
         <SideMenuItem
           link={{
             title: "Replay Policy",
@@ -137,14 +120,6 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Settings}
         />
-      </SideMenuSection>
-
-      <SideMenuSection title="Advanced">
-        {/*
-         * Deliberately under Advanced rather than beside the player: this
-         * is the record of which operators watched a real end user's
-         * screen, and it is a governance surface, not a debugging one.
-         */}
         <SideMenuItem
           link={{
             title: "Replay Access Log",
@@ -157,6 +132,9 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Eye}
         />
+      </SideMenuSection>
+
+      <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
             title: "Delete Application",

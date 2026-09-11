@@ -935,14 +935,13 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
        * hovering shifted every lane by a line the moment the pointer entered
        * the track, which made the thing you were aiming at move.
        *
-       * It is the least important row on the page and now looks like it -
-       * indented under the lane gutter so it lines up with the tracks it
-       * explains, 10px, and quiet enough that the eye skips it until it is
-       * wanted. The reserved height (h-4) is what keeps the lanes still.
+       * Reserve one line on wide layouts and let the legend grow when
+       * labels wrap. The transport must remain below every legend item,
+       * including on narrow screens.
        */}
       <div
         data-testid="timeline-legend"
-        className="mt-2.5 flex h-4 flex-wrap items-center gap-x-3 gap-y-1 pl-[5.5rem] text-[10px] text-gray-400"
+        className="mt-2.5 flex min-h-4 flex-wrap items-center gap-x-3 gap-y-1 pl-[5.5rem] text-[10px] text-gray-400"
       >
         {TIMELINE_LEGEND_ITEMS.map((item: TimelineLegendItem): ReactElement => {
           return (

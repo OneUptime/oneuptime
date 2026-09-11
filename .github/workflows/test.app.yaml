@@ -48,3 +48,44 @@ jobs:
       # ../Common), so Common's own dependencies must be installed too.
       - run: cd Common && npm install
       - run: cd App && npm install && npm run test
+
+  session-replay-ui:
+    name: Session Replay UI
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+      # These browser tests render Dashboard sources with fixture API data.
+      # They need the frontend dependencies, but no test database or Docker stack.
+      - name: Install shared dependencies
+        working-directory: Common
+        run: npm install
+      - name: Install Dashboard dependencies
+        working-directory: App/FeatureSet/Dashboard
+        run: npm install
+      - name: Install browser test dependencies
+        working-directory: E2E
+        # Skip the preinstall hook that downloads every browser; this suite uses Chromium.
+        run: npm install --ignore-scripts
+      - name: Install Chromium
+        working-directory: E2E
+        run: npx playwright install --with-deps chromium
+      - name: Run Session Replay UI regressions
+        working-directory: E2E
+        run: npm run test-session-replay-ui
+      - name: Upload browser screenshots and failure traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.job }}-${{ github.run_attempt }}
+          path: |
+            output/playwright/session-replay-ui/*.png
+            output/playwright/session-replay-ui/test-results
+          retention-days: 7

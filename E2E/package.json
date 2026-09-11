@@ -18,7 +18,8 @@
     "test-topology-ui": "playwright test --config playwright.topology.config.ts",
     "test-discovery-ui": "playwright test --config playwright.discovery.config.ts",
     "test-label-rule-transfer": "playwright test --config playwright.label-rules.config.ts",
-    "test-label-rule-transfer-ui": "playwright test --config playwright.label-rules-ui.config.ts"
+    "test-label-rule-transfer-ui": "playwright test --config playwright.label-rules-ui.config.ts",
+    "test-session-replay-ui": "playwright test --config playwright.session-replay-ui.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

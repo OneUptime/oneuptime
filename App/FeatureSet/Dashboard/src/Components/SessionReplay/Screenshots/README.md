@@ -1,16 +1,25 @@
 # Session replay screenshots
 
-What the RUM session replay surfaces looked like before the chrome redesign
-and after it. Rendered from the real components against the dashboard's own
-Tailwind build, on fixture data — the picture on the stage is a stand-in for a
-recorded page, everything around it is the shipping UI.
+The `*-standard-ui.png` screenshots show the current production components with
+synthetic data from `E2E/SessionReplay`. The recording is reconstructed and played
+by the real rrweb engine. The fixture replaces API responses and the outer
+workspace header; the RUM page layout, navigation, table, facets and player are
+shipping components.
 
-| File                                        | Shows                                                                                                                                                                       |
-| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `session-replay-player-before-after.png`    | The whole player. Three floating boxes with their own borders became one card stacked address bar → picture → track → transport.                                             |
-| `session-replay-list-before-after.png`      | The sessions list: a header band on the table, a hover state that reads as a row, and cells that no longer wrap a badge or a date mid-phrase.                                |
-| `session-replay-header-before-after.png`    | The player header. One `text-xs` line broken up by a literal `\|` became identity at `text-sm`, device facts as its subtitle, and the actions on their own shelf.             |
-| `session-replay-transport-before-after.png` | The transport row and the timeline, in the order every media player uses. Ten outlined chips of equal weight became three grouped clusters around one filled play button.    |
-| `session-replay-rail-before-after.png`      | The events rail. Rows were monospace end to end; only the offset column is now, so the titles read as prose and the tabs sit on one recessed track.                          |
+| Screenshot                                     | Shows                                                                 |
+| ---------------------------------------------- | --------------------------------------------------------------------- |
+| `session-replay-list-standard-ui.png`          | Shared table, recording actions and the Session Replay menu category. |
+| `session-replay-empty-standard-ui.png`         | Compact empty state with a link to separate setup documentation.      |
+| `session-replay-facet-standard-ui.png`         | Standard searchable facet dropdown.                                   |
+| `session-replay-player-standard-ui.png`        | Recording summary, playback controls and Events sidebar.              |
+| `session-replay-player-laptop-standard-ui.png` | Recording and primary controls visible together at 1440 × 900.        |
+| `session-replay-list-mobile-standard-ui.png`   | Responsive recording cards and navigation.                            |
+| `session-replay-player-mobile-standard-ui.png` | Playback and events on a narrow screen.                               |
 
-Re-shoot these when the player's chrome changes.
+Regenerate them with `cd E2E && npm run test-session-replay-ui`, then copy the
+selected PNGs from `output/playwright/session-replay-ui/` to this directory.
+The suite also asserts filter request values, navigation, actual playback,
+control visibility, keyboard access and absence of horizontal overflow.
+
+The older `*-before-after.png` images are historical references from the previous
+player chrome redesign.

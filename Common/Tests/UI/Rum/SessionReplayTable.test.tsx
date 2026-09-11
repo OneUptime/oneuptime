@@ -409,14 +409,16 @@ describe("SessionReplayTable rendering", () => {
 
     renderTable();
 
-    expect(screen.getAllByTestId("session-row-skeleton").length).toBe(4);
+    expect(
+      screen.getByTestId("table-skeleton-loader").querySelectorAll("tr"),
+    ).toHaveLength(10);
     expect(screen.queryByRole("progressbar")).toBeNull();
 
     resolveList(listResponse([wireRow()]));
 
     await waitForRows(1);
 
-    expect(screen.queryAllByTestId("session-row-skeleton").length).toBe(0);
+    expect(screen.queryByTestId("table-skeleton-loader")).toBeNull();
   });
 
   it("renders routes, trace count, clicks, idle hint, hours, expiry and the first-error action", async () => {
@@ -587,6 +589,11 @@ describe("SessionReplayTable navigation", () => {
 
     await waitForRows(1);
 
+    fireEvent.click(
+      screen
+        .getByTestId("session-facet-signal")
+        .querySelector("button") as HTMLElement,
+    );
     fireEvent.click(screen.getByText("Errors"));
 
     await waitFor(() => {
@@ -768,6 +775,11 @@ describe("SessionReplayTable search, sort and paging", () => {
 
     await waitForRows(1);
 
+    fireEvent.click(
+      screen
+        .getByTestId("session-facet-signal")
+        .querySelector("button") as HTMLElement,
+    );
     fireEvent.click(screen.getByText("Traced"));
 
     await waitFor(() => {
@@ -987,5 +999,84 @@ describe("SessionReplayTable honesty", () => {
     expect(
       screen.getByRole("button", { name: "Refresh sessions" }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("SessionReplayTable facet integration", () => {
+  it("applies facets to the server, restarts pagination, synchronizes search and clears one selection", async () => {
+    mockApi((_data: JSONObject, index: number) =>
+      listResponse(
+        [wireRow({ sessionId: index === 1 ? SESSION_B : SESSION_A })],
+        index === 0
+          ? { startTimeUnixMs: NOW - 3 * 60_000, sessionId: SESSION_A }
+          : null,
+      ),
+    );
+    renderTable();
+    await waitForRows(1);
+    fireEvent.click(screen.getByTestId("pagination-next-button"));
+    await waitFor(() => {
+      expect(window.location.search).toContain("page=2");
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("pagination-next-button")).toBeDisabled();
+    });
+    fireEvent.click(
+      screen
+        .getByTestId("session-facet-browserName")
+        .querySelector("button") as HTMLElement,
+    );
+    fireEvent.click(screen.getByRole("option", { name: "Firefox" }));
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/list")).toHaveLength(3);
+    });
+    const filtered: JSONObject = requestsTo("/session-replay/list")[2]!.data;
+    expect(filtered["filters"]).toEqual({ browserNames: ["Firefox"] });
+    expect(filtered["cursor"]).toBeUndefined();
+    expect(window.location.search).not.toContain("page=");
+    expect(window.location.search).toContain("browser=Firefox");
+    expect(screen.getByTestId("session-search-input")).toHaveValue(
+      "browser:Firefox",
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Clear Browser filter" }),
+    );
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/list")).toHaveLength(4);
+    });
+    expect(requestsTo("/session-replay/list")[3]!.data["filters"]).toEqual({});
+    expect(screen.getByTestId("session-search-input")).toHaveValue("");
+  });
+
+  it("restores facet selections from a shared URL without exposing user identity", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/?browser=Firefox&device=mobile&country=gb&minDuration=120",
+    );
+    mockApi(() => listResponse([wireRow()]));
+    renderTable();
+    await waitForRows(1);
+    expect(screen.getByTestId("session-facet-browserName")).toHaveTextContent(
+      "Firefox",
+    );
+    expect(screen.getByTestId("session-facet-deviceType")).toHaveTextContent(
+      "Mobile",
+    );
+    expect(screen.getByTestId("session-facet-countryCode")).toHaveTextContent(
+      "United Kingdom (GB)",
+    );
+    expect(
+      screen.getByTestId("session-facet-minDurationSeconds"),
+    ).toHaveTextContent("At least 2 minutes");
+    expect(requestsTo("/session-replay/list")[0]!.data["filters"]).toEqual({
+      browserNames: ["Firefox"],
+      deviceTypes: ["mobile"],
+      countryCodes: ["GB"],
+      minDurationMs: 120000,
+    });
+    expect(screen.getByTestId("session-replay-facets")).not.toHaveTextContent(
+      "jane@acme.com",
+    );
   });
 });

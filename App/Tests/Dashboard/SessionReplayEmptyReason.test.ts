@@ -119,7 +119,7 @@ describe("getEmptyReason gates", () => {
       );
 
     expect(reason?.variant).toBe("end-of-list");
-    expect(reason?.showSetupGuide).toBe(false);
+
     expect(reason?.detail).toContain("Page 3");
     expect(reason?.action?.kind).toBe("previous-page");
   });
@@ -195,7 +195,7 @@ describe("getEmptyReason precedence", () => {
     expect(reason?.action?.kind).toBe("health");
   });
 
-  test("never-installed only when BOTH stamps are null, and it embeds the guide", () => {
+  test("never-installed only when BOTH stamps are null, and it links to setup", () => {
     const reason: ReturnType<EmptyStateModule["getEmptyReason"]> =
       emptyState.getEmptyReason(
         context({
@@ -206,8 +206,12 @@ describe("getEmptyReason precedence", () => {
       );
 
     expect(reason?.variant).toBe("never-installed");
-    expect(reason?.showSetupGuide).toBe(true);
-    expect(reason?.title).toBe("Nothing has been recorded here yet");
+    expect(reason?.action).toEqual({
+      kind: "health",
+      target: "setup-guide",
+      label: "Open the setup guide",
+    });
+    expect(reason?.title).toBe("No recordings yet");
 
     /* A null config stamp with a chunk on record is an older server, not a missing install. */
     const olderServer: ReturnType<EmptyStateModule["getEmptyReason"]> =
@@ -218,7 +222,6 @@ describe("getEmptyReason precedence", () => {
       );
 
     expect(olderServer?.variant).not.toBe("never-installed");
-    expect(olderServer?.showSetupGuide).toBe(false);
   });
 
   test("installed-not-uploading explains from the policy and offers one action", () => {
@@ -238,7 +241,6 @@ describe("getEmptyReason precedence", () => {
     expect(reason?.title).toContain("loaded 12s ago");
     expect(reason?.detail).toContain("0%");
     expect(reason?.action?.kind).toBe("health");
-    expect(reason?.showSetupGuide).toBe(false);
   });
 
   test("a quiet window says when the most recent session was and offers a wider range", () => {

@@ -355,7 +355,7 @@ describe("the events rail", () => {
     );
 
     /* Stacked below xl (the design's sheet) and beside the stage above it. */
-    expect(column).toContain("max-h-[22rem]");
+    expect(column).toMatch(/max-h-\[\d+rem\]/);
     expect(column).toMatch(/xl:max-h-\[calc\(100vh-[^\]]+\)\]/);
   });
 

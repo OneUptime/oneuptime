@@ -14,8 +14,8 @@ import { diagnoseRecordingHealth } from "../../../Utils/Rum/SessionReplayHealth"
 /*
  * The explained empty list. Every variant renders its cause, its quantity
  * and exactly one action; the range action calls the range setter with
- * the wider range; chips carry a remove button; never-installed embeds
- * the live setup guide and nothing else does.
+ * the wider range; chips carry a remove button; never-installed links to
+ * setup documentation without embedding another card in the table.
  */
 
 const postMock: MockFunction = getJestMockFunction();
@@ -275,15 +275,7 @@ describe("SessionReplayEmptyStateView variants", () => {
     expect(screen.getAllByTestId("list-empty-action").length).toBe(1);
   });
 
-  it("never-installed: embeds the live setup guide", async () => {
-    postMock.mockResolvedValue(
-      new HTTPResponse<JSONObject>(
-        200,
-        wireStatus({ lastConfigFetchAt: null, lastChunkReceivedAt: null }),
-        {},
-      ),
-    );
-
+  it("never-installed: offers one documentation link without embedding the guide", () => {
     renderView(
       reasonFor(
         makeStatus({ lastConfigFetchAt: null, lastChunkReceivedAt: null }),
@@ -294,12 +286,17 @@ describe("SessionReplayEmptyStateView variants", () => {
       "never-installed",
     );
     expect(screen.getByTestId("list-empty-title")).toHaveTextContent(
-      "Nothing has been recorded here yet",
+      "No recordings yet",
     );
-
-    await waitFor(() => {
-      expect(screen.getByTestId("setup-guide")).toBeInTheDocument();
-    });
+    expect(screen.getAllByTestId("list-empty-action")).toHaveLength(1);
+    expect(
+      screen.getByTestId("list-empty-action").closest("a"),
+    ).toHaveAttribute(
+      "href",
+      expect.stringContaining(`/rum/${APP_ID}/documentation`),
+    );
+    expect(screen.queryByTestId("setup-guide")).not.toBeInTheDocument();
+    expect(postMock).not.toHaveBeenCalled();
   });
 
   it("installed-not-uploading: explains from the policy with one action", () => {

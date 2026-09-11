@@ -96,6 +96,40 @@ describe("ReplayHeader", () => {
     jest.useRealTimers();
   });
 
+  it("uses the shared detail card with labeled recording context and explicit actions", () => {
+    render(<ReplayHeader {...makeProps()} />);
+
+    const card: HTMLElement = screen.getByTestId("card");
+    expect(
+      within(card).getByRole("heading", { name: "Session recording" }),
+    ).toBeInTheDocument();
+    expect(within(card).getByText("User and device")).toBeInTheDocument();
+    expect(within(card).getByText("Recorded")).toBeInTheDocument();
+    expect(within(card).getByText("Playback position")).toBeInTheDocument();
+    expect(
+      within(card).getByRole("button", { name: "Copy link" }),
+    ).toBeInTheDocument();
+    expect(
+      within(card).getByRole("button", { name: "Session details" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "All recordings" }),
+    ).toHaveAttribute(
+      "href",
+      "/dashboard/p/rum/a/session-replay?signal=errors",
+    );
+  });
+
+  it("explains an unavailable start time while retaining the session and playback context", () => {
+    render(<ReplayHeader {...makeProps({ startTimeUnixMs: null })} />);
+
+    expect(screen.getByText("Start time unavailable")).toBeInTheDocument();
+    expect(screen.getByTestId("replay-copy-session-id")).toBeInTheDocument();
+    expect(screen.getByTestId("replay-header-clock")).toHaveTextContent(
+      "0:41 / 4:12",
+    );
+  });
+
   describe("identity", () => {
     it("shows the identified user and a traits chip that opens the details", () => {
       const props: ReplayHeaderProps = makeProps();
@@ -286,6 +320,90 @@ describe("ReplayHeader", () => {
       expect(props.onSwitchTab).toHaveBeenCalledWith("tab-2");
     });
 
+    it("gives only the active playable tab a place in the Tab sequence", () => {
+      render(<ReplayHeader {...makeProps({ tabs: tabs })} />);
+
+      const buttons: Array<HTMLElement> =
+        screen.getAllByTestId("replay-tab-pill");
+      expect(buttons[0]).toHaveAttribute("tabindex", "0");
+      expect(buttons[1]).toHaveAttribute("tabindex", "-1");
+      expect(buttons[2]).toHaveAttribute("tabindex", "-1");
+    });
+
+    it("switches tabs with arrow keys, skips unavailable footage, and wraps", () => {
+      const props: ReplayHeaderProps = makeProps({ tabs: tabs });
+      render(<ReplayHeader {...props} />);
+
+      const buttons: Array<HTMLElement> =
+        screen.getAllByTestId("replay-tab-pill");
+      fireEvent.keyDown(buttons[0] as HTMLElement, { key: "ArrowLeft" });
+
+      expect(buttons[1]).toHaveFocus();
+      expect(props.onSwitchTab).toHaveBeenLastCalledWith("tab-2");
+      fireEvent.keyDown(buttons[0] as HTMLElement, { key: "ArrowRight" });
+      expect(buttons[1]).toHaveFocus();
+      expect(props.onSwitchTab).toHaveBeenCalledTimes(2);
+      fireEvent.keyDown(buttons[1] as HTMLElement, { key: "ArrowRight" });
+      expect(buttons[0]).toHaveFocus();
+      // The first tab is still the controlled active tab, so it needs no reload.
+      expect(props.onSwitchTab).toHaveBeenCalledTimes(2);
+    });
+
+    it("supports Home and End without sending tab navigation to the playback shortcuts", () => {
+      const props: ReplayHeaderProps = makeProps({ tabs: tabs });
+      const onWindowKey: MockFunction = getJestMockFunction();
+      render(<ReplayHeader {...props} />);
+      window.addEventListener("keydown", onWindowKey);
+
+      try {
+        const buttons: Array<HTMLElement> =
+          screen.getAllByTestId("replay-tab-pill");
+        fireEvent.keyDown(buttons[0] as HTMLElement, { key: "End" });
+        expect(buttons[1]).toHaveFocus();
+        expect(props.onSwitchTab).toHaveBeenCalledWith("tab-2");
+        fireEvent.keyDown(buttons[1] as HTMLElement, { key: "Home" });
+        expect(buttons[0]).toHaveFocus();
+        expect(onWindowKey).not.toHaveBeenCalled();
+      } finally {
+        window.removeEventListener("keydown", onWindowKey);
+      }
+    });
+
+    it("preserves browser shortcuts and does not consume unrelated keys", () => {
+      const props: ReplayHeaderProps = makeProps({ tabs: tabs });
+      render(<ReplayHeader {...props} />);
+      const first: HTMLElement = screen.getAllByTestId(
+        "replay-tab-pill",
+      )[0] as HTMLElement;
+
+      fireEvent.keyDown(first, { key: "ArrowLeft", altKey: true });
+      fireEvent.keyDown(first, { key: "ArrowRight", ctrlKey: true });
+      fireEvent.keyDown(first, { key: "ArrowRight", metaKey: true });
+      fireEvent.keyDown(first, { key: "a" });
+      expect(props.onSwitchTab).not.toHaveBeenCalled();
+    });
+
+    it("keeps a playable tab keyboard reachable when the active tab has no footage", () => {
+      render(
+        <ReplayHeader
+          {...makeProps({
+            tabs: tabs.map((tab: ReplayHeaderTab): ReplayHeaderTab => {
+              return { ...tab, isActive: tab.tabId === "tab-3" };
+            }),
+          })}
+        />,
+      );
+
+      expect(screen.getAllByTestId("replay-tab-pill")[0]).toHaveAttribute(
+        "tabindex",
+        "0",
+      );
+      expect(screen.getAllByTestId("replay-tab-pill")[2]).toHaveAttribute(
+        "tabindex",
+        "-1",
+      );
+    });
+
     it("renders no tablist for a single-tab recording", () => {
       render(<ReplayHeader {...makeProps()} />);
 
@@ -465,7 +583,7 @@ describe("ReplayHeader", () => {
 
       const button: HTMLElement = screen.getByTestId("replay-copy-link");
 
-      expect(button).toHaveTextContent("Link");
+      expect(button).toHaveTextContent("Copy link");
 
       await act(async (): Promise<void> => {
         fireEvent.click(button);
@@ -482,7 +600,7 @@ describe("ReplayHeader", () => {
         "status",
       );
       /* The button never changes width by relabelling itself. */
-      expect(button).toHaveTextContent("Link");
+      expect(button).toHaveTextContent("Copy link");
       expect(
         screen.queryByTestId("replay-copy-link-fallback"),
       ).not.toBeInTheDocument();
