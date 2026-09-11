@@ -200,8 +200,10 @@ afterEach(() => {
   cleanup();
 });
 
-// Exercise the real card, buttons, modal and model permission declarations.
-// Only the server, navigation and signed-in permission snapshot are replaced.
+/*
+ * Exercise the real card, buttons, modal and model permission declarations.
+ * Only the server, navigation and signed-in permission snapshot are replaced.
+ */
 describe.each(RESOURCE_CASES)(
   "ArchiveResourceCard for a $name",
   (resource: ResourceCase) => {

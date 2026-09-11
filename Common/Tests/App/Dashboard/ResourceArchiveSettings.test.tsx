@@ -297,10 +297,16 @@ describe.each(RESOURCES)("$name Settings", (resource: ResourceSettingsCase) => {
       RouteUtil.getRouteString(resource.settingsKey),
     );
 
-    expect(breadcrumbs?.map((link: Link): string => link.title)).toEqual(
-      resource.breadcrumbTitles,
-    );
-    expect(breadcrumbs?.map((link: Link): string => String(link.to))).toEqual([
+    expect(
+      breadcrumbs?.map((link: Link): string => {
+        return link.title;
+      }),
+    ).toEqual(resource.breadcrumbTitles);
+    expect(
+      breadcrumbs?.map((link: Link): string => {
+        return String(link.to);
+      }),
+    ).toEqual([
       `/dashboard/${PROJECT_ID}`,
       `/dashboard/${PROJECT_ID}/${resource.productPath}`,
       resourceRoute(resource.overviewKey),

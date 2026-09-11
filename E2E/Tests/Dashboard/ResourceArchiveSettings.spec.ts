@@ -38,8 +38,10 @@ const urlFor: (path: string) => string = (path: string): string => {
   return URL.fromString(BASE_URL.toString()).addRoute(path).toString();
 };
 
-// Real navigation, confirmation dialogs and persisted archive state. Each
-// test owns its project, which also removes its resource during cleanup.
+/*
+ * Real navigation, confirmation dialogs and persisted archive state. Each
+ * test owns its project, which also removes its resource during cleanup.
+ */
 test.describe("Resource archive actions live in Settings", () => {
   for (const resource of resources) {
     test(`${resource.product}: archive and restore through Settings`, async ({
