@@ -24,13 +24,28 @@ import URL from "Common/Types/API/URL";
  * suite (which only asserts status codes and bodies) stays green. No other E2E
  * suite inspects response headers, so this one guards them.
  *
- * /dashboard is proxied to the App service unconditionally in both the
- * self-hosted and billing deployment modes and is one of the routes the deploy's
- * own readiness gate (Tests/Scripts/status-check.sh) blocks on, so it is always
- * serving by the time this suite runs.
+ * The same set is asserted on /accounts and /admin, not just /dashboard. Each
+ * location block carries its own copy of these headers — add_header inherits
+ * only DOWN a level in nginx, never sideways between sibling locations, and
+ * this server block declares none at the server level — so "the Dashboard is
+ * protected" says nothing about the sign-in page or the admin console. They
+ * are, if anything, the more attractive targets: /accounts is where a password
+ * is typed, and /admin acts instance-wide.
+ *
+ * Nginx/Tests/NginxConfig.test.js pins the same split at the config level,
+ * including the deliberate other half of it — /status-page and
+ * /public-dashboard are meant to be embedded in customers' pages and must NOT
+ * send DENY. This suite is the end-to-end half: it proves the rendered,
+ * running ingress actually emits what the template says.
+ *
+ * All three routes are proxied to the App service unconditionally in both the
+ * self-hosted and billing deployment modes; /dashboard is one of the routes the
+ * deploy's own readiness gate (Tests/Scripts/status-check.sh) blocks on, and
+ * the Accounts and AdminDashboard suites already load /accounts and /admin, so
+ * all three are serving by the time this suite runs.
  */
 
-const DASHBOARD_ROUTE: string = "/dashboard";
+const HARDENED_ROUTES: Array<string> = ["/dashboard", "/accounts", "/admin"];
 
 interface ExpectedHeader {
   name: string;
@@ -45,62 +60,91 @@ const EXPECTED_HEADERS: Array<ExpectedHeader> = [
   { name: "cache-control", contains: "no-store" },
 ];
 
+/*
+ * The App container can still be warming up when this suite starts, and the
+ * ingress answers that with a 502/504 of its own — which carries none of the
+ * upstream's headers and would read as a stripped header rather than as a
+ * not-yet-ready backend. Retry those two, and only those two.
+ */
+const GATEWAY_STATUSES: Array<number> = [502, 504];
+const MAX_ATTEMPTS: number = 5;
+const RETRY_DELAY_MS: number = 5000;
+
+type FetchRoute = (page: Page, route: string) => Promise<APIResponse>;
+
+const fetchRoute: FetchRoute = async (
+  page: Page,
+  route: string,
+): Promise<APIResponse> => {
+  const endpoint: string = URL.fromString(BASE_URL.toString())
+    .addRoute(route)
+    .toString();
+
+  let response: APIResponse = await page.request.get(endpoint);
+
+  for (
+    let attempt: number = 1;
+    attempt < MAX_ATTEMPTS && GATEWAY_STATUSES.includes(response.status());
+    attempt++
+  ) {
+    await page.waitForTimeout(RETRY_DELAY_MS);
+    response = await page.request.get(endpoint);
+  }
+
+  return response;
+};
+
 test.describe("Ingress security headers on browser-facing routes", () => {
-  test(`${DASHBOARD_ROUTE} is served with hardening security headers`, async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
-    page.setDefaultNavigationTimeout(120000); // 2 minutes
+  for (const route of HARDENED_ROUTES) {
+    test(`${route} is served with hardening security headers`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      page.setDefaultNavigationTimeout(120000); // 2 minutes
 
-    const endpoint: string = URL.fromString(BASE_URL.toString())
-      .addRoute(DASHBOARD_ROUTE)
-      .toString();
+      const response: APIResponse = await fetchRoute(page, route);
 
-    const response: APIResponse = await page.request.get(endpoint);
+      // The route must resolve (2xx/3xx), not error out.
+      expect(response.status()).toBeGreaterThanOrEqual(200);
+      expect(response.status()).toBeLessThan(400);
 
-    // The route must resolve (2xx/3xx), not error out.
-    expect(response.status()).toBeGreaterThanOrEqual(200);
-    expect(response.status()).toBeLessThan(400);
+      const headers: { [key: string]: string } = response.headers();
 
-    const headers: { [key: string]: string } = response.headers();
+      for (const expected of EXPECTED_HEADERS) {
+        const actual: string | undefined = headers[expected.name];
 
-    for (const expected of EXPECTED_HEADERS) {
-      const actual: string | undefined = headers[expected.name];
+        // The header must be present at all — a dropped add_header fails here.
+        expect(
+          actual,
+          `expected response header "${expected.name}" on ${route} to be present`,
+        ).toBeTruthy();
 
-      // The header must be present at all — a dropped add_header fails here.
-      expect(
-        actual,
-        `expected response header "${expected.name}" to be present`,
-      ).toBeTruthy();
+        // ...and carry the hardening value the ingress config pins.
+        expect(
+          actual!.toLowerCase(),
+          `expected "${expected.name}" on ${route} to contain "${expected.contains}"`,
+        ).toContain(expected.contains.toLowerCase());
+      }
+    });
 
-      // ...and carry the hardening value the ingress config pins.
-      expect(
-        actual!.toLowerCase(),
-        `expected "${expected.name}" to contain "${expected.contains}"`,
-      ).toContain(expected.contains.toLowerCase());
-    }
-  });
+    test(`${route} must never advertise a sniffable content type`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      page.setDefaultNavigationTimeout(120000); // 2 minutes
 
-  test(`${DASHBOARD_ROUTE} must never advertise a sniffable content type`, async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
-    page.setDefaultNavigationTimeout(120000); // 2 minutes
+      const response: APIResponse = await fetchRoute(page, route);
 
-    const endpoint: string = URL.fromString(BASE_URL.toString())
-      .addRoute(DASHBOARD_ROUTE)
-      .toString();
-
-    const response: APIResponse = await page.request.get(endpoint);
-
-    /*
-     * nosniff is only meaningful alongside a declared content type; a route that
-     * dropped its Content-Type entirely would let a browser sniff regardless of
-     * the nosniff directive.
-     */
-    const contentType: string | undefined = response.headers()["content-type"];
-    expect(contentType).toBeTruthy();
-  });
+      /*
+       * nosniff is only meaningful alongside a declared content type; a route that
+       * dropped its Content-Type entirely would let a browser sniff regardless of
+       * the nosniff directive.
+       */
+      const contentType: string | undefined =
+        response.headers()["content-type"];
+      expect(contentType).toBeTruthy();
+    });
+  }
 });

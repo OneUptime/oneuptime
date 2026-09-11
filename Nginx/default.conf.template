@@ -762,6 +762,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
         add_header Cache-Control "no-cache, no-store, must-revalidate" always;
         add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "DENY" always;
+        add_header X-XSS-Protection "1; mode=block" always;
 
         proxy_pass ${BACKEND_APP_TARGET};
     }
@@ -1212,6 +1214,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
         add_header Cache-Control "no-cache, no-store, must-revalidate" always;
         add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "DENY" always;
+        add_header X-XSS-Protection "1; mode=block" always;
 
         proxy_pass ${BACKEND_APP_TARGET};
     }
