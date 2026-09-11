@@ -311,10 +311,7 @@ function renderApp(path: string): void {
     }
   ).default;
   render(
-    <Router.MemoryRouter
-      initialEntries={[path]}
-      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-    >
+    <Router.MemoryRouter initialEntries={[path]}>
       <App />
     </Router.MemoryRouter>,
   );
