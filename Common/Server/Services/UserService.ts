@@ -8,6 +8,7 @@ import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
+import OwnerOnlyColumnPermission from "../Types/Database/Permissions/OwnerOnlyColumnPermission";
 import Attribution from "../Utils/Attribution";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
@@ -336,6 +337,14 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // Reject values that could bypass the exact-false ownership check below.
+    if (
+      updateBy.data.enableTwoFactorAuth !== undefined &&
+      typeof updateBy.data.enableTwoFactorAuth !== "boolean"
+    ) {
+      throw new BadDataException("enableTwoFactorAuth must be a boolean.");
+    }
+
     let carryForward: Array<Model> = [];
 
     if (updateBy.data.password || updateBy.data.email) {
@@ -361,58 +370,22 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * There used to be a guard here refusing to set `enableTwoFactorAuth` on
-     * an account with no verified authenticator, on the grounds that doing so
-     * locked the user out: login demanded a second factor, found none, and
-     * said "contact your admin".
-     *
-     * That is no longer true, and the guard was the single thing standing in
-     * the way of the feature it appeared to protect. Login now sends an
-     * account in that state through ENROLMENT -- a QR code and a code to type
-     * back -- rather than refusing it (see App/FeatureSet/Identity/API/
-     * Authentication.ts). "Required, nothing set up yet" is therefore an
-     * ordinary, recoverable state, and it is exactly the state an admin
-     * creates on purpose when they mandate two factor auth for somebody who
-     * has never used it.
-     *
-     * Keeping the guard would have meant an admin could only require two
-     * factor auth from users who had already volunteered for it, which is the
-     * opposite of what a mandate is for.
-     *
-     * What replaces it is the guard below, which protects the opposite
-     * direction.
+     * Users may turn off two factor authentication for their own account.
+     * This hook runs before row scoping, so require an exact owner predicate.
+     * Changes to other accounts still use the master-admin endpoints, whose
+     * root writes retain session revocation when enabling the requirement.
      */
-
-    /*
-     * TURNING THE REQUIREMENT OFF IS A MASTER-ADMIN ACTION, NOT A USER ONE.
-     *
-     * `enableTwoFactorAuth` carries `update: [Permission.CurrentUser]` and the
-     * User table's row ACL scopes updates to the caller's own id, so without
-     * this every signed-in user can clear their own flag with an ordinary
-     * `PUT /user/<their own id>` -- and the product ships the button that does
-     * it, at Dashboard > Profile > Two Factor Authentication.
-     *
-     * That makes an admin mandate self-undoing. The admin requires two factor
-     * auth, the user is marched through enrolment at their next sign-in, and
-     * then, from the session they just earned, they switch it straight back
-     * off and delete the factor. The account is password-only again and the
-     * Authentication page reports the mandate as simply absent.
-     *
-     * So: anybody may turn the requirement ON for themselves -- self-service
-     * enrolment is a feature and taking it away would help nobody -- but only
-     * a root caller may turn it OFF. The one root caller is
-     * `setTwoFactorAuthRequired` below, reached through the master-admin
-     * endpoint. A user who wants two factor auth removed now has to ask an
-     * administrator, which is the point of the feature.
-     *
-     * Keyed on `isRoot` rather than on a master-admin check because a master
-     * admin editing their OWN row through the CRUD API is still that user, and
-     * the flag should move through the endpoint that also revokes sessions
-     * either way.
-     */
-    if (updateBy.data.enableTwoFactorAuth === false && !updateBy.props.isRoot) {
+    if (
+      updateBy.data.enableTwoFactorAuth === false &&
+      !updateBy.props.isRoot &&
+      !OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser(
+        Model,
+        updateBy.query,
+        updateBy.props,
+      )
+    ) {
       throw new BadDataException(
-        "Only an administrator can turn off two factor authentication for this account.",
+        "You can only turn off two factor authentication for your own account.",
       );
     }
 

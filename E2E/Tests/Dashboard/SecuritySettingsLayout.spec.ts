@@ -293,4 +293,78 @@ test.describe("Security settings card layout", () => {
       });
     }
   }
+
+  test("persists self-service two-factor changes across reloads and leaves cancelled changes untouched", async () => {
+    const page: Page = shared.page;
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto(`${origin}/dashboard/user-profile/two-factor-auth`);
+
+    const status: Locator = page.getByTestId("two-factor-status");
+    const adminOnlyText: RegExp =
+      /An administrator can turn this off for your account|only an administrator can turn it off/i;
+    const setTwoFactorEnabled: (enabled: boolean) => Promise<void> = async (
+      enabled: boolean,
+    ): Promise<void> => {
+      const action: string = enabled
+        ? "Enable two-factor authentication"
+        : "Turn off two-factor authentication";
+      await page.getByRole("button", { name: action, exact: true }).click();
+      const dialog: Locator = page.getByRole("dialog", {
+        name: `${action}?`,
+        exact: true,
+      });
+      await expect(dialog).toBeVisible();
+      await expect(dialog).toContainText(
+        enabled
+          ? "finish setup at your next sign-in"
+          : "Your authenticator apps and security keys will stay saved",
+      );
+      await expect(page.getByText(adminOnlyText)).toHaveCount(0);
+      await dialog.getByRole("button", { name: action, exact: true }).click();
+      await expect(dialog).toBeHidden();
+      await expect(status).toHaveText(enabled ? "Enabled" : "Not enabled");
+    };
+
+    // These updates use the real User CRUD endpoint and the onboarded account.
+    await expect(status).toHaveText("Not enabled");
+    await setTwoFactorEnabled(true);
+    await expect(page.getByText(adminOnlyText)).toHaveCount(0);
+
+    await page
+      .getByRole("button", {
+        name: "Turn off two-factor authentication",
+        exact: true,
+      })
+      .click();
+    const cancelDialog: Locator = page.getByRole("dialog", {
+      name: "Turn off two-factor authentication?",
+      exact: true,
+    });
+    await expect(cancelDialog).toBeVisible();
+    await cancelDialog
+      .getByRole("button", { name: "Cancel", exact: true })
+      .click();
+    await expect(cancelDialog).toBeHidden();
+    await expect(status).toHaveText("Enabled");
+    await page.reload();
+    await expect(status).toHaveText("Enabled");
+
+    await setTwoFactorEnabled(false);
+    await page.reload();
+    await expect(status).toHaveText("Not enabled");
+    await expect(
+      page.getByRole("button", {
+        name: "Enable two-factor authentication",
+        exact: true,
+      }),
+    ).toBeEnabled();
+
+    await setTwoFactorEnabled(true);
+    await page.reload();
+    await expect(status).toHaveText("Enabled");
+    await expect(page.getByText(adminOnlyText)).toHaveCount(0);
+
+    // Leave the temporary account in its original state for shared cleanup.
+    await setTwoFactorEnabled(false);
+  });
 });
