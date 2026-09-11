@@ -84,9 +84,24 @@ test("a notification switches project before opening the destination exactly onc
   mockProjectState.activeProject = { _id: "b", name: "Atlas", slug: "atlas" };
   await view.rerender(<ProjectNavigationSync />);
   expect(navigate).toHaveBeenCalledWith("Inbox", {
-    screen: "IncidentDetail",
-    initial: false,
-    params: { incidentId: "incident-1", projectId: "b" },
+    state: {
+      stale: true,
+      index: 1,
+      routes: [
+        {
+          name: "InboxList",
+          params: {
+            initialView: "incidents",
+            initialSegment: "incidents",
+            initialFilter: "all",
+          },
+        },
+        {
+          name: "IncidentDetail",
+          params: { incidentId: "incident-1", projectId: "b" },
+        },
+      ],
+    },
   });
   processPendingNotification();
   expect(navigate).toHaveBeenCalledTimes(1);
