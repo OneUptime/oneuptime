@@ -70,8 +70,18 @@ test.describe("Invite user", () => {
     async (): Promise<Locator> => {
       const page: Page = ctx.page;
 
+      /*
+       * exact, because getByRole matches an accessible name by substring and
+       * this project is called "E2E Invite User Project ...". The header's
+       * project switcher therefore matches "Invite User" too, and which of the
+       * two the locator resolved to came down to whether the page body had
+       * rendered yet - when it had not, this clicked the switcher, opened its
+       * dropdown, and then waited out the test for a modal that was never
+       * going to appear.
+       */
       const inviteButton: Locator = page.getByRole("button", {
         name: "Invite User",
+        exact: true,
       });
 
       await gotoProjectPage({
