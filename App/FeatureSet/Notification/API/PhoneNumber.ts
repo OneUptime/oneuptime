@@ -33,6 +33,14 @@ import logger, {
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
 import Project from "Common/Models/DatabaseModels/Project";
 import Phone from "Common/Types/Phone";
+import IncomingCallPolicyPhoneNumberService from "Common/Server/Services/IncomingCallPolicyPhoneNumberService";
+import IncomingCallPolicyPhoneNumber from "Common/Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import CommonAPI from "Common/Server/API/CommonAPI";
+import ModelPermission from "Common/Server/Types/Database/Permissions/Index";
+import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import Query from "Common/Types/BaseDatabase/Query";
+import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -47,6 +55,63 @@ function getAuthenticatedProjectId(req: ExpressRequest): ObjectID {
     throw new BadDataException("Project ID not found in request");
   }
   return tenantId;
+}
+
+/*
+ * Custom number-management routes do not pass through BaseAPI's record-level
+ * label/owner scoping. Reapply the policy's normal update authorization here;
+ * the route-level permission check alone only proves that a matching grant
+ * exists somewhere in the project.
+ */
+async function assertCanEditIncomingCallPolicy(data: {
+  req: ExpressRequest;
+  policy: IncomingCallPolicy;
+  projectId: ObjectID;
+}): Promise<void> {
+  if (!data.policy.id) {
+    throw new NotAuthorizedException(
+      "You do not have permission to edit this incoming call policy.",
+    );
+  }
+
+  const databaseProps: DatabaseCommonInteractionProps =
+    await CommonAPI.getDatabaseCommonInteractionProps(data.req);
+
+  await ModelPermission.checkUpdatePermissionByModel({
+    modelType: IncomingCallPolicy,
+    fetchModelWithAccessControlIds: async (): Promise<IncomingCallPolicy> => {
+      return data.policy;
+    },
+    props: databaseProps,
+  });
+
+  const permittedQuery: Query<IncomingCallPolicy> =
+    await ModelPermission.checkUpdateQueryPermissions(
+      IncomingCallPolicy,
+      {
+        _id: data.policy.id,
+        projectId: data.projectId,
+      },
+      {},
+      databaseProps,
+    );
+
+  const permittedPolicy: IncomingCallPolicy | null =
+    await IncomingCallPolicyService.findOneBy({
+      query: permittedQuery,
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+  if (!permittedPolicy) {
+    throw new NotAuthorizedException(
+      "You do not have permission to edit this incoming call policy.",
+    );
+  }
 }
 
 /*
@@ -74,6 +139,154 @@ async function assertConfigBelongsToProject(
     throw new BadDataException(
       "Project Call/SMS Config not found for this project",
     );
+  }
+}
+
+/*
+ * Avoid mutating a provider-owned number's webhook when the attachment is
+ * already known locally. The database unique indexes remain the final guard
+ * for concurrent requests that pass this preflight together.
+ */
+async function assertPhoneNumberCanBeAttached(data: {
+  phoneNumber: Phone;
+  projectCallSMSConfigId: ObjectID;
+  callProviderPhoneNumberId?: string | undefined;
+}): Promise<void> {
+  const existingByPhonePromise: Promise<IncomingCallPolicyPhoneNumber | null> =
+    IncomingCallPolicyPhoneNumberService.findOneBy({
+      query: {
+        phoneNumber: data.phoneNumber,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+  const existingByProviderPromise: Promise<IncomingCallPolicyPhoneNumber | null> =
+    data.callProviderPhoneNumberId
+      ? IncomingCallPolicyPhoneNumberService.findOneBy({
+          query: {
+            projectCallSMSConfigId: data.projectCallSMSConfigId,
+            callProviderPhoneNumberId: data.callProviderPhoneNumberId,
+          },
+          select: {
+            _id: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        })
+      : Promise.resolve(null);
+
+  const existingLegacyPolicyPromise: Promise<IncomingCallPolicy | null> =
+    IncomingCallPolicyService.findOneBy({
+      query: {
+        routingPhoneNumber: data.phoneNumber,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+  const [existingByPhone, existingByProvider, existingLegacyPolicy] =
+    await Promise.all([
+      existingByPhonePromise,
+      existingByProviderPromise,
+      existingLegacyPolicyPromise,
+    ]);
+
+  if (existingByPhone || existingByProvider || existingLegacyPolicy) {
+    throw new BadDataException(
+      "This phone number is already attached to an incoming call policy. Release it before attaching it again.",
+    );
+  }
+}
+
+/*
+ * During a rolling upgrade a policy can still have its original number only
+ * in the legacy scalar columns. Creating a new child first would make the
+ * compatibility mirror overwrite that original attachment. Preserve it as a
+ * child before any provider mutation so the old number remains routable and
+ * releasable. Existing policies stay on this compatibility path until their
+ * first additional-number mutation, avoiding an unsafe eager rollout write.
+ */
+async function preserveLegacyPolicyPhoneNumber(
+  policy: IncomingCallPolicy,
+  projectId: ObjectID,
+): Promise<void> {
+  if (!policy.routingPhoneNumber) {
+    return;
+  }
+
+  if (
+    !policy.id ||
+    !policy.projectCallSMSConfigId ||
+    !policy.callProviderPhoneNumberId
+  ) {
+    throw new BadDataException(
+      "The existing phone number on this policy could not be migrated. Please repair or remove it before adding another number.",
+    );
+  }
+
+  const findPreservedPhoneNumber: () => Promise<IncomingCallPolicyPhoneNumber | null> =
+    async (): Promise<IncomingCallPolicyPhoneNumber | null> => {
+      return await IncomingCallPolicyPhoneNumberService.findOneBy({
+        query: {
+          incomingCallPolicyId: policy.id!,
+          phoneNumber: policy.routingPhoneNumber!,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    };
+
+  if (await findPreservedPhoneNumber()) {
+    return;
+  }
+
+  const legacyPhoneNumber: IncomingCallPolicyPhoneNumber =
+    new IncomingCallPolicyPhoneNumber();
+  legacyPhoneNumber.projectId = projectId;
+  legacyPhoneNumber.incomingCallPolicyId = policy.id;
+  legacyPhoneNumber.projectCallSMSConfigId = policy.projectCallSMSConfigId;
+  legacyPhoneNumber.phoneNumber = policy.routingPhoneNumber;
+  legacyPhoneNumber.callProviderPhoneNumberId =
+    policy.callProviderPhoneNumberId;
+
+  if (policy.phoneNumberCountryCode !== undefined) {
+    legacyPhoneNumber.countryCode = policy.phoneNumberCountryCode;
+  }
+  if (policy.phoneNumberAreaCode !== undefined) {
+    legacyPhoneNumber.areaCode = policy.phoneNumberAreaCode;
+  }
+  if (policy.phoneNumberPurchasedAt !== undefined) {
+    legacyPhoneNumber.phoneNumberPurchasedAt = policy.phoneNumberPurchasedAt;
+  }
+
+  try {
+    await IncomingCallPolicyPhoneNumberService.create({
+      data: legacyPhoneNumber,
+      props: {
+        isRoot: true,
+      },
+    });
+  } catch (error) {
+    /* Another request may have won the insert race. */
+    if (await findPreservedPhoneNumber()) {
+      return;
+    }
+
+    throw error;
   }
 }
 
@@ -371,6 +584,14 @@ router.post(
             projectId: true,
             projectCallSMSConfigId: true,
             routingPhoneNumber: true,
+            callProviderPhoneNumberId: true,
+            phoneNumberCountryCode: true,
+            phoneNumberAreaCode: true,
+            phoneNumberPurchasedAt: true,
+            labels: {
+              _id: true,
+              name: true,
+            },
           },
           props: {
             isRoot: true,
@@ -387,11 +608,11 @@ router.post(
         );
       }
 
-      if (incomingCallPolicy.routingPhoneNumber) {
-        throw new BadDataException(
-          "This policy already has a phone number. Please release it first.",
-        );
-      }
+      await assertCanEditIncomingCallPolicy({
+        req,
+        policy: incomingCallPolicy,
+        projectId,
+      });
 
       // Require project-level Twilio config
       if (!incomingCallPolicy.projectCallSMSConfigId) {
@@ -399,6 +620,19 @@ router.post(
           "This policy does not have a project Twilio configuration. Please configure one first.",
         );
       }
+
+      await assertConfigBelongsToProject(
+        incomingCallPolicy.projectCallSMSConfigId,
+        projectId,
+      );
+
+      await preserveLegacyPolicyPhoneNumber(incomingCallPolicy, projectId);
+
+      await assertPhoneNumberCanBeAttached({
+        phoneNumber: new Phone(phoneNumber),
+        projectCallSMSConfigId: incomingCallPolicy.projectCallSMSConfigId,
+        callProviderPhoneNumberId: phoneNumberId,
+      });
 
       // Get project Twilio config
       const customTwilioConfig: TwilioConfig | null =
@@ -419,32 +653,42 @@ router.post(
       const assigned: PurchasedPhoneNumber =
         await provider.assignExistingNumber(phoneNumberId, webhookUrl);
 
-      // Get country code from phone number
-      const countryCode: string =
-        Phone.getCountryCodeFromPhoneNumber(phoneNumber);
-      const areaCode: string = Phone.getAreaCodeFromPhoneNumber(phoneNumber);
-
-      /*
-       * Update the incoming call policy with the assigned number
-       */
-      await IncomingCallPolicyService.updateOneById({
-        id: incomingCallPolicyId,
-        data: {
-          routingPhoneNumber: new Phone(assigned.phoneNumber),
-          callProviderPhoneNumberId: assigned.phoneNumberId,
-          phoneNumberCountryCode: countryCode,
-          phoneNumberAreaCode: areaCode,
-          phoneNumberPurchasedAt: new Date(),
-        },
-        props: {
-          isRoot: true,
-        },
+      /* The provider response is authoritative and may differ from the input. */
+      await assertPhoneNumberCanBeAttached({
+        phoneNumber: new Phone(assigned.phoneNumber),
+        projectCallSMSConfigId: incomingCallPolicy.projectCallSMSConfigId,
+        callProviderPhoneNumberId: assigned.phoneNumberId,
       });
+
+      const attachedPhoneNumber: IncomingCallPolicyPhoneNumber =
+        new IncomingCallPolicyPhoneNumber();
+      attachedPhoneNumber.projectId = projectId;
+      attachedPhoneNumber.incomingCallPolicyId = incomingCallPolicyId;
+      attachedPhoneNumber.projectCallSMSConfigId =
+        incomingCallPolicy.projectCallSMSConfigId;
+      attachedPhoneNumber.phoneNumber = new Phone(assigned.phoneNumber);
+      attachedPhoneNumber.callProviderPhoneNumberId = assigned.phoneNumberId;
+      attachedPhoneNumber.countryCode = Phone.getCountryCodeFromPhoneNumber(
+        assigned.phoneNumber,
+      );
+      attachedPhoneNumber.areaCode = Phone.getAreaCodeFromPhoneNumber(
+        assigned.phoneNumber,
+      );
+      attachedPhoneNumber.phoneNumberPurchasedAt = new Date();
+
+      const createdPhoneNumber: IncomingCallPolicyPhoneNumber =
+        await IncomingCallPolicyPhoneNumberService.create({
+          data: attachedPhoneNumber,
+          props: {
+            isRoot: true,
+          },
+        });
 
       return Response.sendJsonObjectResponse(req, res, {
         success: true,
         phoneNumberId: assigned.phoneNumberId,
         phoneNumber: assigned.phoneNumber,
+        incomingCallPolicyPhoneNumberId: createdPhoneNumber.id?.toString(),
       });
     } catch (err) {
       logger.error(err, getLogAttributesFromRequest(req as RequestLike));
@@ -516,6 +760,14 @@ router.post(
             projectId: true,
             projectCallSMSConfigId: true,
             routingPhoneNumber: true,
+            callProviderPhoneNumberId: true,
+            phoneNumberCountryCode: true,
+            phoneNumberAreaCode: true,
+            phoneNumberPurchasedAt: true,
+            labels: {
+              _id: true,
+              name: true,
+            },
           },
           props: {
             isRoot: true,
@@ -532,11 +784,11 @@ router.post(
         );
       }
 
-      if (incomingCallPolicy.routingPhoneNumber) {
-        throw new BadDataException(
-          "This policy already has a phone number. Please release it first.",
-        );
-      }
+      await assertCanEditIncomingCallPolicy({
+        req,
+        policy: incomingCallPolicy,
+        projectId,
+      });
 
       // Require project-level Twilio config
       if (!incomingCallPolicy.projectCallSMSConfigId) {
@@ -544,6 +796,18 @@ router.post(
           "This policy does not have a project Twilio configuration. Please configure one first.",
         );
       }
+
+      await assertConfigBelongsToProject(
+        incomingCallPolicy.projectCallSMSConfigId,
+        projectId,
+      );
+
+      await preserveLegacyPolicyPhoneNumber(incomingCallPolicy, projectId);
+
+      await assertPhoneNumberCanBeAttached({
+        phoneNumber: new Phone(phoneNumber),
+        projectCallSMSConfigId: incomingCallPolicy.projectCallSMSConfigId,
+      });
 
       // Get project Twilio config
       const customTwilioConfig: TwilioConfig | null =
@@ -567,13 +831,26 @@ router.post(
       );
 
       /*
-       * Persist the purchased number on the policy. If this fails, roll back the
+       * Persist the purchased number as a policy child row. If this fails, roll back the
        * Twilio purchase so we never leave a paid, untracked number that can't be
        * released later (it would have no stored SID otherwise).
        * Country/area code are derived from the authoritative Twilio-returned
        * number, not the client-supplied one.
        */
+      let createdPhoneNumber: IncomingCallPolicyPhoneNumber | null = null;
+
       try {
+        /*
+         * Re-check the canonical provider result. If this discovers a duplicate,
+         * the catch below releases the newly purchased number just like any
+         * other persistence failure.
+         */
+        await assertPhoneNumberCanBeAttached({
+          phoneNumber: new Phone(purchased.phoneNumber),
+          projectCallSMSConfigId: incomingCallPolicy.projectCallSMSConfigId,
+          callProviderPhoneNumberId: purchased.phoneNumberId,
+        });
+
         const countryCode: string = Phone.getCountryCodeFromPhoneNumber(
           purchased.phoneNumber,
         );
@@ -581,22 +858,28 @@ router.post(
           purchased.phoneNumber,
         );
 
-        await IncomingCallPolicyService.updateOneById({
-          id: incomingCallPolicyId,
-          data: {
-            routingPhoneNumber: new Phone(purchased.phoneNumber),
-            callProviderPhoneNumberId: purchased.phoneNumberId,
-            phoneNumberCountryCode: countryCode,
-            phoneNumberAreaCode: areaCode,
-            phoneNumberPurchasedAt: new Date(),
-          },
+        const purchasedPhoneNumber: IncomingCallPolicyPhoneNumber =
+          new IncomingCallPolicyPhoneNumber();
+        purchasedPhoneNumber.projectId = projectId;
+        purchasedPhoneNumber.incomingCallPolicyId = incomingCallPolicyId;
+        purchasedPhoneNumber.projectCallSMSConfigId =
+          incomingCallPolicy.projectCallSMSConfigId;
+        purchasedPhoneNumber.phoneNumber = new Phone(purchased.phoneNumber);
+        purchasedPhoneNumber.callProviderPhoneNumberId =
+          purchased.phoneNumberId;
+        purchasedPhoneNumber.countryCode = countryCode;
+        purchasedPhoneNumber.areaCode = areaCode;
+        purchasedPhoneNumber.phoneNumberPurchasedAt = new Date();
+
+        createdPhoneNumber = await IncomingCallPolicyPhoneNumberService.create({
+          data: purchasedPhoneNumber,
           props: {
             isRoot: true,
           },
         });
       } catch (persistErr) {
         logger.error(
-          `Failed to persist purchased number ${purchased.phoneNumber} (SID ${purchased.phoneNumberId}) to policy ${incomingCallPolicyId.toString()}. Rolling back the provider purchase to avoid an orphaned paid number.`,
+          `Failed to attach purchased number ${purchased.phoneNumber} (SID ${purchased.phoneNumberId}) to policy ${incomingCallPolicyId.toString()}. Rolling back the provider purchase to avoid an orphaned paid number.`,
         );
         try {
           await provider.releaseNumber(purchased.phoneNumberId);
@@ -613,6 +896,7 @@ router.post(
         success: true,
         phoneNumberId: purchased.phoneNumberId,
         phoneNumber: purchased.phoneNumber,
+        incomingCallPolicyPhoneNumberId: createdPhoneNumber?.id?.toString(),
       });
     } catch (err) {
       logger.error(err, getLogAttributesFromRequest(req as RequestLike));
@@ -621,7 +905,231 @@ router.post(
   },
 );
 
-// Release a phone number
+async function releasePhoneNumberHandler(
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+): Promise<ExpressResponse | void> {
+  try {
+    const incomingCallPolicyId: ObjectID | undefined = req.params[
+      "incomingCallPolicyId"
+    ]
+      ? new ObjectID(req.params["incomingCallPolicyId"] as string)
+      : undefined;
+
+    const incomingCallPolicyPhoneNumberId: ObjectID | undefined = req.params[
+      "incomingCallPolicyPhoneNumberId"
+    ]
+      ? new ObjectID(req.params["incomingCallPolicyPhoneNumberId"] as string)
+      : undefined;
+
+    if (!incomingCallPolicyId) {
+      throw new BadDataException("incomingCallPolicyId is required");
+    }
+
+    const incomingCallPolicy: IncomingCallPolicy | null =
+      await IncomingCallPolicyService.findOneById({
+        id: incomingCallPolicyId,
+        select: {
+          _id: true,
+          projectId: true,
+          callProviderPhoneNumberId: true,
+          projectCallSMSConfigId: true,
+          labels: {
+            _id: true,
+            name: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!incomingCallPolicy) {
+      throw new BadDataException("Incoming Call Policy not found");
+    }
+
+    const projectId: ObjectID = getAuthenticatedProjectId(req);
+    if (incomingCallPolicy.projectId?.toString() !== projectId.toString()) {
+      throw new BadDataException(
+        "Incoming Call Policy does not belong to this project",
+      );
+    }
+
+    await assertCanEditIncomingCallPolicy({
+      req,
+      policy: incomingCallPolicy,
+      projectId,
+    });
+
+    let phoneNumberToRelease: IncomingCallPolicyPhoneNumber | null = null;
+
+    if (incomingCallPolicyPhoneNumberId) {
+      phoneNumberToRelease =
+        await IncomingCallPolicyPhoneNumberService.findOneBy({
+          query: {
+            _id: incomingCallPolicyPhoneNumberId,
+            incomingCallPolicyId,
+            projectId,
+          },
+          select: {
+            _id: true,
+            callProviderPhoneNumberId: true,
+            projectCallSMSConfigId: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!phoneNumberToRelease) {
+        throw new BadDataException(
+          "Incoming Call Policy phone number not found for this policy",
+        );
+      }
+    } else if (incomingCallPolicy.callProviderPhoneNumberId) {
+      /*
+       * Backward-compatible route: older dashboard clients identify only the
+       * policy. Prefer the child represented by the policy's scalar mirror.
+       * If that scalar is a missed legacy attachment which differs from every
+       * child, leave phoneNumberToRelease null so the scalar itself is released
+       * rather than accidentally deleting an unrelated child.
+       */
+      const mirroredChildQuery: Query<IncomingCallPolicyPhoneNumber> = {
+        incomingCallPolicyId,
+        projectId,
+        callProviderPhoneNumberId: incomingCallPolicy.callProviderPhoneNumberId,
+      };
+
+      if (incomingCallPolicy.projectCallSMSConfigId) {
+        mirroredChildQuery.projectCallSMSConfigId =
+          incomingCallPolicy.projectCallSMSConfigId;
+      }
+
+      phoneNumberToRelease =
+        await IncomingCallPolicyPhoneNumberService.findOneBy({
+          query: mirroredChildQuery,
+          select: {
+            _id: true,
+            callProviderPhoneNumberId: true,
+            projectCallSMSConfigId: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+    } else {
+      phoneNumberToRelease =
+        await IncomingCallPolicyPhoneNumberService.findOneBy({
+          query: {
+            incomingCallPolicyId,
+            projectId,
+          },
+          select: {
+            _id: true,
+            callProviderPhoneNumberId: true,
+            projectCallSMSConfigId: true,
+          },
+          sort: {
+            createdAt: SortOrder.Ascending,
+            _id: SortOrder.Ascending,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+    }
+
+    const callProviderPhoneNumberId: string | undefined =
+      phoneNumberToRelease !== null
+        ? phoneNumberToRelease.callProviderPhoneNumberId
+        : incomingCallPolicy.callProviderPhoneNumberId;
+    const projectCallSMSConfigId: ObjectID | undefined =
+      phoneNumberToRelease !== null
+        ? phoneNumberToRelease.projectCallSMSConfigId
+        : incomingCallPolicy.projectCallSMSConfigId;
+
+    if (!callProviderPhoneNumberId) {
+      throw new BadDataException("This policy does not have a phone number");
+    }
+
+    if (!projectCallSMSConfigId) {
+      throw new BadDataException(
+        "This phone number does not have a project Twilio configuration.",
+      );
+    }
+
+    await assertConfigBelongsToProject(projectCallSMSConfigId, projectId);
+
+    const customTwilioConfig: TwilioConfig | null =
+      await getProjectTwilioConfig(projectCallSMSConfigId);
+    if (!customTwilioConfig) {
+      throw new BadDataException("Project Call/SMS Config not found");
+    }
+
+    const provider: ICallProvider =
+      CallProviderFactory.getProviderWithConfig(customTwilioConfig);
+
+    await provider.releaseNumber(callProviderPhoneNumberId);
+
+    if (phoneNumberToRelease?.id) {
+      await IncomingCallPolicyPhoneNumberService.deleteOneById({
+        id: phoneNumberToRelease.id,
+        props: {
+          isRoot: true,
+        },
+      });
+    } else {
+      /* Scalar-only rolling-upgrade fallback. */
+      await IncomingCallPolicyService.updateOneById({
+        id: incomingCallPolicyId,
+        data: {
+          routingPhoneNumber: null,
+          callProviderPhoneNumberId: null,
+          phoneNumberCountryCode: null,
+          phoneNumberAreaCode: null,
+          phoneNumberPurchasedAt: null,
+          // TypeORM columns are nullable even though PartialEntity omits null.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      /* Promote any remaining child after removing an unmatched scalar. */
+      await IncomingCallPolicyPhoneNumberService.syncPrimaryPhoneNumberToPolicy(
+        incomingCallPolicyId,
+      );
+    }
+
+    return Response.sendJsonObjectResponse(req, res, {
+      success: true,
+      incomingCallPolicyPhoneNumberId: phoneNumberToRelease?.id?.toString(),
+    });
+  } catch (err) {
+    logger.error(err, getLogAttributesFromRequest(req as RequestLike));
+    return next(err);
+  }
+}
+
+// Release one explicitly selected number from a policy.
+router.delete(
+  "/release/:incomingCallPolicyId/:incomingCallPolicyPhoneNumberId",
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
+  UserMiddleware.requirePermission({
+    permissions: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectIncomingCallPolicy,
+    ],
+  }),
+  releasePhoneNumberHandler,
+);
+
+// Legacy clients release the primary (oldest) number by policy id only.
 router.delete(
   "/release/:incomingCallPolicyId",
   UserMiddleware.getUserMiddleware,
@@ -634,94 +1142,7 @@ router.delete(
       Permission.EditProjectIncomingCallPolicy,
     ],
   }),
-  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-    try {
-      const incomingCallPolicyId: ObjectID | undefined = req.params[
-        "incomingCallPolicyId"
-      ]
-        ? new ObjectID(req.params["incomingCallPolicyId"] as string)
-        : undefined;
-
-      if (!incomingCallPolicyId) {
-        throw new BadDataException("incomingCallPolicyId is required");
-      }
-
-      // Get the incoming call policy with its project config
-      const incomingCallPolicy: IncomingCallPolicy | null =
-        await IncomingCallPolicyService.findOneById({
-          id: incomingCallPolicyId,
-          select: {
-            _id: true,
-            projectId: true,
-            callProviderPhoneNumberId: true,
-            projectCallSMSConfigId: true,
-            routingPhoneNumber: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-      if (!incomingCallPolicy) {
-        throw new BadDataException("Incoming Call Policy not found");
-      }
-
-      // Ensure the policy belongs to the authenticated project (tenant isolation).
-      const projectId: ObjectID = getAuthenticatedProjectId(req);
-      if (incomingCallPolicy.projectId?.toString() !== projectId.toString()) {
-        throw new BadDataException(
-          "Incoming Call Policy does not belong to this project",
-        );
-      }
-
-      if (!incomingCallPolicy.callProviderPhoneNumberId) {
-        throw new BadDataException("This policy does not have a phone number");
-      }
-
-      // Require project-level Twilio config
-      if (!incomingCallPolicy.projectCallSMSConfigId) {
-        throw new BadDataException(
-          "This policy does not have a project Twilio configuration.",
-        );
-      }
-
-      // Get project Twilio config
-      const customTwilioConfig: TwilioConfig | null =
-        await getProjectTwilioConfig(incomingCallPolicy.projectCallSMSConfigId);
-      if (!customTwilioConfig) {
-        throw new BadDataException("Project Call/SMS Config not found");
-      }
-
-      const provider: ICallProvider =
-        CallProviderFactory.getProviderWithConfig(customTwilioConfig);
-
-      await provider.releaseNumber(
-        incomingCallPolicy.callProviderPhoneNumberId,
-      );
-
-      // Update the incoming call policy to remove the phone number
-      await IncomingCallPolicyService.updateOneById({
-        id: incomingCallPolicyId,
-        data: {
-          routingPhoneNumber: null,
-          callProviderPhoneNumberId: null,
-          phoneNumberCountryCode: null,
-          phoneNumberAreaCode: null,
-          phoneNumberPurchasedAt: null,
-        } as any, // TypeORM allows null for nullable columns
-        props: {
-          isRoot: true,
-        },
-      });
-
-      return Response.sendJsonObjectResponse(req, res, {
-        success: true,
-      });
-    } catch (err) {
-      logger.error(err, getLogAttributesFromRequest(req as RequestLike));
-      return next(err);
-    }
-  },
+  releasePhoneNumberHandler,
 );
 
 /*

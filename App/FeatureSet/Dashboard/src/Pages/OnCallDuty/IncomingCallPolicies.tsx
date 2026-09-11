@@ -8,12 +8,18 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
+import IncomingCallPolicyPhoneNumber from "Common/Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
 import IncomingCallPolicyOwnerTeam from "Common/Models/DatabaseModels/IncomingCallPolicyOwnerTeam";
 import IncomingCallPolicyOwnerUser from "Common/Models/DatabaseModels/IncomingCallPolicyOwnerUser";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useRef,
+  useState,
+} from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
-import Phone from "Common/Types/Phone";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
@@ -22,10 +28,32 @@ import useResourceOwners, {
   buildBooleanFacetQuery,
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
+import ModelAPI, { type ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import ProjectUtil from "Common/UI/Utils/Project";
+import API from "Common/UI/Utils/API/API";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import ObjectID from "Common/Types/ObjectID";
+import {
+  getCompactPhoneNumberSummary,
+  groupIncomingCallPolicyPhoneNumbers,
+  includeLegacyIncomingCallPolicyPhoneNumber,
+  type CompactPhoneNumberSummary,
+  type IncomingCallPolicyPhoneNumbersByPolicyId,
+} from "../../Components/CallSMS/IncomingCallPolicyPhoneNumberUtil";
 
 const IncomingCallPoliciesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const [phoneNumbersByPolicyId, setPhoneNumbersByPolicyId] =
+    useState<IncomingCallPolicyPhoneNumbersByPolicyId>({});
+  const [isLoadingPhoneNumbers, setIsLoadingPhoneNumbers] =
+    useState<boolean>(false);
+  const [phoneNumbersError, setPhoneNumbersError] = useState<string>("");
+  const phoneNumberRequestId: React.MutableRefObject<number> =
+    useRef<number>(0);
+
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<IncomingCallPolicy>({ modelType: IncomingCallPolicy });
 
@@ -73,6 +101,87 @@ const IncomingCallPoliciesPage: FunctionComponent<
     extraFacets: incomingCallPolicyExtraFacets,
   });
 
+  const fetchPhoneNumbersForPolicies: (
+    policies: Array<IncomingCallPolicy>,
+  ) => Promise<void> = async (
+    policies: Array<IncomingCallPolicy>,
+  ): Promise<void> => {
+    const requestId: number = ++phoneNumberRequestId.current;
+    const policyIds: Array<ObjectID> = [];
+
+    for (const policy of policies) {
+      if (policy.id) {
+        policyIds.push(policy.id);
+      }
+    }
+
+    if (policyIds.length === 0) {
+      setPhoneNumbersByPolicyId({});
+      setPhoneNumbersError("");
+      setIsLoadingPhoneNumbers(false);
+      return;
+    }
+
+    try {
+      setIsLoadingPhoneNumbers(true);
+      setPhoneNumbersError("");
+
+      const result: ListResult<IncomingCallPolicyPhoneNumber> =
+        await ModelAPI.getList<IncomingCallPolicyPhoneNumber>({
+          modelType: IncomingCallPolicyPhoneNumber,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            incomingCallPolicyId: new Includes(policyIds),
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
+            incomingCallPolicyId: true,
+            phoneNumber: true,
+            callProviderPhoneNumberId: true,
+            countryCode: true,
+            areaCode: true,
+            phoneNumberPurchasedAt: true,
+          },
+          sort: {
+            phoneNumberPurchasedAt: SortOrder.Ascending,
+          },
+        });
+
+      if (requestId !== phoneNumberRequestId.current) {
+        return;
+      }
+
+      const groupedPhoneNumbers: IncomingCallPolicyPhoneNumbersByPolicyId =
+        groupIncomingCallPolicyPhoneNumbers(result.data);
+
+      for (const policy of policies) {
+        if (!policy.id) {
+          continue;
+        }
+
+        const policyId: string = policy.id.toString();
+        groupedPhoneNumbers[policyId] =
+          includeLegacyIncomingCallPolicyPhoneNumber(
+            groupedPhoneNumbers[policyId] || [],
+            policy,
+          );
+      }
+
+      setPhoneNumbersByPolicyId(groupedPhoneNumbers);
+      setIsLoadingPhoneNumbers(false);
+    } catch (err) {
+      if (requestId !== phoneNumberRequestId.current) {
+        return;
+      }
+
+      setPhoneNumbersByPolicyId({});
+      setPhoneNumbersError(API.getFriendlyMessage(err));
+      setIsLoadingPhoneNumbers(false);
+    }
+  };
+
   return (
     <Fragment>
       <ModelTable<IncomingCallPolicy>
@@ -85,6 +194,7 @@ const IncomingCallPoliciesPage: FunctionComponent<
         query={mergeFiltersIntoQuery(undefined)}
         onFetchSuccess={(data: Array<IncomingCallPolicy>) => {
           onResourcesFetched(data);
+          void fetchPhoneNumbersForPolicies(data);
         }}
         saveFilterProps={{
           tableId: "incoming-call-policies-table",
@@ -178,21 +288,54 @@ const IncomingCallPoliciesPage: FunctionComponent<
           },
           {
             field: {
+              _id: true,
+              projectId: true,
+              projectCallSMSConfigId: true,
               routingPhoneNumber: true,
+              callProviderPhoneNumberId: true,
+              phoneNumberCountryCode: true,
+              phoneNumberAreaCode: true,
+              phoneNumberPurchasedAt: true,
             },
-            title: "Phone Number",
-            type: FieldType.Phone,
+            title: "Phone Numbers",
+            type: FieldType.Element,
             getElement: (item: IncomingCallPolicy): ReactElement => {
-              if (item.routingPhoneNumber) {
+              const policyId: string = item.id?.toString() || "";
+              const phoneNumbers: Array<IncomingCallPolicyPhoneNumber> =
+                phoneNumbersByPolicyId[policyId] || [];
+
+              if (isLoadingPhoneNumbers) {
+                return <span className="text-gray-500">Loading…</span>;
+              }
+
+              if (phoneNumbersError) {
                 return (
-                  <div className="flex items-center space-x-2">
+                  <span className="text-red-600" title={phoneNumbersError}>
+                    Unavailable
+                  </span>
+                );
+              }
+
+              const summary: CompactPhoneNumberSummary =
+                getCompactPhoneNumberSummary(phoneNumbers);
+
+              if (summary.visiblePhoneNumbers.length > 0) {
+                return (
+                  <div className="flex items-center space-x-2 min-w-0">
                     <Icon
                       icon={IconProp.Call}
-                      className="h-4 w-4 text-green-500"
+                      className="h-4 w-4 text-green-500 flex-shrink-0"
                     />
-                    <span className="font-mono">
-                      {(item.routingPhoneNumber as Phone).toString()}
+                    <span className="font-mono truncate">
+                      {summary.visiblePhoneNumbers[0]}
                     </span>
+                    {summary.additionalPhoneNumbersCount > 0 ? (
+                      <span className="whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                        +{summary.additionalPhoneNumbersCount} more
+                      </span>
+                    ) : (
+                      <></>
+                    )}
                   </div>
                 );
               }

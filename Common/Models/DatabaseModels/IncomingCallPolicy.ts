@@ -90,10 +90,9 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
     "Manage incoming call routing policies with escalation rules for on-call teams",
 })
 /*
- * A routing phone number may belong to at most one active policy. The inbound
- * /voice webhook looks up the policy by routingPhoneNumber and assumes a single
- * match, so this uniqueness is enforced at the DB level (partial index in the
- * migration; NULLs are allowed for policies without a number yet).
+ * These scalar fields remain as the oldest-number compatibility mirror while
+ * phone-number child rows are authoritative. Keep the mirror unique so the
+ * scalar-only webhook fallback stays unambiguous during rolling upgrades.
  */
 @Index(
   "IDX_INCOMING_CALL_POLICY_ROUTING_PHONE_UNIQUE",
