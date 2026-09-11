@@ -318,11 +318,20 @@ test.describe("Telemetry ingestion key creation wizard", () => {
     await expect(
       modal().getByText("Allowed Origins is required.", { exact: true }),
     ).toBeVisible();
-    await fillOrigins('["https://app.example.com"');
-    await next();
-    await expect(
-      modal().getByText(/Allowed Origins is not valid JSON\./),
-    ).toBeVisible();
+    for (const invalidJSON of [
+      '["https://app.example.com"',
+      "{{origins}}",
+      "   ",
+    ]) {
+      await fillOrigins(invalidJSON);
+      await next();
+      await expect(
+        modal().getByText(/Allowed Origins is not valid JSON\./),
+      ).toBeVisible();
+      await expect(modal().locator('[aria-current="step"]')).toHaveText(
+        "Browser Settings",
+      );
+    }
     for (const invalidOrigins of [
       {
         value: "[]",

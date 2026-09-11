@@ -3,7 +3,7 @@ import Fields from "../../../../UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
 import { FormStep } from "../../../../UI/Components/Forms/Types/FormStep";
-import { JSONObject } from "../../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
 import "@testing-library/jest-dom";
 import {
@@ -63,6 +63,7 @@ const FIELDS: Fields<JSONObject> = [
 ];
 
 interface FormHandle {
+  setFieldValue: (name: string, value: JSONValue) => void;
   submitForm: () => void;
 }
 
@@ -70,6 +71,7 @@ interface WizardOptions {
   hideSubmitButton?: boolean;
   isLoading?: boolean;
   summary?: boolean;
+  onFormStepChange?: (stepId: string) => void;
 }
 
 interface RenderWizardResult extends RenderResult {
@@ -92,6 +94,7 @@ function renderWizard(options: WizardOptions = {}): RenderWizardResult {
         fields={FIELDS}
         steps={STEPS}
         onSubmit={handleSubmit}
+        onFormStepChange={overrides.onFormStepChange}
         submitButtonText="Create"
         hideSubmitButton={overrides.hideSubmitButton}
         isLoading={overrides.isLoading}
@@ -214,6 +217,57 @@ describe("BasicForm backward navigation", () => {
     expect(
       await screen.findByText("Confirmation Text is required."),
     ).toBeVisible();
+    expect(handleSubmit).not.toHaveBeenCalled();
+  });
+
+  test("uses live eligible steps for imperative Next and immediate Back after changing a condition", async () => {
+    let recordNavigation: boolean = false;
+    let returnedFromConfirmation: boolean = false;
+    const visitedSteps: Array<string> = [];
+    const { formRef, user, handleSubmit }: RenderWizardResult = renderWizard({
+      hideSubmitButton: true,
+      onFormStepChange: (stepId: string): void => {
+        if (!recordNavigation) {
+          return;
+        }
+        if (visitedSteps[visitedSteps.length - 1] !== stepId) {
+          visitedSteps.push(stepId);
+        }
+        if (stepId === "confirmation" && !returnedFromConfirmation) {
+          returnedFromConfirmation = true;
+          // Navigate before the passive effect refreshes the stored step list.
+          screen.getByRole("button", { name: "Back" }).click();
+        }
+      },
+    });
+    await enterName();
+    fireEvent.change(screen.getByRole("textbox", { name: /^Kind/ }), {
+      target: { value: "browser" },
+    });
+    act(() => {
+      formRef.current?.submitForm();
+    });
+    await screen.findByRole("textbox", { name: "Origin" });
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    await expectInputValue("Name", "Production");
+
+    recordNavigation = true;
+    act(() => {
+      // A modal footer can submit before React commits the filtered step list.
+      formRef.current?.setFieldValue("kind", "server");
+      formRef.current?.submitForm();
+    });
+
+    await waitFor(() => {
+      expect(visitedSteps).toEqual(["confirmation", "details"]);
+    });
+    await expectInputValue("Name", "Production");
+    expect(
+      screen.queryByRole("textbox", { name: "Origin" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Back" }),
+    ).not.toBeInTheDocument();
     expect(handleSubmit).not.toHaveBeenCalled();
   });
 

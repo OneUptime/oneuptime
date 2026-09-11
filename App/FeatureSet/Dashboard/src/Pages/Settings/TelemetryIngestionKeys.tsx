@@ -187,7 +187,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 try {
                   origins = JSON.parse(origins);
                 } catch {
-                  return null; // The JSON field reports syntax errors inline.
+                  return "Allowed Origins is not valid JSON. Enter a JSON array of origins.";
                 }
               }
               if (

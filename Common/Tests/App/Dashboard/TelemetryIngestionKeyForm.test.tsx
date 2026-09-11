@@ -503,15 +503,22 @@ describe("Telemetry ingestion key creation wizard", () => {
     ).toBeVisible();
     expect(activeStep()).toBe("Browser Settings");
 
-    fireEvent.change(screen.getByRole("textbox", { name: "Allowed Origins" }), {
-      target: { value: '["https://app.example.com"' },
-    });
-    await next(user);
-    expect(
-      await screen.findByText(/Allowed Origins is not valid JSON/),
-    ).toBeVisible();
-    expect(activeStep()).toBe("Browser Settings");
-    expect(createOrUpdateMock).not.toHaveBeenCalled();
+    for (const origins of [
+      '["https://app.example.com"',
+      "   ",
+      "{{origins}}",
+    ]) {
+      fireEvent.change(
+        screen.getByRole("textbox", { name: "Allowed Origins" }),
+        { target: { value: origins } },
+      );
+      await next(user);
+      expect(
+        await screen.findByText(/Allowed Origins is not valid JSON/),
+      ).toBeVisible();
+      expect(activeStep()).toBe("Browser Settings");
+      expect(createOrUpdateMock).not.toHaveBeenCalled();
+    }
   });
 
   test.each([true, false])(
