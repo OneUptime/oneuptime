@@ -35,8 +35,10 @@ import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunction";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import Link from "../../../Types/Link";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import SideMenuItem from "../../../UI/Components/SideMenu/SideMenuItem";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -79,9 +81,7 @@ jest.mock(
   },
 );
 
-const MODEL_ID: ObjectID = new ObjectID(
-  "22222222-0000-4000-8000-000000000001",
-);
+const MODEL_ID: ObjectID = new ObjectID("22222222-0000-4000-8000-000000000001");
 
 interface ResourceSettingsCase {
   name: string;
@@ -205,29 +205,32 @@ describe.each(RESOURCES)("$name Settings", (resource: ResourceSettingsCase) => {
     { name: "trailing slash", suffix: "/" },
     { name: "query string", suffix: "?source=overview" },
     { name: "trailing slash and query string", suffix: "/?source=overview" },
-  ])("loads the routed resource on the $name URL", async ({ suffix }: { suffix: string }) => {
-    openSettings(resource, suffix);
+  ])(
+    "loads the routed resource on the $name URL",
+    async ({ suffix }: { suffix: string }) => {
+      openSettings(resource, suffix);
 
-    expect(
-      await screen.findByText(`Archive ${resource.singularName}`),
-    ).toBeInTheDocument();
-    expect(ModelAPI.getItem).toHaveBeenCalledWith({
-      modelType: resource.modelType,
-      id: MODEL_ID,
-      select: { isArchived: true },
-    });
-    expect(
-      screen.getByText(
-        `Archive this ${resource.singularName} to hide it from lists while it keeps collecting telemetry. You can unarchive it anytime.`,
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Archive" })).toBeEnabled();
-  });
+      expect(
+        await screen.findByText(`Archive ${resource.singularName}`),
+      ).toBeInTheDocument();
+      expect(ModelAPI.getItem).toHaveBeenCalledWith({
+        modelType: resource.modelType,
+        id: MODEL_ID,
+        select: { isArchived: true },
+      });
+      expect(
+        screen.getByText(
+          `Archive this ${resource.singularName} to hide it from lists while it keeps collecting telemetry. You can unarchive it anytime.`,
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Archive" })).toBeEnabled();
+    },
+  );
 
   test("archives the current resource and returns to its current project's list", async () => {
     const update: ReturnType<typeof jest.spyOn> = jest
       .spyOn(ModelAPI, "updateById")
-      .mockResolvedValue(new resource.modelType());
+      .mockResolvedValue(new HTTPResponse<JSONObject>(200, {}, {}));
     const navigate: ReturnType<typeof jest.spyOn> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation((): void => {});

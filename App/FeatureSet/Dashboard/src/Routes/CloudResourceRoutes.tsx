@@ -87,7 +87,9 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
           element={
             <CloudResourceSettings
               {...props}
-              pageRoute={RouteMap[PageMap.CLOUD_RESOURCE_VIEW_SETTINGS] as Route}
+              pageRoute={
+                RouteMap[PageMap.CLOUD_RESOURCE_VIEW_SETTINGS] as Route
+              }
             />
           }
         />

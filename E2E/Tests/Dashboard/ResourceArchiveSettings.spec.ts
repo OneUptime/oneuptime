@@ -143,7 +143,9 @@ test.describe("Resource archive actions live in Settings", () => {
         await archive.click();
         const modal: Locator = page.getByTestId("modal");
         await expect(modal).toBeVisible();
-        await modal.getByRole("button", { name: "Cancel", exact: true }).click();
+        await modal
+          .getByRole("button", { name: "Cancel", exact: true })
+          .click();
         await expect(modal).toBeHidden();
         expect((await readResource()).isArchived).toBe(false);
 
@@ -154,7 +156,9 @@ test.describe("Resource archive actions live in Settings", () => {
 
         // Archived resources remain directly accessible for restoration.
         await page.goto(settingsUrl);
-        await page.getByRole("button", { name: "Unarchive", exact: true }).click();
+        await page
+          .getByRole("button", { name: "Unarchive", exact: true })
+          .click();
         await modal.getByTestId("modal-footer-submit-button").click();
         await expect(modal).toBeHidden();
         await expect(archive).toBeVisible();
@@ -165,7 +169,9 @@ test.describe("Resource archive actions live in Settings", () => {
           urlFor(`/api/project/${projectId}`),
           { headers: { tenantid: projectId } },
         );
-        expect(response.ok(), "Temporary archive project is deleted").toBe(true);
+        expect(response.ok(), "Temporary archive project is deleted").toBe(
+          true,
+        );
       }
     });
   }

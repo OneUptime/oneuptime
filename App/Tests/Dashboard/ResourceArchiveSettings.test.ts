@@ -20,7 +20,11 @@ const RESOURCES: Array<ArchivableResource> = [
   { resource: "Kubernetes", model: "KubernetesCluster", overview: "Index.tsx" },
   { resource: "Docker", model: "DockerHost" },
   { resource: "Podman", model: "PodmanHost" },
-  { resource: "DockerSwarm", model: "DockerSwarmCluster", overview: "Index.tsx" },
+  {
+    resource: "DockerSwarm",
+    model: "DockerSwarmCluster",
+    overview: "Index.tsx",
+  },
   { resource: "Host", model: "Host" },
   { resource: "Ceph", model: "CephCluster", overview: "Index.tsx" },
   { resource: "VMware", model: "VMwareVCenter", overview: "Index.tsx" },
@@ -39,16 +43,16 @@ function readSource(relativePath: string): string {
 }
 
 function getPageFiles(directory: string): Array<string> {
-  return fs.readdirSync(directory, { withFileTypes: true }).flatMap(
-    (entry: fs.Dirent): Array<string> => {
+  return fs
+    .readdirSync(directory, { withFileTypes: true })
+    .flatMap((entry: fs.Dirent): Array<string> => {
       const filename: string = path.join(directory, entry.name);
       if (entry.isDirectory()) {
         return getPageFiles(filename);
       }
 
       return entry.name.endsWith(".tsx") ? [filename] : [];
-    },
-  );
+    });
 }
 
 /*

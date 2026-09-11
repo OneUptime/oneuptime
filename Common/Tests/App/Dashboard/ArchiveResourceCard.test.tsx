@@ -50,7 +50,8 @@ const getItemMock: Mock<(args: unknown) => Promise<ArchiveState | null>> =
   jest.fn<(args: unknown) => Promise<ArchiveState | null>>();
 const updateByIdMock: Mock<(args: unknown) => Promise<void>> =
   jest.fn<(args: unknown) => Promise<void>>();
-const navigateMock: Mock<(route: Route) => void> = jest.fn<(route: Route) => void>();
+const navigateMock: Mock<(route: Route) => void> =
+  jest.fn<(route: Route) => void>();
 const friendlyMessageMock: Mock<(error: unknown) => string> =
   jest.fn<(error: unknown) => string>();
 let permissions: Array<Permission> = [];
@@ -187,9 +188,11 @@ beforeEach(() => {
   getItemMock.mockReset().mockResolvedValue({ isArchived: false });
   updateByIdMock.mockReset().mockResolvedValue(undefined);
   navigateMock.mockReset();
-  friendlyMessageMock.mockReset().mockImplementation((error: unknown): string => {
-    return error instanceof Error ? error.message : "Request failed";
-  });
+  friendlyMessageMock
+    .mockReset()
+    .mockImplementation((error: unknown): string => {
+      return error instanceof Error ? error.message : "Request failed";
+    });
   permissions = [Permission.EditRumApplication];
 });
 
@@ -199,104 +202,134 @@ afterEach(() => {
 
 // Exercise the real card, buttons, modal and model permission declarations.
 // Only the server, navigation and signed-in permission snapshot are replaced.
-describe.each(RESOURCE_CASES)("ArchiveResourceCard for a $name", (resource: ResourceCase) => {
-  beforeEach(() => {
-    permissions = [resource.editPermission];
-  });
-
-  test("loads its archive state and requires confirmation before archiving", async () => {
-    await renderCard(resource);
-
-    expect(getItemMock).toHaveBeenCalledTimes(1);
-    expect(getItemMock).toHaveBeenCalledWith({
-      modelType: resource.modelType,
-      id: resource.modelId,
-      select: { isArchived: true },
+describe.each(RESOURCE_CASES)(
+  "ArchiveResourceCard for a $name",
+  (resource: ResourceCase) => {
+    beforeEach(() => {
+      permissions = [resource.editPermission];
     });
-    expect(screen.getByRole("heading", { name: `Archive ${resource.singularName}` })).toBeInTheDocument();
-    expect(screen.getByTestId("card-description")).toHaveTextContent("keeps collecting telemetry");
-    expect(screen.getByRole("button", { name: "Archive" })).toBeEnabled();
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(updateByIdMock).not.toHaveBeenCalled();
 
-    const dialog: HTMLElement = openConfirmation("Archive");
-    expect(within(dialog).getByTestId("modal-title")).toHaveTextContent(`Archive ${resource.singularName}`);
-    expect(within(dialog).getByTestId("confirm-modal-description")).toHaveTextContent(
-      `Are you sure you want to archive this ${resource.singularName}? It will be hidden from the list but will keep collecting telemetry.`,
-    );
-    expect(updateByIdMock).not.toHaveBeenCalled();
+    test("loads its archive state and requires confirmation before archiving", async () => {
+      await renderCard(resource);
 
-    submitConfirmation(dialog);
-
-    await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith(resource.listRoute);
-    });
-    expect(navigateMock).toHaveBeenCalledTimes(1);
-    expect(updateByIdMock).toHaveBeenCalledTimes(1);
-    expect(updateByIdMock).toHaveBeenCalledWith({
-      modelType: resource.modelType,
-      id: resource.modelId,
-      data: { isArchived: true },
-    });
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Unarchive" })).toBeEnabled();
-  });
-
-  test("restores an archived resource without leaving Settings", async () => {
-    getItemMock.mockResolvedValue({ isArchived: true });
-    await renderCard(resource);
-
-    expect(screen.getByRole("heading", { name: `Unarchive ${resource.singularName}` })).toBeInTheDocument();
-    expect(screen.getByTestId("card-description")).toHaveTextContent("is archived and hidden from lists");
-    expect(screen.getByTestId("card-description")).toHaveTextContent("still collecting telemetry");
-
-    const dialog: HTMLElement = openConfirmation("Unarchive");
-    expect(within(dialog).getByTestId("confirm-modal-description")).toHaveTextContent(
-      `Are you sure you want to unarchive this ${resource.singularName}? It will reappear in the main list.`,
-    );
-    submitConfirmation(dialog);
-
-    await waitFor(() => {
+      expect(getItemMock).toHaveBeenCalledTimes(1);
+      expect(getItemMock).toHaveBeenCalledWith({
+        modelType: resource.modelType,
+        id: resource.modelId,
+        select: { isArchived: true },
+      });
+      expect(
+        screen.getByRole("heading", {
+          name: `Archive ${resource.singularName}`,
+        }),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("card-description")).toHaveTextContent(
+        "keeps collecting telemetry",
+      );
+      expect(screen.getByRole("button", { name: "Archive" })).toBeEnabled();
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(updateByIdMock).not.toHaveBeenCalled();
+
+      const dialog: HTMLElement = openConfirmation("Archive");
+      expect(within(dialog).getByTestId("modal-title")).toHaveTextContent(
+        `Archive ${resource.singularName}`,
+      );
+      expect(
+        within(dialog).getByTestId("confirm-modal-description"),
+      ).toHaveTextContent(
+        `Are you sure you want to archive this ${resource.singularName}? It will be hidden from the list but will keep collecting telemetry.`,
+      );
+      expect(updateByIdMock).not.toHaveBeenCalled();
+
+      submitConfirmation(dialog);
+
+      await waitFor(() => {
+        expect(navigateMock).toHaveBeenCalledWith(resource.listRoute);
+      });
+      expect(navigateMock).toHaveBeenCalledTimes(1);
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+      expect(updateByIdMock).toHaveBeenCalledWith({
+        modelType: resource.modelType,
+        id: resource.modelId,
+        data: { isArchived: true },
+      });
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Unarchive" })).toBeEnabled();
     });
-    expect(updateByIdMock).toHaveBeenCalledTimes(1);
-    expect(updateByIdMock).toHaveBeenCalledWith({
-      modelType: resource.modelType,
-      id: resource.modelId,
-      data: { isArchived: false },
+
+    test("restores an archived resource without leaving Settings", async () => {
+      getItemMock.mockResolvedValue({ isArchived: true });
+      await renderCard(resource);
+
+      expect(
+        screen.getByRole("heading", {
+          name: `Unarchive ${resource.singularName}`,
+        }),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("card-description")).toHaveTextContent(
+        "is archived and hidden from lists",
+      );
+      expect(screen.getByTestId("card-description")).toHaveTextContent(
+        "still collecting telemetry",
+      );
+
+      const dialog: HTMLElement = openConfirmation("Unarchive");
+      expect(
+        within(dialog).getByTestId("confirm-modal-description"),
+      ).toHaveTextContent(
+        `Are you sure you want to unarchive this ${resource.singularName}? It will reappear in the main list.`,
+      );
+      submitConfirmation(dialog);
+
+      await waitFor(() => {
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      });
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+      expect(updateByIdMock).toHaveBeenCalledWith({
+        modelType: resource.modelType,
+        id: resource.modelId,
+        data: { isArchived: false },
+      });
+      expect(screen.getByRole("button", { name: "Archive" })).toBeEnabled();
+      expect(navigateMock).not.toHaveBeenCalled();
     });
-    expect(screen.getByRole("button", { name: "Archive" })).toBeEnabled();
-    expect(navigateMock).not.toHaveBeenCalled();
-  });
 
-  test.each([false, true])("read permission alone cannot change archive state (archived: %s)", async (isArchived: boolean) => {
-    permissions = [resource.readPermission];
-    getItemMock.mockResolvedValue({ isArchived: isArchived });
-    await renderCard(resource);
+    test.each([false, true])(
+      "read permission alone cannot change archive state (archived: %s)",
+      async (isArchived: boolean) => {
+        permissions = [resource.readPermission];
+        getItemMock.mockResolvedValue({ isArchived: isArchived });
+        await renderCard(resource);
 
-    const action: string = isArchived ? "Unarchive" : "Archive";
-    const button: HTMLElement = screen.getByRole("button", { name: action });
-    expect(button).toBeDisabled();
-    fireEvent.click(button);
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(updateByIdMock).not.toHaveBeenCalled();
+        const action: string = isArchived ? "Unarchive" : "Archive";
+        const button: HTMLElement = screen.getByRole("button", {
+          name: action,
+        });
+        expect(button).toBeDisabled();
+        fireEvent.click(button);
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+        expect(updateByIdMock).not.toHaveBeenCalled();
 
-    fireEvent.mouseEnter(screen.getByTestId("card-button-disabled-wrapper"));
-    expect(await screen.findByRole("tooltip")).toHaveTextContent(
-      `You do not have permission to update this ${resource.singularName}.`,
+        fireEvent.mouseEnter(
+          screen.getByTestId("card-button-disabled-wrapper"),
+        );
+        expect(await screen.findByRole("tooltip")).toHaveTextContent(
+          `You do not have permission to update this ${resource.singularName}.`,
+        );
+      },
     );
-  });
 
-  test("delete permission does not substitute for update permission", async () => {
-    permissions = [resource.deletePermission];
-    await renderCard(resource);
+    test("delete permission does not substitute for update permission", async () => {
+      permissions = [resource.deletePermission];
+      await renderCard(resource);
 
-    expect(screen.getByRole("button", { name: "Archive" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(updateByIdMock).not.toHaveBeenCalled();
-  });
-});
+      expect(screen.getByRole("button", { name: "Archive" })).toBeDisabled();
+      fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(updateByIdMock).not.toHaveBeenCalled();
+    });
+  },
+);
 
 describe("ArchiveResourceCard request and confirmation handling", () => {
   const resource: ResourceCase = RESOURCE_CASES[0]!;
@@ -320,19 +353,24 @@ describe("ArchiveResourceCard request and confirmation handling", () => {
     expect(screen.getByRole("button", { name: "Unarchive" })).toBeEnabled();
   });
 
-  test.each([false, true])("cancel closes confirmation without changing the resource (archived: %s)", async (isArchived: boolean) => {
-    getItemMock.mockResolvedValue({ isArchived: isArchived });
-    await renderCard(resource);
+  test.each([false, true])(
+    "cancel closes confirmation without changing the resource (archived: %s)",
+    async (isArchived: boolean) => {
+      getItemMock.mockResolvedValue({ isArchived: isArchived });
+      await renderCard(resource);
 
-    const action: "Archive" | "Unarchive" = isArchived ? "Unarchive" : "Archive";
-    const dialog: HTMLElement = openConfirmation(action);
-    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+      const action: "Archive" | "Unarchive" = isArchived
+        ? "Unarchive"
+        : "Archive";
+      const dialog: HTMLElement = openConfirmation(action);
+      fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
 
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: action })).toBeEnabled();
-    expect(updateByIdMock).not.toHaveBeenCalled();
-    expect(navigateMock).not.toHaveBeenCalled();
-  });
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: action })).toBeEnabled();
+      expect(updateByIdMock).not.toHaveBeenCalled();
+      expect(navigateMock).not.toHaveBeenCalled();
+    },
+  );
 
   test("closing the confirmation never submits an archive request", async () => {
     await renderCard(resource);
@@ -351,7 +389,9 @@ describe("ArchiveResourceCard request and confirmation handling", () => {
     const dialog: HTMLElement = openConfirmation("Archive");
     submitConfirmation(dialog);
 
-    expect(within(dialog).getByTestId("modal-footer-submit-button")).toBeDisabled();
+    expect(
+      within(dialog).getByTestId("modal-footer-submit-button"),
+    ).toBeDisabled();
     submitConfirmation(dialog);
     expect(updateByIdMock).toHaveBeenCalledTimes(1);
     expect(navigateMock).not.toHaveBeenCalled();
@@ -393,9 +433,11 @@ describe("ArchiveResourceCard request and confirmation handling", () => {
   test("uses the model name when no singular label is supplied", async () => {
     render(<ArchiveResourceCard {...resource} singularName={undefined} />);
 
-    expect(await screen.findByRole("heading", {
-      name: `Archive ${new RumApplication().singularName}`,
-    })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", {
+        name: `Archive ${new RumApplication().singularName}`,
+      }),
+    ).toBeInTheDocument();
   });
 
   test("displays a failed state read without offering an archive action", async () => {
@@ -411,17 +453,22 @@ describe("ArchiveResourceCard request and confirmation handling", () => {
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
-  test.each([false, true])("displays save failures and never navigates away (archived: %s)", async (isArchived: boolean) => {
-    const error: Error = new Error("The archive update could not be saved");
-    getItemMock.mockResolvedValue({ isArchived: isArchived });
-    updateByIdMock.mockRejectedValue(error);
-    await renderCard(resource);
-    submitConfirmation(openConfirmation(isArchived ? "Unarchive" : "Archive"));
+  test.each([false, true])(
+    "displays save failures and never navigates away (archived: %s)",
+    async (isArchived: boolean) => {
+      const error: Error = new Error("The archive update could not be saved");
+      getItemMock.mockResolvedValue({ isArchived: isArchived });
+      updateByIdMock.mockRejectedValue(error);
+      await renderCard(resource);
+      submitConfirmation(
+        openConfirmation(isArchived ? "Unarchive" : "Archive"),
+      );
 
-    expect(await screen.findByText(error.message)).toBeInTheDocument();
-    expect(friendlyMessageMock).toHaveBeenCalledWith(error);
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(updateByIdMock).toHaveBeenCalledTimes(1);
-    expect(navigateMock).not.toHaveBeenCalled();
-  });
+      expect(await screen.findByText(error.message)).toBeInTheDocument();
+      expect(friendlyMessageMock).toHaveBeenCalledWith(error);
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+      expect(navigateMock).not.toHaveBeenCalled();
+    },
+  );
 });

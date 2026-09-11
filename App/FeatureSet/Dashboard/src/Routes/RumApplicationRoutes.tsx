@@ -100,7 +100,9 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
           element={
             <RumApplicationSettings
               {...props}
-              pageRoute={RouteMap[PageMap.RUM_APPLICATION_VIEW_SETTINGS] as Route}
+              pageRoute={
+                RouteMap[PageMap.RUM_APPLICATION_VIEW_SETTINGS] as Route
+              }
             />
           }
         />

@@ -93,7 +93,9 @@ const ServerlessRoutes: FunctionComponent<ComponentProps> = (
           element={
             <ServerlessFunctionSettings
               {...props}
-              pageRoute={RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW_SETTINGS] as Route}
+              pageRoute={
+                RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW_SETTINGS] as Route
+              }
             />
           }
         />
