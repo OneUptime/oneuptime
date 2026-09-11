@@ -244,8 +244,10 @@ attribute and the SRI pin is inert.
 **Anonymous visitor id.** A session id lives for one visit (it rotates after
 30 minutes idle or four hours), so two visits from the same browser would
 share nothing a reader could group on. The recorder therefore also mints ONE
-random id per browser profile - 32 lowercase hex characters, the same shape
-as a session id - keeps it in `localStorage` under `oneuptime.replay.visitor`,
+random id per browser profile and origin - 32 lowercase hex characters, the
+same shape as a session id - keeps it in `localStorage` under
+`oneuptime.replay.visitor` (so a site served from two hostnames or ports is
+two visitors; only `identify()` joins them),
 and repeats it on every chunk that carries meta. It is what lets the session
 list group anonymous sessions by visitor ("this visitor came back three
 times") and the player offer "other sessions from this visitor" for an

@@ -57,6 +57,8 @@ import IncidentFeed, {
 } from "../../../Models/DatabaseModels/IncidentFeed";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
 
 interface RenderedFeedItem {
   key: string;
@@ -86,6 +88,9 @@ interface FeedListRequest {
   modelType: unknown;
   query: Record<string, unknown>;
   select: Record<string, unknown>;
+  skip: number;
+  limit: number;
+  sort: Record<string, SortOrder>;
 }
 
 const INCIDENT_ID: ObjectID = new ObjectID(
@@ -274,6 +279,9 @@ describe("investigation reports in incident and alert feeds", () => {
       .calls[1]![0] as FeedListRequest;
     expect(request.modelType).toBe(IncidentFeed);
     expect(request.query).toEqual({ incidentId: INCIDENT_ID });
+    expect(request.skip).toBe(0);
+    expect(request.limit).toBe(DEFAULT_LIMIT);
+    expect(request.sort).toEqual({ postedAt: SortOrder.Descending });
     expect(request.select).toEqual(
       expect.objectContaining({
         feedInfoInMarkdown: true,
@@ -326,6 +334,9 @@ describe("investigation reports in incident and alert feeds", () => {
       .calls[1]![0] as FeedListRequest;
     expect(request.modelType).toBe(AlertFeed);
     expect(request.query).toEqual({ alertId: ALERT_ID });
+    expect(request.skip).toBe(0);
+    expect(request.limit).toBe(DEFAULT_LIMIT);
+    expect(request.sort).toEqual({ postedAt: SortOrder.Descending });
     expect(request.select).toEqual(
       expect.objectContaining({
         feedInfoInMarkdown: true,

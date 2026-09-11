@@ -439,16 +439,17 @@ describe("REPLAY_SHORTCUT_GROUPS", () => {
   });
 
   test("the sheet has a Sessions group documenting the braces", () => {
-    const sessions: ReplayShortcutGroup | undefined = REPLAY_SHORTCUT_GROUPS.find(
-      (group: ReplayShortcutGroup): boolean => {
+    const sessions: ReplayShortcutGroup | undefined =
+      REPLAY_SHORTCUT_GROUPS.find((group: ReplayShortcutGroup): boolean => {
         return group.id === "sessions";
-      },
-    );
+      });
 
     expect(sessions?.title).toBe("Sessions");
     expect(
       sessions?.shortcuts.map(
-        (shortcut: ReplayShortcutDescription): [string, Array<Array<string>>] => {
+        (
+          shortcut: ReplayShortcutDescription,
+        ): [string, Array<Array<string>>] => {
           return [shortcut.id, shortcut.keys];
         },
       ),

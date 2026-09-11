@@ -6,6 +6,7 @@ import ObjectID from "Common/Types/ObjectID";
 import type {
   ReplayUserSessionDescription,
   ReplayUserSessionItem,
+  ReplayUserSessionsFetchResult,
   ReplayUserSessionsWindow,
 } from "../../FeatureSet/Dashboard/src/Components/SessionReplay/ReplayUserSessions";
 
@@ -15,8 +16,9 @@ import type {
  * session to its siblings, the 30-day window anchored on the session,
  * the merge of the per-key lists (dedupe, the current session always
  * present, newest first, a stable tiebreak), the older/newer lookup at
- * the ends, the row copy, the defensive row parse, and the two list
- * requests the fetch makes.
+ * the ends, the row copy, the defensive row parse, the two anchored
+ * requests the fetch makes per key, and its cursor walk towards the
+ * watched session.
  *
  * API and ModelAPI are mocked before the module loads; the module also
  * pulls in Common/UI/Config, which reads `window` on load, so the browser
@@ -183,7 +185,7 @@ describe("resolveReplayUserSessionsKind", () => {
 });
 
 describe("buildReplayUserSessionsWindow", () => {
-  test("spans thirty days before the session's start, up to now", () => {
+  test("spans thirty days before the session's start up to now, split at the session", () => {
     const start: number = NOW - 3 * DAY_MS;
     const window: ReplayUserSessionsWindow =
       userSessions.buildReplayUserSessionsWindow(start, NOW);
@@ -191,6 +193,7 @@ describe("buildReplayUserSessionsWindow", () => {
     expect(window.startTime.getTime()).toBe(
       start - userSessions.REPLAY_USER_SESSIONS_WINDOW_MS,
     );
+    expect(window.anchorTime.getTime()).toBe(start);
     expect(window.endTime.getTime()).toBe(NOW);
     expect(userSessions.REPLAY_USER_SESSIONS_WINDOW_MS).toBe(30 * DAY_MS);
   });
@@ -202,16 +205,18 @@ describe("buildReplayUserSessionsWindow", () => {
       userSessions.buildReplayUserSessionsWindow(start, NOW);
 
     expect(window.endTime.getTime()).toBe(start);
+    expect(window.anchorTime.getTime()).toBe(start);
     expect(window.startTime.getTime()).toBe(
       start - userSessions.REPLAY_USER_SESSIONS_WINDOW_MS,
     );
   });
 
-  test("a manifest without a clock falls back to a window ending now", () => {
+  test("a manifest without a clock falls back to a window ending now, split at now", () => {
     const window: ReplayUserSessionsWindow =
       userSessions.buildReplayUserSessionsWindow(null, NOW);
 
     expect(window.endTime.getTime()).toBe(NOW);
+    expect(window.anchorTime.getTime()).toBe(NOW);
     expect(window.startTime.getTime()).toBe(
       NOW - userSessions.REPLAY_USER_SESSIONS_WINDOW_MS,
     );
@@ -225,8 +230,8 @@ describe("mergeReplayUserSessions", () => {
     const merged: Array<ReplayUserSessionItem> =
       userSessions.mergeReplayUserSessions(
         [
-          [item("b", NOW - 1 * DAY_MS), item("current", NOW - 2 * DAY_MS)],
-          [item("a", NOW - 3 * DAY_MS), item("b", NOW - 1 * DAY_MS)],
+          [item("b", NOW - DAY_MS), item("current", NOW - 2 * DAY_MS)],
+          [item("a", NOW - 3 * DAY_MS), item("b", NOW - DAY_MS)],
         ],
         current,
       );
@@ -241,7 +246,7 @@ describe("mergeReplayUserSessions", () => {
   test("inserts the current session when neither list returned it", () => {
     const merged: Array<ReplayUserSessionItem> =
       userSessions.mergeReplayUserSessions(
-        [[item("b", NOW - 1 * DAY_MS)], [item("a", NOW - 3 * DAY_MS)]],
+        [[item("b", NOW - DAY_MS)], [item("a", NOW - 3 * DAY_MS)]],
         current,
       );
 
@@ -439,9 +444,10 @@ describe("describeReplayUserSession", () => {
 
 describe("parseReplayUserSessionItem", () => {
   test("reads a list row with its numbers quoted and its booleans as 0/1", () => {
-    const parsed: ReplayUserSessionItem = userSessions.parseReplayUserSessionItem(
-      wireRow() as Record<string, unknown>,
-    );
+    const parsed: ReplayUserSessionItem =
+      userSessions.parseReplayUserSessionItem(
+        wireRow() as Record<string, unknown>,
+      );
 
     expect(parsed).toEqual({
       sessionId: "a1b2c3d4e5f60718293a4b5c6d7e8f90",
@@ -479,9 +485,10 @@ describe("parseReplayUserSessionItem", () => {
     delete withheld["errorCount"];
     delete withheld["isFinalized"];
 
-    const parsed: ReplayUserSessionItem = userSessions.parseReplayUserSessionItem(
-      withheld as Record<string, unknown>,
-    );
+    const parsed: ReplayUserSessionItem =
+      userSessions.parseReplayUserSessionItem(
+        withheld as Record<string, unknown>,
+      );
 
     expect(parsed.identifiedUserLabel).toBeNull();
     expect(parsed.visitorId).toBe("");
@@ -519,51 +526,178 @@ describe("parseReplayUserSessionItem", () => {
 });
 
 describe("fetchReplayUserSessions", () => {
-  const startTime: Date = new Date(NOW - 30 * DAY_MS);
+  const startTime: Date = new Date(NOW - 33 * DAY_MS);
+  const anchorTime: Date = new Date(NOW - 3 * DAY_MS);
   const endTime: Date = new Date(NOW);
+  const WATCHED: string = "a1b2c3d4e5f60718293a4b5c6d7e8f90";
 
-  test("posts one list request per key it was given, each filtered by that key alone", async () => {
-    postMock.mockResolvedValue(
-      new HTTPResponse<JSONObject>(
-        200,
-        { sessions: [wireRow()], nextCursor: null },
-        {},
-      ),
+  interface ServedPage {
+    rows: Array<JSONObject>;
+    nextCursor: JSONObject | null;
+  }
+
+  /* A newer page, served for the cursor it names (null: the first page). */
+  interface NewerPage extends ServedPage {
+    forCursor: string | null;
+  }
+
+  /* The cursor the server emits after `sessionId`, in its legacy spelling. */
+  function cursorAfter(sessionId: string): JSONObject {
+    return { startTimeUnixMs: NOW - DAY_MS, sessionId: sessionId };
+  }
+
+  function listResponse(page: ServedPage): HTTPResponse<JSONObject> {
+    return new HTTPResponse<JSONObject>(
+      200,
+      { sessions: page.rows, nextCursor: page.nextCursor },
+      {},
     );
+  }
 
-    const lists: Array<Array<ReplayUserSessionItem>> =
-      await userSessions.fetchReplayUserSessions({
-        rumApplicationId: new ObjectID(APP_ID),
-        identifiedUserKey: USER_KEY,
-        visitorId: VISITOR,
-        startTime: startTime,
-        endTime: endTime,
+  function bodies(): Array<JSONObject> {
+    return postMock.mock.calls.map((call: Array<unknown>): JSONObject => {
+      return (call[0] as { data: JSONObject }).data;
+    });
+  }
+
+  function cursorsSent(): Array<unknown> {
+    return bodies()
+      .map((body: JSONObject): unknown => {
+        const cursor: JSONObject | undefined = body["cursor"] as
+          | JSONObject
+          | undefined;
+
+        return cursor ? cursor["sessionId"] : undefined;
+      })
+      .filter((sessionId: unknown): boolean => {
+        return sessionId !== undefined;
       });
+  }
 
-    expect(lists).toHaveLength(2);
-    expect(lists[0]).toHaveLength(1);
-    expect(postMock).toHaveBeenCalledTimes(2);
+  function ids(list: Array<ReplayUserSessionItem> | undefined): Array<string> {
+    return (list ?? []).map((entry: ReplayUserSessionItem): string => {
+      return entry.sessionId;
+    });
+  }
 
-    const bodies: Array<JSONObject> = postMock.mock.calls.map(
-      (call: Array<unknown>): JSONObject => {
-        return (call[0] as { data: JSONObject }).data;
+  /*
+   * Answers by the SHAPE of the request rather than by call order, so the
+   * tests pin what was asked for and not the order two parallel requests
+   * happened to be issued in: the older request is the one that ends at
+   * the anchor; a newer page is picked by the cursor it carries.
+   */
+  function serve(older: ServedPage, newer: Array<NewerPage>): void {
+    postMock.mockImplementation(
+      async (request: {
+        data: JSONObject;
+      }): Promise<HTTPResponse<JSONObject>> => {
+        const data: JSONObject = request.data;
+
+        if (data["endTime"] === anchorTime.toISOString()) {
+          return listResponse(older);
+        }
+
+        const cursor: JSONObject | undefined = data["cursor"] as
+          | JSONObject
+          | undefined;
+        const wanted: string | null = cursor
+          ? (cursor["sessionId"] as string)
+          : null;
+        const page: NewerPage | undefined = newer.find(
+          (candidate: NewerPage): boolean => {
+            return candidate.forCursor === wanted;
+          },
+        );
+
+        if (!page) {
+          throw new Error(
+            `No newer page is served for cursor ${String(wanted)}`,
+          );
+        }
+
+        return listResponse(page);
       },
     );
+  }
 
-    expect(bodies[0]).toEqual({
-      rumApplicationId: APP_ID,
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
-      limit: userSessions.REPLAY_USER_SESSIONS_LIMIT,
-      filters: { identifiedUserKey: USER_KEY },
+  function fetchAround(
+    keys: { identifiedUserKey: string; visitorId: string },
+    limit?: number,
+  ): Promise<ReplayUserSessionsFetchResult> {
+    return userSessions.fetchReplayUserSessions({
+      rumApplicationId: new ObjectID(APP_ID),
+      sessionId: WATCHED,
+      identifiedUserKey: keys.identifiedUserKey,
+      visitorId: keys.visitorId,
+      startTime: startTime,
+      anchorTime: anchorTime,
+      endTime: endTime,
+      limit: limit,
     });
-    expect(bodies[1]).toEqual({
-      rumApplicationId: APP_ID,
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
-      limit: userSessions.REPLAY_USER_SESSIONS_LIMIT,
-      filters: { visitorId: VISITOR },
+  }
+
+  test("posts an older and a newer request per key, both anchored on the session's start", async () => {
+    serve(
+      {
+        rows: [wireRow({ sessionId: "older-1" })],
+        /* Never followed: the older page's first rows are already the nearest. */
+        nextCursor: cursorAfter("older-1"),
+      },
+      [
+        {
+          forCursor: null,
+          rows: [
+            wireRow({ sessionId: "newer-1" }),
+            wireRow({ sessionId: WATCHED }),
+          ],
+          nextCursor: null,
+        },
+      ],
+    );
+
+    const result: ReplayUserSessionsFetchResult = await fetchAround({
+      identifiedUserKey: USER_KEY,
+      visitorId: VISITOR,
     });
+
+    expect(result.isTruncated).toBe(false);
+    expect(result.lists).toHaveLength(2);
+    expect(ids(result.lists[0])).toEqual(["newer-1", WATCHED, "older-1"]);
+    expect(ids(result.lists[1])).toEqual(["newer-1", WATCHED, "older-1"]);
+    expect(postMock).toHaveBeenCalledTimes(4);
+
+    const olderBodyFor: (filters: JSONObject) => JSONObject = (
+      filters: JSONObject,
+    ): JSONObject => {
+      return {
+        rumApplicationId: APP_ID,
+        limit: userSessions.REPLAY_USER_SESSIONS_LIMIT,
+        filters: filters,
+        startTime: startTime.toISOString(),
+        endTime: anchorTime.toISOString(),
+      };
+    };
+    const newerBodyFor: (filters: JSONObject) => JSONObject = (
+      filters: JSONObject,
+    ): JSONObject => {
+      return {
+        rumApplicationId: APP_ID,
+        limit: userSessions.REPLAY_USER_SESSIONS_LIMIT,
+        filters: filters,
+        startTime: anchorTime.toISOString(),
+        endTime: endTime.toISOString(),
+      };
+    };
+
+    expect(bodies()).toEqual(
+      expect.arrayContaining([
+        olderBodyFor({ identifiedUserKey: USER_KEY }),
+        newerBodyFor({ identifiedUserKey: USER_KEY }),
+        olderBodyFor({ visitorId: VISITOR }),
+        newerBodyFor({ visitorId: VISITOR }),
+      ]),
+    );
+    expect(cursorsSent()).toEqual([]);
 
     const firstCall: { url: { toString: () => string }; headers: JSONObject } =
       postMock.mock.calls[0]?.[0] as {
@@ -577,42 +711,142 @@ describe("fetchReplayUserSessions", () => {
     expect(firstCall.headers).toEqual({ tenantid: "project-1" });
   });
 
-  test("asks only for the key the session carries", async () => {
-    postMock.mockResolvedValue(
-      new HTTPResponse<JSONObject>(200, { sessions: [] }, {}),
+  test("follows the newer cursor, echoed verbatim, until the watched session appears, then stops", async () => {
+    serve({ rows: [], nextCursor: null }, [
+      {
+        forCursor: null,
+        rows: [wireRow({ sessionId: "n1" }), wireRow({ sessionId: "n2" })],
+        nextCursor: cursorAfter("n2"),
+      },
+      {
+        forCursor: "n2",
+        rows: [wireRow({ sessionId: "n3" }), wireRow({ sessionId: WATCHED })],
+        /* A cursor past the watched session, which must not be followed. */
+        nextCursor: cursorAfter(WATCHED),
+      },
+      {
+        forCursor: WATCHED,
+        rows: [wireRow({ sessionId: "never-asked-for" })],
+        nextCursor: null,
+      },
+    ]);
+
+    const result: ReplayUserSessionsFetchResult = await fetchAround({
+      identifiedUserKey: "",
+      visitorId: VISITOR,
+    });
+
+    expect(result.isTruncated).toBe(false);
+    expect(ids(result.lists[0])).toEqual(["n1", "n2", "n3", WATCHED]);
+    /* The older request, the first newer page, one page more. */
+    expect(postMock).toHaveBeenCalledTimes(3);
+    expect(cursorsSent()).toEqual(["n2"]);
+
+    const second: JSONObject | undefined = bodies().find(
+      (body: JSONObject): boolean => {
+        return body["cursor"] !== undefined;
+      },
     );
 
-    const lists: Array<Array<ReplayUserSessionItem>> =
-      await userSessions.fetchReplayUserSessions({
-        rumApplicationId: APP_ID,
-        identifiedUserKey: "",
-        visitorId: VISITOR,
-        startTime: startTime,
-        endTime: endTime,
-        limit: 10,
+    expect(second).toEqual({
+      rumApplicationId: APP_ID,
+      limit: userSessions.REPLAY_USER_SESSIONS_LIMIT,
+      filters: { visitorId: VISITOR },
+      startTime: anchorTime.toISOString(),
+      endTime: endTime.toISOString(),
+      cursor: { startTimeUnixMs: NOW - DAY_MS, sessionId: "n2" },
+    });
+  });
+
+  test("stops at the page cap and reports the list as truncated", async () => {
+    const newer: Array<NewerPage> = [];
+    let previous: string | null = null;
+
+    /* More pages than the cap allows, none of them holding the session. */
+    for (
+      let page: number = 0;
+      page < userSessions.REPLAY_USER_SESSIONS_MAX_PAGES + 2;
+      page++
+    ) {
+      const last: string = `n${page}`;
+
+      newer.push({
+        forCursor: previous,
+        rows: [wireRow({ sessionId: last })],
+        nextCursor: cursorAfter(last),
       });
+      previous = last;
+    }
 
-    expect(lists).toEqual([[]]);
-    expect(postMock).toHaveBeenCalledTimes(1);
-    expect((postMock.mock.calls[0]?.[0] as { data: JSONObject }).data).toEqual(
-      expect.objectContaining({
-        limit: 10,
-        filters: { visitorId: VISITOR },
-      }),
+    serve(
+      { rows: [wireRow({ sessionId: "older-1" })], nextCursor: null },
+      newer,
     );
+
+    const result: ReplayUserSessionsFetchResult = await fetchAround({
+      identifiedUserKey: "",
+      visitorId: VISITOR,
+    });
+
+    expect(userSessions.REPLAY_USER_SESSIONS_MAX_PAGES).toBe(4);
+    expect(result.isTruncated).toBe(true);
+    expect(postMock).toHaveBeenCalledTimes(
+      1 + userSessions.REPLAY_USER_SESSIONS_MAX_PAGES,
+    );
+    expect(cursorsSent()).toEqual(["n0", "n1", "n2"]);
+    /* What was fetched is still returned: the older side is exact. */
+    expect(ids(result.lists[0])).toEqual(["n0", "n1", "n2", "n3", "older-1"]);
+  });
+
+  test("a newer range that ends before the watched session is not truncation", async () => {
+    serve({ rows: [wireRow({ sessionId: "older-1" })], nextCursor: null }, [
+      {
+        forCursor: null,
+        rows: [wireRow({ sessionId: "n1" })],
+        nextCursor: null,
+      },
+    ]);
+
+    const result: ReplayUserSessionsFetchResult = await fetchAround({
+      identifiedUserKey: "",
+      visitorId: VISITOR,
+    });
+
+    expect(result.isTruncated).toBe(false);
+    expect(postMock).toHaveBeenCalledTimes(2);
+    expect(ids(result.lists[0])).toEqual(["n1", "older-1"]);
+  });
+
+  test("asks only for the key the session carries", async () => {
+    serve({ rows: [], nextCursor: null }, [
+      { forCursor: null, rows: [], nextCursor: null },
+    ]);
+
+    const result: ReplayUserSessionsFetchResult = await fetchAround(
+      { identifiedUserKey: "", visitorId: VISITOR },
+      10,
+    );
+
+    expect(result).toEqual({ lists: [[]], isTruncated: false });
+    expect(postMock).toHaveBeenCalledTimes(2);
+
+    for (const body of bodies()) {
+      expect(body).toEqual(
+        expect.objectContaining({
+          limit: 10,
+          filters: { visitorId: VISITOR },
+        }),
+      );
+    }
   });
 
   test("makes no request at all when there is no key", async () => {
-    const lists: Array<Array<ReplayUserSessionItem>> =
-      await userSessions.fetchReplayUserSessions({
-        rumApplicationId: APP_ID,
-        identifiedUserKey: "",
-        visitorId: "",
-        startTime: startTime,
-        endTime: endTime,
-      });
+    const result: ReplayUserSessionsFetchResult = await fetchAround({
+      identifiedUserKey: "",
+      visitorId: "",
+    });
 
-    expect(lists).toEqual([]);
+    expect(result).toEqual({ lists: [], isTruncated: false });
     expect(postMock).not.toHaveBeenCalled();
   });
 
@@ -626,13 +860,7 @@ describe("fetchReplayUserSessions", () => {
     postMock.mockResolvedValue(failure);
 
     await expect(
-      userSessions.fetchReplayUserSessions({
-        rumApplicationId: APP_ID,
-        identifiedUserKey: USER_KEY,
-        visitorId: "",
-        startTime: startTime,
-        endTime: endTime,
-      }),
+      fetchAround({ identifiedUserKey: USER_KEY, visitorId: "" }),
     ).rejects.toBe(failure);
   });
 });

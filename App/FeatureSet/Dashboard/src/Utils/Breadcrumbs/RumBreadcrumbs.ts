@@ -62,6 +62,10 @@ export function getRumBreadcrumbs(path: string): Array<Link> | undefined {
       ],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS,
+      ["Project", "Real User Monitoring", "View Application", "Replay Users"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT,
       [
         "Project",

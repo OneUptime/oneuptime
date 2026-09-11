@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import Feed from "Common/UI/Components/Feed/Feed";
@@ -11,12 +11,10 @@ import ScheduledMaintenanceFeed, {
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Exception from "Common/Types/Exception/Exception";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
@@ -28,6 +26,7 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import Icon from "Common/UI/Components/Icon/Icon";
+import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
 import RunbookPicker from "../Runbook/RunbookPicker";
 
 export interface ComponentProps {
@@ -37,10 +36,6 @@ export interface ComponentProps {
 const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
-  const [error, setError] = React.useState<string | undefined>(undefined);
-  const [feedItems, setFeedItems] = React.useState<FeedItemProps[]>([]);
-
   const [showPublicNoteModal, setShowPublicNoteModal] =
     React.useState<boolean>(false);
 
@@ -194,57 +189,49 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
       };
     };
 
-  const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
-    setError("");
-    setIsLoading(true);
-    try {
-      const scheduledMaintenanceFeeds: ListResult<ScheduledMaintenanceFeed> =
-        await ModelAPI.getList({
-          modelType: ScheduledMaintenanceFeed,
-          query: {
-            scheduledMaintenanceId: props.scheduledMaintenanceId!,
+  const {
+    feedItems,
+    isLoading,
+    isLoadingMore,
+    error,
+    loadMoreError,
+    hasMore,
+    isCurrentFeedLoaded,
+    setError,
+    refresh,
+    loadMore,
+  } = useFeedItems<ScheduledMaintenanceFeed>({
+    resourceKey: props.scheduledMaintenanceId.toString(),
+    getItems: async (
+      limit: number,
+    ): Promise<ListResult<ScheduledMaintenanceFeed>> => {
+      return await ModelAPI.getList({
+        modelType: ScheduledMaintenanceFeed,
+        query: {
+          scheduledMaintenanceId: props.scheduledMaintenanceId!,
+        },
+        select: {
+          moreInformationInMarkdown: true,
+          feedInfoInMarkdown: true,
+          displayColor: true,
+          createdAt: true,
+          user: {
+            name: true,
+            email: true,
+            profilePictureId: true,
           },
-          select: {
-            moreInformationInMarkdown: true,
-            feedInfoInMarkdown: true,
-            displayColor: true,
-            createdAt: true,
-            user: {
-              name: true,
-              email: true,
-              profilePictureId: true,
-            },
-            scheduledMaintenanceFeedEventType: true,
-            postedAt: true,
-          },
-          skip: 0,
-          sort: {
-            postedAt: SortOrder.Ascending,
-          },
-          limit: LIMIT_PER_PROJECT,
-        });
-
-      setFeedItems(
-        getFeedItemsFromScheduledMaintenanceFeeds(
-          scheduledMaintenanceFeeds.data,
-        ),
-      );
-    } catch (err: unknown) {
-      setError(API.getFriendlyMessage(err as Exception));
-    }
-
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    if (!props.scheduledMaintenanceId) {
-      return;
-    }
-
-    fetchItems().catch((err: unknown) => {
-      setError(API.getFriendlyMessage(err as Exception));
-    });
-  }, [props.scheduledMaintenanceId]);
+          scheduledMaintenanceFeedEventType: true,
+          postedAt: true,
+        },
+        skip: 0,
+        sort: {
+          postedAt: SortOrder.Descending,
+        },
+        limit,
+      });
+    },
+    mapItems: getFeedItemsFromScheduledMaintenanceFeeds,
+  });
 
   return (
     <Card
@@ -296,20 +283,24 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
           buttonStyle: ButtonStyleType.ICON,
           icon: IconProp.Refresh,
           onClick: async () => {
-            await fetchItems();
+            await refresh();
           },
         },
       ]}
     >
       <div>
-        {isLoading && <ComponentLoader />}
-        {error && <ErrorMessage message={error} />}
-        {!isLoading && !error && (
+        {(isLoading || !isCurrentFeedLoaded) && <ComponentLoader />}
+        {isCurrentFeedLoaded && error && <ErrorMessage message={error} />}
+        {isCurrentFeedLoaded && !isLoading && !error && (
           <Feed
             items={feedItems}
             noItemsMessage="Looks like there are no items in this feed for this scheduled maintenance."
+            hasMore={hasMore}
+            isLoadingMore={isLoadingMore}
+            onMore={loadMore}
           />
         )}
+        {loadMoreError && <ErrorMessage message={loadMoreError} />}
         {showPublicNoteModal && (
           <ModelFormModal
             modalWidth={ModalWidth.Large}
@@ -329,7 +320,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
             }}
             onSuccess={() => {
               setShowPublicNoteModal(false);
-              fetchItems().catch((err: unknown) => {
+              refresh().catch((err: unknown) => {
                 setError(API.getFriendlyMessage(err as Exception));
               });
             }}
@@ -388,7 +379,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
             setShowRunbookPickerModal(false);
           }}
           onStarted={() => {
-            fetchItems().catch((err: unknown) => {
+            refresh().catch((err: unknown) => {
               setError(API.getFriendlyMessage(err as Exception));
             });
           }}
@@ -414,7 +405,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
             }}
             onSuccess={() => {
               setShowPrivateNoteModal(false);
-              fetchItems().catch((err: unknown) => {
+              refresh().catch((err: unknown) => {
                 setError(API.getFriendlyMessage(err as Exception));
               });
             }}

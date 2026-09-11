@@ -4,6 +4,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Navigation from "Common/UI/Utils/Navigation";
 import { getRecordingHealthActionLink } from "./RecordingHealthCard";
 import type { SessionReplaySummary } from "./SessionReplayTable";
+import type { SessionReplayAdvancedFilters } from "./SessionReplayListFilters";
 
 /*
  * The quiet line above the session list that tells a customer WHY every
@@ -64,8 +65,24 @@ export function writeIdentityNudgeDismissed(rumApplicationId: string): void {
 export function shouldShowIdentityNudge(
   rows: Array<SessionReplaySummary>,
   isLoading: boolean,
+  filters?: IdentityNudgeFilters | undefined,
 ): boolean {
   if (isLoading || rows.length < IDENTITY_NUDGE_MIN_ROWS) {
+    return false;
+  }
+
+  /*
+   * A list the viewer has already narrowed to one person - a visitor, a
+   * pseudonymous key, a user reference - is anonymous by construction, not
+   * by omission: every row is that visitor. Telling them to call
+   * identify() there says nothing they did not just choose.
+   */
+  if (
+    filters &&
+    (filters.identifiedUserRef.trim().length > 0 ||
+      filters.identifiedUserKey.trim().length > 0 ||
+      filters.visitorId.trim().length > 0)
+  ) {
     return false;
   }
 
@@ -73,6 +90,12 @@ export function shouldShowIdentityNudge(
     return row.isIdentityVisible !== false && row.identifiedUserLabel === "";
   });
 }
+
+/* The identity filters that make a page anonymous on purpose. */
+export type IdentityNudgeFilters = Pick<
+  SessionReplayAdvancedFilters,
+  "identifiedUserRef" | "identifiedUserKey" | "visitorId"
+>;
 
 /* True when at least one row carries a visitor id - the recorder is current. */
 export function hasAnyVisitorId(rows: Array<SessionReplaySummary>): boolean {

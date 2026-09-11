@@ -2,7 +2,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * The small monogram circle beside a user in the session list and the
- * Users view. One person, one colour: the hue comes from
+ * Users page. One person, one colour: the hue comes from
  * SessionReplayUserIdentity.stableHue, so the same identified user or
  * visitor reads as the same disc on every row, page and reload, and a
  * support engineer can spot "the same person again" three rows down

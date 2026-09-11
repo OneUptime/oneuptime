@@ -117,6 +117,18 @@ export interface ReplayHeaderProps {
   onOpenUserSession?: ((sessionId: string) => void) | undefined;
 }
 
+/*
+ * The "newer" step's tooltip when the lookup could not page all the way
+ * back to this session (ReplayUserSessionsState.isTruncated): the button
+ * still goes to the nearest FETCHED session, which is a useful place to
+ * be, but it must not be described as the next one. The older step keeps
+ * its own titles whatever the flag says - that request is anchored on
+ * this session, so its first rows are the nearest older ones by
+ * construction, and "oldest in the window" is then a true claim.
+ */
+const REPLAY_USER_SESSIONS_TRUNCATED_TITLE: string =
+  "More sessions than the switcher can show; open the session list for this user";
+
 /* What the shell drives from the keyboard map ("c") and the rail rows. */
 export interface ReplayHeaderHandle {
   copyLink: () => void;
@@ -390,8 +402,8 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
 
   const userSessions: ReplayUserSessionsState | null =
     props.userSessions ?? null;
-  const adjacentUserSessions: ReplayAdjacentUserSessions = useMemo(
-    (): ReplayAdjacentUserSessions => {
+  const adjacentUserSessions: ReplayAdjacentUserSessions =
+    useMemo((): ReplayAdjacentUserSessions => {
       if (!userSessions || userSessions.status !== "ready") {
         return { newer: null, older: null };
       }
@@ -400,9 +412,7 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
         userSessions.sessions,
         userSessions.currentSessionId,
       );
-    },
-    [userSessions],
-  );
+    }, [userSessions]);
 
   const { onOpenUserSession } = props;
 
@@ -473,6 +483,7 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
             kind={userSessions.kind}
             sessions={userSessions.sessions}
             currentSessionId={userSessions.currentSessionId}
+            isTruncated={userSessions.isTruncated}
             onOpenUserSession={(sessionId: string): void => {
               onOpenUserSession?.(sessionId);
             }}
@@ -497,9 +508,11 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
               variant="segment"
               ariaLabel="Newer session"
               title={
-                adjacentUserSessions.newer
-                  ? "Newer session by this user (})"
-                  : "This is the newest session in the window"
+                userSessions.isTruncated
+                  ? REPLAY_USER_SESSIONS_TRUNCATED_TITLE
+                  : adjacentUserSessions.newer
+                    ? "Newer session by this user (})"
+                    : "This is the newest session in the window"
               }
               isDisabled={adjacentUserSessions.newer === null}
               onClick={openNewerUserSession}

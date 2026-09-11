@@ -239,6 +239,11 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
+interface BoundingRectSpy {
+  mockReturnValue: (value: DOMRect) => unknown;
+  mockRestore: () => void;
+}
+
 describe("ReplayStage mounting", () => {
   it("attaches the engine's host into the stage on mount and detaches on unmount", () => {
     const engine: FakeEngine = new FakeEngine();
@@ -400,7 +405,14 @@ describe("ReplayStage sizing", () => {
       ) as HTMLElement;
       expect(observed).toContain(header);
       expect(observed).toContain(stage);
-      const rectangle: jest.SpiedFunction<() => DOMRect> = jest.spyOn(
+      /*
+       * Named structurally rather than as jest.SpiedFunction: jest.spyOn here
+       * is the one imported from @jest/globals, whose return type is
+       * jest-mock's SpyInstance, while `jest.SpiedFunction` resolves through
+       * the global @types/jest namespace. The two declarations do not assign
+       * to each other, so name only what this test uses.
+       */
+      const rectangle: BoundingRectSpy = jest.spyOn(
         stage,
         "getBoundingClientRect",
       );

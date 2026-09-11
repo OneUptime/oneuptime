@@ -38,6 +38,16 @@ const RELOAD_LOG_STORAGE_KEY: string = "oneuptime.replay.reloads";
  * A session id lives for one visit; this id is the thing that is supposed
  * to outlive it, so surviving rotation is its entire purpose. clearAll()
  * is the one place it is removed.
+ *
+ * Never REWRITTEN by the recorder's tick, but re-READ by it. localStorage
+ * is one store for every tab of the origin, so clearAll() in one tab
+ * removes the id under its siblings, and a sibling that kept the value it
+ * read at construction would stamp the withdrawn id on every session it
+ * recorded from then on - re-linking post-revoke recordings to the ones
+ * the user asked us to forget. subscribeToSessionChanges therefore fires
+ * for this key as well as the session's, and Recorder.maybeRotateSession
+ * re-reads it on every flush tick and storage event, so a revoke in one
+ * tab is honoured by all of them within a tick.
  */
 const VISITOR_STORAGE_KEY: string = "oneuptime.replay.visitor";
 
@@ -173,13 +183,22 @@ export default class SessionId {
   }
 
   /*
-   * Be told when another tab writes the shared session record.
+   * Be told when another tab writes the shared session record, or removes
+   * or rewrites the shared visitor id.
    *
    * The `storage` event fires in every OTHER tab of the origin when a key
    * changes, which is exactly the tab that needs to know, and never in the
    * tab that wrote. Returns the unsubscribe function. Registration itself
    * cannot throw into the host page: a window without addEventListener
    * simply gets no notifications and the flush-tick sync still runs.
+   *
+   * The visitor key is watched for the same reason as the session key: a
+   * sibling's revokeConsent() removes it, and a tab that kept stamping the
+   * copy it held would re-link every session it records from then on to
+   * the ones the user asked us to forget. The listener is handed the
+   * stored session id on either key, because what the recorder does about
+   * either is one and the same re-sync (Recorder.maybeRotateSession),
+   * which reads the visitor key for itself.
    */
   public static subscribeToSessionChanges(
     listener: (storedSessionId: string | null) => void,
@@ -188,7 +207,10 @@ export default class SessionId {
     const onStorage: (event: StorageEvent) => void = (
       event: StorageEvent,
     ): void => {
-      if (event.key !== SESSION_STORAGE_KEY) {
+      if (
+        event.key !== SESSION_STORAGE_KEY &&
+        event.key !== VISITOR_STORAGE_KEY
+      ) {
         return;
       }
 

@@ -330,61 +330,27 @@ describe("SessionReplaySearchBar hints", () => {
   });
 });
 
-describe("SessionReplaySearchBar view toggle", () => {
-  it("is absent unless the table can switch views", () => {
+describe("SessionReplaySearchBar has no view toggle", () => {
+  /*
+   * Users is its own page now (Pages/Rum/View/SessionReplayUsers.tsx).
+   * The toolbar always draws every list control; nothing here hides
+   * itself for a rollup that lives elsewhere.
+   */
+  it("always renders the search, sort, time range, filters and help", () => {
     renderBar();
 
     expect(screen.queryByTestId("session-view-toggle")).toBeNull();
-  });
-
-  it("marks the current view pressed and reports a switch, never a re-press", () => {
-    const onViewChange: MockFunction = getJestMockFunction();
-
-    renderBar({ view: "sessions", onViewChange: onViewChange });
-
-    const toggle: HTMLElement = screen.getByTestId("session-view-toggle");
-
-    expect(toggle).toHaveAttribute("role", "group");
-    expect(toggle).toHaveAttribute("aria-label", "List view");
-    expect(screen.getByTestId("session-view-sessions")).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    expect(screen.getByTestId("session-view-users")).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
-
-    fireEvent.click(screen.getByTestId("session-view-sessions"));
-
-    expect(onViewChange).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByTestId("session-view-users"));
-
-    expect(onViewChange).toHaveBeenCalledWith("users");
-  });
-
-  /*
-   * The rollup route takes no search, sort or field filters, so offering
-   * them in the users view would be controls that change nothing.
-   */
-  it("hides the search, sort, filters and help in the users view but keeps the time range", () => {
-    renderBar({
-      view: "users",
-      onViewChange: getJestMockFunction(),
-    });
-
-    expect(screen.queryByTestId("session-search-input")).toBeNull();
-    expect(screen.queryByTestId("session-sort")).toBeNull();
-    expect(screen.queryByTestId("session-open-filters")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Search help" })).toBeNull();
-    expect(screen.getByTestId("session-view-users")).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    /* The one control both views share. */
+    expect(screen.queryByText("Users")).toBeNull();
+    expect(screen.getByTestId("session-search-input")).toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "Sort sessions" }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("session-open-filters")).toBeInTheDocument();
     expect(
       screen.getByTestId("telemetry-time-range-picker-button"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Search help" }),
     ).toBeInTheDocument();
   });
 });

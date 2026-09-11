@@ -1,9 +1,4 @@
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useRef,
-} from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import Feed from "Common/UI/Components/Feed/Feed";
@@ -15,12 +10,10 @@ import AlertFeed, {
 } from "Common/Models/DatabaseModels/AlertFeed";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Exception from "Common/Types/Exception/Exception";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -35,6 +28,7 @@ import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import Icon from "Common/UI/Components/Icon/Icon";
 import RunbookPicker from "../Runbook/RunbookPicker";
+import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
 
 export interface ComponentProps {
   alertId: ObjectID;
@@ -45,15 +39,6 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const alertIdString: string = props.alertId.toString();
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
-  const [error, setError] = React.useState<string | undefined>(undefined);
-  const [feedItems, setFeedItems] = React.useState<FeedItemProps[]>([]);
-  const [loadedAlertId, setLoadedAlertId] = React.useState<string | null>(null);
-  const latestFetchRequestRef: React.MutableRefObject<number> =
-    useRef<number>(0);
-  const activeAlertIdRef: React.MutableRefObject<string> =
-    useRef<string>(alertIdString);
-  activeAlertIdRef.current = alertIdString;
   const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
     React.useState<boolean>(false);
 
@@ -182,21 +167,22 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
     };
   };
 
-  const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
-    const requestId: number = latestFetchRequestRef.current + 1;
-    latestFetchRequestRef.current = requestId;
-    const requestedAlertId: string = alertIdString;
-    const isLatestRequest: () => boolean = (): boolean => {
-      return (
-        requestId === latestFetchRequestRef.current &&
-        requestedAlertId === activeAlertIdRef.current
-      );
-    };
-
-    setError("");
-    setIsLoading(true);
-    try {
-      const alertFeeds: ListResult<AlertFeed> = await ModelAPI.getList({
+  const {
+    feedItems,
+    isLoading,
+    isLoadingMore,
+    error,
+    loadMoreError,
+    hasMore,
+    isCurrentFeedLoaded,
+    setError,
+    refresh,
+    loadMore,
+  } = useFeedItems<AlertFeed>({
+    resourceKey: alertIdString,
+    refreshToken: props.refreshToken,
+    getItems: async (limit: number): Promise<ListResult<AlertFeed>> => {
+      return await ModelAPI.getList({
         modelType: AlertFeed,
         query: {
           alertId: props.alertId!,
@@ -217,38 +203,13 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
         },
         skip: 0,
         sort: {
-          postedAt: SortOrder.Ascending,
+          postedAt: SortOrder.Descending,
         },
-        limit: LIMIT_PER_PROJECT,
+        limit,
       });
-
-      if (isLatestRequest()) {
-        setFeedItems(getFeedItemsFromAlertFeeds(alertFeeds.data));
-        setLoadedAlertId(requestedAlertId);
-      }
-    } catch (err: unknown) {
-      if (isLatestRequest()) {
-        setError(API.getFriendlyMessage(err as Exception));
-        setLoadedAlertId(requestedAlertId);
-      }
-    }
-
-    if (isLatestRequest()) {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!props.alertId) {
-      return;
-    }
-
-    fetchItems().catch((err: unknown) => {
-      setError(API.getFriendlyMessage(err as Exception));
-    });
-  }, [alertIdString, props.refreshToken]);
-
-  const isCurrentFeedLoaded: boolean = loadedAlertId === alertIdString;
+    },
+    mapItems: getFeedItemsFromAlertFeeds,
+  });
 
   return (
     <Card
@@ -300,7 +261,7 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
           buttonStyle: ButtonStyleType.ICON,
           icon: IconProp.Refresh,
           onClick: async () => {
-            await fetchItems();
+            await refresh();
           },
         },
       ]}
@@ -312,8 +273,12 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
           <Feed
             items={feedItems}
             noItemsMessage="Looks like there are no items in this feed for this alert."
+            hasMore={hasMore}
+            isLoadingMore={isLoadingMore}
+            onMore={loadMore}
           />
         )}
+        {loadMoreError && <ErrorMessage message={loadMoreError} />}
 
         {showOnCallPolicyModal && (
           <ModelFormModal
@@ -336,7 +301,7 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
             }}
             onSuccess={() => {
               setShowOnCallPolicyModal(false);
-              fetchItems().catch((err: unknown) => {
+              refresh().catch((err: unknown) => {
                 setError(API.getFriendlyMessage(err as Exception));
               });
             }}
@@ -373,7 +338,7 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
             setShowRunbookPickerModal(false);
           }}
           onStarted={() => {
-            fetchItems().catch((err: unknown) => {
+            refresh().catch((err: unknown) => {
               setError(API.getFriendlyMessage(err as Exception));
             });
           }}
@@ -399,7 +364,7 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
             }}
             onSuccess={() => {
               setShowPrivateNoteModal(false);
-              fetchItems().catch((err: unknown) => {
+              refresh().catch((err: unknown) => {
                 setError(API.getFriendlyMessage(err as Exception));
               });
             }}
