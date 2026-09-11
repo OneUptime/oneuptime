@@ -43,6 +43,7 @@ export interface DataSourceHttpRequest {
   body?: string | Dictionary<string> | undefined;
   formUrlEncoded?: boolean | undefined;
   timeoutInMs?: number | undefined;
+  signal?: AbortSignal | undefined;
   // Test seam — forwarded to the egress guard.
   egressOptions?: EgressGuardOptions | undefined;
 }
@@ -130,6 +131,7 @@ export default class DataSourceHttpFetch {
       headers: headers,
       data: data,
       timeout: request.timeoutInMs || DATA_SOURCE_QUERY_TIMEOUT_IN_MS,
+      ...(request.signal ? { signal: request.signal } : {}),
       maxRedirects: 0,
       maxContentLength: DATA_SOURCE_MAX_RESPONSE_SIZE_IN_BYTES,
       maxBodyLength: DATA_SOURCE_MAX_RESPONSE_SIZE_IN_BYTES,

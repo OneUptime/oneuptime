@@ -26,6 +26,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import GoogleSecOpsDiagnostics from "../../Components/SecurityEvents/GoogleSecOpsDiagnostics";
 import { googleSecOpsHealth } from "../../Components/SecurityEvents/GoogleSecOpsDiagnosticsUtil";
+import ManagedSecurityEventConnections from "../../Components/SecurityEvents/ManagedSecurityEventConnections";
 import React, {
   Fragment,
   FunctionComponent,
@@ -121,6 +122,8 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
+      <ManagedSecurityEventConnections />
+
       <ModelTable<GoogleSecOpsConnection>
         modelType={GoogleSecOpsConnection}
         refreshToggle={String(refreshCounter)}

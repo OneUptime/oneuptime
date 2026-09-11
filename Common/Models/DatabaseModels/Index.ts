@@ -126,6 +126,7 @@ import LogDropFilter from "./LogDropFilter";
 import DetectionRule from "./DetectionRule";
 import GoogleSecOpsConnection from "./GoogleSecOpsConnection";
 import GoogleSecOpsConnectionRun from "./GoogleSecOpsConnectionRun";
+import SecurityEventConnection from "./SecurityEventConnection";
 import ThreatIntelFeed from "./ThreatIntelFeed";
 import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
@@ -501,6 +502,7 @@ const AllModelTypes: Array<{
   DetectionRule,
   GoogleSecOpsConnection,
   GoogleSecOpsConnectionRun,
+  SecurityEventConnection,
   ThreatIntelFeed,
   LogScrubRule,
   MetricPipelineRule,

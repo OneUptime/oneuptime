@@ -533,6 +533,40 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return Promise.resolve({ updateBy, carryForward: null });
   }
 
+  /**
+   * Adds server-controlled columns to the same SQL statement as an update.
+   * This runs after caller permissions are checked, so subclasses can maintain
+   * derived state atomically without exposing those columns to API clients.
+   */
+  protected async getInternalUpdateData(
+    _onUpdate: OnUpdate<TBaseModel>,
+    _item: TBaseModel,
+  ): Promise<PartialEntity<TBaseModel>> {
+    return Promise.resolve({} as PartialEntity<TBaseModel>);
+  }
+
+  /**
+   * Validates every row admitted by the permission-scoped update query before
+   * the first write. Subclasses can use the decrypted snapshots here without
+   * reading caller-controlled rows as root in onBeforeUpdate.
+   */
+  protected async onBeforeUpdateItems(
+    _onUpdate: OnUpdate<TBaseModel>,
+    _items: Array<TBaseModel>,
+  ): Promise<void> {
+    return Promise.resolve();
+  }
+
+  /**
+   * Loads columns needed to derive internal update data. These columns are
+   * fetched as root only after the caller's update query is permission-scoped.
+   */
+  protected getAdditionalUpdateSelect(
+    _onUpdate: OnUpdate<TBaseModel>,
+  ): Select<TBaseModel> {
+    return {} as Select<TBaseModel>;
+  }
+
   protected async onBeforeFind(
     findBy: FindBy<TBaseModel>,
   ): Promise<OnFind<TBaseModel>> {
@@ -2536,6 +2570,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const selectColumns: Select<TBaseModel> = {
         _id: true,
         ...Object.fromEntries(dataColumns),
+        ...(updateBy.props.ignoreHooks
+          ? {}
+          : this.getAdditionalUpdateSelect(onUpdate)),
       };
 
       if (this.getModel().getTenantColumn()) {
@@ -2572,6 +2609,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             props: { isRoot: true, ignoreHooks: true },
           })
         : [];
+
+      if (!updateBy.props.ignoreHooks) {
+        await this.onBeforeUpdateItems(onUpdate, items);
+      }
 
       /*
        * save() has upsert semantics: if the located row is hard-deleted by a
@@ -2625,6 +2666,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         logger.getLogLevel() === ConfigLogLevel.DEBUG;
 
       for (const item of items) {
+        const internalUpdateData: PartialEntity<TBaseModel> = updateBy.props
+          .ignoreHooks
+          ? ({} as PartialEntity<TBaseModel>)
+          : await this.getInternalUpdateData(onUpdate, item);
         /*
          * _id must be set AFTER the spread: update data can carry an
          * explicit `_id: undefined` (sanitizeUpdateData strips it from model
@@ -2635,6 +2680,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
          */
         const updatedItem: any = {
           ...data,
+          ...internalUpdateData,
           _id: item._id!,
         } as any;
 

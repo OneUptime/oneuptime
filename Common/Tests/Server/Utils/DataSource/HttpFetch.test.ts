@@ -190,6 +190,20 @@ describe("DataSourceHttpFetch.fetch - hardened axios config", () => {
     expect(getAxiosConfig().timeout).toBe(1234);
   });
 
+  test("forwards the caller cancellation signal to axios", async () => {
+    const controller: AbortController = new AbortController();
+
+    await DataSourceHttpFetch.fetch(makeRequest({ signal: controller.signal }));
+
+    expect(getAxiosConfig().signal).toBe(controller.signal);
+  });
+
+  test("omits the axios signal when the caller does not provide one", async () => {
+    await DataSourceHttpFetch.fetch(makeRequest());
+
+    expect(getAxiosConfig()).not.toHaveProperty("signal");
+  });
+
   test("passes the guard-validated URL and method through to axios", async () => {
     await DataSourceHttpFetch.fetch(makeRequest());
     const config: AxiosRequestConfig = getAxiosConfig();

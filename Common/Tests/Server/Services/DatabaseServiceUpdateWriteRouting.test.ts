@@ -155,6 +155,81 @@ describe("DatabaseService._updateBy — save() vs update() write routing", () =>
     expect((versionValue as () => string)()).toBe('"version" + 1');
   });
 
+  test("writes internal and caller fields together while internal values take precedence", async () => {
+    const internalUpdate: jest.Mock = jest
+      .spyOn(NetworkDeviceDiscoveryScanService as any, "getInternalUpdateData")
+      .mockResolvedValue({
+        status: "Completed",
+      } as never) as unknown as jest.Mock;
+
+    await NetworkDeviceDiscoveryScanService.updateOneById({
+      id: scanId,
+      data: { status: "In Progress" } as ScanUpdateData,
+      props: { isRoot: true },
+    });
+
+    expect(internalUpdate).toHaveBeenCalledTimes(1);
+    expect(updateMock).toHaveBeenCalledTimes(1);
+    expect(updateMock.mock.calls[0]![1]).toEqual(
+      expect.objectContaining({ status: "Completed" }),
+    );
+  });
+
+  test("does not derive internal update data when hooks are ignored", async () => {
+    const internalUpdate: jest.Mock = jest.spyOn(
+      NetworkDeviceDiscoveryScanService as any,
+      "getInternalUpdateData",
+    ) as unknown as jest.Mock;
+
+    await NetworkDeviceDiscoveryScanService.updateOneById({
+      id: scanId,
+      data: { status: "In Progress" } as ScanUpdateData,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+
+    expect(internalUpdate).not.toHaveBeenCalled();
+    expect(updateMock).toHaveBeenCalledTimes(1);
+    expect(updateMock.mock.calls[0]![1]).toEqual(
+      expect.objectContaining({ status: "In Progress" }),
+    );
+  });
+
+  test("validates every permission-scoped row before the first write", async () => {
+    const secondItem: NetworkDeviceDiscoveryScan =
+      new NetworkDeviceDiscoveryScan();
+    secondItem._id = ObjectID.generate().toString();
+    jest
+      .spyOn(NetworkDeviceDiscoveryScanService as any, "_findBy")
+      .mockResolvedValue([
+        new NetworkDeviceDiscoveryScan(scanId),
+        secondItem,
+      ] as never);
+    const validationError: Error = new Error("invalid second row");
+    const validateItems: jest.Mock = jest
+      .spyOn(NetworkDeviceDiscoveryScanService as any, "onBeforeUpdateItems")
+      .mockRejectedValue(validationError) as unknown as jest.Mock;
+
+    await expect(
+      NetworkDeviceDiscoveryScanService.updateBy({
+        query: {},
+        data: { status: "In Progress" } as ScanUpdateData,
+        skip: 0,
+        limit: 2,
+        props: { isRoot: true },
+      }),
+    ).rejects.toBe(validationError);
+
+    expect(validateItems).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.arrayContaining([
+        expect.objectContaining({ _id: scanId.toString() }),
+        expect.objectContaining({ _id: secondItem._id }),
+      ]),
+    );
+    expect(updateMock).not.toHaveBeenCalled();
+    expect(saveMock).not.toHaveBeenCalled();
+  });
+
   test("an Entity (many-to-one) column takes update(), not save() — it is just an FK on this row", async () => {
     const scan: NetworkDeviceDiscoveryScan = new NetworkDeviceDiscoveryScan();
     scan.status = "Completed";
