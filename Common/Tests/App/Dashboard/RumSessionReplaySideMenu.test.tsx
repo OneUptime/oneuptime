@@ -65,6 +65,7 @@ describe("RUM application Session Replay navigation", () => {
       "Basic",
       "Observability",
       "Session Replay",
+      "Settings",
       "Advanced",
     ]);
     expect(isExpanded("Session Replay")).toBe(true);
