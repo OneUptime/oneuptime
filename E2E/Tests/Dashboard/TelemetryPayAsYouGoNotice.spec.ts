@@ -54,6 +54,29 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
     ingestionKeysUrl: "",
   };
 
+  const draftName: string = "Draft telemetry pricing key";
+  const draftDescription: string = "Review pricing before creating this key.";
+
+  const advanceToBilling: () => Promise<void> = async (): Promise<void> => {
+    const modal: Locator = ctx.page.getByTestId("modal");
+    const nextButton: Locator = modal.getByTestId("modal-footer-submit-button");
+    await modal
+      .getByPlaceholder("Ingestion Key Name", { exact: true })
+      .fill(draftName);
+    await modal
+      .getByPlaceholder("Ingestion Key Description", { exact: true })
+      .fill(draftDescription);
+    await expect(nextButton).toHaveText("Next");
+    await nextButton.click();
+    await expect(
+      modal.getByTestId("card-select-option-Server"),
+    ).toHaveAttribute("aria-checked", "true");
+    await nextButton.click();
+    await expect(
+      modal.getByRole("region", { name: "Telemetry pricing", exact: true }),
+    ).toBeVisible();
+  };
+
   test.beforeAll(async ({ browser }: { browser: Browser }) => {
     test.setTimeout(300000);
     ctx.page = await browser.newPage();
@@ -82,11 +105,7 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
     });
     await createButton.click();
     await expect(ctx.page.getByTestId("modal")).toBeVisible();
-    await expect(
-      ctx.page
-        .getByTestId("modal")
-        .getByRole("region", { name: "Telemetry pricing", exact: true }),
-    ).toBeVisible();
+    await advanceToBilling();
   });
 
   test.afterAll(async () => {
@@ -266,11 +285,6 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
       "Ingestion Key Description",
       { exact: true },
     );
-    const draftName: string = "Draft telemetry pricing key";
-    const draftDescription: string = "Review pricing before creating this key.";
-    await name.fill(draftName);
-    await description.fill(draftDescription);
-
     const pricingLink: Locator = modal
       .getByRole("region", { name: "Telemetry pricing", exact: true })
       .getByRole("link", { name: "View pricing", exact: true });
@@ -301,9 +315,14 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
         await expect(popup).toHaveTitle("Pricing destination");
         await expect(ctx.page).toHaveURL(ctx.ingestionKeysUrl);
         await expect(modal).toBeVisible();
+        await modal
+          .getByRole("navigation", { name: "Progress" })
+          .getByText("Details", { exact: true })
+          .click();
         await expect(name).toHaveValue(draftName);
         await expect(description).toHaveValue(draftDescription);
         await expect(modal.getByRole("checkbox")).toHaveCount(0);
+        await advanceToBilling();
       } finally {
         await popup.close();
       }
@@ -314,9 +333,6 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
 
   test("can dismiss and reopen the modal with pricing and no acknowledgement control", async () => {
     const modal: Locator = ctx.page.getByTestId("modal");
-    await modal
-      .getByPlaceholder("Ingestion Key Name", { exact: true })
-      .fill("Unsubmitted telemetry pricing draft");
     await modal.getByTestId("modal-footer-close-button").click();
     await expect(modal).toBeHidden();
     await expect(ctx.page).toHaveURL(ctx.ingestionKeysUrl);
@@ -326,11 +342,15 @@ test.describe("Telemetry pay-as-you-go modal notice", () => {
       .click();
     await expect(modal).toBeVisible();
     await expect(
+      modal.getByPlaceholder("Ingestion Key Name", { exact: true }),
+    ).toHaveValue("");
+    await advanceToBilling();
+    await expect(
       modal.getByRole("region", { name: "Telemetry pricing", exact: true }),
     ).toBeVisible();
     await expect(modal.getByRole("checkbox")).toHaveCount(0);
-    await expect(
-      modal.getByPlaceholder("Ingestion Key Name", { exact: true }),
-    ).toBeEditable();
+    await expect(modal.getByTestId("modal-footer-submit-button")).toHaveText(
+      "Next",
+    );
   });
 });

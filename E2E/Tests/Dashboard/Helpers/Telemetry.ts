@@ -60,7 +60,30 @@ export const createTelemetryIngestionKey: CreateTelemetryIngestionKeyFunction =
       .locator("input[placeholder='Ingestion Key Name']")
       .first()
       .fill(data.keyName);
-    await page.getByTestId("modal-footer-submit-button").click();
+    const modal: Locator = page.getByTestId("modal");
+    const submitButton: Locator = modal.getByTestId(
+      "modal-footer-submit-button",
+    );
+    await expect(submitButton).toHaveText("Next");
+    await submitButton.click();
+    await expect(
+      modal.getByTestId("card-select-option-Server"),
+    ).toHaveAttribute("aria-checked", "true");
+    await submitButton.click();
+
+    const billingStep: Locator = modal
+      .getByRole("navigation", { name: "Progress" })
+      .getByText("Billing", { exact: true });
+    if ((await billingStep.count()) > 0) {
+      await expect(
+        modal.getByRole("region", { name: "Telemetry pricing", exact: true }),
+      ).toBeVisible();
+      await expect(submitButton).toHaveText("Next");
+      await submitButton.click();
+    }
+
+    await expect(submitButton).toHaveText("Create Ingestion Key");
+    await submitButton.click();
     await page.getByTestId("modal").waitFor({ state: "hidden" });
 
     /*
