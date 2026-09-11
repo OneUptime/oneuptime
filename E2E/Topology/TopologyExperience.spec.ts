@@ -218,6 +218,11 @@ test("network sites lead to a real device map with recoverable progressive contr
 }) => {
   await openView(page, "Network");
   await expect(page.getByTestId("topology-hierarchy-grid")).toBeVisible();
+  await expect(page.getByTestId("topology-hierarchy-guide")).toHaveCount(0);
+  await expect(
+    page.getByText(/^(Choose a site|Follow the network|Find the problem)$/),
+  ).toHaveCount(0);
+  await expect(page.getByTestId("topology-hierarchy-search")).toBeVisible();
   await screenshot(page, "network-sites-synthetic");
   await page.getByTestId("site-card-london").click();
   await expect(
