@@ -45,7 +45,19 @@ import URL from "Common/Types/API/URL";
  * all three are serving by the time this suite runs.
  */
 
-const HARDENED_ROUTES: Array<string> = ["/dashboard", "/accounts", "/admin"];
+/*
+ * /admin is probed at /admin/env.js rather than at its root: the Admin
+ * Dashboard's index page is gated on a master-admin token
+ * (App/FeatureSet/AdminDashboard/Serve.ts renders it through
+ * ensureMasterAdminAccess), so an unauthenticated GET /admin is a 401 by
+ * design. env.js is served by the same `location /admin` block, so it carries
+ * the same headers, and IngressRoutes.spec.ts already proves it answers 2xx.
+ */
+const HARDENED_ROUTES: Array<string> = [
+  "/dashboard",
+  "/accounts",
+  "/admin/env.js",
+];
 
 /*
  * The deliberate other half. These two are embedded in customers' own pages,
