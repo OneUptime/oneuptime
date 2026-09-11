@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as React from "react";
 import Color from "../../../Types/Color";
@@ -254,15 +254,22 @@ describe("AI investigation settings card", () => {
       await screen.findByText("Update", {}, { timeout: WAIT_TIMEOUT }),
     );
 
-    await waitFor(
-      () => {
-        expect(screen.getByText("Investigation")).toBeDefined();
+    /*
+     * Scoped to the progress nav on purpose: the form also renders the CURRENT
+     * step's name as a heading above its fields, so an unscoped getByText for
+     * the first step matches twice and throws. What this test is about is the
+     * step LIST, which is exactly what the nav holds.
+     */
+    const steps: HTMLElement = await waitFor(
+      (): HTMLElement => {
+        return screen.getByRole("navigation", { name: "Progress" });
       },
       { timeout: WAIT_TIMEOUT },
     );
 
-    expect(screen.getByText("Limits")).toBeDefined();
-    expect(screen.getByText("Fix Tasks")).toBeDefined();
+    expect(within(steps).getByText("Investigation")).toBeDefined();
+    expect(within(steps).getByText("Limits")).toBeDefined();
+    expect(within(steps).getByText("Fix Tasks")).toBeDefined();
 
     /*
      * Only the first step's fields are on screen - which is the point of

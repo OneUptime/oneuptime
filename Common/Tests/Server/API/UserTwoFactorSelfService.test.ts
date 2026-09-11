@@ -17,6 +17,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 import { mockRouter } from "./Helpers";
 import {
@@ -66,7 +67,7 @@ describe("User two-factor self-service API integration", () => {
   const rows: Map<string, User> = new Map<string, User>();
   let api: UserAPI;
   let find: jest.SpyInstance;
-  let update: jest.Mock;
+  let update: MockFunction;
   let response: ExpressResponse;
 
   const requestFor: (data?: RequestOptions) => OneUptimeRequest = (
@@ -130,27 +131,35 @@ describe("User two-factor self-service API integration", () => {
         if (!row) {
           return [];
         }
+        /*
+         * Copy field by field rather than by assignment: both are optional on
+         * User, and under exactOptionalPropertyTypes "set to undefined" is not
+         * the same declaration as "absent". A row missing either one should
+         * come back missing it, which is what the real find does.
+         */
         const snapshot: User = new User();
-        snapshot._id = row._id;
-        snapshot.enableTwoFactorAuth = row.enableTwoFactorAuth;
+        if (row._id !== undefined) {
+          snapshot._id = row._id;
+        }
+        if (row.enableTwoFactorAuth !== undefined) {
+          snapshot.enableTwoFactorAuth = row.enableTwoFactorAuth;
+        }
         return [snapshot];
       },
     );
-    update = jest
-      .fn()
-      .mockImplementation(
-        async (
-          where: { _id: string },
-          data: { enableTwoFactorAuth: boolean },
-        ): Promise<{ affected: number }> => {
-          const row: User | undefined = rows.get(where._id);
-          if (!row) {
-            return { affected: 0 };
-          }
-          row.enableTwoFactorAuth = data.enableTwoFactorAuth;
-          return { affected: 1 };
-        },
-      );
+    update = getJestMockFunction().mockImplementation(
+      async (
+        where: { _id: string },
+        data: { enableTwoFactorAuth: boolean },
+      ): Promise<{ affected: number }> => {
+        const row: User | undefined = rows.get(where._id);
+        if (!row) {
+          return { affected: 0 };
+        }
+        row.enableTwoFactorAuth = data.enableTwoFactorAuth;
+        return { affected: 1 };
+      },
+    );
     getJestSpyOn(UserService, "getRepository").mockReturnValue({ update });
   });
 
@@ -370,7 +379,7 @@ describe("User two-factor self-service API integration", () => {
         },
         60,
       )}`;
-      const next: jest.Mock = jest.fn();
+      const next: MockFunction = getJestMockFunction();
 
       await route.middleware(request, response, next as NextFunction);
       if (isMasterAdmin) {
