@@ -1,4 +1,7 @@
-import { SessionReplayConfigResponse } from "Common/Types/Rum/SessionReplay";
+import {
+  SessionReplayChunkEnvelope,
+  SessionReplayConfigResponse,
+} from "Common/Types/Rum/SessionReplay";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
@@ -47,6 +50,18 @@ const EARLY_ERROR: EarlyErrorRecord = {
   message: "boom during startup",
   atUnixMs: Date.now() - 3000,
 };
+
+const VISITOR_KEY: string = "oneuptime.replay.visitor";
+
+/* The envelope line of one posted chunk body. */
+function envelopeOf(call: Array<unknown>): SessionReplayChunkEnvelope {
+  const init: Record<string, unknown> = call[1] as Record<string, unknown>;
+  const text: string = new TextDecoder().decode(init["body"] as Uint8Array);
+
+  return JSON.parse(
+    text.slice(0, text.indexOf("\n")),
+  ) as SessionReplayChunkEnvelope;
+}
 
 describe("Index bootstrap ordering", (): void => {
   let fetchMock: jest.Mock;
@@ -152,6 +167,72 @@ describe("Index bootstrap ordering", (): void => {
     await tick();
 
     expect(fetchMock).toHaveBeenCalled();
+
+    index.stop();
+  });
+
+  /*
+   * The anonymous visitor id follows the same pre-start ordering as the
+   * session id: the constructor mints one, and a revoke the page queued while
+   * the artifact downloaded clears it before start() - so a user who said no
+   * leaves nothing in storage that a later visit could be linked back to.
+   */
+  it("a queued revokeConsent leaves no visitor id behind", async (): Promise<void> => {
+    globalRecord["OneUptimeReplayQueue"] = [["revokeConsent"]];
+
+    const index: typeof import("../src/Index") = await importIndex();
+
+    index.bootstrap(INIT_OPTIONS, baseConfig(), [EARLY_ERROR]);
+
+    await tick();
+    await tick();
+
+    expect(index.getVisitorId()).toBe("");
+    expect(index.getDiagnostics().visitorId).toBe("");
+    expect(window.localStorage.getItem(VISITOR_KEY)).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    index.stop();
+  });
+
+  /*
+   * Consent platforms fire reject-then-accept inside one page life, and both
+   * can land before start(). The grant has to mint a visitor id even though
+   * it switches no session on a recorder that has not started: the revoke
+   * cleared the constructor's id and start() never resolves identity again,
+   * so without this the whole page life would upload meta with no visitor id
+   * on it.
+   */
+  it("a queued reject-then-accept still starts with a visitor id", async (): Promise<void> => {
+    globalRecord["OneUptimeReplayQueue"] = [
+      ["revokeConsent"],
+      ["grantConsent"],
+    ];
+
+    const index: typeof import("../src/Index") = await importIndex();
+
+    index.bootstrap(
+      INIT_OPTIONS,
+      { ...baseConfig(), samplePercentage: 100 },
+      [],
+    );
+
+    await tick();
+    await tick();
+
+    const visitorId: string = index.getVisitorId();
+
+    expect(visitorId).toMatch(/^[0-9a-f]{32}$/);
+    expect(index.getDiagnostics().visitorId).toBe(visitorId);
+    expect(window.localStorage.getItem(VISITOR_KEY)).toBe(visitorId);
+    expect(fetchMock).toHaveBeenCalled();
+
+    const chunkZero: SessionReplayChunkEnvelope = envelopeOf(
+      fetchMock.mock.calls[0] as Array<unknown>,
+    );
+
+    expect(chunkZero.chunkIndex).toBe(0);
+    expect(chunkZero.meta?.visitorId).toBe(visitorId);
 
     index.stop();
   });

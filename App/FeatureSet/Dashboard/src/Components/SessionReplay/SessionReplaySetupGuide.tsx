@@ -450,7 +450,12 @@ const SessionReplaySetupGuide: FunctionComponent<ComponentProps> = (
         >
           <>
             Put this on every page you want recorded. The tab picks the
-            framework; the tag is the same.
+            framework; the tag is the same. Then call <code>identify()</code> as
+            soon as your page knows who is signed in: that is what groups
+            sessions by person and makes <code>user:</code> search work. Without
+            it, sessions from the same browser are still grouped under an
+            anonymous visitor id, but the list cannot name anyone or follow a
+            person across devices.
             <div className="mt-2">
               <SessionReplayInstallSnippet
                 appIdentifier={appIdentifier}

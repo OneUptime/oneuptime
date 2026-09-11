@@ -17,12 +17,18 @@ import {
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import ReplayHeader, {
   REPLAY_HEADER_COPIED_MS,
+  REPLAY_TAB_STRIP_COMPACT_THRESHOLD,
   ReplayHeaderHandle,
   ReplayHeaderProps,
   ReplayHeaderTab,
   copyTextToClipboard,
+  describeReplayTabOpened,
   formatReplayTabLabel,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayHeader";
+import {
+  ReplayUserSessionItem,
+  ReplayUserSessionsState,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayUserSessions";
 
 /*
  * The player's header. Pinned: identity copy that never claims "anonymous"
@@ -48,6 +54,47 @@ function makeTab(overrides: Partial<ReplayHeaderTab>): ReplayHeaderTab {
     openedAtMs: 0,
     hasFootage: true,
     isActive: true,
+    ...overrides,
+  };
+}
+
+const VISITOR_ID: string = "7f3a2b1c9d8e4f5a6b7c8d9e0f1a2b3c";
+
+function makeUserSession(
+  sessionId: string,
+  startTimeUnixMs: number,
+  overrides?: Partial<ReplayUserSessionItem>,
+): ReplayUserSessionItem {
+  return {
+    sessionId: sessionId,
+    startTimeUnixMs: startTimeUnixMs,
+    durationMs: 60000,
+    entryUrl: "https://app.acme.com/checkout",
+    browserName: "Chrome",
+    deviceType: "desktop",
+    hasError: false,
+    errorCount: 0,
+    isFinalized: true,
+    identifiedUserKey: "key",
+    visitorId: VISITOR_ID,
+    identifiedUserLabel: "jane@acme.com",
+    ...overrides,
+  };
+}
+
+/* Newest first, the current session in the middle. */
+function makeUserSessions(
+  overrides?: Partial<ReplayUserSessionsState>,
+): ReplayUserSessionsState {
+  return {
+    status: "ready",
+    kind: "identified",
+    sessions: [
+      makeUserSession("newer", START_UNIX_MS + 3600000),
+      makeUserSession(SESSION_ID, START_UNIX_MS),
+      makeUserSession("older", START_UNIX_MS - 3600000),
+    ],
+    currentSessionId: SESSION_ID,
     ...overrides,
   };
 }
@@ -170,6 +217,271 @@ describe("ReplayHeader", () => {
       expect(screen.getByTestId("replay-header-user")).toHaveTextContent(
         "Anonymous",
       );
+    });
+
+    /*
+     * issue #3705: an anonymous session the recorder linked to a browser
+     * is still one person's browser, and the sessions beside it in the
+     * menu are that browser's - so the header names the visitor rather
+     * than flattening it to "Anonymous".
+     */
+    it("names an anonymous visitor by the first six characters of the visitor id", () => {
+      render(
+        <ReplayHeader
+          {...makeProps({ identity: { label: "", visitorId: VISITOR_ID } })}
+        />,
+      );
+
+      const user: HTMLElement = screen.getByTestId("replay-header-user");
+
+      expect(user).toHaveTextContent("Visitor 7f3a2b");
+      expect(user).not.toHaveTextContent(VISITOR_ID);
+      expect(user).toHaveAttribute(
+        "title",
+        expect.stringContaining("Anonymous visitor"),
+      );
+      expect(user.className).toContain("text-gray-700");
+    });
+
+    it("never lets the visitor id override a real label or a hidden identity", () => {
+      const { rerender } = render(
+        <ReplayHeader
+          {...makeProps({
+            identity: { label: "jane@acme.com", visitorId: VISITOR_ID },
+          })}
+        />,
+      );
+
+      expect(screen.getByTestId("replay-header-user")).toHaveTextContent(
+        "jane@acme.com",
+      );
+
+      rerender(
+        <ReplayHeader
+          {...makeProps({ identity: { label: null, visitorId: VISITOR_ID } })}
+        />,
+      );
+
+      expect(screen.getByTestId("replay-header-user")).toHaveTextContent(
+        "Identity hidden",
+      );
+    });
+  });
+
+  /*
+   * issue #3705: "when clicking Watch on a session, show a dropdown
+   * listing all other sessions belonging to that same user". Every
+   * lookup status renders something in the identity row - silence would
+   * read as "no other sessions", the one wrong answer.
+   */
+  describe("this user's other sessions", () => {
+    it("renders nothing about siblings until the shell supplies a lookup state", () => {
+      render(<ReplayHeader {...makeProps()} />);
+
+      expect(
+        screen.queryByTestId("replay-user-sessions-button"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("replay-user-sessions-loading"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("replay-user-sessions-unavailable"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("says the session is not linked when it carries neither key", () => {
+      render(
+        <ReplayHeader
+          {...makeProps({
+            userSessions: makeUserSessions({
+              kind: "none",
+              sessions: [],
+            }),
+          })}
+        />,
+      );
+
+      const notice: HTMLElement = screen.getByTestId(
+        "replay-user-sessions-unavailable",
+      );
+
+      expect(notice).toHaveTextContent("Not linked to other sessions");
+      expect(notice).toHaveAttribute(
+        "title",
+        expect.stringContaining("identify()"),
+      );
+      expect(
+        screen.queryByTestId("replay-user-sessions-button"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("shows the lookup in progress and its failure", () => {
+      const { rerender } = render(
+        <ReplayHeader
+          {...makeProps({
+            userSessions: makeUserSessions({
+              status: "loading",
+              sessions: [],
+            }),
+          })}
+        />,
+      );
+
+      expect(
+        screen.getByTestId("replay-user-sessions-loading"),
+      ).toHaveTextContent("Finding other sessions");
+
+      rerender(
+        <ReplayHeader
+          {...makeProps({
+            userSessions: makeUserSessions({
+              status: "error",
+              sessions: [],
+            }),
+          })}
+        />,
+      );
+
+      expect(screen.getByTestId("replay-user-sessions-error")).toHaveTextContent(
+        "Couldn't load other sessions",
+      );
+      expect(
+        screen.queryByTestId("replay-user-sessions-button"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("says so when this is the only session in the window", () => {
+      render(
+        <ReplayHeader
+          {...makeProps({
+            userSessions: makeUserSessions({
+              sessions: [makeUserSession(SESSION_ID, START_UNIX_MS)],
+            }),
+          })}
+        />,
+      );
+
+      expect(screen.getByTestId("replay-user-sessions-only")).toHaveTextContent(
+        "Only session in 30 days",
+      );
+      expect(
+        screen.queryByTestId("replay-user-sessions-button"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("replay-user-session-older"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("offers the menu and the older/newer steps once there are siblings", () => {
+      const onOpenUserSession: MockFunction = getJestMockFunction();
+
+      render(
+        <ReplayHeader
+          {...makeProps({
+            userSessions: makeUserSessions(),
+            onOpenUserSession: onOpenUserSession,
+          })}
+        />,
+      );
+
+      const button: HTMLElement = screen.getByTestId(
+        "replay-user-sessions-button",
+      );
+
+      expect(button).toHaveTextContent("3 sessions");
+      expect(button).toHaveAttribute("aria-haspopup", "true");
+      expect(button).toHaveAttribute("aria-expanded", "false");
+
+      const group: HTMLElement = screen.getByRole("group", {
+        name: "Move between this user's sessions",
+      });
+      const older: HTMLElement = within(group).getByTestId(
+        "replay-user-session-older",
+      );
+      const newer: HTMLElement = within(group).getByTestId(
+        "replay-user-session-newer",
+      );
+
+      expect(older).toHaveAccessibleName("Older session");
+      expect(newer).toHaveAccessibleName("Newer session");
+      expect(older).toHaveAttribute("title", "Older session by this user ({)");
+      expect(newer).toHaveAttribute("title", "Newer session by this user (})");
+      expect(older).toBeEnabled();
+      expect(newer).toBeEnabled();
+
+      fireEvent.click(older);
+      expect(onOpenUserSession).toHaveBeenLastCalledWith("older");
+
+      fireEvent.click(newer);
+      expect(onOpenUserSession).toHaveBeenLastCalledWith("newer");
+      expect(onOpenUserSession).toHaveBeenCalledTimes(2);
+    });
+
+    it("disables the step that has nowhere to go at either end", () => {
+      const onOpenUserSession: MockFunction = getJestMockFunction();
+      const { rerender } = render(
+        <ReplayHeader
+          {...makeProps({
+            userSessions: makeUserSessions({ currentSessionId: "newer" }),
+            onOpenUserSession: onOpenUserSession,
+          })}
+        />,
+      );
+
+      expect(screen.getByTestId("replay-user-session-newer")).toBeDisabled();
+      expect(screen.getByTestId("replay-user-session-older")).toBeEnabled();
+
+      fireEvent.click(screen.getByTestId("replay-user-session-newer"));
+      expect(onOpenUserSession).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByTestId("replay-user-session-older"));
+      expect(onOpenUserSession).toHaveBeenLastCalledWith(SESSION_ID);
+
+      rerender(
+        <ReplayHeader
+          {...makeProps({
+            userSessions: makeUserSessions({ currentSessionId: "older" }),
+            onOpenUserSession: onOpenUserSession,
+          })}
+        />,
+      );
+
+      expect(screen.getByTestId("replay-user-session-older")).toBeDisabled();
+      expect(screen.getByTestId("replay-user-session-newer")).toBeEnabled();
+    });
+
+    it("opens the menu and hands a chosen session to the shell", () => {
+      const onOpenUserSession: MockFunction = getJestMockFunction();
+
+      render(
+        <ReplayHeader
+          {...makeProps({
+            userSessions: makeUserSessions({ kind: "visitor" }),
+            onOpenUserSession: onOpenUserSession,
+          })}
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId("replay-user-sessions-button"));
+
+      const menu: HTMLElement = screen.getByTestId("replay-user-sessions-menu");
+
+      expect(menu).toHaveTextContent("Sessions from this visitor");
+      expect(
+        screen.getByTestId("replay-user-sessions-button"),
+      ).toHaveAttribute("aria-expanded", "true");
+
+      const items: Array<HTMLElement> = within(menu).getAllByTestId(
+        "replay-user-session-item",
+      );
+
+      expect(items).toHaveLength(3);
+      fireEvent.click(items[2] as HTMLElement);
+
+      expect(onOpenUserSession).toHaveBeenCalledWith("older");
+      expect(
+        screen.queryByTestId("replay-user-sessions-menu"),
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -436,6 +748,110 @@ describe("ReplayHeader", () => {
       ).toBe("Tab 2 · 30s · (opened 2:14)");
       expect(formatReplayTabLabel(makeTab({ hasFootage: false }))).toBe(
         "Tab 1 · no footage",
+      );
+    });
+
+    /*
+     * A customer's screenshot: eleven tabs, each pill saying "(opened
+     * 0:00)" or a real offset, overflowing the card sideways. The strip
+     * wraps now, sub-second "opened" offsets are dropped (they are the
+     * first tab, and say nothing), and above six tabs the offset moves
+     * into the tooltip.
+     */
+    it("drops a sub-second 'opened' offset and keeps a real one", () => {
+      expect(formatReplayTabLabel(makeTab({ openedAtMs: 400 }))).toBe(
+        "Tab 1 · 4m 12s",
+      );
+      expect(formatReplayTabLabel(makeTab({ openedAtMs: 999 }))).toBe(
+        "Tab 1 · 4m 12s",
+      );
+      expect(formatReplayTabLabel(makeTab({ openedAtMs: 1000 }))).toBe(
+        "Tab 1 · 4m 12s · (opened 0:01)",
+      );
+      expect(describeReplayTabOpened(makeTab({ openedAtMs: 400 }))).toBeNull();
+      expect(describeReplayTabOpened(makeTab({ openedAtMs: 134000 }))).toBe(
+        "opened 2:14",
+      );
+      expect(
+        describeReplayTabOpened(makeTab({ hasFootage: false, openedAtMs: 5000 })),
+      ).toBeNull();
+    });
+
+    it("leaves the 'opened' part to the tooltip in a compact strip", () => {
+      const tab: ReplayHeaderTab = makeTab({
+        label: "Tab 2",
+        durationMs: 30000,
+        openedAtMs: 134000,
+      });
+
+      expect(formatReplayTabLabel(tab, { isCompact: true })).toBe(
+        "Tab 2 · 30s",
+      );
+      expect(formatReplayTabLabel(tab, { isCompact: false })).toBe(
+        "Tab 2 · 30s · (opened 2:14)",
+      );
+      expect(formatReplayTabLabel(tab, {})).toBe(
+        "Tab 2 · 30s · (opened 2:14)",
+      );
+    });
+
+    it("wraps the tab strip instead of scrolling it sideways", () => {
+      render(<ReplayHeader {...makeProps({ tabs: tabs })} />);
+
+      const tablist: HTMLElement = screen.getByRole("tablist");
+
+      expect(tablist.className).toContain("flex-wrap");
+      expect(tablist.className).not.toContain("overflow-x-auto");
+    });
+
+    it("keeps the full label up to six tabs and goes compact above that", () => {
+      const makeStrip: (count: number) => Array<ReplayHeaderTab> = (
+        count: number,
+      ): Array<ReplayHeaderTab> => {
+        return Array.from(
+          { length: count },
+          (_: unknown, index: number): ReplayHeaderTab => {
+            return makeTab({
+              tabId: `tab-${index + 1}`,
+              label: `Tab ${index + 1}`,
+              durationMs: 30000,
+              openedAtMs: index === 0 ? 0 : 60000 * index,
+              isActive: index === 0,
+            });
+          },
+        );
+      };
+
+      expect(REPLAY_TAB_STRIP_COMPACT_THRESHOLD).toBe(6);
+
+      const { rerender } = render(
+        <ReplayHeader {...makeProps({ tabs: makeStrip(6) })} />,
+      );
+
+      let pills: Array<HTMLElement> = screen.getAllByTestId("replay-tab-pill");
+
+      expect(pills).toHaveLength(6);
+      expect(pills[1]).toHaveTextContent("Tab 2 · 30s · (opened 1:00)");
+      expect(pills[1]).toHaveAttribute(
+        "title",
+        "Switch to Tab 2; the playhead stays where it is",
+      );
+
+      rerender(<ReplayHeader {...makeProps({ tabs: makeStrip(11) })} />);
+
+      pills = screen.getAllByTestId("replay-tab-pill");
+
+      expect(pills).toHaveLength(11);
+      expect(pills[1]).toHaveTextContent("Tab 2 · 30s");
+      expect(pills[1]).not.toHaveTextContent("opened");
+      expect(pills[1]).toHaveAttribute(
+        "title",
+        "Switch to Tab 2 (opened 1:00); the playhead stays where it is",
+      );
+      /* The first tab has no offset to move, so its tooltip is unchanged. */
+      expect(pills[0]).toHaveAttribute(
+        "title",
+        "Switch to Tab 1; the playhead stays where it is",
       );
     });
   });

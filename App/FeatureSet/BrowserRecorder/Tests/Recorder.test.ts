@@ -4,6 +4,8 @@ import {
   SESSION_REPLAY_MAX_SESSION_MS,
   SESSION_REPLAY_MAX_TAG_KEYS,
   SESSION_REPLAY_MAX_TRAIT_KEYS,
+  SESSION_REPLAY_RECORDER_CAPABILITIES,
+  SESSION_REPLAY_VISITOR_ID_PATTERN,
   SessionReplayChunkEnvelope,
   SessionReplayConfigResponse,
 } from "Common/Types/Rum/SessionReplay";
@@ -666,6 +668,66 @@ describe("Recorder", (): void => {
     });
 
     /*
+     * The visitor id goes with the session on revoke - it is the one token
+     * built to survive rotation, which is exactly why it must not survive a
+     * withdrawal of consent - and the grant that follows mints a NEW one, so
+     * the re-granted user is grouped with what they record from here on and
+     * never with the sessions they asked us to forget.
+     */
+    it("forgets the visitor id on revoke and mints a new one on the next grant", async (): Promise<void> => {
+      const instance: Recorder = startRecorder({
+        consentMode: SessionReplayConsentMode.RequireExplicit,
+        samplePercentage: 100,
+      });
+
+      const first: string = instance.getVisitorId();
+
+      expect(first).toMatch(SESSION_REPLAY_VISITOR_ID_PATTERN);
+      expect(window.localStorage.getItem("oneuptime.replay.visitor")).toBe(
+        first,
+      );
+
+      instance.revokeConsent();
+
+      expect(instance.getVisitorId()).toBe("");
+      expect(
+        window.localStorage.getItem("oneuptime.replay.visitor"),
+      ).toBeNull();
+      expect(window.localStorage.length).toBe(0);
+
+      instance.grantConsent();
+
+      await flushUploads();
+
+      const second: string = instance.getVisitorId();
+
+      expect(second).toMatch(SESSION_REPLAY_VISITOR_ID_PATTERN);
+      expect(second).not.toBe(first);
+      expect(window.localStorage.getItem("oneuptime.replay.visitor")).toBe(
+        second,
+      );
+
+      /* The fresh session's chunk 0 carries the fresh id, never the old. */
+      const chunkZero: CapturedPost = readPost(
+        fetchMock.mock.calls[0] as Array<unknown>,
+      );
+
+      expect(chunkZero.envelope.sessionId).toBe(instance.getSessionId());
+      expect(chunkZero.envelope.chunkIndex).toBe(0);
+      expect(chunkZero.envelope.meta?.visitorId).toBe(second);
+
+      const bodies: string = fetchMock.mock.calls
+        .map((call: Array<unknown>): string => {
+          return (
+            readPost(call).payload + JSON.stringify(readPost(call).envelope)
+          );
+        })
+        .join("");
+
+      expect(bodies).not.toContain(first);
+    });
+
+    /*
      * REGRESSION (recorder-5). revokeConsent() leaves the recorder running
      * (so a later grant can continue on a fresh session) and clears the
      * stored session. Fifteen seconds later the flush timer asked whether to
@@ -712,6 +774,10 @@ describe("Recorder", (): void => {
       }
 
       expect(window.localStorage.length).toBe(0);
+      expect(
+        window.localStorage.getItem("oneuptime.replay.visitor"),
+      ).toBeNull();
+      expect(instance.getVisitorId()).toBe("");
       expect(changes).toEqual([]);
       expect(fetchMock).not.toHaveBeenCalled();
 
@@ -805,6 +871,99 @@ describe("Recorder", (): void => {
       );
 
       expect(post.envelope.meta?.identifiedUserRef).toBe("user-42");
+    });
+
+    /*
+     * The anonymous visitor id (issue #3705). Every session from this
+     * browser profile carries the same one, so the dashboard can group the
+     * sessions of a visitor whose pages never call identify().
+     */
+    it("carries the anonymous visitor id on chunk 0", async (): Promise<void> => {
+      const instance: Recorder = startRecorder({ samplePercentage: 100 });
+
+      await flushUploads();
+
+      const post: CapturedPost = readPost(
+        fetchMock.mock.calls[0] as Array<unknown>,
+      );
+
+      expect(post.envelope.meta?.visitorId).toMatch(
+        SESSION_REPLAY_VISITOR_ID_PATTERN,
+      );
+      expect(post.envelope.meta?.visitorId).toBe(instance.getVisitorId());
+      expect(window.localStorage.getItem("oneuptime.replay.visitor")).toBe(
+        instance.getVisitorId(),
+      );
+    });
+
+    /*
+     * Unlike identifiedUserRef, which the tests above show is withheld
+     * unless identity capture is on, the visitor id is sent regardless: it
+     * is a random token the recorder minted, not a reference the page
+     * supplied, so it links recordings without naming anyone. Gating it
+     * would defeat the one case it exists for - an application with neither
+     * an identify() call nor the identity switch.
+     */
+    it("sends the visitor id even when identity capture is off", async (): Promise<void> => {
+      const withUser: Recorder = new Recorder({
+        initOptions: { ...INIT_OPTIONS, userRef: "user-42" },
+        config: {
+          ...baseConfig(),
+          samplePercentage: 100,
+          captureUserIdentity: false,
+        },
+      });
+
+      withUser.start();
+      recorder = withUser;
+
+      await flushUploads();
+
+      const post: CapturedPost = readPost(
+        fetchMock.mock.calls[0] as Array<unknown>,
+      );
+
+      expect(post.envelope.meta?.identifiedUserRef).toBeUndefined();
+      expect(post.envelope.meta?.visitorId).toMatch(
+        SESSION_REPLAY_VISITOR_ID_PATTERN,
+      );
+      expect(post.envelope.meta?.visitorId).toBe(withUser.getVisitorId());
+    });
+
+    /*
+     * Meta rides chunk 0 and the final chunk. The visitor id has to be on
+     * every copy, so a session whose chunk 0 never arrived still groups.
+     * Sealed by pagehide (persisted: false), the way a real unload does:
+     * hiding the tab flushes without sealing - see "terminal flush".
+     */
+    it("repeats the visitor id on the final chunk's meta", async (): Promise<void> => {
+      const instance: Recorder = startRecorder({ samplePercentage: 100 });
+
+      await flushUploads();
+
+      document.body.appendChild(document.createElement("span"));
+      await flushUploads();
+
+      const hide: Event = new Event("pagehide");
+
+      Object.defineProperty(hide, "persisted", { value: false });
+      window.dispatchEvent(hide);
+
+      await flushUploads();
+
+      const finalFrames: Array<CapturedPost> = fetchMock.mock.calls
+        .flatMap((call: Array<unknown>): Array<CapturedPost> => {
+          return framesOf(call);
+        })
+        .filter((frame: CapturedPost): boolean => {
+          return frame.envelope.isFinal;
+        });
+
+      expect(finalFrames.length).toBeGreaterThan(0);
+      expect(finalFrames[0]?.envelope.meta).toBeDefined();
+      expect(finalFrames[0]?.envelope.meta?.visitorId).toBe(
+        instance.getVisitorId(),
+      );
     });
 
     it("reports a scrubbed url, never a query string", async (): Promise<void> => {
@@ -1446,6 +1605,55 @@ describe("Recorder", (): void => {
     });
 
     /*
+     * The visitor id is the one identity that must NOT rotate: the session
+     * list groups on it, and a rollover that minted a new one would put every
+     * visit of the same browser back into a group of its own (#3705).
+     */
+    it("keeps the visitor id across an idle rollover while the session id changes", async (): Promise<void> => {
+      jest.useFakeTimers();
+
+      const instance: Recorder = startRecorder({ samplePercentage: 100 });
+      const firstSessionId: string = instance.getSessionId();
+      const visitorId: string = instance.getVisitorId();
+
+      expect(visitorId).toMatch(SESSION_REPLAY_VISITOR_ID_PATTERN);
+
+      const idleSince: number = Date.now() - SESSION_REPLAY_IDLE_ROLLOVER_MS;
+
+      writeStored({
+        sessionId: firstSessionId,
+        sessionStartUnixMs: idleSince,
+        lastActivityUnixMs: idleSince,
+      });
+
+      fetchMock.mockClear();
+      jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS);
+      await drainMicrotasks();
+
+      const secondSessionId: string = instance.getSessionId();
+
+      expect(secondSessionId).not.toBe(firstSessionId);
+      expect(instance.getVisitorId()).toBe(visitorId);
+      expect(window.localStorage.getItem("oneuptime.replay.visitor")).toBe(
+        visitorId,
+      );
+
+      const newSessionChunkZero: CapturedPost | undefined = fetchMock.mock.calls
+        .map((call: Array<unknown>): CapturedPost => {
+          return readPost(call);
+        })
+        .find((post: CapturedPost): boolean => {
+          return (
+            post.envelope.sessionId === secondSessionId &&
+            post.envelope.chunkIndex === 0
+          );
+        });
+
+      expect(newSessionChunkZero).toBeDefined();
+      expect(newSessionChunkZero?.envelope.meta?.visitorId).toBe(visitorId);
+    });
+
+    /*
      * A rollover mints a genuinely NEW session. entryUrl is captured once in
      * start() so the final chunk cannot overwrite the session header with
      * the exit url - but carrying the original page load's URL into the
@@ -1983,6 +2191,9 @@ describe("Recorder", (): void => {
       expect(envelope.sessionId).toBe(instance.getSessionId());
       expect(envelope.meta?.identifiedUserRef).toBeDefined();
       expect(envelope.hasFullSnapshot).toBe(true);
+
+      /* 32 bytes, and the only link between this browser's sessions. */
+      expect(envelope.meta?.visitorId).toBe(instance.getVisitorId());
     });
 
     it("carries traits and tags on chunk 0, and forces meta after identify()", async (): Promise<void> => {
@@ -2127,6 +2338,17 @@ describe("Recorder", (): void => {
       expect(first.envelope.capabilities).toEqual(
         expect.arrayContaining(["click-events", "custom-events", "traits"]),
       );
+      expect(first.envelope.capabilities).toContain("visitor-id");
+
+      /*
+       * Parity with the shared list, in full: the server stores this on the
+       * header and the setup page compares it against
+       * SESSION_REPLAY_RECORDER_CAPABILITIES, so a capability the recorder
+       * implements but does not advertise reads as "missing" to a customer.
+       */
+      expect(first.envelope.capabilities).toEqual([
+        ...SESSION_REPLAY_RECORDER_CAPABILITIES,
+      ]);
 
       fetchMock.mockClear();
       document.body.appendChild(document.createElement("span"));

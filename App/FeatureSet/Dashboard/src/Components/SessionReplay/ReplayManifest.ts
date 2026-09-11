@@ -290,6 +290,15 @@ export function parseManifest(data: JSONObject): SessionReplayManifest {
     countryCode: readDtoString(headerRecord, "countryCode"),
     identifiedUserLabel: identifiedUserLabel,
     identifiedUserTraits: identifiedUserTraits,
+    /*
+     * Both additive and both ungated: "" is what an older server (or a
+     * page that never identified the user / an older recorder) reads as,
+     * and "" is exactly what tells the player there is nothing to look
+     * up - so absence and emptiness collapse on purpose here, unlike the
+     * label above, where absence is a permission statement.
+     */
+    identifiedUserKey: readDtoString(headerRecord, "identifiedUserKey"),
+    visitorId: readDtoString(headerRecord, "visitorId"),
     tags: tags,
     maskingMode: readDtoString(headerRecord, "maskingMode"),
     consentState: readDtoString(headerRecord, "consentState"),

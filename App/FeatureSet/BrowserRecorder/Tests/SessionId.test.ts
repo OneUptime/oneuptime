@@ -419,9 +419,208 @@ describe("SessionId", (): void => {
     });
   });
 
+  /*
+   * The anonymous visitor id (issue #3705): one random id per browser
+   * profile, kept beside the session record under its own key and repeated
+   * on every session this browser records, so the dashboard can group the
+   * sessions of a visitor whose pages never call identify().
+   */
+  describe("visitor id", (): void => {
+    const VISITOR_KEY: string = "oneuptime.replay.visitor";
+
+    it("mints 32 lowercase hex characters and stores them under its own key", (): void => {
+      const visitorId: string = SessionId.resolveVisitorId();
+
+      expect(visitorId).toMatch(/^[0-9a-f]{32}$/);
+      expect(window.localStorage.getItem(VISITOR_KEY)).toBe(visitorId);
+
+      /* Its own key, not a field smuggled into the session record. */
+      expect(
+        window.localStorage.getItem("oneuptime.replay.session"),
+      ).toBeNull();
+    });
+
+    it("is stable across calls", (): void => {
+      const first: string = SessionId.resolveVisitorId();
+
+      expect(SessionId.resolveVisitorId()).toBe(first);
+      expect(SessionId.resolveVisitorId()).toBe(first);
+      expect(SessionId.readVisitorId()).toBe(first);
+    });
+
+    /*
+     * THE property. The session id is built to rotate and the visitor id is
+     * built to outlive it; a rollover that took the visitor id with it would
+     * put every visit of one browser back into a group of its own.
+     */
+    it("survives the idle rollover while the session id does not", (): void => {
+      const now: number = Date.now();
+      const visitorId: string = SessionId.resolveVisitorId();
+      const first: SessionIdentityState = SessionId.resolveSession(now, "tab1");
+
+      const second: SessionIdentityState = SessionId.resolveSession(
+        now + 31 * 60 * 1000,
+        "tab1",
+      );
+
+      expect(second.sessionId).not.toBe(first.sessionId);
+      expect(second.rotationReason).toBe(SessionRotationReason.Idle);
+      expect(SessionId.resolveVisitorId()).toBe(visitorId);
+      expect(window.localStorage.getItem(VISITOR_KEY)).toBe(visitorId);
+    });
+
+    it("survives the duration-cap rotation, and every touch on the way", (): void => {
+      let now: number = Date.now();
+      const visitorId: string = SessionId.resolveVisitorId();
+      const first: SessionIdentityState = SessionId.resolveSession(now, "tab1");
+
+      for (let i: number = 0; i < 25; i++) {
+        now += 10 * 60 * 1000;
+        SessionId.touch(now);
+        expect(SessionId.readVisitorId()).toBe(visitorId);
+      }
+
+      const later: SessionIdentityState = SessionId.resolveSession(now, "tab1");
+
+      expect(later.sessionId).not.toBe(first.sessionId);
+      expect(later.rotationReason).toBe(SessionRotationReason.DurationCap);
+      expect(SessionId.resolveVisitorId()).toBe(visitorId);
+    });
+
+    it("survives adopting the session another tab rotated onto", (): void => {
+      const now: number = Date.now();
+      const visitorId: string = SessionId.resolveVisitorId();
+      const mine: SessionIdentityState = SessionId.resolveSession(now, "tab1");
+
+      SessionId.resolveSession(now + 31 * 60 * 1000, "tab2");
+
+      const adopted: SessionIdentityState | null = SessionId.syncWithStorage(
+        mine.sessionId,
+        now + 31 * 60 * 1000 + 5000,
+        "tab1",
+      );
+
+      expect(adopted).not.toBeNull();
+      expect(adopted?.sessionId).not.toBe(mine.sessionId);
+      expect(SessionId.readVisitorId()).toBe(visitorId);
+    });
+
+    /*
+     * Replaced, never repaired. The id is random and ours, so a shape it
+     * could not have is not "almost right" - and the server refuses anything
+     * off-pattern, so repairing it here would only file this browser's
+     * sessions under an id the ingest drops.
+     */
+    const rejected: Array<[string, string]> = [
+      ["garbage", "not-a-visitor-id"],
+      ["uppercase", "ABCDEF0123456789ABCDEF0123456789"],
+      ["one character short", "abcdef0123456789abcdef012345678"],
+      ["one character long", "abcdef0123456789abcdef0123456789a"],
+      ["wrapped in json", '{"visitorId":"abcdef0123456789abcdef0123456789"}'],
+      ["empty", ""],
+    ];
+
+    for (const [label, stored] of rejected) {
+      it(`replaces a stored value that is ${label} with a fresh valid id`, (): void => {
+        window.localStorage.setItem(VISITOR_KEY, stored);
+
+        expect(SessionId.readVisitorId()).toBeNull();
+
+        const visitorId: string = SessionId.resolveVisitorId();
+
+        expect(visitorId).toMatch(/^[0-9a-f]{32}$/);
+        expect(visitorId).not.toBe(stored);
+        expect(window.localStorage.getItem(VISITOR_KEY)).toBe(visitorId);
+      });
+    }
+
+    it("readVisitorId answers null when nothing is stored, and mints nothing", (): void => {
+      expect(SessionId.readVisitorId()).toBeNull();
+      expect(SessionId.readVisitorId()).toBeNull();
+
+      expect(window.localStorage.getItem(VISITOR_KEY)).toBeNull();
+      expect(window.localStorage.length).toBe(0);
+    });
+
+    /*
+     * Consent withdrawn: the one token built to survive rotation is exactly
+     * the one that must not survive this, or the user is re-linked to the
+     * recordings they asked us to forget the moment they come back.
+     */
+    it("is removed by clearAll, and the next resolve mints a different one", (): void => {
+      const first: string = SessionId.resolveVisitorId();
+
+      SessionId.clearAll();
+
+      expect(SessionId.readVisitorId()).toBeNull();
+      expect(window.localStorage.getItem(VISITOR_KEY)).toBeNull();
+
+      const second: string = SessionId.resolveVisitorId();
+
+      expect(second).toMatch(/^[0-9a-f]{32}$/);
+      expect(second).not.toBe(first);
+    });
+
+    /* Same harness as "storage failure" below; same reason. */
+    it("degrades to a per-page-load id when localStorage throws, without throwing", (): void => {
+      const original: Storage = window.localStorage;
+
+      const throwing: Storage = {
+        get length(): number {
+          throw new Error("storage disabled");
+        },
+        clear: (): void => {
+          throw new Error("storage disabled");
+        },
+        getItem: (): string | null => {
+          throw new Error("storage disabled");
+        },
+        key: (): string | null => {
+          throw new Error("storage disabled");
+        },
+        removeItem: (): void => {
+          throw new Error("storage disabled");
+        },
+        setItem: (): void => {
+          throw new Error("storage disabled");
+        },
+      };
+
+      Object.defineProperty(window, "localStorage", {
+        configurable: true,
+        value: throwing,
+      });
+
+      let first: string = "";
+      let second: string = "";
+      let read: string | null = "unset";
+
+      expect((): void => {
+        first = SessionId.resolveVisitorId();
+        second = SessionId.resolveVisitorId();
+        read = SessionId.readVisitorId();
+        SessionId.clearAll();
+      }).not.toThrow();
+
+      Object.defineProperty(window, "localStorage", {
+        configurable: true,
+        value: original,
+      });
+
+      expect(first).toMatch(/^[0-9a-f]{32}$/);
+      expect(second).toMatch(/^[0-9a-f]{32}$/);
+      expect(read).toBeNull();
+
+      /* Nothing persisted, so every resolve is its own page load. */
+      expect(second).not.toBe(first);
+      expect(window.localStorage.getItem(VISITOR_KEY)).toBeNull();
+    });
+  });
+
   describe("clearAll", (): void => {
-    it("removes session, tab, reload log and every chunk counter", (): void => {
+    it("removes session, tab, visitor id, reload log and every chunk counter", (): void => {
       SessionId.resolveSession(Date.now(), "tab1");
+      SessionId.resolveVisitorId();
       SessionId.rotateTabId();
       SessionId.getNextChunkIndex("tab1");
       SessionId.getNextChunkIndex("tab2");

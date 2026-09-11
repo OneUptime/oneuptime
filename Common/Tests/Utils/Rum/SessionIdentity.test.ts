@@ -269,4 +269,76 @@ describe("SessionIdentity", () => {
       }
     });
   });
+
+  describe("isVisitorId", () => {
+    /*
+     * Shared by the recorder (which only stores what passes) and the ingest
+     * parser (which drops what does not). Strict on purpose: the id is
+     * random and ours, so there is no legitimate "almost" shape to be
+     * lenient towards, and leniency here is what would let a hand-crafted
+     * POST file a recording under an arbitrary string.
+     */
+    const VALID: string = "3f1a9c7e5b2d4801f6a3c9e7b1d5028f";
+
+    it("accepts exactly 32 lowercase hex characters", () => {
+      expect(SessionIdentity.isVisitorId(VALID)).toBe(true);
+      expect(SessionIdentity.isVisitorId("0".repeat(32))).toBe(true);
+      expect(SessionIdentity.isVisitorId("f".repeat(32))).toBe(true);
+    });
+
+    it("rejects uppercase hex, which the recorder never mints", () => {
+      expect(SessionIdentity.isVisitorId(VALID.toUpperCase())).toBe(false);
+      expect(SessionIdentity.isVisitorId(`${VALID.slice(0, 31)}F`)).toBe(false);
+    });
+
+    it("rejects 31 and 33 characters", () => {
+      expect(VALID.slice(0, 31)).toHaveLength(31);
+      expect(SessionIdentity.isVisitorId(VALID.slice(0, 31))).toBe(false);
+      expect(`${VALID}0`).toHaveLength(33);
+      expect(SessionIdentity.isVisitorId(`${VALID}0`)).toBe(false);
+      expect(SessionIdentity.isVisitorId("")).toBe(false);
+    });
+
+    it("rejects non-hex characters and surrounding whitespace", () => {
+      expect(SessionIdentity.isVisitorId(`${VALID.slice(0, 31)}g`)).toBe(false);
+      expect(SessionIdentity.isVisitorId(`${VALID.slice(0, 31)}-`)).toBe(false);
+      expect(SessionIdentity.isVisitorId(` ${VALID}`)).toBe(false);
+      expect(SessionIdentity.isVisitorId(`${VALID} `)).toBe(false);
+      /* `$` must not be lenient about a trailing newline. */
+      expect(SessionIdentity.isVisitorId(`${VALID}\n`)).toBe(false);
+    });
+
+    it("rejects anything that is not a string", () => {
+      const notStrings: Array<unknown> = [
+        undefined,
+        null,
+        42,
+        0,
+        true,
+        false,
+        {},
+        { id: VALID },
+        [],
+        [VALID],
+        new String(VALID),
+      ];
+
+      for (const value of notStrings) {
+        expect(SessionIdentity.isVisitorId(value)).toBe(false);
+      }
+    });
+
+    it("narrows an unknown to string on success", () => {
+      const value: unknown = VALID;
+
+      if (!SessionIdentity.isVisitorId(value)) {
+        throw new Error("expected the fixture to pass");
+      }
+
+      /* Compiles only because the guard narrowed `value` to string. */
+      const narrowed: string = value;
+
+      expect(narrowed).toBe(VALID);
+    });
+  });
 });

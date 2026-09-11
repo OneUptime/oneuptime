@@ -3023,3 +3023,187 @@ describe("SessionReplayIngestService.processFromQueue - engagement, tags, traits
     });
   });
 });
+
+/*
+ * The anonymous visitor id.
+ *
+ * github.com/OneUptime/oneuptime/issues/3705: an application whose pages
+ * never call identify() had every session listed as "Anonymous" with
+ * nothing to group them by - a session id lives for one visit, so two
+ * visits from the same browser shared nothing. The recorder now mints ONE
+ * random id per browser profile and repeats it on every meta-bearing
+ * chunk; the header stores it so the list can say "this visitor came back
+ * three times" and the player can offer "other sessions from this
+ * visitor".
+ */
+describe("SessionReplayIngestService.processFromQueue - anonymous visitor id", () => {
+  const VISITOR_ID: string = "3f1a9c7e5b2d4801f6a3c9e7b1d5028f";
+  const OTHER_VISITOR_ID: string = "9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e";
+
+  function metaWithVisitorId(visitorId: string): SessionReplayChunkMeta {
+    return { ...buildEnvelope().meta!, visitorId: visitorId };
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    redisStrings.clear();
+    redisConnected = true;
+    recordDropMock.mockResolvedValue(undefined as never);
+    markChunkReceivedMock.mockResolvedValue(undefined as never);
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+    loadRulesMock.mockResolvedValue([] as never);
+    scrubEventsMock.mockResolvedValue({
+      isComplete: true,
+      nodesVisited: 3,
+      stringsScrubbed: 0,
+      skippedOversizedStrings: 0,
+      skippedStructuralStrings: 0,
+      truncatedAtDepth: false,
+    } as never);
+    submitMock.mockResolvedValue({ flushed: Promise.resolve() } as never);
+    (isSessionErased as jest.Mock).mockResolvedValue(false as never);
+  });
+
+  test("the header row written for chunk 0 carries the visitor id", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([{ chunkIndex: 0, meta: metaWithVisitorId(VISITOR_ID) }]),
+      ),
+    );
+
+    const headers: Array<JSONObject> = getSubmittedRows("RumSessionV1");
+
+    expect(headers).toHaveLength(1);
+    expect(headers[0]!["visitorId"]).toBe(VISITOR_ID);
+  });
+
+  /*
+   * The point of the feature. captureUserIdentity gates identifiedUserRef
+   * and the traits because they are what the HOST PAGE said about a
+   * person; the visitor id is a random token the recorder minted for
+   * itself, carries no identity and resolves to nothing outside the table,
+   * so it is stored under the ordinary session ACL whatever the switch
+   * says. The switch is off by default, and an application that leaves it
+   * off is exactly the anonymous case the id exists to group.
+   */
+  test("the visitor id is stored even when the application has identity capture off", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ captureUserIdentity: false }) as never,
+    );
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          {
+            chunkIndex: 0,
+            meta: {
+              ...metaWithVisitorId(VISITOR_ID),
+              identifiedUserRef: "user-42@acme.test",
+            },
+          },
+        ]),
+      ),
+    );
+
+    const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+    expect(header["visitorId"]).toBe(VISITOR_ID);
+
+    /* While the identity beside it is still refused, as before. */
+    expect(header["identifiedUserKey"]).toBe("");
+    expect(header["identifiedUserLabel"]).toBe("");
+    expect(JSON.stringify(header)).not.toContain("acme.test");
+  });
+
+  test("a later header version whose meta lacks the visitor id keeps the one chunk 0 carried", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([{ chunkIndex: 0, meta: metaWithVisitorId(VISITOR_ID) }]),
+      ),
+    );
+
+    expect(getSubmittedRows("RumSessionV1")[0]!["visitorId"]).toBe(VISITOR_ID);
+
+    submitMock.mockClear();
+
+    /*
+     * The final chunk writes a header version of its own, and the list
+     * reads argMax(col, version) - so if this version carried "" (the
+     * fixture's default meta has no visitorId: an older recorder, or a
+     * hand-crafted POST) the session would silently drop out of its
+     * visitor's group the moment it ended. The carry in Redis is what
+     * keeps it.
+     */
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody([{ chunkIndex: 9, isFinal: true }])),
+    );
+
+    const finalHeaders: Array<JSONObject> = getSubmittedRows("RumSessionV1");
+
+    expect(finalHeaders).toHaveLength(1);
+    expect(finalHeaders[0]!["sealedReason"]).toBe("final-chunk");
+    expect(finalHeaders[0]!["visitorId"]).toBe(VISITOR_ID);
+  });
+
+  test("first non-empty wins: a later chunk cannot re-file the session under another visitor", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([{ chunkIndex: 0, meta: metaWithVisitorId(VISITOR_ID) }]),
+      ),
+    );
+
+    submitMock.mockClear();
+
+    /* Tags make this mid-session chunk write a header version. */
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          {
+            chunkIndex: 5,
+            meta: {
+              ...metaWithVisitorId(OTHER_VISITOR_ID),
+              tags: { experiment: "b" },
+            },
+          },
+        ]),
+      ),
+    );
+
+    const laterHeaders: Array<JSONObject> = getSubmittedRows("RumSessionV1");
+
+    expect(laterHeaders).toHaveLength(1);
+    expect(laterHeaders[0]!["tags"]).toEqual({ experiment: "b" });
+    expect(laterHeaders[0]!["visitorId"]).toBe(VISITOR_ID);
+  });
+
+  test("a visitor id the recorder could not have minted never reaches the row, and never refuses the chunk", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          {
+            chunkIndex: 0,
+            meta: metaWithVisitorId(VISITOR_ID.toUpperCase()),
+          },
+        ]),
+      ),
+    );
+
+    /* The recording is not lost over a bad optional field. */
+    expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(1);
+
+    const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+    expect(header["visitorId"]).toBe("");
+    expect(JSON.stringify(header)).not.toContain(VISITOR_ID.toUpperCase());
+  });
+
+  test("an envelope from a recorder that predates the visitor id yields an empty column", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(buildBody([{ chunkIndex: 0 }])),
+    );
+
+    const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+    expect(header["visitorId"]).toBe("");
+  });
+});

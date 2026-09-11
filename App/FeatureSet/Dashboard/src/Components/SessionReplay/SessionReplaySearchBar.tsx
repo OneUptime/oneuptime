@@ -19,6 +19,7 @@ import Dropdown, {
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import {
   SessionReplayAdvancedFilters,
+  SessionReplayListView,
   SessionReplaySortOption,
   SESSION_REPLAY_SORT_OPTIONS,
   isSessionReplaySortBy,
@@ -55,7 +56,21 @@ export interface SessionReplaySearchBarProps {
   /* True when the server dropped the user filter for this viewer. */
   isIdentityFilterIgnored?: boolean | undefined;
   debounceMs?: number | undefined;
+  /*
+   * Which read of the window is showing. The toggle is drawn only when the
+   * table can switch (onViewChange given); an embedded list without a
+   * Users view renders the toolbar exactly as before. In the users view
+   * the search, sort and filter controls are hidden - the rollup route
+   * takes none of them - and only the time range stays.
+   */
+  view?: SessionReplayListView | undefined;
+  onViewChange?: ((view: SessionReplayListView) => void) | undefined;
 }
+
+const VIEW_OPTIONS: Array<{ value: SessionReplayListView; label: string }> = [
+  { value: "sessions", label: "Sessions" },
+  { value: "users", label: "Users" },
+];
 
 const SORT_DROPDOWN_OPTIONS: Array<DropdownOption> =
   SESSION_REPLAY_SORT_OPTIONS.map(
@@ -185,100 +200,152 @@ const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
     },
   );
 
+  const view: SessionReplayListView = props.view ?? "sessions";
+  const isUsersView: boolean = view === "users";
+
   return (
     <div className="mb-3" data-testid="session-search-bar">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 basis-72 flex-1">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
+        {props.onViewChange && (
+          <div
+            role="group"
+            aria-label="List view"
+            data-testid="session-view-toggle"
+            className="inline-flex shrink-0 items-center gap-0.5 rounded-lg bg-gray-100 p-0.5"
+          >
+            {VIEW_OPTIONS.map(
+              (option: {
+                value: SessionReplayListView;
+                label: string;
+              }): ReactElement => {
+                const isSelected: boolean = option.value === view;
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={isSelected}
+                    data-testid={`session-view-${option.value}`}
+                    className={
+                      isSelected
+                        ? "rounded-md bg-white px-3 py-1 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-inset ring-black/5"
+                        : "rounded-md px-3 py-1 text-sm font-medium text-gray-600 hover:text-gray-900"
+                    }
+                    onClick={(): void => {
+                      if (!isSelected && props.onViewChange) {
+                        props.onViewChange(option.value);
+                      }
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                );
+              },
+            )}
           </div>
-          <input
-            type="search"
-            data-testid="session-search-input"
-            aria-label="Search sessions"
-            aria-describedby={
-              hints.length > 0 || showSearchHelp
-                ? "session-search-help"
-                : undefined
-            }
-            autoComplete="off"
-            spellCheck={false}
-            className="block w-full rounded-md border-0 py-1.5 pl-9 pr-3 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600"
-            placeholder="Search by URL, user, session or trace ID"
-            value={text}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
-              setText(event.target.value);
-              scheduleCommit(event.target.value);
-            }}
-            onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>): void => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                flush();
+        )}
+
+        {!isUsersView && (
+          <div className="relative min-w-0 basis-72 flex-1">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
+            </div>
+            <input
+              type="search"
+              data-testid="session-search-input"
+              aria-label="Search sessions"
+              aria-describedby={
+                hints.length > 0 || showSearchHelp
+                  ? "session-search-help"
+                  : undefined
+              }
+              autoComplete="off"
+              spellCheck={false}
+              className="block w-full rounded-md border-0 py-1.5 pl-9 pr-3 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600"
+              placeholder="Search by URL, user, session or trace ID"
+              value={text}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>): void => {
+                setText(event.target.value);
+                scheduleCommit(event.target.value);
+              }}
+              onKeyDown={(
+                event: React.KeyboardEvent<HTMLInputElement>,
+              ): void => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  flush();
+                }
+              }}
+            />
+          </div>
+        )}
+
+        {!isUsersView && (
+          <Dropdown
+            options={SORT_DROPDOWN_OPTIONS}
+            value={selectedSort}
+            ariaLabel="Sort sessions"
+            dataTestId="session-sort"
+            className="w-44"
+            onChange={(
+              value: DropdownValue | Array<DropdownValue> | null,
+            ): void => {
+              /* Clearing the dropdown means "back to the default order". */
+              const next: string =
+                value === null ? "startTime" : value.toString();
+
+              if (isSessionReplaySortBy(next) && next !== props.sortBy) {
+                props.onSortChange(next);
               }
             }}
           />
-        </div>
-
-        <Dropdown
-          options={SORT_DROPDOWN_OPTIONS}
-          value={selectedSort}
-          ariaLabel="Sort sessions"
-          dataTestId="session-sort"
-          className="w-44"
-          onChange={(
-            value: DropdownValue | Array<DropdownValue> | null,
-          ): void => {
-            /* Clearing the dropdown means "back to the default order". */
-            const next: string =
-              value === null ? "startTime" : value.toString();
-
-            if (isSessionReplaySortBy(next) && next !== props.sortBy) {
-              props.onSortChange(next);
-            }
-          }}
-        />
+        )}
 
         <TelemetryTimeRangePicker
           value={props.timeRange}
           onChange={props.onTimeRangeChange}
         />
 
-        <Button
-          title="Advanced filters"
-          icon={IconProp.Filter}
-          buttonStyle={ButtonStyleType.OUTLINE}
-          dataTestId="session-open-filters"
-          ariaLabel="Open advanced filters"
-          onClick={props.onOpenAdvancedFilters}
-        />
+        {!isUsersView && (
+          <Button
+            title="Advanced filters"
+            icon={IconProp.Filter}
+            buttonStyle={ButtonStyleType.OUTLINE}
+            dataTestId="session-open-filters"
+            ariaLabel="Open advanced filters"
+            onClick={props.onOpenAdvancedFilters}
+          />
+        )}
       </div>
 
-      <div className="mt-2 flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          {(hints.length > 0 || showSearchHelp) && (
-            <p
-              id="session-search-help"
-              className={`text-xs ${hints.length > 0 ? "text-amber-700" : "text-gray-500"}`}
-              data-testid="session-search-hint"
-              aria-live="polite"
-            >
-              {hints.length > 0
-                ? hints.join(" ")
-                : "Search URLs, session and trace IDs, or use filters such as user:jane@example.com, url:/checkout, tag:plan=pro, browser:Chrome and min:2m. Use id: followed by a full session ID and press Enter to open it."}
-            </p>
-          )}
+      {!isUsersView && (
+        <div className="mt-2 flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            {(hints.length > 0 || showSearchHelp) && (
+              <p
+                id="session-search-help"
+                className={`text-xs ${hints.length > 0 ? "text-amber-700" : "text-gray-500"}`}
+                data-testid="session-search-hint"
+                aria-live="polite"
+              >
+                {hints.length > 0
+                  ? hints.join(" ")
+                  : "Search URLs, session and trace IDs, or use filters such as user:jane@example.com, url:/checkout, tag:plan=pro, browser:Chrome and min:2m. Use id: followed by a full session ID and press Enter to open it."}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            className="shrink-0 text-xs text-gray-500 hover:text-indigo-600 focus-visible:outline-indigo-600"
+            aria-expanded={showSearchHelp}
+            onClick={(): void => {
+              return setShowSearchHelp(!showSearchHelp);
+            }}
+          >
+            Search help
+          </button>
         </div>
-        <button
-          type="button"
-          className="shrink-0 text-xs text-gray-500 hover:text-indigo-600 focus-visible:outline-indigo-600"
-          aria-expanded={showSearchHelp}
-          onClick={(): void => {
-            return setShowSearchHelp(!showSearchHelp);
-          }}
-        >
-          Search help
-        </button>
-      </div>
+      )}
     </div>
   );
 };

@@ -747,6 +747,39 @@ export default class RumSession extends AnalyticsBaseModel {
       });
 
     /*
+     * The recorder's per-browser anonymous visitor id: 32 lowercase hex
+     * characters (SESSION_REPLAY_VISITOR_ID_PATTERN) minted client-side
+     * once per browser profile and repeated on every meta-bearing chunk. A
+     * session id lives for one visit, so this is the only thing two visits
+     * from the same browser share - it is what lets the list group an
+     * application's sessions by visitor when its pages never call
+     * identify(). It is random and carries no identity: nothing the host
+     * page supplied, nothing that resolves to a person, so it sits under
+     * the ORDINARY session ACL beside sessionId rather than the narrow
+     * identity ACL the label and traits use. "" for a session from a
+     * recorder that predates it. Bloom-indexed because "other sessions
+     * from this visitor" is an equality lookup across the whole
+     * application, exactly like the identified-user key.
+     */
+    const visitorIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "visitorId",
+      title: "Visitor ID",
+      description:
+        "Recorder-minted per-browser anonymous visitor id (32 lowercase hex). Random, not an identity; empty for sessions from a recorder that predates it.",
+      required: true,
+      defaultValue: "",
+      type: TableColumnType.Text,
+      codec: { codec: "ZSTD", level: 1 },
+      skipIndex: {
+        name: "idx_visitor_id",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
+      accessControl: sessionAccessControl,
+    });
+
+    /*
      * Per-session tags from setTags()/addTag(): build id, experiment arm,
      * customer tier. They describe the SESSION, not the person, so they
      * live under the ordinary session ACL and back the list's
@@ -1015,6 +1048,7 @@ export default class RumSession extends AnalyticsBaseModel {
         identifiedUserKeyColumn,
         identifiedUserLabelColumn,
         identifiedUserTraitsColumn,
+        visitorIdColumn,
         tagsColumn,
         ...correlationArrayColumns,
         fidelityNoticesColumn,

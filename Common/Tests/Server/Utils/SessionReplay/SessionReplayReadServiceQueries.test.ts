@@ -4,6 +4,7 @@ import ExceptionInstanceService from "../../../../Server/Services/ExceptionInsta
 import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 import SessionReplayReadService, {
   MAX_LIST_ROUTES,
+  MAX_SESSION_REPLAY_USERS_LIMIT,
   SESSION_REPLAY_ACTIVITY_SUMMARY_CACHE_TTL_MS,
   SessionReplayApplicationActivitySummary,
   SessionReplayChunkReadResult,
@@ -16,6 +17,9 @@ import SessionReplayReadService, {
   SessionReplayManifest,
   SessionReplaySessionHeader,
   SessionReplaySessionIdentity,
+  SessionReplayUserRollup,
+  SessionReplayUsersRequest,
+  SessionReplayUsersResult,
 } from "../../../../Server/Utils/SessionReplay/SessionReplayReadService";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
@@ -147,6 +151,35 @@ describe("SessionReplayReadService statements", () => {
       expect(havingSection(negative)).toContain(
         "AND aggIdentifiedUserKey = ''",
       );
+    });
+
+    /*
+     * "Every session from this browser". The recorder-minted visitor id is
+     * argMax'd like every other header column, so the predicate runs over
+     * the alias in HAVING - a WHERE on the raw column would match a
+     * superseded header version, and a provisional header written before
+     * the recorder's first meta chunk carries no id at all - and the id is
+     * bound, never interpolated.
+     */
+    test("visitorId is a HAVING predicate over the visitor alias with the id bound", async () => {
+      const visitorId: string = "0123456789abcdef0123456789abcdef";
+      const query: string = await listQuery({ visitorId: visitorId });
+
+      expect(havingSection(query)).toMatch(
+        /AND aggVisitorId = \{p\d+:String\}/,
+      );
+      expect(whereSection(query)).not.toContain("visitorId");
+      expect(query).toContain("argMax(visitorId, version) AS aggVisitorId");
+      expect(query).not.toContain(`'${visitorId}'`);
+      expect(boundValues(statementOf(headerQuerySpy))).toContain(visitorId);
+
+      /* Ordinary session ACL: no identity column is named for it. */
+      expect(query).not.toContain("identifiedUserLabel");
+    });
+
+    test("an absent visitorId adds no predicate", async () => {
+      const query: string = await listQuery({});
+      expect(havingSection(query)).not.toContain("aggVisitorId");
     });
 
     test("isPlayable combines finalization, chunk count and the lost seal", async () => {
@@ -284,6 +317,7 @@ describe("SessionReplayReadService statements", () => {
         hasIdentifiedUser: true,
         route: "/y",
         browserNames: ["Chrome"],
+        visitorId: "0123456789abcdef0123456789abcdef",
       });
       const where: string = whereSection(query);
 
@@ -300,6 +334,7 @@ describe("SessionReplayReadService statements", () => {
         "entryUrl",
         "browserName",
         "identifiedUserKey",
+        "visitorId",
         "sealedReason",
       ]) {
         expect(where).not.toContain(forbidden);
@@ -553,6 +588,39 @@ describe("SessionReplayReadService statements", () => {
         plan: "pro",
       });
     });
+
+    /*
+     * The visitor id sits beside the digest under the ordinary session ACL:
+     * it is what the list groups anonymous sessions by and what the player
+     * reads for "other sessions from this visitor", so every list-capable
+     * caller gets it. "" - never undefined - for a session an older
+     * recorder produced, so the UI has one branch to write.
+     */
+    test("projects and maps the visitor id for every caller, '' from an older recorder", async () => {
+      const visitorId: string = "0123456789abcdef0123456789abcdef";
+
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            sessionId: "s-1",
+            aggIdentifiedUserKey: "hmac-1",
+            aggVisitorId: visitorId,
+          },
+          { sessionId: "s-2" },
+        ]) as never,
+      );
+
+      const result: SessionReplayListResult =
+        await SessionReplayReadService.listSessions(listRequest());
+
+      const query: string = statementOf(headerQuerySpy).query;
+      expect(query).toContain("argMax(visitorId, version) AS aggVisitorId");
+      expect(query).not.toContain("identifiedUserLabel");
+
+      expect(result.sessions[0]!.identifiedUserKey).toBe("hmac-1");
+      expect(result.sessions[0]!.visitorId).toBe(visitorId);
+      expect(result.sessions[1]!.visitorId).toBe("");
+    });
   });
 
   describe("getSessionHeader", () => {
@@ -573,6 +641,8 @@ describe("SessionReplayReadService statements", () => {
       aggAttributes: {
         "recorder.capabilities": "click-events,web-vitals,made-up",
       },
+      aggIdentifiedUserKey: "hmac-key",
+      aggVisitorId: "0123456789abcdef0123456789abcdef",
     };
 
     test("never names the identity columns and pins the application only when given one", async () => {
@@ -629,6 +699,48 @@ describe("SessionReplayReadService statements", () => {
       ]);
       expect(header!.identifiedUserLabel).toBeUndefined();
       expect(header!.identifiedUserTraits).toBeUndefined();
+    });
+
+    /*
+     * The digest alias was always SELECTed by the header read and simply
+     * never mapped, so the player had no key to hand back to /list for
+     * "this person's other sessions". Both keys ride on the header read
+     * itself - not on the separate, identity-gated getSessionIdentity -
+     * because neither names anyone.
+     */
+    test("maps the identity digest and the visitor id off the header read, without the identity columns", async () => {
+      headerQuerySpy.mockResolvedValue(fakeResultSet([headerRow]) as never);
+
+      const header: SessionReplaySessionHeader | null =
+        await SessionReplayReadService.getSessionHeader({
+          projectId: projectId,
+          sessionId: "s-1",
+        });
+
+      const query: string = statementOf(headerQuerySpy).query;
+      expect(query).toContain(
+        "argMax(identifiedUserKey, version) AS aggIdentifiedUserKey",
+      );
+      expect(query).toContain("argMax(visitorId, version) AS aggVisitorId");
+      expect(query).not.toContain("identifiedUserLabel");
+
+      expect(header!.identifiedUserKey).toBe("hmac-key");
+      expect(header!.visitorId).toBe("0123456789abcdef0123456789abcdef");
+
+      /* An older recorder's header reads as "", never undefined. */
+      const olderRow: JSONObject = { ...headerRow, aggIdentifiedUserKey: "" };
+      delete olderRow["aggVisitorId"];
+
+      headerQuerySpy.mockResolvedValue(fakeResultSet([olderRow]) as never);
+
+      const older: SessionReplaySessionHeader | null =
+        await SessionReplayReadService.getSessionHeader({
+          projectId: projectId,
+          sessionId: "s-1",
+        });
+
+      expect(older!.identifiedUserKey).toBe("");
+      expect(older!.visitorId).toBe("");
     });
 
     test("an ambiguous session id is refused with an actionable message", async () => {
@@ -696,6 +808,450 @@ describe("SessionReplayReadService statements", () => {
         identifiedUserLabel: "",
         identifiedUserTraits: {},
       });
+    });
+  });
+
+  /*
+   * The per-user rollup: the list grouped by person. What is pinned is
+   * that it is TWO levels - sessions de-duplicated exactly as the list
+   * does them, THEN grouped - because a rollup over raw ReplacingMergeTree
+   * rows counts a session once per header version; that the WHERE is the
+   * same sort-key prefix and never names an identity key; that the cursor
+   * is a HAVING keyset over the rollup aliases and touches the WHERE not
+   * at all (a WHERE bound on startTime would return a person from the
+   * previous page as a phantom with partial counts); and that the label
+   * and traits are named at neither level unless asked.
+   */
+  describe("listUsers", () => {
+    const VISITOR_ID: string = "0123456789abcdef0123456789abcdef";
+
+    function usersRequest(
+      overrides: Partial<SessionReplayUsersRequest> = {},
+    ): SessionReplayUsersRequest {
+      return {
+        projectId: projectId,
+        rumApplicationId: rumApplicationId,
+        startTime: new Date("2026-08-01T00:00:00.000Z"),
+        endTime: new Date("2026-08-08T00:00:00.000Z"),
+        limit: 20,
+        includeIdentifiedUserLabel: false,
+        ...overrides,
+      };
+    }
+
+    async function usersQuery(
+      overrides: Partial<SessionReplayUsersRequest> = {},
+    ): Promise<string> {
+      await SessionReplayReadService.listUsers(usersRequest(overrides));
+
+      return statementOf(headerQuerySpy).query;
+    }
+
+    /* The per-session subquery: from its opening paren to the outer GROUP BY. */
+    function innerSection(query: string): string {
+      const start: number = query.indexOf("FROM (");
+      const end: number = query.indexOf("GROUP BY rollupKey");
+
+      if (start < 0 || end < 0) {
+        throw new Error("Statement is not the two-level rollup shape");
+      }
+
+      return query.substring(start, end);
+    }
+
+    /* Everything that is NOT the subquery. */
+    function outerSection(query: string): string {
+      const start: number = query.indexOf("FROM (");
+      const end: number = query.indexOf("GROUP BY rollupKey");
+
+      return query.substring(0, start) + query.substring(end);
+    }
+
+    function rollupRow(overrides: JSONObject = {}): JSONObject {
+      return {
+        rollupKey: "u:hmac-1",
+        rollupIdentifiedUserKey: "hmac-1",
+        rollupVisitorId: VISITOR_ID,
+        rollupSessionCount: 3,
+        rollupLiveSessionCount: 1,
+        rollupFirstSeenUnixMs: 1700000000000,
+        rollupLastSeenUnixMs: 1700000900000,
+        rollupTotalDurationMs: 180000,
+        rollupErrorCount: 2,
+        rollupFrustrationCount: 4,
+        rollupErrorSessionCount: 1,
+        rollupPageCount: 9,
+        rollupLastSessionId: "s-3",
+        rollupLastEntryUrl: "https://a/checkout",
+        rollupBrowserName: "Chrome",
+        rollupBrowserVersion: "128",
+        rollupOsName: "macOS",
+        rollupDeviceType: "desktop",
+        rollupCountryCode: "GB",
+        ...overrides,
+      };
+    }
+
+    test("de-duplicates each session at the inner level exactly as the list does", async () => {
+      const query: string = await usersQuery();
+      const inner: string = innerSection(query);
+
+      expect(inner).toContain(
+        "GROUP BY projectId, rumApplicationId, sessionId",
+      );
+      expect(inner).toContain(
+        "argMax(identifiedUserKey, version) AS aggIdentifiedUserKey",
+      );
+      expect(inner).toContain("argMax(visitorId, version) AS aggVisitorId");
+      expect(inner).toContain(
+        "toFloat64(toUnixTimestamp64Milli(argMax(startTime, version))) AS aggStartTime",
+      );
+      /* The list's live-duration expression, verbatim: one definition. */
+      expect(inner).toContain(
+        "toFloat64(if(argMax(isFinalized, version), toInt64(argMax(durationMs, version)), greatest(toInt64(argMax(durationMs, version)), toUnixTimestamp64Milli(argMax(endTime, version)) - toUnixTimestamp64Milli(argMax(startTime, version))))) AS aggDurationMs",
+      );
+      expect(inner).toContain(
+        "toFloat64(argMax(errorCount, version)) AS aggErrorCount",
+      );
+      expect(inner).toContain("argMax(isFinalized, version) AS aggIsFinalized");
+      expect(inner).toContain("argMax(hasError, version) AS aggHasError");
+
+      expect(query).not.toContain(" FINAL");
+      expect(query).toContain("retentionDate >= now()");
+      expect(query).toContain("timeout_overflow_mode = 'throw'");
+      expect(query).not.toMatch(/\bpayload\b(?!Bytes)/);
+    });
+
+    test("files each session under its user, else its browser, else the anonymous bucket, and groups the outer level by that key", async () => {
+      const query: string = await usersQuery();
+
+      expect(innerSection(query)).toContain(
+        "if(aggIdentifiedUserKey != '', concat('u:', aggIdentifiedUserKey), if(aggVisitorId != '', concat('v:', aggVisitorId), '')) AS rollupKey",
+      );
+
+      const outer: string = outerSection(query);
+      expect(outer).toContain("GROUP BY rollupKey");
+      expect(outer).toContain(
+        "ORDER BY rollupLastSeenUnixMs DESC, rollupKey DESC",
+      );
+      /* The bucket is a row like any other: nothing excludes the empty key. */
+      expect(outer).not.toContain("rollupKey != ''");
+    });
+
+    test("the outer level counts, sums and takes the newest session's facts over the de-duplicated aliases", async () => {
+      const query: string = await usersQuery();
+      const outer: string = outerSection(query);
+
+      for (const projection of [
+        "toFloat64(count()) AS rollupSessionCount",
+        "toFloat64(countIf(aggIsFinalized = 0)) AS rollupLiveSessionCount",
+        "toFloat64(min(aggStartTime)) AS rollupFirstSeenUnixMs",
+        "toFloat64(max(aggStartTime)) AS rollupLastSeenUnixMs",
+        "toFloat64(sum(aggDurationMs)) AS rollupTotalDurationMs",
+        "toFloat64(sum(aggErrorCount)) AS rollupErrorCount",
+        "toFloat64(sum(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount)) AS rollupFrustrationCount",
+        "toFloat64(countIf(aggHasError)) AS rollupErrorSessionCount",
+        "toFloat64(sum(aggPageCount)) AS rollupPageCount",
+        "argMax(sessionId, aggStartTime) AS rollupLastSessionId",
+        "argMax(aggEntryUrl, aggStartTime) AS rollupLastEntryUrl",
+        "argMax(aggIdentifiedUserKey, aggStartTime) AS rollupIdentifiedUserKey",
+        "argMax(aggVisitorId, aggStartTime) AS rollupVisitorId",
+        "argMax(aggBrowserName, aggStartTime) AS rollupBrowserName",
+        "argMax(aggBrowserVersion, aggStartTime) AS rollupBrowserVersion",
+        "argMax(aggOsName, aggStartTime) AS rollupOsName",
+        "argMax(aggDeviceType, aggStartTime) AS rollupDeviceType",
+        "argMax(aggCountryCode, aggStartTime) AS rollupCountryCode",
+      ]) {
+        expect(outer).toContain(projection);
+      }
+
+      /* Never a sum over a raw column: that counts every header version. */
+      expect(outer).not.toContain("sum(errorCount)");
+      expect(outer).not.toContain("sum(durationMs)");
+      expect(outer).not.toContain("argMax(entryUrl,");
+    });
+
+    test("the WHERE is the sort-key prefix plus retention and never names an identity key, cursor or not", async () => {
+      const query: string = await usersQuery({
+        cursor: { lastSeenUnixMs: 1700000000000, groupKey: "u:hmac-1" },
+      });
+      const where: string = whereSection(query);
+
+      expect(where).toContain("projectId = ");
+      expect(where).toContain("rumApplicationId = ");
+      expect(where).toContain("startTime >= ");
+      expect(where).toContain("startTime <= ");
+      expect(where).toContain("retentionDate >= now()");
+
+      for (const forbidden of [
+        "identifiedUserKey",
+        "visitorId",
+        "identifiedUserLabel",
+        "rollupKey",
+        "rollupLastSeenUnixMs",
+      ]) {
+        expect(where).not.toContain(forbidden);
+      }
+
+      /*
+       * The window's own upper bound and nothing from the cursor: a
+       * cursor-derived WHERE bound would drop a previous-page person's
+       * newest sessions and return them again with a smaller "last seen".
+       */
+      expect(where.match(/startTime <= /g)).toHaveLength(1);
+
+      const bound: Array<unknown> = boundValues(statementOf(headerQuerySpy));
+      expect(bound).toContain(projectId.toString());
+      expect(bound).toContain(rumApplicationId.toString());
+    });
+
+    test("names the identity columns at both levels only when the caller may read them", async () => {
+      const plain: string = await usersQuery();
+      expect(plain).not.toContain("identifiedUserLabel");
+      expect(plain).not.toContain("identifiedUserTraits");
+
+      headerQuerySpy.mockClear();
+
+      const permitted: string = await usersQuery({
+        includeIdentifiedUserLabel: true,
+      });
+
+      expect(innerSection(permitted)).toContain(
+        "argMax(identifiedUserLabel, version) AS aggIdentifiedUserLabel",
+      );
+      expect(innerSection(permitted)).toContain(
+        "argMax(identifiedUserTraits, version) AS aggIdentifiedUserTraits",
+      );
+      expect(outerSection(permitted)).toContain(
+        "argMax(aggIdentifiedUserLabel, aggStartTime) AS rollupIdentifiedUserLabel",
+      );
+      expect(outerSection(permitted)).toContain(
+        "argMax(aggIdentifiedUserTraits, aggStartTime) AS rollupIdentifiedUserTraits",
+      );
+      /* Still never in a WHERE. */
+      expect(whereSection(permitted)).not.toContain("identifiedUser");
+    });
+
+    test("the cursor is a bound HAVING keyset over the rollup aliases, and one row over the page is fetched", async () => {
+      const query: string = await usersQuery({
+        limit: 20,
+        cursor: {
+          lastSeenUnixMs: 1700000000000,
+          groupKey: `v:${VISITOR_ID}`,
+        },
+      });
+
+      expect(havingSection(query)).toMatch(
+        /AND \(rollupLastSeenUnixMs < \{p\d+:Double\} OR \(rollupLastSeenUnixMs = \{p\d+:Double\} AND rollupKey < \{p\d+:String\}\)\)/,
+      );
+      expect(query).toMatch(/LIMIT \{p\d+:Int32\}/);
+      expect(query).not.toContain(`'v:${VISITOR_ID}'`);
+
+      const bound: Array<unknown> = boundValues(statementOf(headerQuerySpy));
+      expect(bound).toContain(21);
+      expect(bound).toContain(`v:${VISITOR_ID}`);
+      expect(
+        bound.filter((value: unknown): boolean => {
+          return value === 1700000000000;
+        }),
+      ).toHaveLength(2);
+    });
+
+    test("without a cursor the HAVING carries no keyset", async () => {
+      const query: string = await usersQuery();
+      expect(havingSection(query)).not.toContain("rollupLastSeenUnixMs <");
+      expect(havingSection(query)).not.toContain("rollupKey <");
+    });
+
+    /*
+     * The anonymous bucket's key is the empty string, and the bucket can
+     * be the last row of a page like any other - so "" must be accepted as
+     * a tiebreak and bound as itself, not treated as "no cursor".
+     */
+    test("the anonymous bucket's empty key is a valid cursor tiebreak", async () => {
+      const query: string = await usersQuery({
+        cursor: { lastSeenUnixMs: 5, groupKey: "" },
+      });
+
+      expect(havingSection(query)).toContain("AND rollupKey < ");
+      expect(boundValues(statementOf(headerQuerySpy))).toContain("");
+    });
+
+    test("maps the rollup rows, deriving kind from the key prefix", async () => {
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          rollupRow({
+            rollupSessionCount: "3",
+            rollupTotalDurationMs: "180000",
+          }),
+          rollupRow({
+            rollupKey: `v:${VISITOR_ID}`,
+            rollupIdentifiedUserKey: "",
+            rollupLastSeenUnixMs: 1700000800000,
+            rollupSessionCount: 1,
+          }),
+          rollupRow({
+            rollupKey: "",
+            rollupIdentifiedUserKey: "",
+            rollupVisitorId: "",
+            rollupLastSeenUnixMs: 1700000700000,
+            rollupSessionCount: 7,
+          }),
+        ]) as never,
+      );
+
+      const result: SessionReplayUsersResult =
+        await SessionReplayReadService.listUsers(usersRequest({ limit: 5 }));
+
+      expect(result.users).toHaveLength(3);
+      expect(result.nextCursor).toBeNull();
+
+      const identified: SessionReplayUserRollup = result.users[0]!;
+      expect(identified.groupKey).toBe("u:hmac-1");
+      expect(identified.kind).toBe("identified");
+      expect(identified.identifiedUserKey).toBe("hmac-1");
+      expect(identified.visitorId).toBe(VISITOR_ID);
+      /* ClickHouse quotes wide integers; numeric strings still read. */
+      expect(identified.sessionCount).toBe(3);
+      expect(identified.totalDurationMs).toBe(180000);
+      expect(identified.liveSessionCount).toBe(1);
+      expect(identified.firstSeenUnixMs).toBe(1700000000000);
+      expect(identified.lastSeenUnixMs).toBe(1700000900000);
+      expect(identified.errorCount).toBe(2);
+      expect(identified.frustrationCount).toBe(4);
+      expect(identified.errorSessionCount).toBe(1);
+      expect(identified.pageCount).toBe(9);
+      expect(identified.lastSessionId).toBe("s-3");
+      expect(identified.lastEntryUrl).toBe("https://a/checkout");
+      expect(identified.browserName).toBe("Chrome");
+      expect(identified.browserVersion).toBe("128");
+      expect(identified.osName).toBe("macOS");
+      expect(identified.deviceType).toBe("desktop");
+      expect(identified.countryCode).toBe("GB");
+      expect(identified.identifiedUserLabel).toBeUndefined();
+      expect(identified.identifiedUserTraits).toBeUndefined();
+
+      const visitor: SessionReplayUserRollup = result.users[1]!;
+      expect(visitor.kind).toBe("visitor");
+      expect(visitor.identifiedUserKey).toBe("");
+      expect(visitor.visitorId).toBe(VISITOR_ID);
+
+      const anonymous: SessionReplayUserRollup = result.users[2]!;
+      expect(anonymous.kind).toBe("anonymous");
+      expect(anonymous.groupKey).toBe("");
+      expect(anonymous.identifiedUserKey).toBe("");
+      expect(anonymous.visitorId).toBe("");
+      expect(anonymous.sessionCount).toBe(7);
+    });
+
+    test("a digest on a non-identified row never leaks into identifiedUserKey", async () => {
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          rollupRow({
+            rollupKey: `v:${VISITOR_ID}`,
+            rollupIdentifiedUserKey: "stray",
+          }),
+        ]) as never,
+      );
+
+      const result: SessionReplayUsersResult =
+        await SessionReplayReadService.listUsers(usersRequest());
+
+      expect(result.users[0]!.kind).toBe("visitor");
+      expect(result.users[0]!.identifiedUserKey).toBe("");
+    });
+
+    test("maps the label and traits only when asked, even when the row carries them", async () => {
+      const rows: Array<JSONObject> = [
+        rollupRow({
+          rollupIdentifiedUserLabel: "jane@example.com",
+          rollupIdentifiedUserTraits: { plan: "pro", seats: 4 },
+        }),
+      ];
+
+      headerQuerySpy.mockResolvedValue(fakeResultSet(rows) as never);
+
+      const withheld: SessionReplayUsersResult =
+        await SessionReplayReadService.listUsers(usersRequest());
+      expect(withheld.users[0]!.identifiedUserLabel).toBeUndefined();
+      expect(withheld.users[0]!.identifiedUserTraits).toBeUndefined();
+
+      headerQuerySpy.mockResolvedValue(fakeResultSet(rows) as never);
+
+      const permitted: SessionReplayUsersResult =
+        await SessionReplayReadService.listUsers(
+          usersRequest({ includeIdentifiedUserLabel: true }),
+        );
+      expect(permitted.users[0]!.identifiedUserLabel).toBe("jane@example.com");
+      expect(permitted.users[0]!.identifiedUserTraits).toEqual({
+        plan: "pro",
+        seats: "4",
+      });
+    });
+
+    test("nextCursor carries the last row's clock and key, and only when a page follows", async () => {
+      const rows: Array<JSONObject> = [
+        rollupRow(),
+        rollupRow({
+          rollupKey: `v:${VISITOR_ID}`,
+          rollupIdentifiedUserKey: "",
+          rollupLastSeenUnixMs: 1700000800000,
+        }),
+        rollupRow({
+          rollupKey: "",
+          rollupIdentifiedUserKey: "",
+          rollupVisitorId: "",
+          rollupLastSeenUnixMs: 1700000700000,
+        }),
+      ];
+
+      headerQuerySpy.mockResolvedValue(fakeResultSet(rows) as never);
+
+      const firstPage: SessionReplayUsersResult =
+        await SessionReplayReadService.listUsers(usersRequest({ limit: 2 }));
+
+      expect(firstPage.users).toHaveLength(2);
+      expect(firstPage.nextCursor).toEqual({
+        lastSeenUnixMs: 1700000800000,
+        groupKey: `v:${VISITOR_ID}`,
+      });
+
+      headerQuerySpy.mockResolvedValue(fakeResultSet(rows) as never);
+
+      const lastPage: SessionReplayUsersResult =
+        await SessionReplayReadService.listUsers(usersRequest({ limit: 3 }));
+
+      expect(lastPage.users).toHaveLength(3);
+      expect(lastPage.nextCursor).toBeNull();
+
+      /* The bucket as the last row of a page yields its own empty key. */
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([...rows, rollupRow({ rollupKey: "u:hmac-2" })]) as never,
+      );
+
+      const bucketLast: SessionReplayUsersResult =
+        await SessionReplayReadService.listUsers(usersRequest({ limit: 3 }));
+
+      expect(bucketLast.nextCursor).toEqual({
+        lastSeenUnixMs: 1700000700000,
+        groupKey: "",
+      });
+    });
+
+    test("clamps the page size to the cap and the floor, and answers empty without a row", async () => {
+      await SessionReplayReadService.listUsers(usersRequest({ limit: 10000 }));
+      expect(boundValues(statementOf(headerQuerySpy))).toContain(
+        MAX_SESSION_REPLAY_USERS_LIMIT + 1,
+      );
+
+      headerQuerySpy.mockClear();
+
+      await SessionReplayReadService.listUsers(usersRequest({ limit: 0 }));
+      expect(boundValues(statementOf(headerQuerySpy))).toContain(2);
+
+      const empty: SessionReplayUsersResult =
+        await SessionReplayReadService.listUsers(usersRequest());
+      expect(empty).toEqual({ users: [], nextCursor: null });
     });
   });
 
@@ -797,6 +1353,8 @@ describe("SessionReplayReadService statements", () => {
         activeMs: 0,
         firstErrorOffsetMs: 0,
         recorderCapabilities: [],
+        identifiedUserKey: "",
+        visitorId: "",
         ...overrides,
       };
     }

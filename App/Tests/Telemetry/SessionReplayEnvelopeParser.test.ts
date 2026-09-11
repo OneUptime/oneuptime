@@ -15,7 +15,7 @@ import {
 } from "Common/Types/Rum/SessionReplay";
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 
 /*
  * Wire decoder for a session-replay chunk POST. The body is one or more
@@ -627,6 +627,115 @@ describe("SessionReplayEnvelopeParser.parse — additive fields", () => {
 
     expect(meta.identifiedUserTraits).toBeUndefined();
     expect(meta.tags).toBeUndefined();
+  });
+
+  /*
+   * The per-browser anonymous visitor id. Optional, and validated by the
+   * SAME predicate the recorder stores against (SessionIdentity.isVisitorId):
+   * anything the recorder could not have minted is dropped without touching
+   * the rest of the meta, and never turns into a refusal - losing the
+   * visitor link costs a grouping, losing the chunk costs the footage.
+   */
+  test("a well-formed visitorId is kept verbatim", () => {
+    const visitorId: string = "3f1a9c7e5b2d4801f6a3c9e7b1d5028f";
+
+    const result: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(
+        frameBuffer({
+          envelope: baseEnvelope({
+            meta: {
+              entryUrl: "https://x.example/",
+              browserName: "Chrome",
+              visitorId: visitorId,
+            },
+          }),
+          payload: "x",
+        }),
+      );
+
+    const meta: NonNullable<(typeof result.frames)[0]["envelope"]["meta"]> =
+      result.frames[0]!.envelope.meta!;
+
+    expect(meta.visitorId).toBe(visitorId);
+    expect(meta.entryUrl).toBe("https://x.example/");
+    expect(meta.browserName).toBe("Chrome");
+  });
+
+  test("a visitorId the recorder could not have minted is dropped, with the rest of the meta intact", () => {
+    const valid: string = "3f1a9c7e5b2d4801f6a3c9e7b1d5028f";
+
+    const malformed: Array<JSONValue> = [
+      /* Uppercase: the recorder only ever mints lowercase. */
+      valid.toUpperCase(),
+      /* 31 characters. */
+      valid.slice(0, 31),
+      /* 33 characters. */
+      `${valid}0`,
+      /* Non-hex. */
+      `${valid.slice(0, 31)}g`,
+      "",
+      /* Not a string at all. */
+      42,
+      { id: valid },
+      [valid],
+    ];
+
+    for (const visitorId of malformed) {
+      const result: Extract<SessionReplayParseResult, { isValid: true }> =
+        parseValid(
+          frameBuffer({
+            envelope: baseEnvelope({
+              meta: {
+                entryUrl: "https://x.example/",
+                browserName: "Chrome",
+                identifiedUserRef: "user-42",
+                visitorId: visitorId,
+              },
+            }),
+            payload: "x",
+          }),
+        );
+
+      const meta: NonNullable<(typeof result.frames)[0]["envelope"]["meta"]> =
+        result.frames[0]!.envelope.meta!;
+
+      /* Dropped, not blanked: no key at all, exactly like an old envelope. */
+      expect("visitorId" in meta).toBe(false);
+      expect(meta.visitorId).toBeUndefined();
+
+      /* And nothing beside it was disturbed. */
+      expect(meta.entryUrl).toBe("https://x.example/");
+      expect(meta.browserName).toBe("Chrome");
+      expect(meta.identifiedUserRef).toBe("user-42");
+    }
+  });
+
+  test("an envelope without a visitorId parses to a meta with no visitorId key", () => {
+    const result: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(
+        frameBuffer({
+          envelope: baseEnvelope({
+            meta: { entryUrl: "https://x.example/", browserName: "Chrome" },
+          }),
+          payload: "x",
+        }),
+      );
+
+    const meta: NonNullable<(typeof result.frames)[0]["envelope"]["meta"]> =
+      result.frames[0]!.envelope.meta!;
+
+    expect("visitorId" in meta).toBe(false);
+    expect(Object.keys(meta).sort()).toEqual(
+      [
+        "entryUrl",
+        "browserName",
+        "browserVersion",
+        "osName",
+        "deviceType",
+        "viewportWidth",
+        "viewportHeight",
+      ].sort(),
+    );
   });
 
   test("clickCount / customEventCount are kept when sane and absent when garbled", () => {

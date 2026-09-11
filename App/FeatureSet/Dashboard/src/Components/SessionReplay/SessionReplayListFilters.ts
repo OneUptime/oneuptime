@@ -27,6 +27,21 @@ export interface SessionReplayAdvancedFilters {
   deviceType: string;
   countryCode: string;
   identifiedUserRef: string;
+  /*
+   * The pseudonymous identity digest the list already returns on every row
+   * (identifiedUserKey on the wire). It is how "every session from this
+   * user" works for a viewer whose role CANNOT read the label: the digest
+   * names nobody, so it needs no identity permission, but it still selects
+   * exactly one person's sessions. Set by clicking a user cell or a Users
+   * row, never typed - a 64-character hash has no business in a text box.
+   */
+  identifiedUserKey: string;
+  /*
+   * The recorder-minted per-browser anonymous visitor id (32 hex). "Every
+   * session from this browser" for an application whose pages never call
+   * identify(). Random and ours, so it is safe in a URL and needs no gate.
+   */
+  visitorId: string;
   /* Exact match against the routes array (the original filter). */
   route: string;
   minDurationSeconds: string;
@@ -49,6 +64,8 @@ export const EMPTY_ADVANCED_FILTERS: SessionReplayAdvancedFilters = {
   deviceType: "",
   countryCode: "",
   identifiedUserRef: "",
+  identifiedUserKey: "",
+  visitorId: "",
   route: "",
   minDurationSeconds: "",
   triggerReason: "",
@@ -266,6 +283,13 @@ export function normalizeUrlPrefix(value: string): string {
  * access log in front of the instance. The filter still round-trips through
  * the POST body; it just does not survive a reload, which is the right
  * trade for the one field here that carries a third party's identity.
+ *
+ * identifiedUserKey (userKey) and visitorId (visitor) ARE written. Both are
+ * random or hashed tokens that name nobody on their own: the digest cannot
+ * be reversed to the reference, and the visitor id was minted by the
+ * recorder with no input from the page. They are exactly what makes "all
+ * sessions from this person" a link a support engineer can paste into a
+ * ticket.
  */
 export const FILTER_URL_KEYS: Partial<
   Record<keyof SessionReplayAdvancedFilters, string>
@@ -274,6 +298,8 @@ export const FILTER_URL_KEYS: Partial<
   osName: "os",
   deviceType: "device",
   countryCode: "country",
+  identifiedUserKey: "userKey",
+  visitorId: "visitor",
   route: "route",
   minDurationSeconds: "minDuration",
   triggerReason: "trigger",
@@ -281,6 +307,22 @@ export const FILTER_URL_KEYS: Partial<
   tags: "tag",
   search: "q",
 };
+
+/*
+ * Which read of the same headers the page shows: the flat session list, or
+ * the per-person rollup the /users route answers. Absent from the URL means
+ * sessions, which is what the page always was.
+ */
+export type SessionReplayListView = "sessions" | "users";
+
+export const DEFAULT_SESSION_REPLAY_LIST_VIEW: SessionReplayListView =
+  "sessions";
+
+export function isSessionReplayListView(
+  value: unknown,
+): value is SessionReplayListView {
+  return value === "sessions" || value === "users";
+}
 
 /* The non-filter parts of the list URL. */
 export const LIST_URL_KEYS: {
@@ -290,6 +332,7 @@ export const LIST_URL_KEYS: {
   startTime: string;
   endTime: string;
   page: string;
+  view: string;
 } = {
   signal: "signal",
   sort: "sort",
@@ -297,6 +340,7 @@ export const LIST_URL_KEYS: {
   startTime: "startTime",
   endTime: "endTime",
   page: "page",
+  view: "view",
 };
 
 export function hasAnyAdvancedFilter(
@@ -375,6 +419,18 @@ export function buildSessionReplayListFilters(
        * per-project derivation the ingest used. See SessionReplayIdentity.
        */
       filters["identifiedUserRef"] = advanced.identifiedUserRef.trim();
+    } else if (advanced.identifiedUserKey.trim()) {
+      /*
+       * The digest goes ONLY when no reference is set. The server derives
+       * the key from the reference and ignores a digest sent beside it, so
+       * sending both would let a chip claim a narrowing the request never
+       * made. One identity predicate per request, and the typed one wins.
+       */
+      filters["identifiedUserKey"] = advanced.identifiedUserKey.trim();
+    }
+
+    if (advanced.visitorId.trim()) {
+      filters["visitorId"] = advanced.visitorId.trim();
     }
 
     if (advanced.route.trim()) {
@@ -425,6 +481,8 @@ export interface SessionReplayListUrlState {
   timeRange: RangeStartAndEndDateTime;
   /* 1-based. Only meaningful with a remembered cursor; see cursor memory. */
   page: number;
+  /* Sessions unless the URL says "users"; anything else is sessions. */
+  view: SessionReplayListView;
 }
 
 function parseIsoDate(value: string | null): Date | null {
@@ -540,6 +598,7 @@ export function readListStateFromSearch(
   const signal: string = params.get(LIST_URL_KEYS.signal) || "all";
   const sort: string | null = params.get(LIST_URL_KEYS.sort);
   const page: number = parseInt(params.get(LIST_URL_KEYS.page) || "1", 10);
+  const view: string | null = params.get(LIST_URL_KEYS.view);
 
   return {
     signal: SESSION_REPLAY_SIGNALS.includes(signal) ? signal : "all",
@@ -547,6 +606,9 @@ export function readListStateFromSearch(
     sortBy: isSessionReplaySortBy(sort) ? sort : DEFAULT_SESSION_REPLAY_SORT_BY,
     timeRange: readTimeRangeFromSearch(search),
     page: Number.isFinite(page) && page > 1 ? Math.floor(page) : 1,
+    view: isSessionReplayListView(view)
+      ? view
+      : DEFAULT_SESSION_REPLAY_LIST_VIEW,
   };
 }
 
@@ -564,6 +626,7 @@ export interface SessionReplayListUrlExtras {
   sortBy?: SessionReplaySortBy | undefined;
   timeRange?: RangeStartAndEndDateTime | undefined;
   page?: number | undefined;
+  view?: SessionReplayListView | undefined;
 }
 
 /*
@@ -658,6 +721,13 @@ export function buildFilteredUrl(
     url.searchParams.set(LIST_URL_KEYS.page, String(Math.floor(extras.page)));
   } else {
     url.searchParams.delete(LIST_URL_KEYS.page);
+  }
+
+  /* The default view is absence, like every other default here. */
+  if (extras?.view && extras.view !== DEFAULT_SESSION_REPLAY_LIST_VIEW) {
+    url.searchParams.set(LIST_URL_KEYS.view, extras.view);
+  } else {
+    url.searchParams.delete(LIST_URL_KEYS.view);
   }
 
   return url.toString();

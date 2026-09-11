@@ -24,6 +24,23 @@ const TAB_STORAGE_KEY: string = "oneuptime.replay.tab";
 const CHUNK_INDEX_STORAGE_KEY: string = "oneuptime.replay.chunkIndex";
 const RELOAD_LOG_STORAGE_KEY: string = "oneuptime.replay.reloads";
 
+/*
+ * The anonymous visitor id: ONE random id per browser profile, minted the
+ * first time the recorder runs here and repeated on every meta-bearing
+ * chunk, so the dashboard can group the anonymous sessions of one browser
+ * for an application whose pages never call identify().
+ *
+ * Its own key, holding the bare id, rather than a field on the session
+ * record: readStoredSession / writeStoredSession rewrite that record on
+ * every touch and every rotation and would drop a field they do not know.
+ *
+ * Deliberately NOT touched by resolveSession, syncWithStorage or touch.
+ * A session id lives for one visit; this id is the thing that is supposed
+ * to outlive it, so surviving rotation is its entire purpose. clearAll()
+ * is the one place it is removed.
+ */
+const VISITOR_STORAGE_KEY: string = "oneuptime.replay.visitor";
+
 /* Refresh rage: 3+ reloads of the same scrubbed pathname inside a minute. */
 const REFRESH_RAGE_WINDOW_MS: number = 60 * 1000;
 const REFRESH_RAGE_THRESHOLD: number = 3;
@@ -319,6 +336,48 @@ export default class SessionId {
   }
 
   /*
+   * The visitor id, minting one when storage holds nothing usable.
+   *
+   * A stored value that fails validation - truncated by a broken storage
+   * sync, hand-edited, written by something that is not this recorder - is
+   * REPLACED, never repaired. The id is random and ours, so there is no
+   * "almost right" shape worth salvaging, and the server refuses anything
+   * off-pattern anyway; a fresh id costs one break in grouping, whereas
+   * repairing a value we did not write could file a stranger's sessions
+   * under this browser.
+   *
+   * Every access goes through the wrapped helpers, so a throwing
+   * localStorage (Safari private mode, blocked site data) degrades to a
+   * per-page-load id and never throws into the host page.
+   */
+  public static resolveVisitorId(): string {
+    const stored: string | null = SessionId.readVisitorId();
+
+    if (stored !== null) {
+      return stored;
+    }
+
+    const visitorId: string = SessionId.generateId();
+
+    SessionId.writeLocalStorage(VISITOR_STORAGE_KEY, visitorId);
+
+    return visitorId;
+  }
+
+  /*
+   * The stored visitor id, or null when there is none or it is not one the
+   * recorder could have minted. Never mints: a caller that only wants to
+   * LOOK - a test, a diagnostic - must not leave a token behind in storage
+   * it was not asked to write to, least of all after a consent revocation
+   * emptied it on purpose.
+   */
+  public static readVisitorId(): string | null {
+    const raw: string | null = SessionId.readLocalStorage(VISITOR_STORAGE_KEY);
+
+    return SessionIdentity.isVisitorId(raw) ? raw : null;
+  }
+
+  /*
    * Chunk indexes are counted per tab id and held in sessionStorage rather
    * than in memory, so a recorder that is torn down and re-created inside
    * the same page instance (a framework remount, a consent re-grant) does
@@ -438,6 +497,16 @@ export default class SessionId {
     SessionId.removeLocalStorage(SESSION_STORAGE_KEY);
     SessionId.removeLocalStorage(RELOAD_LOG_STORAGE_KEY);
     SessionId.removeSessionStorage(TAB_STORAGE_KEY);
+
+    /*
+     * The visitor id goes with the session. It is the one token built to
+     * survive rotation, which is exactly why it must not survive THIS: a
+     * user who withdraws consent must not be re-linked to their earlier
+     * recordings the moment they come back. The "removes everything" test
+     * asserts localStorage is empty afterwards, and this is what keeps it
+     * true now that there is a second key.
+     */
+    SessionId.removeLocalStorage(VISITOR_STORAGE_KEY);
 
     /*
      * The in-memory high-water marks go too. clearAll is "forget this

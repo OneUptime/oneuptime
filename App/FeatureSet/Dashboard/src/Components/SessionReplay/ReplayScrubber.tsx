@@ -232,6 +232,14 @@ export interface ReplayScrubberProps {
   onRailRowUp?: (() => void) | undefined;
   onRailSeekSelected?: (() => void) | undefined;
   onRailClear?: (() => void) | undefined;
+  /*
+   * "{" / "}": open the previous or next recording of the same person.
+   * The shell owns the list (it comes from the manifest's identity keys)
+   * and the navigation; a missing handler makes the key a no-op like
+   * every other shell-level shortcut here.
+   */
+  onOlderUserSession?: (() => void) | undefined;
+  onNewerUserSession?: (() => void) | undefined;
 }
 
 /* The slice of props the once-registered keyboard dispatcher reads. */
@@ -259,6 +267,8 @@ type ReplayScrubberLatest = Pick<
   | "onRailRowUp"
   | "onRailSeekSelected"
   | "onRailClear"
+  | "onOlderUserSession"
+  | "onNewerUserSession"
 >;
 
 const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
@@ -303,6 +313,8 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
     onRailRowUp: props.onRailRowUp,
     onRailSeekSelected: props.onRailSeekSelected,
     onRailClear: props.onRailClear,
+    onOlderUserSession: props.onOlderUserSession,
+    onNewerUserSession: props.onNewerUserSession,
   };
   isShortcutsOpenRef.current = isShortcutsOpen;
 
@@ -486,6 +498,12 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
           return;
         case "rail-clear":
           current.onRailClear?.();
+          return;
+        case "older-user-session":
+          current.onOlderUserSession?.();
+          return;
+        case "newer-user-session":
+          current.onNewerUserSession?.();
           return;
         default: {
           const unreachable: never = action;

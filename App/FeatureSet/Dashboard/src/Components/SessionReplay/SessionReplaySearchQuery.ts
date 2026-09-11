@@ -1,5 +1,8 @@
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
-import { SESSION_REPLAY_LIST_SEARCH_MAX_LENGTH } from "Common/Types/Rum/SessionReplay";
+import {
+  SESSION_REPLAY_LIST_SEARCH_MAX_LENGTH,
+  SESSION_REPLAY_VISITOR_ID_PATTERN,
+} from "Common/Types/Rum/SessionReplay";
 import {
   EMPTY_ADVANCED_FILTERS,
   SessionReplayAdvancedFilters,
@@ -13,6 +16,7 @@ import {
  *
  *   user:jane@acme.com  url:/checkout  tag:build=1.4.2  browser:Chrome
  *   os:macOS  device:mobile  country:DE  trigger:error  min:2m  id:<sessionId>
+ *   visitor:<32-hex visitor id>
  *
  * Bare text is routed by shape: "/checkout" or "https://..." is a URL
  * prefix, anything with "@" is a user reference, everything else is the
@@ -44,6 +48,7 @@ export const SESSION_REPLAY_SEARCH_TOKEN_KEYS: ReadonlyArray<string> = [
   "trigger",
   "min",
   "id",
+  "visitor",
 ];
 
 /* The recorder mints hex ids; the server's own id checks accept 8-64. */
@@ -73,13 +78,19 @@ const TRIGGER_ALIASES: Record<string, SessionReplayTriggerReason> = {
 };
 
 /*
- * The one field the grammar does not cover. `route` (exact match against
- * the routes array) predates the box and stays modal-only: it is rare, and
- * a token for it would be indistinguishable from url: to a reader.
+ * The fields the grammar does not cover, carried from the base filters so a
+ * keystroke never silently clears them.
+ *
+ * `route` (exact match against the routes array) predates the box and stays
+ * modal-only: it is rare, and a token for it would be indistinguishable from
+ * url: to a reader. `identifiedUserKey` is chip-only: it is a 64-character
+ * digest set by clicking a user whose label the viewer's role cannot read,
+ * and nobody types one - a token for it would only invite pasting a hash
+ * into a search box. It is shown as a chip and removed there.
  */
 export const SEARCH_BOX_UNCOVERED_FIELDS: ReadonlyArray<
   keyof SessionReplayAdvancedFilters
-> = ["route"];
+> = ["route", "identifiedUserKey"];
 
 export interface SessionReplaySearchParseResult {
   advanced: SessionReplayAdvancedFilters;
@@ -398,6 +409,25 @@ export function parseSessionReplaySearch(
         }
 
         break;
+      case "visitor": {
+        /*
+         * Exact match only: the server refuses anything that is not a
+         * whole visitor id with a 400, and a prefix would be a filter the
+         * endpoint cannot answer. Dropped with a hint rather than sent,
+         * so the list never fails a request over a half-pasted id.
+         */
+        const visitorId: string = value.toLowerCase();
+
+        if (!SESSION_REPLAY_VISITOR_ID_PATTERN.test(visitorId)) {
+          warnings.push(
+            `visitor: takes the whole 32-character visitor id from a session's user cell, not "${value}".`,
+          );
+          break;
+        }
+
+        setOnce("visitorId", visitorId, "visitor");
+        break;
+      }
       default:
         break;
     }
@@ -436,6 +466,10 @@ export function stringifySessionReplaySearch(
 
   if (advanced.identifiedUserRef.trim()) {
     parts.push(`user:${quoteIfNeeded(advanced.identifiedUserRef.trim())}`);
+  }
+
+  if (advanced.visitorId.trim()) {
+    parts.push(`visitor:${advanced.visitorId.trim().toLowerCase()}`);
   }
 
   if (advanced.urlPrefix.trim()) {

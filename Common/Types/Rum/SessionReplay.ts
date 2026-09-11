@@ -142,6 +142,30 @@ export const SESSION_REPLAY_TARGET_TTL_SECONDS: number = 24 * 60 * 60;
 export const SESSION_REPLAY_MAX_USER_REF_LENGTH: number = 512;
 
 /*
+ * ---- Anonymous visitor id. ----
+ *
+ * A session id lives for one visit (it rotates after 30 minutes of idleness
+ * or four hours, whichever comes first), so two visits from the same
+ * browser share nothing a reader could group on. The recorder therefore
+ * also mints ONE random id per browser profile, keeps it in localStorage
+ * beside the session record, and repeats it on every meta-bearing chunk.
+ * It is what lets the session list say "this visitor came back three
+ * times" and the player offer "other sessions from this visitor" for an
+ * application whose pages never call identify().
+ *
+ * It is deliberately NOT an identity: it is random, minted client-side,
+ * carries no meaning outside the recordings it links, and is forgotten by
+ * the recorder the moment consent is withdrawn - the same rules as the
+ * session id. It is stored under the ordinary session ACL for the same
+ * reason identifiedUserKey is.
+ *
+ * Same shape as a session id (32 lowercase hex characters). The server
+ * refuses anything else rather than storing a caller-controlled string.
+ */
+export const SESSION_REPLAY_VISITOR_ID_PATTERN: RegExp = /^[0-9a-f]{32}$/;
+export const SESSION_REPLAY_MAX_VISITOR_ID_LENGTH: number = 32;
+
+/*
  * Retention values a session may be clamped to. Under expiry-based
  * partitioning each distinct value creates its own partition per ingest
  * day, so this is deliberately a short closed set rather than a free
@@ -261,6 +285,12 @@ export const SESSION_REPLAY_RECORDER_CAPABILITIES: ReadonlyArray<string> = [
   "traits",
   "tags",
   "visibility",
+  /*
+   * The recorder mints and repeats a per-browser anonymous visitor id, so
+   * this application's sessions can be grouped by visitor even when the
+   * page never calls identify().
+   */
+  "visitor-id",
 ];
 
 /* How the payload bytes were compressed by the recorder. */
@@ -382,6 +412,15 @@ export interface SessionReplayChunkMeta {
    * explicitly enabled user-identity capture.
    */
   identifiedUserRef?: string;
+
+  /*
+   * The recorder's per-browser anonymous visitor id (see
+   * SESSION_REPLAY_VISITOR_ID_PATTERN). Sent on every meta-bearing chunk so
+   * a lost chunk 0 does not lose the link; absent from a recorder that
+   * predates it. Not gated by the identity switch: it is a random token,
+   * not a reference the host page supplied.
+   */
+  visitorId?: string;
 
   /*
    * Traits the host page attached to the identified user through

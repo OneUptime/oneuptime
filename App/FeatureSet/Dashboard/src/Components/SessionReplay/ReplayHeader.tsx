@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -25,6 +26,12 @@ import {
   ReplayToolButton,
   getReplaySegmentClassName,
 } from "./ReplayUi";
+import ReplayUserSessionsMenu from "./ReplayUserSessionsMenu";
+import {
+  ReplayAdjacentUserSessions,
+  ReplayUserSessionsState,
+  findAdjacentUserSessions,
+} from "./ReplayUserSessions";
 
 /*
  * Recording context uses the same card and actions as other detail pages.
@@ -55,6 +62,14 @@ export interface ReplayHeaderIdentity {
    */
   label: string | null;
   traits?: Record<string, string> | null | undefined;
+  /*
+   * The recorder's per-browser anonymous id, "" from an older recorder.
+   * Only read when the label is "": an anonymous session that carries
+   * one is still ONE person's browser, and the header says "Visitor
+   * a1b2c3" rather than a bare "Anonymous" so the viewer knows the
+   * sessions beside it in the menu are that same browser's.
+   */
+  visitorId?: string | undefined;
 }
 
 export interface ReplayHeaderProps {
@@ -88,6 +103,18 @@ export interface ReplayHeaderProps {
   buildMomentUrl: () => string | null;
   /* The pin control, rendered by the shell (it owns the API calls). */
   pinControl?: ReactElement | null | undefined;
+  /*
+   * The other sessions of the person being watched, as the shell's
+   * lookup state (github.com/OneUptime/oneuptime/issues/3705). Absent
+   * while the manifest is still loading; once present, every status
+   * renders SOMETHING in the identity row - "finding", "couldn't load",
+   * "only session", "not linked" - because a menu that silently fails to
+   * appear reads as "this user has no other sessions", which is the one
+   * wrong answer an evidence tool must not give.
+   */
+  userSessions?: ReplayUserSessionsState | null | undefined;
+  /* Navigate to another of this user's sessions; the shell owns the route. */
+  onOpenUserSession?: ((sessionId: string) => void) | undefined;
 }
 
 /* What the shell drives from the keyboard map ("c") and the rail rows. */
@@ -128,8 +155,39 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
   }
 }
 
-/* "Tab 2 · 30s (opened 2:14)" */
-export function formatReplayTabLabel(tab: ReplayHeaderTab): string {
+/*
+ * Above this many tabs the strip is compact: the "(opened 2:14)" part
+ * moves off the pill and into its tooltip. A recording with a dozen
+ * tabs (a customer's screenshot showed eleven) is a wall of pills
+ * either way, but eleven pills of "Tab 7 · 12s" wrap to two tidy rows
+ * where eleven of "Tab 7 · 12s · (opened 14:02)" needed four.
+ */
+export const REPLAY_TAB_STRIP_COMPACT_THRESHOLD: number = 6;
+
+export interface ReplayTabLabelOptions {
+  /* Leave the "(opened ...)" part to the tooltip. */
+  isCompact?: boolean | undefined;
+}
+
+/*
+ * "opened 2:14" when the tab's footage starts a meaningful way into the
+ * session; null otherwise. Sub-second offsets are the FIRST tab (or a
+ * tab duplicated at load), where "(opened 0:00)" said nothing a viewer
+ * could use and cost the width of a whole extra pill.
+ */
+export function describeReplayTabOpened(tab: ReplayHeaderTab): string | null {
+  if (!tab.hasFootage || tab.openedAtMs === null || tab.openedAtMs < 1000) {
+    return null;
+  }
+
+  return `opened ${formatReplayOffset(tab.openedAtMs)}`;
+}
+
+/* "Tab 2 · 30s · (opened 2:14)", or "Tab 2 · 30s" in a compact strip. */
+export function formatReplayTabLabel(
+  tab: ReplayHeaderTab,
+  options?: ReplayTabLabelOptions,
+): string {
   if (!tab.hasFootage) {
     return `${tab.label} · no footage`;
   }
@@ -139,8 +197,10 @@ export function formatReplayTabLabel(tab: ReplayHeaderTab): string {
     formatReplayDuration(tab.durationMs),
   ];
 
-  if (tab.openedAtMs !== null && tab.openedAtMs > 0) {
-    parts.push(`(opened ${formatReplayOffset(tab.openedAtMs)})`);
+  const opened: string | null = describeReplayTabOpened(tab);
+
+  if (opened !== null && !options?.isCompact) {
+    parts.push(`(${opened})`);
   }
 
   return parts.join(" · ");
@@ -303,13 +363,151 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
       "The end user's identity needs the identity permission to view.";
     identityClassName = "text-gray-500";
   } else if (props.identity.label.length === 0) {
-    identityText = "Anonymous";
-    identityTitle = "The page did not call OneUptimeReplay.identify().";
-    identityClassName = "text-gray-600";
+    const visitorId: string = props.identity.visitorId ?? "";
+
+    if (visitorId.length > 0) {
+      /*
+       * Six hex characters is what a person can hold in their head while
+       * comparing two rows; the full id is a random token the menu below
+       * already groups by, so nothing is lost by shortening it here.
+       */
+      identityText = `Visitor ${visitorId.slice(0, 6)}`;
+      identityTitle =
+        "Anonymous visitor. The recorder links this browser's sessions with a random id so you can follow one person without identify().";
+      identityClassName = "text-gray-700";
+    } else {
+      identityText = "Anonymous";
+      identityTitle = "The page did not call OneUptimeReplay.identify().";
+      identityClassName = "text-gray-600";
+    }
   } else {
     identityText = props.identity.label;
     identityTitle = props.identity.label;
     identityClassName = "font-semibold text-gray-900";
+  }
+
+  /* ---- Other sessions of this user. ---- */
+
+  const userSessions: ReplayUserSessionsState | null =
+    props.userSessions ?? null;
+  const adjacentUserSessions: ReplayAdjacentUserSessions = useMemo(
+    (): ReplayAdjacentUserSessions => {
+      if (!userSessions || userSessions.status !== "ready") {
+        return { newer: null, older: null };
+      }
+
+      return findAdjacentUserSessions(
+        userSessions.sessions,
+        userSessions.currentSessionId,
+      );
+    },
+    [userSessions],
+  );
+
+  const { onOpenUserSession } = props;
+
+  const openOlderUserSession: () => void = useCallback((): void => {
+    if (adjacentUserSessions.older && onOpenUserSession) {
+      onOpenUserSession(adjacentUserSessions.older.sessionId);
+    }
+  }, [adjacentUserSessions, onOpenUserSession]);
+
+  const openNewerUserSession: () => void = useCallback((): void => {
+    if (adjacentUserSessions.newer && onOpenUserSession) {
+      onOpenUserSession(adjacentUserSessions.newer.sessionId);
+    }
+  }, [adjacentUserSessions, onOpenUserSession]);
+
+  /*
+   * What the identity row says about the lookup. Every branch renders
+   * text: see the prop's comment on why silence is the wrong answer.
+   */
+  let userSessionsElement: ReactElement | null = null;
+
+  if (userSessions) {
+    if (userSessions.kind === "none") {
+      userSessionsElement = (
+        <span
+          data-testid="replay-user-sessions-unavailable"
+          className="text-xs text-gray-400"
+          title="This session carries neither a user reference nor a visitor id, so its siblings cannot be found. Call OneUptimeReplay.identify() or update the recorder."
+        >
+          Not linked to other sessions
+        </span>
+      );
+    } else if (
+      userSessions.status === "loading" ||
+      userSessions.status === "idle"
+    ) {
+      userSessionsElement = (
+        <span
+          className="text-xs text-gray-400"
+          data-testid="replay-user-sessions-loading"
+        >
+          Finding other sessions…
+        </span>
+      );
+    } else if (userSessions.status === "error") {
+      userSessionsElement = (
+        <span
+          className="text-xs text-amber-700"
+          data-testid="replay-user-sessions-error"
+        >
+          Couldn&apos;t load other sessions
+        </span>
+      );
+    } else if (userSessions.sessions.length < 2) {
+      userSessionsElement = (
+        <span
+          data-testid="replay-user-sessions-only"
+          className="text-xs text-gray-500"
+          title="No other session from this person in the 30 days before this one"
+        >
+          Only session in 30 days
+        </span>
+      );
+    } else {
+      userSessionsElement = (
+        <React.Fragment>
+          <ReplayUserSessionsMenu
+            kind={userSessions.kind}
+            sessions={userSessions.sessions}
+            currentSessionId={userSessions.currentSessionId}
+            onOpenUserSession={(sessionId: string): void => {
+              onOpenUserSession?.(sessionId);
+            }}
+          />
+          <ReplayButtonGroup ariaLabel="Move between this user's sessions">
+            <ReplayToolButton
+              dataTestId="replay-user-session-older"
+              icon={IconProp.ChevronLeft}
+              variant="segment"
+              ariaLabel="Older session"
+              title={
+                adjacentUserSessions.older
+                  ? "Older session by this user ({)"
+                  : "This is the oldest session in the window"
+              }
+              isDisabled={adjacentUserSessions.older === null}
+              onClick={openOlderUserSession}
+            />
+            <ReplayToolButton
+              dataTestId="replay-user-session-newer"
+              icon={IconProp.ChevronRight}
+              variant="segment"
+              ariaLabel="Newer session"
+              title={
+                adjacentUserSessions.newer
+                  ? "Newer session by this user (})"
+                  : "This is the newest session in the window"
+              }
+              isDisabled={adjacentUserSessions.newer === null}
+              onClick={openNewerUserSession}
+            />
+          </ReplayButtonGroup>
+        </React.Fragment>
+      );
+    }
   }
 
   /* ---- Clock. ---- */
@@ -345,6 +543,9 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
       return `${fact.label}: ${fact.value}`;
     })
     .join(" · ");
+
+  const isCompactTabStrip: boolean =
+    props.tabs.length > REPLAY_TAB_STRIP_COMPACT_THRESHOLD;
 
   const focusableTabs: Array<ReplayHeaderTab> = props.tabs.filter(
     (tab: ReplayHeaderTab): boolean => {
@@ -505,7 +706,10 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
                 User and device
               </dt>
               <dd className="mt-1">
-                <div className="flex min-w-0 items-center gap-2">
+                <div
+                  className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1"
+                  data-testid="replay-header-identity-row"
+                >
                   <span
                     data-testid="replay-header-user"
                     className={`min-w-0 truncate text-sm ${identityClassName}`}
@@ -524,6 +728,7 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
                       {traitCount} trait{traitCount === 1 ? "" : "s"}
                     </button>
                   )}
+                  {userSessionsElement}
                 </div>
                 {props.facts.length > 0 && (
                   <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500">
@@ -619,9 +824,23 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
                   <div
                     role="tablist"
                     aria-label="Browser tabs in this recording"
-                    className="flex items-center gap-1 overflow-x-auto"
+                    /*
+                     * Wraps rather than scrolls. `overflow-x-auto` on a
+                     * strip that is one line of a card gave an eleven-tab
+                     * recording a horizontal scrollbar nobody noticed and
+                     * pushed the last four tabs off the right edge of the
+                     * card; a second row is visible, a scrollbar is not.
+                     */
+                    className="flex flex-wrap items-center gap-1"
                   >
                     {props.tabs.map((tab: ReplayHeaderTab): ReactElement => {
+                      const opened: string | null =
+                        describeReplayTabOpened(tab);
+                      const switchTitle: string =
+                        isCompactTabStrip && opened !== null
+                          ? `Switch to ${tab.label} (${opened}); the playhead stays where it is`
+                          : `Switch to ${tab.label}; the playhead stays where it is`;
+
                       return (
                         <button
                           key={tab.tabId}
@@ -641,7 +860,7 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
                           disabled={!tab.hasFootage}
                           title={
                             tab.hasFootage
-                              ? `Switch to ${tab.label}; the playhead stays where it is`
+                              ? switchTitle
                               : "No footage stored for this tab"
                           }
                           className={getReplaySegmentClassName({
@@ -659,7 +878,9 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
                             }
                           }}
                         >
-                          {formatReplayTabLabel(tab)}
+                          {formatReplayTabLabel(tab, {
+                            isCompact: isCompactTabStrip,
+                          })}
                         </button>
                       );
                     })}

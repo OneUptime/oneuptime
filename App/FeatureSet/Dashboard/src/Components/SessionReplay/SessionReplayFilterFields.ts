@@ -6,6 +6,7 @@ import {
   SessionReplayAdvancedFilters,
 } from "./SessionReplayListFilters";
 import { TRIGGER_REASON_LABELS } from "./SessionReplayPlayability";
+import { shortVisitorId } from "./SessionReplayUserIdentity";
 
 /*
  * One description of the advanced filters, shared by the two things that
@@ -184,6 +185,33 @@ export function buildSessionReplayFilterChips(
   options?: SessionReplayFilterChipOptions,
 ): Array<SessionReplayFilterChip> {
   const chips: Array<SessionReplayFilterChip> = [];
+
+  /*
+   * The two click-set identity filters are not modal fields (nobody types
+   * a digest or a visitor id), so they are chipped here, ahead of the
+   * typed fields: they are the narrowing a person most needs to see and
+   * remove after clicking a user cell.
+   *
+   * The digest chip is withheld when a reference is set, mirroring
+   * buildSessionReplayListFilters, which sends only the reference then -
+   * the server ignores a digest beside it. It never shows the digest
+   * itself: a hash tells a reader nothing and would only fill the row.
+   */
+  if (advanced.identifiedUserKey.trim() && !advanced.identifiedUserRef.trim()) {
+    chips.push({
+      field: "identifiedUserKey",
+      label: "User",
+      text: "pseudonymous key",
+    });
+  }
+
+  if (advanced.visitorId.trim()) {
+    chips.push({
+      field: "visitorId",
+      label: "Visitor",
+      text: `${shortVisitorId(advanced.visitorId.trim())}…`,
+    });
+  }
 
   for (const field of SESSION_REPLAY_FILTER_FIELDS) {
     const rawValue: string = (advanced[field.field] || "").trim();
