@@ -42,6 +42,31 @@ import {
  * as text, so the guide's markdown source is what the container holds.
  */
 
+interface MarkdownViewerProps {
+  text: string;
+}
+
+/*
+ * ResourceDocumentationCard draws the guide through LazyMarkdownViewer, a
+ * React.lazy boundary. The first render in this file has to compile the viewer
+ * behind it, and ts-jest does that synchronously - it holds the event loop, so
+ * not even the already-resolved ingestion-key request can land. On a loaded CI
+ * shard that ran past Testing Library's five-second budget with both loaders
+ * still on screen ("Loading..." for the keys, "Loading content" for the lazy
+ * fallback), and the first test failed on a guide that was never late, only
+ * uncompiled. These tests are about which guide is shown, not how it is
+ * loaded, so render the markdown source straight through, as the other suites
+ * that assert on a lazy viewer's text already do.
+ */
+jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
+  return {
+    __esModule: true,
+    default: (props: MarkdownViewerProps): React.ReactElement => {
+      return React.createElement("div", {}, props.text);
+    },
+  };
+});
+
 const PROJECT_ID: ObjectID = new ObjectID("project-1");
 
 const FIRST_KEY: TelemetryIngestionKey = new TelemetryIngestionKey();
