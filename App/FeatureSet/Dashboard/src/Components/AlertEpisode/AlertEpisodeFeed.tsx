@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import Feed from "Common/UI/Components/Feed/Feed";
@@ -10,12 +10,10 @@ import AlertEpisodeFeed, {
 } from "Common/Models/DatabaseModels/AlertEpisodeFeed";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Exception from "Common/Types/Exception/Exception";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -26,6 +24,7 @@ import UserNotificationEventType from "Common/Types/UserNotification/UserNotific
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
+import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
 
 export interface ComponentProps {
   alertEpisodeId: ObjectID;
@@ -34,9 +33,6 @@ export interface ComponentProps {
 const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
-  const [error, setError] = React.useState<string | undefined>(undefined);
-  const [feedItems, setFeedItems] = React.useState<FeedItemProps[]>([]);
   const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
     React.useState<boolean>(false);
 
@@ -201,54 +197,49 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
     };
   };
 
-  const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
-    setError("");
-    setIsLoading(true);
-    try {
-      const episodeFeeds: ListResult<AlertEpisodeFeed> = await ModelAPI.getList(
-        {
-          modelType: AlertEpisodeFeed,
-          query: {
-            alertEpisodeId: props.alertEpisodeId!,
-          },
-          select: {
-            moreInformationInMarkdown: true,
-            feedInfoInMarkdown: true,
-            displayColor: true,
-            createdAt: true,
-            user: {
-              name: true,
-              email: true,
-              profilePictureId: true,
-            },
-            alertEpisodeFeedEventType: true,
-            postedAt: true,
-          },
-          skip: 0,
-          sort: {
-            postedAt: SortOrder.Ascending,
-          },
-          limit: LIMIT_PER_PROJECT,
+  const {
+    feedItems,
+    isLoading,
+    isLoadingMore,
+    error,
+    loadMoreError,
+    hasMore,
+    isCurrentFeedLoaded,
+    setError,
+    refresh,
+    loadMore,
+  } = useFeedItems<AlertEpisodeFeed>({
+    resourceKey: props.alertEpisodeId.toString(),
+    getItems: async (limit: number): Promise<ListResult<AlertEpisodeFeed>> => {
+      return await ModelAPI.getList<AlertEpisodeFeed>({
+        modelType: AlertEpisodeFeed,
+        query: {
+          alertEpisodeId: props.alertEpisodeId!,
         },
-      );
-
-      setFeedItems(getFeedItemsFromEpisodeFeeds(episodeFeeds.data));
-    } catch (err: unknown) {
-      setError(API.getFriendlyMessage(err as Exception));
-    }
-
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    if (!props.alertEpisodeId) {
-      return;
-    }
-
-    fetchItems().catch((err: unknown) => {
-      setError(API.getFriendlyMessage(err as Exception));
-    });
-  }, [props.alertEpisodeId]);
+        select: {
+          moreInformationInMarkdown: true,
+          feedInfoInMarkdown: true,
+          displayColor: true,
+          createdAt: true,
+          user: {
+            name: true,
+            email: true,
+            profilePictureId: true,
+          },
+          alertEpisodeFeedEventType: true,
+          postedAt: true,
+        },
+        skip: 0,
+        sort: {
+          postedAt: SortOrder.Descending,
+        },
+        limit,
+      });
+    },
+    mapItems: (episodeFeeds: Array<AlertEpisodeFeed>): Array<FeedItemProps> => {
+      return getFeedItemsFromEpisodeFeeds(episodeFeeds);
+    },
+  });
 
   return (
     <Card
@@ -278,20 +269,24 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
           buttonStyle: ButtonStyleType.ICON,
           icon: IconProp.Refresh,
           onClick: async () => {
-            await fetchItems();
+            await refresh();
           },
         },
       ]}
     >
       <div>
-        {isLoading && <ComponentLoader />}
-        {error && <ErrorMessage message={error} />}
-        {!isLoading && !error && (
+        {(isLoading || !isCurrentFeedLoaded) && <ComponentLoader />}
+        {isCurrentFeedLoaded && error && <ErrorMessage message={error} />}
+        {isCurrentFeedLoaded && !isLoading && !error && (
           <Feed
             items={feedItems}
             noItemsMessage="Looks like there are no items in this feed for this episode."
+            hasMore={hasMore}
+            isLoadingMore={isLoadingMore}
+            onMore={loadMore}
           />
         )}
+        {loadMoreError && <ErrorMessage message={loadMoreError} />}
 
         {showOnCallPolicyModal && (
           <ModelFormModal
@@ -314,7 +309,7 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
             }}
             onSuccess={() => {
               setShowOnCallPolicyModal(false);
-              fetchItems().catch((err: unknown) => {
+              refresh().catch((err: unknown) => {
                 setError(API.getFriendlyMessage(err as Exception));
               });
             }}
@@ -364,7 +359,7 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
             }}
             onSuccess={() => {
               setShowPrivateNoteModal(false);
-              fetchItems().catch((err: unknown) => {
+              refresh().catch((err: unknown) => {
                 setError(API.getFriendlyMessage(err as Exception));
               });
             }}
