@@ -183,7 +183,7 @@ const Button: FunctionComponent<ComponentProps> = ({
 
   if (buttonStyle === ButtonStyleType.SECONDARY) {
     loadingIconClassName += ` text-indigo-500`;
-    buttonStyleCssClass = `inline-flex items-center rounded-md border border-transparent ${
+    buttonStyleCssClass = `inline-flex rounded-md border border-transparent ${
       disabled ? "bg-indigo-300" : "bg-indigo-100 hover:bg-indigo-200"
     } text-sm font-medium text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`;
   }
