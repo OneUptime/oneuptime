@@ -39,7 +39,15 @@ import {
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
 import Pagination from "Common/UI/Components/Pagination/Pagination";
-import Skeleton from "Common/UI/Components/Skeleton/Skeleton";
+import Table from "Common/UI/Components/Table/Table";
+import Columns from "Common/UI/Components/Table/Types/Columns";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import SessionReplayFacets, {
+  SESSION_REPLAY_FACETS,
+  SessionReplayFacet,
+} from "./SessionReplayFacets";
+import { getRecordingHealthActionLink } from "./RecordingHealthCard";
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
@@ -96,22 +104,9 @@ export type { SessionReplayAdvancedFilters } from "./SessionReplayListFilters";
 export { formatSessionDuration } from "./SessionReplayPlayability";
 
 /*
- * The session list is a bespoke table over POST /telemetry/rum/session-replay/list
- * rather than an AnalyticsModelTable.
- *
- * RumSessionV1 is a ReplacingMergeTree and there is no FINAL support anywhere
- * in this repo, so duplicate versions of a row are visible until a background
- * merge collapses them - worst for the newest sessions, which are exactly the
- * ones that sort first here. The endpoint deduplicates with
- * argMax(col, version) ... GROUP BY (projectId, rumApplicationId, sessionId);
- * a generic model table would show the same session two or three times with
- * different aggregate counts.
- *
- * The rows are rendered by hand rather than through Common/UI Table because
- * the whole row is the link (Cmd/Ctrl-click opens a tab), each row carries a
- * data-testid, loading is four skeleton rows rather than a spinner, and the
- * playability tooltip has to be reachable from the keyboard - none of which
- * the shared Table exposes.
+ * The shared Table renders the same headers, spacing, loading states and
+ * responsive cards as ModelTable. The replay endpoint remains responsible for
+ * deduplicating ReplacingMergeTree session versions and keyset pagination.
  */
 
 /* One deduplicated header row. Mirrors the /list projection. */
@@ -211,7 +206,6 @@ export const SESSION_REPLAY_LIST_URL_STORAGE_KEY: string =
 export const SESSION_REPLAY_LIST_CURSOR_STORAGE_KEY_PREFIX: string =
   "oneuptime.replay.listCursors:";
 
-const SKELETON_ROW_COUNT: number = 4;
 const MAX_ROUTE_PILLS: number = 3;
 
 export function parseSessionReplaySummary(
@@ -549,9 +543,9 @@ function routeForSession(
   }
 }
 
-const SessionReplayRow: FunctionComponent<SessionReplayRowProps> = (
+function getSessionReplayCells(
   props: SessionReplayRowProps,
-): ReactElement => {
+): Array<ReactElement> {
   const { row } = props;
   const route: Route | null = routeForSession(
     props.rumApplicationId,
@@ -693,6 +687,202 @@ const SessionReplayRow: FunctionComponent<SessionReplayRowProps> = (
     row.samplePercentageAtCapture,
   );
 
+  return [
+    <div key="0">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          {!row.isFinalized && playability.kind === "recording" && (
+            <span
+              className="h-2 w-2 flex-none animate-pulse rounded-full bg-red-500"
+              role="img"
+              aria-label="Recording now"
+              data-testid="session-row-live"
+            />
+          )}
+          {route ? (
+            <Link
+              to={route}
+              className="truncate text-sm font-semibold text-gray-900 group-hover:text-indigo-700"
+              title={row.entryUrl || undefined}
+            >
+              {entryPath || "Unknown page"}
+            </Link>
+          ) : (
+            <span className="truncate text-sm font-semibold text-gray-900">
+              {entryPath || "Unknown page"}
+            </span>
+          )}
+        </div>
+        {routePaths.length > 1 && (
+          <div
+            className="mt-1 flex flex-wrap items-center gap-1 text-xs text-gray-500"
+            data-testid="session-row-routes"
+          >
+            {routePaths
+              .slice(0, MAX_ROUTE_PILLS)
+              .map((path: string, index: number): ReactElement => {
+                return (
+                  <Fragment key={`${path}-${index}`}>
+                    {index > 0 && <span aria-hidden="true">&gt;</span>}
+                    <span
+                      className="max-w-[10rem] truncate rounded-md bg-gray-100 px-1.5 py-0.5 font-medium text-gray-600"
+                      title={row.routes?.[index]}
+                    >
+                      {path}
+                    </span>
+                  </Fragment>
+                );
+              })}
+            {row.pageCount > MAX_ROUTE_PILLS && (
+              <span>({row.pageCount} pages)</span>
+            )}
+          </div>
+        )}
+        {/*
+         * One line, never two. The absolute timestamp is what pushes it
+         * over, so it appears only where the column has room; it is on
+         * the element's title at every width.
+         */}
+        <div className="mt-1 flex items-center gap-2 whitespace-nowrap text-xs text-gray-500">
+          <span
+            className="rounded bg-gray-100 px-1 font-mono text-[11px] text-gray-500"
+            title={row.sessionId}
+          >
+            {row.sessionId.slice(0, 8) || "—"}
+          </span>
+          {hasStart && (
+            <time
+              dateTime={(startedAt as Date).toISOString()}
+              title={absoluteStart}
+              data-testid="session-row-start"
+            >
+              {OneUptimeDate.fromNow(startedAt as Date)}
+              <span className="hidden text-gray-400 2xl:inline">
+                {" "}
+                · {absoluteStart}
+              </span>
+            </time>
+          )}
+        </div>
+      </div>
+    </div>,
+    <div key="1">
+      <div className="min-w-0">
+        {userLabel}
+        <div className="mt-0.5 flex items-center gap-1 truncate text-xs text-gray-500">
+          <Icon
+            icon={deviceIcon}
+            className="h-3.5 w-3.5 flex-none text-gray-400"
+          />
+          <span className="truncate">
+            {deviceParts.length > 0
+              ? deviceParts.join(" · ")
+              : "Unknown device"}
+          </span>
+        </div>
+      </div>
+    </div>,
+    <div key="2">
+      <div className="font-mono text-sm font-medium tabular-nums text-gray-900">
+        {formatSessionDuration(row.durationMs)}
+      </div>
+      <div className="text-xs text-gray-500" data-testid="session-row-activity">
+        {activityParts.length > 0
+          ? activityParts.join(" · ")
+          : row.isFinalized
+            ? "no pages counted"
+            : "counting"}
+        {idleShare ? ` · ${idleShare}` : ""}
+      </div>
+    </div>,
+    <div key="3">
+      {badges.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">{badges}</div>
+      ) : row.isFinalized ? (
+        <span className="text-sm text-gray-500">Clean</span>
+      ) : (
+        /*
+         * "Clean" is a claim, and it is only true once the finalizer has
+         * counted every chunk. Before that the header carries chunk 0's
+         * signals only.
+         */
+        <span className="text-sm text-gray-400">Not counted yet</span>
+      )}
+    </div>,
+    <div key="4">
+      <div className="flex items-center gap-1.5">
+        <Tooltip text={playability.tooltip}>
+          <span
+            className="inline-flex"
+            tabIndex={0}
+            aria-label={`${playability.text}: ${playability.tooltip}`}
+            data-testid="session-row-playability"
+            data-kind={playability.kind}
+          >
+            <StatusBadge
+              text={playability.text}
+              type={SEVERITY_TO_BADGE[playability.severity]}
+            />
+          </span>
+        </Tooltip>
+      </div>
+      <div className="mt-0.5 text-xs text-gray-500">
+        {playability.detail ? `${playability.detail} · ` : ""}
+        <span title={`Why this session was uploaded: ${triggerLabel}`}>
+          {triggerLabel}
+        </span>
+      </div>
+      {row.fidelityNotices.length > 0 && (
+        <div className="mt-0.5 text-xs text-amber-700">
+          {row.fidelityNotices.length} fidelity{" "}
+          {plural(row.fidelityNotices.length, "notice")}
+        </div>
+      )}
+    </div>,
+    <div key="5">
+      {route && (
+        <div className="flex flex-col items-end gap-1">
+          {playability.isWatchable ? (
+            <Link
+              to={route}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-indigo-600 hover:text-white hover:ring-indigo-600"
+              title={`Watch session ${row.sessionId.slice(0, 8)}`}
+            >
+              <Icon icon={IconProp.Play} className="h-3.5 w-3.5" />
+              <span data-testid="session-row-watch">Watch</span>
+            </Link>
+          ) : (
+            <Link
+              to={route}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-500 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 hover:text-gray-800"
+              title={`${playability.text}: open the session's signals without footage`}
+            >
+              <span data-testid="session-row-signals-only">Signals only</span>
+            </Link>
+          )}
+          {playability.isWatchable && firstErrorRoute && (
+            <Link
+              to={firstErrorRoute}
+              className="text-[11px] font-medium text-indigo-600 hover:underline"
+              title="Open the player one second before the first error"
+            >
+              <span data-testid="session-row-first-error">from 1st error</span>
+            </Link>
+          )}
+        </div>
+      )}
+    </div>,
+  ];
+}
+
+function getSessionReplayRowProps(
+  props: SessionReplayRowProps,
+): React.HTMLAttributes<HTMLElement> {
+  const { row } = props;
+  const route: Route | null = routeForSession(
+    props.rumApplicationId,
+    row.sessionId,
+  );
   const openRow: (event: React.MouseEvent | React.KeyboardEvent) => void = (
     event: React.MouseEvent | React.KeyboardEvent,
   ): void => {
@@ -717,231 +907,86 @@ const SessionReplayRow: FunctionComponent<SessionReplayRowProps> = (
     props.onOpen(route, openInNewTab);
   };
 
-  return (
-    <tr
-      data-testid="session-row"
-      data-session-id={row.sessionId}
-      className={`group transition-colors ${
-        route
-          ? "cursor-pointer hover:bg-indigo-50/40 focus-within:bg-indigo-50/40"
-          : ""
-      }`}
-      tabIndex={route ? 0 : undefined}
-      aria-label={
-        route
-          ? `Open session ${row.sessionId.slice(0, 8)} from ${entryPath || "an unknown page"}`
-          : undefined
+  const attributes: React.HTMLAttributes<HTMLElement> & {
+    "data-testid": string;
+    "data-session-id": string;
+  } = {
+    "data-testid": "session-row",
+    "data-session-id": row.sessionId,
+    className: route
+      ? "group cursor-pointer transition-colors hover:bg-gray-50 focus-within:bg-indigo-50/40 focus-visible:outline-indigo-600"
+      : "",
+    tabIndex: route ? 0 : undefined,
+    "aria-label": route
+      ? `Open session ${row.sessionId.slice(0, 8)} from ${pathOf(row.entryUrl) || "an unknown page"}`
+      : undefined,
+    onClick: openRow,
+    onKeyDown: (event: React.KeyboardEvent<HTMLElement>): void => {
+      if (event.key === "Enter" && event.target === event.currentTarget) {
+        openRow(event);
       }
-      onClick={openRow}
-      onKeyDown={(event: React.KeyboardEvent<HTMLTableRowElement>): void => {
-        if (event.key === "Enter" && event.target === event.currentTarget) {
-          openRow(event);
-        }
-      }}
-    >
-      {/* Session */}
-      <td className="max-w-sm px-3 py-3 align-top">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            {!row.isFinalized && playability.kind === "recording" && (
-              <span
-                className="h-2 w-2 flex-none animate-pulse rounded-full bg-red-500"
-                role="img"
-                aria-label="Recording now"
-                data-testid="session-row-live"
-              />
-            )}
-            {route ? (
-              <Link
-                to={route}
-                className="truncate text-sm font-semibold text-gray-900 group-hover:text-indigo-700"
-                title={row.entryUrl || undefined}
-              >
-                {entryPath || "Unknown page"}
-              </Link>
-            ) : (
-              <span className="truncate text-sm font-semibold text-gray-900">
-                {entryPath || "Unknown page"}
-              </span>
-            )}
-          </div>
-          {routePaths.length > 1 && (
-            <div
-              className="mt-1 flex flex-wrap items-center gap-1 text-xs text-gray-500"
-              data-testid="session-row-routes"
-            >
-              {routePaths
-                .slice(0, MAX_ROUTE_PILLS)
-                .map((path: string, index: number): ReactElement => {
-                  return (
-                    <Fragment key={`${path}-${index}`}>
-                      {index > 0 && <span aria-hidden="true">&gt;</span>}
-                      <span
-                        className="max-w-[10rem] truncate rounded-md bg-gray-100 px-1.5 py-0.5 font-medium text-gray-600"
-                        title={row.routes?.[index]}
-                      >
-                        {path}
-                      </span>
-                    </Fragment>
-                  );
-                })}
-              {row.pageCount > MAX_ROUTE_PILLS && (
-                <span>({row.pageCount} pages)</span>
-              )}
-            </div>
-          )}
-          {/*
-           * One line, never two. The absolute timestamp is what pushes it
-           * over, so it appears only where the column has room; it is on
-           * the element's title at every width.
-           */}
-          <div className="mt-1 flex items-center gap-2 whitespace-nowrap text-xs text-gray-500">
-            <span
-              className="rounded bg-gray-100 px-1 font-mono text-[11px] text-gray-500"
-              title={row.sessionId}
-            >
-              {row.sessionId.slice(0, 8) || "—"}
-            </span>
-            {hasStart && (
-              <time
-                dateTime={(startedAt as Date).toISOString()}
-                title={absoluteStart}
-                data-testid="session-row-start"
-              >
-                {OneUptimeDate.fromNow(startedAt as Date)}
-                <span className="hidden text-gray-400 2xl:inline">
-                  {" "}
-                  · {absoluteStart}
-                </span>
-              </time>
-            )}
-          </div>
-        </div>
-      </td>
+    },
+  };
+  return attributes;
+}
 
-      {/* User & device */}
-      <td className="px-3 py-3 align-top">
-        <div className="min-w-0">
-          {userLabel}
-          <div className="mt-0.5 flex items-center gap-1 truncate text-xs text-gray-500">
-            <Icon
-              icon={deviceIcon}
-              className="h-3.5 w-3.5 flex-none text-gray-400"
-            />
-            <span className="truncate">
-              {deviceParts.length > 0
-                ? deviceParts.join(" · ")
-                : "Unknown device"}
-            </span>
-          </div>
-        </div>
-      </td>
+interface SessionReplayTableRow extends SessionReplaySummary {
+  cells: Array<ReactElement>;
+}
 
-      {/* Activity */}
-      <td className="whitespace-nowrap px-3 py-3 align-top">
-        <div className="font-mono text-sm font-medium tabular-nums text-gray-900">
-          {formatSessionDuration(row.durationMs)}
-        </div>
-        <div
-          className="text-xs text-gray-500"
-          data-testid="session-row-activity"
-        >
-          {activityParts.length > 0
-            ? activityParts.join(" · ")
-            : row.isFinalized
-              ? "no pages counted"
-              : "counting"}
-          {idleShare ? ` · ${idleShare}` : ""}
-        </div>
-      </td>
-
-      {/* Signals */}
-      <td className="px-3 py-3 align-top">
-        {badges.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">{badges}</div>
-        ) : row.isFinalized ? (
-          <span className="text-sm text-gray-500">Clean</span>
-        ) : (
-          /*
-           * "Clean" is a claim, and it is only true once the finalizer has
-           * counted every chunk. Before that the header carries chunk 0's
-           * signals only.
-           */
-          <span className="text-sm text-gray-400">Not counted yet</span>
-        )}
-      </td>
-
-      {/* Recording */}
-      <td className="whitespace-nowrap px-3 py-3 align-top">
-        <div className="flex items-center gap-1.5">
-          <Tooltip text={playability.tooltip}>
-            <span
-              className="inline-flex"
-              tabIndex={0}
-              aria-label={`${playability.text}: ${playability.tooltip}`}
-              data-testid="session-row-playability"
-              data-kind={playability.kind}
-            >
-              <StatusBadge
-                text={playability.text}
-                type={SEVERITY_TO_BADGE[playability.severity]}
-              />
-            </span>
-          </Tooltip>
-        </div>
-        <div className="mt-0.5 text-xs text-gray-500">
-          {playability.detail ? `${playability.detail} · ` : ""}
-          <span title={`Why this session was uploaded: ${triggerLabel}`}>
-            {triggerLabel}
-          </span>
-        </div>
-        {row.fidelityNotices.length > 0 && (
-          <div className="mt-0.5 text-xs text-amber-700">
-            {row.fidelityNotices.length} fidelity{" "}
-            {plural(row.fidelityNotices.length, "notice")}
-          </div>
-        )}
-      </td>
-
-      {/* Actions */}
-      <td className="whitespace-nowrap px-3 py-3 text-right align-top">
-        {route && (
-          <div className="flex flex-col items-end gap-1">
-            {playability.isWatchable ? (
-              <Link
-                to={route}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-indigo-600 hover:text-white hover:ring-indigo-600"
-                title={`Watch session ${row.sessionId.slice(0, 8)}`}
-              >
-                <Icon icon={IconProp.Play} className="h-3.5 w-3.5" />
-                <span data-testid="session-row-watch">Watch</span>
-              </Link>
-            ) : (
-              <Link
-                to={route}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-500 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 hover:text-gray-800"
-                title={`${playability.text}: open the session's signals without footage`}
-              >
-                <span data-testid="session-row-signals-only">Signals only</span>
-              </Link>
-            )}
-            {playability.isWatchable && firstErrorRoute && (
-              <Link
-                to={firstErrorRoute}
-                className="text-[11px] font-medium text-indigo-600 hover:underline"
-                title="Open the player one second before the first error"
-              >
-                <span data-testid="session-row-first-error">
-                  from 1st error
-                </span>
-              </Link>
-            )}
-          </div>
-        )}
-      </td>
-    </tr>
-  );
-};
+const SESSION_REPLAY_COLUMNS: Columns<SessionReplayTableRow> = [
+  {
+    title: "Session",
+    key: "startTime",
+    wrapContent: true,
+    wrapMaxWidthClassName: "max-w-xs",
+  },
+  {
+    title: "User & device",
+    key: "identifiedUserLabel",
+    wrapContent: true,
+    wrapMaxWidthClassName: "max-w-xs",
+  },
+  {
+    title: "Duration",
+    key: "durationMs",
+    wrapContent: true,
+    wrapMaxWidthClassName: "max-w-48",
+  },
+  {
+    title: "Signals",
+    key: "errorCount",
+    wrapContent: true,
+    wrapMaxWidthClassName: "max-w-56",
+  },
+  {
+    title: "Recording",
+    key: "isFinalized",
+    wrapContent: true,
+    wrapMaxWidthClassName: "max-w-56",
+  },
+  { title: "Actions", key: "sessionId" },
+].map(
+  (
+    column: {
+      title: string;
+      key: string | null;
+      wrapContent?: boolean;
+      wrapMaxWidthClassName?: string;
+    },
+    index: number,
+  ) => {
+    return {
+      ...column,
+      key: column.key as keyof SessionReplayTableRow | null,
+      type: FieldType.Element,
+      disableSort: true,
+      getElement: (row: SessionReplayTableRow): ReactElement => {
+        return row.cells[index] as ReactElement;
+      },
+    };
+  },
+);
 
 /* ---- Table ---- */
 
@@ -1210,18 +1255,26 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
 
   const chips: Array<SessionReplayFilterChip> =
     useMemo((): Array<SessionReplayFilterChip> => {
-      return buildSessionReplayFilterChips(advancedFilters, {
-        hideIdentity: isIdentityFilterIgnored,
-        hideSearch: true,
-      });
-    }, [advancedFilters, isIdentityFilterIgnored]);
+      return buildSessionReplayFilterChips(
+        signal === "slow"
+          ? {
+              ...advancedFilters,
+              triggerReason: SessionReplayTriggerReason.Performance,
+            }
+          : advancedFilters,
+        { hideIdentity: isIdentityFilterIgnored, hideSearch: true },
+      );
+    }, [advancedFilters, isIdentityFilterIgnored, signal]);
 
   const removeChip: (field: keyof SessionReplayAdvancedFilters) => void =
     useCallback(
       (field: keyof SessionReplayAdvancedFilters): void => {
+        if (field === "triggerReason" && signal === "slow") {
+          setSignal("all");
+        }
         applyFilters({ ...advancedFilters, [field]: "" });
       },
-      [advancedFilters, applyFilters],
+      [advancedFilters, applyFilters, signal],
     );
 
   const clearFilters: VoidFunction = useCallback((): void => {
@@ -1230,7 +1283,42 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
     setAdvancedFilters(EMPTY_ADVANCED_FILTERS);
   }, []);
 
+  const tableRows: Array<SessionReplayTableRow> =
+    useMemo((): Array<SessionReplayTableRow> => {
+      return rows.map((row: SessionReplaySummary): SessionReplayTableRow => {
+        return {
+          ...row,
+          cells: getSessionReplayCells({
+            row,
+            rumApplicationId: rumApplicationIdString,
+            nowUnixMs,
+            onOpen: openSession,
+          }),
+        };
+      });
+    }, [rows, rumApplicationIdString, nowUnixMs, openSession]);
+  const additionalChips: Array<SessionReplayFilterChip> = chips.filter(
+    (chip: SessionReplayFilterChip): boolean => {
+      return !SESSION_REPLAY_FACETS.some(
+        (facet: SessionReplayFacet): boolean => {
+          return facet.field === chip.field;
+        },
+      );
+    },
+  );
+
   const cardButtons: Array<CardButtonSchema> = [
+    {
+      title: "Set up recording",
+      icon: IconProp.BookOpen,
+      buttonStyle: ButtonStyleType.NORMAL,
+      onClick: (): void => {
+        return Navigation.navigate(
+          getRecordingHealthActionLink("setup-guide", rumApplicationIdString)
+            .to,
+        );
+      },
+    },
     {
       ...getRefreshButton(),
       tooltip: "Refresh sessions",
@@ -1239,21 +1327,13 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
     },
   ];
 
-  /*
-   * A header BAND, not six loose labels. The old table drew its header on
-   * white with only a hairline under it, so at a glance the first row of
-   * data and the column names read as the same thing.
-   */
-  const headerCellClassName: string =
-    "whitespace-nowrap bg-gray-50 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500";
-
   return (
     <Fragment>
       <Card
         title={props.title || "Session Replay"}
         description={
           props.description ||
-          "Recordings of real end-user sessions for this application. Content is masked at capture in the end user's browser; what you see here is what the recorder was allowed to send."
+          "Explore recorded sessions, understand user journeys, and investigate errors."
         }
         buttons={cardButtons}
       >
@@ -1262,11 +1342,6 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
             filters={advancedFilters}
             onFiltersChange={applyFilters}
             onNavigateToSession={navigateToSessionId}
-            signal={signal}
-            onSignalChange={(value: string): void => {
-              setPageNumber(1);
-              setSignal(value);
-            }}
             sortBy={sortBy}
             onSortChange={(value: SessionReplaySortBy): void => {
               setPageNumber(1);
@@ -1282,6 +1357,16 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
             }}
             isIdentityFilterIgnored={isIdentityFilterIgnored}
           />
+          <SessionReplayFacets
+            rows={rows}
+            filters={advancedFilters}
+            onFiltersChange={applyFilters}
+            signal={signal}
+            onSignalChange={(value: string): void => {
+              setPageNumber(1);
+              setSignal(value);
+            }}
+          />
 
           {isIdentityFilterIgnored &&
             advancedFilters.identifiedUserRef.trim().length > 0 && (
@@ -1293,10 +1378,10 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
               />
             )}
 
-          {chips.length > 0 && (
+          {(chips.length > 0 || signal !== "all") && (
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <SessionReplayFilterChipList
-                chips={chips}
+                chips={additionalChips}
                 onRemoveChip={removeChip}
               />
               <Button
@@ -1346,110 +1431,69 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
               </div>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-gray-200">
-              <div className="overflow-x-auto">
-                <table className="min-w-full" data-testid="session-table">
-                  <thead className="border-b border-gray-200">
-                    <tr>
-                      <th scope="col" className={headerCellClassName}>
-                        Session
-                      </th>
-                      <th scope="col" className={headerCellClassName}>
-                        User &amp; device
-                      </th>
-                      <th scope="col" className={headerCellClassName}>
-                        Activity
-                      </th>
-                      <th scope="col" className={headerCellClassName}>
-                        Signals
-                      </th>
-                      <th scope="col" className={headerCellClassName}>
-                        Recording
-                      </th>
-                      <th scope="col" className={headerCellClassName}>
-                        <span className="sr-only">Actions</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 bg-white">
-                    {isLoading && rows.length === 0
-                      ? Array.from({ length: SKELETON_ROW_COUNT }).map(
-                          (_: unknown, index: number): ReactElement => {
-                            return (
-                              <tr
-                                key={`skeleton-${index}`}
-                                data-testid="session-row-skeleton"
-                              >
-                                {Array.from({ length: 6 }).map(
-                                  (__: unknown, cell: number): ReactElement => {
-                                    return (
-                                      <td key={cell} className="px-3 py-3">
-                                        <Skeleton
-                                          className="h-4"
-                                          widthVariantIndex={index + cell}
-                                        />
-                                        <Skeleton
-                                          className="mt-2 h-3"
-                                          widthVariantIndex={index + cell + 1}
-                                        />
-                                      </td>
-                                    );
-                                  },
-                                )}
-                              </tr>
-                            );
-                          },
-                        )
-                      : rows.map((row: SessionReplaySummary): ReactElement => {
-                          return (
-                            <SessionReplayRow
-                              key={row.sessionId}
-                              row={row}
-                              rumApplicationId={rumApplicationIdString}
-                              nowUnixMs={nowUnixMs}
-                              onOpen={openSession}
-                            />
-                          );
-                        })}
-                  </tbody>
-                </table>
-              </div>
-              {isLoading && (
-                <p role="status" className="sr-only">
-                  Loading sessions
-                </p>
-              )}
+            <div data-testid="session-table">
+              <Table<SessionReplayTableRow>
+                id="session-replay-table"
+                data={tableRows}
+                columns={SESSION_REPLAY_COLUMNS}
+                getRowProps={(
+                  row: SessionReplayTableRow,
+                ): React.HTMLAttributes<HTMLElement> => {
+                  return getSessionReplayRowProps({
+                    row,
+                    rumApplicationId: rumApplicationIdString,
+                    nowUnixMs,
+                    onOpen: openSession,
+                  });
+                }}
+                isLoading={isLoading}
+                error=""
+                singularLabel="Session"
+                pluralLabel="Sessions"
+                currentPageNumber={pageNumber}
+                totalItemsCount={itemsOnPage * (pageNumber - 1) + rows.length}
+                itemsOnPage={itemsOnPage}
+                disablePagination={true}
+                onNavigateToPage={(): void => {
+                  /* Cursor pagination is rendered below. */
+                }}
+                sortBy={null}
+                sortOrder={SortOrder.Descending}
+                onSortChanged={(): void => {
+                  /* The endpoint supports the toolbar's sort choices. */
+                }}
+                noItemsMessage={
+                  <SessionReplayEmptyState
+                    rumApplicationId={rumApplicationIdString}
+                    context={{
+                      isLoading: isLoading,
+                      error: "",
+                      rowCount: rows.length,
+                      page: pageNumber,
+                      signal: signal,
+                      advanced: advancedFilters,
+                      timeRange: timeRange,
+                    }}
+                    chips={chips}
+                    onRemoveChip={removeChip}
+                    onClearFilters={clearFilters}
+                    onSetTimeRange={(range: RangeStartAndEndDateTime): void => {
+                      setPageNumber(1);
+                      setTimeRange(range);
+                    }}
+                    onPreviousPage={(): void => {
+                      setPageNumber(Math.max(1, pageNumber - 1));
+                    }}
+                    onRefresh={reload}
+                  />
+                }
+              />
             </div>
-          )}
-
-          {!error && (
-            <SessionReplayEmptyState
-              rumApplicationId={rumApplicationIdString}
-              context={{
-                isLoading: isLoading,
-                error: "",
-                rowCount: rows.length,
-                page: pageNumber,
-                signal: signal,
-                advanced: advancedFilters,
-                timeRange: timeRange,
-              }}
-              chips={chips}
-              onRemoveChip={removeChip}
-              onClearFilters={clearFilters}
-              onSetTimeRange={(range: RangeStartAndEndDateTime): void => {
-                setPageNumber(1);
-                setTimeRange(range);
-              }}
-              onPreviousPage={(): void => {
-                setPageNumber(Math.max(1, pageNumber - 1));
-              }}
-              onRefresh={reload}
-            />
           )}
 
           {!error && (rows.length > 0 || pageNumber > 1) && (
             <Pagination
+              className="mt-4 border-t border-gray-200 pt-4"
               currentPageNumber={pageNumber}
               totalItemsCount={itemsOnPage * (pageNumber - 1) + rows.length}
               itemsOnPage={itemsOnPage}

@@ -390,6 +390,8 @@ describe("SessionReplaySetupGuide (rendered)", () => {
 
     await screen.findByTestId("setup-guide-diagnosis");
 
+    expect(screen.queryByText("Open the setup guide")).not.toBeInTheDocument();
+
     expect(screen.getByTestId("health-diagnosis")).toHaveAttribute(
       "data-state",
       "never-loaded",

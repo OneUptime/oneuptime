@@ -340,266 +340,277 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
   return (
     <div
       data-testid="replay-controls"
-      className="flex flex-wrap items-center gap-x-2 gap-y-2"
+      className="space-y-3"
+      role="group"
+      aria-label="Session playback"
     >
-      {/*
-       * The one filled, round control on the row. Hand-rolled rather than
-       * a ReplayToolButton because it is deliberately the exception: 36px
-       * against the chrome's 32px, and the only place a solid colour
-       * means "press this".
-       */}
-      <button
-        type="button"
-        data-testid="replay-play-pause"
-        data-phase={phase}
-        disabled={playCopy.isDisabled}
-        className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
-          playCopy.isDisabled
-            ? "cursor-not-allowed bg-gray-300"
-            : phase === "error"
-              ? "bg-rose-600 hover:bg-rose-700"
-              : "bg-indigo-600 hover:bg-indigo-700"
-        }`}
-        onClick={handlePlayClick}
-        aria-label={playCopy.label}
-        title={playCopy.label}
+      <div
+        className="flex flex-wrap items-center gap-x-2 gap-y-2"
+        role="group"
+        aria-label="Playback controls"
       >
-        <Icon icon={playCopy.icon} className="h-4 w-4" />
-      </button>
+        {/*
+         * The one filled, round control on the row. Hand-rolled rather than
+         * a ReplayToolButton because it is deliberately the exception: 36px
+         * against the chrome's 32px, and the only place a solid colour
+         * means "press this".
+         */}
+        <button
+          type="button"
+          data-testid="replay-play-pause"
+          data-phase={phase}
+          disabled={playCopy.isDisabled}
+          className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+            playCopy.isDisabled
+              ? "cursor-not-allowed bg-gray-300"
+              : phase === "error"
+                ? "bg-rose-600 hover:bg-rose-700"
+                : "bg-indigo-600 hover:bg-indigo-700"
+          }`}
+          onClick={handlePlayClick}
+          aria-label={playCopy.label}
+          title={playCopy.label}
+        >
+          <Icon icon={playCopy.icon} className="h-4 w-4" />
+        </button>
 
-      <ReplayButtonGroup ariaLabel="Seek by ten seconds">
-        <ReplayToolButton
-          dataTestId="replay-seek-back"
-          icon={IconProp.Backward}
-          label="10s"
-          isDisabled={!canSeek}
-          variant="segment"
-          title="Back 10 seconds (J)"
-          ariaLabel="Back 10 seconds (J)"
-          onClick={seekBack}
+        <ReplayButtonGroup ariaLabel="Seek by ten seconds">
+          <ReplayToolButton
+            dataTestId="replay-seek-back"
+            icon={IconProp.Backward}
+            label="10s"
+            isDisabled={!canSeek}
+            variant="segment"
+            title="Back 10 seconds (J)"
+            ariaLabel="Back 10 seconds (J)"
+            onClick={seekBack}
+          />
+          <ReplayToolButton
+            dataTestId="replay-seek-forward"
+            trailingIcon={IconProp.Forward}
+            label="10s"
+            isDisabled={!canSeek}
+            variant="segment"
+            title="Forward 10 seconds (L)"
+            ariaLabel="Forward 10 seconds (L)"
+            onClick={seekForward}
+          />
+        </ReplayButtonGroup>
+
+        <ReplayClock
+          dataTestId="replay-time"
+          currentText={clock.current}
+          totalText={clock.total}
         />
-        <ReplayToolButton
-          dataTestId="replay-seek-forward"
-          trailingIcon={IconProp.Forward}
-          label="10s"
-          isDisabled={!canSeek}
-          variant="segment"
-          title="Forward 10 seconds (L)"
-          ariaLabel="Forward 10 seconds (L)"
-          onClick={seekForward}
+
+        <ReplayToolbarDivider />
+
+        <div ref={speedRef} className="relative shrink-0">
+          <ReplayToolButton
+            ref={speedTriggerRef}
+            dataTestId="replay-speed"
+            label={formatReplaySpeed(speed)}
+            hasPopup={true}
+            isExpanded={isSpeedOpen}
+            ariaLabel={`Playback speed ${formatReplaySpeed(speed)}`}
+            title="Playback speed (< slower, > faster)"
+            className="min-w-[3.25rem] tabular-nums"
+            onClick={(): void => {
+              setIsSpeedOpen(!isSpeedOpen);
+            }}
+          />
+
+          {isSpeedOpen && (
+            <div
+              role="radiogroup"
+              aria-label="Playback speed"
+              data-testid="replay-speed-menu"
+              className="absolute bottom-full left-0 z-20 mb-1.5 flex min-w-[5.5rem] flex-col gap-0.5 rounded-xl border border-gray-200 bg-white p-1 shadow-lg"
+              onKeyDown={handleSpeedKeyDown}
+            >
+              {REPLAY_SPEEDS.map(
+                (value: number, index: number): ReactElement => {
+                  const isChecked: boolean =
+                    getReplaySpeedIndex(speed) === index;
+
+                  return (
+                    <button
+                      key={value}
+                      ref={(element: HTMLButtonElement | null): void => {
+                        speedRadioRefs.current[index] = element;
+                      }}
+                      type="button"
+                      role="radio"
+                      aria-checked={isChecked}
+                      tabIndex={isChecked ? 0 : -1}
+                      data-testid={`replay-speed-option-${value}`}
+                      className={`rounded-lg px-2.5 py-1.5 text-left text-xs tabular-nums transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                        isChecked
+                          ? "bg-indigo-600 font-semibold text-white"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                      onClick={(): void => {
+                        selectSpeed(value);
+                        closeSpeed(true);
+                      }}
+                    >
+                      {formatReplaySpeed(value)}
+                    </button>
+                  );
+                },
+              )}
+            </div>
+          )}
+        </div>
+
+        {/*
+         * The value is the engine's stored intent (snapshot.skipInactive);
+         * the shell owns the default and the persisted preference. Idle
+         * stretches are drawn on the track and every skip shows a toast, so
+         * a jump is never mistaken for a bug.
+         */}
+        <ReplaySwitch
+          dataTestId="replay-skip-idle"
+          label="Skip idle"
+          isChecked={props.isSkipInactiveEnabled}
+          title="Jump past stretches with no user input. Each skip is announced and the idle stretch is drawn on the track."
+          onChange={props.onSkipInactiveChange}
         />
-      </ReplayButtonGroup>
-
-      <ReplayClock
-        dataTestId="replay-time"
-        currentText={clock.current}
-        totalText={clock.total}
-      />
-
-      <ReplayToolbarDivider />
-
-      <div ref={speedRef} className="relative shrink-0">
-        <ReplayToolButton
-          ref={speedTriggerRef}
-          dataTestId="replay-speed"
-          label={formatReplaySpeed(speed)}
-          hasPopup={true}
-          isExpanded={isSpeedOpen}
-          ariaLabel={`Playback speed ${formatReplaySpeed(speed)}`}
-          title="Playback speed (< slower, > faster)"
-          className="min-w-[3.25rem] tabular-nums"
-          onClick={(): void => {
-            setIsSpeedOpen(!isSpeedOpen);
-          }}
-        />
-
-        {isSpeedOpen && (
-          <div
-            role="radiogroup"
-            aria-label="Playback speed"
-            data-testid="replay-speed-menu"
-            className="absolute bottom-full left-0 z-20 mb-1.5 flex min-w-[5.5rem] flex-col gap-0.5 rounded-xl border border-gray-200 bg-white p-1 shadow-lg"
-            onKeyDown={handleSpeedKeyDown}
-          >
-            {REPLAY_SPEEDS.map((value: number, index: number): ReactElement => {
-              const isChecked: boolean = getReplaySpeedIndex(speed) === index;
-
-              return (
-                <button
-                  key={value}
-                  ref={(element: HTMLButtonElement | null): void => {
-                    speedRadioRefs.current[index] = element;
-                  }}
-                  type="button"
-                  role="radio"
-                  aria-checked={isChecked}
-                  tabIndex={isChecked ? 0 : -1}
-                  data-testid={`replay-speed-option-${value}`}
-                  className={`rounded-lg px-2.5 py-1.5 text-left text-xs tabular-nums transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                    isChecked
-                      ? "bg-indigo-600 font-semibold text-white"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
-                  onClick={(): void => {
-                    selectSpeed(value);
-                    closeSpeed(true);
-                  }}
-                >
-                  {formatReplaySpeed(value)}
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
 
-      {/*
-       * The value is the engine's stored intent (snapshot.skipInactive);
-       * the shell owns the default and the persisted preference. Idle
-       * stretches are drawn on the track and every skip shows a toast, so
-       * a jump is never mistaken for a bug.
-       */}
-      <ReplaySwitch
-        dataTestId="replay-skip-idle"
-        label="Skip idle"
-        isChecked={props.isSkipInactiveEnabled}
-        title="Jump past stretches with no user input. Each skip is announced and the idle stretch is drawn on the track."
-        onChange={props.onSkipInactiveChange}
-      />
-
-      <ReplayToolbarDivider />
-
-      <ReplayButtonGroup ariaLabel="Jump between signals">
-        <ReplayToolButton
-          dataTestId="replay-prev-error"
-          icon={IconProp.ChevronLeft}
-          trailingIcon={IconProp.Alert}
-          variant="segment"
-          tone="danger"
-          isDisabled={!props.hasPrevError}
-          ariaLabel="Previous error (Shift+E)"
-          title={
-            props.hasPrevError
-              ? "Previous error (Shift+E)"
-              : "No error before the playhead"
-          }
-          onClick={props.onPrevError}
-        />
-        <ReplayToolButton
-          dataTestId="replay-next-error"
-          icon={IconProp.Alert}
-          label="Next error"
-          variant="segment"
-          tone="danger"
-          isDisabled={!props.hasNextError}
-          ariaLabel="Next error (E)"
-          title={
-            props.hasNextError
-              ? "Next error (E)"
-              : "No error after the playhead"
-          }
-          onClick={props.onNextError}
-        />
-        <ReplayToolButton
-          dataTestId="replay-next-frustration"
-          icon={IconProp.CursorArrowRays}
-          label="Frustration"
-          variant="segment"
-          tone="warning"
-          isDisabled={!props.hasNextFrustration}
-          ariaLabel="Next frustration (N)"
-          title={
-            props.hasNextFrustration
-              ? "Next frustration (N)"
-              : "No rage, dead or error click after the playhead"
-          }
-          onClick={props.onNextFrustration}
-        />
-      </ReplayButtonGroup>
-
-      <div className="ml-auto flex items-center gap-1.5">
-        {/*
-         * Visual only, deliberately NOT a live region and with no Retry of
-         * its own: the stage says the same thing at the same moment
-         * (ReplayStageOverlays' role=status pill plus the sr-only phase
-         * word), so two regions meant a screen reader announced "Buffering"
-         * or "Seeking to 1:12" twice per event and the viewer saw two Retry
-         * buttons after eight seconds. The stage overlay is the announced
-         * surface and owns the retry action; this pill just keeps the state
-         * visible next to the transport controls.
-         */}
-        {bufferingStage !== "hidden" && isWaiting && (
-          <ReplayPill
-            dataTestId="replay-buffering-pill"
-            tone="accent"
-            hasPulse={true}
-            isHiddenFromScreenReaders={true}
-          >
-            {bufferingStage === "retry" ? "Still loading" : waitingCopy}
-          </ReplayPill>
-        )}
-
-        {phase === "error" && props.errorMessage && (
-          <ReplayPill
-            dataTestId="replay-error-pill"
+      <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-2.5">
+        <ReplayButtonGroup ariaLabel="Jump between signals">
+          <ReplayToolButton
+            dataTestId="replay-prev-error"
+            icon={IconProp.ChevronLeft}
+            trailingIcon={IconProp.Alert}
+            variant="segment"
             tone="danger"
-            role="alert"
+            isDisabled={!props.hasPrevError}
+            ariaLabel="Previous error (Shift+E)"
+            title={
+              props.hasPrevError
+                ? "Previous error (Shift+E)"
+                : "No error before the playhead"
+            }
+            onClick={props.onPrevError}
+          />
+          <ReplayToolButton
+            dataTestId="replay-next-error"
             icon={IconProp.Alert}
-            className="max-w-[24rem]"
-          >
-            {props.errorMessage}
-          </ReplayPill>
-        )}
+            label="Next error"
+            variant="segment"
+            tone="danger"
+            isDisabled={!props.hasNextError}
+            ariaLabel="Next error (E)"
+            title={
+              props.hasNextError
+                ? "Next error (E)"
+                : "No error after the playhead"
+            }
+            onClick={props.onNextError}
+          />
+          <ReplayToolButton
+            dataTestId="replay-next-frustration"
+            icon={IconProp.CursorArrowRays}
+            label="Frustration"
+            variant="segment"
+            tone="warning"
+            isDisabled={!props.hasNextFrustration}
+            ariaLabel="Next frustration (N)"
+            title={
+              props.hasNextFrustration
+                ? "Next frustration (N)"
+                : "No rage, dead or error click after the playhead"
+            }
+            onClick={props.onNextFrustration}
+          />
+        </ReplayButtonGroup>
 
-        <ReplayToolButton
-          dataTestId="replay-shortcuts-button"
-          icon={IconProp.Keyboard}
-          title="Keyboard shortcuts (?)"
-          ariaLabel="Keyboard shortcuts (?)"
-          onClick={props.onShowShortcuts}
-        />
+        <div className="ml-auto flex items-center gap-1.5">
+          {/*
+           * Visual only, deliberately NOT a live region and with no Retry of
+           * its own: the stage says the same thing at the same moment
+           * (ReplayStageOverlays' role=status pill plus the sr-only phase
+           * word), so two regions meant a screen reader announced "Buffering"
+           * or "Seeking to 1:12" twice per event and the viewer saw two Retry
+           * buttons after eight seconds. The stage overlay is the announced
+           * surface and owns the retry action; this pill just keeps the state
+           * visible next to the transport controls.
+           */}
+          {bufferingStage !== "hidden" && isWaiting && (
+            <ReplayPill
+              dataTestId="replay-buffering-pill"
+              tone="accent"
+              hasPulse={true}
+              isHiddenFromScreenReaders={true}
+            >
+              {bufferingStage === "retry" ? "Still loading" : waitingCopy}
+            </ReplayPill>
+          )}
 
-        {hasOverflow && (
-          <MoreMenu
-            text=""
-            ariaLabel="More player options"
-            dataTestId="replay-more-menu"
-            menuIcon={IconProp.EllipsisHorizontal}
-          >
-            {props.onMouseTrailChange ? (
-              <MoreMenuItem
-                key="mouse-trail"
-                icon={IconProp.CursorArrowRays}
-                text={
-                  props.isMouseTrailEnabled
-                    ? "Hide mouse trail"
-                    : "Show mouse trail"
-                }
-                onClick={(): void => {
-                  props.onMouseTrailChange?.(!props.isMouseTrailEnabled);
-                }}
-              />
-            ) : (
-              <React.Fragment key="mouse-trail-none" />
-            )}
-            {props.onFollowChange ? (
-              <MoreMenuItem
-                key="follow"
-                icon={IconProp.Bolt}
-                text={
-                  props.isFollowEnabled
-                    ? "Stop following the playhead in the rail (M)"
-                    : "Follow the playhead in the rail (M)"
-                }
-                onClick={(): void => {
-                  props.onFollowChange?.(!props.isFollowEnabled);
-                }}
-              />
-            ) : (
-              <React.Fragment key="follow-none" />
-            )}
-          </MoreMenu>
-        )}
+          {phase === "error" && props.errorMessage && (
+            <ReplayPill
+              dataTestId="replay-error-pill"
+              tone="danger"
+              role="alert"
+              icon={IconProp.Alert}
+              className="max-w-[24rem]"
+            >
+              {props.errorMessage}
+            </ReplayPill>
+          )}
+
+          <ReplayToolButton
+            dataTestId="replay-shortcuts-button"
+            icon={IconProp.Keyboard}
+            title="Keyboard shortcuts (?)"
+            ariaLabel="Keyboard shortcuts (?)"
+            onClick={props.onShowShortcuts}
+          />
+
+          {hasOverflow && (
+            <MoreMenu
+              text=""
+              ariaLabel="More player options"
+              dataTestId="replay-more-menu"
+              menuIcon={IconProp.EllipsisHorizontal}
+            >
+              {props.onMouseTrailChange ? (
+                <MoreMenuItem
+                  key="mouse-trail"
+                  icon={IconProp.CursorArrowRays}
+                  text={
+                    props.isMouseTrailEnabled
+                      ? "Hide mouse trail"
+                      : "Show mouse trail"
+                  }
+                  onClick={(): void => {
+                    props.onMouseTrailChange?.(!props.isMouseTrailEnabled);
+                  }}
+                />
+              ) : (
+                <React.Fragment key="mouse-trail-none" />
+              )}
+              {props.onFollowChange ? (
+                <MoreMenuItem
+                  key="follow"
+                  icon={IconProp.Bolt}
+                  text={
+                    props.isFollowEnabled
+                      ? "Stop following the playhead in the rail (M)"
+                      : "Follow the playhead in the rail (M)"
+                  }
+                  onClick={(): void => {
+                    props.onFollowChange?.(!props.isFollowEnabled);
+                  }}
+                />
+              ) : (
+                <React.Fragment key="follow-none" />
+              )}
+            </MoreMenu>
+          )}
+        </div>
       </div>
     </div>
   );

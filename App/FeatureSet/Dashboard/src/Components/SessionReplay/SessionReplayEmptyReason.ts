@@ -67,8 +67,6 @@ export interface SessionReplayEmptyReason {
   detail: string;
   /* At most one. */
   action: SessionReplayEmptyAction | null;
-  /* The inline setup guide, only for never-installed. */
-  showSetupGuide: boolean;
   /* The applied-filter chips with their remove buttons. */
   showChips: boolean;
 }
@@ -208,7 +206,7 @@ export function getEmptyReason(
       title: "No more sessions",
       detail: `Page ${context.page} is past the end of this list.`,
       action: { kind: "previous-page", label: "Back to the previous page" },
-      showSetupGuide: false,
+
       showChips: false,
     };
   }
@@ -230,7 +228,7 @@ export function getEmptyReason(
           title: diagnosis.title,
           detail: diagnosis.detail,
           action: healthAction(diagnosis),
-          showSetupGuide: false,
+
           showChips: false,
         };
       case "budget-paused":
@@ -239,7 +237,7 @@ export function getEmptyReason(
           title: diagnosis.title,
           detail: diagnosis.detail,
           action: healthAction(diagnosis),
-          showSetupGuide: false,
+
           showChips: false,
         };
       case "refusing":
@@ -248,16 +246,17 @@ export function getEmptyReason(
           title: diagnosis.title,
           detail: diagnosis.detail,
           action: healthAction(diagnosis),
-          showSetupGuide: false,
+
           showChips: false,
         };
       case "never-loaded":
         return {
           variant: "never-installed",
-          title: "Nothing has been recorded here yet",
-          detail: diagnosis.detail,
-          action: null,
-          showSetupGuide: true,
+          title: "No recordings yet",
+          detail:
+            "Set up the recorder to see how visitors use your application.",
+          action: healthAction(diagnosis),
+
           showChips: false,
         };
       case "loaded-never-uploaded":
@@ -266,7 +265,7 @@ export function getEmptyReason(
           title: diagnosis.title,
           detail: diagnosis.detail,
           action: healthAction(diagnosis),
-          showSetupGuide: false,
+
           showChips: false,
         };
       default:
@@ -285,7 +284,7 @@ export function getEmptyReason(
       title: `No sessions match these filters in ${rangeLabel}`,
       detail: `Remove a filter, widen the range, or clear everything.${quietCopy}`,
       action: { kind: "clear-filters", label: "Clear filters" },
-      showSetupGuide: false,
+
       showChips: true,
     };
   }
@@ -311,7 +310,7 @@ export function getEmptyReason(
       title: `No sessions listed for ${rangeLabel} yet`,
       detail: `The recorder reported a session ${formatRelativeAge(lastSessionUnixMs as number, context.nowUnixMs)}, inside this window. The list can lag the first chunk by a few seconds; reload in a moment.`,
       action: { kind: "refresh", label: "Reload the list" },
-      showSetupGuide: false,
+
       showChips: false,
     };
   }
@@ -342,7 +341,7 @@ export function getEmptyReason(
           range: wider,
         }
       : null,
-    showSetupGuide: false,
+
     showChips: false,
   };
 }

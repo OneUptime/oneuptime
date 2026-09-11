@@ -17,6 +17,7 @@ import ReplayStage, {
   REPLAY_STAGE_MIN_HEIGHT_REM,
   REPLAY_STAGE_THEATER_MAX_HEIGHT_VH,
   computeContainScale,
+  computeReplayStageHeight,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayStage";
 import {
   ReplayEngine,
@@ -282,6 +283,158 @@ describe("ReplayStage mounting", () => {
 });
 
 describe("ReplayStage sizing", () => {
+  it("reserves the measured transport height without letting a short viewport erase the recording", () => {
+    expect(computeReplayStageHeight(900, 300, 260)).toBe(340);
+    expect(computeReplayStageHeight(1100, 300, 260)).toBe(540);
+    expect(computeReplayStageHeight(600, 350, 260)).toBe(256);
+  });
+
+  it("recalculates desktop height when transport size changes and keeps normal sizing on mobile", () => {
+    const engine: FakeEngine = new FakeEngine();
+    const originalWidth: number = window.innerWidth;
+    const originalHeight: number = window.innerHeight;
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 1440,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 900,
+    });
+
+    try {
+      const { rerender } = render(
+        <ReplayStage
+          engine={engine}
+          reservedBottomHeightPx={260}
+          viewportWidth={1200}
+          viewportHeight={760}
+        />,
+      );
+      expect(stageElement().style.maxHeight).toBe("640px");
+      expect(stageElement().style.aspectRatio).toBe("1200 / 760");
+      expect(stageElement().style.minHeight).toBe("16rem");
+
+      rerender(
+        <ReplayStage
+          engine={engine}
+          reservedBottomHeightPx={320}
+          viewportWidth={1200}
+          viewportHeight={760}
+        />,
+      );
+      expect(stageElement().style.maxHeight).toBe("580px");
+
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        value: 390,
+      });
+      act((): void => {
+        window.dispatchEvent(new Event("resize"));
+      });
+      expect(stageElement().style.maxHeight).toBe(
+        `${REPLAY_STAGE_MAX_HEIGHT_VH}vh`,
+      );
+      expect(stageElement().style.minHeight).toBe(
+        `${REPLAY_STAGE_MIN_HEIGHT_REM}rem`,
+      );
+    } finally {
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        value: originalWidth,
+      });
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        value: originalHeight,
+      });
+    }
+  });
+
+  it("refits when a header notice moves the stage without changing its own size", () => {
+    const originalObserver: PropertyDescriptor | undefined =
+      Object.getOwnPropertyDescriptor(window, "ResizeObserver");
+    const originalWidth: number = window.innerWidth;
+    const originalHeight: number = window.innerHeight;
+    const observed: Array<Element> = [];
+    const callbacks: Array<ResizeObserverCallback> = [];
+    const instances: Array<ResizeObserver> = [];
+    class TestResizeObserver implements ResizeObserver {
+      public constructor(callback: ResizeObserverCallback) {
+        callbacks.push(callback);
+        instances.push(this);
+      }
+      public observe(target: Element): void {
+        observed.push(target);
+      }
+      public unobserve(): void {
+        return;
+      }
+      public disconnect(): void {
+        return;
+      }
+    }
+    Object.defineProperty(window, "ResizeObserver", {
+      configurable: true,
+      value: TestResizeObserver,
+    });
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 1440,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 900,
+    });
+
+    try {
+      const engine: FakeEngine = new FakeEngine();
+      render(
+        <div data-replay-layout="true">
+          <header>Recording details</header>
+          <ReplayStage engine={engine} reservedBottomHeightPx={260} />
+        </div>,
+      );
+      const stage: HTMLElement = stageElement();
+      const header: HTMLElement = document.querySelector(
+        "header",
+      ) as HTMLElement;
+      expect(observed).toContain(header);
+      expect(observed).toContain(stage);
+      const rectangle: jest.SpiedFunction<() => DOMRect> = jest.spyOn(
+        stage,
+        "getBoundingClientRect",
+      );
+      rectangle.mockReturnValue({ top: 200 } as DOMRect);
+      act((): void => {
+        callbacks[0]?.([], instances[0] as ResizeObserver);
+      });
+      expect(stage.style.maxHeight).toBe("440px");
+
+      // A clipboard fallback expands the header; no resize event is needed.
+      header.textContent = "Copy the link by hand";
+      rectangle.mockReturnValue({ top: 300 } as DOMRect);
+      act((): void => {
+        callbacks[0]?.([], instances[0] as ResizeObserver);
+      });
+      expect(stage.style.maxHeight).toBe("340px");
+      rectangle.mockRestore();
+    } finally {
+      if (originalObserver) {
+        Object.defineProperty(window, "ResizeObserver", originalObserver);
+      } else {
+        Reflect.deleteProperty(window, "ResizeObserver");
+      }
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        value: originalWidth,
+      });
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        value: originalHeight,
+      });
+    }
+  });
+
   it("reserves the recorded aspect from the header viewport before the first frame", () => {
     const engine: FakeEngine = new FakeEngine();
 
