@@ -602,16 +602,37 @@ describe("Passkey settings registration", () => {
     ).toHaveTextContent("Passkey added. Use it the next time you sign in.");
   });
 
-  test("registers a security key as a second factor from the two-factor page", async () => {
+  test("registers security keys, closes registration and refreshes the list without a success banner", async () => {
     renderPage(false);
-    await register(false);
-    expect(posted[0]?.data).toEqual({ isPasskey: false });
-    expect(posted[1]?.data).toMatchObject({ name: "My laptop" });
-    expect(
-      screen.getByTestId("passkey-registration-success"),
-    ).toHaveTextContent(
-      "Security key added. It is ready to use for two-factor authentication.",
-    );
+    for (const registrationNumber of [1, 2]) {
+      const refreshBefore: string | null = screen
+        .getByTestId("security-keys-table")
+        .getAttribute("data-refresh");
+      await register(false);
+
+      expect(posted).toHaveLength(registrationNumber * 2);
+      expect(posted[(registrationNumber - 1) * 2]?.data).toEqual({
+        isPasskey: false,
+      });
+      expect(posted[registrationNumber * 2 - 1]?.data).toMatchObject({
+        name: "My laptop",
+      });
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId("security-keys-table").getAttribute("data-refresh"),
+      ).not.toBe(refreshBefore);
+      expect(
+        screen.queryByTestId("passkey-registration-success"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          "Security key added. It is ready to use for two-factor authentication.",
+        ),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Add Security Key" }),
+      ).toBeEnabled();
+    }
   });
 
   test.each([true, false])(
@@ -623,6 +644,16 @@ describe("Passkey settings registration", () => {
       expect(screen.getByTestId("enrolment-backup-codes")).toHaveTextContent(
         "ABCDE-12345,FGHIJ-67890",
       );
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      if (isPasskey) {
+        expect(
+          screen.getByTestId("passkey-registration-success"),
+        ).toHaveTextContent("Passkey added. Use it the next time you sign in.");
+      } else {
+        expect(
+          screen.queryByTestId("passkey-registration-success"),
+        ).not.toBeInTheDocument();
+      }
     },
   );
 
@@ -658,6 +689,11 @@ describe("Passkey settings registration", () => {
       });
       expect(posted).toHaveLength(3);
       expect(posted[2]?.data).toMatchObject({ name: "My laptop" });
+      if (!isPasskey) {
+        expect(
+          screen.queryByTestId("passkey-registration-success"),
+        ).not.toBeInTheDocument();
+      }
     },
   );
 
@@ -811,49 +847,65 @@ describe("Passkey settings registration", () => {
     ).toHaveTextContent("Passkey added");
   });
 
-  test("keeps verification visible until saving finishes and preserves returned recovery codes", async () => {
-    let finish: ((value: HTTPResponse<JSONObject>) => void) | undefined;
-    jest
-      .spyOn(API, "post")
-      .mockResolvedValueOnce(
-        new HTTPResponse<JSONObject>(200, { options: registrationOptions }, {}),
-      )
-      .mockImplementationOnce(() => {
-        return new Promise<HTTPResponse<JSONObject>>(
-          (resolve: (value: HTTPResponse<JSONObject>) => void) => {
-            finish = resolve;
-          },
+  test.each([true, false])(
+    "keeps verification visible until saving finishes and preserves returned recovery codes: passkey %s",
+    async (isPasskey: boolean) => {
+      let finish: ((value: HTTPResponse<JSONObject>) => void) | undefined;
+      jest
+        .spyOn(API, "post")
+        .mockResolvedValueOnce(
+          new HTTPResponse<JSONObject>(
+            200,
+            { options: registrationOptions },
+            {},
+          ),
+        )
+        .mockImplementationOnce(() => {
+          return new Promise<HTTPResponse<JSONObject>>(
+            (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+              finish = resolve;
+            },
+          );
+        });
+      renderPage(isPasskey);
+      await register(isPasskey);
+      expect(screen.getByRole("status")).toHaveTextContent("Saving your key");
+      expect(
+        screen.queryByRole("button", { name: "Cancel" }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Close" }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("passkey-registration-success"),
+      ).not.toBeInTheDocument();
+      await keyboard("{Escape}");
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      await act(async () => {
+        finish!(
+          new HTTPResponse<JSONObject>(
+            200,
+            { verified: true, backupCodes: ["ABCDE-12345"] },
+            {},
+          ),
         );
       });
-    renderPage();
-    await register();
-    expect(screen.getByRole("status")).toHaveTextContent("Saving your key");
-    expect(
-      screen.queryByRole("button", { name: "Cancel" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Close" }),
-    ).not.toBeInTheDocument();
-    await keyboard("{Escape}");
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    await act(async () => {
-      finish!(
-        new HTTPResponse<JSONObject>(
-          200,
-          { verified: true, backupCodes: ["ABCDE-12345"] },
-          {},
-        ),
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.getByTestId("enrolment-backup-codes")).toHaveTextContent(
+        "ABCDE-12345",
       );
-    });
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.getByTestId("enrolment-backup-codes")).toHaveTextContent(
-      "ABCDE-12345",
-    );
-    expect(
-      screen.getByTestId("passkey-registration-success"),
-    ).toHaveTextContent("Passkey added");
-  });
+      if (isPasskey) {
+        expect(
+          screen.getByTestId("passkey-registration-success"),
+        ).toHaveTextContent("Passkey added");
+      } else {
+        expect(
+          screen.queryByTestId("passkey-registration-success"),
+        ).not.toBeInTheDocument();
+      }
+    },
+  );
 
   test.each([true, false])(
     "lets the owner rename a key without updating credential or verification fields: passkey %s",

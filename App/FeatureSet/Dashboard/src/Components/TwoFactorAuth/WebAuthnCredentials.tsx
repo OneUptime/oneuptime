@@ -172,7 +172,7 @@ const WebAuthnCredentials: FunctionComponent<ComponentProps> = (
       setWebAuthnRegistrationSuccess(
         isRegisteringPasskey
           ? "Passkey added. Use it the next time you sign in."
-          : "Security key added. It is ready to use for two-factor authentication.",
+          : null,
       );
       setTableRefreshToggle((previous: string) => {
         return String(Number(previous) + 1);
