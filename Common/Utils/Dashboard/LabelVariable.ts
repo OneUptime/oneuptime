@@ -72,7 +72,7 @@ export default class DashboardLabelVariable {
       variable.type !== DashboardVariableType.ProjectLabel
     ) {
       throw new BadDataException(
-        "The monitor widget's label variable is missing or is not a project label variable. Edit the widget to select a label variable.",
+        "The dashboard widget's label variable is missing or is not a project label variable. Edit the widget to select a label variable.",
       );
     }
 

@@ -588,6 +588,52 @@ describe("DashboardAPI public Data Source strip", () => {
     });
   });
 
+  describe("SLO fleet relationship ids never reach an anonymous viewer", () => {
+    it("strips stored monitor and label scopes from the view-config response", async () => {
+      const monitorId: string = ObjectID.generate().toString();
+      const labelId: string = ObjectID.generate().toString();
+      const labelVariableId: string = "private-slo-label-variable";
+      const sloList: BuiltWidget = buildWidget(
+        DashboardComponentType.SloList,
+        {
+          title: "Production reliability",
+          maxRows: 50,
+          sloStatuses: ["At Risk"],
+          monitorIds: [monitorId],
+          labelIds: [labelId],
+          labelVariableId,
+        },
+      );
+      setDashboardWidgets([sloList.widget]);
+      const storedSnapshot: string = JSON.stringify(
+        dashboard.dashboardViewConfig,
+      );
+      const viewConfigRoute: PublicConfigRoute = PUBLIC_CONFIG_ROUTES.find(
+        (route: PublicConfigRoute): boolean => {
+          return route.uri === VIEW_CONFIG_ROUTE;
+        },
+      ) as PublicConfigRoute;
+
+      await callRoute(viewConfigRoute);
+
+      const body: JSONObject = getResponseBody();
+      const components: Array<JSONObject> = getServedComponents(body);
+      expect(components).toHaveLength(1);
+      expect(components[0]?.["componentId"]).toBe(sloList.componentId);
+      expect(components[0]?.["arguments"]).toEqual({
+        title: "Production reliability",
+        maxRows: 50,
+        sloStatuses: ["At Risk"],
+      });
+      expect(JSON.stringify(body)).not.toContain(monitorId);
+      expect(JSON.stringify(body)).not.toContain(labelId);
+      expect(JSON.stringify(body)).not.toContain(labelVariableId);
+      expect(JSON.stringify(dashboard.dashboardViewConfig)).toBe(
+        storedSnapshot,
+      );
+    });
+  });
+
   describe("overview summaries are built from the sanitized config", () => {
     it.each(OVERVIEW_ROUTES)(
       "$name summarises only the widgets that survived the strip",

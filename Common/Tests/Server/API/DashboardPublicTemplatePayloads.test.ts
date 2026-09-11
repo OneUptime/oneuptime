@@ -2,6 +2,7 @@ import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import DashboardAPI from "../../../Server/API/DashboardAPI";
 import DashboardService from "../../../Server/Services/DashboardService";
 import MetricService from "../../../Server/Services/MetricService";
+import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
 import TelemetryAttributeService from "../../../Server/Services/TelemetryAttributeService";
 import {
   ExpressRequest,
@@ -12,6 +13,7 @@ import {
   DashboardTemplateType,
   getTemplateConfig,
 } from "../../../Types/Dashboard/DashboardTemplates";
+import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import { DashboardVariableType } from "../../../Types/Dashboard/DashboardVariable";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import { JSONObject } from "../../../Types/JSON";
@@ -56,6 +58,8 @@ const ATTRIBUTE_VALUES_ROUTE: string =
   "/dashboard/attribute-values/:dashboardId";
 const METRICS_AGGREGATE_ROUTE: string =
   "/dashboard/metrics-aggregate/:dashboardId";
+const RESOURCE_LIST_ROUTE: string =
+  "/dashboard/resource-list/:dashboardId/:resourceType";
 
 /*
  * Every template a user can actually create a dashboard from. Blank has no
@@ -148,6 +152,54 @@ const collectStringsUnderKey: WalkCollectFunction = (
   return Array.from(new Set(found));
 };
 
+type CollectComponentIdsFunction = (
+  config: unknown,
+  componentType: DashboardComponentType,
+) => Array<string>;
+
+const collectComponentIds: CollectComponentIdsFunction = (
+  config: unknown,
+  componentType: DashboardComponentType,
+): Array<string> => {
+  const found: Array<string> = [];
+
+  const walk: (node: unknown) => void = (node: unknown): void => {
+    if (!node || typeof node !== "object") {
+      return;
+    }
+
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        walk(item);
+      }
+      return;
+    }
+
+    const object: Record<string, unknown> = node as Record<string, unknown>;
+    const storedComponentId: unknown = object["componentId"];
+    const componentId: string | undefined =
+      typeof storedComponentId === "string"
+        ? storedComponentId
+        : storedComponentId &&
+            typeof storedComponentId === "object" &&
+            typeof (storedComponentId as Record<string, unknown>)["value"] ===
+              "string"
+          ? ((storedComponentId as Record<string, unknown>)["value"] as string)
+          : undefined;
+
+    if (object["componentType"] === componentType && componentId) {
+      found.push(componentId);
+    }
+
+    for (const value of Object.values(object)) {
+      walk(value);
+    }
+  };
+
+  walk(config);
+  return found;
+};
+
 describe("public dashboard allowlists vs the shipped templates", () => {
   let dashboardId: ObjectID;
   let projectId: ObjectID;
@@ -228,6 +280,29 @@ describe("public dashboard allowlists vs the shipped templates", () => {
       .handlerFunction(request, mockResponse, nextFunction);
   };
 
+  type CallResourceListFunction = (componentId: string) => Promise<void>;
+
+  const callResourceList: CallResourceListFunction = async (
+    componentId: string,
+  ): Promise<void> => {
+    const request: ExpressRequest = {
+      params: {
+        dashboardId: dashboardId.toString(),
+        resourceType: "slo",
+      },
+      body: { componentId },
+      query: {},
+      cookies: {},
+      headers: {},
+      socket: {},
+      ips: [],
+    } as unknown as ExpressRequest;
+
+    await mockRouter
+      .match("post", RESOURCE_LIST_ROUTE)
+      .handlerFunction(request, mockResponse, nextFunction);
+  };
+
   type ExpectNoErrorFunction = (context: string) => void;
 
   const expectNoError: ExpectNoErrorFunction = (context: string): void => {
@@ -260,6 +335,9 @@ describe("public dashboard allowlists vs the shipped templates", () => {
       .spyOn(TelemetryAttributeService, "fetchAttributeValues")
       .mockResolvedValue([]);
     jest.spyOn(MetricService, "aggregateBy").mockResolvedValue({ data: [] });
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findBy")
+      .mockResolvedValue([]);
 
     mockResponse = {
       cookie: jest.fn(),
@@ -338,6 +416,10 @@ describe("public dashboard allowlists vs the shipped templates", () => {
           config,
           "groupByAttributeKeys",
         );
+        const sloListComponentIds: Array<string> = collectComponentIds(
+          config,
+          DashboardComponentType.SloList,
+        );
 
         let requests: number = 0;
 
@@ -404,6 +486,17 @@ describe("public dashboard allowlists vs the shipped templates", () => {
             expect(MetricService.aggregateBy).toHaveBeenCalledTimes(1);
             requests++;
           }
+        }
+
+        // 5. Fleet SLO templates read their stored, zero-config SLO list.
+        for (const componentId of sloListComponentIds) {
+          jest.clearAllMocks();
+
+          await callResourceList(componentId);
+
+          expectNoError(`${templateType} SLO fleet component`);
+          expect(ServiceLevelObjectiveService.findBy).toHaveBeenCalledTimes(1);
+          requests++;
         }
 
         // The template must actually have exercised something.

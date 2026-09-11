@@ -45,6 +45,7 @@ import DashboardProxmoxNodeListComponentUtil from "../../../../Utils/Dashboard/C
 import DashboardSecurityEventsFlowComponentUtil from "../../../../Utils/Dashboard/Components/DashboardSecurityEventsFlowComponent";
 import DashboardSecurityEventsListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardSecurityEventsListComponent";
 import DashboardSloComponentUtil from "../../../../Utils/Dashboard/Components/DashboardSloComponent";
+import DashboardSloListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardSloListComponent";
 import DashboardTableComponentUtil from "../../../../Utils/Dashboard/Components/DashboardTableComponent";
 import DashboardTextComponentUtil from "../../../../Utils/Dashboard/Components/DashboardTextComponent";
 import DashboardTraceChartComponentUtil from "../../../../Utils/Dashboard/Components/DashboardTraceChartComponent";
@@ -108,6 +109,7 @@ const TYPE_TO_UTIL: Record<DashboardComponentType, ComponentUtil> = {
   [DashboardComponentType.AlertList]: DashboardAlertListComponentUtil,
   [DashboardComponentType.MonitorList]: DashboardMonitorListComponentUtil,
   [DashboardComponentType.Slo]: DashboardSloComponentUtil,
+  [DashboardComponentType.SloList]: DashboardSloListComponentUtil,
   [DashboardComponentType.KubernetesPodList]:
     DashboardKubernetesPodListComponentUtil,
   [DashboardComponentType.KubernetesNodeList]:

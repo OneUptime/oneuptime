@@ -362,7 +362,10 @@ describe("AddWidgetModal", () => {
 
       typeSearch("error budget");
 
-      expect(getVisibleWidgetTypes()).toEqual([DashboardComponentType.Slo]);
+      expect(getVisibleWidgetTypes()).toEqual([
+        DashboardComponentType.Slo,
+        DashboardComponentType.SloList,
+      ]);
     });
 
     test("narrows further with each additional word", () => {

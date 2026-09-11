@@ -38,6 +38,7 @@ import DashboardIncidentListComponentUtil from "Common/Utils/Dashboard/Component
 import DashboardAlertListComponentUtil from "Common/Utils/Dashboard/Components/DashboardAlertListComponent";
 import DashboardMonitorListComponentUtil from "Common/Utils/Dashboard/Components/DashboardMonitorListComponent";
 import DashboardSloComponentUtil from "Common/Utils/Dashboard/Components/DashboardSloComponent";
+import DashboardSloListComponentUtil from "Common/Utils/Dashboard/Components/DashboardSloListComponent";
 import DashboardKubernetesPodListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesPodListComponent";
 import DashboardKubernetesNodeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesNodeListComponent";
 import DashboardKubernetesNamespaceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesNamespaceListComponent";
@@ -794,6 +795,10 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
           if (componentType === DashboardComponentType.Slo) {
             newComponent = DashboardSloComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.SloList) {
+            newComponent = DashboardSloListComponentUtil.getDefaultComponent();
           }
 
           if (componentType === DashboardComponentType.KubernetesPodList) {

@@ -27,6 +27,7 @@ enum DashboardComponentType {
   AlertList = `AlertList`,
   MonitorList = `MonitorList`,
   Slo = `Slo`,
+  SloList = `SloList`,
   KubernetesPodList = `KubernetesPodList`,
   KubernetesNodeList = `KubernetesNodeList`,
   KubernetesNamespaceList = `KubernetesNamespaceList`,

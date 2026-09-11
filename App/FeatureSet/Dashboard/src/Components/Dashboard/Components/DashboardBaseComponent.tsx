@@ -16,6 +16,7 @@ import DashboardDataSourceValueComponent from "./DashboardDataSourceValueCompone
 import DashboardDataSourceGaugeComponent from "./DashboardDataSourceGaugeComponent";
 import DashboardDataSourceTableComponent from "./DashboardDataSourceTableComponent";
 import DashboardSloComponent from "./DashboardSloComponent";
+import DashboardSloListComponent from "./DashboardSloListComponent";
 import DashboardLogStreamComponent from "./DashboardLogStreamComponent";
 import DashboardLogChartComponent from "./DashboardLogChartComponent";
 import DashboardSecurityEventsListComponent from "./DashboardSecurityEventsListComponent";
@@ -156,6 +157,7 @@ const WIDGET_BY_TYPE: Partial<
   [DashboardComponentType.AlertList]: DashboardAlertListComponent,
   [DashboardComponentType.MonitorList]: DashboardMonitorListComponent,
   [DashboardComponentType.Slo]: DashboardSloComponent,
+  [DashboardComponentType.SloList]: DashboardSloListComponent,
   [DashboardComponentType.KubernetesPodList]:
     DashboardKubernetesPodListComponent,
   [DashboardComponentType.KubernetesNodeList]:

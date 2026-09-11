@@ -626,6 +626,30 @@ describe("DashboardAPI public SLO", () => {
       expectNothingRead();
     });
 
+    it("refuses history for an SLO fleet widget, which publishes headlines only", async () => {
+      const componentId: ObjectID = ObjectID.generate();
+      setWidgets([
+        {
+          _type: "DashboardComponent",
+          componentId: componentId.toString(),
+          componentType: DashboardComponentType.SloList,
+          topInDashboardUnits: 0,
+          leftInDashboardUnits: 0,
+          widthInDashboardUnits: 12,
+          heightInDashboardUnits: 8,
+          arguments: { maxRows: 50 },
+        },
+      ]);
+
+      await callSloHistory({
+        componentId: componentId.toString(),
+        aggregateBy: buildAggregateBy(),
+      });
+
+      expect(getThrownError()).toBeInstanceOf(BadDataException);
+      expectNothingRead();
+    });
+
     it("refuses a componentId that is not an SLO widget on this dashboard", async () => {
       const slo: BuiltWidget = buildSloChartWidget();
       setWidgets([slo.widget]);

@@ -88,6 +88,7 @@ const PUBLIC_COMPONENT_TYPES: Array<DashboardComponentType> = [
   DashboardComponentType.Clock,
   DashboardComponentType.IncidentList,
   DashboardComponentType.MonitorList,
+  DashboardComponentType.SloList,
 ];
 
 describe("PublicDashboardViewConfig", () => {
@@ -151,6 +152,32 @@ describe("PublicDashboardViewConfig", () => {
       // Same object identity: nothing is cloned, rewritten, or field-stripped.
       expect(result!.components[0]).toBe(metricChart);
       expect(result!.components[1]).toBe(clock);
+    });
+
+    it("strips private relationship filters from a public SLO fleet widget", () => {
+      const sloList: DashboardBaseComponent = widget(
+        DashboardComponentType.SloList,
+        {
+          title: "Production SLOs",
+          maxRows: 50,
+          sloStatuses: ["At Risk", "Budget Exhausted"],
+          monitorIds: ["private-monitor-id"],
+          labelIds: ["private-label-id"],
+          labelVariableId: "private-label-variable",
+        },
+      );
+      const storedSnapshot: string = JSON.stringify(sloList);
+
+      const result: DashboardViewConfig | null = sanitize(config([sloList]));
+
+      expect(result!.components).toHaveLength(1);
+      expect(result!.components[0]).not.toBe(sloList);
+      expect(result!.components[0]!.arguments).toEqual({
+        title: "Production SLOs",
+        maxRows: 50,
+        sloStatuses: ["At Risk", "Budget Exhausted"],
+      });
+      expect(JSON.stringify(sloList)).toBe(storedSnapshot);
     });
 
     it.each([...DataSourceComponentTypes])(

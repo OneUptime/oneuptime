@@ -20,6 +20,11 @@ import DashboardComponentType, {
  * So the widgets are dropped outright rather than field-stripped: the
  * placeholder the client renders needs nothing from the config, and
  * dropping leaves no room for a later-added field to leak by omission.
+ *
+ * SLO fleet widgets do render publicly, but their stored monitor and label
+ * scopes describe private relationships which the public list response does
+ * not expose. Those filter ids are removed from the client copy while the
+ * resource endpoint continues to enforce the unsanitized stored config.
  */
 export default class PublicDashboardViewConfig {
   public static sanitize(
@@ -34,9 +39,40 @@ export default class PublicDashboardViewConfig {
 
     return {
       ...dashboardViewConfig,
-      components: components.filter((component: DashboardBaseComponent) => {
-        return !PublicDashboardViewConfig.isDataSourceComponent(component);
-      }),
+      components: components
+        .filter((component: DashboardBaseComponent) => {
+          return !PublicDashboardViewConfig.isDataSourceComponent(component);
+        })
+        .map((component: DashboardBaseComponent): DashboardBaseComponent => {
+          return PublicDashboardViewConfig.sanitizeComponent(component);
+        }),
+    };
+  }
+
+  private static sanitizeComponent(
+    component: DashboardBaseComponent,
+  ): DashboardBaseComponent {
+    if (
+      !component ||
+      typeof component !== "object" ||
+      component.componentType !== DashboardComponentType.SloList ||
+      !component.arguments ||
+      typeof component.arguments !== "object" ||
+      Array.isArray(component.arguments)
+    ) {
+      return component;
+    }
+
+    const publicArguments: Record<string, unknown> = {
+      ...(component.arguments as Record<string, unknown>),
+    };
+    delete publicArguments["monitorIds"];
+    delete publicArguments["labelIds"];
+    delete publicArguments["labelVariableId"];
+
+    return {
+      ...component,
+      arguments: publicArguments,
     };
   }
 

@@ -112,11 +112,26 @@ interface PublicDashboardResourceConfig {
 }
 
 /*
- * Named rather than inlined below: the SLO history route selects its widget
- * through the same registry entry as the resource-list route, so both must
- * agree on which stored widgets count as "an SLO widget on this dashboard".
+ * Both SLO widget families read current values from the same resource-list
+ * route. The fleet overview opts into the project's SLO headline data, while
+ * the single-SLO widget opts into only its configured row; the policy below
+ * rebuilds the exact query from the stored component.
  */
-const PUBLIC_DASHBOARD_SLO_RESOURCE: PublicDashboardResourceConfig = {
+const PUBLIC_DASHBOARD_SLO_LIST_RESOURCE: PublicDashboardResourceConfig = {
+  modelType: ServiceLevelObjective,
+  service: ServiceLevelObjectiveService,
+  widgets: {
+    [DashboardComponentType.Slo]: null,
+    [DashboardComponentType.SloList]: null,
+  },
+};
+
+/*
+ * History is meaningful only for the single-SLO chart widget. Keep its
+ * selector separate so a fleet-list component can never authorize a history
+ * query merely because both components share the `slo` resource route.
+ */
+const PUBLIC_DASHBOARD_SLO_HISTORY_RESOURCE: PublicDashboardResourceConfig = {
   modelType: ServiceLevelObjective,
   service: ServiceLevelObjectiveService,
   widgets: {
@@ -293,7 +308,7 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
       [DashboardComponentType.LogStream]: null,
     },
   },
-  slo: PUBLIC_DASHBOARD_SLO_RESOURCE,
+  slo: PUBLIC_DASHBOARD_SLO_LIST_RESOURCE,
 };
 
 type ResolveDashboardIdOrThrowFunction = (
@@ -1392,7 +1407,7 @@ export default class DashboardAPI extends BaseAPI<
 
           const widget: JSONObject = DashboardAPI.selectPublicResourceWidget({
             dashboardViewConfig: dashboard.dashboardViewConfig,
-            config: PUBLIC_DASHBOARD_SLO_RESOURCE,
+            config: PUBLIC_DASHBOARD_SLO_HISTORY_RESOURCE,
             requestedComponentId: req.body["componentId"],
           });
 

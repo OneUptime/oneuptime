@@ -30,6 +30,7 @@ import { DashboardValueTrendDirection } from "./DashboardComponents/DashboardVal
 export enum DashboardTemplateType {
   Blank = "Blank",
   Monitor = "Monitor",
+  Slo = "Slo",
   Incident = "Incident",
   Alert = "Alert",
   Kubernetes = "Kubernetes",
@@ -86,6 +87,14 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     description:
       "Response time, uptime, status codes, CPU/memory health gauges, and breakdown table for synthetic and server monitors.",
     icon: IconProp.Heartbeat,
+    category: DashboardTemplateCategory.Monitoring,
+  },
+  {
+    type: DashboardTemplateType.Slo,
+    name: "SLO Dashboard",
+    description:
+      "Fleet-wide SLO health with targets, compliance windows, current SLI, error budget remaining, burn rates, and drill-downs.",
+    icon: IconProp.Percent,
     category: DashboardTemplateCategory.Monitoring,
   },
   {
@@ -935,6 +944,41 @@ function createMonitorListComponent(data: {
 }
 
 // -- Dashboard configs --
+
+function createSloDashboardConfig(): DashboardViewConfig {
+  const components: Array<DashboardBaseComponent> = [
+    createTextComponent({
+      text: "Service Level Objectives Dashboard",
+      top: 0,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+    {
+      _type: ObjectType.DashboardComponent,
+      componentType: DashboardComponentType.SloList,
+      componentId: ObjectID.generate(),
+      topInDashboardUnits: 1,
+      leftInDashboardUnits: 0,
+      widthInDashboardUnits: 12,
+      heightInDashboardUnits: 8,
+      minHeightInDashboardUnits: 4,
+      minWidthInDashboardUnits: 6,
+      arguments: {
+        title: "SLO Fleet Overview",
+        maxRows: 50,
+      },
+    },
+  ];
+
+  return {
+    _type: ObjectType.DashboardViewConfig,
+    components,
+    variables: [],
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 9),
+  };
+}
 
 function createMonitorDashboardConfig(): DashboardViewConfig {
   const components: Array<DashboardBaseComponent> = [
@@ -4124,6 +4168,8 @@ export function getTemplateConfig(
   switch (type) {
     case DashboardTemplateType.Monitor:
       return createMonitorDashboardConfig();
+    case DashboardTemplateType.Slo:
+      return createSloDashboardConfig();
     case DashboardTemplateType.Incident:
       return createIncidentDashboardConfig();
     case DashboardTemplateType.Alert:

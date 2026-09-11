@@ -16,6 +16,7 @@ import { DashboardVariableType } from "../../../../Types/Dashboard/DashboardVari
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import SloStatus from "../../../../Types/ServiceLevelObjective/SloStatus";
 
 const RANGE_START: Date = new Date("2026-08-09T10:00:00.000Z");
 const RANGE_END: Date = new Date("2026-08-09T11:00:00.000Z");
@@ -127,6 +128,27 @@ const MAPPING_CASES: Array<MappingCase> = [
     },
     expectedSort: { name: SortOrder.Ascending },
     expectedLimit: 25,
+  },
+  {
+    name: "SLO fleet overview",
+    componentType: DashboardComponentType.SloList,
+    resourceType: "slo",
+    argumentsObject: {
+      maxRows: 50,
+      sloStatuses: [SloStatus.AtRisk, SloStatus.BudgetExhausted],
+      monitorIds: ["monitor"],
+      labelIds: ["label"],
+    },
+    expectedQuery: {
+      sloStatus: new Includes([
+        SloStatus.AtRisk,
+        SloStatus.BudgetExhausted,
+      ]),
+      monitors: new Includes(["monitor"]),
+      labels: new Includes(["label"]),
+    },
+    expectedSort: { name: SortOrder.Ascending },
+    expectedLimit: LIMIT_PER_PROJECT,
   },
   {
     name: "network map",
@@ -1085,6 +1107,105 @@ describe("PublicDashboardResourceListPolicy", () => {
           argumentsObject: { ...sloArguments, displayType: "Raw" },
         });
       }).toThrow(BadDataException);
+    });
+
+    it("publishes only headline state for the fleet overview", () => {
+      const select: JSONObject = build({
+        componentType: DashboardComponentType.SloList,
+      }).select;
+
+      expect(select).toEqual({
+        _id: true,
+        name: true,
+        targetPercentage: true,
+        currentSliPercentage: true,
+        errorBudgetRemainingPercentage: true,
+        errorBudgetRemainingSeconds: true,
+        currentBurnRate: true,
+        sloStatus: true,
+        isEnabled: true,
+      });
+
+      for (const privateColumn of [
+        "description",
+        "monitors",
+        "labels",
+        "monitorLabels",
+        "metricQueryConfig",
+        "windowType",
+        "windowDays",
+        "timezone",
+        "projectId",
+        "createdByUserId",
+      ]) {
+        expect(select[privateColumn]).toBeUndefined();
+      }
+    });
+
+    it("uses only stored fleet filters and ignores a forged caller query", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.SloList,
+        argumentsObject: {
+          maxRows: 50,
+          sloStatuses: [SloStatus.AtRisk],
+          monitorIds: ["stored-monitor"],
+          labelIds: ["stored-label"],
+        },
+        requestedQuery: {
+          _id: ObjectID.generate().toString(),
+          projectId: ObjectID.generate().toString(),
+          sloStatus: SloStatus.Healthy,
+          monitors: ["forged-monitor"],
+          labels: ["forged-label"],
+          description: "probe",
+        },
+      });
+
+      expect(result.query).toEqual({
+        sloStatus: new Includes([SloStatus.AtRisk]),
+        monitors: new Includes(["stored-monitor"]),
+        labels: new Includes(["stored-label"]),
+      });
+      expect(result.limit).toBe(LIMIT_PER_PROJECT);
+    });
+
+    it("accepts every persisted SLO status and rejects unknown values", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.SloList,
+        argumentsObject: {
+          sloStatuses: Object.values(SloStatus),
+        },
+      });
+
+      expect(result.query["sloStatus"]).toEqual(
+        new Includes(Object.values(SloStatus)),
+      );
+
+      for (const invalidStatuses of [
+        ["Breached"],
+        [SloStatus.Healthy, "Unknown"],
+        "Healthy",
+        [null],
+      ]) {
+        expect(() => {
+          return build({
+            componentType: DashboardComponentType.SloList,
+            argumentsObject: {
+              sloStatuses: invalidStatuses,
+            } as unknown as JSONObject,
+          });
+        }).toThrow(BadDataException);
+      }
+    });
+
+    it("allows an unfiltered zero-config fleet overview", () => {
+      const result: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.SloList,
+      });
+
+      expect(result.query).toEqual({});
+      expect(result.sort).toEqual({ name: SortOrder.Ascending });
+      expect(result.limit).toBe(LIMIT_PER_PROJECT);
     });
   });
 

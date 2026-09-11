@@ -31,6 +31,7 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAnyOfGroups from "../../../Types/BaseDatabase/IncludesAnyOfGroups";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import { DashboardVariableType } from "../../../Types/Dashboard/DashboardVariable";
@@ -39,6 +40,7 @@ import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticated
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import { mockRouter } from "./Helpers";
 import {
   afterEach,
@@ -321,6 +323,12 @@ const RESOURCE_ROUTE_CASES: Array<ResourceRouteCase> = [
     service: ServiceLevelObjectiveService,
     kind: null,
     argumentsObject: { serviceLevelObjectiveId: SLO_ID.toString() },
+  },
+  {
+    resourceType: "slo",
+    componentType: DashboardComponentType.SloList,
+    service: ServiceLevelObjectiveService,
+    kind: null,
   },
 ];
 
@@ -886,6 +894,72 @@ describe("DashboardAPI public resource-list", () => {
         createdAt: SortOrder.Descending,
       });
       expect(findByArgs["limit"]).toBe(9);
+      expect(findByArgs["skip"]).toBe(0);
+    });
+
+    it("serves the SLO fleet using only stored filters and a server-pinned project", async () => {
+      const monitorId: ObjectID = ObjectID.generate();
+      const labelId: ObjectID = ObjectID.generate();
+      const sloList: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.SloList,
+        argumentsObject: {
+          maxRows: 50,
+          sloStatuses: [SloStatus.AtRisk, SloStatus.BudgetExhausted],
+          monitorIds: [monitorId.toString()],
+          labelIds: [labelId.toString()],
+        },
+      });
+      setDashboardWidgets([sloList.widget]);
+
+      await callRoute({
+        resourceType: "slo",
+        body: {
+          componentId: sloList.componentId.toString(),
+          query: {
+            projectId: ObjectID.generate().toString(),
+            sloStatus: SloStatus.Healthy,
+            monitors: [ObjectID.generate().toString()],
+            labels: [ObjectID.generate().toString()],
+            metricQueryConfig: { secret: true },
+          },
+          select: {
+            description: true,
+            monitors: true,
+            labels: true,
+            metricQueryConfig: true,
+          },
+          limit: 10000,
+          skip: 1000,
+        },
+      });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      const findByArgs: JSONObject = getFindByArgs(
+        ServiceLevelObjectiveService,
+      );
+
+      expect(findByArgs["query"]).toEqual({
+        projectId,
+        sloStatus: new Includes([
+          SloStatus.AtRisk,
+          SloStatus.BudgetExhausted,
+        ]),
+        monitors: new Includes([monitorId.toString()]),
+        labels: new Includes([labelId.toString()]),
+      });
+      expect(findByArgs["select"]).toEqual({
+        _id: true,
+        name: true,
+        targetPercentage: true,
+        currentSliPercentage: true,
+        errorBudgetRemainingPercentage: true,
+        errorBudgetRemainingSeconds: true,
+        currentBurnRate: true,
+        sloStatus: true,
+        isEnabled: true,
+      });
+      expect(findByArgs["sort"]).toEqual({ name: SortOrder.Ascending });
+      expect(findByArgs["limit"]).toBe(LIMIT_PER_PROJECT);
       expect(findByArgs["skip"]).toBe(0);
     });
 

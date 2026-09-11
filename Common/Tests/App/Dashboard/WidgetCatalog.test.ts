@@ -182,7 +182,10 @@ describe("WidgetCatalog", () => {
       expect(getTypesIn("Monitors")).toEqual([
         DashboardComponentType.MonitorList,
       ]);
-      expect(getTypesIn("SLOs")).toEqual([DashboardComponentType.Slo]);
+      expect(getTypesIn("SLOs")).toEqual([
+        DashboardComponentType.Slo,
+        DashboardComponentType.SloList,
+      ]);
     });
 
     test("keeps every observability category in the Observability group", () => {
@@ -344,6 +347,7 @@ describe("WidgetCatalog", () => {
     test("matches keywords that are not in the visible copy", () => {
       expect(getMatchedTypes("burn rate")).toEqual([
         DashboardComponentType.Slo,
+        DashboardComponentType.SloList,
       ]);
       expect(getMatchedTypes("iframe")).toEqual([DashboardComponentType.Html]);
       expect(getMatchedTypes("timezone")).toEqual([

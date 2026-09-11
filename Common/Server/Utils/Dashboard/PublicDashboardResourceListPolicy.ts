@@ -22,6 +22,7 @@ import DashboardModelQueryInterpolation, {
 } from "../../../Utils/Dashboard/ModelQueryVariableInterpolation";
 import DashboardVariableInterpolation from "../../../Utils/Dashboard/VariableInterpolation";
 import DashboardLabelVariable from "../../../Utils/Dashboard/LabelVariable";
+import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 
 export interface PublicDashboardResourceListPolicyResult {
   resourceType: string;
@@ -554,6 +555,18 @@ export default class PublicDashboardResourceListPolicy {
           currentBurnRate: true,
           sloStatus: true,
         };
+      case DashboardComponentType.SloList:
+        return {
+          _id: true,
+          name: true,
+          targetPercentage: true,
+          currentSliPercentage: true,
+          errorBudgetRemainingPercentage: true,
+          errorBudgetRemainingSeconds: true,
+          currentBurnRate: true,
+          sloStatus: true,
+          isEnabled: true,
+        };
       default:
         throw new BadDataException(
           "This dashboard widget cannot list public resources.",
@@ -770,6 +783,11 @@ export default class PublicDashboardResourceListPolicy {
       case DashboardComponentType.Slo:
         return PublicDashboardResourceListPolicy.buildSloPolicy(
           argumentsObject,
+        );
+      case DashboardComponentType.SloList:
+        return PublicDashboardResourceListPolicy.buildSloListPolicy(
+          argumentsObject,
+          variables,
         );
       default:
         throw new BadDataException(
@@ -1596,6 +1614,77 @@ export default class PublicDashboardResourceListPolicy {
       query: { _id: config.serviceLevelObjectiveId },
       sort: { name: SortOrder.Ascending },
       limit: 1,
+    };
+  }
+
+  /*
+   * A fleet overview intentionally publishes more than one SLO, but the
+   * caller still controls none of the scope. Filters, row cap and dashboard
+   * label variable binding all come from the stored widget; the route pins
+   * projectId after this policy returns and discards the requested query.
+   */
+  private static buildSloListPolicy(
+    argumentsObject: Record<string, unknown>,
+    variables: Array<DashboardVariable>,
+  ): PolicyDraft {
+    const query: Record<string, unknown> = {};
+    const statuses: Array<string> | undefined =
+      PublicDashboardResourceListPolicy.optionalStringArray(
+        argumentsObject,
+        "sloStatuses",
+      );
+
+    if (statuses && statuses.length > 0) {
+      const allowedStatuses: Array<string> = Object.values(SloStatus);
+
+      if (
+        statuses.some((status: string): boolean => {
+          return !allowedStatuses.includes(status);
+        })
+      ) {
+        throw new BadDataException(
+          "Dashboard widget sloStatuses contains an invalid value.",
+        );
+      }
+
+      query["sloStatus"] = new Includes(statuses);
+    }
+
+    PublicDashboardResourceListPolicy.addIncludesFromArgument({
+      query,
+      queryKey: "monitors",
+      argumentsObject,
+      argumentKey: "monitorIds",
+    });
+
+    const labels: ReturnType<typeof DashboardLabelVariable.getFilter> =
+      DashboardLabelVariable.getFilter({
+        labelIds: PublicDashboardResourceListPolicy.optionalStringArray(
+          argumentsObject,
+          "labelIds",
+        ),
+        labelVariableId: PublicDashboardResourceListPolicy.optionalString(
+          argumentsObject,
+          "labelVariableId",
+          false,
+        ),
+        variables,
+      });
+    if (labels) {
+      query["labels"] = labels;
+    }
+
+    return {
+      ...PublicDashboardResourceListPolicy.listDraft({
+        resourceType: "slo",
+        query,
+        sort: { name: SortOrder.Ascending },
+        argumentsObject,
+      }),
+      // The client applies its stored row cap after interactive filtering.
+      // Returning the bounded project fleet prevents a name, monitor or label
+      // after the first alphabetical page from becoming impossible to find.
+      limit: LIMIT_PER_PROJECT,
     };
   }
 
