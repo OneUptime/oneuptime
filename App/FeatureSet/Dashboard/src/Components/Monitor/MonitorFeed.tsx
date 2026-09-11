@@ -1,8 +1,7 @@
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import Feed from "Common/UI/Components/Feed/Feed";
-import API from "Common/UI/Utils/API/API";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import MonitorFeed, {
@@ -15,8 +14,7 @@ import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Exception from "Common/Types/Exception/Exception";
+import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -25,10 +23,6 @@ export interface ComponentProps {
 const MonitorFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
-  const [error, setError] = React.useState<string | undefined>(undefined);
-  const [feedItems, setFeedItems] = React.useState<FeedItemProps[]>([]);
-
   type GetFeedItemsFromMonitorFeeds = (
     monitorFeeds: MonitorFeed[],
   ) => FeedItemProps[];
@@ -116,11 +110,20 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
     };
   };
 
-  const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
-    setError("");
-    setIsLoading(true);
-    try {
-      const monitorFeeds: ListResult<MonitorFeed> = await ModelAPI.getList({
+  const {
+    feedItems,
+    isLoading,
+    isLoadingMore,
+    error,
+    loadMoreError,
+    hasMore,
+    isCurrentFeedLoaded,
+    refresh,
+    loadMore,
+  } = useFeedItems<MonitorFeed>({
+    resourceKey: props.monitorId.toString(),
+    getItems: async (limit: number): Promise<ListResult<MonitorFeed>> => {
+      return await ModelAPI.getList({
         modelType: MonitorFeed,
         query: {
           monitorId: props.monitorId!,
@@ -142,29 +145,11 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
         sort: {
           postedAt: SortOrder.Descending,
         },
-        limit: 50,
+        limit,
       });
-
-      // reverse the order of the items
-      monitorFeeds.data.reverse();
-
-      setFeedItems(getFeedItemsFromMonitorFeeds(monitorFeeds.data));
-    } catch (err: unknown) {
-      setError(API.getFriendlyMessage(err as Exception));
-    }
-
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    if (!props.monitorId) {
-      return;
-    }
-
-    fetchItems().catch((err: unknown) => {
-      setError(API.getFriendlyMessage(err as Exception));
-    });
-  }, [props.monitorId]);
+    },
+    mapItems: getFeedItemsFromMonitorFeeds,
+  });
 
   return (
     <Card
@@ -178,20 +163,24 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
           buttonStyle: ButtonStyleType.ICON,
           icon: IconProp.Refresh,
           onClick: async () => {
-            await fetchItems();
+            await refresh();
           },
         },
       ]}
     >
       <div>
-        {isLoading && <ComponentLoader />}
-        {error && <ErrorMessage message={error} />}
-        {!isLoading && !error && (
+        {(isLoading || !isCurrentFeedLoaded) && <ComponentLoader />}
+        {isCurrentFeedLoaded && error && <ErrorMessage message={error} />}
+        {isCurrentFeedLoaded && !isLoading && !error && (
           <Feed
             items={feedItems}
             noItemsMessage="Looks like there are no items in this feed for this monitor."
+            hasMore={hasMore}
+            isLoadingMore={isLoadingMore}
+            onMore={loadMore}
           />
         )}
+        {loadMoreError && <ErrorMessage message={loadMoreError} />}
       </div>
     </Card>
   );
