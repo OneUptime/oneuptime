@@ -17,7 +17,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * real link; search debounced into the request; a sort change resets the
  * cursor; Next disabled without a cursor; unplayable rows never offer
  * Watch; the ignored user filter is called out instead of chipped; the
- * 30-day search cap reads as its fix.
+ * 30-day search cap reads as its fix; the Users page is a navigation away
+ * and its hand-off lands here as the reference, never as the URL.
  */
 
 const postMock: MockFunction = getJestMockFunction();
@@ -188,48 +189,10 @@ function listResponse(
   );
 }
 
-/* One row as /users serialises it. */
-function wireRollup(overrides?: JSONObject): JSONObject {
-  return {
-    groupKey: "u:k1",
-    kind: "identified",
-    identifiedUserKey: "k1",
-    visitorId: VISITOR_A,
-    identifiedUserLabel: "jane@acme.com",
-    identifiedUserTraits: { plan: "pro" },
-    sessionCount: 3,
-    liveSessionCount: 0,
-    firstSeenUnixMs: NOW - DAY_MS,
-    lastSeenUnixMs: NOW - 60_000,
-    totalDurationMs: 30 * 60_000,
-    errorCount: 2,
-    frustrationCount: 1,
-    errorSessionCount: 1,
-    pageCount: 9,
-    lastSessionId: SESSION_A,
-    lastEntryUrl: "https://app.acme.com/checkout",
-    browserName: "Chrome",
-    browserVersion: "126",
-    osName: "macOS",
-    deviceType: "desktop",
-    countryCode: "DE",
-    ...overrides,
-  };
-}
-
-function usersResponse(users: Array<JSONObject>): HTTPResponse<JSONObject> {
-  return new HTTPResponse<JSONObject>(
-    200,
-    { users: users, nextCursor: null },
-    {},
-  );
-}
-
 /*
  * Routes the mocked API by URL. `list` may be a function so a test can
- * answer differently per call (paging, errors). `users` answers the
- * rollup route; without it, /users gets the status body, which the users
- * table reads as an empty page.
+ * answer differently per call (paging, errors). Anything else gets the
+ * status body; the list never calls /users - that is the Users page's.
  */
 function mockApi(
   list: (
@@ -237,13 +200,8 @@ function mockApi(
     index: number,
   ) => HTTPResponse<JSONObject> | HTTPErrorResponse,
   status: JSONObject = wireStatus(),
-  users?: (
-    data: JSONObject,
-    index: number,
-  ) => HTTPResponse<JSONObject> | HTTPErrorResponse,
 ): void {
   let listCalls: number = 0;
-  let usersCalls: number = 0;
 
   postMock.mockImplementation((request: unknown): Promise<unknown> => {
     const typed: { url: { toString: () => string }; data: JSONObject } =
@@ -255,14 +213,6 @@ function mockApi(
       listCalls += 1;
 
       return Promise.resolve(list(typed.data, index));
-    }
-
-    if (users && typed.url.toString().includes("/session-replay/users")) {
-      const index: number = usersCalls;
-
-      usersCalls += 1;
-
-      return Promise.resolve(users(typed.data, index));
     }
 
     return Promise.resolve(new HTTPResponse<JSONObject>(200, status, {}));
@@ -861,6 +811,25 @@ describe("SessionReplayTable identity nudge", () => {
     expect(nudge).toHaveTextContent("carry no visitor id yet");
   });
 
+  it("stays hidden when the list is already narrowed to one visitor", async () => {
+    /*
+     * A page filtered to a single visitor is anonymous because the viewer
+     * asked for that visitor, not because the site never identifies
+     * anyone; nudging them to call identify() there is noise.
+     */
+    mockApi(() => {
+      return listResponse(anonymousRows(3, VISITOR_A));
+    });
+
+    window.history.replaceState(null, "", `/?visitor=${VISITOR_A}`);
+
+    renderTable();
+
+    await waitForRows(3);
+
+    expect(screen.queryByTestId("session-identity-nudge")).toBeNull();
+  });
+
   it("drops the recorder line when the rows carry visitor ids", async () => {
     mockApi(() => {
       return listResponse(anonymousRows(3, VISITOR_A));
@@ -922,16 +891,10 @@ describe("SessionReplayTable identity nudge", () => {
     expect(screen.queryByTestId("session-identity-nudge")).toBeNull();
   });
 
-  it("dismiss hides it for the tab, See users switches view, and the guide link navigates", async () => {
-    mockApi(
-      () => {
-        return listResponse(anonymousRows(3));
-      },
-      wireStatus(),
-      () => {
-        return usersResponse([]);
-      },
-    );
+  it("dismiss hides it for the tab, and the guide link navigates", async () => {
+    mockApi(() => {
+      return listResponse(anonymousRows(3));
+    });
 
     renderTable();
 
@@ -963,16 +926,12 @@ describe("SessionReplayTable identity nudge", () => {
     expect(screen.queryByTestId("session-identity-nudge")).toBeNull();
   });
 
-  it("See users switches to the users view", async () => {
-    mockApi(
-      () => {
-        return listResponse(anonymousRows(3));
-      },
-      wireStatus(),
-      () => {
-        return usersResponse([wireRollup()]);
-      },
-    );
+  it("See users goes to the Users page for this application, on the same window", async () => {
+    mockApi(() => {
+      return listResponse(anonymousRows(3));
+    });
+
+    window.history.replaceState(null, "", "/?range=Past%201%20Week");
 
     renderTable();
 
@@ -980,152 +939,225 @@ describe("SessionReplayTable identity nudge", () => {
 
     fireEvent.click(screen.getByTestId("session-identity-nudge-users"));
 
-    await waitFor(() => {
-      expect(screen.getAllByTestId("session-user-row").length).toBe(1);
-    });
+    expect(navigateMock).toHaveBeenCalledTimes(1);
 
-    expect(window.location.search).toContain("view=users");
-    expect(screen.queryByTestId("session-identity-nudge")).toBeNull();
+    const target: string = (
+      navigateMock.mock.calls[0]![0] as { toString: () => string }
+    ).toString();
+
+    expect(target.endsWith("/session-replay-users?range=Past+1+Week")).toBe(
+      true,
+    );
+    expect(target).toContain(APP_ID);
+    /* Its own page: nothing about this list changed. */
+    expect(requestsTo("/session-replay/users").length).toBe(0);
+    expect(screen.getAllByTestId("session-row").length).toBe(3);
   });
 });
 
-describe("SessionReplayTable users view", () => {
-  it("the toggle switches to the users view, stops /list, fetches /users and writes the URL", async () => {
-    mockApi(
-      () => {
-        return listResponse([wireRow()]);
-      },
-      wireStatus(),
-      () => {
-        return usersResponse([wireRollup()]);
-      },
-    );
+describe("SessionReplayTable and the Users page", () => {
+  it("the Users card button goes to the Users page and nothing else; the default window as absence", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
 
     renderTable();
 
     await waitForRows(1);
 
-    expect(screen.getByTestId("session-view-sessions")).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Users" }));
 
-    fireEvent.click(screen.getByTestId("session-view-users"));
+    expect(navigateMock).toHaveBeenCalledTimes(1);
 
-    await waitFor(() => {
-      expect(screen.getAllByTestId("session-user-row").length).toBe(1);
-    });
+    const target: string = (
+      navigateMock.mock.calls[0]![0] as { toString: () => string }
+    ).toString();
 
-    expect(screen.getByTestId("session-view-users")).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    expect(window.location.search).toContain("view=users");
-    expect(requestsTo("/session-replay/users").length).toBe(1);
-    expect(requestsTo("/session-replay/users")[0]!.data).toEqual(
-      expect.objectContaining({ rumApplicationId: APP_ID, limit: 50 }),
-    );
-    /* No second list request for a view nobody is looking at. */
-    expect(requestsTo("/session-replay/list").length).toBe(1);
-    expect(screen.queryByTestId("session-row")).toBeNull();
-    expect(screen.queryByTestId("session-search-input")).toBeNull();
-    expect(screen.queryByTestId("session-replay-facets")).toBeNull();
+    expect(target.endsWith("/session-replay-users")).toBe(true);
+    expect(target).not.toContain("?");
+    expect(target).toContain(APP_ID);
+    /* The toggle is gone; there is one list and one Refresh for it. */
+    expect(screen.queryByTestId("session-view-toggle")).toBeNull();
+    expect(screen.queryByTestId("session-users-table")).toBeNull();
     expect(
-      screen.getByRole("button", { name: "Refresh users" }),
+      screen.getByRole("button", { name: "Refresh sessions" }),
     ).toBeInTheDocument();
+    expect(requestsTo("/session-replay/users").length).toBe(0);
   });
 
-  it("opens straight into the users view from the URL without ever calling /list", async () => {
-    mockApi(
-      () => {
-        return listResponse([wireRow()]);
-      },
-      wireStatus(),
-      () => {
-        return usersResponse([wireRollup()]);
-      },
-    );
-
-    window.history.replaceState(null, "", "/?view=users");
-
-    renderTable();
-
-    await waitFor(() => {
-      expect(screen.getAllByTestId("session-user-row").length).toBe(1);
+  it("the Users card button carries the window the list is on, in the list's own spelling", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
     });
 
-    expect(requestsTo("/session-replay/list").length).toBe(0);
-    expect(requestsTo("/session-replay/users").length).toBe(1);
-  });
-
-  it("a Users row's Sessions action lands on the session list narrowed to that person", async () => {
-    mockApi(
-      () => {
-        return listResponse([wireRow()]);
-      },
-      wireStatus(),
-      () => {
-        return usersResponse([
-          wireRollup({
-            groupKey: `v:${VISITOR_A}`,
-            kind: "visitor",
-            identifiedUserKey: "",
-            identifiedUserLabel: "",
-          }),
-        ]);
-      },
+    /* An incident tile's window: the overview's start/end aliases. */
+    window.history.replaceState(
+      null,
+      "",
+      "/?start=2026-09-01T00:00:00.000Z&end=2026-09-01T01:00:00.000Z&browser=Chrome",
     );
 
-    window.history.replaceState(null, "", "/?view=users");
-
     renderTable();
-
-    await waitFor(() => {
-      expect(screen.getAllByTestId("session-user-row").length).toBe(1);
-    });
-
-    fireEvent.click(screen.getByTestId("session-user-view-sessions"));
 
     await waitForRows(1);
 
+    fireEvent.click(screen.getByRole("button", { name: "Users" }));
+
+    const target: URL = new URL(
+      (navigateMock.mock.calls[0]![0] as { toString: () => string }).toString(),
+      "https://dash.example.com",
+    );
+
+    expect(target.pathname.endsWith("/session-replay-users")).toBe(true);
+    expect(target.searchParams.get("startTime")).toBe(
+      "2026-09-01T00:00:00.000Z",
+    );
+    expect(target.searchParams.get("endTime")).toBe("2026-09-01T01:00:00.000Z");
+    /* The window and nothing else: the rollup takes no filters. */
+    expect(target.searchParams.has("browser")).toBe(false);
+    expect(target.searchParams.has("range")).toBe(false);
+    expect(target.searchParams.has("start")).toBe(false);
+  });
+
+  it("a userKey link with the person's label parked by the Users page reads as the reference", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+
+    window.history.replaceState(null, "", "/?userKey=k1&range=Past%201%20Week");
+    window.sessionStorage.setItem(
+      `oneuptime.replay.userFilterLabel:${APP_ID}`,
+      JSON.stringify({
+        identifiedUserKey: "k1",
+        identifiedUserLabel: "jane@acme.com",
+      }),
+    );
+
+    renderTable();
+
+    await waitForRows(1);
+
+    /* The request sends the reference for the server to hash, not the digest. */
     expect(requestsTo("/session-replay/list").length).toBe(1);
     expect(requestsTo("/session-replay/list")[0]!.data["filters"]).toEqual({
-      visitorId: VISITOR_A,
+      identifiedUserRef: "jane@acme.com",
     });
-    expect(window.location.search).not.toContain("view=");
-    expect(window.location.search).toContain(`visitor=${VISITOR_A}`);
-    expect(screen.getByTestId("session-view-sessions")).toHaveAttribute(
-      "aria-pressed",
-      "true",
+    /* The same UX as clicking the label here: box, chip, no reference in the URL. */
+    expect(screen.getByTestId("session-search-input")).toHaveValue(
+      "user:jane@acme.com",
     );
+
+    const chip: HTMLElement = screen.getByTestId("session-filter-chip");
+
+    expect(chip).toHaveAttribute("data-field", "identifiedUserRef");
+    expect(chip).toHaveTextContent("jane@acme.com");
+    expect(window.location.search).not.toContain("jane");
+    /*
+     * The digest stays in the address bar on the reference's behalf, so a
+     * reload, Forward or a copied address narrows by the same person - the
+     * URL never reads worse for a viewer who could see the label than for
+     * one who could not.
+     */
+    expect(window.location.search).toContain("userKey=k1");
+    /* The window the Users page counted the person in is kept. */
+    expect(window.location.search).toContain("range=Past+1+Week");
+    /* And the player's way back to this list is the same address. */
+    expect(
+      window.sessionStorage.getItem(SESSION_REPLAY_LIST_URL_STORAGE_KEY),
+    ).toContain("userKey=k1");
+    /* Consumed: a reload of this URL narrows by the digest like a pasted link. */
+    expect(
+      window.sessionStorage.getItem(
+        `oneuptime.replay.userFilterLabel:${APP_ID}`,
+      ),
+    ).toBeNull();
+
+    /* Once the person filter is gone, so is the digest written for it. */
+    fireEvent.click(screen.getByRole("button", { name: /^Remove .* filter$/ }));
+
+    await waitFor(() => {
+      expect(requestsTo("/session-replay/list").length).toBe(2);
+    });
+
+    expect(requestsTo("/session-replay/list")[1]!.data["filters"]).toEqual({});
+    expect(window.location.search).not.toContain("userKey=");
+    expect(window.location.search).toContain("range=Past+1+Week");
   });
 
-  it("Refresh in the users view refetches /users, not /list", async () => {
-    mockApi(
-      () => {
-        return listResponse([wireRow()]);
-      },
-      wireStatus(),
-      () => {
-        return usersResponse([wireRollup()]);
-      },
-    );
+  it("a userKey link without a parked label, or with one for somebody else, narrows by the digest", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
 
-    window.history.replaceState(null, "", "/?view=users");
+    window.sessionStorage.setItem(
+      `oneuptime.replay.userFilterLabel:${APP_ID}`,
+      JSON.stringify({
+        identifiedUserKey: "k2",
+        identifiedUserLabel: "bob@acme.com",
+      }),
+    );
+    window.history.replaceState(null, "", "/?userKey=k1");
+
+    const view: ReturnType<typeof render> = renderTable();
+
+    await waitForRows(1);
+
+    expect(requestsTo("/session-replay/list")[0]!.data["filters"]).toEqual({
+      identifiedUserKey: "k1",
+    });
+    expect(screen.getByTestId("session-search-input")).toHaveValue("");
+    expect(screen.getByTestId("session-filter-chip")).toHaveTextContent(
+      "pseudonymous key",
+    );
+    expect(window.location.search).toContain("userKey=k1");
+    /* Somebody else's entry is not ours to clear. */
+    expect(
+      window.sessionStorage.getItem(
+        `oneuptime.replay.userFilterLabel:${APP_ID}`,
+      ),
+    ).not.toBeNull();
+
+    view.unmount();
+    postMock.mockReset();
+    window.sessionStorage.clear();
+    mockApi(() => {
+      return listResponse([wireRow()]);
+    });
+    window.history.replaceState(null, "", "/?userKey=k1");
 
     renderTable();
 
-    await waitFor(() => {
-      expect(screen.getAllByTestId("session-user-row").length).toBe(1);
+    await waitForRows(1);
+
+    expect(requestsTo("/session-replay/list")[0]!.data["filters"]).toEqual({
+      identifiedUserKey: "k1",
+    });
+  });
+
+  it("a parked label is ignored, and left alone, when the URL carries no userKey", async () => {
+    mockApi(() => {
+      return listResponse([wireRow()]);
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Refresh users" }));
+    window.sessionStorage.setItem(
+      `oneuptime.replay.userFilterLabel:${APP_ID}`,
+      JSON.stringify({
+        identifiedUserKey: "k1",
+        identifiedUserLabel: "jane@acme.com",
+      }),
+    );
 
-    await waitFor(() => {
-      expect(requestsTo("/session-replay/users").length).toBe(2);
-    });
+    renderTable();
 
-    expect(requestsTo("/session-replay/list").length).toBe(0);
+    await waitForRows(1);
+
+    expect(requestsTo("/session-replay/list")[0]!.data["filters"]).toEqual({});
+    expect(screen.getByTestId("session-search-input")).toHaveValue("");
+    expect(
+      window.sessionStorage.getItem(
+        `oneuptime.replay.userFilterLabel:${APP_ID}`,
+      ),
+    ).not.toBeNull();
   });
 });
 

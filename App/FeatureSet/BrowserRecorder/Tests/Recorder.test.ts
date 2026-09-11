@@ -4,7 +4,6 @@ import {
   SESSION_REPLAY_MAX_SESSION_MS,
   SESSION_REPLAY_MAX_TAG_KEYS,
   SESSION_REPLAY_MAX_TRAIT_KEYS,
-  SESSION_REPLAY_RECORDER_CAPABILITIES,
   SESSION_REPLAY_VISITOR_ID_PATTERN,
   SessionReplayChunkEnvelope,
   SessionReplayConfigResponse,
@@ -161,6 +160,8 @@ function readPost(call: Array<unknown>): CapturedPost {
 describe("Recorder", (): void => {
   let fetchMock: jest.Mock;
   let recorder: Recorder | null = null;
+  /* Second-tab recorders (startSiblingTab), stopped with the first. */
+  const siblings: Array<Recorder> = [];
 
   beforeEach((): void => {
     window.localStorage.clear();
@@ -198,6 +199,12 @@ describe("Recorder", (): void => {
       recorder = null;
     }
 
+    for (const sibling of siblings) {
+      sibling.stop();
+    }
+
+    siblings.length = 0;
+
     jest.restoreAllMocks();
   });
 
@@ -213,6 +220,42 @@ describe("Recorder", (): void => {
 
     instance.start();
     recorder = instance;
+
+    return instance;
+  };
+
+  /*
+   * A SECOND tab of the same origin: a recorder built from a fresh copy of
+   * the module graph, so it has an rrweb, a SessionId (with its in-memory
+   * chunk counters) and a transport of its own, the way a sibling tab has
+   * its own process - while sharing jsdom's localStorage, which is exactly
+   * what two tabs of one origin share. Built through a plain import, both
+   * recorders would drive ONE rrweb, whose module-level emit and
+   * `recording` flag belong to whichever record() ran last, and the first
+   * tab would see no events at all.
+   *
+   * jsdom has one sessionStorage where a browser has one per tab, so a
+   * sibling's clearAll() also resets this tab's stored chunk counter here;
+   * the tests that use this therefore assert on ids, never on indexes.
+   */
+  const startSiblingTab: (
+    overrides?: Partial<SessionReplayConfigResponse>,
+  ) => Promise<Recorder> = async (
+    overrides?: Partial<SessionReplayConfigResponse>,
+  ): Promise<Recorder> => {
+    let SiblingRecorder: typeof Recorder = Recorder;
+
+    await jest.isolateModulesAsync(async (): Promise<void> => {
+      SiblingRecorder = (await import("../src/Recorder")).default;
+    });
+
+    const instance: Recorder = new SiblingRecorder({
+      initOptions: INIT_OPTIONS,
+      config: { ...baseConfig(), ...overrides },
+    });
+
+    instance.start();
+    siblings.push(instance);
 
     return instance;
   };
@@ -631,6 +674,19 @@ describe("Recorder", (): void => {
   });
 
   describe("consent", (): void => {
+    const SESSION_KEY: string = "oneuptime.replay.session";
+    const VISITOR_KEY: string = "oneuptime.replay.visitor";
+
+    /*
+     * Two tests here drive the flush tick with fake timers. Restored here
+     * rather than at the end of each test, so a failing assertion cannot
+     * leave fake timers installed for every later test that awaits a
+     * real setTimeout - which shows up as a wall of unrelated timeouts.
+     */
+    afterEach((): void => {
+      jest.useRealTimers();
+    });
+
     it("records but uploads nothing until consent is granted", async (): Promise<void> => {
       const instance: Recorder = startRecorder({
         consentMode: SessionReplayConsentMode.RequireExplicit,
@@ -786,6 +842,206 @@ describe("Recorder", (): void => {
 
       expect(window.localStorage.length).toBeGreaterThan(0);
       expect(changes.length).toBe(1);
+
+      jest.useRealTimers();
+    });
+
+    /*
+     * REGRESSION (recorder-6, two tabs). localStorage is one store for
+     * every tab of the origin, and the visitor id was read from it once,
+     * at construction. Tab A's revokeConsent() cleared the store; tab B's
+     * storage listener only ever reacted to the SESSION key, so it minted
+     * a new session and kept stamping its OLD in-memory visitor id on
+     * every later meta-bearing chunk - every session the browser recorded
+     * after the withdrawal was filed under the withdrawn id, linked to
+     * exactly the recordings the user had asked us to forget. Tab A's
+     * later grant then minted a second id, and one browser was two
+     * visitors from then on.
+     */
+    it("moves onto a fresh visitor id when a sibling tab revokes, and that tab's later grant shares it", async (): Promise<void> => {
+      const tabA: Recorder = startRecorder({ samplePercentage: 100 });
+      const tabB: Recorder = await startSiblingTab({ samplePercentage: 100 });
+
+      await flushUploads();
+
+      const withdrawn: string = tabA.getVisitorId();
+      const sharedSessionId: string = tabA.getSessionId();
+
+      expect(withdrawn).toMatch(SESSION_REPLAY_VISITOR_ID_PATTERN);
+      expect(tabB.getVisitorId()).toBe(withdrawn);
+      expect(tabB.getSessionId()).toBe(sharedSessionId);
+
+      fetchMock.mockClear();
+
+      tabA.revokeConsent();
+
+      expect(tabA.getVisitorId()).toBe("");
+      expect(window.localStorage.length).toBe(0);
+
+      /* What the browser fires in tab B after tab A's clearAll(). */
+      for (const key of [SESSION_KEY, VISITOR_KEY]) {
+        window.dispatchEvent(
+          new StorageEvent("storage", { key: key, newValue: null }),
+        );
+      }
+
+      await flushUploads();
+      await flushUploads();
+
+      const minted: string = tabB.getVisitorId();
+
+      expect(minted).toMatch(SESSION_REPLAY_VISITOR_ID_PATTERN);
+      expect(minted).not.toBe(withdrawn);
+      expect(window.localStorage.getItem(VISITOR_KEY)).toBe(minted);
+      expect(tabB.getSessionId()).not.toBe(sharedSessionId);
+
+      const tabBPosts: Array<CapturedPost> = fetchMock.mock.calls
+        .map((call: Array<unknown>): CapturedPost => {
+          return readPost(call);
+        })
+        .filter((post: CapturedPost): boolean => {
+          return post.envelope.tabId === tabB.getTabId();
+        });
+
+      /*
+       * The session recorded under consent is sealed under the id it was
+       * recorded with: meta rides the final chunk too, and the header
+       * keeps the last visitor id it is sent, so a seal stamped with the
+       * fresh id would file the pre-revoke session under the post-revoke
+       * identity.
+       */
+      const sealed: CapturedPost | undefined = tabBPosts.find(
+        (post: CapturedPost): boolean => {
+          return (
+            post.envelope.isFinal && post.envelope.sessionId === sharedSessionId
+          );
+        },
+      );
+
+      expect(sealed?.envelope.meta?.visitorId).toBe(withdrawn);
+
+      /* The fresh session opens under the fresh id. */
+      const chunkZero: CapturedPost | undefined = tabBPosts.find(
+        (post: CapturedPost): boolean => {
+          return (
+            post.envelope.sessionId === tabB.getSessionId() &&
+            post.envelope.chunkIndex === 0
+          );
+        },
+      );
+
+      expect(chunkZero?.envelope.meta?.visitorId).toBe(minted);
+
+      /* Tab A opting back in reads tab B's id rather than minting a third. */
+      fetchMock.mockClear();
+
+      tabA.grantConsent();
+
+      await flushUploads();
+      await flushUploads();
+
+      expect(tabA.getVisitorId()).toBe(minted);
+      expect(tabA.getSessionId()).toBe(tabB.getSessionId());
+      expect(window.localStorage.getItem(VISITOR_KEY)).toBe(minted);
+
+      const tabAChunkZero: CapturedPost | undefined = fetchMock.mock.calls
+        .map((call: Array<unknown>): CapturedPost => {
+          return readPost(call);
+        })
+        .find((post: CapturedPost): boolean => {
+          return (
+            post.envelope.tabId === tabA.getTabId() &&
+            post.envelope.chunkIndex === 0
+          );
+        });
+
+      expect(tabAChunkZero?.envelope.sessionId).toBe(tabA.getSessionId());
+      expect(tabAChunkZero?.envelope.meta?.visitorId).toBe(minted);
+
+      /* And the withdrawn id is on nothing posted since tab A opted back in. */
+      const bodies: string = fetchMock.mock.calls
+        .map((call: Array<unknown>): string => {
+          return (
+            readPost(call).payload + JSON.stringify(readPost(call).envelope)
+          );
+        })
+        .join("");
+
+      expect(bodies).not.toContain(withdrawn);
+    });
+
+    /*
+     * The other side of the same rule. A tab that revoked holds no visitor
+     * id, and a sibling minting a fresh one - which a consented sibling
+     * now does the moment it learns of the revoke - must not make this
+     * tab pick it up: a revoked tab writes nothing and stamps nothing
+     * until the user opts back in HERE. (When they do, grantConsent()
+     * reads the sibling's id rather than minting a third: see above.)
+     */
+    it("stays without a visitor id after revoking, whatever a sibling tab mints, and writes nothing", async (): Promise<void> => {
+      const instance: Recorder = startRecorder({ samplePercentage: 100 });
+
+      /*
+       * Chunk 0 goes out under consent before the withdrawal, as it would
+       * in life; only what happens AFTER the revoke is under test, and the
+       * flush tick is driven by hand from here.
+       */
+      await flushUploads();
+      await flushUploads();
+
+      jest.useFakeTimers();
+
+      instance.revokeConsent();
+      fetchMock.mockClear();
+
+      expect(instance.getVisitorId()).toBe("");
+      expect(window.localStorage.length).toBe(0);
+
+      /* A consented sibling tab minted a fresh id and a fresh session. */
+      const siblingVisitorId: string = "d".repeat(32);
+      const siblingSessionId: string = "e".repeat(32);
+
+      window.localStorage.setItem(VISITOR_KEY, siblingVisitorId);
+      window.localStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({
+          sessionId: siblingSessionId,
+          sessionStartUnixMs: Date.now() - 1000,
+          lastActivityUnixMs: Date.now(),
+        }),
+      );
+
+      const setItemSpy: jest.SpyInstance = jest.spyOn(
+        Storage.prototype,
+        "setItem",
+      );
+
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: VISITOR_KEY,
+          newValue: siblingVisitorId,
+        }),
+      );
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: SESSION_KEY, newValue: "x" }),
+      );
+      jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS * 2);
+
+      for (let i: number = 0; i < 60; i++) {
+        await Promise.resolve();
+      }
+
+      expect(instance.getVisitorId()).toBe("");
+      expect(instance.getSessionId()).not.toBe(siblingSessionId);
+      expect(setItemSpy).not.toHaveBeenCalled();
+      expect(window.localStorage.getItem(VISITOR_KEY)).toBe(siblingVisitorId);
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      /* Opting back in here shares the sibling's id, and its session. */
+      instance.grantConsent();
+
+      expect(instance.getVisitorId()).toBe(siblingVisitorId);
+      expect(instance.getSessionId()).toBe(siblingSessionId);
 
       jest.useRealTimers();
     });
@@ -2341,13 +2597,23 @@ describe("Recorder", (): void => {
       expect(first.envelope.capabilities).toContain("visitor-id");
 
       /*
-       * Parity with the shared list, in full: the server stores this on the
-       * header and the setup page compares it against
-       * SESSION_REPLAY_RECORDER_CAPABILITIES, so a capability the recorder
-       * implements but does not advertise reads as "missing" to a customer.
+       * The full list, spelled out rather than compared against
+       * SESSION_REPLAY_RECORDER_CAPABILITIES: the recorder builds its
+       * envelope FROM that constant, so an assertion against it could
+       * only ever pass. The server stores this on the header and the
+       * setup page compares it against the shared list, so a capability
+       * the recorder implements but does not advertise reads as
+       * "missing" to a customer - and a change to either side now has to
+       * be made here on purpose.
        */
       expect(first.envelope.capabilities).toEqual([
-        ...SESSION_REPLAY_RECORDER_CAPABILITIES,
+        "click-events",
+        "web-vitals",
+        "custom-events",
+        "traits",
+        "tags",
+        "visibility",
+        "visitor-id",
       ]);
 
       fetchMock.mockClear();

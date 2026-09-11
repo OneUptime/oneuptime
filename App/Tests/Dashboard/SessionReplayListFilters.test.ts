@@ -6,24 +6,34 @@ import { SessionReplaySortedListCursorDto } from "Common/Types/Rum/SessionReplay
 import {
   buildCursorMemoryKey,
   buildFilteredUrl,
+  buildHandedOffUserFilterLabel,
   buildSessionReplayListFilters,
+  buildTimeRangeSearch,
+  buildUserFilterLabelStorageKey,
+  buildUserSessionsListSearch,
+  buildUsersPageUrl,
   DEFAULT_SESSION_REPLAY_SORT_BY,
   DEFAULT_SESSION_REPLAY_TIME_RANGE,
   EMPTY_ADVANCED_FILTERS,
   FILTER_URL_KEYS,
+  handedOffUserKeyToWrite,
   hasAnyAdvancedFilter,
+  LIST_URL_KEYS,
   normalizeUrlPrefix,
   parseCursorMemory,
   parseTagFilter,
   readFiltersFromSearch,
   readListStateFromSearch,
   readTimeRangeFromSearch,
+  resolveHandedOffUserFilter,
   serializeCursorMemory,
   SESSION_REPLAY_SIGNAL_OPTIONS,
   SESSION_REPLAY_SIGNALS,
   SESSION_REPLAY_SORT_OPTIONS,
   SessionReplayListUrlState,
+  SessionReplayUserSessionsHandoff,
   stringifyTagFilter,
+  USER_FILTER_LABEL_STORAGE_KEY_PREFIX,
 } from "../../FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayListFilters";
 
 /*
@@ -374,32 +384,22 @@ describe("filter URL round trip", () => {
     expect(restored.advanced.identifiedUserKey).toBe(USER_KEY);
   });
 
-  test("the view is absent for sessions, written for users, and garbage reads as sessions", () => {
-    expect(readListStateFromSearch("").view).toBe("sessions");
-    expect(readListStateFromSearch("?view=users").view).toBe("users");
-    expect(readListStateFromSearch("?view=sessions").view).toBe("sessions");
-    expect(readListStateFromSearch("?view=exfiltrate").view).toBe("sessions");
+  test("the list URL knows no view any more; a stray ?view= is left alone and ignored", () => {
+    /*
+     * Users is its own page now. The list neither reads nor writes view=;
+     * Pages/Rum/View/SessionReplay.tsx redirects view=users before the list
+     * mounts, and anything else is just an unrelated param it preserves.
+     */
+    expect(LIST_URL_KEYS).not.toHaveProperty("view");
+    expect(readListStateFromSearch("?view=users")).not.toHaveProperty("view");
 
-    const sessionsUrl: string = buildFilteredUrl(
+    const url: string = buildFilteredUrl(
       "https://dash.example.com/replay?view=users",
       "all",
       EMPTY_ADVANCED_FILTERS,
-      { view: "sessions" },
     );
 
-    expect(sessionsUrl).toBe("https://dash.example.com/replay");
-
-    const usersUrl: string = buildFilteredUrl(
-      "https://dash.example.com/replay",
-      "all",
-      EMPTY_ADVANCED_FILTERS,
-      { view: "users" },
-    );
-
-    expect(usersUrl).toBe("https://dash.example.com/replay?view=users");
-    expect(readListStateFromSearch(new URL(usersUrl).search).view).toBe(
-      "users",
-    );
+    expect(url).toBe("https://dash.example.com/replay?view=users");
   });
 
   test("defaults are written as absence so a pristine list has a clean URL", () => {
@@ -538,6 +538,379 @@ describe("filter URL round trip", () => {
   });
 });
 
+describe("the Users page URL", () => {
+  test("buildUsersPageUrl writes the window with the list's keys, defaults as absence", () => {
+    expect(
+      buildUsersPageUrl(
+        "https://dash.example.com/rum/app-1/session-replay-users?range=Past%201%20Week",
+        DEFAULT_SESSION_REPLAY_TIME_RANGE,
+      ),
+    ).toBe("https://dash.example.com/rum/app-1/session-replay-users");
+
+    const named: string = buildUsersPageUrl(
+      "https://dash.example.com/rum/app-1/session-replay-users",
+      { range: TimeRange.PAST_ONE_WEEK },
+    );
+
+    expect(new URL(named).searchParams.get(LIST_URL_KEYS.range)).toBe(
+      TimeRange.PAST_ONE_WEEK,
+    );
+    /* And the list reads the same window back from it. */
+    expect(readTimeRangeFromSearch(new URL(named).search)).toEqual({
+      range: TimeRange.PAST_ONE_WEEK,
+    });
+
+    const start: Date = new Date("2026-09-01T00:00:00.000Z");
+    const end: Date = new Date("2026-09-02T00:00:00.000Z");
+    const custom: string = buildUsersPageUrl(
+      "https://dash.example.com/rum/app-1/session-replay-users?range=Past%201%20Week&start=x&end=y",
+      {
+        range: TimeRange.CUSTOM,
+        startAndEndDate: new InBetween<Date>(start, end),
+      },
+    );
+    const params: URLSearchParams = new URL(custom).searchParams;
+
+    expect(params.get(LIST_URL_KEYS.startTime)).toBe(start.toISOString());
+    expect(params.get(LIST_URL_KEYS.endTime)).toBe(end.toISOString());
+    /* A named range and the tile aliases never linger beside an absolute pair. */
+    expect(params.has(LIST_URL_KEYS.range)).toBe(false);
+    expect(params.has("start")).toBe(false);
+    expect(params.has("end")).toBe(false);
+  });
+
+  test("buildUsersPageUrl keeps params that are not its own", () => {
+    expect(
+      buildUsersPageUrl("https://dash.example.com/users?keep=me", {
+        range: TimeRange.PAST_ONE_WEEK,
+      }),
+    ).toContain("keep=me");
+  });
+
+  test("buildTimeRangeSearch is empty for the default window and a query string otherwise", () => {
+    expect(buildTimeRangeSearch(DEFAULT_SESSION_REPLAY_TIME_RANGE)).toBe("");
+    expect(buildTimeRangeSearch({ range: TimeRange.PAST_ONE_WEEK })).toBe(
+      "?range=Past+1+Week",
+    );
+    expect(
+      readTimeRangeFromSearch(
+        buildTimeRangeSearch({ range: TimeRange.PAST_ONE_WEEK }),
+      ),
+    ).toEqual({ range: TimeRange.PAST_ONE_WEEK });
+  });
+});
+
+describe("the Users page's hand-off to the list", () => {
+  const visitorHandoff: SessionReplayUserSessionsHandoff = {
+    filter: { visitorId: VISITOR },
+    identifiedUserKey: "",
+    identifiedUserLabel: "",
+  };
+  const identifiedHandoff: SessionReplayUserSessionsHandoff = {
+    filter: { identifiedUserRef: "jane@example.com" },
+    identifiedUserKey: USER_KEY,
+    identifiedUserLabel: "jane@example.com",
+  };
+  const hiddenHandoff: SessionReplayUserSessionsHandoff = {
+    filter: { identifiedUserKey: USER_KEY },
+    identifiedUserKey: USER_KEY,
+    identifiedUserLabel: "",
+  };
+
+  test("a visitor goes as visitor=", () => {
+    const search: string = buildUserSessionsListSearch(
+      visitorHandoff,
+      DEFAULT_SESSION_REPLAY_TIME_RANGE,
+    );
+
+    expect(search).toBe(`?visitor=${VISITOR}`);
+    expect(readListStateFromSearch(search).advanced.visitorId).toBe(VISITOR);
+  });
+
+  test("an identified user goes as userKey=, never as the reference", () => {
+    const search: string = buildUserSessionsListSearch(
+      identifiedHandoff,
+      DEFAULT_SESSION_REPLAY_TIME_RANGE,
+    );
+
+    expect(search).toBe(`?userKey=${USER_KEY}`);
+    expect(search).not.toContain("jane");
+    expect(search).not.toContain("example.com");
+
+    const restored: SessionReplayListUrlState = readListStateFromSearch(search);
+
+    expect(restored.advanced.identifiedUserKey).toBe(USER_KEY);
+    expect(restored.advanced.identifiedUserRef).toBe("");
+  });
+
+  test("a hidden label's digest goes as userKey= too", () => {
+    expect(
+      buildUserSessionsListSearch(
+        hiddenHandoff,
+        DEFAULT_SESSION_REPLAY_TIME_RANGE,
+      ),
+    ).toBe(`?userKey=${USER_KEY}`);
+  });
+
+  test("the reference without a digest, or the anonymous bucket, hands nothing to filter by", () => {
+    expect(
+      buildUserSessionsListSearch(
+        {
+          filter: { identifiedUserRef: "jane@example.com" },
+          identifiedUserKey: "",
+          identifiedUserLabel: "jane@example.com",
+        },
+        DEFAULT_SESSION_REPLAY_TIME_RANGE,
+      ),
+    ).toBe("");
+    expect(
+      buildUserSessionsListSearch(
+        { filter: {}, identifiedUserKey: "", identifiedUserLabel: "" },
+        DEFAULT_SESSION_REPLAY_TIME_RANGE,
+      ),
+    ).toBe("");
+  });
+
+  test("the time range rides along; the default window is absent", () => {
+    const named: string = buildUserSessionsListSearch(visitorHandoff, {
+      range: TimeRange.PAST_ONE_WEEK,
+    });
+
+    expect(named).toBe(`?visitor=${VISITOR}&range=Past+1+Week`);
+    expect(readListStateFromSearch(named).timeRange).toEqual({
+      range: TimeRange.PAST_ONE_WEEK,
+    });
+
+    const start: Date = new Date("2026-09-01T00:00:00.000Z");
+    const end: Date = new Date("2026-09-02T00:00:00.000Z");
+    const custom: string = buildUserSessionsListSearch(identifiedHandoff, {
+      range: TimeRange.CUSTOM,
+      startAndEndDate: new InBetween<Date>(start, end),
+    });
+    const restored: SessionReplayListUrlState = readListStateFromSearch(custom);
+
+    expect(restored.timeRange.range).toBe(TimeRange.CUSTOM);
+    expect(restored.timeRange.startAndEndDate?.startValue.toISOString()).toBe(
+      start.toISOString(),
+    );
+    expect(restored.timeRange.startAndEndDate?.endValue.toISOString()).toBe(
+      end.toISOString(),
+    );
+    expect(custom).not.toContain("range=");
+  });
+
+  test("only an identified user with a visible label needs a stashed label", () => {
+    expect(buildHandedOffUserFilterLabel(identifiedHandoff)).toEqual({
+      identifiedUserKey: USER_KEY,
+      identifiedUserLabel: "jane@example.com",
+    });
+    expect(buildHandedOffUserFilterLabel(visitorHandoff)).toBeNull();
+    expect(buildHandedOffUserFilterLabel(hiddenHandoff)).toBeNull();
+    /* A reference with no digest to key it under has nowhere to be found from. */
+    expect(
+      buildHandedOffUserFilterLabel({
+        ...identifiedHandoff,
+        identifiedUserKey: "",
+      }),
+    ).toBeNull();
+  });
+
+  test("the storage key is per application", () => {
+    expect(buildUserFilterLabelStorageKey("app-1")).toBe(
+      `${USER_FILTER_LABEL_STORAGE_KEY_PREFIX}app-1`,
+    );
+    expect(buildUserFilterLabelStorageKey("app-1")).not.toBe(
+      buildUserFilterLabelStorageKey("app-2"),
+    );
+  });
+
+  describe("the digest written on a handed-off reference's behalf", () => {
+    const handedOff: {
+      identifiedUserKey: string;
+      identifiedUserLabel: string;
+    } = {
+      identifiedUserKey: USER_KEY,
+      identifiedUserLabel: "jane@example.com",
+    };
+
+    test("while the reference filter is that person, userKey= is written and nothing about the reference is", () => {
+      const advanced: typeof EMPTY_ADVANCED_FILTERS = {
+        ...EMPTY_ADVANCED_FILTERS,
+        identifiedUserRef: " jane@example.com ",
+        browserName: "Chrome",
+      };
+
+      expect(handedOffUserKeyToWrite(advanced, handedOff)).toBe(USER_KEY);
+
+      const url: URL = new URL(
+        buildFilteredUrl(
+          "https://dash.example.com/rum/app-1/session-replay",
+          "all",
+          advanced,
+          {
+            timeRange: { range: TimeRange.PAST_ONE_WEEK },
+            handedOffUser: handedOff,
+          },
+        ),
+      );
+
+      expect(
+        url.searchParams.get(FILTER_URL_KEYS.identifiedUserKey as string),
+      ).toBe(USER_KEY);
+      expect(url.search).not.toContain("jane");
+      expect(url.searchParams.get("browser")).toBe("Chrome");
+      /* And reading that URL back is the pasted-link case: the digest filter. */
+      expect(readListStateFromSearch(url.search).advanced).toEqual({
+        ...EMPTY_ADVANCED_FILTERS,
+        identifiedUserKey: USER_KEY,
+        browserName: "Chrome",
+      });
+    });
+
+    test("nothing is written once the reference has been cleared or is somebody else", () => {
+      expect(handedOffUserKeyToWrite(EMPTY_ADVANCED_FILTERS, handedOff)).toBe(
+        "",
+      );
+      expect(
+        handedOffUserKeyToWrite(
+          { ...EMPTY_ADVANCED_FILTERS, identifiedUserRef: "bob@example.com" },
+          handedOff,
+        ),
+      ).toBe("");
+      expect(
+        handedOffUserKeyToWrite(
+          { ...EMPTY_ADVANCED_FILTERS, identifiedUserRef: "jane@example.com" },
+          null,
+        ),
+      ).toBe("");
+      expect(
+        handedOffUserKeyToWrite(
+          { ...EMPTY_ADVANCED_FILTERS, identifiedUserRef: "jane@example.com" },
+          { identifiedUserKey: "  ", identifiedUserLabel: "jane@example.com" },
+        ),
+      ).toBe("");
+
+      const url: URL = new URL(
+        buildFilteredUrl(
+          `https://dash.example.com/rum/app-1/session-replay?userKey=${USER_KEY}`,
+          "all",
+          { ...EMPTY_ADVANCED_FILTERS, identifiedUserRef: "bob@example.com" },
+          { handedOffUser: handedOff },
+        ),
+      );
+
+      expect(
+        url.searchParams.has(FILTER_URL_KEYS.identifiedUserKey as string),
+      ).toBe(false);
+    });
+
+    test("a digest filter of its own wins over the handed-off one", () => {
+      const advanced: typeof EMPTY_ADVANCED_FILTERS = {
+        ...EMPTY_ADVANCED_FILTERS,
+        identifiedUserRef: "jane@example.com",
+        identifiedUserKey: "another-digest",
+      };
+
+      expect(handedOffUserKeyToWrite(advanced, handedOff)).toBe("");
+
+      const url: URL = new URL(
+        buildFilteredUrl(
+          "https://dash.example.com/rum/app-1/session-replay",
+          "all",
+          advanced,
+          { handedOffUser: handedOff },
+        ),
+      );
+
+      expect(
+        url.searchParams.get(FILTER_URL_KEYS.identifiedUserKey as string),
+      ).toBe("another-digest");
+    });
+  });
+
+  describe("resolveHandedOffUserFilter", () => {
+    const fromUrl: SessionReplayListUrlState = readListStateFromSearch(
+      `?userKey=${USER_KEY}&browser=Chrome&range=Past%201%20Week`,
+    );
+    const stored: string = JSON.stringify({
+      identifiedUserKey: USER_KEY,
+      identifiedUserLabel: "jane@example.com",
+    });
+
+    test("a matching entry swaps the digest for the reference and keeps everything else", () => {
+      const resolved: SessionReplayListUrlState = resolveHandedOffUserFilter(
+        fromUrl,
+        stored,
+      );
+
+      expect(resolved).not.toBe(fromUrl);
+      expect(resolved.advanced.identifiedUserRef).toBe("jane@example.com");
+      expect(resolved.advanced.identifiedUserKey).toBe("");
+      expect(resolved.advanced.browserName).toBe("Chrome");
+      expect(resolved.timeRange).toEqual({ range: TimeRange.PAST_ONE_WEEK });
+      /* The input is not mutated: the caller compares identity to know it was consumed. */
+      expect(fromUrl.advanced.identifiedUserKey).toBe(USER_KEY);
+
+      /* And the request that follows sends the reference, not the digest. */
+      expect(
+        buildSessionReplayListFilters(resolved.signal, resolved.advanced),
+      ).toEqual({
+        identifiedUserRef: "jane@example.com",
+        browserNames: ["Chrome"],
+      });
+    });
+
+    test("an entry for another digest leaves the state as read", () => {
+      const other: string = JSON.stringify({
+        identifiedUserKey: "somebody-else",
+        identifiedUserLabel: "bob@example.com",
+      });
+
+      expect(resolveHandedOffUserFilter(fromUrl, other)).toBe(fromUrl);
+    });
+
+    test("no entry, garbage, or an entry without a label leaves the state as read", () => {
+      expect(resolveHandedOffUserFilter(fromUrl, null)).toBe(fromUrl);
+      expect(resolveHandedOffUserFilter(fromUrl, "")).toBe(fromUrl);
+      expect(resolveHandedOffUserFilter(fromUrl, "{not json")).toBe(fromUrl);
+      expect(resolveHandedOffUserFilter(fromUrl, '"a string"')).toBe(fromUrl);
+      expect(resolveHandedOffUserFilter(fromUrl, "null")).toBe(fromUrl);
+      expect(
+        resolveHandedOffUserFilter(
+          fromUrl,
+          JSON.stringify({ identifiedUserKey: USER_KEY }),
+        ),
+      ).toBe(fromUrl);
+      expect(
+        resolveHandedOffUserFilter(
+          fromUrl,
+          JSON.stringify({
+            identifiedUserKey: USER_KEY,
+            identifiedUserLabel: "   ",
+          }),
+        ),
+      ).toBe(fromUrl);
+      expect(
+        resolveHandedOffUserFilter(
+          fromUrl,
+          JSON.stringify({
+            identifiedUserKey: USER_KEY,
+            identifiedUserLabel: 7,
+          }),
+        ),
+      ).toBe(fromUrl);
+    });
+
+    test("a URL without userKey never consults the entry", () => {
+      const noKey: SessionReplayListUrlState = readListStateFromSearch(
+        `?visitor=${VISITOR}`,
+      );
+
+      expect(resolveHandedOffUserFilter(noKey, stored)).toBe(noKey);
+    });
+  });
+});
+
 describe("cursor memory", () => {
   const cursor: SessionReplaySortedListCursorDto = {
     sortBy: "errorCount",
@@ -639,5 +1012,33 @@ describe("cursor memory", () => {
     for (const variant of variants) {
       expect(variant).not.toBe(key);
     }
+  });
+});
+
+/*
+ * A pasted ?visitor= is untrusted input like the search box: anything that
+ * is not a visitor id must degrade to the unfiltered list rather than reach
+ * the server as a 400 the list can only render as a generic failure.
+ */
+describe("visitor URL parameter validation", () => {
+  test("a malformed visitor= degrades to no filter", () => {
+    expect(readListStateFromSearch("?visitor=nope").advanced.visitorId).toBe(
+      "",
+    );
+    expect(
+      readListStateFromSearch("?visitor=0123456789abcdef").advanced.visitorId,
+    ).toBe("");
+  });
+
+  test("a well-formed visitor= is kept, lower-cased", () => {
+    const id: string = "0123456789abcdef".repeat(2);
+
+    expect(readListStateFromSearch(`?visitor=${id}`).advanced.visitorId).toBe(
+      id,
+    );
+    expect(
+      readListStateFromSearch(`?visitor=${id.toUpperCase()}`).advanced
+        .visitorId,
+    ).toBe(id);
   });
 });

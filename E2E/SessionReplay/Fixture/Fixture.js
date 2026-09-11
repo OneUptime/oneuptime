@@ -13,6 +13,7 @@ import { initReactI18next } from "react-i18next";
 import Layout from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Layout";
 import Recordings from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplay";
 import Recording from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayView";
+import ReplayUsers from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayUsers";
 import Documentation from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Documentation";
 import ReplayPolicy from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplaySettings";
 import ReplayAccessLog from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayAudit";
@@ -79,22 +80,25 @@ ModelAPI.getList = async () => ({ data: [], count: 0, skip: 0, limit: 50 });
 ModelAPI.getCount = async () => 0;
 ModelAPI.updateById = async () => app;
 // One visitor id per browser; the two anonymous rows share one so the list
-// and the Users view can show "the same browser came back".
+// and the Users page can show "the same browser came back".
 const visitorIds = [
   "7f3a2b1c9d8e4f5a6b7c8d9e0f1a2b3c",
   "1a2b3c4d5e6f708192a3b4c5d6e7f809",
   "9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b",
   "5c4b3a2f1e0d9c8b7a6f5e4d3c2b1a09",
 ];
+// ?identity=none: no row is identified, so the list shows the "call
+// identify()" nudge and every user cell reads "Visitor ..." - the shape of
+// the customer's screenshots in #3705.
+const isAnonymousFixture = params.get("identity") === "none";
 const records = Array.from({ length: count }, (_, index) => {
   const startTimeUnixMs = started - index * 75 * 1000;
   const hasError = index % 3 === 0;
-  const identifiedUserLabel = [
-    "alex@example.com",
-    "jordan@example.com",
-    "",
-    "morgan@example.com",
-  ][index % 4];
+  const identifiedUserLabel = isAnonymousFixture
+    ? ""
+    : ["alex@example.com", "jordan@example.com", "", "morgan@example.com"][
+        index % 4
+      ];
   return {
     sessionId:
       index === 0 ? sessionId : (index + 1).toString(16).padStart(32, "0"),
@@ -658,6 +662,7 @@ createRoot(document.getElementById("root")).render(
       <Route path="/dashboard/:projectId/rum/:id" element={<FixtureLayout />}>
         <Route path="session-replay" element={<Recordings />} />
         <Route path="session-replay/:subModelId" element={<Recording />} />
+        <Route path="session-replay-users" element={<ReplayUsers />} />
         <Route path="documentation" element={<Documentation />} />
         <Route path="session-replay-settings" element={<ReplayPolicy />} />
         <Route path="session-replay-audit" element={<ReplayAccessLog />} />

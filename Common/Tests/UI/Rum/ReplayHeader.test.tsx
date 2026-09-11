@@ -95,6 +95,7 @@ function makeUserSessions(
       makeUserSession("older", START_UNIX_MS - 3600000),
     ],
     currentSessionId: SESSION_ID,
+    isTruncated: false,
     ...overrides,
   };
 }
@@ -342,9 +343,9 @@ describe("ReplayHeader", () => {
         />,
       );
 
-      expect(screen.getByTestId("replay-user-sessions-error")).toHaveTextContent(
-        "Couldn't load other sessions",
-      );
+      expect(
+        screen.getByTestId("replay-user-sessions-error"),
+      ).toHaveTextContent("Couldn't load other sessions");
       expect(
         screen.queryByTestId("replay-user-sessions-button"),
       ).not.toBeInTheDocument();
@@ -389,7 +390,8 @@ describe("ReplayHeader", () => {
       );
 
       expect(button).toHaveTextContent("3 sessions");
-      expect(button).toHaveAttribute("aria-haspopup", "true");
+      expect(button).toHaveAttribute("aria-haspopup", "listbox");
+      expect(button).not.toHaveAttribute("data-truncated");
       expect(button).toHaveAttribute("aria-expanded", "false");
 
       const group: HTMLElement = screen.getByRole("group", {
@@ -450,6 +452,46 @@ describe("ReplayHeader", () => {
       expect(screen.getByTestId("replay-user-session-newer")).toBeEnabled();
     });
 
+    /*
+     * A person with more sessions after this one than the newer walk can
+     * page through (REPLAY_USER_SESSIONS_MAX_PAGES): the sessions between
+     * the newest fetched page and this one are unknown, so "Newer" would
+     * skip them. Nothing is disabled - the nearest fetched session is
+     * still a useful place to go - but the tooltip must not claim
+     * adjacency, and the trigger says the list is partial. The older step
+     * is untouched: its request is anchored on this session, so its
+     * neighbour is exact.
+     */
+    it("says the switcher is incomplete when the newer walk was cut short, without disabling anything", () => {
+      render(
+        <ReplayHeader
+          {...makeProps({
+            userSessions: makeUserSessions({ isTruncated: true }),
+            onOpenUserSession: getJestMockFunction(),
+          })}
+        />,
+      );
+
+      const button: HTMLElement = screen.getByTestId(
+        "replay-user-sessions-button",
+      );
+      const older: HTMLElement = screen.getByTestId(
+        "replay-user-session-older",
+      );
+      const newer: HTMLElement = screen.getByTestId(
+        "replay-user-session-newer",
+      );
+
+      expect(button).toHaveAttribute("data-truncated", "true");
+      expect(newer).toHaveAttribute(
+        "title",
+        "More sessions than the switcher can show; open the session list for this user",
+      );
+      expect(newer).toBeEnabled();
+      expect(older).toHaveAttribute("title", "Older session by this user ({)");
+      expect(older).toBeEnabled();
+    });
+
     it("opens the menu and hands a chosen session to the shell", () => {
       const onOpenUserSession: MockFunction = getJestMockFunction();
 
@@ -467,9 +509,10 @@ describe("ReplayHeader", () => {
       const menu: HTMLElement = screen.getByTestId("replay-user-sessions-menu");
 
       expect(menu).toHaveTextContent("Sessions from this visitor");
-      expect(
-        screen.getByTestId("replay-user-sessions-button"),
-      ).toHaveAttribute("aria-expanded", "true");
+      expect(screen.getByTestId("replay-user-sessions-button")).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
 
       const items: Array<HTMLElement> = within(menu).getAllByTestId(
         "replay-user-session-item",
@@ -773,7 +816,9 @@ describe("ReplayHeader", () => {
         "opened 2:14",
       );
       expect(
-        describeReplayTabOpened(makeTab({ hasFootage: false, openedAtMs: 5000 })),
+        describeReplayTabOpened(
+          makeTab({ hasFootage: false, openedAtMs: 5000 }),
+        ),
       ).toBeNull();
     });
 
@@ -790,9 +835,7 @@ describe("ReplayHeader", () => {
       expect(formatReplayTabLabel(tab, { isCompact: false })).toBe(
         "Tab 2 · 30s · (opened 2:14)",
       );
-      expect(formatReplayTabLabel(tab, {})).toBe(
-        "Tab 2 · 30s · (opened 2:14)",
-      );
+      expect(formatReplayTabLabel(tab, {})).toBe("Tab 2 · 30s · (opened 2:14)");
     });
 
     it("wraps the tab strip instead of scrolling it sideways", () => {

@@ -110,6 +110,18 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Replay Users",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.UserGroup}
+        />
+        <SideMenuItem
+          link={{
             title: "Replay Policy",
             to: RouteUtil.populateRouteParams(
               RouteMap[

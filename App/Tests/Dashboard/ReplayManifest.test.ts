@@ -168,9 +168,7 @@ describe("parseManifest with the current server", () => {
     expect(manifest.details.identifiedUserKey).toBe(
       "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
     );
-    expect(manifest.details.visitorId).toBe(
-      "7f3a2b1c9d8e4f5a6b7c8d9e0f1a2b3c",
-    );
+    expect(manifest.details.visitorId).toBe("7f3a2b1c9d8e4f5a6b7c8d9e0f1a2b3c");
   });
 
   test("reads the engagement counters, numeric strings included", () => {

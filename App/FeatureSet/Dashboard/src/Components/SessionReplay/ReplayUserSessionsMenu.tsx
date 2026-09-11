@@ -27,7 +27,9 @@ import { ReplayPill, ReplayToolButton } from "./ReplayUi";
  * menu in this chrome should not have to learn a second. It differs in
  * being a listbox rather than a radiogroup: choosing a session NAVIGATES
  * (the page remounts the player on the new session), so an option is an
- * action, not a setting, and arrow keys move focus without choosing.
+ * action, not a setting, and arrow keys move focus without choosing. The
+ * trigger says so (aria-haspopup="listbox"): a screen reader promised a
+ * menu would otherwise meet options where it expected menu items.
  *
  * Presentational: the shell fetches and merges the list, decides what
  * "now" is, and owns the navigation. This file only draws and handles
@@ -41,6 +43,14 @@ export interface ReplayUserSessionsMenuProps {
   currentSessionId: string;
   onOpenUserSession: (sessionId: string) => void;
   /*
+   * The shell could not page all the way back to the current session
+   * (ReplayUserSessionsState.isTruncated), so `sessions` is the nearest
+   * fetched part of the story, not the whole of it. The trigger's tooltip
+   * and the panel's heading say so; nothing is hidden or disabled, because
+   * the sessions that WERE fetched are still worth going to.
+   */
+  isTruncated?: boolean | undefined;
+  /*
    * The clock the relative times are printed against. Read once per
    * render by the shell so every row agrees on "now"; a test passes a
    * fixed value so "5 minutes ago" is stable.
@@ -48,10 +58,16 @@ export interface ReplayUserSessionsMenuProps {
   nowUnixMs?: number | undefined;
 }
 
-function headerCopyFor(kind: ReplayUserSessionsKind): string {
-  return kind === "visitor"
-    ? "Sessions from this visitor · past 30 days"
-    : "Sessions from this user · past 30 days";
+function headerCopyFor(
+  kind: ReplayUserSessionsKind,
+  isTruncated: boolean,
+): string {
+  const noun: string = kind === "visitor" ? "visitor" : "user";
+
+  /* "Some", not "Sessions": a partial list must not read as the whole. */
+  return isTruncated
+    ? `Some sessions from this ${noun} · past 30 days`
+    : `Sessions from this ${noun} · past 30 days`;
 }
 
 const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
@@ -193,6 +209,7 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
 
   const count: number = sessions.length;
   const kindNoun: string = props.kind === "visitor" ? "visitor" : "user";
+  const isTruncated: boolean = props.isTruncated === true;
 
   return (
     <div ref={menuRef} className="relative shrink-0">
@@ -203,10 +220,15 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
         variant="ghost"
         tone="accent"
         trailingIcon={IconProp.ChevronDown}
-        hasPopup={true}
+        hasPopup="listbox"
         isExpanded={isOpen}
         ariaLabel={`${count} sessions by this ${kindNoun}; open the list`}
-        title={`Every session from this ${kindNoun} in the past 30 days`}
+        title={
+          isTruncated
+            ? `More sessions from this ${kindNoun} than the switcher can show; open the session list for all of them`
+            : `Every session from this ${kindNoun} in the past 30 days`
+        }
+        dataAttributes={isTruncated ? { "data-truncated": "true" } : undefined}
         onClick={(): void => {
           setIsOpen(!isOpen);
         }}
@@ -218,7 +240,7 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
           className="absolute left-0 z-20 mt-1 w-[26rem] max-w-[90vw] rounded-xl border border-gray-200 bg-white p-1 shadow-lg"
         >
           <div className="px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-500">
-            {headerCopyFor(props.kind)}
+            {headerCopyFor(props.kind, isTruncated)}
           </div>
           <div
             role="listbox"
@@ -229,7 +251,8 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
             {sessions.map(
               (item: ReplayUserSessionItem, index: number): ReactElement => {
                 const description: ReplayUserSessionDescription =
-                  descriptions[index] ?? describeReplayUserSession(item, nowUnixMs);
+                  descriptions[index] ??
+                  describeReplayUserSession(item, nowUnixMs);
                 const isCurrent: boolean = index === currentIndex;
 
                 return (
@@ -258,7 +281,7 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
                       select(item.sessionId);
                     }}
                   >
-                    <span className="w-24 shrink-0">
+                    <span className="w-28 shrink-0">
                       <span className="block text-sm font-medium text-gray-900">
                         {description.when}
                       </span>

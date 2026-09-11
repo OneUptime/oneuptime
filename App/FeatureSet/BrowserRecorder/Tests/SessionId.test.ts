@@ -317,7 +317,7 @@ describe("SessionId", (): void => {
       expect(resolved.rotationReason).toBe(SessionRotationReason.Idle);
     });
 
-    it("notifies a subscriber when another tab writes the session key, and only that key", (): void => {
+    it("notifies a subscriber when another tab writes the session key, and ignores unrelated keys", (): void => {
       const seen: Array<string | null> = [];
 
       const unsubscribe: () => void = SessionId.subscribeToSessionChanges(
@@ -349,6 +349,60 @@ describe("SessionId", (): void => {
       );
 
       expect(seen).toHaveLength(1);
+    });
+
+    /*
+     * The visitor key too. A sibling's revokeConsent() removes it, and a
+     * tab that kept stamping the copy it held would re-link every session
+     * it records from then on to the ones the user asked us to forget. The
+     * listener is handed the stored session id either way, because what
+     * the recorder does about either key is one and the same re-sync.
+     */
+    it("notifies a subscriber when another tab removes or rewrites the visitor key", (): void => {
+      const seen: Array<string | null> = [];
+
+      const unsubscribe: () => void = SessionId.subscribeToSessionChanges(
+        (storedSessionId: string | null): void => {
+          seen.push(storedSessionId);
+        },
+        window,
+      );
+
+      SessionId.resolveVisitorId();
+      SessionId.clearAll();
+
+      /* What the browser fires in the OTHER tabs after that clearAll(). */
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: "oneuptime.replay.visitor",
+          newValue: null,
+        }),
+      );
+
+      expect(seen).toEqual([null]);
+
+      /* And after a sibling's grant re-minted both keys. */
+      const theirs: SessionIdentityState = SessionId.resolveSession(
+        Date.now(),
+        "tab2",
+      );
+
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: "oneuptime.replay.visitor",
+          newValue: "e".repeat(32),
+        }),
+      );
+
+      expect(seen).toEqual([null, theirs.sessionId]);
+
+      unsubscribe();
+
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: "oneuptime.replay.visitor" }),
+      );
+
+      expect(seen).toHaveLength(2);
     });
   });
 

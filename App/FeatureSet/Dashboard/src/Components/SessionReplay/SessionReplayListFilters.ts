@@ -2,6 +2,7 @@ import { JSONObject } from "Common/Types/JSON";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
+import { SESSION_REPLAY_VISITOR_ID_PATTERN } from "Common/Types/Rum/SessionReplay";
 import {
   parseSessionReplayListCursor,
   SESSION_REPLAY_SORT_BY_VALUES,
@@ -308,22 +309,6 @@ export const FILTER_URL_KEYS: Partial<
   search: "q",
 };
 
-/*
- * Which read of the same headers the page shows: the flat session list, or
- * the per-person rollup the /users route answers. Absent from the URL means
- * sessions, which is what the page always was.
- */
-export type SessionReplayListView = "sessions" | "users";
-
-export const DEFAULT_SESSION_REPLAY_LIST_VIEW: SessionReplayListView =
-  "sessions";
-
-export function isSessionReplayListView(
-  value: unknown,
-): value is SessionReplayListView {
-  return value === "sessions" || value === "users";
-}
-
 /* The non-filter parts of the list URL. */
 export const LIST_URL_KEYS: {
   signal: string;
@@ -332,7 +317,6 @@ export const LIST_URL_KEYS: {
   startTime: string;
   endTime: string;
   page: string;
-  view: string;
 } = {
   signal: "signal",
   sort: "sort",
@@ -340,7 +324,6 @@ export const LIST_URL_KEYS: {
   startTime: "startTime",
   endTime: "endTime",
   page: "page",
-  view: "view",
 };
 
 export function hasAnyAdvancedFilter(
@@ -481,8 +464,6 @@ export interface SessionReplayListUrlState {
   timeRange: RangeStartAndEndDateTime;
   /* 1-based. Only meaningful with a remembered cursor; see cursor memory. */
   page: number;
-  /* Sessions unless the URL says "users"; anything else is sessions. */
-  view: SessionReplayListView;
 }
 
 function parseIsoDate(value: string | null): Date | null {
@@ -592,23 +573,40 @@ export function readListStateFromSearch(
       continue;
     }
 
+    if (field === "visitorId") {
+      /*
+       * A pasted link is untrusted input, exactly like the search box: a
+       * value that is not a visitor id would go to the server as-is and
+       * come back as a 400 the list can only show as a generic failure.
+       * Lower-cased and shape-checked here so a malformed link degrades to
+       * the unfiltered list instead, the way the visitor: token does.
+       */
+      const rawVisitorId: string = (params.get(key) || "").trim().toLowerCase();
+
+      advanced.visitorId = SESSION_REPLAY_VISITOR_ID_PATTERN.test(rawVisitorId)
+        ? rawVisitorId
+        : "";
+      continue;
+    }
+
     advanced[field] = params.get(key) || "";
   }
 
   const signal: string = params.get(LIST_URL_KEYS.signal) || "all";
   const sort: string | null = params.get(LIST_URL_KEYS.sort);
   const page: number = parseInt(params.get(LIST_URL_KEYS.page) || "1", 10);
-  const view: string | null = params.get(LIST_URL_KEYS.view);
 
+  /*
+   * A stray ?view=... from the merged toggle era is simply ignored here;
+   * Pages/Rum/View/SessionReplay.tsx redirects view=users to the Users page
+   * before this list ever mounts.
+   */
   return {
     signal: SESSION_REPLAY_SIGNALS.includes(signal) ? signal : "all",
     advanced: advanced,
     sortBy: isSessionReplaySortBy(sort) ? sort : DEFAULT_SESSION_REPLAY_SORT_BY,
     timeRange: readTimeRangeFromSearch(search),
     page: Number.isFinite(page) && page > 1 ? Math.floor(page) : 1,
-    view: isSessionReplayListView(view)
-      ? view
-      : DEFAULT_SESSION_REPLAY_LIST_VIEW,
   };
 }
 
@@ -626,7 +624,85 @@ export interface SessionReplayListUrlExtras {
   sortBy?: SessionReplaySortBy | undefined;
   timeRange?: RangeStartAndEndDateTime | undefined;
   page?: number | undefined;
-  view?: SessionReplayListView | undefined;
+  /*
+   * The digest a handed-off reference arrived under, with the reference
+   * it was swapped for (see resolveHandedOffUserFilter). While the
+   * reference filter still names that person, userKey=<digest> is written
+   * in its place - the reference itself never goes in the URL - so the
+   * address the list leaves behind narrows by the same person on a
+   * reload, on Forward and when copied, exactly as the link that opened
+   * it did. Once the viewer clears or changes the user filter it no
+   * longer applies and nothing is written.
+   */
+  handedOffUser?: HandedOffUserFilterLabel | null | undefined;
+}
+
+/*
+ * The digest to write as userKey= on behalf of a handed-off reference, or
+ * "" when there is none, the reference has moved on, or a digest filter of
+ * its own is already standing (that one wins; two would be redundant).
+ */
+export function handedOffUserKeyToWrite(
+  advanced: SessionReplayAdvancedFilters,
+  handedOffUser: HandedOffUserFilterLabel | null | undefined,
+): string {
+  if (!handedOffUser || advanced.identifiedUserKey.trim()) {
+    return "";
+  }
+
+  const reference: string = advanced.identifiedUserRef.trim();
+  const digest: string = handedOffUser.identifiedUserKey.trim();
+
+  if (
+    !reference ||
+    !digest ||
+    reference !== handedOffUser.identifiedUserLabel.trim()
+  ) {
+    return "";
+  }
+
+  return digest;
+}
+
+/*
+ * Stamps a time range into a query string, defaults as ABSENCE. A custom
+ * window is written as the absolute startTime/endTime pair; a named range
+ * as range=; the default window as nothing at all. Both spellings of the
+ * absolute pair go first, including the overview tile's start/end: leaving
+ * an alias behind would let a stale window win the next time the URL is
+ * read back (readTimeRangeFromSearch accepts either). Shared by the list
+ * URL, the Users page URL and the hand-off between them, so the three can
+ * never disagree about how a window is spelled.
+ */
+function writeTimeRangeToParams(
+  params: URLSearchParams,
+  timeRange: RangeStartAndEndDateTime | undefined,
+): void {
+  params.delete(LIST_URL_KEYS.range);
+
+  for (const key of [...START_TIME_URL_KEYS, ...END_TIME_URL_KEYS]) {
+    params.delete(key);
+  }
+
+  if (!timeRange) {
+    return;
+  }
+
+  if (timeRange.range === TimeRange.CUSTOM && timeRange.startAndEndDate) {
+    params.set(
+      LIST_URL_KEYS.startTime,
+      timeRange.startAndEndDate.startValue.toISOString(),
+    );
+    params.set(
+      LIST_URL_KEYS.endTime,
+      timeRange.startAndEndDate.endValue.toISOString(),
+    );
+  } else if (
+    timeRange.range !== DEFAULT_SESSION_REPLAY_TIME_RANGE.range &&
+    timeRange.range !== TimeRange.CUSTOM
+  ) {
+    params.set(LIST_URL_KEYS.range, timeRange.range);
+  }
 }
 
 /*
@@ -679,43 +755,25 @@ export function buildFilteredUrl(
     url.searchParams.set(key, value);
   }
 
+  const handedOffUserKey: string = handedOffUserKeyToWrite(
+    advanced,
+    extras?.handedOffUser,
+  );
+
+  if (handedOffUserKey) {
+    url.searchParams.set(
+      FILTER_URL_KEYS.identifiedUserKey as string,
+      handedOffUserKey,
+    );
+  }
+
   if (extras?.sortBy && extras.sortBy !== DEFAULT_SESSION_REPLAY_SORT_BY) {
     url.searchParams.set(LIST_URL_KEYS.sort, extras.sortBy);
   } else {
     url.searchParams.delete(LIST_URL_KEYS.sort);
   }
 
-  url.searchParams.delete(LIST_URL_KEYS.range);
-
-  /*
-   * Both spellings go, including the overview tile's start/end: leaving an
-   * alias behind would let a stale window win the next time this URL is
-   * read back (readTimeRangeFromSearch accepts either).
-   */
-  for (const key of [...START_TIME_URL_KEYS, ...END_TIME_URL_KEYS]) {
-    url.searchParams.delete(key);
-  }
-
-  if (extras?.timeRange) {
-    if (
-      extras.timeRange.range === TimeRange.CUSTOM &&
-      extras.timeRange.startAndEndDate
-    ) {
-      url.searchParams.set(
-        LIST_URL_KEYS.startTime,
-        extras.timeRange.startAndEndDate.startValue.toISOString(),
-      );
-      url.searchParams.set(
-        LIST_URL_KEYS.endTime,
-        extras.timeRange.startAndEndDate.endValue.toISOString(),
-      );
-    } else if (
-      extras.timeRange.range !== DEFAULT_SESSION_REPLAY_TIME_RANGE.range &&
-      extras.timeRange.range !== TimeRange.CUSTOM
-    ) {
-      url.searchParams.set(LIST_URL_KEYS.range, extras.timeRange.range);
-    }
-  }
+  writeTimeRangeToParams(url.searchParams, extras?.timeRange);
 
   if (extras?.page && extras.page > 1) {
     url.searchParams.set(LIST_URL_KEYS.page, String(Math.floor(extras.page)));
@@ -723,14 +781,192 @@ export function buildFilteredUrl(
     url.searchParams.delete(LIST_URL_KEYS.page);
   }
 
-  /* The default view is absence, like every other default here. */
-  if (extras?.view && extras.view !== DEFAULT_SESSION_REPLAY_LIST_VIEW) {
-    url.searchParams.set(LIST_URL_KEYS.view, extras.view);
-  } else {
-    url.searchParams.delete(LIST_URL_KEYS.view);
-  }
+  return url.toString();
+}
+
+/*
+ * ---- The Users page and its hand-off to the list ----
+ *
+ * The Users page (Pages/Rum/View/SessionReplayUsers.tsx) shares exactly one
+ * piece of state with the list: the time range. Its URL carries that and
+ * nothing else, spelled with the same keys, so a link into either page
+ * opens the other on the same window.
+ */
+
+/* The given href with the time range stamped in; defaults as absence. */
+export function buildUsersPageUrl(
+  href: string,
+  timeRange: RangeStartAndEndDateTime,
+): string {
+  const url: URL = new URL(href);
+
+  writeTimeRangeToParams(url.searchParams, timeRange);
 
   return url.toString();
+}
+
+/*
+ * The query string ("?range=...", or "") that puts a page on this time
+ * range and nothing else. What the view=users redirect appends to the
+ * Users page route so the window a stale link named is kept.
+ */
+export function buildTimeRangeSearch(
+  timeRange: RangeStartAndEndDateTime,
+): string {
+  const params: URLSearchParams = new URLSearchParams();
+
+  writeTimeRangeToParams(params, timeRange);
+
+  const search: string = params.toString();
+
+  return search ? `?${search}` : "";
+}
+
+/*
+ * What a Users row hands the page when its Sessions action fires: the one
+ * identity filter that selects the person (see describeUserRollup), plus
+ * the rollup's pseudonymous key and label. The key and label ride along
+ * because the filter alone cannot cross a page boundary honestly - see
+ * buildUserSessionsListSearch.
+ */
+export interface SessionReplayUserSessionsHandoff {
+  filter: Partial<SessionReplayAdvancedFilters>;
+  identifiedUserKey: string;
+  identifiedUserLabel: string;
+}
+
+/*
+ * Where the Users page parks a person's label for the list to pick up,
+ * per application. sessionStorage, not the URL: the label is the customer's
+ * end user - typically their email - and FILTER_URL_KEYS explains why that
+ * never goes in a query string. The list reads the entry once and clears
+ * it (see resolveHandedOffUserFilter).
+ */
+export const USER_FILTER_LABEL_STORAGE_KEY_PREFIX: string =
+  "oneuptime.replay.userFilterLabel:";
+
+export function buildUserFilterLabelStorageKey(
+  rumApplicationId: string,
+): string {
+  return `${USER_FILTER_LABEL_STORAGE_KEY_PREFIX}${rumApplicationId}`;
+}
+
+/* The stored shape. Both fields are required for the entry to mean anything. */
+export interface HandedOffUserFilterLabel {
+  identifiedUserKey: string;
+  identifiedUserLabel: string;
+}
+
+/*
+ * The label entry to stash beside a hand-off, or null when there is nothing
+ * worth stashing: only an identified user with a visible label needs one,
+ * because only that hand-off loses information on the way through the URL.
+ * A visitor's id and a hidden user's digest survive the query string as
+ * they are.
+ */
+export function buildHandedOffUserFilterLabel(
+  handoff: SessionReplayUserSessionsHandoff,
+): HandedOffUserFilterLabel | null {
+  const reference: string = (handoff.filter.identifiedUserRef ?? "").trim();
+  const key: string = handoff.identifiedUserKey.trim();
+
+  if (!reference || !key) {
+    return null;
+  }
+
+  return { identifiedUserKey: key, identifiedUserLabel: reference };
+}
+
+/*
+ * The query string that opens the session list on one person's sessions,
+ * on the same time range. A visitor goes as visitor=, an identified user as
+ * userKey=<digest> - whether or not the page could read their label. The
+ * reference itself is NEVER written here (FILTER_URL_KEYS); the label
+ * reaches the list through sessionStorage instead, keyed by that digest,
+ * so the list can show user:<label> without the URL ever carrying it.
+ */
+export function buildUserSessionsListSearch(
+  handoff: SessionReplayUserSessionsHandoff,
+  timeRange: RangeStartAndEndDateTime,
+): string {
+  const params: URLSearchParams = new URLSearchParams();
+  const visitorId: string = (handoff.filter.visitorId ?? "").trim();
+  const reference: string = (handoff.filter.identifiedUserRef ?? "").trim();
+  /*
+   * A hidden label hands the digest in the filter itself; a visible one
+   * hands the reference, and the digest it was stored under rides beside.
+   */
+  const digest: string = (
+    handoff.filter.identifiedUserKey ||
+    (reference ? handoff.identifiedUserKey : "")
+  ).trim();
+
+  if (visitorId) {
+    params.set(FILTER_URL_KEYS.visitorId as string, visitorId);
+  } else if (digest) {
+    params.set(FILTER_URL_KEYS.identifiedUserKey as string, digest);
+  }
+
+  writeTimeRangeToParams(params, timeRange);
+
+  const search: string = params.toString();
+
+  return search ? `?${search}` : "";
+}
+
+/*
+ * The list's half of the hand-off. When the URL carries userKey= and the
+ * stored label entry is for that very digest, the digest filter is swapped
+ * for the reference so the existing UX applies unchanged: the search box
+ * shows user:<label>, the chip says User <label>, and the request sends
+ * identifiedUserRef for the server to hash. Anything else - no entry, an
+ * entry for another digest, garbage - leaves the state exactly as read,
+ * and the list narrows by the pseudonymous key as it always could.
+ *
+ * Pure: the caller reads sessionStorage (try/catch) and clears the entry
+ * once it has been consumed.
+ */
+export function resolveHandedOffUserFilter(
+  state: SessionReplayListUrlState,
+  storedLabelJson: string | null,
+): SessionReplayListUrlState {
+  const digest: string = state.advanced.identifiedUserKey.trim();
+
+  if (!digest || !storedLabelJson) {
+    return state;
+  }
+
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(storedLabelJson);
+  } catch {
+    return state;
+  }
+
+  if (parsed === null || typeof parsed !== "object") {
+    return state;
+  }
+
+  const entry: Record<string, unknown> = parsed as Record<string, unknown>;
+  const label: unknown = entry["identifiedUserLabel"];
+
+  if (
+    entry["identifiedUserKey"] !== digest ||
+    typeof label !== "string" ||
+    !label.trim()
+  ) {
+    return state;
+  }
+
+  return {
+    ...state,
+    advanced: {
+      ...state.advanced,
+      identifiedUserRef: label.trim(),
+      identifiedUserKey: "",
+    },
+  };
 }
 
 /*

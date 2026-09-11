@@ -442,6 +442,12 @@ export const RumRoutePath: Dictionary<string> = {
    */
   [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT]: `${RouteParams.ModelID}/session-replay-audit`,
   /*
+   * The session list rolled up by person. A hyphenated sibling for the
+   * same reason as the audit page: "session-replay/users" would be a
+   * session id to the player route above.
+   */
+  [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS]: `${RouteParams.ModelID}/session-replay-users`,
+  /*
    * A sibling of /session-replay rather than a child, for the same reason
    * as the audit page: a child segment would be shadowed by a session
    * whose id happened to be "settings".
@@ -4386,6 +4392,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/rum/${
       RumRoutePath[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS]
     }`,
   ),
 

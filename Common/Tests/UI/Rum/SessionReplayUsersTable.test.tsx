@@ -16,7 +16,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * mocked /users. One row per identified user, visitor and the anonymous
  * bucket, each named the way the session list names them; a withheld
  * label reads Hidden; the row and its Sessions action hand the person's
- * filter back; Watch latest is a real link to the newest recording;
+ * filter back with the key and label it was rolled up under; Watch latest
+ * is a real link to the newest recording;
  * paging echoes the server's cursor; empty and error states are honest.
  */
 
@@ -53,7 +54,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 import SessionReplayUsersTable, {
   SESSION_REPLAY_USERS_PAGE_SIZE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayUsersTable";
-import { SessionReplayAdvancedFilters } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayListFilters";
+import { SessionReplayUserSessionsHandoff } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayListFilters";
 
 const APP_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
 const SESSION_A: string = "a1b2c3d4e5f60718293a4b5c6d7e8f90";
@@ -139,7 +140,7 @@ function mockUsers(
 function renderTable(
   overrides?: Partial<{
     reloadToken: number;
-    onViewUserSessions: (filter: Partial<SessionReplayAdvancedFilters>) => void;
+    onViewUserSessions: (handoff: SessionReplayUserSessionsHandoff) => void;
     timeRange: RangeStartAndEndDateTime;
   }>,
 ): { view: ReturnType<typeof render>; onViewUserSessions: MockFunction } {
@@ -309,7 +310,7 @@ describe("SessionReplayUsersTable rendering", () => {
 });
 
 describe("SessionReplayUsersTable actions", () => {
-  it("the Sessions action hands back the reference for a visible label", async () => {
+  it("the Sessions action hands back the reference for a visible label, with the key it is stored under", async () => {
     mockUsers(() => {
       return usersResponse([wireRollup()]);
     });
@@ -321,8 +322,15 @@ describe("SessionReplayUsersTable actions", () => {
     fireEvent.click(screen.getByTestId("session-user-view-sessions"));
 
     expect(onViewUserSessions).toHaveBeenCalledTimes(1);
+    /*
+     * The key rides beside the reference because the page puts the KEY in
+     * the list's URL and parks the label out of it; without the key the
+     * hand-off could only carry the reference, which never goes in a URL.
+     */
     expect(onViewUserSessions).toHaveBeenCalledWith({
-      identifiedUserRef: "jane@acme.com",
+      filter: { identifiedUserRef: "jane@acme.com" },
+      identifiedUserKey: USER_KEY,
+      identifiedUserLabel: "jane@acme.com",
     });
     expect(navigateMock).not.toHaveBeenCalled();
   });
@@ -355,11 +363,16 @@ describe("SessionReplayUsersTable actions", () => {
     fireEvent.click(actions[0] as HTMLElement);
     fireEvent.click(actions[1] as HTMLElement);
 
+    /* A withheld label is an empty string, never the label the server kept back. */
     expect(onViewUserSessions.mock.calls[0]![0]).toEqual({
+      filter: { identifiedUserKey: USER_KEY },
       identifiedUserKey: USER_KEY,
+      identifiedUserLabel: "",
     });
     expect(onViewUserSessions.mock.calls[1]![0]).toEqual({
-      visitorId: VISITOR_A,
+      filter: { visitorId: VISITOR_A },
+      identifiedUserKey: "",
+      identifiedUserLabel: "",
     });
   });
 

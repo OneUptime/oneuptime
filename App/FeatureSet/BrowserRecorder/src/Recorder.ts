@@ -400,9 +400,15 @@ export default class Recorder {
    * The per-browser anonymous visitor id (SessionId.resolveVisitorId),
    * repeated on every meta-bearing chunk so the dashboard can group this
    * browser's sessions even when the page never calls identify(). Empty
-   * only between revokeConsent() and the next grantConsent(): nothing may
-   * be written to the visitor's storage while consent is withdrawn, so it
-   * is not re-minted until a grant mints the fresh session it belongs to.
+   * only while THIS tab's consent is withdrawn: nothing may be written to
+   * the visitor's storage while consent is withdrawn, so it is not
+   * re-minted until a grant mints the fresh session it belongs to.
+   *
+   * A copy of storage, never the source of truth. localStorage is one
+   * store for every tab of the origin, so a sibling tab's revokeConsent()
+   * removes the stored id under this one; syncVisitorIdWithStorage
+   * re-reads it on every flush tick and storage event so a withdrawn id
+   * is never stamped on a session recorded after the withdrawal.
    */
   private visitorId: string = "";
 
@@ -903,7 +909,11 @@ export default class Recorder {
      * Another tab rotating the shared session is learned about the moment
      * it happens, not on the next 15 s tick: the storage event fires in
      * every OTHER tab when the session key changes, which is exactly the tab
-     * that must stop posting under an id its sibling just sealed.
+     * that must stop posting under an id its sibling just sealed. The same
+     * subscription fires when a sibling removes the visitor id (its
+     * revokeConsent), and the same path - maybeRotateSession, through
+     * syncVisitorIdWithStorage - is what stops this tab stamping the
+     * withdrawn id on anything it records from then on.
      */
     this.unsubscribeSessionChanges = SessionId.subscribeToSessionChanges(
       (): void => {
@@ -1662,6 +1672,14 @@ export default class Recorder {
     }
 
     /*
+     * BEFORE the consent check below, which returns early: a revoked tab
+     * must still let go of an id a sibling's grant just re-minted, and a
+     * consented tab must learn that a sibling revoked. Either way the
+     * in-memory id follows storage, never the other way round.
+     */
+    this.syncVisitorIdWithStorage();
+
+    /*
      * A withdrawn consent has no session to roll over. SessionId.clearAll()
      * emptied the store, so shouldRotate() reads "no session at all" and
      * answers New - and rotating would MINT one: a fresh id written to the
@@ -1720,6 +1738,67 @@ export default class Recorder {
     this.rotateSession(nowUnixMs, decision.reason);
 
     return true;
+  }
+
+  /*
+   * Keep this tab's visitor id in step with the one in storage.
+   *
+   * localStorage is one store for every tab of the origin, and the id was
+   * read from it once, at construction. A sibling tab's revokeConsent()
+   * removes it (SessionId.clearAll), and until this existed the other tabs
+   * kept stamping the copy they held on every later meta-bearing chunk -
+   * so the sessions recorded AFTER the withdrawal were filed under the
+   * withdrawn id, linked to exactly the recordings the user asked us to
+   * forget. The revoking tab's later grant then minted a second id, and
+   * one browser was two visitors from then on.
+   *
+   * Runs from maybeRotateSession, so on every flush tick and on every
+   * storage event: the gap is one tick, not the rest of the page's life.
+   *
+   * When storage and this tab disagree, one of three things:
+   *   - This tab is revoked: the id goes, and NOTHING is written. Whatever
+   *     a sibling minted is theirs; grantConsent() reads it back if the
+   *     user opts in again here.
+   *   - Storage holds an id: adopt it. A sibling's grant minted it, and
+   *     minting another would split the browser across two visitor rows.
+   *   - Storage holds none: a sibling revoked and nobody has re-minted.
+   *     This tab is still consented, so it mints - an id unrelated to the
+   *     withdrawn one - and the sibling's later grant reads THIS id back
+   *     instead of minting a third.
+   *
+   * The outgoing session is sealed under the id it was recorded with
+   * BEFORE the new one is taken. Meta rides the final chunk too, and the
+   * header keeps the LAST visitor id it is sent (the read side takes an
+   * argMax), so a final chunk stamped with the new id would file the
+   * pre-revoke session under the post-revoke identity - the very link
+   * this exists to cut. Sealing early is safe for the reason
+   * maybeRotateSession gives: the visitor key only changes under a live
+   * tab together with the session key (clearAll removes both, a grant
+   * writes both), so a stored session that is missing or not ours means
+   * one of the rotations that follow is certain. Should storage somehow
+   * still hold OUR session, nothing is sealed - a final chunk with no
+   * rotation behind it would leave a "final" session that keeps growing.
+   */
+  private syncVisitorIdWithStorage(): void {
+    const storedVisitorId: string = SessionId.readVisitorId() ?? "";
+
+    if (storedVisitorId === this.visitorId) {
+      return;
+    }
+
+    if (this.consent.isRevoked()) {
+      this.visitorId = "";
+      return;
+    }
+
+    if (SessionId.readStoredSessionId() !== this.identity.sessionId) {
+      this.sealCurrentSession();
+    }
+
+    this.visitorId =
+      storedVisitorId.length > 0
+        ? storedVisitorId
+        : SessionId.resolveVisitorId();
   }
 
   private rotateSession(
@@ -2615,9 +2694,12 @@ export default class Recorder {
     if (wasRevoked && !this.stopped) {
       /*
        * A NEW anonymous identity as well, never the withdrawn one: the
-       * revoke removed the stored id, so this mints. A re-granted user is
-       * grouped with what they record from here on, not with the sessions
-       * they asked us to forget. Done for a not-yet-started recorder too -
+       * revoke removed the stored id, so this mints - or adopts the id a
+       * still-consented sibling tab minted when it learned of the revoke
+       * (syncVisitorIdWithStorage), so one browser stays one visitor
+       * rather than splitting across two. A re-granted user is grouped
+       * with what they record from here on, not with the sessions they
+       * asked us to forget. Done for a not-yet-started recorder too -
        * a banner that fires reject-then-accept before start() - because
        * the constructor's id was cleared by that revoke and start() never
        * resolves identity again.

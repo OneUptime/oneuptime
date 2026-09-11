@@ -36,7 +36,10 @@ import {
   describeSessionReplayListError,
   SessionReplayListErrorCopy,
 } from "./SessionReplayEmptyReason";
-import { SessionReplayAdvancedFilters } from "./SessionReplayListFilters";
+import {
+  SessionReplayAdvancedFilters,
+  SessionReplayUserSessionsHandoff,
+} from "./SessionReplayListFilters";
 import { formatSessionDuration } from "./SessionReplayPlayability";
 import {
   fetchSessionReplayUsers,
@@ -50,7 +53,7 @@ import {
 import SessionReplayUserAvatar from "./SessionReplayUserAvatar";
 
 /*
- * The Users view: the same window of sessions the flat list shows, rolled
+ * The Users page's table: the same window of sessions the flat list shows, rolled
  * up by person by the /users route - one row per identified user, one per
  * anonymous visitor (a browser the recorder linked with a visitor id), and
  * at most one "Unlinked sessions" bucket for recordings an older recorder
@@ -64,8 +67,8 @@ import SessionReplayUserAvatar from "./SessionReplayUserAvatar";
  *
  * Every row answers "who had trouble, and where do I click to see it":
  * the whole row (or its Sessions action) hands the person's identity
- * filter back to the list, and Watch latest opens their newest recording
- * without a second request.
+ * filter to the page, which opens the session list on it, and Watch
+ * latest opens their newest recording without a second request.
  */
 
 export const SESSION_REPLAY_USERS_PAGE_SIZE: number = 50;
@@ -74,12 +77,17 @@ export interface SessionReplayUsersTableProps {
   rumApplicationId: string;
   timeRange: RangeStartAndEndDateTime;
   /*
-   * Bumped by the parent's Refresh button. The table refetches whenever it
-   * changes, so one card button reloads whichever view is showing.
+   * Bumped by the page's Refresh button. The table refetches whenever it
+   * changes, so the card button reloads the rollup without remounting it.
    */
   reloadToken: number;
-  /* "Show me this person's sessions": the list applies the filter and switches view. */
-  onViewUserSessions: (filter: Partial<SessionReplayAdvancedFilters>) => void;
+  /*
+   * "Show me this person's sessions". The filter selects them; the key and
+   * label ride along because the page hands this across a route boundary,
+   * and the list needs the digest in the URL and the label out of it (see
+   * buildUserSessionsListSearch).
+   */
+  onViewUserSessions: (handoff: SessionReplayUserSessionsHandoff) => void;
 }
 
 interface SessionReplayUsersTableRow extends SessionReplayUserRollup {
@@ -89,7 +97,7 @@ interface SessionReplayUsersTableRow extends SessionReplayUserRollup {
 interface UserRowContext {
   rumApplicationId: string;
   nowUnixMs: number;
-  onViewUserSessions: (filter: Partial<SessionReplayAdvancedFilters>) => void;
+  onViewUserSessions: (handoff: SessionReplayUserSessionsHandoff) => void;
 }
 
 function plural(count: number, singular: string): string {
@@ -122,6 +130,18 @@ function describeRow(row: SessionReplayUserRollup): SessionUserDescription {
     identifiedUserLabel: row.identifiedUserLabel,
     isIdentityVisible: row.isIdentityVisible,
   });
+}
+
+/* The row's filter with the digest and label it was rolled up under. */
+function handoffFor(
+  row: SessionReplayUserRollup,
+  filter: Partial<SessionReplayAdvancedFilters>,
+): SessionReplayUserSessionsHandoff {
+  return {
+    filter: filter,
+    identifiedUserKey: row.identifiedUserKey,
+    identifiedUserLabel: row.identifiedUserLabel ?? "",
+  };
 }
 
 function getUserRollupCells(
@@ -279,7 +299,10 @@ function getUserRollupCells(
             data-testid="session-user-view-sessions"
             onClick={(): void => {
               context.onViewUserSessions(
-                user.filter as Partial<SessionReplayAdvancedFilters>,
+                handoffFor(
+                  row,
+                  user.filter as Partial<SessionReplayAdvancedFilters>,
+                ),
               );
             }}
           >
@@ -327,7 +350,7 @@ function getUserRollupRowProps(
       return;
     }
 
-    context.onViewUserSessions(filter);
+    context.onViewUserSessions(handoffFor(row, filter));
   };
 
   const attributes: React.HTMLAttributes<HTMLElement> & {
