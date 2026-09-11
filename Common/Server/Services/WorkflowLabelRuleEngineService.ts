@@ -7,6 +7,7 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class WorkflowLabelRuleEngineServiceClass {
@@ -32,6 +33,7 @@ class WorkflowLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             workflowLabels: { _id: true },
             workflowNamePattern: true,
             workflowDescriptionPattern: true,
@@ -139,6 +141,24 @@ class WorkflowLabelRuleEngineServiceClass {
   }
 
   private doesWorkflowMatchRule(
+    workflow: Workflow,
+    rule: WorkflowLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: [
+        "workflowLabels",
+        "workflowNamePattern",
+        "workflowDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (workflowRule: WorkflowLabelRule): boolean => {
+        return this.doesWorkflowMatchRuleLegacy(workflow, workflowRule);
+      },
+    });
+  }
+
+  private doesWorkflowMatchRuleLegacy(
     workflow: Workflow,
     rule: WorkflowLabelRule,
   ): boolean {

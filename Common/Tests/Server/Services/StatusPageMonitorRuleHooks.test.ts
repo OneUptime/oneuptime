@@ -26,7 +26,12 @@ import {
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import URL from "../../../Types/API/URL";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  RULE_CRITERIA_SCHEMA_VERSION,
+  RuleCriteriaOperator,
+} from "../../../Types/Rules/RuleCriteria";
 import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
 
 /*
@@ -501,6 +506,72 @@ describe("StatusPageMonitorRuleService.onBeforeCreate - refusing an ambiguous ru
         }),
       ),
     ).resolves.toBeDefined();
+  });
+
+  it("accepts a rule configured only with the condition builder", async () => {
+    await expect(
+      callHook(
+        StatusPageMonitorRuleService,
+        "onBeforeCreate",
+        ruleCreate({
+          statusPageId: STATUS_PAGE_ID,
+          name: "Production APIs",
+          criteria: {
+            schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+            filterCondition: FilterCondition.Any,
+            filters: [
+              {
+                field: "monitorNamePattern",
+                operator: RuleCriteriaOperator.Contains,
+                value: "api",
+              },
+              {
+                field: "monitorLabels",
+                operator: RuleCriteriaOperator.HasAnyOf,
+                value: [LABEL_ID.toString()],
+              },
+            ],
+          },
+        }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("rejects an empty configured condition set even when stale legacy values remain", async () => {
+    await expect(
+      callHook(
+        StatusPageMonitorRuleService,
+        "onBeforeCreate",
+        ruleCreate({
+          statusPageId: STATUS_PAGE_ID,
+          name: "Empty conditions",
+          monitorNamePattern: ".*",
+          criteria: {
+            schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+            filterCondition: FilterCondition.All,
+            filters: [],
+          },
+        }),
+      ),
+    ).rejects.toThrow(/at least one match condition/i);
+  });
+
+  it("rejects malformed configured conditions at write time", async () => {
+    await expect(
+      callHook(
+        StatusPageMonitorRuleService,
+        "onBeforeCreate",
+        ruleCreate({
+          statusPageId: STATUS_PAGE_ID,
+          name: "Malformed conditions",
+          criteria: {
+            schemaVersion: 99,
+            filterCondition: FilterCondition.All,
+            filters: [],
+          },
+        }),
+      ),
+    ).rejects.toThrow(/schemaVersion/);
   });
 
   it("requires a status page - a rule with nowhere to add monitors is meaningless", async () => {

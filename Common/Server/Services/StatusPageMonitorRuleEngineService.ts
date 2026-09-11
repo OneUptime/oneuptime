@@ -5,6 +5,7 @@ import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
+import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -71,6 +72,7 @@ const RULE_SELECT: {
   monitorLabels: { _id: true },
   monitorNamePattern: true,
   monitorDescriptionPattern: true,
+  criteria: true,
   showCurrentStatus: true,
   showUptimePercent: true,
   uptimePercentPrecision: true,
@@ -357,6 +359,27 @@ export class StatusPageMonitorRuleEngineServiceClass {
     monitor: Monitor;
     rule: StatusPageMonitorRule;
   }): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: data.rule,
+      legacyFields: [
+        "monitorLabels",
+        "monitorNamePattern",
+        "monitorDescriptionPattern",
+      ],
+      emptyResult: false,
+      matchesLegacyRule: (legacyRule: StatusPageMonitorRule): boolean => {
+        return this.doesMonitorMatchLegacyRule({
+          monitor: data.monitor,
+          rule: legacyRule,
+        });
+      },
+    });
+  }
+
+  private doesMonitorMatchLegacyRule(data: {
+    monitor: Monitor;
+    rule: StatusPageMonitorRule;
+  }): boolean {
     const { monitor, rule } = data;
 
     const hasLabelCriteria: boolean = Boolean(
@@ -436,8 +459,14 @@ export class StatusPageMonitorRuleEngineServiceClass {
     const hasDescriptionCriteria: boolean = Boolean(
       rule.monitorDescriptionPattern,
     );
+    const hasConfiguredCriteria: boolean = Boolean(rule.criteria);
 
-    if (!hasLabelCriteria && !hasNameCriteria && !hasDescriptionCriteria) {
+    if (
+      !hasConfiguredCriteria &&
+      !hasLabelCriteria &&
+      !hasNameCriteria &&
+      !hasDescriptionCriteria
+    ) {
       return [];
     }
 
@@ -448,7 +477,7 @@ export class StatusPageMonitorRuleEngineServiceClass {
       projectId: rule.projectId,
     };
 
-    if (hasLabelCriteria) {
+    if (!hasConfiguredCriteria && hasLabelCriteria) {
       query.labels = (rule.monitorLabels || [])
         .filter((label: Label) => {
           return Boolean(label.id);

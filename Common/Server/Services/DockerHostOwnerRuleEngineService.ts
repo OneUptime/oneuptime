@@ -14,6 +14,7 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class DockerHostOwnerRuleEngineServiceClass {
@@ -40,6 +41,7 @@ class DockerHostOwnerRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             notifyOwners: true,
             dockerHostLabels: { _id: true },
             dockerHostNamePattern: true,
@@ -180,6 +182,24 @@ class DockerHostOwnerRuleEngineServiceClass {
   }
 
   private doesDockerHostMatchRule(
+    dockerHost: DockerHost,
+    rule: DockerHostOwnerRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "dockerHostLabels",
+        "dockerHostNamePattern",
+        "dockerHostDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: DockerHostOwnerRule): boolean => {
+        return this.doesDockerHostMatchLegacyRule(dockerHost, legacyRule);
+      },
+    });
+  }
+
+  private doesDockerHostMatchLegacyRule(
     dockerHost: DockerHost,
     rule: DockerHostOwnerRule,
   ): boolean {

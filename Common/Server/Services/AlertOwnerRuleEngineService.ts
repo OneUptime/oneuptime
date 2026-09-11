@@ -49,6 +49,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 
 class AlertOwnerRuleEngineServiceClass {
   /**
@@ -71,6 +72,7 @@ class AlertOwnerRuleEngineServiceClass {
         select: {
           _id: true,
           name: true,
+          criteria: true,
           notifyOwners: true,
           monitors: { _id: true },
           alertSeverities: { _id: true },
@@ -686,6 +688,31 @@ class AlertOwnerRuleEngineServiceClass {
 
   @CaptureSpan()
   private async doesAlertMatchRule(
+    alert: Alert,
+    rule: AlertOwnerRule,
+  ): Promise<boolean> {
+    return await RuleCriteriaMatcher.matchesWithLegacy({
+      rule,
+      legacyFields: [
+        "monitors",
+        "alertSeverities",
+        "alertLabels",
+        "monitorLabels",
+        "alertTitlePattern",
+        "alertDescriptionPattern",
+        "monitorNamePattern",
+        "monitorDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: async (
+        legacyRule: AlertOwnerRule,
+      ): Promise<boolean> => {
+        return await this.doesAlertMatchLegacyRule(alert, legacyRule);
+      },
+    });
+  }
+
+  private async doesAlertMatchLegacyRule(
     alert: Alert,
     rule: AlertOwnerRule,
   ): Promise<boolean> {

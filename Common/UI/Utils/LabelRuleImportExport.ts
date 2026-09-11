@@ -10,9 +10,12 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import { RuleCriteriaFilter } from "../../Types/Rules/RuleCriteria";
 import LabelRuleFile, {
+  LabelRuleCriteriaRelationNames,
   ParsedLabelRuleImport,
 } from "../../Utils/LabelRuleImportExport";
+import { isValidRuleCriteria } from "../../Utils/Rules/RuleCriteriaMatcher";
 import API from "./API/API";
 import ModelAPI from "./ModelAPI/ModelAPI";
 
@@ -60,9 +63,12 @@ export default class LabelRuleImportExport {
       ...data,
       select: LabelRuleFile.getExportSelect(data.modelType),
     });
+    const criteriaRelationNames: LabelRuleCriteriaRelationNames =
+      await this.getCriteriaRelationNames({ ...data, items });
     return LabelRuleFile.buildExportEnvelope({
       modelType: data.modelType,
       items,
+      criteriaRelationNames,
     });
   }
 
@@ -87,22 +93,40 @@ export default class LabelRuleImportExport {
       DatabaseBaseModelType,
       Map<string, Array<string>>
     > = new Map();
+    const relationTypes: Set<DatabaseBaseModelType> = new Set();
     for (const column of relationColumns) {
+      const metadata: TableColumnMetadata =
+        model.getTableColumnMetadata(column)!;
       if (
-        !parsed.items.some(
+        parsed.items.some(
           (item: ParsedLabelRuleImport["items"][number]): boolean => {
             return (item.json[column] as Array<string>).length > 0;
           },
         )
       ) {
+        relationTypes.add(metadata.modelType!);
+      }
+    }
+    for (const item of parsed.items) {
+      const criteria: unknown = item.json["criteria"];
+      if (!isValidRuleCriteria(criteria)) {
         continue;
       }
-      const metadata: TableColumnMetadata =
-        model.getTableColumnMetadata(column)!;
-      const relationType: DatabaseBaseModelType = metadata.modelType!;
-      if (indexes.has(relationType)) {
-        continue;
+      for (const filter of criteria.filters) {
+        const metadata: TableColumnMetadata | undefined =
+          model.getTableColumnMetadata(filter.field);
+        if (
+          metadata?.type === TableColumnType.EntityArray &&
+          metadata.modelType &&
+          Array.isArray(filter.value) &&
+          filter.value.length > 0
+        ) {
+          relationTypes.add(metadata.modelType);
+        }
       }
+    }
+
+    for (const relationType of relationTypes) {
       const relations: Array<BaseModel> = await this.getAll({
         modelType: relationType,
         projectId: data.projectId,
@@ -146,6 +170,41 @@ export default class LabelRuleImportExport {
               return { _id: ids[0]! };
             },
           );
+        }
+        const criteria: unknown = item.json["criteria"];
+        if (isValidRuleCriteria(criteria)) {
+          const filters: Array<RuleCriteriaFilter> = criteria.filters.map(
+            (filter: RuleCriteriaFilter): RuleCriteriaFilter => {
+              const metadata: TableColumnMetadata | undefined =
+                model.getTableColumnMetadata(filter.field);
+              if (
+                metadata?.type !== TableColumnType.EntityArray ||
+                !metadata.modelType ||
+                !Array.isArray(filter.value)
+              ) {
+                return { ...filter };
+              }
+
+              const ids: Array<string> = filter.value.map(
+                (name: string): string => {
+                  const matches: Array<string> =
+                    indexes.get(metadata.modelType!)?.get(name) || [];
+                  if (matches.length !== 1) {
+                    errors.push(
+                      `Rule ${index + 1} (${item.json["name"]}): ${metadata.title || filter.field} "${name}" ${matches.length ? "matches multiple resources" : "was not found"} in the destination project. ${matches.length ? "Give these resources distinct names" : "Create or rename the resource"} before importing.`,
+                    );
+                    return "";
+                  }
+                  return matches[0]!;
+                },
+              );
+              return { ...filter, value: ids };
+            },
+          );
+          json["criteria"] = {
+            ...criteria,
+            filters,
+          } as unknown as JSONObject;
         }
         return {
           index: index + 1,
@@ -277,6 +336,55 @@ export default class LabelRuleImportExport {
         ),
       },
     };
+  }
+
+  private static async getCriteriaRelationNames(data: {
+    modelType: DatabaseBaseModelType;
+    items: Array<BaseModel>;
+    projectId: ObjectID;
+    modelAPI?: typeof ModelAPI | undefined;
+  }): Promise<LabelRuleCriteriaRelationNames> {
+    const model: BaseModel = new data.modelType();
+    const relationTypes: Set<DatabaseBaseModelType> = new Set();
+
+    for (const item of data.items) {
+      const criteria: unknown = item.getValue("criteria");
+      if (!isValidRuleCriteria(criteria)) {
+        continue;
+      }
+      for (const filter of criteria.filters) {
+        const metadata: TableColumnMetadata | undefined =
+          model.getTableColumnMetadata(filter.field);
+        if (
+          metadata?.type === TableColumnType.EntityArray &&
+          metadata.modelType &&
+          Array.isArray(filter.value) &&
+          filter.value.length > 0
+        ) {
+          relationTypes.add(metadata.modelType);
+        }
+      }
+    }
+
+    const indexes: LabelRuleCriteriaRelationNames = new Map();
+    for (const relationType of relationTypes) {
+      const relations: Array<BaseModel> = await this.getAll({
+        modelType: relationType,
+        projectId: data.projectId,
+        modelAPI: data.modelAPI,
+        select: { _id: true, name: true } as Select<BaseModel>,
+      });
+      const names: Map<string, string> = new Map();
+      for (const relation of relations) {
+        const name: unknown = relation.getValue("name");
+        if (typeof name === "string" && relation.id) {
+          names.set(relation.id.toString(), name);
+        }
+      }
+      indexes.set(relationType, names);
+    }
+
+    return indexes;
   }
 
   private static async getAll(data: {

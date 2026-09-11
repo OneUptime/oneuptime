@@ -9,6 +9,11 @@ import StatusPageMonitorRuleEngineService, {
 import StatusPageMonitorRuleService from "../../../Server/Services/StatusPageMonitorRuleService";
 import StatusPageResourceService from "../../../Server/Services/StatusPageResourceService";
 import ObjectID from "../../../Types/ObjectID";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
+import RuleCriteria, {
+  RULE_CRITERIA_SCHEMA_VERSION,
+  RuleCriteriaOperator,
+} from "../../../Types/Rules/RuleCriteria";
 import UptimePrecision from "../../../Types/StatusPage/UptimePrecision";
 import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
 
@@ -106,6 +111,7 @@ function fakeRule(fields?: {
   monitorLabels?: Array<ObjectID> | undefined;
   monitorNamePattern?: string | undefined;
   monitorDescriptionPattern?: string | undefined;
+  criteria?: RuleCriteria | undefined;
   showCurrentStatus?: boolean | undefined;
   showUptimePercent?: boolean | undefined;
   showStatusHistoryChart?: boolean | undefined;
@@ -124,6 +130,7 @@ function fakeRule(fields?: {
     monitorLabels: (fields?.monitorLabels || []).map(fakeLabel),
     monitorNamePattern: fields?.monitorNamePattern,
     monitorDescriptionPattern: fields?.monitorDescriptionPattern,
+    criteria: fields?.criteria,
     showCurrentStatus: fields?.showCurrentStatus,
     showUptimePercent: fields?.showUptimePercent,
     showStatusHistoryChart: fields?.showStatusHistoryChart,
@@ -167,6 +174,131 @@ function createdResource(
 }
 
 describe("StatusPageMonitorRuleEngineService.doesMonitorMatchRule", () => {
+  it("supports Match any across labels and name conditions", () => {
+    expect(
+      StatusPageMonitorRuleEngineService.doesMonitorMatchRule({
+        monitor: fakeMonitor(MONITOR_A_ID, {
+          name: "worker-queue",
+          labels: [LABEL_PRODUCTION_ID],
+        }),
+        rule: fakeRule({
+          criteria: {
+            schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+            filterCondition: FilterCondition.Any,
+            filters: [
+              {
+                field: "monitorNamePattern",
+                operator: RuleCriteriaOperator.StartsWith,
+                value: "api",
+              },
+              {
+                field: "monitorLabels",
+                operator: RuleCriteriaOperator.HasAnyOf,
+                value: [LABEL_PRODUCTION_ID.toString()],
+              },
+            ],
+          },
+        }),
+      }),
+    ).toBe(true);
+  });
+
+  it("supports Match all across labels and name conditions", () => {
+    const rule: StatusPageMonitorRule = fakeRule({
+      criteria: {
+        schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            field: "monitorNamePattern",
+            operator: RuleCriteriaOperator.Contains,
+            value: "api",
+          },
+          {
+            field: "monitorLabels",
+            operator: RuleCriteriaOperator.HasAnyOf,
+            value: [LABEL_PRODUCTION_ID.toString()],
+          },
+        ],
+      },
+    });
+
+    expect(
+      StatusPageMonitorRuleEngineService.doesMonitorMatchRule({
+        monitor: fakeMonitor(MONITOR_A_ID, {
+          name: "checkout-api",
+          labels: [LABEL_PRODUCTION_ID],
+        }),
+        rule: rule,
+      }),
+    ).toBe(true);
+    expect(
+      StatusPageMonitorRuleEngineService.doesMonitorMatchRule({
+        monitor: fakeMonitor(MONITOR_A_ID, {
+          name: "checkout-worker",
+          labels: [LABEL_PRODUCTION_ID],
+        }),
+        rule: rule,
+      }),
+    ).toBe(false);
+  });
+
+  it("supports requiring every selected label", () => {
+    expect(
+      StatusPageMonitorRuleEngineService.doesMonitorMatchRule({
+        monitor: fakeMonitor(MONITOR_A_ID, {
+          labels: [LABEL_PRODUCTION_ID, LABEL_TIER1_ID],
+        }),
+        rule: fakeRule({
+          criteria: {
+            schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+            filterCondition: FilterCondition.All,
+            filters: [
+              {
+                field: "monitorLabels",
+                operator: RuleCriteriaOperator.HasAllOf,
+                value: [
+                  LABEL_PRODUCTION_ID.toString(),
+                  LABEL_TIER1_ID.toString(),
+                ],
+              },
+            ],
+          },
+        }),
+      }),
+    ).toBe(true);
+  });
+
+  it("supports negative conditions without consulting stale legacy fields", () => {
+    expect(
+      StatusPageMonitorRuleEngineService.doesMonitorMatchRule({
+        monitor: fakeMonitor(MONITOR_A_ID, {
+          name: "production-api",
+          labels: [LABEL_PRODUCTION_ID],
+        }),
+        rule: fakeRule({
+          monitorNamePattern: "never-use-this-legacy-value",
+          criteria: {
+            schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+            filterCondition: FilterCondition.All,
+            filters: [
+              {
+                field: "monitorNamePattern",
+                operator: RuleCriteriaOperator.DoesNotContain,
+                value: "staging",
+              },
+              {
+                field: "monitorLabels",
+                operator: RuleCriteriaOperator.HasNoneOf,
+                value: [LABEL_STAGING_ID.toString()],
+              },
+            ],
+          },
+        }),
+      }),
+    ).toBe(true);
+  });
+
   it("matches a monitor carrying any one of the rule's labels", () => {
     expect(
       StatusPageMonitorRuleEngineService.doesMonitorMatchRule({

@@ -22,8 +22,13 @@ import RunbookExecution from "../../../Models/DatabaseModels/RunbookExecution";
 import AutoRemediationExecutionMode from "../../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
+import {
+  RULE_CRITERIA_SCHEMA_VERSION,
+  RuleCriteriaOperator,
+} from "../../../Types/Rules/RuleCriteria";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -53,7 +58,13 @@ const RUNBOOK_ID: ObjectID = new ObjectID(
 const MONITOR_ID: ObjectID = new ObjectID(
   "44444444-4444-4444-8444-444444444444",
 );
+const OTHER_MONITOR_ID: ObjectID = new ObjectID(
+  "45454545-4545-4545-8545-454545454545",
+);
 const LABEL_ID: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
+const OTHER_LABEL_ID: ObjectID = new ObjectID(
+  "56565656-5656-4656-8656-565656565656",
+);
 const SEVERITY_ID: ObjectID = new ObjectID(
   "66666666-6666-4666-8666-666666666666",
 );
@@ -239,6 +250,74 @@ describe("AutoRemediationRuleEngineService", () => {
       );
 
       expect(create).not.toHaveBeenCalled();
+    });
+
+    it("requires every HasAllOf monitor label on the same incident monitor", async () => {
+      const findOneById: jest.SpiedFunction<typeof MonitorService.findOneById> =
+        jest
+          .spyOn(MonitorService, "findOneById")
+          .mockImplementation(
+            async (
+              data: Parameters<typeof MonitorService.findOneById>[0],
+            ): Promise<Monitor> => {
+              const monitorId: string = data.id.toString();
+              return {
+                id: data.id,
+                labels:
+                  monitorId === MONITOR_ID.toString()
+                    ? [ref(LABEL_ID)]
+                    : [ref(OTHER_LABEL_ID)],
+              } as unknown as Monitor;
+            },
+          );
+
+      const incident: Incident = fakeIncident({
+        monitors: [ref(MONITOR_ID), ref(OTHER_MONITOR_ID)],
+      });
+      const rule: AutoRemediationRule = fakeRule({
+        criteria: {
+          schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+          filterCondition: FilterCondition.All,
+          filters: [
+            {
+              field: "monitorLabels",
+              operator: RuleCriteriaOperator.HasAllOf,
+              value: [LABEL_ID.toString(), OTHER_LABEL_ID.toString()],
+            },
+          ],
+        },
+      });
+
+      await expect(
+        AutoRemediationRuleEngineService.doesIncidentMatchRule(incident, rule),
+      ).resolves.toBe(false);
+      expect(findOneById).toHaveBeenCalledTimes(2);
+    });
+
+    it("loads the alert monitor once across HasAllOf label values", async () => {
+      const findOneById: jest.SpiedFunction<typeof MonitorService.findOneById> =
+        jest.spyOn(MonitorService, "findOneById").mockResolvedValue({
+          id: MONITOR_ID,
+          labels: [ref(LABEL_ID), ref(OTHER_LABEL_ID)],
+        } as unknown as Monitor);
+      const rule: AutoRemediationRule = fakeRule({
+        criteria: {
+          schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+          filterCondition: FilterCondition.All,
+          filters: [
+            {
+              field: "monitorLabels",
+              operator: RuleCriteriaOperator.HasAllOf,
+              value: [LABEL_ID.toString(), OTHER_LABEL_ID.toString()],
+            },
+          ],
+        },
+      });
+
+      await expect(
+        AutoRemediationRuleEngineService.doesAlertMatchRule(fakeAlert(), rule),
+      ).resolves.toBe(true);
+      expect(findOneById).toHaveBeenCalledTimes(1);
     });
 
     it("never matches — and never throws on — an invalid regex pattern", async () => {

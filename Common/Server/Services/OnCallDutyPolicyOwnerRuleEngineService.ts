@@ -11,6 +11,7 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class OnCallDutyPolicyOwnerRuleEngineServiceClass {
@@ -33,6 +34,7 @@ class OnCallDutyPolicyOwnerRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             notifyOwners: true,
             onCallDutyPolicyLabels: { _id: true },
             onCallDutyPolicyNamePattern: true,
@@ -155,6 +157,24 @@ class OnCallDutyPolicyOwnerRuleEngineServiceClass {
   }
 
   private doesPolicyMatchRule(
+    policy: OnCallDutyPolicy,
+    rule: OnCallDutyPolicyOwnerRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: [
+        "onCallDutyPolicyLabels",
+        "onCallDutyPolicyNamePattern",
+        "onCallDutyPolicyDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (policyRule: OnCallDutyPolicyOwnerRule): boolean => {
+        return this.doesPolicyMatchRuleLegacy(policy, policyRule);
+      },
+    });
+  }
+
+  private doesPolicyMatchRuleLegacy(
     policy: OnCallDutyPolicy,
     rule: OnCallDutyPolicyOwnerRule,
   ): boolean {

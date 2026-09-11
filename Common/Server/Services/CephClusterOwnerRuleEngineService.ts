@@ -14,6 +14,7 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class CephClusterOwnerRuleEngineServiceClass {
@@ -42,6 +43,7 @@ class CephClusterOwnerRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             notifyOwners: true,
             cephClusterLabels: { _id: true },
             cephClusterNamePattern: true,
@@ -182,6 +184,24 @@ class CephClusterOwnerRuleEngineServiceClass {
   }
 
   private doesCephClusterMatchRule(
+    cephCluster: CephCluster,
+    rule: CephClusterOwnerRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "cephClusterLabels",
+        "cephClusterNamePattern",
+        "cephClusterDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: CephClusterOwnerRule): boolean => {
+        return this.doesCephClusterMatchLegacyRule(cephCluster, legacyRule);
+      },
+    });
+  }
+
+  private doesCephClusterMatchLegacyRule(
     cephCluster: CephCluster,
     rule: CephClusterOwnerRule,
   ): boolean {

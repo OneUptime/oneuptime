@@ -2,7 +2,7 @@ import MonitorTemplate from "./MonitorTemplate";
 import NetworkDeviceOidTemplate from "./NetworkDeviceOidTemplate";
 import Project from "./Project";
 import User from "./User";
-import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+import RuleBaseModel from "./DatabaseBaseModel/RuleBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
@@ -91,7 +91,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * keeps the readable names and costs no migration; the alternative was an
  * ALTER that renamed seven objects on every installation to hashes.
  */
-export default class NetworkDeviceAutoImportRule extends BaseModel {
+export default class NetworkDeviceAutoImportRule extends RuleBaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

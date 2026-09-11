@@ -11,6 +11,7 @@ import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 /*
@@ -62,6 +63,7 @@ class NetworkDeviceLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             networkDeviceLabels: { _id: true },
             networkDeviceNamePattern: true,
             networkDeviceDescriptionPattern: true,
@@ -194,6 +196,7 @@ class NetworkDeviceLabelRuleEngineServiceClass {
         select: {
           _id: true,
           name: true,
+          criteria: true,
           isEnabled: true,
           networkDeviceLabels: { _id: true },
           networkDeviceNamePattern: true,
@@ -382,6 +385,29 @@ class NetworkDeviceLabelRuleEngineServiceClass {
   }
 
   private doesNetworkDeviceMatchRule(
+    networkDevice: NetworkDevice,
+    rule: NetworkDeviceLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: [
+        "networkDeviceLabels",
+        "networkDeviceNamePattern",
+        "networkDeviceDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (
+        networkDeviceRule: NetworkDeviceLabelRule,
+      ): boolean => {
+        return this.doesNetworkDeviceMatchRuleLegacy(
+          networkDevice,
+          networkDeviceRule,
+        );
+      },
+    });
+  }
+
+  private doesNetworkDeviceMatchRuleLegacy(
     networkDevice: NetworkDevice,
     rule: NetworkDeviceLabelRule,
   ): boolean {

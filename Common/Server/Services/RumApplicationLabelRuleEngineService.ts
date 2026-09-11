@@ -7,6 +7,7 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class RumApplicationLabelRuleEngineServiceClass {
@@ -34,6 +35,7 @@ class RumApplicationLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             matchLabels: { _id: true },
             nameRegexPattern: true,
             descriptionRegexPattern: true,
@@ -128,6 +130,26 @@ class RumApplicationLabelRuleEngineServiceClass {
   }
 
   private doesMatchRule(
+    rumApplication: RumApplication,
+    rule: RumApplicationLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: [
+        "matchLabels",
+        "nameRegexPattern",
+        "descriptionRegexPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (
+        rumApplicationRule: RumApplicationLabelRule,
+      ): boolean => {
+        return this.doesMatchRuleLegacy(rumApplication, rumApplicationRule);
+      },
+    });
+  }
+
+  private doesMatchRuleLegacy(
     rumApplication: RumApplication,
     rule: RumApplicationLabelRule,
   ): boolean {

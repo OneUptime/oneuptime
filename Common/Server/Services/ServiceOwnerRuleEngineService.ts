@@ -14,6 +14,7 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class ServiceOwnerRuleEngineServiceClass {
@@ -40,6 +41,7 @@ class ServiceOwnerRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             notifyOwners: true,
             serviceLabels: { _id: true },
             serviceNamePattern: true,
@@ -181,6 +183,24 @@ class ServiceOwnerRuleEngineServiceClass {
   }
 
   private doesServiceMatchRule(
+    service: Service,
+    rule: ServiceOwnerRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: [
+        "serviceLabels",
+        "serviceNamePattern",
+        "serviceDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (serviceRule: ServiceOwnerRule): boolean => {
+        return this.doesServiceMatchRuleLegacy(service, serviceRule);
+      },
+    });
+  }
+
+  private doesServiceMatchRuleLegacy(
     service: Service,
     rule: ServiceOwnerRule,
   ): boolean {

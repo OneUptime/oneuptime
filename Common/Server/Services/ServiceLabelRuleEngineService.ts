@@ -10,6 +10,7 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class ServiceLabelRuleEngineServiceClass {
@@ -35,6 +36,7 @@ class ServiceLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             serviceLabels: { _id: true },
             serviceNamePattern: true,
             serviceDescriptionPattern: true,
@@ -168,6 +170,24 @@ class ServiceLabelRuleEngineServiceClass {
   }
 
   private doesServiceMatchRule(
+    service: Service,
+    rule: ServiceLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: [
+        "serviceLabels",
+        "serviceNamePattern",
+        "serviceDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (serviceRule: ServiceLabelRule): boolean => {
+        return this.doesServiceMatchRuleLegacy(service, serviceRule);
+      },
+    });
+  }
+
+  private doesServiceMatchRuleLegacy(
     service: Service,
     rule: ServiceLabelRule,
   ): boolean {

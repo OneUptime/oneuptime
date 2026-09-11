@@ -13,6 +13,33 @@ import buildJSONColumnQuery, { JSONColumnQuery } from "./JSONColumnQuery";
 export type { FindOperator };
 
 export default class QueryHelper {
+  /** Read a boolean whose criteria-backed `true` state is encoded as null. */
+  @CaptureSpan()
+  public static booleanForCriteriaBackedRule(
+    criteriaColumnName: string,
+    value: boolean,
+  ): FindWhereProperty<any> {
+    if (criteriaColumnName.match(/^[A-Za-z_][A-Za-z0-9_]*$/) === null) {
+      throw new Error("Criteria column name must be a plain identifier.");
+    }
+
+    const rid: string = Text.generateRandomText(10);
+
+    return Raw(
+      (alias: string) => {
+        const separatorIndex: number = alias.lastIndexOf(".");
+        const qualifier: string =
+          separatorIndex >= 0 ? alias.slice(0, separatorIndex + 1) : "";
+        const criteriaAlias: string = `${qualifier}"${criteriaColumnName}"`;
+
+        return `((CASE WHEN ${criteriaAlias} IS NULL THEN COALESCE(${alias}, false) ELSE ${alias} IS NULL END) = :${rid})`;
+      },
+      {
+        [rid]: value,
+      },
+    );
+  }
+
   @CaptureSpan()
   public static modulo(
     moduloBy: number,
