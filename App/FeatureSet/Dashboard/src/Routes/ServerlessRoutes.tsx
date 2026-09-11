@@ -9,6 +9,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 import ServerlessFunctions from "../Pages/Serverless/ServerlessFunctions";
 import ServerlessFunctionOverview from "../Pages/Serverless/View/Overview";
+import ServerlessFunctionSettings from "../Pages/Serverless/View/Settings";
 import ServerlessFunctionMetrics from "../Pages/Serverless/View/Metrics";
 import ServerlessFunctionLogs from "../Pages/Serverless/View/Logs";
 import ServerlessFunctionTraces from "../Pages/Serverless/View/Traces";
@@ -81,6 +82,18 @@ const ServerlessRoutes: FunctionComponent<ComponentProps> = (
             <ServerlessFunctionOverview
               {...props}
               pageRoute={RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SERVERLESS_FUNCTION_VIEW_SETTINGS,
+          )}
+          element={
+            <ServerlessFunctionSettings
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVERLESS_FUNCTION_VIEW_SETTINGS] as Route}
             />
           }
         />

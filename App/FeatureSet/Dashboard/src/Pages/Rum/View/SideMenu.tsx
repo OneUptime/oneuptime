@@ -113,6 +113,16 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       <SideMenuSection title="Settings">
+        <SideMenuItem
+          link={{
+            title: "Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUM_APPLICATION_VIEW_SETTINGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Settings}
+        />
         {/*
          * This application's replay policy, health, installation test and
          * targeted capture. It lives here rather than on a project-wide
