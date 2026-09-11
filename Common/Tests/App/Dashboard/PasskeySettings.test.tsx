@@ -373,13 +373,31 @@ describe("Passkey settings registration", () => {
     },
   );
 
-  test("shows a concise empty state for passkeys", () => {
-    renderPage();
-    expect(screen.getByText("No passkeys added yet.")).toBeVisible();
-    expect(
-      screen.queryByText("No passkeys or security keys found."),
-    ).not.toBeInTheDocument();
-  });
+  test.each([true, false])(
+    "shows a concise empty state without the legacy credential notice: passkeys %s",
+    async (isPasskey: boolean) => {
+      mockPasskeyTable([]);
+      renderPage(isPasskey);
+      expect(
+        await screen.findByText(
+          isPasskey ? "No passkeys added yet." : "No security keys added yet.",
+        ),
+      ).toBeVisible();
+      expect(
+        screen.queryByText("No passkeys or security keys found."),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          /Existing credentials appear on both security pages/,
+        ),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("button", {
+          name: isPasskey ? "Add Passkey" : "Add Security Key",
+        }),
+      ).toBeEnabled();
+    },
+  );
 
   test.each([false, true])(
     "uses the shared table header and standard add action when a saved passkey is present: %s",
@@ -448,25 +466,68 @@ describe("Passkey settings registration", () => {
   );
 
   test.each([true, false])(
-    "keeps existing credentials manageable when their original purpose is unknown: passkeys %s",
+    "omits the legacy notice while keeping mixed saved credentials manageable: passkeys %s",
     async (isPasskey: boolean) => {
       const storedKey: UserWebAuthn = new UserWebAuthn();
       storedKey._id = "44444444-4444-4444-8444-444444444444";
       storedKey.name = "Existing device";
       storedKey.isVerified = true;
-      mockPasskeyTable([storedKey]);
+      const olderKey: UserWebAuthn = UserWebAuthn.fromJSONObject(
+        {
+          _id: "55555555-5555-4555-8555-555555555555",
+          name: "Older device",
+          isVerified: true,
+          isPasskey: null,
+        },
+        UserWebAuthn,
+      );
+      const currentKey: UserWebAuthn = new UserWebAuthn();
+      currentKey._id = "66666666-6666-4666-8666-666666666666";
+      currentKey.name = "New device";
+      currentKey.isVerified = false;
+      currentKey.isPasskey = isPasskey;
+      mockPasskeyTable([storedKey, olderKey, currentKey]);
       renderPage(isPasskey);
       expect(await screen.findByText("Existing device")).toBeVisible();
-      expect(screen.getByText("Existing credential")).toBeVisible();
       expect(
-        screen.getByText(/Existing credentials appear on both security pages/),
-      ).toBeVisible();
+        screen.queryByText(
+          /Existing credentials appear on both security pages/,
+        ),
+      ).not.toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Rename", exact: true }),
+        screen.queryByText(/They continue to work as before/),
+      ).not.toBeInTheDocument();
+
+      for (const name of ["Existing device", "Older device", "New device"]) {
+        const row: HTMLElement = screen.getByRole("row", {
+          name: new RegExp(name),
+        });
+        expect(within(row).getByText(name)).toBeVisible();
+        expect(
+          within(row).getByRole("button", { name: "Rename", exact: true }),
+        ).toBeEnabled();
+        expect(
+          within(row).getByRole("button", { name: "Delete", exact: true }),
+        ).toBeEnabled();
+        if (name === "New device") {
+          expect(
+            within(row).queryByText("Existing credential"),
+          ).not.toBeInTheDocument();
+          expect(within(row).getByText("Setup incomplete")).toBeVisible();
+        } else {
+          expect(within(row).getByText("Existing credential")).toBeVisible();
+          expect(within(row).getByText("Ready")).toBeVisible();
+        }
+      }
+      expect(
+        screen.getByRole("button", {
+          name: isPasskey ? "Add Passkey" : "Add Security Key",
+        }),
       ).toBeEnabled();
-      expect(
-        screen.getByRole("button", { name: "Delete", exact: true }),
-      ).toBeEnabled();
+      expect(mockCredentialTableProps?.query).toEqual({
+        userId: UserUtil.getUserId(),
+        isPasskey: new EqualToOrNull(isPasskey ? "true" : "false"),
+      });
     },
   );
 
