@@ -1,17 +1,12 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import CurrentStatusElement from "../../Components/MonitorGroup/CurrentStatus";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import DashboardSideMenu from "../Monitor/SideMenu";
 import PageComponentProps from "../PageComponentProps";
-import Route from "Common/Types/API/Route";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
-import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
@@ -21,9 +16,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 
-const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
-  props: PageComponentProps,
-): ReactElement => {
+const MonitorGroupPage: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<MonitorGroup>({ modelType: MonitorGroup });
 
@@ -51,30 +46,7 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
   });
 
   return (
-    <Page
-      title={"Monitors"}
-      breadcrumbLinks={[
-        {
-          title: "Project",
-          to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
-        },
-        {
-          title: "Monitors",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.MONITORS] as Route,
-          ),
-        },
-        {
-          title: "Monitor Groups",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.MONITOR_GROUPS] as Route,
-          ),
-        },
-      ]}
-      sideMenu={
-        <DashboardSideMenu project={props.currentProject || undefined} />
-      }
-    >
+    <>
       <ModelTable<MonitorGroup>
         modelType={MonitorGroup}
         enableJsonImportExport={true}
@@ -202,7 +174,7 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
       />
       {labelBulkActionModals}
       {ownerBulkActionModals}
-    </Page>
+    </>
   );
 };
 
