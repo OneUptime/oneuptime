@@ -69,9 +69,28 @@ interface RecordedNavigation {
 interface FakeNavigationContainer {
   ref: unknown;
   navigations: Array<RecordedNavigation>;
+  inboxBackRoutes: Array<RecordedNavigation>;
   initialRouteOverrides: Array<boolean | undefined>;
   mount: (routeNames: Array<string> | null) => void;
 }
+
+interface NestedNavigationRoute {
+  name: string;
+  params?: Record<string, unknown>;
+}
+
+type FakeNavigationOptions =
+  | {
+      screen: string;
+      params: Record<string, unknown>;
+      initial?: boolean;
+    }
+  | {
+      state: {
+        index?: number;
+        routes: Array<NestedNavigationRoute>;
+      };
+    };
 
 /**
  * A stand-in for the NavigationContainer ref.
@@ -89,6 +108,7 @@ function createNavigationContainer(
 ): FakeNavigationContainer {
   let routeNames: Array<string> | null = initialRouteNames;
   const navigations: Array<RecordedNavigation> = [];
+  const inboxBackRoutes: Array<RecordedNavigation> = [];
   const initialRouteOverrides: Array<boolean | undefined> = [];
 
   return {
@@ -102,23 +122,41 @@ function createNavigationContainer(
         }
         return { routeNames: routeNames };
       },
-      navigate: (
-        routeName: string,
-        options: {
-          screen: string;
-          params: Record<string, unknown>;
-          initial?: boolean;
-        },
-      ): void => {
-        initialRouteOverrides.push(options.initial);
+      navigate: (routeName: string, options: FakeNavigationOptions): void => {
+        const stateRoutes: Array<NestedNavigationRoute> =
+          "state" in options ? options.state.routes : [];
+        const destination: NestedNavigationRoute | undefined =
+          stateRoutes[
+            "state" in options
+              ? options.state.index ?? stateRoutes.length - 1
+              : -1
+          ];
+        const screen: string =
+          "screen" in options ? options.screen : destination?.name ?? "";
+        const params: Record<string, unknown> =
+          "params" in options ? options.params : destination?.params ?? {};
+
+        initialRouteOverrides.push(
+          "initial" in options ? options.initial : undefined,
+        );
         navigations.push({
           routeName: routeName,
-          screen: options.screen,
-          params: options.params,
+          screen,
+          params,
         });
+
+        const backRoute: NestedNavigationRoute | undefined = stateRoutes[0];
+        if (backRoute?.name === "InboxList") {
+          inboxBackRoutes.push({
+            routeName,
+            screen: backRoute.name,
+            params: backRoute.params ?? {},
+          });
+        }
       },
     },
     navigations: navigations,
+    inboxBackRoutes,
     initialRouteOverrides,
     mount: (nextRouteNames: Array<string> | null): void => {
       routeNames = nextRouteNames;
@@ -559,14 +597,37 @@ describe("a payload that cannot be shown never displaces one that can", () => {
 
 describe("A notification keeps a useful Back destination", () => {
   test.each([
-    "incident",
-    "alert",
-    "incident-episode",
-    "alert-episode",
-    "monitor",
+    {
+      entityType: "incident",
+      initialView: "incidents",
+      initialSegment: "incidents",
+    },
+    {
+      entityType: "alert",
+      initialView: "alerts",
+      initialSegment: "alerts",
+    },
+    {
+      entityType: "incident-episode",
+      initialView: "incidents",
+      initialSegment: "episodes",
+    },
+    {
+      entityType: "alert-episode",
+      initialView: "alerts",
+      initialSegment: "episodes",
+    },
   ])(
-    "%s opens above its project list instead of replacing the stack's initial screen",
-    (entityType: string) => {
+    "$entityType atomically establishes its project list below the detail",
+    ({
+      entityType,
+      initialView,
+      initialSegment,
+    }: {
+      entityType: string;
+      initialView: string;
+      initialSegment: string;
+    }) => {
       const handlers: HandlersModule = loadHandlers();
       const container: FakeNavigationContainer =
         createNavigationContainer(MAIN_TAB_ROUTES);
@@ -575,7 +636,37 @@ describe("A notification keeps a useful Back destination", () => {
         tap({ entityType, entityId: "entity-1", projectId: "project-1" }),
       );
       expect(container.navigations).toHaveLength(1);
-      expect(container.initialRouteOverrides).toEqual([false]);
+      expect(container.inboxBackRoutes).toEqual([
+        {
+          routeName: "Inbox",
+          screen: "InboxList",
+          params: {
+            initialView,
+            initialSegment,
+            initialFilter: "all",
+          },
+        },
+      ]);
+      expect(container.initialRouteOverrides).toEqual([undefined]);
     },
   );
+
+  test("a monitor still opens above the monitor list", () => {
+    const handlers: HandlersModule = loadHandlers();
+    const container: FakeNavigationContainer =
+      createNavigationContainer(MAIN_TAB_ROUTES);
+    handlers.setNavigationRef(container.ref);
+
+    handlers.handleNotificationResponse(
+      tap({
+        entityType: "monitor",
+        entityId: "monitor-1",
+        projectId: "project-1",
+      }),
+    );
+
+    expect(container.navigations).toHaveLength(1);
+    expect(container.inboxBackRoutes).toEqual([]);
+    expect(container.initialRouteOverrides).toEqual([false]);
+  });
 });

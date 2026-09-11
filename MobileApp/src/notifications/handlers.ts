@@ -1,4 +1,5 @@
 import type { NotificationResponse } from "expo-notifications";
+import { buildInboxDetailNavigation } from "../navigation/inboxNavigation";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let navigationRef: any = null;
@@ -78,35 +79,47 @@ function isRouteMounted(routeName: string): boolean {
 
 function executeNavigation(data: NotificationData): void {
   const projectId: string = data.projectId ?? "";
+  if (!data.entityId) {
+    return;
+  }
+  const entityId: string = data.entityId;
 
   switch (data.entityType) {
     case "incident":
-      navigationRef.navigate("Inbox", {
-        screen: "IncidentDetail",
-        initial: false,
-        params: { incidentId: data.entityId, projectId },
-      });
+      navigationRef.navigate(
+        "Inbox",
+        buildInboxDetailNavigation({
+          name: "IncidentDetail",
+          params: { incidentId: entityId, projectId },
+        }),
+      );
       break;
     case "alert":
-      navigationRef.navigate("Inbox", {
-        screen: "AlertDetail",
-        initial: false,
-        params: { alertId: data.entityId, projectId },
-      });
+      navigationRef.navigate(
+        "Inbox",
+        buildInboxDetailNavigation({
+          name: "AlertDetail",
+          params: { alertId: entityId, projectId },
+        }),
+      );
       break;
     case "incident-episode":
-      navigationRef.navigate("Inbox", {
-        screen: "IncidentEpisodeDetail",
-        initial: false,
-        params: { episodeId: data.entityId, projectId },
-      });
+      navigationRef.navigate(
+        "Inbox",
+        buildInboxDetailNavigation({
+          name: "IncidentEpisodeDetail",
+          params: { episodeId: entityId, projectId },
+        }),
+      );
       break;
     case "alert-episode":
-      navigationRef.navigate("Inbox", {
-        screen: "AlertEpisodeDetail",
-        initial: false,
-        params: { episodeId: data.entityId, projectId },
-      });
+      navigationRef.navigate(
+        "Inbox",
+        buildInboxDetailNavigation({
+          name: "AlertEpisodeDetail",
+          params: { episodeId: entityId, projectId },
+        }),
+      );
       break;
     case "monitor":
       /*
@@ -118,7 +131,7 @@ function executeNavigation(data: NotificationData): void {
       navigationRef.navigate("Monitors", {
         screen: "MonitorDetail",
         initial: false,
-        params: { monitorId: data.entityId, projectId },
+        params: { monitorId: entityId, projectId },
       });
       break;
     case "scheduled-maintenance":

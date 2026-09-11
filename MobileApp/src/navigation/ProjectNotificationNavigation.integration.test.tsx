@@ -532,6 +532,110 @@ test.each([false, true])(
   },
 );
 
+test.each<{
+  entityType: string;
+  detailRoute: string;
+  initialView: "incidents" | "alerts";
+  initialSegment: "incidents" | "alerts" | "episodes";
+  oppositeView: "incidents" | "alerts";
+}>([
+  {
+    entityType: "incident",
+    detailRoute: "IncidentDetail",
+    initialView: "incidents",
+    initialSegment: "incidents",
+    oppositeView: "alerts",
+  },
+  {
+    entityType: "incident-episode",
+    detailRoute: "IncidentEpisodeDetail",
+    initialView: "incidents",
+    initialSegment: "episodes",
+    oppositeView: "alerts",
+  },
+  {
+    entityType: "alert",
+    detailRoute: "AlertDetail",
+    initialView: "alerts",
+    initialSegment: "alerts",
+    oppositeView: "incidents",
+  },
+  {
+    entityType: "alert-episode",
+    detailRoute: "AlertEpisodeDetail",
+    initialView: "alerts",
+    initialSegment: "episodes",
+    oppositeView: "incidents",
+  },
+])(
+  "a warm $oppositeView Inbox returns from $detailRoute to the correct list",
+  async ({
+    entityType,
+    detailRoute,
+    initialView,
+    initialSegment,
+    oppositeView,
+  }: {
+    entityType: string;
+    detailRoute: string;
+    initialView: "incidents" | "alerts";
+    initialSegment: "incidents" | "alerts" | "episodes";
+    oppositeView: "incidents" | "alerts";
+  }) => {
+    await render(<ProjectHarness />);
+    const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+      mockRootRef.current!;
+    await fireEvent.press(screen.getByLabelText("Inbox"));
+    if (oppositeView === "alerts") {
+      await fireEvent.press(screen.getByTestId("inbox-category-alerts"));
+    }
+    expect(
+      screen.getByText(
+        `Production ${oppositeView === "alerts" ? "alert" : "incident"} list`,
+      ),
+    ).toBeTruthy();
+
+    await act(() => {
+      handleNotificationResponse({
+        actionIdentifier: "VIEW",
+        notification: {
+          request: {
+            content: {
+              data: {
+                entityType,
+                entityId: "entity-a",
+                projectId: "project-a",
+              },
+            },
+          },
+        },
+      } as unknown as NotificationResponse);
+    });
+    await waitFor(() => {
+      expect(navigationRef.getCurrentRoute()?.name).toBe(detailRoute);
+    });
+
+    await act(() => {
+      navigationRef.goBack();
+    });
+    expect(navigationRef.getCurrentRoute()?.name).toBe("InboxList");
+    expect(navigationRef.getCurrentRoute()?.params).toEqual({
+      initialView,
+      initialSegment,
+      initialFilter: "all",
+    });
+    expect(
+      screen.getByText(
+        `Production ${initialView === "alerts" ? "alert" : "incident"} list`,
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId(`inbox-category-${initialView}`).props
+        .accessibilityState.selected,
+    ).toBe(true);
+  },
+);
+
 test("a cross-project alert page changes project and returns to that project's Alerts view", async () => {
   await render(<ProjectHarness />);
   const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
@@ -640,6 +744,7 @@ test.each([
     expect(navigationRef.getCurrentRoute()?.params).toEqual({
       initialView: category,
       initialSegment: "episodes",
+      initialFilter: "all",
     });
     expect(
       screen.getByTestId(`inbox-category-${category}`).props.accessibilityState

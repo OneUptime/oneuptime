@@ -101,40 +101,46 @@ describe("My pages response workflow", () => {
   test.each([
     {
       field: "triggeredByIncident",
-      tab: "Inbox",
       destination: "IncidentDetail",
       idKey: "incidentId",
+      initialView: "incidents",
+      initialSegment: "incidents",
     },
     {
       field: "triggeredByAlert",
-      tab: "Inbox",
       destination: "AlertDetail",
       idKey: "alertId",
+      initialView: "alerts",
+      initialSegment: "alerts",
     },
     {
       field: "triggeredByIncidentEpisode",
-      tab: "Inbox",
       destination: "IncidentEpisodeDetail",
       idKey: "episodeId",
+      initialView: "incidents",
+      initialSegment: "episodes",
     },
     {
       field: "triggeredByAlertEpisode",
-      tab: "Inbox",
       destination: "AlertEpisodeDetail",
       idKey: "episodeId",
+      initialView: "alerts",
+      initialSegment: "episodes",
     },
   ])(
     "opens $destination in the correct project and tab while preserving its inbox Back route",
     async ({
       field,
-      tab,
       destination,
       idKey,
+      initialView,
+      initialSegment,
     }: {
       field: string;
-      tab: string;
       destination: string;
       idKey: string;
+      initialView: string;
+      initialSegment: string;
     }): Promise<void> => {
       mockPages.current.pages = [
         page({
@@ -147,10 +153,25 @@ describe("My pages response workflow", () => {
           name: "Service needs attention. Not acknowledged.",
         }),
       );
-      expect(mockNavigate).toHaveBeenCalledWith(tab, {
-        screen: destination,
-        initial: false,
-        params: { [idKey]: "resource-1", projectId: "project-1" },
+      expect(mockNavigate).toHaveBeenCalledWith("Inbox", {
+        state: {
+          stale: true,
+          index: 1,
+          routes: [
+            {
+              name: "InboxList",
+              params: {
+                initialView,
+                initialSegment,
+                initialFilter: "all",
+              },
+            },
+            {
+              name: destination,
+              params: { [idKey]: "resource-1", projectId: "project-1" },
+            },
+          ],
+        },
       });
     },
   );

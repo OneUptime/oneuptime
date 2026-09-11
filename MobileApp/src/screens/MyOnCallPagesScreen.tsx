@@ -21,6 +21,7 @@ import type {
   MainTabParamList,
   OnCallStackParamList,
 } from "../navigation/types";
+import { buildInboxDetailNavigation } from "../navigation/inboxNavigation";
 
 type MyPagesNavProp = NativeStackNavigationProp<
   OnCallStackParamList,
@@ -93,38 +94,46 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
     }
 
     if (subject.kind === "incident") {
-      parent.navigate("Inbox", {
-        screen: "IncidentDetail",
-        initial: false,
-        params: { incidentId: subject.id, projectId: page.projectId },
-      } as never);
+      parent.navigate(
+        "Inbox",
+        buildInboxDetailNavigation({
+          name: "IncidentDetail",
+          params: { incidentId: subject.id, projectId: page.projectId },
+        }) as never,
+      );
       return;
     }
 
     if (subject.kind === "incident-episode") {
-      parent.navigate("Inbox", {
-        screen: "IncidentEpisodeDetail",
-        initial: false,
-        params: { episodeId: subject.id, projectId: page.projectId },
-      } as never);
+      parent.navigate(
+        "Inbox",
+        buildInboxDetailNavigation({
+          name: "IncidentEpisodeDetail",
+          params: { episodeId: subject.id, projectId: page.projectId },
+        }) as never,
+      );
       return;
     }
 
     if (subject.kind === "alert") {
-      parent.navigate("Inbox", {
-        screen: "AlertDetail",
-        initial: false,
-        params: { alertId: subject.id, projectId: page.projectId },
-      } as never);
+      parent.navigate(
+        "Inbox",
+        buildInboxDetailNavigation({
+          name: "AlertDetail",
+          params: { alertId: subject.id, projectId: page.projectId },
+        }) as never,
+      );
       return;
     }
 
     if (subject.kind === "alert-episode") {
-      parent.navigate("Inbox", {
-        screen: "AlertEpisodeDetail",
-        initial: false,
-        params: { episodeId: subject.id, projectId: page.projectId },
-      } as never);
+      parent.navigate(
+        "Inbox",
+        buildInboxDetailNavigation({
+          name: "AlertEpisodeDetail",
+          params: { episodeId: subject.id, projectId: page.projectId },
+        }) as never,
+      );
     }
   };
 
