@@ -4,7 +4,7 @@ import nodePath from "path";
 
 /*
  * The Google SecOps connector ships two pieces of operator-facing prose
- * about the **Last Error** column — the integration doc's Troubleshooting
+ * about the **Last Error** message — the integration doc's Troubleshooting
  * section and the Connections page's own in-product help — and both of
  * them used to be wrong in the same way.
  *
@@ -1219,7 +1219,8 @@ describe("Full-error guidance matches retention, redaction and copy controls", (
   });
 
   test("the page implements the documented full-error and copy actions", () => {
-    expect(connectionsPageSource).toContain('title="View Full Error"');
+    expect(connectionsPageSource).toContain('title: "View Error"');
+    expect(connectionsPageSource).not.toContain("View Full Error");
     expect(connectionsPageSource).toContain('label="Copy Error"');
     expect(connectionsPageSource).toContain('aria-label="Full error message"');
   });
@@ -1229,8 +1230,13 @@ describe("Full-error guidance matches retention, redaction and copy controls", (
       expect(guidance.lastError).toContain(
         "complete error message with credentials redacted",
       );
-      expect(guidance.lastError).toContain("**View Full Error**");
+      expect(guidance.lastError).toContain("When a connection has an error");
+      expect(guidance.lastError).toContain("**View Error**");
+      expect(guidance.lastError).toContain("**Actions** column");
       expect(guidance.lastError).toContain("**Copy Error**");
+      expect(guidance.lastError).toContain("in the dialog");
+      expect(guidance.lastError).not.toContain("**View Full Error**");
+      expect(guidance.lastError).not.toContain("short preview");
       expect(guidance.lastError).not.toMatch(
         OBSOLETE_TRUNCATION_GUIDANCE_PATTERN,
       );
