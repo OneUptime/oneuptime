@@ -948,6 +948,7 @@ html.dark :is(
     [class~="hover:bg-green-100"],
     [class~="hover:bg-emerald-100"],
     [class~="hover:bg-blue-50"],
+    [class~="hover:bg-blue-100"],
     [class~="hover:bg-rose-50"],
     [class~="hover:bg-rose-100"]
   ):hover {
