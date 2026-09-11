@@ -1,5 +1,9 @@
 import { BASE_URL, IS_BILLING_ENABLED } from "../../Config";
-import { addTestPaymentMethod } from "./Helpers/Billing";
+import {
+  PaymentGatedResponse,
+  addTestPaymentMethod,
+  sendThroughPaymentGate,
+} from "./Helpers/Billing";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
 import { createTelemetryIngestionKey } from "./Helpers/Telemetry";
 import { APIResponse, Page, expect, test } from "@playwright/test";
@@ -14,7 +18,12 @@ test.describe("Payment method authorizes paid usage", () => {
     }: {
       page: Page;
     }) => {
-      test.setTimeout(300000);
+      /*
+       * Both gate checks below may each wait out up to ~140s of "please try
+       * again" from the payment provider; leave room for that instead of
+       * letting the test timeout hide which check it was.
+       */
+      test.setTimeout(480000);
 
       const projectId: string = await registerAndCreateProject({
         page,
@@ -24,20 +33,32 @@ test.describe("Payment method authorizes paid usage", () => {
       });
 
       try {
-        const blockedResponse: APIResponse = await page.request.post(
-          URL.fromString(BASE_URL.toString())
-            .addRoute("/api/telemetry-ingestion-key")
-            .toString(),
-          {
-            headers: { tenantid: projectId },
-            data: { data: { name: "Key before payment method", projectId } },
+        /*
+         * Sending the create again is safe: the payment gate throws in
+         * TelemetryIngestionKeyService.onBeforeCreate, before the key is
+         * saved, so a "please try again" answer created nothing.
+         */
+        const blocked: PaymentGatedResponse = await sendThroughPaymentGate({
+          send: (): Promise<APIResponse> => {
+            return page.request.post(
+              URL.fromString(BASE_URL.toString())
+                .addRoute("/api/telemetry-ingestion-key")
+                .toString(),
+              {
+                headers: { tenantid: projectId },
+                data: {
+                  data: { name: "Key before payment method", projectId },
+                },
+              },
+            );
           },
-        );
+        });
+        const blockedResponse: APIResponse = blocked.response;
         const blockedResponseDetail: string =
           blockedResponse.status() >= 400
             ? await blockedResponse.text()
             : "Successful response body omitted.";
-        const blockedDiagnostic: string = `POST /api/telemetry-ingestion-key returned ${blockedResponse.status()}: ${blockedResponseDetail}`;
+        const blockedDiagnostic: string = `POST /api/telemetry-ingestion-key returned ${blockedResponse.status()}: ${blockedResponseDetail}${blocked.retryDiagnostic}`;
         expect(blockedResponse.status(), blockedDiagnostic).toBe(402);
         expect(await blockedResponse.json(), blockedDiagnostic).toMatchObject({
           error: expect.stringContaining("Add a payment method"),
