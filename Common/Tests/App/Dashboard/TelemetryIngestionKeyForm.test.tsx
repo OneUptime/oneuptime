@@ -223,7 +223,9 @@ async function renderWizard(): Promise<UserEvent> {
 }
 
 async function next(user: UserEvent): Promise<void> {
-  await user.click(within(dialog()).getByRole("button", { name: "Next" }));
+  await user.click(
+    await within(dialog()).findByRole("button", { name: "Next" }),
+  );
 }
 
 async function enterDetails(
@@ -279,18 +281,27 @@ async function expectSummary(): Promise<void> {
   await waitFor(() => {
     expect(activeStep()).toBe("Summary");
   });
-  expect(
-    within(dialog()).getByRole("button", { name: "Create Ingestion Key" }),
-  ).toBeEnabled();
+  const createButton: HTMLElement = await within(dialog()).findByRole(
+    "button",
+    {
+      name: "Create Ingestion Key",
+    },
+  );
+  await waitFor(() => {
+    expect(createButton).toBeEnabled();
+  });
   expect(createOrUpdateMock).not.toHaveBeenCalled();
 }
 
 async function submit(user: UserEvent): Promise<TelemetryIngestionKey> {
   await user.click(
-    within(dialog()).getByRole("button", { name: "Create Ingestion Key" }),
+    await within(dialog()).findByRole("button", {
+      name: "Create Ingestion Key",
+    }),
   );
   await waitFor(() => {
     expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    expect(successMock).toHaveBeenCalledTimes(1);
   });
   return (
     createOrUpdateMock.mock.calls[0]?.[0] as {
