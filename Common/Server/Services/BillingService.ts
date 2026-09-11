@@ -28,7 +28,9 @@ import ObjectID from "../../Types/ObjectID";
 import Sleep from "../../Types/Sleep";
 import Stripe from "stripe";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import PayAsYouGoBillingService from "./PayAsYouGoBillingService";
+import PayAsYouGoBillingService, {
+  LiveUsageAuthorization,
+} from "./PayAsYouGoBillingService";
 
 export type SubscriptionItem = Stripe.SubscriptionItem;
 
@@ -610,6 +612,15 @@ export class BillingService extends BaseService {
     subscriptionId: string,
     serverMeteredPlan: ServerMeteredPlan,
     quantity: number,
+    options?: {
+      /*
+       * The live authorization the reporting plan made for this usage a
+       * moment ago. requireMeteredSubscriptionPayment still ties it to the
+       * project that owns this subscription's customer, and checks live
+       * without one.
+       */
+      liveAuthorization?: LiveUsageAuthorization | undefined;
+    },
   ): Promise<void> {
     if (!this.isBillingEnabled()) {
       throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
@@ -639,6 +650,7 @@ export class BillingService extends BaseService {
     if (quantity > 0) {
       await PayAsYouGoBillingService.requireMeteredSubscriptionPayment(
         subscription,
+        options,
       );
     }
 

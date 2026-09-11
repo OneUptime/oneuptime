@@ -55,7 +55,9 @@ import {
 } from "../EnvironmentConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import QueryHelper from "../Types/Database/QueryHelper";
-import PayAsYouGoBillingService from "./PayAsYouGoBillingService";
+import PayAsYouGoBillingService, {
+  LiveUsageAuthorization,
+} from "./PayAsYouGoBillingService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -119,12 +121,23 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     productType: ProductType;
     usageDate?: Date;
+    liveAuthorization?: LiveUsageAuthorization | undefined;
   }): Promise<void> {
     if (!IsBillingEnabled) {
       return;
     }
 
+    /*
+     * A report that has just authorized this project live passes that answer
+     * down instead of having it read again. Anything else - a direct call, a
+     * token made for another project, one that has aged out - checks live,
+     * exactly as every staging call did before.
+     */
     if (
+      !PayAsYouGoBillingService.isLiveAuthorizationFor(
+        data.liveAuthorization,
+        data.projectId,
+      ) &&
       !(await PayAsYouGoBillingService.canUsePayAsYouGo(data.projectId, {
         useCache: false,
       }))

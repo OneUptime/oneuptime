@@ -2,10 +2,13 @@ import {
   BillingService,
   METERED_BILLING_START_METADATA_KEY,
 } from "../../../Server/Services/BillingService";
-import PayAsYouGoBillingService from "../../../Server/Services/PayAsYouGoBillingService";
+import PayAsYouGoBillingService, {
+  LiveUsageAuthorization,
+} from "../../../Server/Services/PayAsYouGoBillingService";
 import ServerMeteredPlan from "../../../Server/Types/Billing/MeteredPlan/ServerMeteredPlan";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import OneUptimeDate from "../../../Types/Date";
+import ObjectID from "../../../Types/ObjectID";
 import { getJestSpyOn } from "../../Spy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
@@ -36,6 +39,7 @@ describe("BillingService metered payment authorization", () => {
   let createItem: jest.Mock;
   let createUsage: jest.Mock;
   let requirePayment: jest.SpyInstance;
+  let getSubscription: jest.SpyInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -55,7 +59,10 @@ describe("BillingService metered payment authorization", () => {
     getJestSpyOn(ActiveMonitoringMeteredPlan, "getPriceId").mockReturnValue(
       "price_monitor",
     );
-    getJestSpyOn(service, "getSubscription").mockResolvedValue({
+    getSubscription = getJestSpyOn(
+      service,
+      "getSubscription",
+    ).mockResolvedValue({
       id: "sub_metered",
       customer: "cus_project",
       items: {
@@ -103,10 +110,72 @@ describe("BillingService metered payment authorization", () => {
       ActiveMonitoringMeteredPlan,
       3,
     );
+    // No live authorization handed in, so the guard checks live itself.
     expect(requirePayment).toHaveBeenCalledWith(
       expect.objectContaining({ customer: "cus_project" }),
+      undefined,
     );
     expect(createUsage).toHaveBeenCalledWith("item_existing", { quantity: 3 });
+  });
+
+  describe("with the reporting plan's live authorization", () => {
+    /*
+     * The guard itself is stubbed in this suite, so any token will do: what is
+     * under test is that it reaches the guard untouched, alongside the metered
+     * subscription the guard derives the owning project from.
+     */
+    const liveAuthorization: LiveUsageAuthorization = {
+      projectId: ObjectID.generate().toString(),
+      decidedAt: Date.now(),
+    } as LiveUsageAuthorization;
+
+    it("hands it to the payment guard with the metered subscription it read", async () => {
+      await service.addOrUpdateMeteredPricingOnSubscription(
+        "sub_metered",
+        ActiveMonitoringMeteredPlan,
+        3,
+        { liveAuthorization },
+      );
+      expect(requirePayment).toHaveBeenCalledTimes(1);
+      expect(requirePayment).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "sub_metered", customer: "cus_project" }),
+        { liveAuthorization },
+      );
+      expect(getSubscription).toHaveBeenCalledTimes(1);
+      expect(getSubscription).toHaveBeenCalledWith("sub_metered");
+      expect(createUsage).toHaveBeenCalledWith("item_existing", {
+        quantity: 3,
+      });
+    });
+
+    it("still writes nothing when the guard refuses", async () => {
+      requirePayment.mockRejectedValue(
+        new PaymentRequiredException("Add a payment method"),
+      );
+      await expect(
+        service.addOrUpdateMeteredPricingOnSubscription(
+          "sub_metered",
+          ActiveMonitoringMeteredPlan,
+          3,
+          { liveAuthorization },
+        ),
+      ).rejects.toBeInstanceOf(PaymentRequiredException);
+      expect(createItem).not.toHaveBeenCalled();
+      expect(createUsage).not.toHaveBeenCalled();
+    });
+
+    it("still asks nothing of the guard for zero usage", async () => {
+      await service.addOrUpdateMeteredPricingOnSubscription(
+        "sub_metered",
+        ActiveMonitoringMeteredPlan,
+        0,
+        { liveAuthorization },
+      );
+      expect(requirePayment).not.toHaveBeenCalled();
+      expect(createUsage).toHaveBeenCalledWith("item_existing", {
+        quantity: 0,
+      });
+    });
   });
 
   it("allows zero usage without demanding a card", async () => {

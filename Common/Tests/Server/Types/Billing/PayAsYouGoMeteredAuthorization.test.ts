@@ -1,7 +1,9 @@
 import "../../../../Server/Types/Billing/MeteredPlan/AllMeteredPlans";
 import ActiveMonitoringMeteredPlan from "../../../../Server/Types/Billing/MeteredPlan/ActiveMonitoringMeteredPlan";
 import TelemetryMeteredPlan from "../../../../Server/Types/Billing/MeteredPlan/TelemetryMeteredPlan";
-import PayAsYouGoBillingService from "../../../../Server/Services/PayAsYouGoBillingService";
+import PayAsYouGoBillingService, {
+  LiveUsageAuthorization,
+} from "../../../../Server/Services/PayAsYouGoBillingService";
 import BillingService from "../../../../Server/Services/BillingService";
 import MonitorService from "../../../../Server/Services/MonitorService";
 import ProjectService from "../../../../Server/Services/ProjectService";
@@ -25,15 +27,13 @@ jest.mock("../../../../Server/EnvironmentConfig", () => {
   };
 });
 
-jest.mock("../../../../Server/Services/PayAsYouGoBillingService", () => {
-  return {
-    __esModule: true,
-    default: {
-      canUsePayAsYouGo: jest.fn(),
-      getTelemetryBillingStartDate: jest.fn(),
-    },
-  };
-});
+/*
+ * PayAsYouGoBillingService is the real one, with canUsePayAsYouGo and
+ * getTelemetryBillingStartDate stubbed per test. A metered report takes one
+ * live authorization and hands it to staging and to the usage write, so
+ * whether a second provider read happens is decided by the real token
+ * handling - stubbing that too would leave nothing here to prove it.
+ */
 jest.mock("../../../../Server/Services/BillingService", () => {
   return {
     __esModule: true,
@@ -109,6 +109,7 @@ jest.mock("../../../../Server/Services/IoTFleetService", () => {
 });
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
+const OTHER_PROJECT_ID: ObjectID = ObjectID.generate();
 const CUTOFF: Date = new Date("2026-09-09T00:00:00Z");
 
 describe("metered billing payment protection", () => {
@@ -170,7 +171,50 @@ describe("metered billing payment protection", () => {
       await plan.reportQuantityToBillingProvider(PROJECT_ID, {
         meteredPlanSubscriptionId: "sub_replacement",
       });
-      expect(report).toHaveBeenCalledWith("sub_replacement", plan, 3);
+      expect(report).toHaveBeenCalledWith("sub_replacement", plan, 3, {
+        liveAuthorization: expect.objectContaining({
+          projectId: PROJECT_ID.toString(),
+        }),
+      });
+    });
+
+    it("checks payment once per report and hands that answer to the usage write", async () => {
+      const plan: ActiveMonitoringMeteredPlan =
+        new ActiveMonitoringMeteredPlan();
+      await plan.reportQuantityToBillingProvider(PROJECT_ID);
+      expect(canUse).toHaveBeenCalledTimes(1);
+      expect(canUse).toHaveBeenCalledWith(PROJECT_ID, { useCache: false });
+      expect(report).toHaveBeenCalledTimes(1);
+      expect(report.mock.calls[0]![3]).toEqual({
+        liveAuthorization: expect.objectContaining({
+          projectId: PROJECT_ID.toString(),
+        }),
+      });
+    });
+
+    it("writes the visible monitor count before deciding whether to bill it", async () => {
+      const writeCount: jest.SpyInstance = getJestSpyOn(
+        ProjectService,
+        "updateOneById",
+      );
+      canUse.mockResolvedValue(false);
+      await new ActiveMonitoringMeteredPlan().reportQuantityToBillingProvider(
+        PROJECT_ID,
+      );
+      expect(writeCount.mock.invocationCallOrder[0]).toBeLessThan(
+        canUse.mock.invocationCallOrder[0]!,
+      );
+      expect(report).not.toHaveBeenCalled();
+    });
+
+    it("propagates a payment-provider outage without reporting monitors", async () => {
+      canUse.mockRejectedValue(new Error("Provider unavailable"));
+      await expect(
+        new ActiveMonitoringMeteredPlan().reportQuantityToBillingProvider(
+          PROJECT_ID,
+        ),
+      ).rejects.toThrow("Provider unavailable");
+      expect(report).not.toHaveBeenCalled();
     });
   });
 
@@ -243,8 +287,44 @@ describe("metered billing payment protection", () => {
       expect(waive.mock.invocationCallOrder[0]).toBeLessThan(
         stage.mock.invocationCallOrder[0]!,
       );
-      expect(report).toHaveBeenCalledWith("sub_metered", plan, 125);
+      expect(report).toHaveBeenCalledWith("sub_metered", plan, 125, {
+        liveAuthorization: expect.objectContaining({
+          projectId: PROJECT_ID.toString(),
+        }),
+      });
       expect(markReported).toHaveBeenCalledTimes(1);
+    });
+
+    it("shares one live payment check between staging and the usage write", async () => {
+      stage.mockRestore();
+      const staging: jest.SpyInstance = getJestSpyOn(
+        TelemetryUsageBillingService,
+        "stageTelemetryUsageForProject",
+      );
+      getJestSpyOn(
+        PayAsYouGoBillingService,
+        "getTelemetryBillingStartDate",
+      ).mockResolvedValue(undefined);
+      const aggregation: jest.SpyInstance = getJestSpyOn(
+        LogService,
+        "groupTelemetryUsageByService",
+      ).mockResolvedValue([]);
+
+      await plan.reportQuantityToBillingProvider(PROJECT_ID);
+
+      // Staging ran past its own payment gate without a second check.
+      expect(aggregation).toHaveBeenCalledTimes(1);
+      expect(canUse).toHaveBeenCalledTimes(1);
+      expect(canUse).toHaveBeenCalledWith(PROJECT_ID, { useCache: false });
+
+      const liveAuthorization: unknown =
+        staging.mock.calls[0]![0].liveAuthorization;
+      expect(liveAuthorization).toEqual(
+        expect.objectContaining({ projectId: PROJECT_ID.toString() }),
+      );
+      expect(report).toHaveBeenCalledWith("sub_metered", plan, 125, {
+        liveAuthorization,
+      });
     });
 
     it("preserves prior usage for invoice and reseller contracts without a cutoff", async () => {
@@ -330,6 +410,78 @@ describe("metered billing payment protection", () => {
       expect(aggregation).toHaveBeenCalledWith(
         expect.objectContaining({ projectId: PROJECT_ID, startDate: CUTOFF }),
       );
+    });
+
+    describe("with a live authorization from the report", () => {
+      const authorize: (
+        projectId: ObjectID,
+      ) => Promise<LiveUsageAuthorization> = async (
+        projectId: ObjectID,
+      ): Promise<LiveUsageAuthorization> => {
+        const liveAuthorization: LiveUsageAuthorization | null =
+          await PayAsYouGoBillingService.authorizeUsageNow(projectId);
+        expect(liveAuthorization).not.toBeNull();
+        canUse.mockClear();
+        return liveAuthorization!;
+      };
+
+      it("skips its own live check for this project's fresh authorization", async () => {
+        const liveAuthorization: LiveUsageAuthorization =
+          await authorize(PROJECT_ID);
+        await TelemetryUsageBillingService.stageTelemetryUsageForProject({
+          projectId: PROJECT_ID,
+          productType: ProductType.Logs,
+          usageDate: CUTOFF,
+          liveAuthorization,
+        });
+        expect(canUse).not.toHaveBeenCalled();
+        expect(aggregation).toHaveBeenCalledTimes(1);
+      });
+
+      it("checks live when called without one", async () => {
+        await TelemetryUsageBillingService.stageTelemetryUsageForProject({
+          projectId: PROJECT_ID,
+          productType: ProductType.Logs,
+          usageDate: CUTOFF,
+        });
+        expect(canUse).toHaveBeenCalledWith(PROJECT_ID, { useCache: false });
+      });
+
+      it("checks live, and waives, when handed another project's authorization", async () => {
+        const liveAuthorization: LiveUsageAuthorization =
+          await authorize(OTHER_PROJECT_ID);
+        canUse.mockResolvedValue(false);
+        const waive: jest.SpyInstance = getJestSpyOn(
+          TelemetryUsageBillingService,
+          "waiveUnreportedUsageBilling",
+        ).mockResolvedValue(undefined);
+        await TelemetryUsageBillingService.stageTelemetryUsageForProject({
+          projectId: PROJECT_ID,
+          productType: ProductType.Logs,
+          usageDate: CUTOFF,
+          liveAuthorization,
+        });
+        expect(canUse).toHaveBeenCalledTimes(1);
+        expect(canUse).toHaveBeenCalledWith(PROJECT_ID, { useCache: false });
+        expect(waive).toHaveBeenCalled();
+        expect(aggregation).not.toHaveBeenCalled();
+      });
+
+      it("checks live once the authorization has aged past the reuse window", async () => {
+        const now: jest.SpyInstance = getJestSpyOn(Date, "now").mockReturnValue(
+          100_000,
+        );
+        const liveAuthorization: LiveUsageAuthorization =
+          await authorize(PROJECT_ID);
+        now.mockReturnValue(160_001);
+        await TelemetryUsageBillingService.stageTelemetryUsageForProject({
+          projectId: PROJECT_ID,
+          productType: ProductType.Logs,
+          usageDate: CUTOFF,
+          liveAuthorization,
+        });
+        expect(canUse).toHaveBeenCalledWith(PROJECT_ID, { useCache: false });
+      });
     });
 
     it("uses the same UTC day key for staging and writes across timezone changes and retries", async () => {
