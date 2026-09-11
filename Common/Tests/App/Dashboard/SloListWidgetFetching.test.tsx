@@ -128,11 +128,9 @@ const DASHBOARD_ID: ObjectID = new ObjectID(
 const PROJECT_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
 );
-const CHECKOUT_MONITOR_ID: string =
-  "44444444-4444-4444-8444-444444444444";
+const CHECKOUT_MONITOR_ID: string = "44444444-4444-4444-8444-444444444444";
 const SEARCH_MONITOR_ID: string = "55555555-5555-4555-8555-555555555555";
-const PRODUCTION_LABEL_ID: string =
-  "66666666-6666-4666-8666-666666666666";
+const PRODUCTION_LABEL_ID: string = "66666666-6666-4666-8666-666666666666";
 const PAYMENTS_LABEL_ID: string = "77777777-7777-4777-8777-777777777777";
 
 const DASHBOARD_VIEW_CONFIG: DashboardViewConfig = {
@@ -176,14 +174,10 @@ const BREACHED_ID: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const DISABLED_ID: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
 function buildFleet(): Array<ServiceLevelObjective> {
-  const disabled: ServiceLevelObjective = buildSlo(
-    DISABLED_ID,
-    "Legacy API",
-    {
-      isEnabled: false,
-      sloStatus: SloStatus.Paused,
-    },
-  );
+  const disabled: ServiceLevelObjective = buildSlo(DISABLED_ID, "Legacy API", {
+    isEnabled: false,
+    sloStatus: SloStatus.Paused,
+  });
   delete disabled.currentSliPercentage;
   delete disabled.errorBudgetRemainingPercentage;
   delete disabled.errorBudgetRemainingSeconds;
@@ -191,18 +185,14 @@ function buildFleet(): Array<ServiceLevelObjective> {
 
   return [
     buildSlo(HEALTHY_ID, "Checkout availability", {
-      monitors: [
-        { _id: CHECKOUT_MONITOR_ID, name: "Checkout API" },
-      ] as never,
+      monitors: [{ _id: CHECKOUT_MONITOR_ID, name: "Checkout API" }] as never,
       labels: [
         { _id: PRODUCTION_LABEL_ID, name: "production", color: "#16a34a" },
         { _id: PAYMENTS_LABEL_ID, name: "payments", color: "#4f46e5" },
       ] as never,
     }),
     buildSlo(AT_RISK_ID, "Search latency", {
-      monitors: [
-        { _id: SEARCH_MONITOR_ID, name: "Search API" },
-      ] as never,
+      monitors: [{ _id: SEARCH_MONITOR_ID, name: "Search API" }] as never,
       labels: [
         { _id: PRODUCTION_LABEL_ID, name: "production", color: "#16a34a" },
       ] as never,
@@ -213,9 +203,7 @@ function buildFleet(): Array<ServiceLevelObjective> {
       sloStatus: SloStatus.AtRisk,
     }),
     buildSlo(BREACHED_ID, "Payments success", {
-      monitors: [
-        { _id: CHECKOUT_MONITOR_ID, name: "Checkout API" },
-      ] as never,
+      monitors: [{ _id: CHECKOUT_MONITOR_ID, name: "Checkout API" }] as never,
       labels: [
         { _id: PAYMENTS_LABEL_ID, name: "payments", color: "#4f46e5" },
       ] as never,
@@ -244,9 +232,7 @@ function projectLabelVariable(
   };
 }
 
-function buildProps(
-  overrides: Partial<ComponentProps> = {},
-): ComponentProps {
+function buildProps(overrides: Partial<ComponentProps> = {}): ComponentProps {
   const component: ComponentProps["component"] =
     DashboardSloListComponentUtil.getDefaultComponent();
   component.componentId = COMPONENT_ID;
@@ -279,7 +265,9 @@ function buildProps(
 }
 
 function renderWidget(overrides: Partial<ComponentProps> = {}): RenderResult {
-  return render(<DashboardSloListComponentElement {...buildProps(overrides)} />);
+  return render(
+    <DashboardSloListComponentElement {...buildProps(overrides)} />,
+  );
 }
 
 beforeEach((): void => {
@@ -330,20 +318,22 @@ describe("SLO fleet overview widget", () => {
     });
     expect(getListMock.mock.calls[0]?.[0].requestOptions).toBeUndefined();
 
-    const rows: Array<HTMLElement> = screen.getAllByTestId(
-      /^slo-overview-row-/,
-    );
-    expect(rows.map((row: HTMLElement): string | null => row.getAttribute("data-testid"))).toEqual([
+    const rows: Array<HTMLElement> =
+      screen.getAllByTestId(/^slo-overview-row-/);
+    expect(
+      rows.map((row: HTMLElement): string | null => {
+        return row.getAttribute("data-testid");
+      }),
+    ).toEqual([
       `slo-overview-row-${BREACHED_ID}`,
       `slo-overview-row-${AT_RISK_ID}`,
       `slo-overview-row-${DISABLED_ID}`,
       `slo-overview-row-${HEALTHY_ID}`,
     ]);
     expect(screen.getByText("4 of 4 SLOs")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Checkout availability" })).toHaveAttribute(
-      "href",
-      `/slo/${HEALTHY_ID}`,
-    );
+    expect(
+      screen.getByRole("link", { name: "Checkout availability" }),
+    ).toHaveAttribute("href", `/slo/${HEALTHY_ID}`);
   });
 
   test("summarizes every state and status cards filter the table", async () => {
@@ -374,9 +364,10 @@ describe("SLO fleet overview widget", () => {
     expect(screen.getByText("Search latency")).toBeInTheDocument();
     expect(screen.queryByText("Payments success")).not.toBeInTheDocument();
     expect(screen.getByText("1 of 4 SLOs")).toBeInTheDocument();
-    expect(
-      screen.getByTestId("slo-overview-summary-at-risk"),
-    ).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("slo-overview-summary-at-risk")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 
   test("searches across SLO, service, and label names", async () => {
@@ -416,9 +407,12 @@ describe("SLO fleet overview widget", () => {
       screen.getByRole("combobox", { name: "Filter by service or monitor" }),
       { target: { value: "" } },
     );
-    fireEvent.change(screen.getByRole("combobox", { name: "Filter by label" }), {
-      target: { value: PAYMENTS_LABEL_ID },
-    });
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Filter by label" }),
+      {
+        target: { value: PAYMENTS_LABEL_ID },
+      },
+    );
     expect(screen.getByText("Payments success")).toBeInTheDocument();
     expect(screen.getByText("Checkout availability")).toBeInTheDocument();
     expect(screen.queryByText("Search latency")).not.toBeInTheDocument();
@@ -437,7 +431,9 @@ describe("SLO fleet overview widget", () => {
       within(breachedRow).getByText("−42 min over budget"),
     ).toBeInTheDocument();
     expect(within(breachedRow).getByText("8.12×")).toBeInTheDocument();
-    expect(within(breachedRow).getByText("30 days rolling")).toBeInTheDocument();
+    expect(
+      within(breachedRow).getByText("30 days rolling"),
+    ).toBeInTheDocument();
     const progress: HTMLElement = within(breachedRow).getByRole("progressbar");
     expect(progress).toHaveAttribute("aria-valuenow", "0");
     expect(progress.firstElementChild).toHaveStyle({ width: "0%" });
@@ -468,10 +464,7 @@ describe("SLO fleet overview widget", () => {
     expect(getListMock.mock.calls[0]?.[0]).toMatchObject({
       query: {
         projectId: PROJECT_ID,
-        sloStatus: new Includes([
-          SloStatus.AtRisk,
-          SloStatus.BudgetExhausted,
-        ]),
+        sloStatus: new Includes([SloStatus.AtRisk, SloStatus.BudgetExhausted]),
         monitors: new Includes([CHECKOUT_MONITOR_ID]),
         labels: new IncludesAnyOfGroups([
           [PAYMENTS_LABEL_ID],
@@ -499,11 +492,9 @@ describe("SLO fleet overview widget", () => {
     render(<DashboardSloListComponentElement {...input} />);
     await screen.findByText("Payments success");
 
-    const requestOptions: Record<string, unknown> = getListMock.mock.calls[0]?.[0]
-      .requestOptions as Record<string, unknown>;
-    expect(
-      (requestOptions["overrideRequestUrl"] as URL).toString(),
-    ).toBe(
+    const requestOptions: Record<string, unknown> = getListMock.mock
+      .calls[0]?.[0].requestOptions as Record<string, unknown>;
+    expect((requestOptions["overrideRequestUrl"] as URL).toString()).toBe(
       `https://dev.oneuptime.com/public-dashboard-api/resource-list/${DASHBOARD_ID.toString()}/slo`,
     );
     expect(requestOptions["additionalRequestBody"]).toEqual({
@@ -575,7 +566,9 @@ describe("SLO fleet overview widget", () => {
     expect(
       screen.queryByRole("link", { name: "Public availability" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole("searchbox", { name: "Search SLOs" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("searchbox", { name: "Search SLOs" }),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Service / Monitor")).not.toBeInTheDocument();
     expect(screen.queryByText("Target & Window")).not.toBeInTheDocument();
     expect(screen.getByText("Target")).toBeInTheDocument();
@@ -635,7 +628,9 @@ describe("SLO fleet overview widget", () => {
         `slo-overview-row-${item.id}`,
       );
       for (const staleValue of item.staleValues) {
-        expect(within(staleRow).queryByText(staleValue)).not.toBeInTheDocument();
+        expect(
+          within(staleRow).queryByText(staleValue),
+        ).not.toBeInTheDocument();
       }
       expect(within(staleRow).getByText("Not evaluated")).toBeInTheDocument();
       expect(within(staleRow).getByRole("progressbar")).not.toHaveAttribute(
@@ -764,9 +759,10 @@ describe("SLO fleet overview widget", () => {
   });
 
   test("ignores late results from an obsolete filter request", async () => {
-    let resolvePrevious: (
-      result: { data: Array<ServiceLevelObjective>; count: number },
-    ) => void = () => {};
+    let resolvePrevious: (result: {
+      data: Array<ServiceLevelObjective>;
+      count: number;
+    }) => void = () => {};
     getListMock.mockImplementationOnce(() => {
       return new Promise(
         (

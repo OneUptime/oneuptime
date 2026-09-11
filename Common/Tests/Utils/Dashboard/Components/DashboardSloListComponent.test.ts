@@ -8,6 +8,7 @@ import DashboardSloListComponent from "../../../../Types/Dashboard/DashboardComp
 import DashboardComponentType from "../../../../Types/Dashboard/DashboardComponentType";
 import { ObjectType } from "../../../../Types/JSON";
 import SloStatus from "../../../../Types/ServiceLevelObjective/SloStatus";
+import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
 import DashboardSloListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardSloListComponent";
 import DashboardComponentsUtil from "../../../../Utils/Dashboard/Components/Index";
 
@@ -85,7 +86,9 @@ describe("DashboardSloListComponentUtil", () => {
 
       expect(first.componentId.toString()).not.toBe("");
       expect(second.componentId.toString()).not.toBe("");
-      expect(first.componentId.toString()).not.toBe(second.componentId.toString());
+      expect(first.componentId.toString()).not.toBe(
+        second.componentId.toString(),
+      );
     });
   });
 
@@ -178,7 +181,7 @@ describe("DashboardSloListComponentUtil", () => {
       );
       expect(
         new Set(
-          (statuses.dropdownOptions || []).map((option) => {
+          (statuses.dropdownOptions || []).map((option: DropdownOption) => {
             return option.value;
           }),
         ).size,
@@ -223,11 +226,13 @@ describe("DashboardSloListComponentUtil", () => {
         ) as Array<ComponentArgument<DashboardSloListComponent>>;
 
       expect(
-        registered.map((argument: SloListArgument): ArgumentId => argument.id),
+        registered.map((argument: SloListArgument): ArgumentId => {
+          return argument.id;
+        }),
       ).toEqual(
-        getArguments().map(
-          (argument: SloListArgument): ArgumentId => argument.id,
-        ),
+        getArguments().map((argument: SloListArgument): ArgumentId => {
+          return argument.id;
+        }),
       );
     });
   });

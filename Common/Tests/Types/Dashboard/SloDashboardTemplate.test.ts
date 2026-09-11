@@ -218,7 +218,9 @@ describe("SLO dashboard template", () => {
       );
 
       expect(
-        secondIds.filter((id: string): boolean => firstIds.has(id)),
+        secondIds.filter((id: string): boolean => {
+          return firstIds.has(id);
+        }),
       ).toEqual([]);
     });
 

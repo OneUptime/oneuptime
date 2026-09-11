@@ -335,9 +335,7 @@ describe("public dashboard allowlists vs the shipped templates", () => {
       .spyOn(TelemetryAttributeService, "fetchAttributeValues")
       .mockResolvedValue([]);
     jest.spyOn(MetricService, "aggregateBy").mockResolvedValue({ data: [] });
-    jest
-      .spyOn(ServiceLevelObjectiveService, "findBy")
-      .mockResolvedValue([]);
+    jest.spyOn(ServiceLevelObjectiveService, "findBy").mockResolvedValue([]);
 
     mockResponse = {
       cookie: jest.fn(),

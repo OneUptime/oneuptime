@@ -140,10 +140,7 @@ const MAPPING_CASES: Array<MappingCase> = [
       labelIds: ["label"],
     },
     expectedQuery: {
-      sloStatus: new Includes([
-        SloStatus.AtRisk,
-        SloStatus.BudgetExhausted,
-      ]),
+      sloStatus: new Includes([SloStatus.AtRisk, SloStatus.BudgetExhausted]),
       monitors: new Includes(["monitor"]),
       labels: new Includes(["label"]),
     },

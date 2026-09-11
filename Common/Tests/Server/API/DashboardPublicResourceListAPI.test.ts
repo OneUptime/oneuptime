@@ -940,10 +940,7 @@ describe("DashboardAPI public resource-list", () => {
 
       expect(findByArgs["query"]).toEqual({
         projectId,
-        sloStatus: new Includes([
-          SloStatus.AtRisk,
-          SloStatus.BudgetExhausted,
-        ]),
+        sloStatus: new Includes([SloStatus.AtRisk, SloStatus.BudgetExhausted]),
         monitors: new Includes([monitorId.toString()]),
         labels: new Includes([labelId.toString()]),
       });

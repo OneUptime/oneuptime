@@ -593,17 +593,14 @@ describe("DashboardAPI public Data Source strip", () => {
       const monitorId: string = ObjectID.generate().toString();
       const labelId: string = ObjectID.generate().toString();
       const labelVariableId: string = "private-slo-label-variable";
-      const sloList: BuiltWidget = buildWidget(
-        DashboardComponentType.SloList,
-        {
-          title: "Production reliability",
-          maxRows: 50,
-          sloStatuses: ["At Risk"],
-          monitorIds: [monitorId],
-          labelIds: [labelId],
-          labelVariableId,
-        },
-      );
+      const sloList: BuiltWidget = buildWidget(DashboardComponentType.SloList, {
+        title: "Production reliability",
+        maxRows: 50,
+        sloStatuses: ["At Risk"],
+        monitorIds: [monitorId],
+        labelIds: [labelId],
+        labelVariableId,
+      });
       setDashboardWidgets([sloList.widget]);
       const storedSnapshot: string = JSON.stringify(
         dashboard.dashboardViewConfig,

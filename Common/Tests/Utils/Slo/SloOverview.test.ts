@@ -8,6 +8,7 @@ import {
   getSloOverviewCounts,
   getSloOverviewStatusFilter,
   hasCurrentSloOverviewEvaluation,
+  SloOverviewCounts,
   SloOverviewStatusFilter,
   sortSloOverviewItems,
 } from "../../../Utils/Slo/SloOverview";
@@ -36,10 +37,23 @@ function slo(data: {
   const item: ServiceLevelObjective = new ServiceLevelObjective();
   item.id = ObjectID.generate();
   item.name = data.name;
-  item.sloStatus = data.status;
-  item.isEnabled = data.isEnabled;
-  item.monitors = data.monitors;
-  item.labels = data.labels;
+
+  if (data.status !== undefined) {
+    item.sloStatus = data.status;
+  }
+
+  if (data.isEnabled !== undefined) {
+    item.isEnabled = data.isEnabled;
+  }
+
+  if (data.monitors !== undefined) {
+    item.monitors = data.monitors;
+  }
+
+  if (data.labels !== undefined) {
+    item.labels = data.labels;
+  }
+
   return item;
 }
 
@@ -56,11 +70,17 @@ describe("SloOverview", () => {
       [undefined, SloOverviewStatusFilter.NotEvaluating],
     ];
 
-    it.each(statusBucketCases)("maps %s to %s", (status, expected) => {
-      expect(getSloOverviewStatusFilter(slo({ name: "API", status }))).toBe(
-        expected,
-      );
-    });
+    it.each(statusBucketCases)(
+      "maps %s to %s",
+      (
+        status: SloStatus | undefined,
+        expected: SloOverviewStatusFilter,
+      ): void => {
+        expect(getSloOverviewStatusFilter(slo({ name: "API", status }))).toBe(
+          expected,
+        );
+      },
+    );
 
     it("puts a disabled SLO in Not Evaluating even when its stale status is Healthy", () => {
       expect(
@@ -75,7 +95,7 @@ describe("SloOverview", () => {
     });
 
     it("counts the whole fleet without dropping unknown or disabled rows", () => {
-      const counts = getSloOverviewCounts([
+      const counts: SloOverviewCounts = getSloOverviewCounts([
         slo({ name: "Healthy", status: SloStatus.Healthy }),
         slo({ name: "Risk", status: SloStatus.AtRisk }),
         slo({ name: "Breach", status: SloStatus.BudgetExhausted }),
@@ -121,7 +141,11 @@ describe("SloOverview", () => {
 
     it.each(currentEvaluationCases)(
       "treats %s with enabled=%s as current=%s",
-      (status, isEnabled, expected) => {
+      (
+        status: SloStatus | undefined,
+        isEnabled: boolean,
+        expected: boolean,
+      ): void => {
         expect(
           hasCurrentSloOverviewEvaluation(
             slo({ name: "API", status, isEnabled }),
@@ -160,7 +184,9 @@ describe("SloOverview", () => {
     it("searches SLO names case-insensitively and trims the query", () => {
       expect(
         filterSloOverviewItems(fleet, { search: "  LATENCY " }).map(
-          (item: ServiceLevelObjective): string => item.name || "",
+          (item: ServiceLevelObjective): string => {
+            return item.name || "";
+          },
         ),
       ).toEqual(["Storefront latency"]);
     });
@@ -168,22 +194,26 @@ describe("SloOverview", () => {
     it("lets service names satisfy the search", () => {
       expect(
         filterSloOverviewItems(fleet, { search: "checkout api" }).map(
-          (item: ServiceLevelObjective): string => item.name || "",
+          (item: ServiceLevelObjective): string => {
+            return item.name || "";
+          },
         ),
       ).toEqual(["Checkout availability"]);
     });
 
     it("lets label names satisfy the search", () => {
-      expect(filterSloOverviewItems(fleet, { search: "payments" })).toHaveLength(
-        2,
-      );
+      expect(
+        filterSloOverviewItems(fleet, { search: "payments" }),
+      ).toHaveLength(2);
     });
 
     it("filters by an exact attached monitor id", () => {
       expect(
         filterSloOverviewItems(fleet, {
           monitorId: api.id!.toString(),
-        }).map((item: ServiceLevelObjective): string => item.name || ""),
+        }).map((item: ServiceLevelObjective): string => {
+          return item.name || "";
+        }),
       ).toEqual(["Checkout availability"]);
     });
 
@@ -191,7 +221,9 @@ describe("SloOverview", () => {
       expect(
         filterSloOverviewItems(fleet, {
           labelId: payments.id!.toString(),
-        }).map((item: ServiceLevelObjective): string => item.name || ""),
+        }).map((item: ServiceLevelObjective): string => {
+          return item.name || "";
+        }),
       ).toEqual(["Checkout availability", "Settlement freshness"]);
     });
 
@@ -234,7 +266,9 @@ describe("SloOverview", () => {
       ]);
 
       expect(
-        sorted.map((item: ServiceLevelObjective): string => item.name || ""),
+        sorted.map((item: ServiceLevelObjective): string => {
+          return item.name || "";
+        }),
       ).toEqual([
         "Breach",
         "Alpha risk",
@@ -252,10 +286,11 @@ describe("SloOverview", () => {
 
       sortSloOverviewItems(original);
 
-      expect(original.map((item: ServiceLevelObjective) => item.name)).toEqual([
-        "Healthy",
-        "Breach",
-      ]);
+      expect(
+        original.map((item: ServiceLevelObjective) => {
+          return item.name;
+        }),
+      ).toEqual(["Healthy", "Breach"]);
     });
   });
 });

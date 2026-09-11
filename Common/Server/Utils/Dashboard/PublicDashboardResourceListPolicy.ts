@@ -1681,9 +1681,11 @@ export default class PublicDashboardResourceListPolicy {
         sort: { name: SortOrder.Ascending },
         argumentsObject,
       }),
-      // The client applies its stored row cap after interactive filtering.
-      // Returning the bounded project fleet prevents a name, monitor or label
-      // after the first alphabetical page from becoming impossible to find.
+      /*
+       * The client applies its stored row cap after interactive filtering.
+       * Returning the bounded project fleet prevents a name, monitor or label
+       * after the first alphabetical page from becoming impossible to find.
+       */
       limit: LIMIT_PER_PROJECT,
     };
   }

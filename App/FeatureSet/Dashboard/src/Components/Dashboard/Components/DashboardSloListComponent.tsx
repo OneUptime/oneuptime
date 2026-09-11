@@ -48,10 +48,7 @@ import {
   formatErrorBudgetRemainingSeconds,
   formatSloBurnRate,
 } from "Common/Utils/Slo/SloWidgetFormat";
-import {
-  getSloBudgetTier,
-  SloBudgetTier,
-} from "Common/Utils/Slo/SloHealth";
+import { getSloBudgetTier, SloBudgetTier } from "Common/Utils/Slo/SloHealth";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardSloListComponent;
@@ -173,7 +170,8 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
     props.component.arguments.sloStatuses;
   const monitorIds: Array<string> | undefined =
     props.component.arguments.monitorIds;
-  const labelIds: Array<string> | undefined = props.component.arguments.labelIds;
+  const labelIds: Array<string> | undefined =
+    props.component.arguments.labelIds;
   const labelVariableId: string | undefined =
     props.component.arguments.labelVariableId;
 
@@ -181,109 +179,112 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
   const monitorIdsKey: string = (monitorIds || []).join(",");
   const labelIdsKey: string = (labelIds || []).join(",");
 
-  const fetchSlos: () => Promise<void> = useCallback(async (): Promise<void> => {
-    const version: number = ++requestVersion.current;
-    setIsLoading(true);
+  const fetchSlos: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      const version: number = ++requestVersion.current;
+      setIsLoading(true);
 
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-    if (!DashboardResourceList.isPublic() && !projectId) {
-      setError("No project selected.");
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const query: Query<ServiceLevelObjective> = {
-        projectId,
-      } as Query<ServiceLevelObjective>;
-
-      if (sloStatuses && sloStatuses.length > 0) {
-        query.sloStatus = new Includes(sloStatuses) as never;
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+      if (!DashboardResourceList.isPublic() && !projectId) {
+        setError("No project selected.");
+        setIsLoading(false);
+        return;
       }
 
-      if (monitorIds && monitorIds.length > 0) {
-        query.monitors = new Includes(monitorIds) as never;
-      }
+      try {
+        const query: Query<ServiceLevelObjective> = {
+          projectId,
+        } as Query<ServiceLevelObjective>;
 
-      const labelFilter: ReturnType<typeof DashboardLabelVariable.getFilter> =
-        DashboardLabelVariable.getFilter({
-          labelIds,
-          labelVariableId,
-          variables: props.variables,
-        });
-      if (labelFilter) {
-        query.labels = labelFilter as never;
-      }
+        if (sloStatuses && sloStatuses.length > 0) {
+          query.sloStatus = new Includes(sloStatuses) as never;
+        }
 
-      const listResult: ListResult<ServiceLevelObjective> =
-        await ModelAPI.getList<ServiceLevelObjective>({
-          modelType: ServiceLevelObjective,
-          requestOptions: DashboardResourceList.getRequestOptions("slo", {
-            componentId: props.componentId,
+        if (monitorIds && monitorIds.length > 0) {
+          query.monitors = new Includes(monitorIds) as never;
+        }
+
+        const labelFilter: ReturnType<typeof DashboardLabelVariable.getFilter> =
+          DashboardLabelVariable.getFilter({
+            labelIds,
+            labelVariableId,
             variables: props.variables,
-          }),
-          query,
-          // Interactive name, service and label filters run locally so they
-          // can react instantly. Fetch the bounded project fleet, then apply
-          // maxRows only after filtering; otherwise rows after the first
-          // alphabetical page can never be found.
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            name: true,
-            targetPercentage: true,
-            windowType: true,
-            windowDays: true,
-            timezone: true,
-            currentSliPercentage: true,
-            errorBudgetRemainingPercentage: true,
-            errorBudgetRemainingSeconds: true,
-            currentBurnRate: true,
-            sloStatus: true,
-            isEnabled: true,
-            atRiskThresholdPercentage: true,
-            monitors: {
+          });
+        if (labelFilter) {
+          query.labels = labelFilter as never;
+        }
+
+        const listResult: ListResult<ServiceLevelObjective> =
+          await ModelAPI.getList<ServiceLevelObjective>({
+            modelType: ServiceLevelObjective,
+            requestOptions: DashboardResourceList.getRequestOptions("slo", {
+              componentId: props.componentId,
+              variables: props.variables,
+            }),
+            query,
+            /*
+             * Interactive name, service and label filters run locally so they
+             * can react instantly. Fetch the bounded project fleet, then apply
+             * maxRows only after filtering; otherwise rows after the first
+             * alphabetical page can never be found.
+             */
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: {
               _id: true,
               name: true,
+              targetPercentage: true,
+              windowType: true,
+              windowDays: true,
+              timezone: true,
+              currentSliPercentage: true,
+              errorBudgetRemainingPercentage: true,
+              errorBudgetRemainingSeconds: true,
+              currentBurnRate: true,
+              sloStatus: true,
+              isEnabled: true,
+              atRiskThresholdPercentage: true,
+              monitors: {
+                _id: true,
+                name: true,
+              },
+              labels: {
+                _id: true,
+                name: true,
+                color: true,
+              },
             },
-            labels: {
-              _id: true,
-              name: true,
-              color: true,
+            sort: {
+              name: SortOrder.Ascending,
             },
-          },
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
+          });
 
-      if (version !== requestVersion.current) {
-        return;
+        if (version !== requestVersion.current) {
+          return;
+        }
+
+        setSlos(listResult.data);
+        setError(null);
+      } catch (err: unknown) {
+        if (version !== requestVersion.current) {
+          return;
+        }
+
+        setError(API.getFriendlyErrorMessage(err as Error));
       }
 
-      setSlos(listResult.data);
-      setError(null);
-    } catch (err: unknown) {
-      if (version !== requestVersion.current) {
-        return;
+      if (version === requestVersion.current) {
+        setIsLoading(false);
       }
-
-      setError(API.getFriendlyErrorMessage(err as Error));
-    }
-
-    if (version === requestVersion.current) {
-      setIsLoading(false);
-    }
-  }, [
-    maxRows,
-    sloStatusesKey,
-    monitorIdsKey,
-    labelIdsKey,
-    labelVariableId,
-    props.componentId,
-    props.variables,
-  ]);
+    }, [
+      maxRows,
+      sloStatusesKey,
+      monitorIdsKey,
+      labelIdsKey,
+      labelVariableId,
+      props.componentId,
+      props.variables,
+    ]);
 
   useEffect(() => {
     fetchSlos().catch(() => {
@@ -408,10 +409,9 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
               currentSli >= slo.targetPercentage
             ? "text-emerald-700"
             : "text-red-700";
-      const budgetRemaining: number | undefined | null =
-        hasCurrentEvaluation
-          ? slo.errorBudgetRemainingPercentage
-          : undefined;
+      const budgetRemaining: number | undefined | null = hasCurrentEvaluation
+        ? slo.errorBudgetRemainingPercentage
+        : undefined;
       const budgetTier: SloBudgetTier = !hasCurrentEvaluation
         ? SloBudgetTier.Unknown
         : slo.sloStatus === SloStatus.BudgetExhausted
@@ -470,7 +470,9 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
             <></>
           )}
           <td className="px-3 py-2 text-xs text-gray-700">
-            <div className="font-medium">{formatPercent(slo.targetPercentage)}</div>
+            <div className="font-medium">
+              {formatPercent(slo.targetPercentage)}
+            </div>
             {!isPublic ? (
               <div className="text-[10px] text-gray-400 whitespace-nowrap">
                 {getWindowLabel(slo)}
@@ -569,7 +571,9 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
                       : "border-gray-100 bg-white hover:border-gray-200"
                   }`}
                 >
-                  <div className={`text-lg font-semibold ${card.countClassName}`}>
+                  <div
+                    className={`text-lg font-semibold ${card.countClassName}`}
+                  >
                     {card.count}
                   </div>
                   <div className="text-[10px] font-medium uppercase tracking-wide text-gray-500">
@@ -587,12 +591,8 @@ const DashboardSloListComponentElement: FunctionComponent<ComponentProps> = (
               onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                 setSearch(event.target.value);
               }}
-              placeholder={
-                isPublic ? "Search SLOs" : "Search SLOs or services"
-              }
-              aria-label={
-                isPublic ? "Search SLOs" : "Search SLOs or services"
-              }
+              placeholder={isPublic ? "Search SLOs" : "Search SLOs or services"}
+              aria-label={isPublic ? "Search SLOs" : "Search SLOs or services"}
               className="min-w-48 flex-1 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs text-gray-700 outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100"
             />
             {!isPublic && (monitorOptions.length > 0 || monitorId) ? (
