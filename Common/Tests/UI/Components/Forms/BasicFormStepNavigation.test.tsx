@@ -14,6 +14,7 @@ import {
   RenderResult,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
@@ -89,7 +90,7 @@ function renderWizard(options: WizardOptions = {}): RenderWizardResult {
   ): ReactElement => {
     return (
       <BasicForm
-        id="back-navigation-wizard"
+        id="step-navigation-wizard"
         ref={formRef}
         fields={FIELDS}
         steps={STEPS}
@@ -123,13 +124,21 @@ async function goNext(user: UserEvent): Promise<void> {
   await user.click(screen.getByRole("button", { name: "Next" }));
 }
 
+function progress(): HTMLElement {
+  return screen.getByRole("navigation", { name: "Progress" });
+}
+
+async function goToStep(user: UserEvent, title: string): Promise<void> {
+  await user.click(within(progress()).getByText(title));
+}
+
 async function expectInputValue(name: string, value: string): Promise<void> {
   await waitFor(() => {
     expect(screen.getByRole("textbox", { name })).toHaveValue(value);
   });
 }
 
-describe("BasicForm backward navigation", () => {
+describe("BasicForm step navigation", () => {
   afterEach(() => {
     cleanup();
   });
@@ -146,31 +155,34 @@ describe("BasicForm backward navigation", () => {
     expect(screen.getByRole("status")).toHaveClass("lg:hidden");
   });
 
-  test.each(["{Enter}", " "])(
-    "returns by keyboard with %s and preserves earlier edits without submitting",
-    async (key: string) => {
-      const { user, handleSubmit }: RenderWizardResult = renderWizard();
-      await enterName();
-      await goNext(user);
-      await screen.findByRole("textbox", { name: "Confirmation Text" });
+  test("returns through a completed sidebar step and preserves edits without a Back button or submission", async () => {
+    const { user, handleSubmit }: RenderWizardResult = renderWizard();
+    await enterName();
+    await goNext(user);
+    await screen.findByRole("textbox", { name: "Confirmation Text" });
 
-      const back: HTMLElement = screen.getByRole("button", { name: "Back" });
-      expect(back).toHaveAttribute("type", "button");
-      await user.tab({ shift: true });
-      expect(
-        screen.getByRole("textbox", { name: "Confirmation Text" }),
-      ).toHaveFocus();
-      await user.tab({ shift: true });
-      expect(back).toHaveFocus();
-      await user.keyboard(key);
+    expect(
+      screen.queryByRole("button", { name: "Back" }),
+    ).not.toBeInTheDocument();
+    await goToStep(user, "Details");
 
-      await expectInputValue("Name", "Production");
-      expect(
-        screen.queryByRole("button", { name: "Back" }),
-      ).not.toBeInTheDocument();
-      expect(handleSubmit).not.toHaveBeenCalled();
-    },
-  );
+    await expectInputValue("Name", "Production");
+    expect(handleSubmit).not.toHaveBeenCalled();
+  });
+
+  test("does not skip to an unfinished sidebar step", async () => {
+    const { user, handleSubmit }: RenderWizardResult = renderWizard();
+    await screen.findByRole("textbox", { name: "Name" });
+
+    await goToStep(user, "Confirmation");
+
+    expect(screen.getByRole("textbox", { name: "Name" })).toBeVisible();
+    expect(
+      screen.queryByRole("textbox", { name: "Confirmation Text" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Step 1 of 2");
+    expect(handleSubmit).not.toHaveBeenCalled();
+  });
 
   test("skips a hidden conditional step in both directions and updates the progress count", async () => {
     const { user }: RenderWizardResult = renderWizard();
@@ -181,7 +193,7 @@ describe("BasicForm backward navigation", () => {
       await screen.findByRole("textbox", { name: "Confirmation Text" }),
     ).toBeVisible();
     expect(screen.getByRole("status")).toHaveTextContent("Step 2 of 2");
-    await user.click(screen.getByRole("button", { name: "Back" }));
+    await goToStep(user, "Details");
     await expectInputValue("Name", "Production");
 
     fireEvent.change(screen.getByRole("textbox", { name: /^Kind/ }), {
@@ -197,7 +209,7 @@ describe("BasicForm backward navigation", () => {
     });
     await goNext(user);
     await screen.findByRole("textbox", { name: "Confirmation Text" });
-    await user.click(screen.getByRole("button", { name: "Back" }));
+    await goToStep(user, "Browser Settings");
     await expectInputValue("Origin", "https://example.com");
   });
 
@@ -210,7 +222,7 @@ describe("BasicForm backward navigation", () => {
       await screen.findByText("Confirmation Text is required."),
     ).toBeVisible();
 
-    await user.click(screen.getByRole("button", { name: "Back" }));
+    await goToStep(user, "Details");
     await expectInputValue("Name", "Production");
     await goNext(user);
     await user.click(screen.getByRole("button", { name: "Create" }));
@@ -220,7 +232,7 @@ describe("BasicForm backward navigation", () => {
     expect(handleSubmit).not.toHaveBeenCalled();
   });
 
-  test("uses live eligible steps for imperative Next and immediate Back after changing a condition", async () => {
+  test("uses live eligible steps for imperative Next and immediate sidebar navigation after changing a condition", async () => {
     let recordNavigation: boolean = false;
     let returnedFromConfirmation: boolean = false;
     const visitedSteps: Array<string> = [];
@@ -236,7 +248,7 @@ describe("BasicForm backward navigation", () => {
         if (stepId === "confirmation" && !returnedFromConfirmation) {
           returnedFromConfirmation = true;
           // Navigate before the passive effect refreshes the stored step list.
-          screen.getByRole("button", { name: "Back" }).click();
+          within(progress()).getByText("Details").click();
         }
       },
     });
@@ -248,7 +260,7 @@ describe("BasicForm backward navigation", () => {
       formRef.current?.submitForm();
     });
     await screen.findByRole("textbox", { name: "Origin" });
-    await user.click(screen.getByRole("button", { name: "Back" }));
+    await goToStep(user, "Details");
     await expectInputValue("Name", "Production");
 
     recordNavigation = true;
@@ -271,7 +283,7 @@ describe("BasicForm backward navigation", () => {
     expect(handleSubmit).not.toHaveBeenCalled();
   });
 
-  test("keeps Back available when a modal owns the submit button", async () => {
+  test("keeps completed sidebar steps available without a Back button when a modal owns submission", async () => {
     const { formRef, user, handleSubmit }: RenderWizardResult = renderWizard({
       hideSubmitButton: true,
     });
@@ -287,27 +299,27 @@ describe("BasicForm backward navigation", () => {
     expect(
       screen.queryByRole("button", { name: "Next" }),
     ).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Back" }));
+    expect(
+      screen.queryByRole("button", { name: "Back" }),
+    ).not.toBeInTheDocument();
+    await goToStep(user, "Details");
     await expectInputValue("Name", "Production");
     expect(handleSubmit).not.toHaveBeenCalled();
   });
 
-  test("disables Back during loading and restores it afterwards", async () => {
+  test("preserves progress and values through loading without adding a Back button", async () => {
     const { user, rerender, view }: RenderWizardResult = renderWizard();
     await enterName();
     await goNext(user);
     await screen.findByRole("textbox", { name: "Confirmation Text" });
     rerender(view({ isLoading: true }));
 
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
-    });
-    await user.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.getByRole("status")).toHaveTextContent("Step 2 of 2");
     expect(
-      screen.getByRole("textbox", { name: "Confirmation Text" }),
-    ).toBeVisible();
+      screen.queryByRole("button", { name: "Back" }),
+    ).not.toBeInTheDocument();
     rerender(view({ isLoading: false }));
-    await user.click(screen.getByRole("button", { name: "Back" }));
+    await goToStep(user, "Details");
     await expectInputValue("Name", "Production");
   });
 
@@ -329,7 +341,10 @@ describe("BasicForm backward navigation", () => {
     });
     expect(screen.getByRole("status")).toHaveTextContent("Step 3 of 3");
 
-    await user.click(screen.getByRole("button", { name: "Back" }));
+    expect(
+      screen.queryByRole("button", { name: "Back" }),
+    ).not.toBeInTheDocument();
+    await goToStep(user, "Confirmation");
     await expectInputValue("Confirmation Text", "Ready");
     expect(handleSubmit).not.toHaveBeenCalled();
   });
