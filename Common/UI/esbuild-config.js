@@ -280,6 +280,41 @@ function resolvePackageRoot(packageName) {
 }
 
 /**
+ * Resolve a package SUBPATH (e.g. "react-router/dom") to the file its exports
+ * map publishes, or null when the installed version publishes no such subpath.
+ *
+ * Needed because esbuild's `alias` matches path prefixes: an entry for
+ * "react-router" also rewrites "react-router/dom" to "<root>/dom", a directory
+ * that does not exist on disk because the subpath only exists in the package's
+ * exports map. Aliasing the subpath explicitly, to the file it really resolves
+ * to, is what keeps the prefix alias from swallowing it.
+ *
+ * Returns null rather than throwing: the subpath is only present from
+ * react-router 7 onward, and a version without it needs no alias at all
+ * because nothing imports it.
+ */
+function resolvePackageSubpath(packageName, subpath) {
+  const specifier = `${packageName}/${subpath}`;
+
+  const resolutionPaths = [
+    process.cwd(),
+    __dirname,
+    path.resolve(__dirname, ".."),
+    path.resolve(__dirname, "../.."),
+  ];
+
+  for (const resolutionPath of resolutionPaths) {
+    try {
+      return require.resolve(specifier, { paths: [resolutionPath] });
+    } catch (error) {
+      continue;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Create esbuild configuration for a service
  * @param {Object} options - Configuration options
  * @param {string} options.serviceName - Name of the service (dashboard, accounts, admin, status-page)
@@ -306,6 +341,7 @@ function createConfig(options) {
   const reactRoot = resolvePackageRoot("react");
   const reactDomRoot = resolvePackageRoot("react-dom");
   const reactRouterRoot = resolvePackageRoot("react-router");
+  const reactRouterDomSubpath = resolvePackageSubpath("react-router", "dom");
   const reactRouterDomRoot = resolvePackageRoot("react-router-dom");
   const reactI18nextRoot = resolvePackageRoot("react-i18next");
   const i18nextRoot = resolvePackageRoot("i18next");
@@ -365,6 +401,16 @@ function createConfig(options) {
       // Public dashboards reuse widgets from the private dashboard package.
       // Their links must share the router context installed by the entry app.
       "react-router": reactRouterRoot,
+      /*
+       * react-router-dom 7 re-exports from "react-router/dom". The prefix
+       * alias above would rewrite that to "<reactRouterRoot>/dom", which is
+       * not a path on disk, and the bundle fails to build entirely. Point the
+       * subpath at the file its exports map names - the same shape as the
+       * react/jsx-runtime entries above.
+       */
+      ...(reactRouterDomSubpath
+        ? { "react-router/dom": reactRouterDomSubpath }
+        : {}),
       "react-router-dom": reactRouterDomRoot,
       // Force a single instance of i18next/react-i18next so that translations
       // initialized in the service entry are visible to Common UI components.
