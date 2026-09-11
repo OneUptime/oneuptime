@@ -30,6 +30,7 @@ import RuleCriteria, {
   RuleCriteriaOperator,
 } from "../../../Types/Rules/RuleCriteria";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 const PRODUCTION_LABEL_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -424,18 +425,17 @@ describe.each(incidentMatchers)(
         description: "customer checkout",
         labels: [],
       } as unknown as Monitor;
-      const findOneById: jest.SpiedFunction<typeof MonitorService.findOneById> =
-        jest
-          .spyOn(MonitorService, "findOneById")
-          .mockImplementation(
-            async (
-              data: Parameters<typeof MonitorService.findOneById>[0],
-            ): Promise<Monitor> => {
-              return data.id.toString() === MONITOR_A_ID.toString()
-                ? monitorA
-                : monitorB;
-            },
-          );
+      const findOneById: SpyInstance<typeof MonitorService.findOneById> = jest
+        .spyOn(MonitorService, "findOneById")
+        .mockImplementation(
+          async (
+            data: Parameters<typeof MonitorService.findOneById>[0],
+          ): Promise<Monitor> => {
+            return data.id.toString() === MONITOR_A_ID.toString()
+              ? monitorA
+              : monitorB;
+          },
+        );
 
       const incident: Incident = fakeIncident();
       incident.monitors = [
@@ -469,8 +469,9 @@ describe.each(incidentMatchers)(
         description: "customer checkout",
         labels: [],
       } as unknown as Monitor;
-      const findOneById: jest.SpiedFunction<typeof MonitorService.findOneById> =
-        jest.spyOn(MonitorService, "findOneById").mockResolvedValue(monitorA);
+      const findOneById: SpyInstance<typeof MonitorService.findOneById> = jest
+        .spyOn(MonitorService, "findOneById")
+        .mockResolvedValue(monitorA);
 
       const incident: Incident = fakeIncident();
       incident.monitors = [

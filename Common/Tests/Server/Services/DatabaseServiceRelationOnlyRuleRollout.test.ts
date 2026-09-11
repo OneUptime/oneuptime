@@ -18,33 +18,6 @@ import {
   test,
 } from "@jest/globals";
 
-jest.mock("@faker-js/faker", () => {
-  return {
-    faker: {
-      company: {
-        name: (): string => {
-          return "Test Company";
-        },
-      },
-      internet: {
-        email: (): string => {
-          return "test@example.com";
-        },
-      },
-      person: {
-        fullName: (): string => {
-          return "Test User";
-        },
-      },
-      string: {
-        alphanumeric: (): string => {
-          return "test-value";
-        },
-      },
-    },
-  };
-});
-
 describe("DatabaseService relation-only rule rollout writes", () => {
   let service: DatabaseService<AlertReminderRule>;
   let findByMock: MockFunction;

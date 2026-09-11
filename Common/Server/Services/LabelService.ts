@@ -145,10 +145,7 @@ export class Service extends DatabaseService<Model> {
 
         for (const rule of legacyStatusPageMonitorRules) {
           if (rule.id) {
-            statusPageMonitorRuleIdsByValue.set(
-              rule.id.toString(),
-              rule.id,
-            );
+            statusPageMonitorRuleIdsByValue.set(rule.id.toString(), rule.id);
           }
         }
 
@@ -166,14 +163,13 @@ export class Service extends DatabaseService<Model> {
         const criteriaStatusPageMonitorRules: Array<StatusPageMonitorRule> =
           await StatusPageMonitorRuleService.findBy({
             query: {
-              criteria:
-                QueryHelper.jsonArrayObjectsContainAnyArrayValue({
-                  arrayKey: "filters",
-                  discriminatorKey: "field",
-                  discriminatorValue: "monitorLabels",
-                  valueArrayKey: "value",
-                  values: labelIds,
-                }),
+              criteria: QueryHelper.jsonArrayObjectsContainAnyArrayValue({
+                arrayKey: "filters",
+                discriminatorKey: "field",
+                discriminatorValue: "monitorLabels",
+                valueArrayKey: "value",
+                values: labelIds,
+              }),
             },
             select: {
               _id: true,
@@ -187,10 +183,7 @@ export class Service extends DatabaseService<Model> {
 
         for (const rule of criteriaStatusPageMonitorRules) {
           if (rule.id) {
-            statusPageMonitorRuleIdsByValue.set(
-              rule.id.toString(),
-              rule.id,
-            );
+            statusPageMonitorRuleIdsByValue.set(rule.id.toString(), rule.id);
           }
         }
 

@@ -42,33 +42,6 @@ import {
   jest,
 } from "@jest/globals";
 
-jest.mock("@faker-js/faker", () => {
-  return {
-    faker: {
-      company: {
-        name: (): string => {
-          return "Test Company";
-        },
-      },
-      internet: {
-        email: (): string => {
-          return "test@example.com";
-        },
-      },
-      person: {
-        fullName: (): string => {
-          return "Test User";
-        },
-      },
-      string: {
-        alphanumeric: (): string => {
-          return "test-value";
-        },
-      },
-    },
-  };
-});
-
 /*
  * Contract under test - the places that have to notice a status page monitor
  * rule became stale, plus the guardrails on writing one. The engine itself is

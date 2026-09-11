@@ -9,34 +9,7 @@ import RuleCriteria, {
   RuleCriteriaFilter,
   RuleCriteriaOperator,
 } from "../../../Types/Rules/RuleCriteria";
-import { describe, expect, it, jest } from "@jest/globals";
-
-jest.mock("@faker-js/faker", () => {
-  return {
-    faker: {
-      company: {
-        name: (): string => {
-          return "Test Company";
-        },
-      },
-      internet: {
-        email: (): string => {
-          return "test@example.com";
-        },
-      },
-      person: {
-        fullName: (): string => {
-          return "Test User";
-        },
-      },
-      string: {
-        alphanumeric: (): string => {
-          return "test-value";
-        },
-      },
-    },
-  };
-});
+import { describe, expect, it } from "@jest/globals";
 
 type SanitizeFunction = (
   data: unknown,

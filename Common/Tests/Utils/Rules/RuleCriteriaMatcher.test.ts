@@ -18,6 +18,7 @@ import RuleCriteriaMatcher, {
 } from "../../../Utils/Rules/RuleCriteriaMatcher";
 import RulePatternMatchUtil from "../../../Utils/Rules/RulePatternMatchUtil";
 import { describe, expect, it, jest } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 interface RelatedItem {
   _id?: string;
@@ -218,9 +219,11 @@ describe("RuleCriteria validation", () => {
       getRuleCriteriaFilterValidationError(filterWithNestedExtra),
     ).toContain("may only contain");
 
-    const matchesFilter = jest.fn<RuleFilterMatcher>((): boolean => {
-      return true;
-    });
+    const matchesFilter: Mock<RuleFilterMatcher> = jest.fn<RuleFilterMatcher>(
+      (): boolean => {
+        return true;
+      },
+    );
     expect(
       RuleCriteriaMatcher.matchesSync({
         criteria: {
@@ -413,7 +416,7 @@ describe("RuleCriteriaMatcher combiners", () => {
       makeFilter("second", RuleCriteriaOperator.Equals, "fail"),
       makeFilter("third", RuleCriteriaOperator.Equals, "pass"),
     ];
-    const matchesFilter = jest.fn<RuleFilterMatcher>(
+    const matchesFilter: Mock<RuleFilterMatcher> = jest.fn<RuleFilterMatcher>(
       (filter: RuleCriteriaFilter): boolean => {
         return filter.value === "pass";
       },
@@ -436,7 +439,7 @@ describe("RuleCriteriaMatcher combiners", () => {
       makeFilter("second", RuleCriteriaOperator.Equals, "pass"),
       makeFilter("third", RuleCriteriaOperator.Equals, "fail"),
     ];
-    const matchesFilter = jest.fn<RuleFilterMatcher>(
+    const matchesFilter: Mock<RuleFilterMatcher> = jest.fn<RuleFilterMatcher>(
       (filter: RuleCriteriaFilter): boolean => {
         return filter.value === "pass";
       },
@@ -480,9 +483,11 @@ describe("RuleCriteriaMatcher combiners", () => {
   it.each([true, false])(
     "returns configured emptyResult=%s without invoking a matcher",
     (emptyResult: boolean) => {
-      const matchesFilter = jest.fn<RuleFilterMatcher>((): boolean => {
-        return !emptyResult;
-      });
+      const matchesFilter: Mock<RuleFilterMatcher> = jest.fn<RuleFilterMatcher>(
+        (): boolean => {
+          return !emptyResult;
+        },
+      );
 
       expect(
         RuleCriteriaMatcher.matchesSync({
@@ -496,9 +501,11 @@ describe("RuleCriteriaMatcher combiners", () => {
   );
 
   it("fails closed on configured malformed criteria", () => {
-    const matchesFilter = jest.fn<RuleFilterMatcher>((): boolean => {
-      return true;
-    });
+    const matchesFilter: Mock<RuleFilterMatcher> = jest.fn<RuleFilterMatcher>(
+      (): boolean => {
+        return true;
+      },
+    );
 
     expect(
       RuleCriteriaMatcher.matchesSync({
@@ -601,7 +608,7 @@ describe("RuleCriteriaMatcher correlated async legacy adapter", () => {
         labelIds: [],
       },
     ];
-    const matchesLegacyRule = jest.fn<AsyncRuleMatcher>(
+    const matchesLegacyRule: Mock<AsyncRuleMatcher> = jest.fn<AsyncRuleMatcher>(
       async (rule: ExampleRule): Promise<boolean> => {
         if (rule.labels) {
           return relationLegacyMatcher([ROOT_LABEL_ID])(rule);
@@ -688,12 +695,11 @@ describe("RuleCriteriaMatcher correlated async legacy adapter", () => {
   it.each([FilterCondition.All, FilterCondition.Any])(
     "keeps a positive one-filter result invariant for %s",
     async (filterCondition: FilterCondition) => {
-      const getCandidates = jest.fn<CorrelationCandidateGetter>(
-        (): Array<CorrelationCandidate> => {
+      const getCandidates: Mock<CorrelationCandidateGetter> =
+        jest.fn<CorrelationCandidateGetter>((): Array<CorrelationCandidate> => {
           return splitCandidates;
-        },
-      );
-      const matchesLegacyRuleForCandidate =
+        });
+      const matchesLegacyRuleForCandidate: Mock<CorrelationCandidateMatcher> =
         jest.fn<CorrelationCandidateMatcher>(
           (rule: ExampleRule, candidate: CorrelationCandidate): boolean => {
             return correlationCandidateLegacyMatcher(candidate)(rule);
@@ -780,11 +786,10 @@ describe("RuleCriteriaMatcher correlated async legacy adapter", () => {
       value: string | Array<string>,
       expected: boolean,
     ) => {
-      const getCandidates = jest.fn<CorrelationCandidateGetter>(
-        (): Array<CorrelationCandidate> => {
+      const getCandidates: Mock<CorrelationCandidateGetter> =
+        jest.fn<CorrelationCandidateGetter>((): Array<CorrelationCandidate> => {
           return splitCandidates;
-        },
-      );
+        });
       const field: string = Array.isArray(value) ? "labels" : "namePattern";
 
       await expect(
@@ -811,11 +816,10 @@ describe("RuleCriteriaMatcher correlated async legacy adapter", () => {
   );
 
   it("loads correlation candidates once across Match Any filters", async () => {
-    const getCandidates = jest.fn<CorrelationCandidateGetter>(
-      (): Array<CorrelationCandidate> => {
+    const getCandidates: Mock<CorrelationCandidateGetter> =
+      jest.fn<CorrelationCandidateGetter>((): Array<CorrelationCandidate> => {
         return splitCandidates;
-      },
-    );
+      });
 
     await expect(
       RuleCriteriaMatcher.matchesWithLegacy({
@@ -852,17 +856,16 @@ describe("RuleCriteriaMatcher correlated async legacy adapter", () => {
 
   it("preserves absent-criteria fallback without consulting correlation candidates", async () => {
     const rule: ExampleRule = makeRule(undefined);
-    const matchesLegacyRule = jest.fn<AsyncRuleMatcher>(
+    const matchesLegacyRule: Mock<AsyncRuleMatcher> = jest.fn<AsyncRuleMatcher>(
       async (receivedRule: ExampleRule): Promise<boolean> => {
         expect(receivedRule).toBe(rule);
         return true;
       },
     );
-    const getCandidates = jest.fn<CorrelationCandidateGetter>(
-      (): Array<CorrelationCandidate> => {
+    const getCandidates: Mock<CorrelationCandidateGetter> =
+      jest.fn<CorrelationCandidateGetter>((): Array<CorrelationCandidate> => {
         return splitCandidates;
-      },
-    );
+      });
 
     await expect(
       RuleCriteriaMatcher.matchesWithLegacy({
@@ -1022,9 +1025,11 @@ describe("RuleCriteriaMatcher text legacy adapter", () => {
   );
 
   it("fails closed before evaluating an invalid negative pattern", () => {
-    const matchesLegacyRule = jest.fn<SyncRuleMatcher>((): boolean => {
-      return false;
-    });
+    const matchesLegacyRule: Mock<SyncRuleMatcher> = jest.fn<SyncRuleMatcher>(
+      (): boolean => {
+        return false;
+      },
+    );
 
     expect(
       RuleCriteriaMatcher.matchesWithLegacySync({
@@ -1098,9 +1103,11 @@ describe("RuleCriteriaMatcher text legacy adapter", () => {
   });
 
   it("does not evaluate a configured field outside the caller allowlist", () => {
-    const matchesLegacyRule = jest.fn<SyncRuleMatcher>((): boolean => {
-      return true;
-    });
+    const matchesLegacyRule: Mock<SyncRuleMatcher> = jest.fn<SyncRuleMatcher>(
+      (): boolean => {
+        return true;
+      },
+    );
 
     expect(
       RuleCriteriaMatcher.matchesWithLegacySync({
@@ -1251,9 +1258,11 @@ describe("RuleCriteriaMatcher relation legacy adapter", () => {
   );
 
   it("rejects an empty relation value without a legacy call", () => {
-    const matchesLegacyRule = jest.fn<SyncRuleMatcher>((): boolean => {
-      return true;
-    });
+    const matchesLegacyRule: Mock<SyncRuleMatcher> = jest.fn<SyncRuleMatcher>(
+      (): boolean => {
+        return true;
+      },
+    );
 
     expect(
       RuleCriteriaMatcher.matchesWithLegacySync({
@@ -1276,7 +1285,7 @@ describe("RuleCriteriaMatcher legacy fallback and mutation safety", () => {
     "calls the legacy matcher exactly once for absent criteria=%p",
     (criteria: undefined | null) => {
       const rule: ExampleRule = makeRule(criteria);
-      const matchesLegacyRule = jest.fn<SyncRuleMatcher>(
+      const matchesLegacyRule: Mock<SyncRuleMatcher> = jest.fn<SyncRuleMatcher>(
         (receivedRule: ExampleRule): boolean => {
           expect(receivedRule).toBe(rule);
           return true;
@@ -1296,9 +1305,11 @@ describe("RuleCriteriaMatcher legacy fallback and mutation safety", () => {
   );
 
   it("does not fall back to legacy fields for configured empty criteria", () => {
-    const matchesLegacyRule = jest.fn<SyncRuleMatcher>((): boolean => {
-      return true;
-    });
+    const matchesLegacyRule: Mock<SyncRuleMatcher> = jest.fn<SyncRuleMatcher>(
+      (): boolean => {
+        return true;
+      },
+    );
 
     expect(
       RuleCriteriaMatcher.matchesWithLegacySync({
@@ -1314,9 +1325,11 @@ describe("RuleCriteriaMatcher legacy fallback and mutation safety", () => {
   it("does not fall back to legacy fields for malformed configured criteria", () => {
     const rule: ExampleRule = makeRule(undefined);
     rule.criteria = { schemaVersion: 1, filters: [] };
-    const matchesLegacyRule = jest.fn<SyncRuleMatcher>((): boolean => {
-      return true;
-    });
+    const matchesLegacyRule: Mock<SyncRuleMatcher> = jest.fn<SyncRuleMatcher>(
+      (): boolean => {
+        return true;
+      },
+    );
 
     expect(
       RuleCriteriaMatcher.matchesWithLegacySync({
@@ -1391,7 +1404,7 @@ describe("RuleCriteriaMatcher legacy fallback and mutation safety", () => {
 
   it("calls an asynchronous legacy fallback exactly once", async () => {
     const rule: ExampleRule = makeRule(undefined);
-    const matchesLegacyRule = jest.fn<AsyncRuleMatcher>(
+    const matchesLegacyRule: Mock<AsyncRuleMatcher> = jest.fn<AsyncRuleMatcher>(
       async (receivedRule: ExampleRule): Promise<boolean> => {
         expect(receivedRule).toBe(rule);
         return true;

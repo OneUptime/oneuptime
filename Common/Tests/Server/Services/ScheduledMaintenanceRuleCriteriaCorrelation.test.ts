@@ -10,6 +10,7 @@ import RuleCriteria, {
   RuleCriteriaOperator,
 } from "../../../Types/Rules/RuleCriteria";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 const MONITOR_A_ID: ObjectID = new ObjectID(
   "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -83,18 +84,17 @@ describe.each(matchers)(
         description: "customer checkout",
         labels: [],
       } as unknown as Monitor;
-      const findOneById: jest.SpiedFunction<typeof MonitorService.findOneById> =
-        jest
-          .spyOn(MonitorService, "findOneById")
-          .mockImplementation(
-            async (
-              data: Parameters<typeof MonitorService.findOneById>[0],
-            ): Promise<Monitor> => {
-              return data.id.toString() === MONITOR_A_ID.toString()
-                ? monitorA
-                : monitorB;
-            },
-          );
+      const findOneById: SpyInstance<typeof MonitorService.findOneById> = jest
+        .spyOn(MonitorService, "findOneById")
+        .mockImplementation(
+          async (
+            data: Parameters<typeof MonitorService.findOneById>[0],
+          ): Promise<Monitor> => {
+            return data.id.toString() === MONITOR_A_ID.toString()
+              ? monitorA
+              : monitorB;
+          },
+        );
 
       await expect(
         matcher.doesScheduledMaintenanceMatchRule(
@@ -125,8 +125,9 @@ describe.each(matchers)(
         description: "customer checkout",
         labels: [],
       } as unknown as Monitor;
-      const findOneById: jest.SpiedFunction<typeof MonitorService.findOneById> =
-        jest.spyOn(MonitorService, "findOneById").mockResolvedValue(monitorA);
+      const findOneById: SpyInstance<typeof MonitorService.findOneById> = jest
+        .spyOn(MonitorService, "findOneById")
+        .mockResolvedValue(monitorA);
 
       await expect(
         matcher.doesScheduledMaintenanceMatchRule(

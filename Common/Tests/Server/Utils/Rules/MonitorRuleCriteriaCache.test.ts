@@ -10,6 +10,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 jest.mock("../../../../Server/Services/MonitorService", () => {
   return {
@@ -38,8 +39,9 @@ describe("MonitorRuleCriteriaCache", () => {
 
   it("coalesces concurrent and sequential reads for one monitor", async () => {
     const monitor: Monitor = { id: MONITOR_A_ID } as Monitor;
-    const findOneById: jest.SpiedFunction<typeof MonitorService.findOneById> =
-      jest.spyOn(MonitorService, "findOneById").mockResolvedValue(monitor);
+    const findOneById: SpyInstance<typeof MonitorService.findOneById> = jest
+      .spyOn(MonitorService, "findOneById")
+      .mockResolvedValue(monitor);
     const cache: MonitorRuleCriteriaCache = new MonitorRuleCriteriaCache();
 
     const [first, second, third]: Array<Monitor | null> = await Promise.all([
@@ -56,18 +58,17 @@ describe("MonitorRuleCriteriaCache", () => {
 
   it("caches misses, keeps IDs separate, and scopes entries to one evaluation", async () => {
     const monitorB: Monitor = { id: MONITOR_B_ID } as Monitor;
-    const findOneById: jest.SpiedFunction<typeof MonitorService.findOneById> =
-      jest
-        .spyOn(MonitorService, "findOneById")
-        .mockImplementation(
-          async (
-            data: Parameters<typeof MonitorService.findOneById>[0],
-          ): Promise<Monitor | null> => {
-            return data.id.toString() === MONITOR_A_ID.toString()
-              ? null
-              : monitorB;
-          },
-        );
+    const findOneById: SpyInstance<typeof MonitorService.findOneById> = jest
+      .spyOn(MonitorService, "findOneById")
+      .mockImplementation(
+        async (
+          data: Parameters<typeof MonitorService.findOneById>[0],
+        ): Promise<Monitor | null> => {
+          return data.id.toString() === MONITOR_A_ID.toString()
+            ? null
+            : monitorB;
+        },
+      );
     const firstEvaluation: MonitorRuleCriteriaCache =
       new MonitorRuleCriteriaCache();
 
@@ -86,8 +87,9 @@ describe("MonitorRuleCriteriaCache", () => {
 
   it("retains a rejected read so repeated filters cannot create a retry storm", async () => {
     const readError: Error = new Error("monitor read failed");
-    const findOneById: jest.SpiedFunction<typeof MonitorService.findOneById> =
-      jest.spyOn(MonitorService, "findOneById").mockRejectedValue(readError);
+    const findOneById: SpyInstance<typeof MonitorService.findOneById> = jest
+      .spyOn(MonitorService, "findOneById")
+      .mockRejectedValue(readError);
     const cache: MonitorRuleCriteriaCache = new MonitorRuleCriteriaCache();
 
     await expect(cache.getMonitor(MONITOR_A_ID)).rejects.toBe(readError);

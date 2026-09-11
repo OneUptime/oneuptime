@@ -72,9 +72,7 @@ describe("QueryHelper.jsonArrayObjectsContainAnyArrayValue", () => {
   });
 
   it("deduplicates ids before binding them as one text-array parameter", () => {
-    const id: ObjectID = new ObjectID(
-      "11111111-1111-4111-8111-111111111111",
-    );
+    const id: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
     const operator: RawOperator = asRaw(
       QueryHelper.jsonArrayObjectsContainAnyArrayValue({
         arrayKey: "filters",

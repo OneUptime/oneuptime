@@ -11,6 +11,7 @@ import {
   RuleCriteriaOperator,
 } from "../../../Types/Rules/RuleCriteria";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 const MONITOR_A_ID: ObjectID = new ObjectID(
   "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -60,22 +61,21 @@ describe("Incident SLA rule monitor correlation", () => {
   });
 
   it("does not combine labels across monitors and reads each monitor once", async () => {
-    const findOneById: jest.SpiedFunction<typeof MonitorService.findOneById> =
-      jest
-        .spyOn(MonitorService, "findOneById")
-        .mockImplementation(
-          async (
-            data: Parameters<typeof MonitorService.findOneById>[0],
-          ): Promise<Monitor> => {
-            return {
-              id: data.id,
-              labels:
-                data.id.toString() === MONITOR_A_ID.toString()
-                  ? [label(LABEL_A_ID)]
-                  : [label(LABEL_B_ID)],
-            } as Monitor;
-          },
-        );
+    const findOneById: SpyInstance<typeof MonitorService.findOneById> = jest
+      .spyOn(MonitorService, "findOneById")
+      .mockImplementation(
+        async (
+          data: Parameters<typeof MonitorService.findOneById>[0],
+        ): Promise<Monitor> => {
+          return {
+            id: data.id,
+            labels:
+              data.id.toString() === MONITOR_A_ID.toString()
+                ? [label(LABEL_A_ID)]
+                : [label(LABEL_B_ID)],
+          } as Monitor;
+        },
+      );
 
     await expect(
       IncidentSlaRuleService.doesIncidentMatchRule(incident(), rule()),
@@ -84,8 +84,9 @@ describe("Incident SLA rule monitor correlation", () => {
   });
 
   it("short-circuits on one matching monitor with one read", async () => {
-    const findOneById: jest.SpiedFunction<typeof MonitorService.findOneById> =
-      jest.spyOn(MonitorService, "findOneById").mockResolvedValue({
+    const findOneById: SpyInstance<typeof MonitorService.findOneById> = jest
+      .spyOn(MonitorService, "findOneById")
+      .mockResolvedValue({
         id: MONITOR_A_ID,
         labels: [label(LABEL_A_ID), label(LABEL_B_ID)],
       } as Monitor);

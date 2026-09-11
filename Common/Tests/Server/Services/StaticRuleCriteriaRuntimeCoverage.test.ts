@@ -166,10 +166,14 @@ describe("static rule criteria runtime coverage", () => {
     );
 
     for (const [modelName, form] of formsByModel) {
-      const registeredFields: ReadonlyArray<string> =
+      const registeredFields: ReadonlyArray<string> | undefined =
         RULE_CRITERIA_FIELDS_BY_MODEL[
           modelName as keyof typeof RULE_CRITERIA_FIELDS_BY_MODEL
         ];
+
+      if (!registeredFields) {
+        throw new Error(`No rule criteria fields registered for ${modelName}`);
+      }
 
       expect([...registeredFields].sort()).toEqual([...form.fields].sort());
 
