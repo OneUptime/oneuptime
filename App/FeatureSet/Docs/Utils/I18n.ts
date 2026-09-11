@@ -134,6 +134,7 @@ export const getLocalizedNav: (lang: string) => LocalizedNavGroup[] = (
   const t: TranslateFn = makeT(lang);
   return DocsNav.map((group: NavGroup): LocalizedNavGroup => {
     return {
+      key: group.title,
       title: t(`navGroups.${group.title}`),
       links: group.links.map((link: NavLink): LocalizedNavLink => {
         return {
