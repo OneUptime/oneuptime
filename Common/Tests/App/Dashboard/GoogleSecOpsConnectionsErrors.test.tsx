@@ -14,10 +14,9 @@ import {
   render,
   RenderResult,
   screen,
-  waitFor,
   within,
 } from "@testing-library/react";
-import React, { ReactElement } from "react";
+import React, { act, ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import GoogleSecOpsConnectionsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/GoogleSecOpsConnections";
 import GoogleSecOpsConnection from "../../../Models/DatabaseModels/GoogleSecOpsConnection";
@@ -192,11 +191,16 @@ function openError(connectionName: string = "Production"): HTMLElement {
       name: "View Error",
     }),
   );
+  act((): void => {
+    // Finish the modal's entry animation without relying on wall-clock timing.
+    jest.advanceTimersByTime(80);
+  });
   return screen.getByRole("dialog", { name: "Last Error" });
 }
 
 describe("Google SecOps connection error actions", () => {
   beforeEach((): void => {
+    jest.useFakeTimers();
     mockConnections = [];
     mockTableProps = undefined;
     mockIsMobile = false;
@@ -212,6 +216,8 @@ describe("Google SecOps connection error actions", () => {
 
   afterEach((): void => {
     cleanup();
+    jest.clearAllTimers();
+    jest.useRealTimers();
     jest.restoreAllMocks();
   });
 
@@ -277,15 +283,21 @@ describe("Google SecOps connection error actions", () => {
       expect(fullError).toHaveAttribute("tabindex", "0");
       expect(dialog.querySelector("script")).toBeNull();
 
-      fireEvent.click(
-        within(dialog).getByRole("button", { name: "Copy Error" }),
-      );
-
-      await waitFor((): void => {
-        expect(writeText).toHaveBeenCalledTimes(1);
-        expect(writeText).toHaveBeenCalledWith(LONG_ERROR);
+      await act(async (): Promise<void> => {
+        fireEvent.click(
+          within(dialog).getByRole("button", { name: "Copy Error" }),
+        );
       });
-      expect(await within(dialog).findByText("Copied!")).toBeVisible();
+      expect(writeText).toHaveBeenCalledTimes(1);
+      expect(writeText).toHaveBeenCalledWith(LONG_ERROR);
+      expect(within(dialog).getByText("Copied!")).toBeVisible();
+
+      act((): void => {
+        jest.advanceTimersByTime(1000);
+      });
+      expect(
+        within(dialog).getByRole("button", { name: "Copy Error" }),
+      ).toHaveTextContent("Copy Error");
 
       fireEvent.click(
         within(dialog).getAllByRole("button", { name: "Close" })[1]!,
@@ -305,16 +317,16 @@ describe("Google SecOps connection error actions", () => {
       async (key: string): Promise<void> => {
         renderPage([createConnection("Production", LONG_ERROR)]);
         const dialog: HTMLElement = openError();
-        fireEvent.keyDown(
-          within(dialog).getByRole("button", { name: "Copy Error" }),
-          {
-            key,
-          },
-        );
-        await waitFor((): void => {
-          expect(writeText).toHaveBeenCalledTimes(1);
-          expect(writeText).toHaveBeenCalledWith(LONG_ERROR);
+        await act(async (): Promise<void> => {
+          fireEvent.keyDown(
+            within(dialog).getByRole("button", { name: "Copy Error" }),
+            {
+              key,
+            },
+          );
         });
+        expect(writeText).toHaveBeenCalledTimes(1);
+        expect(writeText).toHaveBeenCalledWith(LONG_ERROR);
       },
     );
 
@@ -340,12 +352,12 @@ describe("Google SecOps connection error actions", () => {
       expect(
         within(secondDialog).getByLabelText("Full error message").textContent,
       ).toBe(secondError);
-      fireEvent.click(
-        within(secondDialog).getByRole("button", { name: "Copy Error" }),
-      );
-      await waitFor((): void => {
-        expect(writeText).toHaveBeenCalledWith(secondError);
+      await act(async (): Promise<void> => {
+        fireEvent.click(
+          within(secondDialog).getByRole("button", { name: "Copy Error" }),
+        );
       });
+      expect(writeText).toHaveBeenCalledWith(secondError);
       fireEvent.click(
         within(secondDialog).getAllByRole("button", { name: "Close" })[0]!,
       );
@@ -400,12 +412,12 @@ describe("Google SecOps connection error actions", () => {
       expect(
         within(dialog).getByLabelText("Full error message").textContent,
       ).toBe(error);
-      fireEvent.click(
-        within(dialog).getByRole("button", { name: "Copy Error" }),
-      );
-      await waitFor((): void => {
-        expect(writeText).toHaveBeenCalledWith(error);
+      await act(async (): Promise<void> => {
+        fireEvent.click(
+          within(dialog).getByRole("button", { name: "Copy Error" }),
+        );
       });
+      expect(writeText).toHaveBeenCalledWith(error);
     });
   });
 });

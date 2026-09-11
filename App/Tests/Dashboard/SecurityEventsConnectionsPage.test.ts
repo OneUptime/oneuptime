@@ -74,7 +74,8 @@ const FIELD_HEAD_PATTERN: RegExp = /field:\s*\{\s*(\w+):\s*true/g;
 /* Matches `title: "..."` inside a single extracted entry. */
 const TITLE_PATTERN: RegExp = /title:\s*"([^"]*)"/;
 /* Fields fetched for row actions even when they are not visible columns. */
-const SELECT_MORE_FIELDS_PATTERN: RegExp = /selectMoreFields=\{\{([\s\S]*?)\}\}/;
+const SELECT_MORE_FIELDS_PATTERN: RegExp =
+  /selectMoreFields=\{\{([\s\S]*?)\}\}/;
 const LAST_ERROR_SELECTION_PATTERN: RegExp = /\blastError:\s*true/;
 /* Matches the page import in SecurityEventsRoutes.tsx. */
 const CONNECTIONS_PAGE_IMPORT_PATTERN: RegExp =
