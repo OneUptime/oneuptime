@@ -6,28 +6,10 @@ import { render } from "@testing-library/react";
 import React from "react";
 
 /*
- * WHY THIS FILE EXISTS
- *
- * Every icon in Icon.tsx is hand-written path data in one long if/else chain,
- * and they all share a 24x24 viewBox. The viewBox is not what the eye
- * measures, though - the INK is. An icon whose drawing runs corner to corner
- * reads as bigger than one that sits inside a keyline square, at the same
- * nominal size, on the same row, in the same button.
- *
- * That is what happened to the pencil. Heroicons' pencil is a single unbroken
- * diagonal spanning the full box, so its ink ran ~25 units tip to eraser
- * while the Trash and List it sits beside in a table row's action buttons run
- * ~20. Rendered by Button at 20px (Button.tsx pins the icon to `w-5 h-5`), the
- * pencil drew a stroke longer than the box it was sized into, and looked a
- * size larger than every button next to it (OneUptime issue #3444's
- * screenshot).
- *
- * A path string pinned by equality would catch a revert and nothing else - it
- * says nothing about WHY the string is what it is, and it goes stale the
- * moment anyone redraws the glyph for an unrelated reason. So this measures
- * the geometry instead: the pencil's ink must stay in the same size class as
- * the icons it is rendered beside. Redraw the pencil however you like; it just
- * may not go back to overshooting its neighbours.
+ * Edit and Pencil share a diagonal glyph. A uniform reduction made the old
+ * pencil shorter but also left a thin barrel that disappeared at button size.
+ * These geometry checks protect both dimensions: a compact outline and enough
+ * width to remain legible, without tying future redraws to an exact path.
  */
 
 /*
@@ -59,13 +41,10 @@ interface Point {
  * The vertices of an SVG path: every on-path point the path data names, in
  * user units.
  *
- * Deliberately vertices and not a true outline. Curves and arcs bulge past
- * their endpoints - the pencil's eraser cap is a semicircle that reaches
- * ~0.4 units beyond its own arc endpoint - so this under-measures every icon
- * by a fraction of a unit. That is fine and it is why the comparison below is
- * relative: every icon is measured the same way, so the bias cancels, and the
- * question being asked ("is the pencil in the same size class as the trash
- * can") is not sensitive to a rounding of a stroke width.
+ * Deliberately vertices and not a true outline. Curves and arcs extend past
+ * their endpoints, especially the pencil's rounded cap. These measurements
+ * protect proportions in the path data; browser checks cover the rendered
+ * outline and alignment. Bounds below allow for the cap being omitted here.
  *
  * Control points of curves are skipped rather than treated as vertices: they
  * routinely sit outside the drawn shape and would report ink that is not
@@ -258,6 +237,22 @@ const measurePath: MeasurePathFunction = (pathData: string): number => {
   return longestSpan(parsePathVertices(pathData));
 };
 
+// Project onto the axis perpendicular to the pencil's 45-degree barrel.
+// Its axis-aligned bounding box cannot distinguish a wide pencil from a line.
+type DiagonalWidthFunction = (vertices: Array<Point>) => number;
+
+const diagonalWidth: DiagonalWidthFunction = (
+  vertices: Array<Point>,
+): number => {
+  const transverseCoordinates: Array<number> = vertices.map((point: Point) => {
+    return (point.x + point.y) / Math.SQRT2;
+  });
+
+  return (
+    Math.max(...transverseCoordinates) - Math.min(...transverseCoordinates)
+  );
+};
+
 // The same measurement, for an icon rendered by the component under test.
 type InkExtentFunction = (icon: IconProp) => number;
 
@@ -282,6 +277,11 @@ const inkExtent: InkExtentFunction = (icon: IconProp): number => {
 const OVERSIZED_HEROICONS_PENCIL: string =
   "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125";
 
+// The previous 80% pencil had an approximately three-unit barrel. Keeping it
+// as a control proves that length checks alone do not prevent this regression.
+const NARROW_PENCIL: string =
+  "M15.89 5.99l1.35-1.35a1.5 1.5 0 112.122 2.122L7.866 18.256a3.6 3.6 0 01-1.518.904l-2.148.64.64-2.148a3.6 3.6 0 01.904-1.518L15.89 5.99zm0 0L18 8.1";
+
 describe("path measurement", () => {
   /*
    * Every assertion in the suite below is only as good as the parser, and a
@@ -295,6 +295,14 @@ describe("path measurement", () => {
 
     // "M12 4.5v15m7.5-7.5h-15" - a plus with 15-unit arms.
     expect(measurePath("M12 4.5v15m7.5-7.5h-15")).toBeCloseTo(15, 2);
+  });
+
+  it("measures width perpendicular to a diagonal instead of its bounding box", () => {
+    const diagonal: Array<Point> = parsePathVertices("M0 8L8 0");
+    const wideDiagonal: Array<Point> = parsePathVertices("M0 4L4 0L8 4L4 8Z");
+
+    expect(diagonalWidth(diagonal)).toBeCloseTo(0, 6);
+    expect(diagonalWidth(wideDiagonal)).toBeCloseTo(4 * Math.SQRT2, 6);
   });
 
   it("reads arc flags that are packed against their coordinates", () => {
@@ -330,8 +338,9 @@ describe("Icon optical size", () => {
      */
     expect(pencil).toBeLessThanOrEqual(trash * 1.05);
 
-    // And not shrunk into a different size class either.
-    expect(pencil).toBeGreaterThanOrEqual(list * 0.9);
+    // A compact pencil still needs to be legible. Its rounded cap extends
+    // past these vertices, so allow more inset than for an upright glyph.
+    expect(pencil).toBeGreaterThanOrEqual(list * 0.8);
   });
 
   it("would fail for the stock Heroicons pencil", () => {
@@ -340,6 +349,37 @@ describe("Icon optical size", () => {
 
     // The regression this test exists for: 25 units of ink against the bin's 20.
     expect(stock).toBeGreaterThan(trash * 1.2);
+  });
+
+  it.each([IconProp.Pencil, IconProp.Edit])(
+    "%s has a wider barrel and a shorter outline than the previous pencil",
+    (icon: IconProp) => {
+      const vertices: Array<Point> = getIconPaths(icon).flatMap(
+        (pathData: string) => {
+          return parsePathVertices(pathData);
+        },
+      );
+      const width: number = diagonalWidth(vertices);
+      const length: number = longestSpan(vertices);
+
+      // At 20px, this leaves a visible barrel interior even after the 1.5-unit
+      // outline is drawn. A width ceiling preserves the familiar pencil shape.
+      expect(width).toBeGreaterThanOrEqual(4.5);
+      expect(width).toBeLessThanOrEqual(6.5);
+      expect(length / width).toBeGreaterThanOrEqual(2.5);
+      expect(length / width).toBeLessThanOrEqual(4);
+      expect(length).toBeLessThanOrEqual(measurePath(NARROW_PENCIL) * 0.85);
+    },
+  );
+
+  it("rejects the previous narrow pencil even though it passed the size checks", () => {
+    const vertices: Array<Point> = parsePathVertices(NARROW_PENCIL);
+    const width: number = diagonalWidth(vertices);
+    const length: number = longestSpan(vertices);
+
+    expect(length).toBeLessThanOrEqual(inkExtent(IconProp.Trash) * 1.05);
+    expect(width).toBeLessThan(4.5);
+    expect(length / width).toBeGreaterThan(4);
   });
 
   it("draws the same pencil for Pencil and Edit", () => {

@@ -245,6 +245,9 @@ const Button: FunctionComponent<ComponentProps> = ({
     }   focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 md:mt-0 md:ml-3 md:w-auto md:text-sm`;
   }
 
+  // Center the icon against both desktop and taller mobile label lines.
+  buttonStyleCssClass += ` items-center`;
+
   /*
    * The one shared point every variant funnels through: hover/focus colour
    * changes ease in instead of snapping, at the same 150ms the other
