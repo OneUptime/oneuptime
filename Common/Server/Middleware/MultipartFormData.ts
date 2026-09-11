@@ -32,26 +32,45 @@ export const MAX_MULTIPART_FILES: number = 50;
 export const MAX_MULTIPART_FIELDS: number = 200;
 
 /*
+ * Every multipart protocol that uses this shared pre-auth parser has flat
+ * field names. Multer 2.3 provides these opt-in guards for append-field:
+ * without them, one deeply nested name or a maximum-length numeric array
+ * index can consume CPU and memory before authentication. Zero is the minimum
+ * each protocol needs and rejects bracket notation before append-field expands it.
+ * The array-index limit is defense in depth if a future protocol deliberately
+ * raises the nesting depth to accept one bracket group.
+ */
+export const MAX_MULTIPART_FIELD_NESTING_DEPTH: number = 0;
+export const MAX_MULTIPART_FIELD_ARRAY_INDEX: number = 0;
+
+/*
  * busboy's SIZE limits and its `parts` counter are EXCLUSIVE: each fires
  * the moment the counter REACHES the limit, so handing it N admits only
  * N-1. Its `files` and `fields` counters are INCLUSIVE -- N admits N.
  *
- * That asymmetry is undocumented and easy to lose, so the constants above
- * stay the INCLUSIVE maxima this app documents and that callers
- * range-check against (`file.buffer.length > MAX_SOURCE_MAP_SIZE_IN_BYTES`
- * and friends), and only the three exclusive limits are converted here.
+ * Multer 2.3 normalizes its documented `fileSize` option to an inclusive
+ * application limit before it calls busboy. It forwards `fieldSize` and
+ * `parts` unchanged, so only those two raw busboy limits are converted here.
+ * The constants above stay the INCLUSIVE maxima this app documents and that
+ * callers range-check against (`file.buffer.length >
+ * MAX_SOURCE_MAP_SIZE_IN_BYTES` and friends).
  *
- * Both halves of this were live bugs. A file of exactly 50 MiB -- a size
- * the source map endpoint means to accept, and whose 400 message says it
- * accepts -- was truncated by the parser into a 413 the endpoint never
- * saw. And `parts`, whose whole job is to allow the file and field
- * allowances in full, rejected a body carrying exactly both with
+ * Both conversions have caused live boundary bugs. A file of exactly 50 MiB
+ * must remain accepted, but adding one here as well as in Multer would admit
+ * 50 MiB + 1. And `parts`, whose whole job is to allow the file and field
+ * allowances in full, once rejected a body carrying exactly both with
  * LIMIT_PART_COUNT.
  */
-const exclusive: (inclusiveMax: number) => number = (
+const toExclusiveBusboyLimit: (inclusiveMax: number) => number = (
   inclusiveMax: number,
 ): number => {
   return inclusiveMax + 1;
+};
+
+/* Installed DefinitelyTyped definitions do not declare these options yet. */
+type HardenedMulterLimits = NonNullable<multer.Options["limits"]> & {
+  fieldNestingDepth: number;
+  fieldArrayIndexLimit: number;
 };
 
 /*
@@ -61,19 +80,23 @@ const exclusive: (inclusiveMax: number) => number = (
 const buildUploadAny: (maxFiles: number) => RequestHandler = (
   maxFiles: number,
 ): RequestHandler => {
+  const limits: HardenedMulterLimits = {
+    fileSize: MAX_MULTIPART_FILE_BYTES,
+    fieldSize: toExclusiveBusboyLimit(MAX_MULTIPART_FIELD_BYTES),
+    files: maxFiles,
+    fields: MAX_MULTIPART_FIELDS,
+    fieldNestingDepth: MAX_MULTIPART_FIELD_NESTING_DEPTH,
+    fieldArrayIndexLimit: MAX_MULTIPART_FIELD_ARRAY_INDEX,
+    /*
+     * Parts are files + fields, so this has to allow both in full or it
+     * would be the effective limit and the two above would never fire.
+     */
+    parts: toExclusiveBusboyLimit(maxFiles + MAX_MULTIPART_FIELDS),
+  };
+
   const upload: multer.Multer = multer({
     storage: multer.memoryStorage(),
-    limits: {
-      fileSize: exclusive(MAX_MULTIPART_FILE_BYTES),
-      fieldSize: exclusive(MAX_MULTIPART_FIELD_BYTES),
-      files: maxFiles,
-      fields: MAX_MULTIPART_FIELDS,
-      /*
-       * Parts are files + fields, so this has to allow both in full or it
-       * would be the effective limit and the two above would never fire.
-       */
-      parts: exclusive(maxFiles + MAX_MULTIPART_FIELDS),
-    },
+    limits: limits,
   });
 
   return upload.any() as unknown as RequestHandler;
@@ -95,6 +118,8 @@ const TOO_LARGE_CODES: Set<string> = new Set<string>([
   "LIMIT_FIELD_KEY",
   "LIMIT_FIELD_VALUE",
   "LIMIT_FIELD_COUNT",
+  "LIMIT_FIELD_NESTING",
+  "LIMIT_FIELD_ARRAY_INDEX",
 ]);
 
 /*

@@ -44,8 +44,10 @@ jest.setTimeout(180_000);
 
 import MultipartFormDataMiddleware, {
   getMultipartFormDataMiddleware,
+  MAX_MULTIPART_FIELD_ARRAY_INDEX,
   MAX_MULTIPART_FIELDS,
   MAX_MULTIPART_FIELD_BYTES,
+  MAX_MULTIPART_FIELD_NESTING_DEPTH,
   MAX_MULTIPART_FILES,
   MAX_MULTIPART_FILE_BYTES,
 } from "../../../Server/Middleware/MultipartFormData";
@@ -204,6 +206,11 @@ describe("MultipartFormData - the limits are set where they were reasoned about"
     expect(Number.isFinite(MAX_MULTIPART_FIELDS)).toBe(true);
   });
 
+  test("append-field nesting and numeric indexes use the minimum flat-name limits", () => {
+    expect(MAX_MULTIPART_FIELD_NESTING_DEPTH).toBe(0);
+    expect(MAX_MULTIPART_FIELD_ARRAY_INDEX).toBe(0);
+  });
+
   test("the source map env knobs cannot be configured past these two ceilings", () => {
     /*
      * Common/Server/EnvironmentConfig.ts clamps SOURCE_MAP_MAX_FILES_PER_REQUEST
@@ -239,6 +246,7 @@ describe("MultipartFormData - normal bodies still parse", () => {
     const outcome: Outcome = await run([
       { name: "from", value: Buffer.from("someone@example.com") },
       { name: "subject", value: Buffer.from("hello") },
+      { name: "attachment-info", value: Buffer.from("{}") },
       { name: "attachment1", value: Buffer.from("PDF"), filename: "a.pdf" },
     ]);
 
@@ -246,6 +254,9 @@ describe("MultipartFormData - normal bodies still parse", () => {
     expect((outcome.req.body as Record<string, string>)["from"]).toBe(
       "someone@example.com",
     );
+    expect(
+      (outcome.req.body as Record<string, string>)["attachment-info"],
+    ).toBe("{}");
     expect(files(outcome)).toHaveLength(1);
   });
 
@@ -348,6 +359,35 @@ describe("MultipartFormData - breaches answer 413, not 500", () => {
       ExceptionCode.PayloadTooLargeException,
     );
     expect((outcome.error as Exception).message).toContain("LIMIT_FIELD_VALUE");
+  });
+
+  test("deep field nesting is rejected before append-field expands it", async () => {
+    const outcome: Outcome = await run([
+      { name: "metadata[nested]", value: Buffer.from("value") },
+    ]);
+
+    expect((outcome.error as Exception).code).toBe(
+      ExceptionCode.PayloadTooLargeException,
+    );
+    expect((outcome.error as Exception).message).toContain(
+      "LIMIT_FIELD_NESTING",
+    );
+    expect(outcome.nextCalls).toBe(1);
+  });
+
+  test("the oversized array-index exploit shape is rejected before allocation", async () => {
+    const outcome: Outcome = await run([
+      { name: "items[4294967294]", value: Buffer.from("value") },
+      { name: "items[label]", value: Buffer.from("trigger") },
+    ]);
+
+    expect((outcome.error as Exception).code).toBe(
+      ExceptionCode.PayloadTooLargeException,
+    );
+    expect((outcome.error as Exception).message).toContain(
+      "LIMIT_FIELD_NESTING",
+    );
+    expect(outcome.nextCalls).toBe(1);
   });
 
   test("next() is called exactly once on a breach", async () => {
@@ -685,9 +725,9 @@ describe("getMultipartFormDataMiddleware - narrowing files changes nothing else"
 
   test("the shared size ceiling is INCLUSIVE, and a narrowed instance lands on the same byte", async () => {
     /*
-     * busboy truncates a file the moment its byte count REACHES fileSize,
-     * so the middleware hands it MAX_MULTIPART_FILE_BYTES + 1 to make the
-     * constant itself an inclusive maximum.
+     * Multer 2.3 presents fileSize as an inclusive application limit and
+     * performs the +1 conversion only in its busboy adapter. Handing Multer
+     * the exact constant therefore accepts that byte and rejects the next.
      *
      * Worth pinning rather than glossing: EnvironmentConfig clamps
      * SOURCE_MAP_MAX_FILE_SIZE_BYTES to exactly MAX_MULTIPART_FILE_BYTES and
@@ -747,6 +787,24 @@ describe("getMultipartFormDataMiddleware - narrowing files changes nothing else"
       ExceptionCode.PayloadTooLargeException,
     );
     expect((outcome.error as Exception).message).toContain("LIMIT_FIELD_VALUE");
+  });
+
+  test("the shared field-name hardening also protects a narrowed instance", async () => {
+    const outcome: Outcome = await run(
+      [
+        { name: "items[4294967294]", value: Buffer.from("value") },
+        { name: "items[label]", value: Buffer.from("trigger") },
+      ],
+      { middleware: narrow },
+    );
+
+    expect((outcome.error as Exception).code).toBe(
+      ExceptionCode.PayloadTooLargeException,
+    );
+    expect((outcome.error as Exception).message).toContain(
+      "LIMIT_FIELD_NESTING",
+    );
+    expect(outcome.nextCalls).toBe(1);
   });
 
   test("the whole shared field allowance still parses alongside its files", async () => {
