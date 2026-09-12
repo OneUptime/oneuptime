@@ -125,7 +125,7 @@ export class Service extends DatabaseService<Model> {
             return Boolean(id);
           });
 
-        const statusPageMonitorRules: Array<StatusPageMonitorRule> =
+        const legacyStatusPageMonitorRules: Array<StatusPageMonitorRule> =
           await StatusPageMonitorRuleService.findBy({
             query: {
               monitorLabels: labelIds,
@@ -140,13 +140,56 @@ export class Service extends DatabaseService<Model> {
             },
           });
 
-        statusPageMonitorRuleIds = statusPageMonitorRules
-          .map((rule: StatusPageMonitorRule) => {
-            return rule.id;
-          })
-          .filter((id: ObjectID | null): id is ObjectID => {
-            return Boolean(id);
+        const statusPageMonitorRuleIdsByValue: Map<string, ObjectID> =
+          new Map();
+
+        for (const rule of legacyStatusPageMonitorRules) {
+          if (rule.id) {
+            statusPageMonitorRuleIdsByValue.set(rule.id.toString(), rule.id);
+          }
+        }
+
+        statusPageMonitorRuleIds = Array.from(
+          statusPageMonitorRuleIdsByValue.values(),
+        );
+
+        /*
+         * Configurable criteria keep relation ids inside jsonb rather than in
+         * the legacy join table. Find those rules before the label disappears
+         * as well; otherwise their existing status-page resources would never
+         * be reconciled. This is deliberately a second bounded lookup so the
+         * legacy relation query keeps using its index.
+         */
+        const criteriaStatusPageMonitorRules: Array<StatusPageMonitorRule> =
+          await StatusPageMonitorRuleService.findBy({
+            query: {
+              criteria: QueryHelper.jsonArrayObjectsContainAnyArrayValue({
+                arrayKey: "filters",
+                discriminatorKey: "field",
+                discriminatorValue: "monitorLabels",
+                valueArrayKey: "value",
+                values: labelIds,
+              }),
+            },
+            select: {
+              _id: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
           });
+
+        for (const rule of criteriaStatusPageMonitorRules) {
+          if (rule.id) {
+            statusPageMonitorRuleIdsByValue.set(rule.id.toString(), rule.id);
+          }
+        }
+
+        statusPageMonitorRuleIds = Array.from(
+          statusPageMonitorRuleIdsByValue.values(),
+        );
       }
     } catch (err) {
       logger.error(

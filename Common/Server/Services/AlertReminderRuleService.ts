@@ -17,6 +17,7 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -188,6 +189,7 @@ export class Service extends DatabaseService<Model> {
         order: true,
         reminderIntervalInMinutes: true,
         stopRemindersOnState: true,
+        criteria: true,
         alertSeverities: {
           _id: true,
         },
@@ -209,40 +211,8 @@ export class Service extends DatabaseService<Model> {
     });
 
     for (const rule of rules) {
-      if (rule.alertSeverities && rule.alertSeverities.length > 0) {
-        if (!data.alertSeverityId) {
-          continue;
-        }
-
-        const severityIds: Array<string> = rule.alertSeverities.map(
-          (severity: AlertSeverity) => {
-            return severity.id?.toString() || "";
-          },
-        );
-
-        if (!severityIds.includes(data.alertSeverityId.toString())) {
-          continue;
-        }
-      }
-
-      if (rule.labels && rule.labels.length > 0) {
-        if (!data.labelIds || data.labelIds.length === 0) {
-          continue;
-        }
-
-        const ruleLabelIds: Array<string> = rule.labels.map((label: Label) => {
-          return label.id?.toString() || "";
-        });
-
-        const hasMatchingLabel: boolean = data.labelIds.some(
-          (labelId: ObjectID) => {
-            return ruleLabelIds.includes(labelId.toString());
-          },
-        );
-
-        if (!hasMatchingLabel) {
-          continue;
-        }
+      if (!this.doesAlertMatchRule({ rule: rule, ...data })) {
+        continue;
       }
 
       // Rule with no severities and no labels matches all alerts.
@@ -255,6 +225,68 @@ export class Service extends DatabaseService<Model> {
     }
 
     return null;
+  }
+
+  public doesAlertMatchRule(data: {
+    rule: Model;
+    alertSeverityId?: ObjectID | undefined;
+    labelIds?: Array<ObjectID> | undefined;
+  }): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: data.rule,
+      legacyFields: ["alertSeverities", "labels"],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: Model): boolean => {
+        return this.doesAlertMatchLegacyRule({
+          ...data,
+          rule: legacyRule,
+        });
+      },
+    });
+  }
+
+  private doesAlertMatchLegacyRule(data: {
+    rule: Model;
+    alertSeverityId?: ObjectID | undefined;
+    labelIds?: Array<ObjectID> | undefined;
+  }): boolean {
+    const rule: Model = data.rule;
+
+    if (rule.alertSeverities && rule.alertSeverities.length > 0) {
+      if (!data.alertSeverityId) {
+        return false;
+      }
+
+      const severityIds: Array<string> = rule.alertSeverities.map(
+        (severity: AlertSeverity) => {
+          return severity.id?.toString() || "";
+        },
+      );
+
+      if (!severityIds.includes(data.alertSeverityId.toString())) {
+        return false;
+      }
+    }
+
+    if (rule.labels && rule.labels.length > 0) {
+      if (!data.labelIds || data.labelIds.length === 0) {
+        return false;
+      }
+
+      const ruleLabelIds: Array<string> = rule.labels.map((label: Label) => {
+        return label.id?.toString() || "";
+      });
+
+      if (
+        !data.labelIds.some((labelId: ObjectID): boolean => {
+          return ruleLabelIds.includes(labelId.toString());
+        })
+      ) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }
 

@@ -20,6 +20,11 @@ import {
 import type { DropdownOption } from "../Dropdown/Dropdown";
 import Loader, { LoaderType } from "../Loader/Loader";
 import Pill, { PillSize } from "../Pill/Pill";
+import {
+  addRuleCriteriaToSelect,
+  applyRuleCriteriaLegacySafetyShadow,
+  replaceLegacyRuleCriteriaFields,
+} from "../RuleCriteria/RuleCriteriaModelForm";
 import { FormErrors, FormProps, FormSummaryConfig } from "./BasicForm";
 import BasicModelForm from "./BasicModelForm";
 import Field from "./Types/Field";
@@ -183,7 +188,11 @@ const ModelForm: <TBaseModel extends BaseModel>(
       }
     }
 
-    return select;
+    return addRuleCriteriaToSelect({
+      model: model,
+      fields: props.fields,
+      select: select as Record<string, unknown>,
+    }) as Select<TBaseModel>;
   };
 
   const getRelationSelect: () => Select<TBaseModel> =
@@ -355,6 +364,8 @@ const ModelForm: <TBaseModel extends BaseModel>(
       // A newer run started while this one was fetching. It owns the state now.
       return;
     }
+
+    fieldsToSet = replaceLegacyRuleCriteriaFields(model, fieldsToSet);
 
     // if there are no fields to set, then show permission error. This is useful when there are no fields to show.
     if (fieldsToSet.length === 0 && props.fields.length > 0) {
@@ -877,6 +888,12 @@ const ModelForm: <TBaseModel extends BaseModel>(
       for (const key in getSelectFields()) {
         (valuesToSend as any)[key] = values[key];
       }
+
+      applyRuleCriteriaLegacySafetyShadow({
+        model: model,
+        fields: props.fields,
+        values: valuesToSend,
+      });
 
       if (props.formType === FormType.Update && props.modelIdToEdit) {
         (valuesToSend as any)["_id"] = props.modelIdToEdit.toString();

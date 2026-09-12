@@ -18,6 +18,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
 
 type EnqueueExecutionFn = (data: {
   runbookExecutionId: ObjectID;
@@ -98,6 +99,7 @@ class RunbookRuleEngineServiceClass {
         select: {
           _id: true,
           name: true,
+          criteria: true,
           titlePattern: true,
           descriptionPattern: true,
           runbooks: { _id: true },
@@ -168,7 +170,22 @@ class RunbookRuleEngineServiceClass {
     }
   }
 
-  private matches(
+  public matches(
+    rule: RunbookRule,
+    title: string | undefined,
+    description: string | undefined,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: ["titlePattern", "descriptionPattern"],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: RunbookRule): boolean => {
+        return this.matchesLegacy(legacyRule, title, description);
+      },
+    });
+  }
+
+  private matchesLegacy(
     rule: RunbookRule,
     title: string | undefined,
     description: string | undefined,

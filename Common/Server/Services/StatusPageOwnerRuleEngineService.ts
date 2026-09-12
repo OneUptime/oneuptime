@@ -7,6 +7,7 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class StatusPageOwnerRuleEngineServiceClass {
@@ -33,6 +34,7 @@ class StatusPageOwnerRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             notifyOwners: true,
             statusPageLabels: { _id: true },
             statusPageNamePattern: true,
@@ -158,6 +160,24 @@ class StatusPageOwnerRuleEngineServiceClass {
   }
 
   private doesStatusPageMatchRule(
+    statusPage: StatusPage,
+    rule: StatusPageOwnerRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: [
+        "statusPageLabels",
+        "statusPageNamePattern",
+        "statusPageDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (statusPageRule: StatusPageOwnerRule): boolean => {
+        return this.doesStatusPageMatchRuleLegacy(statusPage, statusPageRule);
+      },
+    });
+  }
+
+  private doesStatusPageMatchRuleLegacy(
     statusPage: StatusPage,
     rule: StatusPageOwnerRule,
   ): boolean {

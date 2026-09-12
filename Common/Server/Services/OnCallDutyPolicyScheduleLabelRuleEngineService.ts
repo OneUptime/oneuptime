@@ -7,6 +7,7 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class OnCallDutyPolicyScheduleLabelRuleEngineServiceClass {
@@ -29,6 +30,7 @@ class OnCallDutyPolicyScheduleLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             onCallDutyPolicyScheduleLabels: { _id: true },
             onCallDutyPolicyScheduleNamePattern: true,
             onCallDutyPolicyScheduleDescriptionPattern: true,
@@ -135,6 +137,26 @@ class OnCallDutyPolicyScheduleLabelRuleEngineServiceClass {
   }
 
   private doesScheduleMatchRule(
+    schedule: OnCallDutyPolicySchedule,
+    rule: OnCallDutyPolicyScheduleLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: [
+        "onCallDutyPolicyScheduleLabels",
+        "onCallDutyPolicyScheduleNamePattern",
+        "onCallDutyPolicyScheduleDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (
+        scheduleRule: OnCallDutyPolicyScheduleLabelRule,
+      ): boolean => {
+        return this.doesScheduleMatchRuleLegacy(schedule, scheduleRule);
+      },
+    });
+  }
+
+  private doesScheduleMatchRuleLegacy(
     schedule: OnCallDutyPolicySchedule,
     rule: OnCallDutyPolicyScheduleLabelRule,
   ): boolean {

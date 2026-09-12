@@ -3,7 +3,7 @@ import Project from "./Project";
 import StatusPage from "./StatusPage";
 import StatusPageGroup from "./StatusPageGroup";
 import User from "./User";
-import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+import RuleBaseModel from "./DatabaseBaseModel/RuleBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
@@ -88,7 +88,7 @@ import {
   tableDescription:
     "Configure rules that automatically add matching monitors to a status page group, instead of picking every monitor by hand",
 })
-export default class StatusPageMonitorRule extends BaseModel {
+export default class StatusPageMonitorRule extends RuleBaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
