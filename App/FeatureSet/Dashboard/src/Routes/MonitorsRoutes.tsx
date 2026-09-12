@@ -1,5 +1,3 @@
-import Navigation from "Common/UI/Utils/Navigation";
-import MonitorLayout from "../Pages/Monitor/Layout";
 import MonitorViewLayout from "../Pages/Monitor/View/Layout";
 import ComponentProps from "../Pages/PageComponentProps";
 import PageMap from "../Utils/PageMap";
@@ -71,214 +69,193 @@ import MonitorSettingsProbeView from "../Pages/Monitor/Settings/MonitorProbeView
 const MonitorRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  let hideSideMenu: boolean = false;
-
-  if (Navigation.isOnThisPage(RouteMap[PageMap.MONITOR_CREATE] as Route)) {
-    hideSideMenu = true;
-  }
-
   return (
     <Routes>
       <PageRoute
         path="/"
-        element={<MonitorLayout hideSideMenu={hideSideMenu} {...props} />}
-      >
-        <PageRoute
-          index
-          element={
-            <MonitorPage
-              {...props}
-              pageRoute={RouteMap[PageMap.MONITORS] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={MonitorsRoutePath[PageMap.MONITORS_DISABLED] || ""}
-          element={
-            <MonitorDisabled
-              {...props}
-              pageRoute={RouteMap[PageMap.MONITORS_DISABLED] as Route}
-            />
-          }
-        />
+        element={
+          <MonitorPage
+            {...props}
+            pageRoute={RouteMap[PageMap.MONITORS] as Route}
+          />
+        }
+      />
+      <PageRoute
+        path={MonitorsRoutePath[PageMap.MONITORS_DISABLED] || ""}
+        element={
+          <MonitorDisabled
+            {...props}
+            pageRoute={RouteMap[PageMap.MONITORS_DISABLED] as Route}
+          />
+        }
+      />
 
-        <PageRoute
-          path={MonitorsRoutePath[PageMap.MONITORS_PROBE_DISCONNECTED] || ""}
-          element={
-            <MonitorprobeDisconnected
-              {...props}
-              pageRoute={RouteMap[PageMap.MONITORS_PROBE_DISCONNECTED] as Route}
-            />
-          }
-        />
+      <PageRoute
+        path={MonitorsRoutePath[PageMap.MONITORS_PROBE_DISCONNECTED] || ""}
+        element={
+          <MonitorprobeDisconnected
+            {...props}
+            pageRoute={RouteMap[PageMap.MONITORS_PROBE_DISCONNECTED] as Route}
+          />
+        }
+      />
 
-        <PageRoute
-          path={MonitorsRoutePath[PageMap.MONITORS_PROBE_DISABLED] || ""}
-          element={
-            <MonitorProbeDisabled
-              {...props}
-              pageRoute={RouteMap[PageMap.MONITORS_PROBE_DISABLED] as Route}
-            />
-          }
-        />
+      <PageRoute
+        path={MonitorsRoutePath[PageMap.MONITORS_PROBE_DISABLED] || ""}
+        element={
+          <MonitorProbeDisabled
+            {...props}
+            pageRoute={RouteMap[PageMap.MONITORS_PROBE_DISABLED] as Route}
+          />
+        }
+      />
 
-        <PageRoute
-          path={MonitorsRoutePath[PageMap.MONITORS_INOPERATIONAL] || ""}
-          element={
-            <MonitorInoperational
-              {...props}
-              pageRoute={RouteMap[PageMap.MONITORS_INOPERATIONAL] as Route}
-            />
-          }
-        />
+      <PageRoute
+        path={MonitorsRoutePath[PageMap.MONITORS_INOPERATIONAL] || ""}
+        element={
+          <MonitorInoperational
+            {...props}
+            pageRoute={RouteMap[PageMap.MONITORS_INOPERATIONAL] as Route}
+          />
+        }
+      />
 
-        <PageRoute
-          path={
-            MonitorsRoutePath[PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK] || ""
-          }
-          element={
-            <WorkspaceConnectionSlack
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK] as Route
-              }
-            />
-          }
-        />
+      <PageRoute
+        path={
+          MonitorsRoutePath[PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK] || ""
+        }
+        element={
+          <WorkspaceConnectionSlack
+            {...props}
+            pageRoute={
+              RouteMap[PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK] as Route
+            }
+          />
+        }
+      />
 
-        <PageRoute
-          path={
-            MonitorsRoutePath[
-              PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
-            ] || ""
-          }
-          element={
-            <WorkspaceConnectionTeams
-              {...props}
-              pageRoute={
-                RouteMap[
-                  PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
-                ] as Route
-              }
-            />
-          }
-        />
+      <PageRoute
+        path={
+          MonitorsRoutePath[
+            PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+          ] || ""
+        }
+        element={
+          <WorkspaceConnectionTeams
+            {...props}
+            pageRoute={
+              RouteMap[
+                PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+              ] as Route
+            }
+          />
+        }
+      />
 
-        <PageRoute
-          path={MonitorsRoutePath[PageMap.MONITOR_CREATE] || ""}
-          element={
-            <MonitorCreate
-              {...props}
-              pageRoute={RouteMap[PageMap.MONITOR_CREATE] as Route}
-            />
-          }
-        />
+      <PageRoute
+        path={MonitorsRoutePath[PageMap.MONITOR_CREATE] || ""}
+        element={
+          <MonitorCreate
+            {...props}
+            pageRoute={RouteMap[PageMap.MONITOR_CREATE] as Route}
+          />
+        }
+      />
 
-        {/* Settings Routes */}
-        <PageRoute
-          path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS] || ""}
-          element={
-            <MonitorSettingsStatus
-              {...props}
-              pageRoute={RouteMap[PageMap.MONITORS_SETTINGS] as Route}
-            />
-          }
-        />
+      {/* Settings Routes */}
+      <PageRoute
+        path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS] || ""}
+        element={
+          <MonitorSettingsStatus
+            {...props}
+            pageRoute={RouteMap[PageMap.MONITORS_SETTINGS] as Route}
+          />
+        }
+      />
 
-        <PageRoute
-          path={
-            MonitorsRoutePath[PageMap.MONITORS_SETTINGS_CUSTOM_FIELDS] || ""
-          }
-          element={
-            <MonitorSettingsCustomFields
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.MONITORS_SETTINGS_CUSTOM_FIELDS] as Route
-              }
-            />
-          }
-        />
+      <PageRoute
+        path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_CUSTOM_FIELDS] || ""}
+        element={
+          <MonitorSettingsCustomFields
+            {...props}
+            pageRoute={
+              RouteMap[PageMap.MONITORS_SETTINGS_CUSTOM_FIELDS] as Route
+            }
+          />
+        }
+      />
 
-        <PageRoute
-          path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_SECRETS] || ""}
-          element={
-            <MonitorSettingsSecrets
-              {...props}
-              pageRoute={RouteMap[PageMap.MONITORS_SETTINGS_SECRETS] as Route}
-            />
-          }
-        />
+      <PageRoute
+        path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_SECRETS] || ""}
+        element={
+          <MonitorSettingsSecrets
+            {...props}
+            pageRoute={RouteMap[PageMap.MONITORS_SETTINGS_SECRETS] as Route}
+          />
+        }
+      />
 
-        <PageRoute
-          path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_TEMPLATES] || ""}
-          element={
-            <MonitorSettingsTemplates
-              {...props}
-              pageRoute={RouteMap[PageMap.MONITORS_SETTINGS_TEMPLATES] as Route}
-            />
-          }
-        />
+      <PageRoute
+        path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_TEMPLATES] || ""}
+        element={
+          <MonitorSettingsTemplates
+            {...props}
+            pageRoute={RouteMap[PageMap.MONITORS_SETTINGS_TEMPLATES] as Route}
+          />
+        }
+      />
 
-        <PageRoute
-          path={
-            MonitorsRoutePath[PageMap.MONITORS_SETTINGS_TEMPLATES_VIEW] || ""
-          }
-          element={
-            <MonitorSettingsTemplatesView
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.MONITORS_SETTINGS_TEMPLATES_VIEW] as Route
-              }
-            />
-          }
-        />
+      <PageRoute
+        path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_TEMPLATES_VIEW] || ""}
+        element={
+          <MonitorSettingsTemplatesView
+            {...props}
+            pageRoute={
+              RouteMap[PageMap.MONITORS_SETTINGS_TEMPLATES_VIEW] as Route
+            }
+          />
+        }
+      />
 
-        <PageRoute
-          path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_OWNER_RULES] || ""}
-          element={
-            <MonitorSettingsOwnerRules
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.MONITORS_SETTINGS_OWNER_RULES] as Route
-              }
-            />
-          }
-        />
+      <PageRoute
+        path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_OWNER_RULES] || ""}
+        element={
+          <MonitorSettingsOwnerRules
+            {...props}
+            pageRoute={RouteMap[PageMap.MONITORS_SETTINGS_OWNER_RULES] as Route}
+          />
+        }
+      />
 
-        <PageRoute
-          path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_LABEL_RULES] || ""}
-          element={
-            <MonitorSettingsLabelRules
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.MONITORS_SETTINGS_LABEL_RULES] as Route
-              }
-            />
-          }
-        />
+      <PageRoute
+        path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_LABEL_RULES] || ""}
+        element={
+          <MonitorSettingsLabelRules
+            {...props}
+            pageRoute={RouteMap[PageMap.MONITORS_SETTINGS_LABEL_RULES] as Route}
+          />
+        }
+      />
 
-        <PageRoute
-          path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_PROBES] || ""}
-          element={
-            <MonitorSettingsProbes
-              {...props}
-              pageRoute={RouteMap[PageMap.MONITORS_SETTINGS_PROBES] as Route}
-            />
-          }
-        />
+      <PageRoute
+        path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_PROBES] || ""}
+        element={
+          <MonitorSettingsProbes
+            {...props}
+            pageRoute={RouteMap[PageMap.MONITORS_SETTINGS_PROBES] as Route}
+          />
+        }
+      />
 
-        <PageRoute
-          path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_PROBE_VIEW] || ""}
-          element={
-            <MonitorSettingsProbeView
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.MONITORS_SETTINGS_PROBE_VIEW] as Route
-              }
-            />
-          }
-        />
-      </PageRoute>
+      <PageRoute
+        path={MonitorsRoutePath[PageMap.MONITORS_SETTINGS_PROBE_VIEW] || ""}
+        element={
+          <MonitorSettingsProbeView
+            {...props}
+            pageRoute={RouteMap[PageMap.MONITORS_SETTINGS_PROBE_VIEW] as Route}
+          />
+        }
+      />
 
       <PageRoute
         path={MonitorsRoutePath[PageMap.MONITOR_VIEW] || ""}

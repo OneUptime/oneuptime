@@ -1,5 +1,4 @@
 import ComponentProps from "../Pages/PageComponentProps";
-import NetworkDeviceLayout from "../Pages/NetworkDevice/Layout";
 import NetworkDeviceViewLayout from "../Pages/NetworkDevice/View/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, NetworkDeviceRoutePath } from "../Utils/RouteMap";
@@ -39,7 +38,7 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <Routes>
-      <PageRoute path="/" element={<NetworkDeviceLayout {...props} />}>
+      <PageRoute path="/">
         <PageRoute
           path=""
           element={

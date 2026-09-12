@@ -14,13 +14,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import { NON_ACTIONABLE_ERROR_CLASSES } from "Common/Types/Telemetry/ErrorClass";
-
-export type ExceptionsTabKey =
-  | "overview"
-  | "unresolved"
-  | "resolved"
-  | "archived"
-  | "setup";
+import { ExceptionsTabKey } from "../../Utils/ExceptionsNavigation";
 
 interface Props {
   active: ExceptionsTabKey;
@@ -83,7 +77,7 @@ const ExceptionsNavTabs: FunctionComponent<Props> = (
    * They used to be dropped on every tab click — filter to five services in
    * Unresolved, click Resolved, and the filter was gone.
    *
-   * Overview deliberately does not carry: it is a different, unscoped
+   * Insights deliberately does not carry: it is a different, unscoped
    * component, and handing it a filtered URL would put a scope in the
    * address bar that none of its numbers honour.
    *
@@ -92,14 +86,6 @@ const ExceptionsNavTabs: FunctionComponent<Props> = (
    * from.
    */
   const tabs: Array<TelemetryTab> = [
-    {
-      key: "overview",
-      label: "Overview",
-      icon: IconProp.Home,
-      to: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.EXCEPTIONS_OVERVIEW] as Route,
-      ),
-    },
     {
       key: "unresolved",
       label: "Unresolved",
@@ -116,6 +102,14 @@ const ExceptionsNavTabs: FunctionComponent<Props> = (
           }
         : {}),
       carriesScope: true,
+    },
+    {
+      key: "overview",
+      label: "Insights",
+      icon: IconProp.ChartBar,
+      to: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.EXCEPTIONS_OVERVIEW] as Route,
+      ),
     },
     {
       key: "resolved",

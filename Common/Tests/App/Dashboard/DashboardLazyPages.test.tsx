@@ -42,9 +42,192 @@ const pageProps: Map<
 > = new Map();
 const getListMock: MockFunction = getJestMockFunction();
 const navigateMock: MockFunction = getJestMockFunction();
+const coldAppTestTimeout: number = 300_000;
+const lazyLeafFindTimeout: number = 120_000;
 let navigateHook: Router.NavigateFunction;
 let currentPath: string = homePath;
 let failingModule: string | undefined;
+let suspendedModule: string | undefined;
+let pageSuspensionGate: SuspensionGate | undefined;
+
+type PersistentLayoutFamily =
+  | "home"
+  | "user-profile"
+  | "settings"
+  | "monitor"
+  | "network"
+  | "inventory";
+
+interface SuspensionGate {
+  promise: Promise<void>;
+  resolved: boolean;
+  resolve: () => void;
+}
+
+interface LayoutLifecycle {
+  mounts: number;
+  unmounts: number;
+  countInitializations: number;
+}
+
+const layoutLifecycle: Record<PersistentLayoutFamily, LayoutLifecycle> = {
+  home: { mounts: 0, unmounts: 0, countInitializations: 0 },
+  "user-profile": { mounts: 0, unmounts: 0, countInitializations: 0 },
+  settings: { mounts: 0, unmounts: 0, countInitializations: 0 },
+  monitor: { mounts: 0, unmounts: 0, countInitializations: 0 },
+  network: { mounts: 0, unmounts: 0, countInitializations: 0 },
+  inventory: { mounts: 0, unmounts: 0, countInitializations: 0 },
+};
+
+function createSuspensionGate(): SuspensionGate {
+  let releasePromise: () => void = (): void => {
+    return;
+  };
+
+  const gate: SuspensionGate = {
+    promise: new Promise<void>((resolve: () => void) => {
+      releasePromise = resolve;
+    }),
+    resolved: false,
+    resolve: (): void => {
+      gate.resolved = true;
+      releasePromise();
+    },
+  };
+
+  return gate;
+}
+
+function resetLayoutLifecycle(): void {
+  for (const family of Object.keys(
+    layoutLifecycle,
+  ) as Array<PersistentLayoutFamily>) {
+    layoutLifecycle[family].mounts = 0;
+    layoutLifecycle[family].unmounts = 0;
+    layoutLifecycle[family].countInitializations = 0;
+  }
+}
+
+const MockLayoutCountInitializer: React.FunctionComponent<{
+  family: PersistentLayoutFamily;
+}> = (props: { family: PersistentLayoutFamily }): React.ReactElement => {
+  React.useEffect(() => {
+    layoutLifecycle[props.family].countInitializations++;
+  }, []);
+
+  return <span>Side-menu count initialized</span>;
+};
+
+const MockPersistentRouteLayout: React.FunctionComponent<{
+  family: PersistentLayoutFamily;
+}> = (props: { family: PersistentLayoutFamily }): React.ReactElement => {
+  const [isCollapsed, setIsCollapsed] = React.useState<boolean>(false);
+  const [localNote, setLocalNote] = React.useState<string>("");
+
+  React.useEffect(() => {
+    layoutLifecycle[props.family].mounts++;
+
+    return () => {
+      layoutLifecycle[props.family].unmounts++;
+    };
+  }, []);
+
+  return (
+    <div data-testid={`${props.family}-app-route-layout`}>
+      <aside data-testid={`${props.family}-app-route-side-menu`}>
+        <button
+          type="button"
+          aria-expanded={!isCollapsed}
+          onClick={() => {
+            setIsCollapsed(!isCollapsed);
+          }}
+        >
+          Toggle {props.family} route section
+        </button>
+        <label>
+          {props.family} route note
+          <input
+            aria-label={`${props.family} route note`}
+            value={localNote}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+              setLocalNote(event.target.value);
+            }}
+          />
+        </label>
+        <MockLayoutCountInitializer family={props.family} />
+      </aside>
+      <main data-testid={`${props.family}-app-route-content`}>
+        <React.Suspense
+          fallback={<div data-testid="page-loader">Loading page</div>}
+        >
+          <Router.Outlet />
+        </React.Suspense>
+      </main>
+    </div>
+  );
+};
+
+const persistentRouteLayoutModules: Array<{
+  family: PersistentLayoutFamily;
+  module: string;
+}> = [
+  { family: "home", module: "Home/Layout" },
+  { family: "user-profile", module: "Global/UserProfile/Layout" },
+  { family: "settings", module: "Settings/Layout" },
+  { family: "monitor", module: "Monitor/Layout" },
+  { family: "network", module: "Network/Layout" },
+  { family: "inventory", module: "Inventory/Layout" },
+];
+
+const settingsProjectPageModule: string = "Settings/ProjectSettings";
+
+/*
+ * SettingsRoutes owns the route tree under test, but most of its leaf page
+ * modules are eagerly imported and unrelated to lazy-route wiring. Mock those
+ * bodies so this focused suite does not transform every Settings feature just
+ * to reach the independently lazy Danger Zone leaf.
+ */
+const settingsEagerLeafModules: Array<string> = [
+  "Settings/APIKeys",
+  "Settings/APIKeyView",
+  "Settings/TelemetryIngestionKeys",
+  "Settings/TelemetryIngestionKeyView",
+  "Settings/TelemetrySettings",
+  "Settings/Labels",
+  "Settings/FeatureFlags",
+  "Settings/Domains",
+  "Settings/Billing",
+  "Settings/SSO",
+  "Settings/OIDC",
+  "Settings/SCIM",
+  "Settings/NotificationLogs",
+  "Settings/NotificationSettings",
+  "Settings/Invoices",
+  "Settings/MicrosoftTeamsIntegration",
+  "Settings/UsageHistory",
+  "Settings/SlackIntegration",
+  "Settings/MobileApps",
+  "Settings/AuditLogs",
+  "Settings/AuditLogsSettings",
+  "Settings/LlmProviders",
+  "Settings/LlmProviderView",
+  "Settings/Runners",
+  "Settings/RunnerView",
+  "Settings/RunnerCredentials",
+  "Settings/AICredits",
+  "Settings/AIGuardrails",
+  "Settings/AILogs",
+  "Settings/McpServer",
+];
+
+const persistentSharedRouteBundles: Array<string> = [
+  "MonitorsRoutes",
+  "MonitorGroupRoutes",
+  "NetworkDeviceRoutes",
+  "NetworkSiteRoutes",
+  "InventoryRoutes",
+  "TopologyRoutes",
+];
 
 interface PageCase {
   page: PageMap;
@@ -76,6 +259,7 @@ const secondaryPages: Array<PageCase> = [
     page: PageMap.USER_PROFILE_PASSWORD,
     module: "Global/UserProfile/Password",
   },
+  { page: PageMap.USER_PASSKEYS, module: "Global/UserProfile/Passkeys" },
   {
     page: PageMap.USER_TWO_FACTOR_AUTH,
     module: "Global/UserProfile/TwoFactorAuth",
@@ -188,6 +372,59 @@ function pathFor(page: PageMap): string {
     .replace(":id", "conversation-one");
 }
 
+interface AppRouteWiringCase {
+  family: PersistentLayoutFamily;
+  initialPage: PageMap;
+  initialContent: string;
+  targetPage: PageMap;
+  targetModule: string;
+}
+
+const appRouteWiringCases: Array<AppRouteWiringCase> = [
+  {
+    family: "home",
+    initialPage: PageMap.HOME,
+    initialContent: "Home/Home",
+    targetPage: PageMap.HOME_ACTIVE_ALERTS,
+    targetModule: "Home/ActiveAlerts",
+  },
+  {
+    family: "user-profile",
+    initialPage: PageMap.USER_PROFILE_OVERVIEW,
+    initialContent: "Global/UserProfile/Index",
+    targetPage: PageMap.USER_PROFILE_PASSWORD,
+    targetModule: "Global/UserProfile/Password",
+  },
+  {
+    family: "settings",
+    initialPage: PageMap.SETTINGS,
+    initialContent: "Settings/ProjectSettings",
+    targetPage: PageMap.SETTINGS_DANGERZONE,
+    targetModule: "Settings/DangerZone",
+  },
+  {
+    family: "monitor",
+    initialPage: PageMap.MONITORS,
+    initialContent: "Routes/MonitorsRoutes",
+    targetPage: PageMap.MONITOR_GROUPS,
+    targetModule: "Routes/MonitorGroupRoutes",
+  },
+  {
+    family: "network",
+    initialPage: PageMap.NETWORK_DEVICES,
+    initialContent: "Routes/NetworkDeviceRoutes",
+    targetPage: PageMap.NETWORK_SITES,
+    targetModule: "Routes/NetworkSiteRoutes",
+  },
+  {
+    family: "inventory",
+    initialPage: PageMap.INVENTORY,
+    initialContent: "Routes/InventoryRoutes",
+    targetPage: PageMap.TOPOLOGY,
+    targetModule: "Routes/TopologyRoutes",
+  },
+];
+
 function mockSecondaryPage(module: string): void {
   jest.doMock(`${dashboardSource}/Pages/${module}`, () => {
     loadedPages.push(module);
@@ -198,10 +435,67 @@ function mockSecondaryPage(module: string): void {
       __esModule: true,
       default: (props: PageComponentProps): React.ReactElement => {
         pageProps.set(module, props);
+
+        const gate: SuspensionGate | undefined = pageSuspensionGate;
+        if (module === suspendedModule && gate && !gate.resolved) {
+          throw gate.promise;
+        }
+
         return <div data-testid="secondary-page">{module}</div>;
       },
     };
   });
+}
+
+function mockPersistentSharedRouteBundle(module: string): void {
+  const moduleName: string = `Routes/${module}`;
+
+  jest.doMock(`${dashboardSource}/Routes/${module}`, () => {
+    return {
+      __esModule: true,
+      default: (): React.ReactElement => {
+        const gate: SuspensionGate | undefined = pageSuspensionGate;
+        if (moduleName === suspendedModule && gate && !gate.resolved) {
+          throw gate.promise;
+        }
+
+        return <div data-testid="secondary-route-bundle">{moduleName}</div>;
+      },
+    };
+  });
+}
+
+function mockPersistentRouteLayouts(): void {
+  for (const layout of persistentRouteLayoutModules) {
+    jest.doMock(`${dashboardSource}/Pages/${layout.module}`, () => {
+      return {
+        __esModule: true,
+        default: (): React.ReactElement => {
+          return <MockPersistentRouteLayout family={layout.family} />;
+        },
+      };
+    });
+  }
+
+  jest.doMock(`${dashboardSource}/Pages/${settingsProjectPageModule}`, () => {
+    return {
+      __esModule: true,
+      default: (): React.ReactElement => {
+        return <div>Settings/ProjectSettings</div>;
+      },
+    };
+  });
+
+  for (const module of settingsEagerLeafModules) {
+    jest.doMock(`${dashboardSource}/Pages/${module}`, () => {
+      return {
+        __esModule: true,
+        default: (): React.ReactElement => {
+          return <div>{module}</div>;
+        },
+      };
+    });
+  }
 }
 
 beforeEach(() => {
@@ -212,6 +506,9 @@ beforeEach(() => {
   eagerPages.length = 0;
   pageProps.clear();
   failingModule = undefined;
+  suspendedModule = undefined;
+  pageSuspensionGate = undefined;
+  resetLayoutLifecycle();
   currentPath = homePath;
   getListMock.mockResolvedValue({ data: [project], count: 1 });
   sessionStorage.clear();
@@ -223,6 +520,7 @@ beforeEach(() => {
   jest.doMock("react-router-dom", () => {
     return Router;
   });
+  mockPersistentRouteLayouts();
 
   for (const module of new Set(
     secondaryPages.map((page: PageCase): string => {
@@ -230,6 +528,10 @@ beforeEach(() => {
     }),
   )) {
     mockSecondaryPage(module);
+  }
+
+  for (const module of persistentSharedRouteBundles) {
+    mockPersistentSharedRouteBundle(module);
   }
 
   for (const module of [
@@ -304,12 +606,22 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
-function renderApp(path: string): void {
+function renderApp(path: string, useRouterTransition: boolean = true): void {
   const App: React.FunctionComponent = (
     jest.requireActual(`${dashboardSource}/App`) as {
       default: React.FunctionComponent;
     }
   ).default;
+
+  if (!useRouterTransition) {
+    render(
+      <Router.MemoryRouter initialEntries={[path]}>
+        <App />
+      </Router.MemoryRouter>,
+    );
+    return;
+  }
+
   render(
     <Router.MemoryRouter initialEntries={[path]}>
       <App />
@@ -318,26 +630,30 @@ function renderApp(path: string): void {
 }
 
 describe("dashboard secondary page loading", () => {
-  test("renders Home without loading any secondary page modules", async () => {
-    renderApp(homePath);
+  test(
+    "renders Home without loading any secondary leaf modules",
+    async () => {
+      renderApp(homePath);
 
-    expect(screen.getByTestId("eager-page")).toHaveTextContent("Home/Home");
-    expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
-    await waitFor(() => {
-      expect(screen.getByTestId("project-count")).toHaveTextContent("1");
-    });
-    expect(loadedPages).toEqual([]);
-    expect(eagerPages).toEqual([
-      "Onboarding/Welcome",
-      "Home/Home",
-      "Logout/Logout",
-      "PageNotFound/PageNotFound",
-    ]);
-    expect(pageProps.get("Home/Home")).toMatchObject({
-      projects: [project],
-      isLoadingProjects: false,
-    });
-  });
+      expect(screen.getByTestId("eager-page")).toHaveTextContent("Home/Home");
+      expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId("project-count")).toHaveTextContent("1");
+      });
+      expect(loadedPages).toEqual([]);
+      expect(eagerPages).toEqual([
+        "Onboarding/Welcome",
+        "Home/Home",
+        "Logout/Logout",
+        "PageNotFound/PageNotFound",
+      ]);
+      expect(pageProps.get("Home/Home")).toMatchObject({
+        projects: [project],
+        isLoadingProjects: false,
+      });
+    },
+    coldAppTestTimeout,
+  );
 
   test.each(secondaryPages)(
     "loads only $module for a direct $page navigation and keeps its props",
@@ -346,9 +662,13 @@ describe("dashboard secondary page loading", () => {
 
       expect(screen.getByTestId("page-loader")).toBeInTheDocument();
       expect(screen.getByText("Dashboard shell")).toBeInTheDocument();
-      expect(await screen.findByTestId("secondary-page")).toHaveTextContent(
-        page.module,
-      );
+      expect(
+        await screen.findByTestId(
+          "secondary-page",
+          {},
+          { timeout: lazyLeafFindTimeout },
+        ),
+      ).toHaveTextContent(page.module);
       expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
       expect(loadedPages).toEqual([page.module]);
       expect(pageProps.get(page.module)).toMatchObject({
@@ -369,6 +689,7 @@ describe("dashboard secondary page loading", () => {
       expect(loadedPages).toEqual([page.module]);
       expect(navigateMock).not.toHaveBeenCalled();
     },
+    coldAppTestTimeout,
   );
 
   test("loads pages when navigating from Home and reuses them on return", async () => {
@@ -401,6 +722,102 @@ describe("dashboard secondary page loading", () => {
       "Global/ActiveAlerts",
     ]);
   });
+
+  test.each(appRouteWiringCases)(
+    "$family child routes stay inside their persistent layout in the real App route tree",
+    async (routeCase: AppRouteWiringCase) => {
+      const gate: SuspensionGate = createSuspensionGate();
+      suspendedModule = routeCase.targetModule;
+      pageSuspensionGate = gate;
+
+      /*
+       * Dashboard's BrowserRouter does not opt in to the v7 transition flag.
+       * Keep this wiring test production-equivalent so the controlled lazy
+       * child exposes the layout's nearest Suspense fallback.
+       */
+      renderApp(pathFor(routeCase.initialPage), false);
+      expect(
+        await screen.findByText(routeCase.initialContent),
+      ).toBeInTheDocument();
+
+      const sideMenu: HTMLElement = screen.getByTestId(
+        `${routeCase.family}-app-route-side-menu`,
+      );
+      const rightPane: HTMLElement = screen.getByTestId(
+        `${routeCase.family}-app-route-content`,
+      );
+      const sectionToggle: HTMLElement = screen.getByRole("button", {
+        name: `Toggle ${routeCase.family} route section`,
+      });
+      const localNote: HTMLInputElement = screen.getByLabelText(
+        `${routeCase.family} route note`,
+      ) as HTMLInputElement;
+
+      fireEvent.click(sectionToggle);
+      fireEvent.change(localNote, {
+        target: { value: "preserve App route state" },
+      });
+
+      expect(sectionToggle).toHaveAttribute("aria-expanded", "false");
+      expect(localNote).toHaveValue("preserve App route state");
+      expect(layoutLifecycle[routeCase.family]).toEqual({
+        mounts: 1,
+        unmounts: 0,
+        countInitializations: 1,
+      });
+
+      await act(async () => {
+        navigateHook(pathFor(routeCase.targetPage));
+      });
+
+      const loader: HTMLElement = await screen.findByTestId("page-loader");
+
+      /*
+       * These assertions exercise App.tsx (and SettingsRoutes for Danger),
+       * rather than a hand-built route tree. Making a leaf route a sibling of
+       * its layout moves this loader to App's outer boundary, disconnects this
+       * exact menu node and resets both pieces of local state.
+       */
+      expect(rightPane).toContainElement(loader);
+      expect(sideMenu).toBe(
+        screen.getByTestId(`${routeCase.family}-app-route-side-menu`),
+      );
+      expect(sideMenu.isConnected).toBe(true);
+      expect(sideMenu).toBeVisible();
+      expect(rightPane).toBeVisible();
+      expect(loader).toBeVisible();
+      expect(sectionToggle).toHaveAttribute("aria-expanded", "false");
+      expect(localNote).toHaveValue("preserve App route state");
+      expect(layoutLifecycle[routeCase.family]).toEqual({
+        mounts: 1,
+        unmounts: 0,
+        countInitializations: 1,
+      });
+
+      await act(async () => {
+        gate.resolve();
+        await gate.promise;
+      });
+
+      expect(
+        await screen.findByText(routeCase.targetModule),
+      ).toBeInTheDocument();
+      expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+      expect(sideMenu).toBe(
+        screen.getByTestId(`${routeCase.family}-app-route-side-menu`),
+      );
+      expect(rightPane).toBe(
+        screen.getByTestId(`${routeCase.family}-app-route-content`),
+      );
+      expect(sectionToggle).toHaveAttribute("aria-expanded", "false");
+      expect(localNote).toHaveValue("preserve App route state");
+      expect(layoutLifecycle[routeCase.family]).toEqual({
+        mounts: 1,
+        unmounts: 0,
+        countInitializations: 1,
+      });
+    },
+  );
 
   test("preserves the project-deleted callback on the deferred danger zone page", async () => {
     renderApp(pathFor(PageMap.SETTINGS_DANGERZONE));

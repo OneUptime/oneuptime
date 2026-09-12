@@ -292,6 +292,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
           title: item.title,
           icon: item.icon,
           route: item.route,
+          activeRoute: item.activeRoute,
           description: item.description,
         };
       }),
