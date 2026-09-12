@@ -113,7 +113,7 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     type: DashboardTemplateType.Slo,
     name: "SLO Dashboard",
     description:
-      "SLI, error budget remaining and burn rate for one objective as tiles and trends, with the monitors, incidents and alerts that spend the budget.",
+      "One objective's SLI, error budget remaining and burn rate as tiles and trends, with monitor uptime, latency, incidents and alerts beside it. Pick the SLO on each widget after creating it.",
     icon: IconProp.Percent,
     category: DashboardTemplateCategory.Monitoring,
   },
@@ -2971,18 +2971,41 @@ function createSloDashboardConfig(): DashboardViewConfig {
    *   is for, and it binds to the bare `monitorName` attribute key those
    *   series carry (no `resource.` prefix).
    *
+   *   Two callers write those names, though, and only one stamps
+   *   `monitorName`. NetworkDeviceMetricUtil.saveWalkMetrics writes the same
+   *   `oneuptime.monitor.online` / `.response.time` names off a network
+   *   device poll with `deviceName` and `networkDeviceId` instead, so the
+   *   unscoped view is "every probeable monitor PLUS every network device",
+   *   and device rows drop out the moment a monitor is picked rather than
+   *   being selectable. Nothing here can filter them out — the template
+   *   helpers expose no stored attribute filter — so the widgets are
+   *   labelled for what they are and the Monitor variable is the scope.
+   *
+   * - The Objective Health tiles do NOT follow the dashboard time picker.
+   *   They read the SLO's own state columns, which the evaluation worker
+   *   maintains over the objective's compliance window; only the three Slo
+   *   CHARTS and the monitor widgets honour the selected range.
+   *
    * - Incident and alert METRICS are deliberately NOT on this dashboard even
-   *   though an error budget is spent by incidents, because neither family
-   *   survives the Monitor variable. IncidentService stamps its metrics with
-   *   `monitorNames` (plural, comma-joined) rather than `monitorName`, so
-   *   picking a monitor would silently empty every incident tile while the
-   *   uptime tiles beside them stayed populated. AlertService does write the
-   *   singular key — but a burn-rate alert is declared by EvaluateSlos with
-   *   no monitor attached at all (attaching one would repair the SLO's own
-   *   uptime on resolve), so it carries no `monitorName` and a scoped alert
-   *   tile would hide precisely the alerts this dashboard exists for. The
-   *   incident and alert LISTS below read Postgres and ignore telemetry
-   *   variables entirely, so they stay correct under every selection.
+   *   though an error budget is spent by incidents, for two DIFFERENT
+   *   reasons — not one shared one.
+   *
+   *   Incident metrics cannot be scoped at all: IncidentService stamps them
+   *   with `monitorNames` (plural, comma-joined) rather than `monitorName`,
+   *   so picking a monitor would empty every incident tile while the uptime
+   *   tiles beside them stayed populated.
+   *
+   *   Alert metrics CAN be scoped — AlertService writes the singular key —
+   *   but createBurnRateAlert in EvaluateSlos never sets `monitor`, so a
+   *   burn-rate alert carries no `monitorName` and a scoped alert tile would
+   *   hide precisely the alerts this dashboard exists for. (That omission is
+   *   not the uptime-repair problem its incident twin has: resolving an
+   *   Alert never writes MonitorStatusTimeline — only the Incident path
+   *   reaches markMonitorsActiveForMonitoring.)
+   *
+   *   The incident and alert LISTS below read Postgres and ignore telemetry
+   *   variables entirely, so they stay correct under every selection — but
+   *   they are project-wide and honour no time range; see their row.
    *
    * - Monitor uptime is a PROXY, not the SLI. An availability SLI is
    *   computed from MonitorStatusTimeline downtime intervals (honouring
@@ -3008,9 +3031,19 @@ function createSloDashboardConfig(): DashboardViewConfig {
      * has to: their widgets query immediately. Every Slo widget here is
      * inert until somebody picks an objective, so saying it once beats six
      * identical "Click to select an SLO" placeholders explaining themselves.
+     *
+     * It names EDIT deliberately. The widgets' own placeholder says "Click
+     * to select an SLO", but the click only opens the settings panel in
+     * edit mode — and a dashboard created from a template opens in view
+     * mode, where following that instruction does nothing.
+     *
+     * Kept to one short line on purpose: the Text widget scales its font to
+     * the widget's height, so a sentence much past ~70 characters wraps out
+     * of a height-1 row and is clipped. Everything else this dashboard
+     * needs to say is said by the widget titles.
      */
     createTextComponent({
-      text: "Pick an objective on each SLO widget below. Use the Monitor variable to scope the uptime and response time widgets to the monitors behind it.",
+      text: "Edit this dashboard to pick an objective on each SLO widget.",
       top: 1,
       left: 0,
       width: 12,
@@ -3031,7 +3064,9 @@ function createSloDashboardConfig(): DashboardViewConfig {
      * Rows 3-5: the three numbers an SLO review opens with, in the order
      * they are read — where the service is (SLI), how much room is left
      * (error budget), and how fast the room is disappearing (burn rate).
-     * Each tile carries its own status pill and target subline.
+     * Every tile carries the SLO's status pill; the sublines differ — SLI
+     * shows the target, the budget tile shows time remaining or over
+     * budget, and burn rate has none.
      */
     createSloComponent({
       title: "SLI",
@@ -3100,6 +3135,14 @@ function createSloDashboardConfig(): DashboardViewConfig {
      * Rows 11-14: burn rate beside the incidents. A burn-rate rule declares
      * an incident when the budget starts going fast, so the spike and the
      * record of what was done about it belong on one row.
+     *
+     * The list cannot be narrowed to those incidents, though, and says so
+     * in its title. IncidentList has no SLO or fingerprint filter, and —
+     * unlike every chart on this dashboard — it does not read
+     * `dashboardStartAndEndDate` at all. It is the project's latest
+     * incidents, newest first, NOT the incidents inside the window the
+     * chart beside it is drawing. Titled "Latest" rather than "Recent" so
+     * it does not imply the dashboard's time range.
      */
     createSloComponent({
       title: "Burn Rate Over Time",
@@ -3111,7 +3154,7 @@ function createSloDashboardConfig(): DashboardViewConfig {
       height: 4,
     }),
     createIncidentListComponent({
-      title: "Recent Incidents",
+      title: "Latest Incidents",
       top: 11,
       left: 6,
       width: 6,
@@ -3121,7 +3164,7 @@ function createSloDashboardConfig(): DashboardViewConfig {
 
     // Row 15: Section header
     createTextComponent({
-      text: "Monitors Behind the Objective",
+      text: "Monitor Health",
       top: 15,
       left: 0,
       width: 12,
@@ -3206,11 +3249,19 @@ function createSloDashboardConfig(): DashboardViewConfig {
     /*
      * Rows 20-23: the monitors themselves, and the alerts a burn-rate rule
      * raises. Both read Postgres, so neither is affected by the Monitor
-     * variable — scope the monitor list with its own Labels filter if the
-     * project is large.
+     * variable and neither honours the dashboard time range.
+     *
+     * The monitor list is titled "All Monitors" rather than anything that
+     * implies the objective: MonitorList's only variable binding is
+     * `labelVariableId` against a ProjectLabel variable, which this
+     * template does not ship, so nothing the reader does in the toolbar
+     * narrows it. The section header above was "Monitors Behind the
+     * Objective" and promised exactly the scoping none of these widgets
+     * has on a freshly created dashboard. Scope the list with its own
+     * Labels filter if the project is large.
      */
     createMonitorListComponent({
-      title: "Monitors",
+      title: "All Monitors",
       top: 20,
       left: 0,
       width: 6,
@@ -3218,7 +3269,7 @@ function createSloDashboardConfig(): DashboardViewConfig {
       maxRows: 25,
     }),
     createAlertListComponent({
-      title: "Recent Alerts",
+      title: "Latest Alerts",
       top: 20,
       left: 6,
       width: 6,
