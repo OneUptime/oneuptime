@@ -11,7 +11,7 @@ import DatabaseCommonInteractionPropsUtil, {
 import Columns from "../../../../Types/Database/Columns";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
-import { PermissionHelper, UserPermission } from "../../../../Types/Permission";
+import { UserPermission } from "../../../../Types/Permission";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class SelectPermission {
@@ -49,21 +49,12 @@ export default class SelectPermission {
       if (!canReadOnTheseColumns.columns.includes(key)) {
         if (!tableColumns.includes(key)) {
           throw new BadDataException(
-            `Invalid select clause. Cannot select on "${key}". This column does not exist on ${
-              model.singularName
-            }. Here are the columns you can select on instead: ${tableColumns.join(
-              ", ",
-            )}`,
+            "Invalid select clause. The specified column does not exist.",
           );
         }
 
         throw new NotAuthorizedException(
-          `You do not have permissions to select on - ${key}.
-                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-                      model.getColumnAccessControlFor(key)
-                        ? model.getColumnAccessControlFor(key)!.read
-                        : [],
-                    ).join(", ")}`,
+          "You do not have permissions to select on the specified column.",
         );
       }
     }
