@@ -7,6 +7,7 @@ import Exception from "../../../Types/Exception/Exception";
  */
 const FOREIGN_KEY_VIOLATION: string = "23503";
 const UNIQUE_VIOLATION: string = "23505";
+const INDEX_TOO_BIG: string = "54000";
 
 /*
  * TypeORM reports driver failures as QueryFailedError, which does not extend
@@ -24,6 +25,7 @@ interface PostgresDriverError {
   code?: string | undefined;
   table?: string | undefined;
   detail?: string | undefined;
+  message?: string | undefined;
 }
 
 /*
@@ -54,6 +56,10 @@ export default class PostgresErrorTranslator {
 
     if (driverError.code === UNIQUE_VIOLATION) {
       return this.translateUniqueViolation(error, driverError);
+    }
+
+    if (driverError.code === INDEX_TOO_BIG) {
+      return this.translateIndexTooBig(error, driverError);
     }
 
     return error;
@@ -183,6 +189,36 @@ export default class PostgresErrorTranslator {
         columns.length === 1
           ? `${subject} with this ${fields} already exists. Please use a different value and try again.`
           : `${subject} with the same ${fields} already exists. Please use different values and try again.`,
+      ),
+      driverError,
+    );
+  }
+
+  /*
+   * INSERT/UPDATE where an indexed value is too large for the btree index:
+   *   index row size 2792 exceeds btree version 4 maximum 2704 for index "..."
+   *
+   * The index name and row sizes are implementation details the user does not
+   * need to see. The message tells them the value is too long and asks them
+   * to shorten it.
+   */
+  private static translateIndexTooBig(
+    _error: unknown,
+    driverError: PostgresDriverError,
+  ): unknown {
+    const message: string = driverError.message || "";
+
+    /*
+     * Only translate the specific btree index-too-big variant; other 54000
+     * errors (e.g. program too large) are left untouched.
+     */
+    if (!message.includes("exceeds btree version")) {
+      return _error;
+    }
+
+    return this.tag(
+      new BadDataException(
+        "The value you are trying to save is too long. Please shorten the value and try again.",
       ),
       driverError,
     );
