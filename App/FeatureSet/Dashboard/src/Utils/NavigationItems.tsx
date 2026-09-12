@@ -162,7 +162,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.EXCEPTIONS] as Route,
       ),
-      activeRoute: RouteMap[PageMap.EXCEPTIONS],
+      activeRoute: RouteMap[PageMap.EXCEPTIONS_VIEW_ROOT],
       icon: IconProp.Bug,
       iconColor: "orange",
       category: observabilityCategory,
