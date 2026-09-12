@@ -215,10 +215,26 @@ export interface ChunkLoaderOptions {
   fetcher: SessionReplayChunkFetcher;
   maxDecodedChunks?: number | undefined;
   maxDecodedBytes?: number | undefined;
-  /* Per attempt. Tests shrink it; the product uses the engine constant. */
+  /*
+   * Flat floor of the per-attempt timeout. Tests shrink it; the product
+   * uses DEFAULT_CHUNK_FETCH_TIMEOUT_MS.
+   */
   fetchTimeoutMs?: number | undefined;
+  /*
+   * Slowest transfer rate an attempt must survive: the page's manifest
+   * payloadBytes divided by this is added to the floor. Infinity makes the
+   * timeout flat again. Must be positive; anything else takes the default.
+   */
+  fetchMinBytesPerSecond?: number | undefined;
   /* Back-off before each retry; length = number of retries. */
   retryDelaysMs?: ReadonlyArray<number> | undefined;
+  /*
+   * Hands the main thread back between batches of a page's frames while
+   * a response is decoded (see DECODE_YIELD_BUDGET_BYTES). Injected so
+   * tests can observe or collapse the yields; the default is a real
+   * macrotask boundary.
+   */
+  yieldToMain?: (() => Promise<void>) | undefined;
 }
 
 /*
@@ -243,12 +259,55 @@ export const DEFAULT_MAX_DECODED_CHUNKS: number =
 const DEFAULT_MAX_DECODED_BYTES: number = 24 * 1024 * 1024;
 
 /*
- * One attempt may take this long before it is abandoned and retried. 15s
- * is generous for an 8MB page on a slow link and short enough that a hung
- * connection does not read as a frozen player.
+ * The flat part of one attempt's deadline: connection setup, the server's
+ * ClickHouse read, and enough slack that a hung socket does not read as a
+ * frozen player. It is NOT the whole budget. A page is up to 8MB of
+ * uncompressed JSON, which a 2 Mbit/s link cannot deliver inside 15s, and
+ * the timer is a whole-response deadline (the fetcher resolves only after
+ * response.arrayBuffer()), so a flat 15s aborted downloads that were
+ * halfway through and retried them into the same wall three times. The
+ * transfer is budgeted separately, from the manifest's payloadBytes, at
+ * DEFAULT_CHUNK_FETCH_MIN_BYTES_PER_SECOND - see attemptTimeoutMs.
  */
 export const DEFAULT_CHUNK_FETCH_TIMEOUT_MS: number = 15 * 1000;
+/*
+ * About 2 Mbit/s, measured against the manifest's UNCOMPRESSED payloadBytes
+ * - the wire body is compressed, so the real allowance is several times
+ * more generous than the rate suggests. A 256KB chunk gets one extra
+ * second, a 4KB fixture chunk 16ms. Slower than this and the footage
+ * cannot keep ahead of playback anyway, so a retry is the honest answer.
+ */
+export const DEFAULT_CHUNK_FETCH_MIN_BYTES_PER_SECOND: number = 256 * 1024;
+
+/*
+ * The ceiling on one attempt, however large the page.
+ *
+ * The scaled budget alone let a full 8MB page ask for 47s, and three
+ * attempts plus their backoff put 143s between a dead connection and the
+ * error that explains it - against 45s before the transfer was budgeted
+ * at all. The flat timeout existed precisely so a hung socket does not
+ * read as a frozen player, and a cap keeps that true while still giving a
+ * genuinely large page on a slow link far more than 15s to arrive. The
+ * viewer is not left guessing in the meantime: the buffering pill offers
+ * Retry after 8s.
+ */
+export const DEFAULT_CHUNK_FETCH_MAX_TIMEOUT_MS: number = 30 * 1000;
 export const DEFAULT_CHUNK_RETRY_DELAYS_MS: ReadonlyArray<number> = [500, 2000];
+
+/*
+ * How many frame bytes a page decode admits before handing the main
+ * thread back. A page lands as one ArrayBuffer and used to be parsed,
+ * extracted and admitted in a single synchronous burst: measured at
+ * ~11ms per MB of JSON.parse alone, a busy 2MB page is a 25-90ms long
+ * task and an 8MB one 100-200ms, during which rrweb's rAF timer cannot
+ * run and the cursor freezes. Yielding every 512KB keeps each task in the
+ * single-digit-millisecond range on ordinary hardware. The budget, not a
+ * per-frame yield, is the trigger so that tiny pages (and every test
+ * fixture) still admit in one task with no idle macrotask before loadPage
+ * resolves. One oversized snapshot frame (up to 2MB) is still parsed in
+ * one piece - JSON.parse cannot be split - and that floor is accepted.
+ */
+export const DECODE_YIELD_BUDGET_BYTES: number = 512 * 1024;
 
 /* Bytes of framing ahead of each chunk's payload: u32 index + u32 length. */
 const FRAME_HEADER_BYTES: number = 8;
@@ -258,6 +317,51 @@ interface TimelineChunkRecord {
   activityIntervals: Array<ReplayActivityInterval>;
 }
 
+/*
+ * Structural view of the Prioritized Task Scheduling API's global, which
+ * the DOM lib does not yet declare. Read off globalThis rather than named
+ * directly so the module compiles and runs where it is absent (jsdom, older
+ * browsers).
+ */
+interface HostScheduler {
+  yield?: () => Promise<void>;
+}
+
+/*
+ * A real task boundary, best available first: scheduler.yield() keeps the
+ * continuation ahead of other queued tasks; a MessageChannel post is a
+ * plain macrotask without setTimeout's 4ms clamp on nested timers;
+ * setTimeout(0) is the fallback for environments with neither (jsdom).
+ * Each is a macrotask, never a microtask - a microtask would not let the
+ * rendering steps or rrweb's rAF run, which is the whole point.
+ */
+function defaultYieldToMain(): Promise<void> {
+  const hostScheduler: HostScheduler | undefined = (
+    globalThis as { scheduler?: HostScheduler }
+  ).scheduler;
+
+  if (hostScheduler && typeof hostScheduler.yield === "function") {
+    return hostScheduler.yield();
+  }
+
+  if (typeof MessageChannel !== "undefined") {
+    return new Promise<void>((resolve: () => void): void => {
+      const channel: MessageChannel = new MessageChannel();
+
+      channel.port1.onmessage = (): void => {
+        channel.port1.close();
+        resolve();
+      };
+
+      channel.port2.postMessage(null);
+    });
+  }
+
+  return new Promise<void>((resolve: () => void): void => {
+    setTimeout(resolve, 0);
+  });
+}
+
 export default class ChunkLoader {
   private readonly sessionId: string;
   private readonly tabId: string;
@@ -265,7 +369,9 @@ export default class ChunkLoader {
   private readonly maxDecodedChunks: number;
   private readonly maxDecodedBytes: number;
   private readonly fetchTimeoutMs: number;
+  private readonly fetchMinBytesPerSecond: number;
   private readonly retryDelaysMs: ReadonlyArray<number>;
+  private readonly yieldToMain: () => Promise<void>;
 
   /* Every manifest row, terminators included, sorted by index. */
   private entries: Array<SessionReplayChunkManifestEntry>;
@@ -293,6 +399,20 @@ export default class ChunkLoader {
   private readonly timeline: Map<number, TimelineChunkRecord>;
   private countsByKind: Partial<Record<ReplayTimelineEventKind, number>>;
   private readonly truncatedKinds: Set<ReplayTimelineEventKind>;
+
+  /*
+   * Bumped whenever the timeline map gains a chunk (and on dispose). The
+   * merged, sorted row array is rebuilt only when it changes: the player
+   * re-adapts every row into rail signals off the merged array, and doing
+   * that on every publish - 30 a second while playing - was a periodic
+   * long task that grew with session length. Re-admitting an evicted chunk
+   * does not bump it, because extraction is kept across eviction.
+   */
+  private timelineVersion: number;
+  private timelineEventsCache: {
+    version: number;
+    events: Array<ReplayTimelineEvent>;
+  } | null;
 
   /*
    * In-flight requests keyed by CHUNK INDEX, not page start. A page planned
@@ -332,7 +452,13 @@ export default class ChunkLoader {
     this.maxDecodedBytes = options.maxDecodedBytes ?? DEFAULT_MAX_DECODED_BYTES;
     this.fetchTimeoutMs =
       options.fetchTimeoutMs ?? DEFAULT_CHUNK_FETCH_TIMEOUT_MS;
+    this.fetchMinBytesPerSecond =
+      options.fetchMinBytesPerSecond !== undefined &&
+      options.fetchMinBytesPerSecond > 0
+        ? options.fetchMinBytesPerSecond
+        : DEFAULT_CHUNK_FETCH_MIN_BYTES_PER_SECOND;
     this.retryDelaysMs = options.retryDelaysMs ?? DEFAULT_CHUNK_RETRY_DELAYS_MS;
+    this.yieldToMain = options.yieldToMain ?? defaultYieldToMain;
 
     this.entries = [];
     this.playableEntries = [];
@@ -350,6 +476,8 @@ export default class ChunkLoader {
     this.timeline = new Map<number, TimelineChunkRecord>();
     this.countsByKind = {};
     this.truncatedKinds = new Set<ReplayTimelineEventKind>();
+    this.timelineVersion = 0;
+    this.timelineEventsCache = null;
     this.fedThroughChunkIndex = null;
     this.decodeListeners = new Set<(chunkIndex: number) => void>();
   }
@@ -805,8 +933,32 @@ export default class ChunkLoader {
         return;
       }
 
-      for (const frame of ChunkLoader.decodeFrames(buffer)) {
+      /*
+       * Admit the page a budget's worth of frames at a time, yielding a
+       * macrotask in between so rrweb's rAF and the rendering steps get a
+       * turn (DECODE_YIELD_BUDGET_BYTES). The first frame is never held
+       * back - the priority pair must reach the player as early as it
+       * can - and nothing yields after the last, so a small page costs no
+       * extra task before loadPage resolves. Every yield is followed by a
+       * generation re-check: dispose() may have run in between, and an
+       * admit after it would repopulate a dead loader and fire listeners
+       * into an engine that has already swapped loaders.
+       */
+      let bytesSinceYield: number = 0;
+
+      for (const frame of ChunkLoader.decodeFrameIterator(buffer)) {
+        if (bytesSinceYield >= DECODE_YIELD_BUDGET_BYTES) {
+          await this.yieldToMain();
+
+          if (generationAtStart !== this.generation) {
+            return;
+          }
+
+          bytesSinceYield = 0;
+        }
+
         this.admit(frame.chunkIndex, frame.events, frame.approximateBytes);
+        bytesSinceYield += frame.approximateBytes;
       }
     })();
 
@@ -847,6 +999,7 @@ export default class ChunkLoader {
     generationAtStart: number,
   ): Promise<ArrayBuffer | null> {
     const maxAttempts: number = 1 + this.retryDelaysMs.length;
+    const attemptTimeoutMs: number = this.attemptTimeoutMs(chunkIndexes);
     let lastMessage: string = "";
     let lastWasTimeout: boolean = false;
 
@@ -858,7 +1011,7 @@ export default class ChunkLoader {
       const timeout: ReturnType<typeof setTimeout> = setTimeout((): void => {
         timedOut = true;
         controller.abort();
-      }, this.fetchTimeoutMs);
+      }, attemptTimeoutMs);
 
       try {
         return await ChunkLoader.raceWithAbort(
@@ -877,7 +1030,7 @@ export default class ChunkLoader {
 
         lastWasTimeout = timedOut;
         lastMessage = timedOut
-          ? `no response within ${Math.round(this.fetchTimeoutMs / 1000)}s`
+          ? `no response within ${Math.round(attemptTimeoutMs / 1000)}s`
           : err instanceof Error && err.message
             ? err.message
             : "the request failed";
@@ -906,6 +1059,26 @@ export default class ChunkLoader {
       isAborted: false,
       isTimeout: lastWasTimeout,
     });
+  }
+
+  /*
+   * The deadline for one attempt at these chunks: the flat floor plus the
+   * time their manifest payloadBytes take at the slowest rate we promise
+   * to survive. The manifest size is the only size known before the bytes
+   * arrive, and it is the same lookup canHold budgets the cache with.
+   */
+  private attemptTimeoutMs(chunkIndexes: Array<number>): number {
+    let plannedBytes: number = 0;
+
+    for (const chunkIndex of chunkIndexes) {
+      plannedBytes += this.entryByIndex.get(chunkIndex)?.payloadBytes ?? 0;
+    }
+
+    return Math.min(
+      DEFAULT_CHUNK_FETCH_MAX_TIMEOUT_MS,
+      this.fetchTimeoutMs +
+        Math.ceil((plannedBytes / this.fetchMinBytesPerSecond) * 1000),
+    );
   }
 
   private static describeChunkRange(chunkIndexes: Array<number>): string {
@@ -1125,6 +1298,8 @@ export default class ChunkLoader {
     this.timeline.clear();
     this.countsByKind = {};
     this.truncatedKinds.clear();
+    this.timelineVersion += 1;
+    this.timelineEventsCache = null;
   }
 
   /* ---- Wire format ---- */
@@ -1147,10 +1322,21 @@ export default class ChunkLoader {
    * the viewer a labelled gap, not the whole recording.
    */
   public static decodeFrames(buffer: ArrayBuffer): Array<DecodedChunk> {
+    return [...ChunkLoader.decodeFrameIterator(buffer)];
+  }
+
+  /*
+   * Same parse, one frame per pull. startRequest consumes this so it can
+   * hand the main thread back between frames instead of decoding a whole
+   * page in one task; decodeFrames is the eager form for callers that
+   * want the array.
+   */
+  public static *decodeFrameIterator(
+    buffer: ArrayBuffer,
+  ): Generator<DecodedChunk, void, undefined> {
     const view: DataView = new DataView(buffer);
     const bytes: Uint8Array = new Uint8Array(buffer);
     const decoder: TextDecoder = new TextDecoder("utf-8");
-    const frames: Array<DecodedChunk> = [];
 
     let offset: number = 0;
 
@@ -1180,18 +1366,16 @@ export default class ChunkLoader {
         events = null;
       }
 
+      offset = payloadEnd;
+
       if (events) {
-        frames.push({
+        yield {
           chunkIndex: chunkIndex,
           events: events,
           approximateBytes: length,
-        });
+        };
       }
-
-      offset = payloadEnd;
     }
-
-    return frames;
   }
 
   /* ---- Signals ---- */
@@ -1200,8 +1384,40 @@ export default class ChunkLoader {
    * Every extracted event across every chunk seen so far, in timeline
    * order. Grows as playback fetches pages - the rail labels itself
    * accordingly rather than implying full-session coverage up front.
+   *
+   * The returned array is SHARED: the same instance comes back on every
+   * call until another chunk is extracted (see timelineVersion), so
+   * callers must treat it as read-only. Mutating or sorting it in place
+   * would corrupt what every other reader sees.
    */
   public getTimelineEvents(): Array<ReplayTimelineEvent> {
+    if (
+      this.timelineEventsCache &&
+      this.timelineEventsCache.version === this.timelineVersion
+    ) {
+      return this.timelineEventsCache.events;
+    }
+
+    const events: Array<ReplayTimelineEvent> = this.mergeTimelineEvents();
+
+    this.timelineEventsCache = {
+      version: this.timelineVersion,
+      events: events,
+    };
+
+    return events;
+  }
+
+  /*
+   * Changes exactly when getTimelineEvents() would return a different
+   * array, so callers can key memoisation on a number instead of on the
+   * array identity of something they have to fetch first.
+   */
+  public getTimelineVersion(): number {
+    return this.timelineVersion;
+  }
+
+  private mergeTimelineEvents(): Array<ReplayTimelineEvent> {
     const chunkIndexes: Array<number> = [...this.timeline.keys()].sort(
       (a: number, b: number): number => {
         return a - b;
@@ -1879,6 +2095,7 @@ export default class ChunkLoader {
       events: kept,
       activityIntervals: extraction.activityIntervals,
     });
+    this.timelineVersion += 1;
   }
 
   private admit(

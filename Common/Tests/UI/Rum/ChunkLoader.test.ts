@@ -6,6 +6,9 @@ import {
 import { MAX_PREFETCH_PAGES_AHEAD } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayPlaybackIntent";
 import ChunkLoader, {
   ChunkLoadError,
+  DECODE_YIELD_BUDGET_BYTES,
+  DEFAULT_CHUNK_FETCH_MAX_TIMEOUT_MS,
+  DecodedChunk,
   DEFAULT_MAX_DECODED_CHUNKS,
   RRWEB_EVENT_TYPE_META,
   RRWEB_MOUSE_INTERACTION_CLICK,
@@ -842,6 +845,58 @@ describe("ChunkLoader timeline events", () => {
     expect(loader.getTimelineEvents()).toHaveLength(0);
   });
 
+  it("returns the same timeline array identity until a new chunk is extracted", async () => {
+    const fetcher: RecordingFetcher = makeFetcher({
+      payloadFor: (): string => {
+        return eventfulBody();
+      },
+    });
+
+    /* Nine entries: chunks 0-7 fill page 0, chunk 8 is on page 1. */
+    const loader: ChunkLoader = makeLoader(
+      [
+        makeEntry(0, { hasFullSnapshot: true }),
+        ...Array.from({ length: 8 }, (_unused: unknown, i: number) => {
+          return makeEntry(i + 1);
+        }),
+      ],
+      fetcher,
+    );
+
+    await loader.loadPage(0);
+
+    const first: Array<ReplayTimelineEvent> = loader.getTimelineEvents();
+    const version: number = loader.getTimelineVersion();
+
+    expect(first.length).toBeGreaterThan(0);
+    expect(loader.getTimelineEvents()).toBe(first);
+
+    /*
+     * Evict and re-fetch the same page: extraction is kept across
+     * eviction, so nothing new is extracted and the memo must hold - a
+     * bump here would re-adapt every rail row for no change.
+     */
+    loader.evictOutsideWindow(99, 0);
+    await loader.loadPage(0);
+
+    expect(loader.getTimelineEvents()).toBe(first);
+    expect(loader.getTimelineVersion()).toBe(version);
+
+    await loader.loadPage(8);
+
+    const second: Array<ReplayTimelineEvent> = loader.getTimelineEvents();
+
+    expect(second).not.toBe(first);
+    expect(second.length).toBeGreaterThan(first.length);
+    expect(loader.getTimelineVersion()).toBeGreaterThan(version);
+    expect(loader.getTimelineEvents()).toBe(second);
+
+    loader.dispose();
+
+    expect(loader.getTimelineEvents()).toHaveLength(0);
+    expect(loader.getTimelineEvents()).not.toBe(second);
+  });
+
   it("caps the extracted set and reports the truncation honestly", async () => {
     const noisyBody: string = JSON.stringify([
       { type: 2, timestamp: baseTs, data: {} },
@@ -1253,6 +1308,141 @@ describe("ChunkLoader transport failures", () => {
     expect(attempts).toBe(3);
     expect((caught as ChunkLoadError).isTimeout).toBe(true);
     expect((caught as ChunkLoadError).message).toContain("no response within");
+  });
+
+  it("scales the per-attempt timeout with the page's manifest bytes", async () => {
+    let attempts: number = 0;
+
+    /*
+     * A 5ms floor would abort this 100ms transfer; 10KB at 1KB/s buys ten
+     * seconds of allowance, so a slow-but-progressing page lands on the
+     * first attempt instead of being retried into the same wall.
+     */
+    const loader: ChunkLoader = new ChunkLoader({
+      sessionId: "sess-1",
+      tabId: "tab-1",
+      entries: [
+        makeEntry(0, { hasFullSnapshot: true, payloadBytes: 10 * 1024 }),
+      ],
+      fetchTimeoutMs: 5,
+      fetchMinBytesPerSecond: 1024,
+      retryDelaysMs: [1, 1],
+      fetcher: (): Promise<ArrayBuffer> => {
+        attempts += 1;
+        return new Promise<ArrayBuffer>(
+          (resolve: (value: ArrayBuffer) => void) => {
+            setTimeout((): void => {
+              resolve(encodeFrames([{ chunkIndex: 0, body: bodyFor(0) }]));
+            }, 100);
+          },
+        );
+      },
+    });
+
+    const events: Array<SessionReplayRecordedEvent> | null =
+      await loader.ensureChunk(0);
+
+    expect(attempts).toBe(1);
+    expect(events).not.toBeNull();
+    expect(loader.getDecodedChunkIndexes()).toEqual([0]);
+  });
+
+  it("quotes the scaled budget, not the floor, when a scaled attempt hangs", async () => {
+    /* 5ms floor + 512 bytes at 1KB/s = 505ms, which rounds to 1s. */
+    const loader: ChunkLoader = new ChunkLoader({
+      sessionId: "sess-1",
+      tabId: "tab-1",
+      entries: [makeEntry(0, { hasFullSnapshot: true, payloadBytes: 512 })],
+      fetchTimeoutMs: 5,
+      fetchMinBytesPerSecond: 1024,
+      retryDelaysMs: [],
+      fetcher: (): Promise<ArrayBuffer> => {
+        return new Promise<ArrayBuffer>((): void => {
+          // Never resolves.
+        });
+      },
+    });
+
+    let caught: unknown = null;
+
+    try {
+      await loader.ensureChunk(0);
+    } catch (err) {
+      caught = err;
+    }
+
+    expect(caught).toBeInstanceOf(ChunkLoadError);
+    expect((caught as ChunkLoadError).attempts).toBe(1);
+    expect((caught as ChunkLoadError).isTimeout).toBe(true);
+    expect((caught as ChunkLoadError).message).toContain(
+      "no response within 1s",
+    );
+  });
+
+  it("keeps the flat timeout when fetchMinBytesPerSecond is Infinity", async () => {
+    let attempts: number = 0;
+
+    const loader: ChunkLoader = new ChunkLoader({
+      sessionId: "sess-1",
+      tabId: "tab-1",
+      entries: [makeEntry(0, { hasFullSnapshot: true })],
+      fetchTimeoutMs: 5,
+      fetchMinBytesPerSecond: Infinity,
+      retryDelaysMs: [1, 1],
+      fetcher: (): Promise<ArrayBuffer> => {
+        attempts += 1;
+        return new Promise<ArrayBuffer>((): void => {
+          // Never resolves.
+        });
+      },
+    });
+
+    let caught: unknown = null;
+
+    try {
+      await loader.ensureChunk(0);
+    } catch (err) {
+      caught = err;
+    }
+
+    expect(attempts).toBe(3);
+    expect((caught as ChunkLoadError).isTimeout).toBe(true);
+    expect((caught as ChunkLoadError).message).toContain(
+      "no response within 0s",
+    );
+  });
+
+  it("caps one attempt however large the page says it is", async () => {
+    /*
+     * The scaled budget is generous on purpose, but a dead connection
+     * must not take three 47s attempts to report itself: the flat
+     * timeout exists so a hung socket does not read as a frozen player,
+     * and the cap is what keeps that true for a full-size page.
+     */
+    const fetcher: RecordingFetcher = makeFetcher();
+    /* Built directly so the production timeout defaults are the ones under test. */
+    const loader: ChunkLoader = new ChunkLoader({
+      sessionId: "sess-1",
+      tabId: "tab-1",
+      entries: [
+        makeEntry(0, {
+          hasFullSnapshot: true,
+          payloadBytes: 8 * 1024 * 1024,
+        }),
+      ],
+      fetcher: fetcher.fetcher,
+    });
+
+    /* 15s + 32s of transfer budget, capped back down to the ceiling. */
+    expect(
+      (
+        loader as unknown as {
+          attemptTimeoutMs: (chunkIndexes: Array<number>) => number;
+        }
+      ).attemptTimeoutMs([0]),
+    ).toBe(DEFAULT_CHUNK_FETCH_MAX_TIMEOUT_MS);
+
+    loader.dispose();
   });
 
   it("hands the transport an abort signal and fires it on dispose", async () => {
@@ -1820,5 +2010,216 @@ describe("ChunkLoader signal extraction", () => {
     expect(loader.getActivityIntervalsForChunk(1)).toHaveLength(1);
     expect(loader.getActivityIntervalsForChunk(5)).toBeNull();
     expect(loader.getTimelineEventsForChunk(0)).toHaveLength(1);
+  });
+});
+
+/*
+ * A page lands as one buffer. Admitting it used to be a single synchronous
+ * burst - parse, extract, notify, for every frame - long enough on a busy
+ * page to freeze rrweb's cursor. The loader now hands the main thread back
+ * every DECODE_YIELD_BUDGET_BYTES of admitted frames, and every yield is a
+ * point at which dispose() may have happened.
+ */
+describe("ChunkLoader incremental page decode", () => {
+  /* One event padded so the frame is `bytes` long, well past the budget. */
+  const paddedBody: (chunkIndex: number, bytes: number) => string = (
+    chunkIndex: number,
+    bytes: number,
+  ): string => {
+    return JSON.stringify([
+      {
+        type: chunkIndex === 0 ? 2 : 3,
+        timestamp: 1700000000000 + chunkIndex * CHUNK_MS,
+        data: { chunkIndex: chunkIndex, pad: "x".repeat(bytes) },
+      },
+    ]);
+  };
+
+  const OVER_BUDGET_BYTES: number = DECODE_YIELD_BUDGET_BYTES + 1024;
+
+  it("admits an over-budget page chunk by chunk across yields, and resolves only after the last", async () => {
+    const fetcher: RecordingFetcher = makeFetcher({
+      payloadFor: (chunkIndex: number): string => {
+        return paddedBody(chunkIndex, OVER_BUDGET_BYTES);
+      },
+    });
+
+    const decodedAtYield: Array<Array<number>> = [];
+    const listenerCallsAtYield: Array<number> = [];
+    const resolvedAtYield: Array<boolean> = [];
+    const decodedListener: Array<number> = [];
+    let resolved: boolean = false;
+    let loader: ChunkLoader | null = null;
+
+    loader = new ChunkLoader({
+      sessionId: "sess-1",
+      tabId: "tab-1",
+      entries: [
+        makeEntry(0, { hasFullSnapshot: true }),
+        makeEntry(1),
+        makeEntry(2),
+        makeEntry(3),
+      ],
+      fetcher: fetcher.fetcher,
+      yieldToMain: (): Promise<void> => {
+        decodedAtYield.push(loader!.getDecodedChunkIndexes());
+        listenerCallsAtYield.push(decodedListener.length);
+        resolvedAtYield.push(resolved);
+        return Promise.resolve();
+      },
+    });
+
+    loader.onChunkDecoded((chunkIndex: number): void => {
+      decodedListener.push(chunkIndex);
+    });
+
+    const pending: Promise<Array<number>> = loader
+      .loadPage(0)
+      .then((indexes: Array<number>): Array<number> => {
+        resolved = true;
+        return indexes;
+      });
+
+    expect(await pending).toEqual([0, 1, 2, 3]);
+
+    /*
+     * Every frame is over budget on its own, so there is a yield before
+     * each frame after the first and none after the last: three yields,
+     * with the cache growing by one chunk between them.
+     */
+    expect(decodedAtYield).toEqual([[0], [0, 1], [0, 1, 2]]);
+    /* Chunk 0's listener fired before the first yield, i.e. before chunk 3 was admitted. */
+    expect(listenerCallsAtYield).toEqual([1, 2, 3]);
+    expect(decodedListener).toEqual([0, 1, 2, 3]);
+    /* The page promise must not settle while frames are still pending. */
+    expect(resolvedAtYield).toEqual([false, false, false]);
+    expect(fetcher.requests).toEqual([[0, 1, 2, 3]]);
+  });
+
+  it("serves an already-admitted chunk from cache while the rest of its page is still pending", async () => {
+    const fetcher: RecordingFetcher = makeFetcher({
+      payloadFor: (chunkIndex: number): string => {
+        return paddedBody(chunkIndex, OVER_BUDGET_BYTES);
+      },
+    });
+
+    let loader: ChunkLoader | null = null;
+    let seenFromCache: Array<number> | null = null;
+
+    loader = new ChunkLoader({
+      sessionId: "sess-1",
+      tabId: "tab-1",
+      entries: [makeEntry(0, { hasFullSnapshot: true }), makeEntry(1)],
+      fetcher: fetcher.fetcher,
+      yieldToMain: async (): Promise<void> => {
+        const events: Array<SessionReplayRecordedEvent> | null =
+          await loader!.ensureChunk(0);
+
+        seenFromCache = events
+          ? events.map((event: SessionReplayRecordedEvent): number => {
+              return (event.data as { chunkIndex: number }).chunkIndex;
+            })
+          : null;
+      },
+    });
+
+    await loader.loadPage(0);
+
+    expect(seenFromCache).toEqual([0]);
+    /* The mid-page ensureChunk was a cache hit, not a second request. */
+    expect(fetcher.requests).toEqual([[0, 1]]);
+  });
+
+  it("never yields for a page under the budget", async () => {
+    let yields: number = 0;
+
+    const loader: ChunkLoader = new ChunkLoader({
+      sessionId: "sess-1",
+      tabId: "tab-1",
+      entries: Array.from(
+        { length: MAX_SESSION_REPLAY_CHUNKS_PER_READ },
+        (_unused: unknown, i: number): SessionReplayChunkManifestEntry => {
+          return makeEntry(i, { hasFullSnapshot: i === 0 });
+        },
+      ),
+      fetcher: makeFetcher().fetcher,
+      yieldToMain: (): Promise<void> => {
+        yields += 1;
+        return Promise.resolve();
+      },
+    });
+
+    const decoded: Array<number> = await loader.loadPage(0);
+
+    expect(decoded).toHaveLength(MAX_SESSION_REPLAY_CHUNKS_PER_READ);
+    expect(yields).toBe(0);
+  });
+
+  it("drops the rest of a page when dispose() lands during a yield", async () => {
+    const fetcher: RecordingFetcher = makeFetcher({
+      payloadFor: (chunkIndex: number): string => {
+        return paddedBody(chunkIndex, OVER_BUDGET_BYTES);
+      },
+    });
+
+    const decodedListener: Array<number> = [];
+    let yields: number = 0;
+    let loader: ChunkLoader | null = null;
+
+    loader = new ChunkLoader({
+      sessionId: "sess-1",
+      tabId: "tab-1",
+      entries: [
+        makeEntry(0, { hasFullSnapshot: true }),
+        makeEntry(1),
+        makeEntry(2),
+      ],
+      fetcher: fetcher.fetcher,
+      yieldToMain: (): Promise<void> => {
+        yields += 1;
+        loader!.dispose();
+        return Promise.resolve();
+      },
+    });
+
+    loader.onChunkDecoded((chunkIndex: number): void => {
+      decodedListener.push(chunkIndex);
+    });
+
+    const pending: Promise<Array<number>> = loader.loadPage(0);
+
+    /* Resolves rather than throws: nobody is waiting for a disposed loader. */
+    expect(await pending).toEqual([]);
+
+    /* Chunk 0 was admitted before the yield; nothing after it may be. */
+    expect(yields).toBe(1);
+    expect(decodedListener).toEqual([0]);
+    expect(loader.getDecodedChunkIndexes()).toEqual([]);
+    expect(loader.getDecodedBytes()).toBe(0);
+    expect(loader.isChunkInFlight(1)).toBe(false);
+  });
+
+  it("decodeFrameIterator yields exactly what decodeFrames returns, corrupt and truncated frames included", () => {
+    const whole: ArrayBuffer = encodeFrames([
+      { chunkIndex: 0, body: bodyFor(0) },
+      { chunkIndex: 1, body: "{not json" },
+      { chunkIndex: 2, body: JSON.stringify({ notAnArray: true }) },
+      { chunkIndex: 3, body: bodyFor(3) },
+      { chunkIndex: 4, body: bodyFor(4) },
+    ]);
+    /* Cut inside the last frame's payload. */
+    const truncated: ArrayBuffer = whole.slice(0, whole.byteLength - 3);
+
+    const eager: Array<DecodedChunk> = ChunkLoader.decodeFrames(truncated);
+    const lazy: Array<DecodedChunk> = [
+      ...ChunkLoader.decodeFrameIterator(truncated),
+    ];
+
+    expect(
+      eager.map((frame: DecodedChunk): number => {
+        return frame.chunkIndex;
+      }),
+    ).toEqual([0, 3]);
+    expect(lazy).toEqual(eager);
   });
 });

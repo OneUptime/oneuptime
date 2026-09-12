@@ -2,6 +2,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -49,14 +50,22 @@ import {
   ReplayerLike,
 } from "./Engine/ReplayEngineTypes";
 import ReplayStage, { ReplayStageFit } from "./ReplayStage";
-import ReplayStageOverlays, { findIdleBandAt } from "./ReplayStageOverlays";
+import useReplayClock, { ReplayClockLike } from "./useReplayClock";
+import ReplayStageOverlays, {
+  ReplayStageOverlaysProps,
+  findIdleBandAt,
+} from "./ReplayStageOverlays";
 import ReplayHeader, {
   ReplayHeaderFact,
   ReplayHeaderHandle,
+  ReplayHeaderProps,
   ReplayHeaderTab,
 } from "./ReplayHeader";
 import ReplayScrubber from "./ReplayScrubber";
-import ReplayRail, { ReplayRailHandle } from "./Rail/ReplayRail";
+import ReplayRail, {
+  ReplayRailHandle,
+  ReplayRailProps,
+} from "./Rail/ReplayRail";
 import {
   ReplayBackendSignalsSnapshot,
   ReplayBackendSignalsStore,
@@ -239,6 +248,144 @@ function noopUnsubscribe(): () => void {
 
 const NO_SIGNALS: Array<ReplaySignal> = [];
 const NO_CHUNKS: Array<SessionReplayManifestChunk> = [];
+
+/* ---- Clocked wrappers. ---- */
+
+/*
+ * The playhead reaches each part of the player through one of these, and
+ * never through the composition root's snapshot.
+ *
+ * The root subscribes to the engine's STRUCTURAL channel, so it re-renders
+ * only on real transitions. Each wrapper below subscribes to the clock on
+ * its own at the coarsest quantum its content can live with, so between
+ * two structural changes React re-renders only the wrapper whose
+ * quantised time actually moved. That is what keeps the ~30Hz publish
+ * from reconciling the header, the rail, the overlays and the transport
+ * in the same frame rrweb is casting mutations into.
+ *
+ * The memo on each wrapper is a backstop, not the mechanism: the props
+ * bag it receives is a fresh literal on every root render, so it only
+ * ever bails out for a re-render that comes from ABOVE the root. The
+ * isolation that matters comes from the root not re-rendering at all
+ * between structural changes.
+ *
+ * Quanta: the rail, the header and the overlays show whole seconds, so
+ * 250ms; the transport's readout is finer-grained while seeking, so
+ * 100ms; the spoken offset changes once a second. The timeline's needle
+ * is the one thing that must move every frame, and ReplayScrubber owns
+ * that (it takes the clock source itself and drives the track at 16ms).
+ */
+export const REPLAY_RAIL_CLOCK_MS: number = 250;
+export const REPLAY_HEADER_CLOCK_MS: number = 250;
+export const REPLAY_OVERLAYS_CLOCK_MS: number = 250;
+export const REPLAY_OFFSET_TEXT_CLOCK_MS: number = 1000;
+
+/*
+ * Paused, the rail is allowed the exact playhead: its "now" divider shows
+ * tenths of a second when nothing is moving, and there is no frame budget
+ * to protect while the picture is still.
+ */
+const REPLAY_CLOCK_EXACT_MS: number = 1;
+
+interface ReplayRailClockedProps {
+  clock: ReplayClockLike | null;
+  quantumMs: number;
+  railRef: React.RefObject<ReplayRailHandle>;
+  railProps: Omit<ReplayRailProps, "currentTimeMs">;
+}
+
+const ReplayRailClockedComponent: FunctionComponent<ReplayRailClockedProps> = (
+  props: ReplayRailClockedProps,
+): ReactElement => {
+  const currentTimeMs: number = useReplayClock(props.clock, props.quantumMs);
+
+  return (
+    <ReplayRail
+      ref={props.railRef}
+      {...props.railProps}
+      currentTimeMs={currentTimeMs}
+    />
+  );
+};
+
+const ReplayRailClocked: React.NamedExoticComponent<ReplayRailClockedProps> =
+  memo(ReplayRailClockedComponent);
+
+interface ReplayHeaderClockedProps {
+  clock: ReplayClockLike | null;
+  quantumMs: number;
+  headerRef: React.RefObject<ReplayHeaderHandle>;
+  headerProps: Omit<ReplayHeaderProps, "currentTimeMs">;
+}
+
+const ReplayHeaderClockedComponent: FunctionComponent<
+  ReplayHeaderClockedProps
+> = (props: ReplayHeaderClockedProps): ReactElement => {
+  const currentTimeMs: number = useReplayClock(props.clock, props.quantumMs);
+
+  return (
+    <ReplayHeader
+      ref={props.headerRef}
+      {...props.headerProps}
+      currentTimeMs={currentTimeMs}
+    />
+  );
+};
+
+const ReplayHeaderClocked: React.NamedExoticComponent<ReplayHeaderClockedProps> =
+  memo(ReplayHeaderClockedComponent);
+
+interface ReplayStageOverlaysClockedProps {
+  clock: ReplayClockLike | null;
+  quantumMs: number;
+  overlayProps: ReplayStageOverlaysProps;
+}
+
+/*
+ * The overlays read the playhead off the snapshot they are given (the URL
+ * bar, the idle-band prompt), so the wrapper hands them a snapshot with
+ * the live time merged in rather than a separate prop. The merge is
+ * memoised, so the object identity changes only when one of the two
+ * actually moved.
+ */
+const ReplayStageOverlaysClockedComponent: FunctionComponent<
+  ReplayStageOverlaysClockedProps
+> = (props: ReplayStageOverlaysClockedProps): ReactElement => {
+  const currentTimeMs: number = useReplayClock(props.clock, props.quantumMs);
+  const { overlayProps } = props;
+
+  const snapshot: ReplayEngineSnapshot = useMemo(() => {
+    return { ...overlayProps.snapshot, currentTimeMs: currentTimeMs };
+  }, [overlayProps.snapshot, currentTimeMs]);
+
+  return <ReplayStageOverlays {...overlayProps} snapshot={snapshot} />;
+};
+
+const ReplayStageOverlaysClocked: React.NamedExoticComponent<ReplayStageOverlaysClockedProps> =
+  memo(ReplayStageOverlaysClockedComponent);
+
+interface ReplayOffsetTextProps {
+  clock: ReplayClockLike | null;
+}
+
+/* The playhead as text for assistive tech, at a calm cadence. */
+const ReplayOffsetTextComponent: FunctionComponent<ReplayOffsetTextProps> = (
+  props: ReplayOffsetTextProps,
+): ReactElement => {
+  const currentTimeMs: number = useReplayClock(
+    props.clock,
+    REPLAY_OFFSET_TEXT_CLOCK_MS,
+  );
+
+  return (
+    <span className="sr-only" aria-live="off" data-testid="replay-offset-text">
+      {formatReplayOffset(currentTimeMs)}
+    </span>
+  );
+};
+
+const ReplayOffsetText: React.NamedExoticComponent<ReplayOffsetTextProps> =
+  memo(ReplayOffsetTextComponent);
 
 /*
  * The rail tab a row lives on. "all" shows everything, so a signal that
@@ -766,16 +913,46 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     return makeIdleSnapshot(activeTabId);
   }, [activeTabId]);
 
+  /*
+   * THE STRUCTURAL CHANNEL, not the whole snapshot.
+   *
+   * The engine publishes about thirty times a second while playing, and
+   * every publish is a new object, so subscribing this component - the
+   * composition root of the entire player - to it re-rendered the header,
+   * the overlays, the stage, the scrubber, the timeline and the rail on
+   * every tick, synchronously, in the frame rrweb was using to cast
+   * mutations. The structural snapshot keeps its identity until something
+   * other than the playhead changes, so this tree now re-renders on real
+   * transitions only (phase, buffer, fed range, bands, errors).
+   *
+   * The playhead reaches the components that need it through
+   * useReplayClock, each at the coarsest quantum it can live with. Nothing
+   * below may read snapshot.currentTimeMs to RENDER with: on the
+   * structural snapshot it is the playhead as of the last structural
+   * change, which is stale by design.
+   */
   const subscribeToEngine: (listener: ReplayEngineListener) => () => void =
     useCallback(
       (listener: ReplayEngineListener): (() => void) => {
-        return engine ? engine.subscribe(listener) : noopUnsubscribe();
+        if (!engine) {
+          return noopUnsubscribe();
+        }
+
+        return engine.subscribeStructural
+          ? engine.subscribeStructural(listener)
+          : engine.subscribe(listener);
       },
       [engine],
     );
   const getEngineSnapshot: () => ReplayEngineSnapshot =
     useCallback((): ReplayEngineSnapshot => {
-      return engine ? engine.getSnapshot() : idleSnapshot;
+      if (!engine) {
+        return idleSnapshot;
+      }
+
+      return engine.getStructuralSnapshot
+        ? engine.getStructuralSnapshot()
+        : engine.getSnapshot();
     }, [engine, idleSnapshot]);
 
   const snapshot: ReplayEngineSnapshot = useSyncExternalStore(
@@ -1164,6 +1341,9 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
    * Recording rows, re-adapted when the fed range grows (that is when a
    * chunk's extraction has definitely happened) or the tab changes.
    */
+  const timelineVersion: number =
+    loaderRef.current?.getTimelineVersion?.() ?? 0;
+
   const recordingSignals: Array<ReplaySignal> = useMemo(() => {
     const loader: ChunkLoader | null = loaderRef.current;
 
@@ -1174,11 +1354,20 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     return fromTimelineEvents(loader.getTimelineEvents(), {
       startTimeUnixMs: startTimeUnixMs,
     });
+    /*
+     * timelineVersion, not just the fed range: the loader only advances
+     * it when a chunk's rows were actually extracted, so a feed that
+     * added no rows re-uses the adapted signals instead of rebuilding
+     * every one of them. generation stays a dependency so a tab switch,
+     * which hands over a different loader whose version restarts at 0,
+     * always re-adapts.
+     */
   }, [
     engine,
     snapshot.loadedChunkIndexes,
     snapshot.generation,
     startTimeUnixMs,
+    timelineVersion,
   ]);
 
   const allSignals: Array<ReplaySignal> = useMemo(() => {
@@ -1233,6 +1422,12 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     );
   }, [manifest, activeTabId]);
 
+  /*
+   * The one place the structural snapshot's currentTimeMs is the right
+   * value to read: this only answers at phase "ended", and the publish
+   * that ended the tab is itself a structural change carrying the final
+   * playhead. Nothing moves after it until the viewer acts.
+   */
   const continueInTab: ReplayHeaderTab | null = useMemo(() => {
     if (!manifest || snapshot.phase !== "ended") {
       return null;
@@ -2124,48 +2319,58 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       : { "--oneuptime-replay-rail-width": `${prefs.railWidthRem}rem` }
   ) as React.CSSProperties;
 
+  /*
+   * Quantised while playing, exact while paused: the rail's "now" divider
+   * shows tenths when the picture is still, and there is no frame budget
+   * to protect then.
+   */
   const railElement: ReactElement = (
-    <ReplayRail
-      ref={railRef}
-      signals={recordingSignals}
-      backendStore={backendStore}
-      sessionId={manifest.sessionId || sessionId}
-      startTimeUnixMs={startTimeUnixMs}
-      clockSkewMs={manifest.details.clockSkewMs}
-      isFinalized={manifest.isFinalized}
-      isExpiredFootage={!isPlayable}
-      isLoading={isPlayable && !engine}
-      currentTimeMs={snapshot.currentTimeMs}
-      isPlaying={snapshot.phase === "playing"}
-      selectedSignalId={selectedSignalId}
-      onSeek={seekTo}
-      onSelectSignal={selectSignal}
-      onHoverSignal={setGhostMs}
-      activeTab={railTab}
-      onTabChange={handleRailTabChange}
-      query={railQuery}
-      onQueryChange={setRailQuery}
-      follow={prefs.follow}
-      onFollowChange={handleFollowChange}
-      truncatedKinds={
-        loaderRef.current?.getExtractionStats().truncatedKinds ?? null
+    <ReplayRailClocked
+      clock={engine}
+      quantumMs={
+        snapshot.phase === "playing"
+          ? REPLAY_RAIL_CLOCK_MS
+          : REPLAY_CLOCK_EXACT_MS
       }
-      loadedChunkCount={
-        loaderRef.current?.getExtractedChunkIndexes().length ?? null
-      }
-      totalChunkCount={chunks.length > 0 ? chunks.length : null}
-      recorderCapabilities={manifest.recorderCapabilities}
-      onShowOnStage={handleShowOnStage}
-      onCopyLink={copySignalLink}
-      onTelemetrySignalsChange={handleTelemetrySignalsChange}
-      /*
-       * flex-1 + min-h-0 inside a column whose height is bounded above
-       * (see the rail column) is what lets the rail's own list overflow
-       * and scroll. `h-full` resolved to the rail's full CONTENT height,
-       * which is why nothing in the rail ever scrolled (ux-02).
-       */
-      onCollapse={toggleRailCollapsed}
-      className="min-h-0 flex-1"
+      railRef={railRef}
+      railProps={{
+        signals: recordingSignals,
+        backendStore: backendStore,
+        sessionId: manifest.sessionId || sessionId,
+        startTimeUnixMs: startTimeUnixMs,
+        clockSkewMs: manifest.details.clockSkewMs,
+        isFinalized: manifest.isFinalized,
+        isExpiredFootage: !isPlayable,
+        isLoading: isPlayable && !engine,
+        isPlaying: snapshot.phase === "playing",
+        selectedSignalId: selectedSignalId,
+        onSeek: seekTo,
+        onSelectSignal: selectSignal,
+        onHoverSignal: setGhostMs,
+        activeTab: railTab,
+        onTabChange: handleRailTabChange,
+        query: railQuery,
+        onQueryChange: setRailQuery,
+        follow: prefs.follow,
+        onFollowChange: handleFollowChange,
+        truncatedKinds:
+          loaderRef.current?.getExtractionStats().truncatedKinds ?? null,
+        loadedChunkCount:
+          loaderRef.current?.getExtractedChunkIndexes().length ?? null,
+        totalChunkCount: chunks.length > 0 ? chunks.length : null,
+        recorderCapabilities: manifest.recorderCapabilities,
+        onShowOnStage: handleShowOnStage,
+        onCopyLink: copySignalLink,
+        onTelemetrySignalsChange: handleTelemetrySignalsChange,
+        onCollapse: toggleRailCollapsed,
+        /*
+         * flex-1 + min-h-0 inside a column whose height is bounded above
+         * (see the rail column) is what lets the rail's own list overflow
+         * and scroll. `h-full` resolved to the rail's full CONTENT height,
+         * which is why nothing in the rail ever scrolled (ux-02).
+         */
+        className: "min-h-0 flex-1",
+      }}
     />
   );
 
@@ -2182,39 +2387,42 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
             : "flex flex-col"
         }
       >
-        <ReplayHeader
-          ref={headerRef}
-          sessionId={manifest.sessionId || sessionId}
-          backHref={backHref}
-          onBack={goBack}
-          identity={{
-            label: manifest.details.identifiedUserLabel,
-            traits: manifest.details.identifiedUserTraits,
-            visitorId: manifest.details.visitorId,
+        <ReplayHeaderClocked
+          clock={engine}
+          quantumMs={REPLAY_HEADER_CLOCK_MS}
+          headerRef={headerRef}
+          headerProps={{
+            sessionId: manifest.sessionId || sessionId,
+            backHref: backHref,
+            onBack: goBack,
+            identity: {
+              label: manifest.details.identifiedUserLabel,
+              traits: manifest.details.identifiedUserTraits,
+              visitorId: manifest.details.visitorId,
+            },
+            facts: facts,
+            startTimeUnixMs: startTimeUnixMs,
+            durationMs: snapshot.durationMs || manifest.durationMs,
+            isLive: isLive,
+            tabs: headerTabs,
+            onSwitchTab: switchTab,
+            continueInTab: continueInTab,
+            sealedReason: sealedReason,
+            isWide: prefs.wide,
+            onToggleWide: toggleWide,
+            isTheater: isTheater,
+            onToggleTheater: toggleTheater,
+            onOpenDetails: openDetails,
+            buildMomentUrl: buildMomentUrl,
+            pinControl: (
+              <ReplayPinControl
+                rumApplicationId={props.rumApplicationId}
+                sessionId={sessionId}
+              />
+            ),
+            userSessions: userSessions,
+            onOpenUserSession: openUserSession,
           }}
-          facts={facts}
-          startTimeUnixMs={startTimeUnixMs}
-          currentTimeMs={snapshot.currentTimeMs}
-          durationMs={snapshot.durationMs || manifest.durationMs}
-          isLive={isLive}
-          tabs={headerTabs}
-          onSwitchTab={switchTab}
-          continueInTab={continueInTab}
-          sealedReason={sealedReason}
-          isWide={prefs.wide}
-          onToggleWide={toggleWide}
-          isTheater={isTheater}
-          onToggleTheater={toggleTheater}
-          onOpenDetails={openDetails}
-          buildMomentUrl={buildMomentUrl}
-          pinControl={
-            <ReplayPinControl
-              rumApplicationId={props.rumApplicationId}
-              sessionId={sessionId}
-            />
-          }
-          userSessions={userSessions}
-          onOpenUserSession={openUserSession}
         />
 
         {recordingNotes.length > 0 && (
@@ -2277,56 +2485,64 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
              * playback speed options and the overflow menu.
              */}
             <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-              <ReplayStageOverlays
-                snapshot={snapshot}
-                signals={recordingSignals}
-                chunks={chunks}
-                entryUrl={manifest.details.entryUrl}
-                recordedSize={recordedSize}
-                scale={scale}
-                fit={fit}
-                onFitChange={setFit}
-                onPlayPause={playPause}
-                onWatchAgain={watchAgain}
-                onRetry={retry}
-                onStillLoadingRetry={stillLoadingRetry}
-                onSkipIdle={skipIdle}
-                getDiagnostic={getDiagnostic}
-                continueInTab={continueInTab}
-                onSwitchTab={switchTab}
-                shellNotice={shellNotice}
-                absence={absence}
-                sealedReason={sealedReason}
-                isLive={isLive}
-              >
-                {isPlayable && engine && (
-                  <ReplayStage
-                    engine={engine}
-                    viewportWidth={manifest.details.viewportWidth}
-                    viewportHeight={manifest.details.viewportHeight}
-                    isTheater={isTheater}
-                    fit={fit}
-                    onScaleChange={setScale}
-                    reservedBottomHeightPx={scrubberHeightPx + 24}
-                  />
-                )}
-                {isPlayable && !engine && (
-                  <div
-                    className="w-full animate-pulse rounded-lg bg-gray-100"
-                    style={{
-                      aspectRatio:
-                        recordedSize && recordedSize.height > 0
-                          ? `${recordedSize.width} / ${recordedSize.height}`
-                          : "16 / 9",
-                      minHeight: "24rem",
-                      maxHeight: "70vh",
-                    }}
-                    role="status"
-                    aria-label="Loading the replay engine"
-                    data-testid="replay-stage-placeholder"
-                  />
-                )}
-              </ReplayStageOverlays>
+              <ReplayStageOverlaysClocked
+                clock={engine}
+                quantumMs={REPLAY_OVERLAYS_CLOCK_MS}
+                overlayProps={{
+                  snapshot: snapshot,
+                  signals: recordingSignals,
+                  chunks: chunks,
+                  entryUrl: manifest.details.entryUrl,
+                  recordedSize: recordedSize,
+                  scale: scale,
+                  fit: fit,
+                  onFitChange: setFit,
+                  onPlayPause: playPause,
+                  onWatchAgain: watchAgain,
+                  onRetry: retry,
+                  onStillLoadingRetry: stillLoadingRetry,
+                  onSkipIdle: skipIdle,
+                  getDiagnostic: getDiagnostic,
+                  continueInTab: continueInTab,
+                  onSwitchTab: switchTab,
+                  shellNotice: shellNotice,
+                  absence: absence,
+                  sealedReason: sealedReason,
+                  isLive: isLive,
+                  children: (
+                    <Fragment>
+                      {isPlayable && engine && (
+                        <ReplayStage
+                          engine={engine}
+                          recorderCapabilities={manifest.recorderCapabilities}
+                          viewportWidth={manifest.details.viewportWidth}
+                          viewportHeight={manifest.details.viewportHeight}
+                          isTheater={isTheater}
+                          fit={fit}
+                          onScaleChange={setScale}
+                          reservedBottomHeightPx={scrubberHeightPx + 24}
+                        />
+                      )}
+                      {isPlayable && !engine && (
+                        <div
+                          className="w-full animate-pulse rounded-lg bg-gray-100"
+                          style={{
+                            aspectRatio:
+                              recordedSize && recordedSize.height > 0
+                                ? `${recordedSize.width} / ${recordedSize.height}`
+                                : "16 / 9",
+                            minHeight: "24rem",
+                            maxHeight: "70vh",
+                          }}
+                          role="status"
+                          aria-label="Loading the replay engine"
+                          data-testid="replay-stage-placeholder"
+                        />
+                      )}
+                    </Fragment>
+                  ),
+                }}
+              />
 
               {isPlayable && (
                 <div
@@ -2335,6 +2551,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                 >
                   <ReplayScrubber
                     snapshot={snapshot}
+                    clock={engine}
                     bands={bands}
                     activity={activity}
                     markers={markers}
@@ -2520,14 +2737,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         railCounts={railCounts}
       />
 
-      {/* The playhead as text for assistive tech, at a calm cadence. */}
-      <span
-        className="sr-only"
-        aria-live="off"
-        data-testid="replay-offset-text"
-      >
-        {formatReplayOffset(snapshot.currentTimeMs)}
-      </span>
+      <ReplayOffsetText clock={engine} />
     </Fragment>
   );
 };

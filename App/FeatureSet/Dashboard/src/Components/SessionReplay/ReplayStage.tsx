@@ -17,6 +17,10 @@ import {
   ReplayRecordedSize,
   ReplayerLike,
 } from "./Engine/ReplayEngineTypes";
+import {
+  SESSION_REPLAY_LEGACY_MOUSEMOVE_SAMPLE_MS,
+  SESSION_REPLAY_MOUSEMOVE_SAMPLE_MS,
+} from "Common/Types/Rum/SessionReplay";
 
 /*
  * The playback surface, as a thin React binding over the engine.
@@ -55,6 +59,13 @@ export interface ReplayStageProps {
   onScaleChange?: ((scale: number) => void) | undefined;
   /* Reserve space for the timeline and transport on desktop. */
   reservedBottomHeightPx?: number | undefined;
+  /*
+   * What the recorder said it could do, from the manifest. Only one entry
+   * matters here: whether mouse movement was sampled at the faster
+   * cadence, which sets how long the cursor takes to cross between two
+   * recorded positions.
+   */
+  recorderCapabilities?: ReadonlyArray<string> | undefined;
   className?: string | undefined;
 }
 
@@ -117,9 +128,12 @@ export const REPLAY_DOCUMENT_CSP: string =
  * the tail canvas draws the path it took to get there.
  *
  * The transition duration is a CSS variable the stage sets from the
- * playback speed (80ms / speed): at 8x rrweb casts a sample every 12.5ms,
- * and a fixed 80ms transition would leave the pointer permanently behind
- * the click ripple and the DOM change it caused.
+ * recording's own mouse-sampling interval divided by the playback speed,
+ * so one segment ends exactly as the next begins: the pointer glides
+ * continuously instead of moving for part of the gap and parking for the
+ * rest (80ms against a 100ms sample) or lagging behind the click it
+ * caused. A recording that advertises the faster cadence is drawn from
+ * that cadence; older footage keeps the interval it was recorded at.
  *
  * The .active ripple is rrweb's click affordance: the class lands on the
  * cursor for the length of a MouseInteraction, and without a rule for it a
@@ -129,7 +143,7 @@ export const REPLAY_STAGE_CSS: string = `
 .oneuptime-replay-stage .oneuptime-replay-host { position: relative; transform-origin: top left; }
 .oneuptime-replay-stage .replayer-wrapper { position: absolute; top: 0; left: 0; transform-origin: top left; }
 .oneuptime-replay-stage .replayer-wrapper iframe { border: none; background: #ffffff; }
-.oneuptime-replay-stage .replayer-mouse { position: absolute; width: 20px; height: 20px; border-radius: 100%; background: rgba(73,80,246,0.35); box-shadow: 0 0 0 2px rgba(73,80,246,0.9), 0 1px 6px rgba(15,23,42,0.35); transition: left var(--oneuptime-replay-cursor-ms, 80ms) linear, top var(--oneuptime-replay-cursor-ms, 80ms) linear; pointer-events: none; z-index: 2147483647; }
+.oneuptime-replay-stage .replayer-mouse { position: absolute; width: 20px; height: 20px; border-radius: 100%; background: rgba(73,80,246,0.35); box-shadow: 0 0 0 2px rgba(73,80,246,0.9), 0 1px 6px rgba(15,23,42,0.35); transition: left var(--oneuptime-replay-cursor-ms, ${SESSION_REPLAY_LEGACY_MOUSEMOVE_SAMPLE_MS}ms) linear, top var(--oneuptime-replay-cursor-ms, ${SESSION_REPLAY_LEGACY_MOUSEMOVE_SAMPLE_MS}ms) linear; pointer-events: none; z-index: 2147483647; }
 .oneuptime-replay-stage .replayer-mouse::after { content: ""; display: inline-block; width: 20px; height: 20px; border-radius: 100%; background: rgba(73,80,246,0.4); transform: translate(-50%, -50%); opacity: 0; }
 .oneuptime-replay-stage .replayer-mouse.active::after { animation: oneuptime-replay-click 0.4s ease-in-out 1; }
 .oneuptime-replay-stage .replayer-mouse-tail { position: absolute; pointer-events: none; top: 0; left: 0; z-index: 2147483646; }
@@ -163,6 +177,34 @@ export function computeContainScale(
     containerWidth / recorded.width,
     containerHeight / recorded.height,
   );
+}
+
+/*
+ * The capability a recorder advertises when it sampled mouse movement at
+ * the faster cadence. Older recordings carry no such entry and were
+ * sampled at the legacy interval, so their cursor must be given the
+ * longer transition or it arrives early and waits.
+ */
+export const REPLAY_CURSOR_SAMPLE_CAPABILITY: string = "mousemove-50ms";
+
+/*
+ * How long the cursor takes to travel between two recorded positions:
+ * one sample interval, divided by the speed it is being played at. The
+ * 16ms floor is one frame - below that the transition cannot resolve and
+ * only delays rrweb's next re-target. Speed is clamped so a very slow
+ * playback does not produce a transition longer than the gap it spans.
+ */
+export function resolveCursorTransitionMs(
+  recorderCapabilities: ReadonlyArray<string> | undefined,
+  speed: number,
+): number {
+  const sampleMs: number = recorderCapabilities?.includes(
+    REPLAY_CURSOR_SAMPLE_CAPABILITY,
+  )
+    ? SESSION_REPLAY_MOUSEMOVE_SAMPLE_MS
+    : SESSION_REPLAY_LEGACY_MOUSEMOVE_SAMPLE_MS;
+
+  return Math.max(16, Math.round(sampleMs / Math.max(0.25, speed)));
 }
 
 /*
@@ -226,15 +268,24 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
   const isTheater: boolean = props.isTheater ?? false;
 
   /* Wrapped so a method-based engine keeps its `this`. */
+  /*
+   * The structural channel: this component reads recordedSize, speed and
+   * phase, none of which move with the playhead, so there is no reason
+   * for it to re-render thirty times a second alongside the clock.
+   */
   const subscribe: (listener: ReplayEngineListener) => () => void = useCallback(
     (listener: ReplayEngineListener): (() => void) => {
-      return engine.subscribe(listener);
+      return engine.subscribeStructural
+        ? engine.subscribeStructural(listener)
+        : engine.subscribe(listener);
     },
     [engine],
   );
   const getSnapshot: () => ReplayEngineSnapshot =
     useCallback((): ReplayEngineSnapshot => {
-      return engine.getSnapshot();
+      return engine.getStructuralSnapshot
+        ? engine.getStructuralSnapshot()
+        : engine.getSnapshot();
     }, [engine]);
 
   const snapshot: ReplayEngineSnapshot = useSyncExternalStore(
@@ -492,9 +543,9 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
         : `${isTheater ? REPLAY_STAGE_THEATER_MAX_HEIGHT_VH : REPLAY_STAGE_MAX_HEIGHT_VH}vh`,
     /* Aspect reserved from the recorded viewport before the first frame. */
     aspectRatio: `${aspect.width} / ${aspect.height}`,
-    "--oneuptime-replay-cursor-ms": `${Math.max(
-      16,
-      Math.round(80 / Math.max(0.25, snapshot.speed)),
+    "--oneuptime-replay-cursor-ms": `${resolveCursorTransitionMs(
+      props.recorderCapabilities,
+      snapshot.speed,
     )}ms`,
   };
 

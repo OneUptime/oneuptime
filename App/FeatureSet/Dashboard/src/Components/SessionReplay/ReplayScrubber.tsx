@@ -1,6 +1,7 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -8,6 +9,7 @@ import React, {
   useState,
 } from "react";
 import { ReplayEngineSnapshot } from "./Engine/ReplayEngineTypes";
+import useReplayClock, { ReplayClockLike } from "./useReplayClock";
 import { ReplaySignal } from "./Rail/ReplaySignalTypes";
 import ReplayControls, {
   REPLAY_SPEEDS,
@@ -188,8 +190,53 @@ export function useReplayKeyboardShortcuts(
 
 /* ---- Composition. ---- */
 
+/*
+ * The transport's readout shows tenths while seeking, so 100ms is as
+ * coarse as it may go; the track's needle has to move with the picture,
+ * so it gets every frame the engine publishes.
+ */
+export const REPLAY_CONTROLS_CLOCK_MS: number = 100;
+export const REPLAY_TRACK_CLOCK_MS: number = 16;
+
+interface ReplayTimelineClockedProps {
+  clock: ReplayClockLike;
+  timelineProps: Omit<ReplayTimelineProps, "currentTimeMs">;
+}
+
+/*
+ * The one part of the player that re-renders on every publish, and the
+ * only one that should: a needle that moves four times a second reads as
+ * a stutter even when the picture behind it is perfect. Everything
+ * expensive inside ReplayTimeline (bands, lanes, clusters, the activity
+ * strip) is memoised on its own inputs, so this re-render reaches the
+ * playhead and stops.
+ */
+const ReplayTimelineClockedComponent: FunctionComponent<
+  ReplayTimelineClockedProps
+> = (props: ReplayTimelineClockedProps): ReactElement => {
+  const currentTimeMs: number = useReplayClock(
+    props.clock,
+    REPLAY_TRACK_CLOCK_MS,
+  );
+
+  return (
+    <ReplayTimeline {...props.timelineProps} currentTimeMs={currentTimeMs} />
+  );
+};
+
+const ReplayTimelineClocked: React.NamedExoticComponent<ReplayTimelineClockedProps> =
+  memo(ReplayTimelineClockedComponent);
+
 export interface ReplayScrubberProps {
   snapshot: ReplayEngineSnapshot;
+  /*
+   * The engine, as a clock. When it is given, the playhead comes from the
+   * clock channel - the track every frame, the transport every 100ms -
+   * and `snapshot` is the structural one, whose currentTimeMs is stale by
+   * design. Without it the component reads the snapshot exactly as it
+   * always did, which is what the component tests do.
+   */
+  clock?: ReplayClockLike | null | undefined;
   bands: Array<ReplayTrackBand>;
   activity?: Array<ReplayActivityBucket> | undefined;
   markers: Array<ReplayTimelineMarker>;
@@ -246,6 +293,7 @@ export interface ReplayScrubberProps {
 type ReplayScrubberLatest = Pick<
   ReplayScrubberProps,
   | "snapshot"
+  | "clock"
   | "markers"
   | "keyboardScope"
   | "isFollowEnabled"
@@ -277,7 +325,21 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
   const [isShortcutsOpen, setIsShortcutsOpen] = useState<boolean>(false);
 
   const { snapshot, markers, onSeek, onSelectSignal } = props;
-  const { currentTimeMs, durationMs } = snapshot;
+  const { durationMs } = snapshot;
+
+  /*
+   * The transport's clock. With a clock source it comes from the engine
+   * at REPLAY_CONTROLS_CLOCK_MS, so this component re-renders four times
+   * a second instead of thirty; without one it is the snapshot's own
+   * playhead, exactly as before.
+   */
+  const clockTimeMs: number = useReplayClock(
+    props.clock ?? null,
+    REPLAY_CONTROLS_CLOCK_MS,
+  );
+  const currentTimeMs: number = props.clock
+    ? clockTimeMs
+    : snapshot.currentTimeMs;
 
   /*
    * The keyboard dispatcher reads props and the snapshot through a ref
@@ -292,6 +354,7 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
 
   latestRef.current = {
     snapshot: props.snapshot,
+    clock: props.clock,
     markers: props.markers,
     keyboardScope: props.keyboardScope,
     isFollowEnabled: props.isFollowEnabled,
@@ -361,42 +424,55 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
       [onSeek, onSelectSignal],
     );
 
+  /*
+   * The exact playhead for a keyboard action, not the quantised one the
+   * readout renders and not the structural snapshot's stale copy: a jump
+   * computed from a value up to 100ms behind would land short of the
+   * marker it was aimed at.
+   */
+  const readLiveTimeMs: () => number = useCallback((): number => {
+    const latest: ReplayScrubberLatest = latestRef.current;
+    const live: number | undefined = latest.clock?.getCurrentTimeMs?.();
+
+    return typeof live === "number" ? live : latest.snapshot.currentTimeMs;
+  }, []);
+
   const handleNextError: () => void = useCallback((): void => {
     jumpToMarker(
       findNextMarker(
         getErrorMarkers(latestRef.current.markers),
-        latestRef.current.snapshot.currentTimeMs,
+        readLiveTimeMs(),
       ),
     );
-  }, [jumpToMarker]);
+  }, [jumpToMarker, readLiveTimeMs]);
 
   const handlePrevError: () => void = useCallback((): void => {
     jumpToMarker(
       findPrevMarker(
         getErrorMarkers(latestRef.current.markers),
-        latestRef.current.snapshot.currentTimeMs,
+        readLiveTimeMs(),
       ),
     );
-  }, [jumpToMarker]);
+  }, [jumpToMarker, readLiveTimeMs]);
 
   const handleNextFrustration: () => void = useCallback((): void => {
     jumpToMarker(
       findNextMarker(
         getFrustrationMarkers(latestRef.current.markers),
-        latestRef.current.snapshot.currentTimeMs,
+        readLiveTimeMs(),
       ),
     );
-  }, [jumpToMarker]);
+  }, [jumpToMarker, readLiveTimeMs]);
 
   const handleSeekRelative: (deltaMs: number) => void = useCallback(
     (deltaMs: number): void => {
       const latest: ReplayEngineSnapshot = latestRef.current.snapshot;
 
       latestRef.current.onSeek(
-        nudgeOffset(latest.currentTimeMs, deltaMs, latest.durationMs),
+        nudgeOffset(readLiveTimeMs(), deltaMs, latest.durationMs),
       );
     },
-    [],
+    [readLiveTimeMs],
   );
 
   const openShortcuts: () => void = useCallback((): void => {
@@ -552,20 +628,39 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
      * stage and scrubber in a single card.
      */
     <div data-testid="replay-scrubber" className="px-3 pb-3 pt-2.5">
-      <ReplayTimeline
-        durationMs={durationMs}
-        currentTimeMs={currentTimeMs}
-        bands={props.bands}
-        activity={props.activity}
-        markers={markers}
-        signals={props.signals}
-        ghostMs={props.ghostMs}
-        selectedSignalId={props.selectedSignalId}
-        startTimeUnixMs={props.startTimeUnixMs}
-        onSeek={onSeek}
-        onSelectSignal={onSelectSignal}
-        onHover={props.onHoverTimeline}
-      />
+      {props.clock ? (
+        <ReplayTimelineClocked
+          clock={props.clock}
+          timelineProps={{
+            durationMs: durationMs,
+            bands: props.bands,
+            activity: props.activity,
+            markers: markers,
+            signals: props.signals,
+            ghostMs: props.ghostMs,
+            selectedSignalId: props.selectedSignalId,
+            startTimeUnixMs: props.startTimeUnixMs,
+            onSeek: onSeek,
+            onSelectSignal: onSelectSignal,
+            onHover: props.onHoverTimeline,
+          }}
+        />
+      ) : (
+        <ReplayTimeline
+          durationMs={durationMs}
+          currentTimeMs={currentTimeMs}
+          bands={props.bands}
+          activity={props.activity}
+          markers={markers}
+          signals={props.signals}
+          ghostMs={props.ghostMs}
+          selectedSignalId={props.selectedSignalId}
+          startTimeUnixMs={props.startTimeUnixMs}
+          onSeek={onSeek}
+          onSelectSignal={onSelectSignal}
+          onHover={props.onHoverTimeline}
+        />
+      )}
 
       <div className="mt-3">
         <ReplayControls

@@ -674,14 +674,21 @@ describe("ReplayStage device frame and touch", () => {
 });
 
 describe("ReplayStage cursor", () => {
-  it("shortens the cursor transition with the playback speed", () => {
+  /*
+   * The transition has to be exactly one recorded sample interval long
+   * at the speed being played: shorter and the pointer arrives early and
+   * parks until the next sample, longer and it lags the click it caused.
+   * A recording that predates the faster cadence keeps the interval it
+   * was actually recorded at.
+   */
+  it("spans one legacy sample interval, scaled by the playback speed", () => {
     const engine: FakeEngine = new FakeEngine({ speed: 4 });
 
     render(<ReplayStage engine={engine} />);
 
     expect(
       stageElement().style.getPropertyValue("--oneuptime-replay-cursor-ms"),
-    ).toBe("20ms");
+    ).toBe("25ms");
 
     act((): void => {
       engine.update({ speed: 0.5 });
@@ -689,6 +696,41 @@ describe("ReplayStage cursor", () => {
 
     expect(
       stageElement().style.getPropertyValue("--oneuptime-replay-cursor-ms"),
-    ).toBe("160ms");
+    ).toBe("200ms");
+  });
+
+  it("uses the recorded cadence when the recording advertises it", () => {
+    const engine: FakeEngine = new FakeEngine({ speed: 1 });
+
+    render(
+      <ReplayStage
+        engine={engine}
+        recorderCapabilities={["click-events", "mousemove-50ms"]}
+      />,
+    );
+
+    expect(
+      stageElement().style.getPropertyValue("--oneuptime-replay-cursor-ms"),
+    ).toBe("50ms");
+
+    act((): void => {
+      engine.update({ speed: 0.5 });
+    });
+
+    expect(
+      stageElement().style.getPropertyValue("--oneuptime-replay-cursor-ms"),
+    ).toBe("100ms");
+  });
+
+  it("never falls below one frame, however fast the playback", () => {
+    const engine: FakeEngine = new FakeEngine({ speed: 8 });
+
+    render(
+      <ReplayStage engine={engine} recorderCapabilities={["mousemove-50ms"]} />,
+    );
+
+    expect(
+      stageElement().style.getPropertyValue("--oneuptime-replay-cursor-ms"),
+    ).toBe("16ms");
   });
 });

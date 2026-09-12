@@ -1,6 +1,7 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -22,7 +23,6 @@ import {
   clampOffset,
   clusterMarkers,
   describeCluster,
-  getMarkersForLane,
   markerSeekTarget,
   nudgeOffset,
   offsetToPercent,
@@ -48,6 +48,14 @@ import {
  * fetch chunks), and drawing a hole in the recording as blank track. A
  * drag previews locally and commits ONE seek on release; a gap is a
  * hatched, labelled, focusable band.
+ *
+ * The clock ticks this component ~30 times a second and the only things
+ * that move are the playhead and the slider's aria values. Every band,
+ * activity cell and marker lane is therefore a memo'd child fed props that
+ * are referentially stable across ticks (the player memoises bands,
+ * activity and markers on chunk state, and the per-lane marker arrays are
+ * memoised here), so a tick reconciles a handful of elements rather than
+ * one per chunk and one per signal.
  */
 
 export const REPLAY_TIMELINE_DEFAULT_WIDTH_PX: number = 1000;
@@ -173,7 +181,7 @@ interface BandProps {
   durationMs: number;
 }
 
-const TrackBand: FunctionComponent<BandProps> = (
+const TrackBandComponent: FunctionComponent<BandProps> = (
   props: BandProps,
 ): ReactElement => {
   const { band, durationMs } = props;
@@ -257,6 +265,108 @@ const TrackBand: FunctionComponent<BandProps> = (
   );
 };
 
+/* A band's props never change on a clock tick; skip it entirely. */
+const TrackBand: React.NamedExoticComponent<BandProps> =
+  memo(TrackBandComponent);
+
+interface ActivityStripProps {
+  activity: Array<ReplayActivityBucket>;
+  durationMs: number;
+}
+
+/* Activity strip: relative event density per chunk. */
+const ActivityStripComponent: FunctionComponent<ActivityStripProps> = (
+  props: ActivityStripProps,
+): ReactElement => {
+  const { activity, durationMs } = props;
+
+  return (
+    <div className="mb-2 flex items-center gap-2">
+      <div className={LANE_LABEL_CLASS}>Activity</div>
+      <div
+        data-testid="timeline-activity"
+        aria-hidden="true"
+        className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100"
+      >
+        {activity.map((bucket: ReplayActivityBucket): ReactElement => {
+          const left: number = offsetToPercent(bucket.startMs, durationMs);
+          const width: number = Math.max(
+            0.2,
+            offsetToPercent(bucket.endMs, durationMs) - left,
+          );
+
+          return (
+            <div
+              key={`activity-${bucket.chunkIndex}`}
+              className="absolute inset-y-0 bg-indigo-500"
+              style={{
+                left: `${left}%`,
+                width: `${width}%`,
+                opacity: 0.15 + 0.85 * bucket.intensity,
+              }}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+/* One cell per chunk, all of them static between chunk loads. */
+const ActivityStrip: React.NamedExoticComponent<ActivityStripProps> = memo(
+  ActivityStripComponent,
+);
+
+interface TimelinePlayheadProps {
+  playheadPercent: number;
+  /* null while the pointer is off the track. */
+  hoverPercent: number | null;
+  /* null when there is no pending seek to preview. */
+  ghostPercent: number | null;
+}
+
+/*
+ * The three moving parts of the track. Isolated so a tick that only moves
+ * the playhead diffs these three elements and nothing else on the track.
+ */
+const TimelinePlayheadComponent: FunctionComponent<TimelinePlayheadProps> = (
+  props: TimelinePlayheadProps,
+): ReactElement => {
+  return (
+    <>
+      {props.hoverPercent !== null && (
+        <div
+          data-testid="timeline-hover-guide"
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 z-10 w-px bg-gray-400"
+          style={{ left: `${props.hoverPercent}%` }}
+        />
+      )}
+
+      {props.ghostPercent !== null && (
+        <div
+          data-testid="timeline-ghost-playhead"
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 w-0.5 border-l-2 border-dashed border-indigo-400"
+          style={{ left: `${props.ghostPercent}%` }}
+        />
+      )}
+
+      <div
+        data-testid="timeline-playhead"
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 z-20 w-0.5 -translate-x-1/2 rounded-full bg-gray-900"
+        style={{ left: `${props.playheadPercent}%` }}
+      >
+        <span className="absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gray-900 shadow ring-2 ring-white" />
+      </div>
+    </>
+  );
+};
+
+const TimelinePlayhead: React.NamedExoticComponent<TimelinePlayheadProps> =
+  memo(TimelinePlayheadComponent);
+
 interface MarkerLaneProps {
   lane: ReplayTimelineLane;
   markers: Array<ReplayTimelineMarker>;
@@ -266,7 +376,7 @@ interface MarkerLaneProps {
   onActivate: (marker: ReplayTimelineMarker) => void;
 }
 
-const MarkerLane: FunctionComponent<MarkerLaneProps> = (
+const MarkerLaneComponent: FunctionComponent<MarkerLaneProps> = (
   props: MarkerLaneProps,
 ): ReactElement => {
   const clusters: Array<ReplayMarkerCluster> = useMemo(() => {
@@ -385,6 +495,15 @@ const MarkerLane: FunctionComponent<MarkerLaneProps> = (
     </div>
   );
 };
+
+/*
+ * A lane only re-renders when its markers, width or the selection change.
+ * That holds only because the parent memoises the per-lane marker arrays:
+ * a fresh filter result per render would defeat both this memo and the
+ * clusters useMemo above, re-sorting every lane on every tick.
+ */
+const MarkerLane: React.NamedExoticComponent<MarkerLaneProps> =
+  memo(MarkerLaneComponent);
 
 const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
   props: ReplayTimelineProps,
@@ -649,6 +768,10 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
    * the track has focus - including while the page-level shortcuts are
    * off. stopPropagation keeps the window listener from seeing the same
    * key and seeking twice.
+   *
+   * Reads the clock through the refs (assigned above, during render) so the
+   * handler - and with it the slider div's onKeyDown prop - stays the same
+   * function across ticks instead of being rebuilt 30 times a second.
    */
   const handleKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void =
     useCallback(
@@ -671,12 +794,18 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
         if (action.type === "seek-start") {
           onSeek(0);
         } else if (action.type === "seek-end") {
-          onSeek(Math.max(0, durationMs));
+          onSeek(Math.max(0, durationRef.current));
         } else {
-          onSeek(nudgeOffset(currentTimeMs, action.deltaMs, durationMs));
+          onSeek(
+            nudgeOffset(
+              currentTimeRef.current,
+              action.deltaMs,
+              durationRef.current,
+            ),
+          );
         }
       },
-      [onSeek, currentTimeMs, durationMs],
+      [onSeek],
     );
 
   const handleMarkerActivate: (marker: ReplayTimelineMarker) => void =
@@ -695,9 +824,30 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
       [onSeek, onSelectSignal],
     );
 
-  const trackMarkers: Array<ReplayTimelineMarker> = useMemo(() => {
-    return getMarkersForLane(props.markers, "track");
+  /*
+   * One pass splits the markers per lane, memoised on the markers array
+   * itself. Filtering inline in render would hand every MarkerLane a new
+   * array per tick, which is exactly what its memo compares.
+   */
+  const markersByLane: Record<
+    ReplayTimelineLane,
+    Array<ReplayTimelineMarker>
+  > = useMemo(() => {
+    const byLane: Record<ReplayTimelineLane, Array<ReplayTimelineMarker>> = {
+      errors: [],
+      network: [],
+      navigation: [],
+      track: [],
+    };
+
+    for (const marker of props.markers) {
+      byLane[marker.lane].push(marker);
+    }
+
+    return byLane;
   }, [props.markers]);
+
+  const trackMarkers: Array<ReplayTimelineMarker> = markersByLane.track;
 
   const preview: ReplayTimelinePreview | null = useMemo(() => {
     if (hoverMs === null) {
@@ -721,8 +871,8 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
    */
   const playheadMs: number = dragMs ?? currentTimeMs;
   const playheadPercent: number = offsetToPercent(playheadMs, durationMs);
-  const hoverPercent: number =
-    hoverMs === null ? 0 : offsetToPercent(hoverMs, durationMs);
+  const hoverPercent: number | null =
+    hoverMs === null ? null : offsetToPercent(hoverMs, durationMs);
   const ghostPercent: number | null =
     props.ghostMs === null || props.ghostMs === undefined
       ? null
@@ -734,48 +884,15 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
 
   return (
     <div data-testid="replay-timeline">
-      {/* Activity strip: relative event density per chunk. */}
       {isActivityMeasured && props.activity && (
-        <div className="mb-2 flex items-center gap-2">
-          <div className={LANE_LABEL_CLASS}>Activity</div>
-          <div
-            data-testid="timeline-activity"
-            aria-hidden="true"
-            className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100"
-          >
-            {props.activity.map(
-              (bucket: ReplayActivityBucket): ReactElement => {
-                const left: number = offsetToPercent(
-                  bucket.startMs,
-                  durationMs,
-                );
-                const width: number = Math.max(
-                  0.2,
-                  offsetToPercent(bucket.endMs, durationMs) - left,
-                );
-
-                return (
-                  <div
-                    key={`activity-${bucket.chunkIndex}`}
-                    className="absolute inset-y-0 bg-indigo-500"
-                    style={{
-                      left: `${left}%`,
-                      width: `${width}%`,
-                      opacity: 0.15 + 0.85 * bucket.intensity,
-                    }}
-                  />
-                );
-              },
-            )}
-          </div>
-        </div>
+        <ActivityStrip activity={props.activity} durationMs={durationMs} />
       )}
 
       {/* The seekable track. */}
       <div className="flex items-center gap-2">
         <div className={LANE_LABEL_CLASS}>Recording</div>
         <div className="relative flex-1">
-          {hoverMs !== null && dragMs === null && (
+          {hoverMs !== null && hoverPercent !== null && dragMs === null && (
             <div
               className="pointer-events-none absolute bottom-full z-10 mb-1.5 flex flex-col items-start gap-1"
               style={{
@@ -884,32 +1001,11 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
               );
             })}
 
-            {hoverMs !== null && (
-              <div
-                data-testid="timeline-hover-guide"
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-y-0 z-10 w-px bg-gray-400"
-                style={{ left: `${hoverPercent}%` }}
-              />
-            )}
-
-            {ghostPercent !== null && (
-              <div
-                data-testid="timeline-ghost-playhead"
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-y-0 w-0.5 border-l-2 border-dashed border-indigo-400"
-                style={{ left: `${ghostPercent}%` }}
-              />
-            )}
-
-            <div
-              data-testid="timeline-playhead"
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 z-20 w-0.5 -translate-x-1/2 rounded-full bg-gray-900"
-              style={{ left: `${playheadPercent}%` }}
-            >
-              <span className="absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gray-900 shadow ring-2 ring-white" />
-            </div>
+            <TimelinePlayhead
+              playheadPercent={playheadPercent}
+              hoverPercent={hoverPercent}
+              ghostPercent={ghostPercent}
+            />
           </div>
         </div>
       </div>
@@ -920,7 +1016,7 @@ const ReplayTimeline: FunctionComponent<ReplayTimelineProps> = (
             <MarkerLane
               key={lane}
               lane={lane}
-              markers={getMarkersForLane(props.markers, lane)}
+              markers={markersByLane[lane]}
               durationMs={durationMs}
               widthPx={widthPx}
               selectedSignalId={props.selectedSignalId || null}

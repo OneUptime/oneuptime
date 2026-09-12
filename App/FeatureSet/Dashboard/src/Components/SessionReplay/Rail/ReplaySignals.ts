@@ -1139,13 +1139,59 @@ export function fromTimelineEvent(
   }
 }
 
+interface TimelineSignalsCacheEntry {
+  /* wallClockFor derives atUnixMs from this; a different clock re-adapts. */
+  startTimeUnixMs: number | null;
+  signals: Array<ReplaySignal>;
+}
+
+/*
+ * The last adaptation per input array. The loader hands the player one
+ * shared, read-only array that only changes identity when a chunk's rows
+ * were extracted, yet the player's memo re-runs on every fed chunk, so
+ * without this every feed re-adapted thousands of unchanged rows into new
+ * objects (a `new URL` per network row) in the same task as the feed. A
+ * WeakMap so a dropped array takes its signals with it.
+ */
+const TIMELINE_SIGNALS_CACHE: WeakMap<
+  Array<ReplayTimelineEvent>,
+  TimelineSignalsCacheEntry
+> = new WeakMap();
+
+/*
+ * Batch adapter, memoised on the input array identity plus the session
+ * clock: the same array with the same clock returns the same signals
+ * (same array, same objects). fromTimelineEvent stays pure. The returned
+ * array is shared across calls and must not be mutated by a caller. The
+ * length check is a cheap guard against an array that was grown in place.
+ */
 export function fromTimelineEvents(
   events: Array<ReplayTimelineEvent>,
   ctx: ReplayRecordingSignalContext,
 ): Array<ReplaySignal> {
-  return events.map((event: ReplayTimelineEvent): ReplaySignal => {
-    return fromTimelineEvent(event, ctx);
+  const cached: TimelineSignalsCacheEntry | undefined =
+    TIMELINE_SIGNALS_CACHE.get(events);
+
+  if (
+    cached &&
+    cached.startTimeUnixMs === ctx.startTimeUnixMs &&
+    cached.signals.length === events.length
+  ) {
+    return cached.signals;
+  }
+
+  const signals: Array<ReplaySignal> = events.map(
+    (event: ReplayTimelineEvent): ReplaySignal => {
+      return fromTimelineEvent(event, ctx);
+    },
+  );
+
+  TIMELINE_SIGNALS_CACHE.set(events, {
+    startTimeUnixMs: ctx.startTimeUnixMs,
+    signals: signals,
   });
+
+  return signals;
 }
 
 /* ---- Telemetry adapters. ---- */
@@ -1680,6 +1726,34 @@ export function mergeSignals(
 }
 
 /*
+ * The plain "row the playhead has most recently passed" rule over a list
+ * sorted by offsetMs: the LAST index with offsetMs <= currentTimeMs (the
+ * last of a tie), -1 before the first row. An upper-bound binary search,
+ * because the rail asks this on every clock tick and the old linear scan
+ * walked from row 0 to the playhead each time. A NaN currentTimeMs makes
+ * every `<=` false and lands on -1, exactly as the scan did.
+ */
+export function findLastSignalIndexAtOrBefore(
+  signals: Array<ReplaySignal>,
+  currentTimeMs: number,
+): number {
+  let lo: number = 0;
+  let hi: number = signals.length;
+
+  while (lo < hi) {
+    const mid: number = (lo + hi) >>> 1;
+
+    if ((signals[mid] as ReplaySignal).offsetMs <= currentTimeMs) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+
+  return lo - 1;
+}
+
+/*
  * The row the playhead has most recently passed, in a list sorted by
  * offset: the last row with offsetMs <= currentTimeMs, -1 before the
  * first. Same rule the old panel used.
@@ -1695,21 +1769,7 @@ export function getActiveSignalIndex(
   currentTimeMs: number,
   selectedSignalId?: string | undefined,
 ): number {
-  let index: number = -1;
-
-  for (let i: number = 0; i < signals.length; i++) {
-    const signal: ReplaySignal | undefined = signals[i];
-
-    if (!signal) {
-      break;
-    }
-
-    if (signal.offsetMs <= currentTimeMs) {
-      index = i;
-    } else {
-      break;
-    }
-  }
+  const index: number = findLastSignalIndexAtOrBefore(signals, currentTimeMs);
 
   if (selectedSignalId) {
     const selectedIndex: number = signals.findIndex(

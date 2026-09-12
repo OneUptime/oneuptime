@@ -168,6 +168,8 @@ import {
   parseSessionReplayListCursor,
 } from "../../Types/Rum/SessionReplayApi";
 import { SessionReplayRefusalCount } from "../../Types/Rum/SessionReplayHealth";
+import zlib from "zlib";
+import { promisify } from "util";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -5503,6 +5505,84 @@ router.post(
 
 // --- Session Replay Chunk Endpoint ---
 
+/*
+ * Chunk pages are gzipped here, in the route, rather than by nginx or a
+ * middleware. The `payload` column holds DECOMPRESSED rrweb JSON (the
+ * recorder's gzip is undone at ingest so the read cap can be judged on
+ * real bytes), so a page is 1-8 MB of highly repetitive text on the wire
+ * unless something compresses it again. Nginx cannot: the body is
+ * application/octet-stream, which is deliberately outside its gzip_types
+ * (Nginx/default.conf.template), and adding it there would also
+ * re-compress pprof downloads that are already gzip. Nothing else in the
+ * API adds response compression.
+ *
+ * Async zlib runs on the libuv threadpool, so the API event loop is never
+ * blocked by a page. Measured on a development machine: level 4 shrinks a
+ * realistic 8.4 MB page 8.7x in ~130 ms of threadpool time, which is why
+ * level 4 rather than the default 6 - the extra levels cost CPU for a few
+ * percent of size on JSON that already compresses this well.
+ */
+const gzipAsync: (input: Buffer, options: zlib.ZlibOptions) => Promise<Buffer> =
+  promisify(zlib.gzip);
+
+/* Mirrors nginx's gzip_min_length: a page this small gains nothing. */
+const SESSION_REPLAY_GZIP_MIN_BYTES: number = 1024;
+const SESSION_REPLAY_GZIP_LEVEL: number = 4;
+
+type AcceptsGzipEncodingFunction = (req: ExpressRequest) => boolean;
+
+/*
+ * Reads Accept-Encoding by hand instead of via req.acceptsEncodings so
+ * the route depends only on the headers object (which is all a plain
+ * request object is guaranteed to carry). Tolerates a repeated header
+ * (array), q-values, and the x-gzip alias; "gzip;q=0" is an explicit
+ * refusal and wins over any other gzip token.
+ */
+const acceptsGzipEncoding: AcceptsGzipEncodingFunction = (
+  req: ExpressRequest,
+): boolean => {
+  const raw: unknown = req.headers?.["accept-encoding"];
+
+  let headerValue: string;
+
+  if (Array.isArray(raw)) {
+    headerValue = raw.join(",");
+  } else if (typeof raw === "string") {
+    headerValue = raw;
+  } else {
+    return false;
+  }
+
+  let gzipAccepted: boolean = false;
+
+  for (const token of headerValue.toLowerCase().split(",")) {
+    const parts: Array<string> = token.split(";");
+    const coding: string = (parts[0] ?? "").trim();
+
+    if (coding !== "gzip" && coding !== "x-gzip") {
+      continue;
+    }
+
+    let quality: number = 1;
+
+    for (const parameter of parts.slice(1)) {
+      const [name, value] = parameter.split("=");
+
+      if ((name ?? "").trim() === "q") {
+        quality = Number.parseFloat((value ?? "").trim());
+      }
+    }
+
+    if (Number.isNaN(quality) || quality <= 0) {
+      return false;
+    }
+
+    gzipAccepted = true;
+  }
+
+  return gzipAccepted;
+};
+
 router.post(
   "/telemetry/rum/session-replay/chunks",
   ...requireSessionReplayPayloadAccess,
@@ -5661,8 +5741,38 @@ router.post(
 
       const responseBody: Buffer = Buffer.concat(frames);
 
+      /*
+       * The read cap and the omitted list above are judged on the
+       * uncompressed frames: they bound what the player must hold in
+       * memory, not what crosses the wire. Only the bytes sent change.
+       */
+      let bodyToSend: Buffer = responseBody;
+      let contentEncoding: string | undefined = undefined;
+
+      if (
+        responseBody.length >= SESSION_REPLAY_GZIP_MIN_BYTES &&
+        acceptsGzipEncoding(req)
+      ) {
+        bodyToSend = await gzipAsync(responseBody, {
+          level: SESSION_REPLAY_GZIP_LEVEL,
+        });
+        contentEncoding = "gzip";
+      }
+
       res.setHeader("Content-Type", "application/octet-stream");
-      res.setHeader("Content-Length", responseBody.length.toString());
+
+      /*
+       * Set on both branches: the representation depends on the request
+       * header even when the answer is identity, and it is identical to
+       * what nginx's gzip_vary would emit for a body it compressed itself.
+       */
+      res.setHeader("Vary", "Accept-Encoding");
+
+      if (contentEncoding) {
+        res.setHeader("Content-Encoding", contentEncoding);
+      }
+
+      res.setHeader("Content-Length", bodyToSend.length.toString());
 
       /*
        * Which requested chunks exist but were left out for size, so a
@@ -5684,7 +5794,7 @@ router.post(
        * shared cache, and the browser should not keep it on disk either.
        */
       res.setHeader("Cache-Control", "no-store");
-      res.send(responseBody);
+      res.send(bodyToSend);
     } catch (err: unknown) {
       next(err);
     }

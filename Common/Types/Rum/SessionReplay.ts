@@ -88,6 +88,36 @@ export const SESSION_REPLAY_FLUSH_BYTES: number = 256 * 1024;
 export const SESSION_REPLAY_CHECKOUT_INTERVAL_MS: number = 60 * 1000;
 
 /*
+ * Recorder input-sampling cadence. These are the values handed to the
+ * recording library's `sampling` option, and they are shared with the
+ * player because the cadence is baked into every stored recording: the
+ * cursor transition the stage draws between two mouse samples has to be
+ * exactly one sample interval long, or the pointer either parks between
+ * samples (transition shorter than the gap) or lags them (longer).
+ *
+ * SESSION_REPLAY_MOUSEMOVE_SAMPLE_MS is the library default (50ms, 20Hz).
+ * Recorders before the "mousemove-50ms" capability sampled at
+ * SESSION_REPLAY_LEGACY_MOUSEMOVE_SAMPLE_MS (100ms, 10Hz); the player keeps
+ * using the legacy value for a recording that does not advertise the
+ * capability, so old footage never gets a transition shorter than its gap.
+ *
+ * Not part of the wire contract: neither SESSION_REPLAY_WIRE_VERSION nor
+ * SESSION_REPLAY_SCHEMA_VERSION changes with these.
+ */
+export const SESSION_REPLAY_MOUSEMOVE_SAMPLE_MS: number = 50;
+export const SESSION_REPLAY_LEGACY_MOUSEMOVE_SAMPLE_MS: number = 100;
+/* Scroll throttle (leading + trailing), the library default. */
+export const SESSION_REPLAY_SCROLL_SAMPLE_MS: number = 100;
+/*
+ * "all" listens to input events, so typing plays back keystroke by
+ * keystroke; "last" only listens to change events, so a typed value
+ * appeared as one snap on blur or Enter. Masked fields still collapse to a
+ * single event per typing run because the mask is constant-width and the
+ * recording library drops identical consecutive masked values.
+ */
+export const SESSION_REPLAY_INPUT_SAMPLING: "all" | "last" = "all";
+
+/*
  * Rolling pre-roll buffer held in memory before a trigger fires, and the
  * hard byte ceiling on it. The ceiling matters more than the duration:
  * a heavily dynamic page can blow through 2MB in well under 60s, and a
@@ -291,6 +321,12 @@ export const SESSION_REPLAY_RECORDER_CAPABILITIES: ReadonlyArray<string> = [
    * page never calls identify().
    */
   "visitor-id",
+  /*
+   * Mouse movement sampled every SESSION_REPLAY_MOUSEMOVE_SAMPLE_MS (50ms)
+   * rather than the legacy 100ms. The player derives its cursor transition
+   * from this: see ReplayStage.
+   */
+  "mousemove-50ms",
 ];
 
 /* How the payload bytes were compressed by the recorder. */
