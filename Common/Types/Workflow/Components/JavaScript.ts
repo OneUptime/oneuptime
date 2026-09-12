@@ -27,7 +27,7 @@ const components: Array<ComponentMetadata> = [
         type: ComponentInputType.JSON,
         name: "Arguments",
         description:
-          "Pass in arguments to your JavaScript Code from this workflow",
+          "Pass data into your JavaScript code. Use {{local.components.COMPONENT_ID.returnValue}} to reference the output of a previous component (replace COMPONENT_ID with the ID shown on that component). Inside your script, arguments are available as the 'args' variable.",
         required: false,
         id: "arguments",
       },
