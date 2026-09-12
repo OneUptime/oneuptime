@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import Includes from "Common/Types/BaseDatabase/Includes";
+import Includes, { IncludesType } from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import Search from "Common/Types/BaseDatabase/Search";
 import ObjectID from "Common/Types/ObjectID";
@@ -132,7 +132,7 @@ describe("buildExceptionEntityKeyScope", () => {
       }),
     ).toBe(true);
     expect(
-      predicates.map((predicate: Includes): Array<string> => {
+      predicates.map((predicate: Includes): IncludesType => {
         return predicate.values;
       }),
     ).toEqual(expect.arrayContaining([["service:checkout"], [POD_A]]));
