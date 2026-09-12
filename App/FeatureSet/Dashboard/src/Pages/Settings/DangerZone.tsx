@@ -1,16 +1,11 @@
 import ProjectUtil from "Common/UI/Utils/Project";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
-import DashboardSideMenu from "./SideMenu";
-import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
-import Page from "Common/UI/Components/Page/Page";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -70,28 +65,7 @@ const Settings: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <Page
-      title={"Project Settings"}
-      breadcrumbLinks={[
-        {
-          title: "Project",
-          to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
-        },
-        {
-          title: "Settings",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.SETTINGS] as Route,
-          ),
-        },
-        {
-          title: "Danger Zone",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.SETTINGS_DANGERZONE] as Route,
-          ),
-        },
-      ]}
-      sideMenu={<DashboardSideMenu />}
-    >
+    <React.Fragment>
       <Alert
         type={AlertType.DANGER}
         strongTitle="DANGER ZONE"
@@ -130,7 +104,7 @@ const Settings: FunctionComponent<ComponentProps> = (
           props.onProjectDeleted();
         }}
       />
-    </Page>
+    </React.Fragment>
   );
 };
 

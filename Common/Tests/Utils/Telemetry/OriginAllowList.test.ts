@@ -631,3 +631,121 @@ describe("OriginAllowList validator and matcher agree", () => {
     });
   }
 });
+
+/*
+ * The form-field half of the allowlist rules, shared by the ingestion key
+ * creation wizard and the key's detail page. Before it existed only the
+ * wizard checked anything, so the detail page accepted every well-formed
+ * JSON document and let the API do the refusing, one round trip later, in
+ * the server's words.
+ */
+describe("OriginAllowList.validateAllowedOriginsFormValue", () => {
+  type Validate = (value: unknown, allowEmptyList?: boolean) => string | null;
+
+  const validate: Validate = (
+    value: unknown,
+    allowEmptyList: boolean = false,
+  ): string | null => {
+    return OriginAllowList.validateAllowedOriginsFormValue({
+      value: value,
+      allowEmptyList: allowEmptyList,
+    });
+  };
+
+  test("accepts the JSON text the editor holds", () => {
+    expect(
+      validate('["https://app.example.com", "https://*.example.org"]'),
+    ).toBeNull();
+  });
+
+  /*
+   * The detail page loads the stored value, so the already-parsed array
+   * reaches the validator whenever the field is not touched. Refusing it
+   * would block every other edit on the page.
+   */
+  test("accepts the already-parsed array the fetch loaded", () => {
+    expect(validate(["https://app.example.com"])).toBeNull();
+  });
+
+  test.each([undefined, null])(
+    "says nothing about %p, which is the required check's business",
+    (value: unknown) => {
+      expect(validate(value)).toBeNull();
+    },
+  );
+
+  test.each([
+    ['["https://app.example.com"', "an unbalanced array"],
+    ["{{origins}}", "a handlebars template"],
+    ["   ", "whitespace"],
+    ["", "the empty string"],
+  ])("refuses %j (%s) as invalid JSON", (value: string) => {
+    expect(validate(value)).toMatch(/^Allowed Origins is not valid JSON\./);
+  });
+
+  test.each(['{"origin":"https://app.example.com"}', '"https://x.com"', "17"])(
+    "refuses %j, which is JSON but not a list",
+    (value: string) => {
+      expect(validate(value)).toBe(
+        "Enter at least one allowed origin as a JSON array.",
+      );
+    },
+  );
+
+  test("refuses an entry that is not text", () => {
+    expect(validate('["https://app.example.com", 17]')).toBe(
+      "Every allowed origin must be text.",
+    );
+  });
+
+  /*
+   * A path is the dangerous one: `matches` compares origins, so
+   * "https://app.example.com/admin" would match every request from
+   * app.example.com - looser than what was written, and read as tighter.
+   */
+  test("refuses an origin carrying a path", () => {
+    expect(validate('["https://app.example.com/admin"]')).toMatch(
+      /must not contain a path/,
+    );
+  });
+
+  test("refuses the evilexample.com wildcard trap", () => {
+    expect(validate('["https://*example.com"]')).not.toBeNull();
+  });
+
+  test("reports the first bad origin, not the last", () => {
+    expect(
+      validate('["https://app.example.com/admin", "ftp://x.example"]'),
+    ).toMatch(/must not contain a path/);
+  });
+
+  /*
+   * The one rule that differs between the two callers. A new browser key
+   * with no origins is refused on every request from the moment it exists,
+   * so the wizard will not create one; the detail page has to allow an empty
+   * list because that is how a server key's leftovers are dropped, and it
+   * cannot tell the key types apart - the service, which can, still refuses
+   * to empty a browser key's list.
+   */
+  test.each(["[]", '["   "]'])(
+    "refuses %j while creating, where an empty list has no use",
+    (value: string) => {
+      expect(validate(value, false)).toBe(
+        "Enter at least one allowed origin as a JSON array.",
+      );
+    },
+  );
+
+  test.each(["[]", '["   "]'])(
+    "allows %j while editing, where an empty list clears the allowlist",
+    (value: string) => {
+      expect(validate(value, true)).toBeNull();
+    },
+  );
+
+  test("still checks the origins it does have when an empty list is allowed", () => {
+    expect(validate('["https://app.example.com/admin"]', true)).toMatch(
+      /must not contain a path/,
+    );
+  });
+});

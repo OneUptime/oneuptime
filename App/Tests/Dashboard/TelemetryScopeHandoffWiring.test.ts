@@ -185,7 +185,7 @@ describe("the Logs explorer's first URL write is never narrower than the link", 
   });
 });
 
-describe("the Exceptions status tabs carry scope, and Overview does not", () => {
+describe("the Exceptions status tabs carry scope, and Insights does not", () => {
   const EXCEPTIONS_NAV_TABS: string =
     "Components/Exceptions/ExceptionsNavTabs.tsx";
 
@@ -223,14 +223,14 @@ describe("the Exceptions status tabs carry scope, and Overview does not", () => 
        * different status default, so a service filter, a search or a window
        * set on one describes the other two exactly. Those three carry.
        *
-       * Overview must not. It is a different, unscoped component: handing it
+       * Insights must not. It is a different, unscoped component: handing it
        * a filtered URL would put a scope in the address bar that none of its
        * numbers honour, which is worse than losing the filter — the user
        * reads project-wide totals under a five-service label and believes
        * them. Setup Guide is not a view of the data at all.
        *
        * Asserting per tab rather than by count is the point: moving the
-       * marker from Archived to Overview keeps the count at three and breaks
+       * marker from Archived to Insights keeps the count at three and breaks
        * exactly this test.
        */
       const entry: string = tabEntry(exceptionsTabsArray(), key);

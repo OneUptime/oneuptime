@@ -24,7 +24,7 @@ const ExceptionsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           index
           element={
-            <ExceptionsOverview
+            <ExceptionsUnresolved
               {...props}
               pageRoute={RouteMap[PageMap.EXCEPTIONS] as Route}
             />

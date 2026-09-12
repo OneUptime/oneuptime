@@ -768,7 +768,7 @@ const realRoutePatterns: Array<string> = [
   "/dashboard/:projectId/ai/insights/:id",
   "/dashboard/:projectId/ai/insights/settings",
   "/dashboard/:projectId/exceptions/*",
-  "/dashboard/:projectId/exceptions/overview",
+  "/dashboard/:projectId/exceptions/unresolved",
   "/dashboard/:projectId/llm/*",
   "/dashboard/:projectId/ai/chat",
   "/dashboard/:projectId/llm/overview",

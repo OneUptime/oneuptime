@@ -227,7 +227,18 @@ function findDockerStatsConfigs() {
 
   function walk(dir) {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      if (entry.name === "node_modules" || entry.name === ".git") {
+      /*
+       * .claude holds agent worktrees: full checkouts of this repo nested
+       * under its own root. Without skipping them this scan reports every
+       * in-flight branch's copy of every collector config, so the assertion
+       * below fails locally for a reason that has nothing to do with what
+       * ships - the same trap SyncPackageVersions documents.
+       */
+      if (
+        entry.name === "node_modules" ||
+        entry.name === ".git" ||
+        entry.name === ".claude"
+      ) {
         continue;
       }
 

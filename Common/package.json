@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/common",
-  "version": "13.0.2",
+  "version": "13.0.3",
   "description": "",
   "repository": {
     "type": "git",
@@ -125,7 +125,7 @@
     "moment-timezone": "^0.5.45",
     "monaco-editor": "0.52.2",
     "mssql": "^12.7.0",
-    "multer": "^2.1.1",
+    "multer": "^2.3.0",
     "mysql2": "^3.22.6",
     "node-cron": "^4.0.0",
     "nodemailer": "^10.0.3",

@@ -14,7 +14,7 @@ export function getExceptionsBreadcrumbs(
     ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_OVERVIEW, [
       "Project",
       "Exceptions",
-      "Overview",
+      "Insights",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.EXCEPTIONS_UNRESOLVED, [
       "Project",
