@@ -29,8 +29,8 @@ const PARENT_NETWORK_SITE_TYPE_KEYS: Array<string> = [
 
 const PROJECT_KEYS: Array<string> = ["projectId", "project"];
 
-const EXISTING_SITES_DO_NOT_MATCH_MESSAGE: string =
-  "This site type's parent cannot be changed because existing sites do not match the proposed hierarchy. Create a new site type under the desired parent, then move and reassign the sites to it.";
+const EXISTING_SITES_WOULD_INVERT_MESSAGE: string =
+  "This site type's parent cannot be changed because an existing site is already placed under a site that the move would push below it. Move that site first, then change the type.";
 
 const REFERENCE_VALIDATION_BATCH_SIZE: number = 1000;
 
@@ -742,111 +742,177 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Changing a type definition must not retroactively make the concrete site
-   * tree invalid. A root type may only describe root sites; a child type may
-   * only describe sites whose actual parent has the declared parent type.
+   * Changing a type's place in the catalog must not retroactively invert the
+   * concrete site tree. Site placement itself is permissive — a site may sit
+   * under any site whose type is not BELOW its own — so the rows at risk are
+   * not the moved type's own sites.
+   *
+   * Moving type X from its old ancestor chain to a new one adds "sits above"
+   * pairs (Z, Y) for exactly Z in newAncestors = chain(newParent) minus
+   * chain(oldParent), and Y in movedSubtree = {X} + descendants(X): X keeps
+   * its own subtree, so nothing below X changes relative to X. An existing
+   * edge breaks only when its CHILD site is typed in newAncestors and its
+   * PARENT site is typed in movedSubtree, because that edge would then place a
+   * higher-level site beneath a lower-level one.
+   *
+   * Two corollaries fall straight out and are worth knowing when reading the
+   * early returns: clearing a type's parent has an empty newAncestors, so it
+   * can never break anything; and moving a type DEEPER along the chain it is
+   * already under only adds ancestors the sites already had.
    */
-  private async assertExistingSitesMatchProposedParent(data: {
+  private async assertExistingSitesWouldNotInvert(data: {
     networkSiteTypeId: ObjectID;
+    projectId: ObjectID;
+    currentParentNetworkSiteTypeId: ObjectID | string | null;
     proposedParentNetworkSiteTypeId: ObjectID | null;
+    networkSiteTypes: Array<Model>;
   }): Promise<void> {
-    const sites: Array<NetworkSite> = await this.findAllNetworkSites({
-      query: { networkSiteTypeId: data.networkSiteTypeId },
-      select: {
-        _id: true,
-        parentSiteId: true,
-      },
+    if (!data.proposedParentNetworkSiteTypeId) {
+      return;
+    }
+
+    const chainOf: (startId: ObjectID | string | null) => Set<string> = (
+      startId: ObjectID | string | null,
+    ): Set<string> => {
+      const chain: Set<string> = new Set<string>();
+
+      if (!startId) {
+        return chain;
+      }
+
+      const start: Model | undefined = data.networkSiteTypes.find(
+        (networkSiteType: Model) => {
+          return Boolean(
+            networkSiteType.id && sameId(networkSiteType.id, startId),
+          );
+        },
+      );
+
+      chain.add(normalizeId(startId));
+
+      if (!start) {
+        return chain;
+      }
+
+      for (const ancestor of NetworkSiteTypeHierarchyUtil.getAncestorNetworkSiteTypes(
+        {
+          networkSiteType: start,
+          networkSiteTypes: data.networkSiteTypes,
+        },
+      )) {
+        if (ancestor.id) {
+          chain.add(normalizeId(ancestor.id));
+        }
+      }
+
+      return chain;
+    };
+
+    const oldChain: Set<string> = chainOf(data.currentParentNetworkSiteTypeId);
+    const newAncestorIds: Array<string> = [
+      ...chainOf(data.proposedParentNetworkSiteTypeId),
+    ].filter((typeId: string) => {
+      return !oldChain.has(typeId);
     });
 
-    if (sites.length === 0) {
+    if (newAncestorIds.length === 0) {
       return;
     }
 
-    if (!data.proposedParentNetworkSiteTypeId) {
-      if (
-        sites.some((site: NetworkSite) => {
-          return Boolean(site.parentSiteId);
-        })
-      ) {
-        throw new BadDataException(EXISTING_SITES_DO_NOT_MATCH_MESSAGE);
-      }
+    const movingType: Model = new Model();
+    movingType.id = data.networkSiteTypeId;
 
-      return;
-    }
-
-    const parentSiteIds: Array<ObjectID> = [];
-    const distinctParentSiteIds: Set<string> = new Set<string>();
-
-    for (const site of sites) {
-      if (!site.parentSiteId) {
-        throw new BadDataException(EXISTING_SITES_DO_NOT_MATCH_MESSAGE);
-      }
-
-      const normalizedParentSiteId: string = normalizeId(site.parentSiteId);
-      if (!distinctParentSiteIds.has(normalizedParentSiteId)) {
-        distinctParentSiteIds.add(normalizedParentSiteId);
-        parentSiteIds.push(site.parentSiteId);
+    const movedSubtreeTypeIds: Set<string> = new Set<string>([
+      normalizeId(data.networkSiteTypeId),
+    ]);
+    for (const descendant of NetworkSiteTypeHierarchyUtil.getDescendantNetworkSiteTypes(
+      {
+        networkSiteType: movingType,
+        networkSiteTypes: data.networkSiteTypes,
+      },
+    )) {
+      if (descendant.id) {
+        movedSubtreeTypeIds.add(normalizeId(descendant.id));
       }
     }
 
-    const parentSites: Array<NetworkSite> = [];
+    /*
+     * Only sites typed in the newly gained ancestor chain can break, and only
+     * through the parent they already point at. Reading that narrow slice
+     * rather than every site in the project is what keeps a settings save on a
+     * large estate proportional to the move.
+     */
+    const sitesAtRisk: Array<NetworkSite> = [];
 
     for (
       let offset: number = 0;
-      offset < parentSiteIds.length;
-      offset += LIMIT_MAX
+      offset < newAncestorIds.length;
+      offset += REFERENCE_VALIDATION_BATCH_SIZE
     ) {
-      const parentSiteIdBatch: Array<ObjectID> = parentSiteIds.slice(
-        offset,
-        offset + LIMIT_MAX,
-      );
-
-      parentSites.push(
+      sitesAtRisk.push(
         ...(await this.findAllNetworkSites({
           query: {
-            _id: QueryHelper.any(
-              parentSiteIdBatch.map((parentSiteId: ObjectID) => {
-                return parentSiteId.toString();
-              }),
+            projectId: data.projectId,
+            networkSiteTypeId: QueryHelper.any(
+              newAncestorIds.slice(
+                offset,
+                offset + REFERENCE_VALIDATION_BATCH_SIZE,
+              ),
             ),
           },
           select: {
             _id: true,
-            networkSiteTypeId: true,
+            parentSiteId: true,
           },
         })),
       );
     }
 
-    const parentTypeBySiteId: Map<string, ObjectID> = new Map<
-      string,
-      ObjectID
-    >();
+    const parentSiteIds: Array<string> = [
+      ...new Set<string>(
+        sitesAtRisk
+          .map((site: NetworkSite): string | null => {
+            return site.parentSiteId ? normalizeId(site.parentSiteId) : null;
+          })
+          .filter((parentSiteId: string | null): parentSiteId is string => {
+            return Boolean(parentSiteId);
+          }),
+      ),
+    ];
 
-    for (const parentSite of parentSites) {
-      if (parentSite.id && parentSite.networkSiteTypeId) {
-        parentTypeBySiteId.set(
-          normalizeId(parentSite.id),
-          parentSite.networkSiteTypeId,
-        );
-      }
+    if (parentSiteIds.length === 0) {
+      return;
     }
 
-    const hasMismatch: boolean = parentSiteIds.some(
-      (parentSiteId: ObjectID) => {
-        const actualParentTypeId: ObjectID | undefined = parentTypeBySiteId.get(
-          normalizeId(parentSiteId),
-        );
+    for (
+      let offset: number = 0;
+      offset < parentSiteIds.length;
+      offset += REFERENCE_VALIDATION_BATCH_SIZE
+    ) {
+      const parentSites: Array<NetworkSite> = await this.findAllNetworkSites({
+        query: {
+          projectId: data.projectId,
+          _id: QueryHelper.any(
+            parentSiteIds.slice(
+              offset,
+              offset + REFERENCE_VALIDATION_BATCH_SIZE,
+            ),
+          ),
+        },
+        select: {
+          _id: true,
+          networkSiteTypeId: true,
+        },
+      });
 
-        return (
-          !actualParentTypeId ||
-          !sameId(actualParentTypeId, data.proposedParentNetworkSiteTypeId!)
-        );
-      },
-    );
-
-    if (hasMismatch) {
-      throw new BadDataException(EXISTING_SITES_DO_NOT_MATCH_MESSAGE);
+      for (const parentSite of parentSites) {
+        if (
+          parentSite.networkSiteTypeId &&
+          movedSubtreeTypeIds.has(normalizeId(parentSite.networkSiteTypeId))
+        ) {
+          throw new BadDataException(EXISTING_SITES_WOULD_INVERT_MESSAGE);
+        }
+      }
     }
   }
 
@@ -1062,6 +1128,17 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (isParentWritten) {
+      /*
+       * The catalog is read once for the whole update: the inversion check
+       * walks ancestors of the proposed parent and descendants of the moving
+       * type, and a bulk move would otherwise re-read the same rows per item.
+       * Clearing a parent cannot invert anything, so nothing is read for it.
+       */
+      const networkSiteTypesByProjectId: Map<string, Array<Model>> = new Map<
+        string,
+        Array<Model>
+      >();
+
       for (const networkSiteType of networkSiteTypesBeingUpdated) {
         if (!networkSiteType.id || !networkSiteType.projectId) {
           continue;
@@ -1083,10 +1160,33 @@ export class Service extends DatabaseService<Model> {
           : Boolean(currentParentId);
 
         if (parentChanged) {
-          await this.assertExistingSitesMatchProposedParent({
-            networkSiteTypeId: networkSiteType.id,
-            proposedParentNetworkSiteTypeId,
-          });
+          if (proposedParentNetworkSiteTypeId) {
+            const projectKey: string = normalizeId(networkSiteType.projectId);
+            let projectNetworkSiteTypes: Array<Model> | undefined =
+              networkSiteTypesByProjectId.get(projectKey);
+
+            if (!projectNetworkSiteTypes) {
+              projectNetworkSiteTypes = await this.findAllNetworkSiteTypes({
+                query: { projectId: networkSiteType.projectId },
+                select: {
+                  _id: true,
+                  parentNetworkSiteTypeId: true,
+                },
+              });
+              networkSiteTypesByProjectId.set(
+                projectKey,
+                projectNetworkSiteTypes,
+              );
+            }
+
+            await this.assertExistingSitesWouldNotInvert({
+              networkSiteTypeId: networkSiteType.id,
+              projectId: networkSiteType.projectId,
+              currentParentNetworkSiteTypeId: currentParentId,
+              proposedParentNetworkSiteTypeId,
+              networkSiteTypes: projectNetworkSiteTypes,
+            });
+          }
 
           if (
             networkSiteTypesBeingUpdated.length === 1 &&

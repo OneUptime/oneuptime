@@ -35,6 +35,10 @@ import Query from "../../../Types/BaseDatabase/Query";
 import GroupBy from "../../../Types/BaseDatabase/GroupBy";
 import Sort from "../../../Types/BaseDatabase/Sort";
 import Select from "../../../Types/BaseDatabase/Select";
+import {
+  getRuleCriteriaTableConfiguration,
+  RuleCriteriaTableConfiguration,
+} from "../RuleCriteria/RuleCriteriaModelTable";
 
 export interface ComponentProps<TBaseModel extends BaseModel>
   extends BaseTableProps<TBaseModel> {
@@ -123,6 +127,15 @@ const ModelTable: <TBaseModel extends BaseModel>(
   let bulkActions: BulkActionProps<TBaseModel> | undefined = props.bulkActions;
   let cardProps: CardComponentProps | undefined = props.cardProps;
   let refreshToggle: string | undefined = props.refreshToggle;
+  const ruleCriteriaTable: RuleCriteriaTableConfiguration<TBaseModel> =
+    getRuleCriteriaTableConfiguration({
+      model: model,
+      formFields: props.formFields,
+      columns: props.columns,
+      filters: props.filters,
+      selectMoreFields: props.selectMoreFields,
+      helpContent: props.helpContent,
+    });
 
   if (props.enableJsonImportExport) {
     bulkActions = {
@@ -182,6 +195,12 @@ const ModelTable: <TBaseModel extends BaseModel>(
       )}
       <BaseModelTable
         {...props}
+        columns={ruleCriteriaTable.columns}
+        filters={ruleCriteriaTable.filters}
+        {...(ruleCriteriaTable.selectMoreFields
+          ? { selectMoreFields: ruleCriteriaTable.selectMoreFields }
+          : {})}
+        helpContent={ruleCriteriaTable.helpContent}
         bulkActions={bulkActions}
         cardProps={cardProps}
         refreshToggle={refreshToggle}

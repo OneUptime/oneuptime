@@ -9,8 +9,13 @@ import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorLabelRule from "../../Models/DatabaseModels/MonitorLabelRule";
 import NetworkDeviceLabelRule from "../../Models/DatabaseModels/NetworkDeviceLabelRule";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import FilterCondition from "../../Types/Filter/FilterCondition";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import {
+  RULE_CRITERIA_SCHEMA_VERSION,
+  RuleCriteriaOperator,
+} from "../../Types/Rules/RuleCriteria";
 import LabelRuleImportExport, {
   LABEL_RULE_MODELS,
   ParsedLabelRuleImport,
@@ -249,6 +254,159 @@ describe("portable label rule files", () => {
       expect(model.getValue("labelsToAdd")).toEqual([label]);
     },
   );
+
+  test.each([FilterCondition.Any, FilterCondition.All])(
+    "round trips configured %s criteria with relation names instead of IDs",
+    (filterCondition: FilterCondition) => {
+      const label: Label = new Label();
+      label._id = "44444444-4444-4444-8444-444444444444";
+      label.name = "Production";
+      const rule: MonitorLabelRule = new MonitorLabelRule();
+      rule.name = "Configured criteria";
+      rule.isEnabled = true;
+      rule.monitorLabels = [label];
+      rule.labelsToAdd = [label];
+      rule.criteria = {
+        schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+        filterCondition,
+        filters: [
+          {
+            field: "monitorNamePattern",
+            operator: RuleCriteriaOperator.StartsWith,
+            value: "api-",
+          },
+          {
+            field: "monitorLabels",
+            operator: RuleCriteriaOperator.HasAllOf,
+            value: [label.id!.toString()],
+          },
+        ],
+      };
+
+      const envelope: JSONObject = LabelRuleImportExport.buildExportEnvelope({
+        modelType: MonitorLabelRule,
+        items: [rule],
+      });
+      expect(JSON.stringify(envelope)).not.toContain(label.id!.toString());
+      expect(
+        (envelope["items"] as Array<JSONObject>)[0]!["criteria"],
+      ).toMatchObject({
+        schemaVersion: 1,
+        filterCondition,
+        filters: [
+          {
+            field: "monitorNamePattern",
+            operator: RuleCriteriaOperator.StartsWith,
+            value: "api-",
+          },
+          {
+            field: "monitorLabels",
+            operator: RuleCriteriaOperator.HasAllOf,
+            value: ["Production"],
+          },
+        ],
+      });
+
+      const parsed: ParsedLabelRuleImport = LabelRuleImportExport.parse({
+        modelType: MonitorLabelRule,
+        fileText: JSON.stringify(envelope),
+      });
+      expect(parsed.items[0]!.json["criteria"]).toEqual(
+        (envelope["items"] as Array<JSONObject>)[0]!["criteria"],
+      );
+    },
+  );
+
+  test("semantically maps configured criteria fields across resource rule types", () => {
+    const output: ParsedLabelRuleImport = parse(
+      [
+        {
+          ...base,
+          criteria: {
+            schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+            filterCondition: FilterCondition.Any,
+            filters: [
+              {
+                field: "incidentTitlePattern",
+                operator: RuleCriteriaOperator.Contains,
+                value: "database",
+              },
+              {
+                field: "incidentLabels",
+                operator: RuleCriteriaOperator.HasAllOf,
+                value: ["Production"],
+              },
+            ],
+          },
+        },
+      ],
+      IncidentLabelRule,
+      AlertLabelRule,
+    );
+
+    expect(output.items[0]!.json["criteria"]).toEqual({
+      schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+      filterCondition: FilterCondition.Any,
+      filters: [
+        {
+          field: "alertTitlePattern",
+          operator: RuleCriteriaOperator.Contains,
+          value: "database",
+        },
+        {
+          field: "alertLabels",
+          operator: RuleCriteriaOperator.HasAllOf,
+          value: ["Production"],
+        },
+      ],
+    });
+    expect(output.items[0]!.portableJson["criteria"]).toMatchObject({
+      filters: [{ field: "incidentTitlePattern" }, { field: "incidentLabels" }],
+    });
+    expect(output.mappings).toContain(
+      "Incident Title Pattern → Alert Title Pattern",
+    );
+  });
+
+  test("validates regex syntax only for configured pattern operators", () => {
+    expect(
+      parse([
+        {
+          ...base,
+          criteria: {
+            schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+            filterCondition: FilterCondition.All,
+            filters: [
+              {
+                field: "monitorNamePattern",
+                operator: RuleCriteriaOperator.Equals,
+                value: "[literal text",
+              },
+            ],
+          },
+        },
+      ]).items[0]!.json["criteria"],
+    ).toMatchObject({ filters: [{ value: "[literal text" }] });
+
+    expect(() => {
+      parse([
+        {
+          ...base,
+          criteria: {
+            schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+            filterCondition: FilterCondition.All,
+            filters: [
+              {
+                field: "monitorNamePattern",
+                operator: RuleCriteriaOperator.MatchesPattern,
+                value: "[broken",
+              },
+            ],
+          },
+        },
+      ]);
+    }).toThrow("requires a valid regular expression or wildcard pattern");
+  });
 
   test.each(
     LABEL_RULE_MODELS.map(

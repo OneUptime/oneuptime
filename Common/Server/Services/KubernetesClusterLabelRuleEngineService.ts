@@ -10,6 +10,7 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class KubernetesClusterLabelRuleEngineServiceClass {
@@ -37,6 +38,7 @@ class KubernetesClusterLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             kubernetesClusterLabels: { _id: true },
             kubernetesClusterNamePattern: true,
             kubernetesClusterDescriptionPattern: true,
@@ -173,6 +175,27 @@ class KubernetesClusterLabelRuleEngineServiceClass {
   }
 
   private doesKubernetesClusterMatchRule(
+    kubernetesCluster: KubernetesCluster,
+    rule: KubernetesClusterLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "kubernetesClusterLabels",
+        "kubernetesClusterNamePattern",
+        "kubernetesClusterDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: KubernetesClusterLabelRule): boolean => {
+        return this.doesKubernetesClusterMatchLegacyRule(
+          kubernetesCluster,
+          legacyRule,
+        );
+      },
+    });
+  }
+
+  private doesKubernetesClusterMatchLegacyRule(
     kubernetesCluster: KubernetesCluster,
     rule: KubernetesClusterLabelRule,
   ): boolean {

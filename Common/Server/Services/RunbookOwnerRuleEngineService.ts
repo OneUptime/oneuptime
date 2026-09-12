@@ -11,6 +11,7 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class RunbookOwnerRuleEngineServiceClass {
@@ -37,6 +38,7 @@ class RunbookOwnerRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             notifyOwners: true,
             runbookLabels: { _id: true },
             runbookNamePattern: true,
@@ -157,6 +159,24 @@ class RunbookOwnerRuleEngineServiceClass {
   }
 
   private doesRunbookMatchRule(
+    runbook: Runbook,
+    rule: RunbookOwnerRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: [
+        "runbookLabels",
+        "runbookNamePattern",
+        "runbookDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (runbookRule: RunbookOwnerRule): boolean => {
+        return this.doesRunbookMatchRuleLegacy(runbook, runbookRule);
+      },
+    });
+  }
+
+  private doesRunbookMatchRuleLegacy(
     runbook: Runbook,
     rule: RunbookOwnerRule,
   ): boolean {

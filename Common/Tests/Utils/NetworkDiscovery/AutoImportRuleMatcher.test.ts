@@ -3,6 +3,12 @@ import AutoImportRuleMatcher, {
   AutoImportRuleCandidate,
 } from "../../../Utils/NetworkDiscovery/AutoImportRuleMatcher";
 import { DiscoveredNetworkDevice } from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
+import {
+  RULE_CRITERIA_SCHEMA_VERSION,
+  RuleCriteriaFilter,
+  RuleCriteriaOperator,
+} from "../../../Types/Rules/RuleCriteria";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -28,6 +34,93 @@ function host(
 }
 
 describe("AutoImportRuleMatcher.ruleMatchesHost", () => {
+  it("supports Match any across independently configurable conditions", () => {
+    expect(
+      AutoImportRuleMatcher.ruleMatchesHost(
+        {
+          criteria: {
+            schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+            filterCondition: FilterCondition.Any,
+            filters: [
+              {
+                field: "sysNamePattern",
+                operator: RuleCriteriaOperator.Contains,
+                value: "does-not-match",
+              },
+              {
+                field: "ipMatchTarget",
+                operator: RuleCriteriaOperator.MatchesPattern,
+                value: "10.0.0.0/24",
+              },
+            ] as Array<RuleCriteriaFilter>,
+          },
+        },
+        host(),
+      ),
+    ).toBe(true);
+  });
+
+  it("supports Match all and ignores stale legacy match fields", () => {
+    const rule: AutoImportRuleCandidate = {
+      ipMatchTarget: "192.168.0.0/16",
+      criteria: {
+        schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            field: "sysNamePattern",
+            operator: RuleCriteriaOperator.StartsWith,
+            value: "switch-",
+          },
+          {
+            field: "sysDescrPattern",
+            operator: RuleCriteriaOperator.DoesNotContain,
+            value: "JunOS",
+          },
+        ] as Array<RuleCriteriaFilter>,
+      },
+    };
+
+    expect(AutoImportRuleMatcher.ruleMatchesHost(rule, host())).toBe(true);
+    expect(
+      AutoImportRuleMatcher.ruleMatchesHost(
+        rule,
+        host({ sysDescr: "JunOS 23.4" }),
+      ),
+    ).toBe(false);
+  });
+
+  it("preserves the ping-only safety gate for configured conditions", () => {
+    const pingOnlyHost: DiscoveredNetworkDevice = host({
+      snmpReachable: false,
+      sysName: undefined,
+      sysDescr: undefined,
+    });
+    const rule: AutoImportRuleCandidate = {
+      criteria: {
+        schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            field: "ipMatchTarget",
+            operator: RuleCriteriaOperator.Equals,
+            value: "10.0.0.5",
+          },
+        ],
+      },
+    };
+
+    expect(AutoImportRuleMatcher.ruleMatchesHost(rule, pingOnlyHost)).toBe(
+      false,
+    );
+    expect(
+      AutoImportRuleMatcher.ruleMatchesHost(
+        { ...rule, includePingOnlyHosts: true },
+        pingOnlyHost,
+      ),
+    ).toBe(true);
+  });
+
   /*
    * The site-rule precedent: an all-wildcard rule is a typo, not a
    * match-everything. A rule that claimed every host on an empty form would

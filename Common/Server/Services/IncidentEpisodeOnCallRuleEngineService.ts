@@ -16,6 +16,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 
 class IncidentEpisodeOnCallRuleEngineServiceClass {
   /**
@@ -41,6 +42,7 @@ class IncidentEpisodeOnCallRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             incidentSeverities: { _id: true },
             episodeLabels: { _id: true },
             episodeTitlePattern: true,
@@ -241,6 +243,25 @@ class IncidentEpisodeOnCallRuleEngineServiceClass {
   }
 
   private doesEpisodeMatchRule(
+    episode: IncidentEpisode,
+    rule: IncidentEpisodeOnCallRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "incidentSeverities",
+        "episodeLabels",
+        "episodeTitlePattern",
+        "episodeDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: IncidentEpisodeOnCallRule): boolean => {
+        return this.doesEpisodeMatchLegacyRule(episode, legacyRule);
+      },
+    });
+  }
+
+  private doesEpisodeMatchLegacyRule(
     episode: IncidentEpisode,
     rule: IncidentEpisodeOnCallRule,
   ): boolean {

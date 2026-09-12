@@ -17,9 +17,11 @@ Site Types describe the levels of your network site hierarchy. Every network sit
 
 ### Parent Site Type
 
-Choose the type directly above this one. For example, set Account Type as the parent of Region, Region as the parent of Franchisee, Franchisee as the parent of Market, and Market as the parent of Unit. Leave the parent empty for a top-level type. When you create a network site, this relationship determines which parent sites are valid.
+Choose the type directly above this one. For example, set Account Type as the parent of Region, Region as the parent of Franchisee, Franchisee as the parent of Market, and Market as the parent of Unit. Leave the parent empty for a top-level type. When you place a network site, this relationship decides which parent sites are suggested first.
 
-To keep existing site trees valid, a type that is already in use can move only when its sites already match the new relationship. For a larger reorganisation, create the replacement type under the new parent, then move each site and assign the replacement type together.
+It shapes placement without dictating it. A site can go under any site that is not **below** it in this tree, so you can skip a level, or hang a site under a catch-all type such as Other. The one arrangement OneUptime refuses is an inversion — a Region site under a Market site, say — and a unit-level site never takes children at all.
+
+Moving a type that is already in use is allowed unless the move would invert a site that already exists: if a site of the type you are moving is already the parent of a site whose type sits above it after the move, move that site first.
 
 ### Unit Level
 
@@ -148,7 +150,7 @@ const NetworkSiteTypesPage: FunctionComponent<
             stepId: "hierarchy",
             sectionTitle: "Parent Relationship",
             sectionDescription:
-              "Choose the type directly above this one. A type cannot be nested beneath itself, one of its descendants, or a unit-level type.",
+              "Choose the type directly above this one. A type cannot be nested beneath itself, one of its descendants, or a unit-level type. This shapes which parent sites are suggested first when you place a site; it does not restrict placement to that one type.",
             description:
               "Leave empty to make this a top-level type. Options show their full hierarchy path.",
             fieldType: FormFieldSchemaType.Dropdown,

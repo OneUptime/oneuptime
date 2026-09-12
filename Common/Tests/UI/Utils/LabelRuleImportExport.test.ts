@@ -8,8 +8,13 @@ import IncidentLabelRule from "../../../Models/DatabaseModels/IncidentLabelRule"
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorLabelRule from "../../../Models/DatabaseModels/MonitorLabelRule";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  RULE_CRITERIA_SCHEMA_VERSION,
+  RuleCriteriaOperator,
+} from "../../../Types/Rules/RuleCriteria";
 import LabelRuleImportExport, {
   LABEL_RULE_IMPORT_CONCURRENCY,
   LabelRuleImportPreview,
@@ -54,6 +59,30 @@ const base: JSONObject = {
   description: "A portable rule",
   isEnabled: false,
   labelsToAdd: ["Production"],
+};
+const configuredCriteria: (
+  relationName: string,
+  filterCondition?: FilterCondition,
+) => JSONObject = (
+  relationName: string,
+  filterCondition: FilterCondition = FilterCondition.Any,
+): JSONObject => {
+  return {
+    schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+    filterCondition,
+    filters: [
+      {
+        field: "monitorNamePattern",
+        operator: RuleCriteriaOperator.StartsWith,
+        value: "api-",
+      },
+      {
+        field: "monitorLabels",
+        operator: RuleCriteriaOperator.HasAllOf,
+        value: [relationName],
+      },
+    ],
+  };
 };
 interface ListRequest {
   modelType: DatabaseBaseModelType;
@@ -177,6 +206,53 @@ describe("label rule import and export API orchestration", () => {
     }
   });
 
+  test("exports configured criteria relation IDs as portable names", async () => {
+    const label: BaseModel = makeRelation("Production", 1);
+    const rule: MonitorLabelRule = makeRule(1);
+    rule.monitorLabels = [];
+    rule.criteria = {
+      schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+      filterCondition: FilterCondition.All,
+      filters: [
+        {
+          field: "monitorLabels",
+          operator: RuleCriteriaOperator.HasAllOf,
+          value: [label.id!.toString()],
+        },
+      ],
+    };
+    getListMock.mockImplementation(async (request: ListRequest) => {
+      const data: Array<BaseModel> =
+        request.modelType === MonitorLabelRule ? [rule] : [label];
+      return { data, count: data.length, skip: 0, limit: 500 };
+    });
+
+    const envelope: JSONObject = await LabelRuleImportExport.exportAll({
+      modelType: MonitorLabelRule,
+      projectId,
+    });
+
+    expect(
+      (envelope["items"] as Array<JSONObject>)[0]!["criteria"],
+    ).toMatchObject({
+      schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+      filterCondition: FilterCondition.All,
+      filters: [
+        {
+          field: "monitorLabels",
+          operator: RuleCriteriaOperator.HasAllOf,
+          value: ["Production"],
+        },
+      ],
+    });
+    expect(JSON.stringify(envelope)).not.toContain(label.id!.toString());
+    expect(
+      getListMock.mock.calls.map((call: Array<any>) => {
+        return call[0].modelType;
+      }),
+    ).toEqual([MonitorLabelRule, Label]);
+  });
+
   test("keeps paging when the server caps page size below the requested limit", async () => {
     mockPaged(
       Array.from(
@@ -253,6 +329,65 @@ describe("label rule import and export API orchestration", () => {
       "22222222-",
     );
     expect(createMock).not.toHaveBeenCalled();
+  });
+
+  test.each([FilterCondition.Any, FilterCondition.All])(
+    "resolves relation names inside configured %s criteria",
+    async (filterCondition: FilterCondition) => {
+      const relation: BaseModel = makeRelation("Production", 1);
+      mockPaged([relation]);
+      const result: LabelRuleImportPreview = await preview([
+        {
+          ...base,
+          criteria: configuredCriteria("Production", filterCondition),
+        },
+      ]);
+
+      expect(result.items[0]!.json["criteria"]).toMatchObject({
+        schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+        filterCondition,
+        filters: [
+          { field: "monitorNamePattern", value: "api-" },
+          {
+            field: "monitorLabels",
+            operator: RuleCriteriaOperator.HasAllOf,
+            value: [relation.id!.toString()],
+          },
+        ],
+      });
+      expect(result.items[0]!.displayJson["criteria"]).toMatchObject({
+        filters: [
+          { field: "monitorNamePattern" },
+          { field: "monitorLabels", value: ["Production"] },
+        ],
+      });
+    },
+  );
+
+  test("rejects missing relation names used only inside configured criteria", async () => {
+    mockPaged([]);
+    await expect(
+      preview([
+        {
+          ...base,
+          labelsToAdd: [],
+          criteria: configuredCriteria("Missing"),
+        },
+      ]),
+    ).rejects.toThrow('Monitor Labels "Missing" was not found');
+  });
+
+  test("rejects ambiguous relation names used only inside configured criteria", async () => {
+    mockPaged([makeRelation("Production", 1), makeRelation("Production", 2)]);
+    await expect(
+      preview([
+        {
+          ...base,
+          labelsToAdd: [],
+          criteria: configuredCriteria("Production"),
+        },
+      ]),
+    ).rejects.toThrow('Monitor Labels "Production" matches multiple resources');
   });
 
   test("resolves prerequisite labels, output labels, monitors, and remapped alert severities in the destination", async () => {
@@ -451,6 +586,63 @@ describe("label rule import and export API orchestration", () => {
       preview: result.retryPreview,
     });
     expect(createMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("keeps configured criteria portable in a failed-import retry envelope", async () => {
+    const relation: BaseModel = makeRelation("Production", 1);
+    mockPaged([relation]);
+    const prepared: LabelRuleImportPreview = await preview([
+      {
+        ...base,
+        labelsToAdd: [],
+        criteria: configuredCriteria("Production", FilterCondition.All),
+      },
+    ]);
+    createMock.mockRejectedValueOnce(new Error("Create failed"));
+
+    const result: LabelRuleImportResult =
+      await LabelRuleImportExport.importPreview({
+        modelType: MonitorLabelRule,
+        preview: prepared,
+      });
+    const retry: JSONObject = LabelRuleImportExport.getRetryEnvelope(
+      result.retryPreview,
+    );
+
+    expect((retry["items"] as Array<JSONObject>)[0]!["criteria"]).toMatchObject(
+      {
+        schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+        filterCondition: FilterCondition.All,
+        filters: [
+          { field: "monitorNamePattern", value: "api-" },
+          { field: "monitorLabels", value: ["Production"] },
+        ],
+      },
+    );
+    expect(JSON.stringify(retry)).not.toContain(relation.id!.toString());
+    await expect(
+      LabelRuleImportExport.preview({
+        modelType: MonitorLabelRule,
+        projectId,
+        fileText: JSON.stringify(retry),
+      }),
+    ).resolves.toMatchObject({
+      items: [
+        {
+          json: {
+            criteria: {
+              filters: [
+                { field: "monitorNamePattern", value: "api-" },
+                {
+                  field: "monitorLabels",
+                  value: [relation.id!.toString()],
+                },
+              ],
+            },
+          },
+        },
+      ],
+    });
   });
 
   test("uses source resource fields in downloaded failures after cross-type import", async () => {

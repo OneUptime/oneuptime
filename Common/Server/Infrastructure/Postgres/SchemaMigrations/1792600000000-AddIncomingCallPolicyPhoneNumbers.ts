@@ -1,10 +1,10 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddIncomingCallPolicyPhoneNumbers1792500000000
+export class AddIncomingCallPolicyPhoneNumbers1792600000000
   implements MigrationInterface
 {
   public readonly name: string =
-    "AddIncomingCallPolicyPhoneNumbers1792500000000";
+    "AddIncomingCallPolicyPhoneNumbers1792600000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

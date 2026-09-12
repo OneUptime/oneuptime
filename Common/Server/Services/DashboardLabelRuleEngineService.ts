@@ -7,6 +7,7 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class DashboardLabelRuleEngineServiceClass {
@@ -32,6 +33,7 @@ class DashboardLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             dashboardLabels: { _id: true },
             dashboardNamePattern: true,
             dashboardDescriptionPattern: true,
@@ -139,6 +141,24 @@ class DashboardLabelRuleEngineServiceClass {
   }
 
   private doesDashboardMatchRule(
+    dashboard: Dashboard,
+    rule: DashboardLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "dashboardLabels",
+        "dashboardNamePattern",
+        "dashboardDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: DashboardLabelRule): boolean => {
+        return this.doesDashboardMatchLegacyRule(dashboard, legacyRule);
+      },
+    });
+  }
+
+  private doesDashboardMatchLegacyRule(
     dashboard: Dashboard,
     rule: DashboardLabelRule,
   ): boolean {

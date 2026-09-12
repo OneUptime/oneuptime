@@ -19,6 +19,10 @@ import ProjectScopedReferenceValidator, {
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import StatusPageMonitorRulePatternValidator from "../Utils/StatusPage/MonitorRulePatternValidator";
 import logger, { LogAttributes } from "../Utils/Logger";
+import {
+  getRuleCriteriaValidationError,
+  isValidRuleCriteria,
+} from "../../Utils/Rules/RuleCriteriaMatcher";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -39,6 +43,7 @@ export class Service extends DatabaseService<Model> {
       monitorLabelCount: (createBy.data.monitorLabels || []).length,
       monitorNamePattern: createBy.data.monitorNamePattern,
       monitorDescriptionPattern: createBy.data.monitorDescriptionPattern,
+      criteria: createBy.data.criteria,
     });
 
     StatusPageMonitorRulePatternValidator.validate({
@@ -356,7 +361,29 @@ export class Service extends DatabaseService<Model> {
     monitorLabelCount: number;
     monitorNamePattern?: string | undefined;
     monitorDescriptionPattern?: string | undefined;
+    criteria?: Model["criteria"];
   }): void {
+    if (data.criteria !== undefined && data.criteria !== null) {
+      const validationError: string | null = getRuleCriteriaValidationError(
+        data.criteria,
+      );
+
+      if (validationError) {
+        throw new BadDataException(validationError);
+      }
+
+      if (
+        isValidRuleCriteria(data.criteria) &&
+        data.criteria.filters.length > 0
+      ) {
+        return;
+      }
+
+      throw new BadDataException(
+        "A status page monitor rule needs at least one match condition.",
+      );
+    }
+
     if (
       data.monitorLabelCount === 0 &&
       !data.monitorNamePattern &&
@@ -400,6 +427,7 @@ export class Service extends DatabaseService<Model> {
         },
         monitorNamePattern: true,
         monitorDescriptionPattern: true,
+        criteria: true,
       },
       limit: LIMIT_PER_PROJECT,
       skip: 0,
@@ -419,7 +447,8 @@ export class Service extends DatabaseService<Model> {
     const touchesCriteria: boolean =
       updateBy.data.monitorLabels !== undefined ||
       updateBy.data.monitorNamePattern !== undefined ||
-      updateBy.data.monitorDescriptionPattern !== undefined;
+      updateBy.data.monitorDescriptionPattern !== undefined ||
+      updateBy.data.criteria !== undefined;
 
     if (!touchesCriteria) {
       return;
@@ -444,6 +473,10 @@ export class Service extends DatabaseService<Model> {
           updateBy.data.monitorDescriptionPattern === undefined
             ? rule.monitorDescriptionPattern
             : (updateBy.data.monitorDescriptionPattern as string | undefined),
+        criteria:
+          updateBy.data.criteria === undefined
+            ? rule.criteria
+            : (updateBy.data.criteria as Model["criteria"]),
       });
     }
   }

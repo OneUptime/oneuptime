@@ -25,6 +25,14 @@ import TablePermission from "../Types/Database/Permissions/TablePermission";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../Utils/Logger";
+import {
+  getRuleCriteriaValidationError,
+  isValidRuleCriteria,
+} from "../../Utils/Rules/RuleCriteriaMatcher";
+import RuleCriteria, {
+  RuleCriteriaFilter,
+  RuleCriteriaOperator,
+} from "../../Types/Rules/RuleCriteria";
 
 /*
  * Write-time validation for auto-import rules, following the
@@ -87,6 +95,7 @@ export class Service extends DatabaseService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     this.validateCriteria({
+      criteria: createBy.data.criteria,
       ipMatchTarget: createBy.data.ipMatchTarget,
       sysNamePattern: createBy.data.sysNamePattern,
       sysDescrPattern: createBy.data.sysDescrPattern,
@@ -131,7 +140,8 @@ export class Service extends DatabaseService<Model> {
       dataKeys.includes("ipMatchTarget") ||
       dataKeys.includes("sysNamePattern") ||
       dataKeys.includes("sysDescrPattern") ||
-      dataKeys.includes("sysObjectIdPattern");
+      dataKeys.includes("sysObjectIdPattern") ||
+      dataKeys.includes("criteria");
 
     /*
      * `includePingOnlyHosts` is deliberately not here. A ping-only host
@@ -213,6 +223,7 @@ export class Service extends DatabaseService<Model> {
       select: {
         _id: true,
         projectId: true,
+        criteria: true,
         ipMatchTarget: true,
         sysNamePattern: true,
         sysDescrPattern: true,
@@ -242,6 +253,9 @@ export class Service extends DatabaseService<Model> {
     for (const existingRule of existingRules) {
       if (isCriteriaChange) {
         this.validateCriteria({
+          criteria: dataKeys.includes("criteria")
+            ? (data["criteria"] as RuleCriteria | null | undefined)
+            : existingRule.criteria,
           ipMatchTarget: dataKeys.includes("ipMatchTarget")
             ? (data["ipMatchTarget"] as string | null)
             : existingRule.ipMatchTarget,
@@ -602,11 +616,64 @@ export class Service extends DatabaseService<Model> {
   }
 
   private validateCriteria(data: {
+    criteria?: RuleCriteria | null | undefined;
     ipMatchTarget?: string | null | undefined;
     sysNamePattern?: string | null | undefined;
     sysDescrPattern?: string | null | undefined;
     sysObjectIdPattern?: string | null | undefined;
   }): void {
+    if (data.criteria !== undefined && data.criteria !== null) {
+      const validationError: string | null = getRuleCriteriaValidationError(
+        data.criteria,
+      );
+
+      if (validationError) {
+        throw new BadDataException(validationError);
+      }
+
+      if (!isValidRuleCriteria(data.criteria)) {
+        throw new BadDataException("Rule criteria is invalid.");
+      }
+
+      if (data.criteria.filters.length === 0) {
+        throw new BadDataException(
+          "At least one auto-import match condition is required.",
+        );
+      }
+
+      const supportedFields: Set<string> = new Set([
+        "ipMatchTarget",
+        "sysNamePattern",
+        "sysDescrPattern",
+        "sysObjectIdPattern",
+      ]);
+
+      for (const filter of data.criteria.filters) {
+        if (!supportedFields.has(filter.field)) {
+          throw new BadDataException(
+            `Unsupported auto-import match condition: ${filter.field}`,
+          );
+        }
+
+        if (Array.isArray(filter.value)) {
+          throw new BadDataException(
+            `${filter.field} requires a text comparison operator.`,
+          );
+        }
+
+        if (
+          filter.operator !== RuleCriteriaOperator.MatchesPattern &&
+          filter.operator !== RuleCriteriaOperator.DoesNotMatchPattern
+        ) {
+          continue;
+        }
+
+        this.validateConfiguredPattern(filter);
+      }
+
+      return;
+    }
+
     const ipMatchTarget: string = (data.ipMatchTarget || "").trim();
     const sysNamePattern: string = (data.sysNamePattern || "").trim();
     const sysDescrPattern: string = (data.sysDescrPattern || "").trim();
@@ -642,6 +709,31 @@ export class Service extends DatabaseService<Model> {
     this.validatePattern("System Name Pattern", sysNamePattern);
     this.validatePattern("System Description Pattern", sysDescrPattern);
     this.validateOidPattern(sysObjectIdPattern);
+  }
+
+  private validateConfiguredPattern(filter: RuleCriteriaFilter): void {
+    const pattern: string = String(filter.value).trim();
+
+    if (filter.field === "ipMatchTarget") {
+      if (!ScanTargetUtil.isValid(pattern)) {
+        throw new BadDataException(
+          `"${pattern}" is not a valid Host IP condition. ${ScanTargetUtil.getSyntaxHint()}`,
+        );
+      }
+      return;
+    }
+
+    if (filter.field === "sysObjectIdPattern") {
+      this.validateOidPattern(pattern);
+      return;
+    }
+
+    this.validatePattern(
+      filter.field === "sysNamePattern"
+        ? "System Name Pattern"
+        : "System Description Pattern",
+      pattern,
+    );
   }
 
   private validatePattern(title: string, pattern: string): void {

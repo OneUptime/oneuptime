@@ -28,7 +28,6 @@ import AutoRemediationRuleService from "./AutoRemediationRuleService";
 import AutoRemediationSuggestionService from "./AutoRemediationSuggestionService";
 import IncidentFeedService from "./IncidentFeedService";
 import LlmProviderService from "./LlmProviderService";
-import MonitorService from "./MonitorService";
 import ProjectService from "./ProjectService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
 import AIInvestigationQueue from "../Utils/AI/SRE/InvestigationQueue";
@@ -37,6 +36,8 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
+import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 
 /*
  * Guardrails (minimal G1 for auto-remediation Phase 1):
@@ -209,6 +210,7 @@ class AutoRemediationRuleEngineServiceClass {
           aiComposesCommands: true,
           verificationWindowMinutes: true,
           autoResolveOnVerifiedRecovery: true,
+          criteria: true,
           titlePattern: true,
           descriptionPattern: true,
           monitors: { _id: true },
@@ -864,6 +866,58 @@ class AutoRemediationRuleEngineServiceClass {
     incident: Incident,
     rule: AutoRemediationRule,
   ): Promise<boolean> {
+    const monitorCache: MonitorRuleCriteriaCache =
+      new MonitorRuleCriteriaCache();
+
+    return await RuleCriteriaMatcher.matchesWithLegacy({
+      rule: rule,
+      legacyFields: [
+        "monitors",
+        "incidentSeverities",
+        "labels",
+        "monitorLabels",
+        "titlePattern",
+        "descriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: async (
+        legacyRule: AutoRemediationRule,
+      ): Promise<boolean> => {
+        return await this.doesIncidentMatchLegacyRule(
+          incident,
+          legacyRule,
+          monitorCache,
+        );
+      },
+      correlation: {
+        fields: ["monitorLabels"],
+        getCandidates: (): Array<Monitor> => {
+          return incident.monitors || [];
+        },
+        matchesLegacyRuleForCandidate: async (
+          legacyRule: AutoRemediationRule,
+          incidentMonitor: Monitor,
+        ): Promise<boolean> => {
+          const correlatedIncident: Incident = Object.assign(
+            new Incident(),
+            incident,
+          );
+          correlatedIncident.monitors = [incidentMonitor];
+          return await this.doesIncidentMatchLegacyRule(
+            correlatedIncident,
+            legacyRule,
+            monitorCache,
+          );
+        },
+      },
+    });
+  }
+
+  private async doesIncidentMatchLegacyRule(
+    incident: Incident,
+    rule: AutoRemediationRule,
+    monitorCache: MonitorRuleCriteriaCache,
+  ): Promise<boolean> {
     // Monitors: incident must come from at least one of the rule's monitors.
     if (rule.monitors && rule.monitors.length > 0) {
       if (!incident.monitors || incident.monitors.length === 0) {
@@ -938,6 +992,7 @@ class AutoRemediationRuleEngineServiceClass {
           await this.doesMonitorCarryAnyLabel(
             incidentMonitor.id,
             rule.monitorLabels,
+            monitorCache,
           )
         ) {
           anyMonitorMatches = true;
@@ -974,6 +1029,37 @@ class AutoRemediationRuleEngineServiceClass {
   public async doesAlertMatchRule(
     alert: Alert,
     rule: AutoRemediationRule,
+  ): Promise<boolean> {
+    const monitorCache: MonitorRuleCriteriaCache =
+      new MonitorRuleCriteriaCache();
+
+    return await RuleCriteriaMatcher.matchesWithLegacy({
+      rule: rule,
+      legacyFields: [
+        "monitors",
+        "alertSeverities",
+        "labels",
+        "monitorLabels",
+        "titlePattern",
+        "descriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: async (
+        legacyRule: AutoRemediationRule,
+      ): Promise<boolean> => {
+        return await this.doesAlertMatchLegacyRule(
+          alert,
+          legacyRule,
+          monitorCache,
+        );
+      },
+    });
+  }
+
+  private async doesAlertMatchLegacyRule(
+    alert: Alert,
+    rule: AutoRemediationRule,
+    monitorCache: MonitorRuleCriteriaCache,
   ): Promise<boolean> {
     // Monitors: alerts carry a single scalar monitorId.
     if (rule.monitors && rule.monitors.length > 0) {
@@ -1031,6 +1117,7 @@ class AutoRemediationRuleEngineServiceClass {
         !(await this.doesMonitorCarryAnyLabel(
           alert.monitorId,
           rule.monitorLabels,
+          monitorCache,
         ))
       ) {
         return false;
@@ -1061,14 +1148,9 @@ class AutoRemediationRuleEngineServiceClass {
   private async doesMonitorCarryAnyLabel(
     monitorId: ObjectID,
     ruleMonitorLabels: Array<Label>,
+    monitorCache: MonitorRuleCriteriaCache,
   ): Promise<boolean> {
-    const monitor: Monitor | null = await MonitorService.findOneById({
-      id: monitorId,
-      select: {
-        labels: { _id: true },
-      },
-      props: { isRoot: true },
-    });
+    const monitor: Monitor | null = await monitorCache.getMonitor(monitorId);
 
     if (!monitor || !monitor.labels || monitor.labels.length === 0) {
       return false;

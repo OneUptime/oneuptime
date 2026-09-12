@@ -160,8 +160,158 @@ export default class NetworkSiteTypeHierarchyUtil {
   }
 
   /*
-   * Parent picker candidates. A leaf/unit type cannot own child types, and a
-   * type cannot be placed under itself or anything already below it.
+   * SITE placement rule — the one predicate every surface must agree on.
+   *
+   * The type tree says which levels sit above which. A concrete site may
+   * never be placed under a site whose type sits BELOW its own, because that
+   * inverts the hierarchy the operator described. Everything else is allowed:
+   * an unrelated type (a catch-all "Other" owning a "Market"), a skipped
+   * level (a "Unit" straight under a "Region"), and the same type on both
+   * sides (a campus of campuses).
+   *
+   * It deliberately does NOT require the parent to be exactly the configured
+   * direct parent type. That stricter reading made whole estates impossible
+   * to build: a project whose types all ended up top-level — which is what
+   * the parent backfill leaves behind when a type's existing sites are all
+   * roots — could not link a single parent to a single child, by hand or by
+   * CSV. See GitHub issue #3744.
+   *
+   * A unit-level type is the leaf of the hierarchy by definition, so a site
+   * of that type never owns children.
+   */
+  public static isTypeAllowedAsSiteParentOfType(data: {
+    childNetworkSiteTypeId: string | null | undefined;
+    parentNetworkSiteTypeId: string | null | undefined;
+    networkSiteTypes: Array<NetworkSiteType>;
+    index?: NetworkSiteTypeHierarchyIndex | undefined;
+  }): boolean {
+    /*
+     * An untyped parent belongs to no level, so no inversion can be proven;
+     * legacy rows predating site types stay editable rather than becoming
+     * unreachable.
+     */
+    if (!data.parentNetworkSiteTypeId) {
+      return true;
+    }
+
+    const index: NetworkSiteTypeHierarchyIndex =
+      data.index || this.buildIndex(data);
+    const parentTypeId: string = data.parentNetworkSiteTypeId
+      .toString()
+      .toLowerCase();
+    const parentType: NetworkSiteType | undefined =
+      index.byId.get(parentTypeId);
+
+    if (parentType?.isUnitLevel === true) {
+      return false;
+    }
+
+    if (!data.childNetworkSiteTypeId) {
+      return true;
+    }
+
+    const childTypeId: string = data.childNetworkSiteTypeId
+      .toString()
+      .toLowerCase();
+
+    if (childTypeId === parentTypeId) {
+      return true;
+    }
+
+    /*
+     * Walk up from the PARENT type: reaching the child type means the parent
+     * sits below it. The visited set is what keeps a corrupted catalog (a
+     * cycle written straight into the database) from spinning here.
+     */
+    const visited: Set<string> = new Set<string>([parentTypeId]);
+    let ancestorId: string | null = parentType
+      ? this.getParentId(parentType)
+      : null;
+
+    while (ancestorId) {
+      const normalizedAncestorId: string = ancestorId.toLowerCase();
+
+      if (normalizedAncestorId === childTypeId) {
+        return false;
+      }
+
+      if (visited.has(normalizedAncestorId)) {
+        break;
+      }
+      visited.add(normalizedAncestorId);
+
+      const ancestor: NetworkSiteType | undefined =
+        index.byId.get(normalizedAncestorId);
+      if (!ancestor) {
+        break;
+      }
+
+      ancestorId = this.getParentId(ancestor);
+    }
+
+    return true;
+  }
+
+  /*
+   * Types a site of `networkSiteTypeId` may be placed under — the picker side
+   * of isTypeAllowedAsSiteParentOfType.
+   */
+  public static getValidSiteParentTypes(data: {
+    networkSiteTypeId: string | null | undefined;
+    networkSiteTypes: Array<NetworkSiteType>;
+    index?: NetworkSiteTypeHierarchyIndex | undefined;
+  }): Array<NetworkSiteType> {
+    const index: NetworkSiteTypeHierarchyIndex =
+      data.index || this.buildIndex(data);
+
+    return this.sort(
+      data.networkSiteTypes.filter((candidate: NetworkSiteType) => {
+        return (
+          Boolean(candidate.id) &&
+          this.isTypeAllowedAsSiteParentOfType({
+            childNetworkSiteTypeId: data.networkSiteTypeId,
+            parentNetworkSiteTypeId: candidate.id!.toString(),
+            networkSiteTypes: data.networkSiteTypes,
+            index,
+          })
+        );
+      }),
+    );
+  }
+
+  /*
+   * Types a new child site under a parent site of `networkSiteTypeId` may
+   * take. The mirror of getValidSiteParentTypes, so the "add a child site"
+   * form and the "pick my parent" form can never disagree.
+   */
+  public static getValidSiteChildTypes(data: {
+    networkSiteTypeId: string | null | undefined;
+    networkSiteTypes: Array<NetworkSiteType>;
+    index?: NetworkSiteTypeHierarchyIndex | undefined;
+  }): Array<NetworkSiteType> {
+    const index: NetworkSiteTypeHierarchyIndex =
+      data.index || this.buildIndex(data);
+
+    return this.sort(
+      data.networkSiteTypes.filter((candidate: NetworkSiteType) => {
+        return (
+          Boolean(candidate.id) &&
+          this.isTypeAllowedAsSiteParentOfType({
+            childNetworkSiteTypeId: candidate.id!.toString(),
+            parentNetworkSiteTypeId: data.networkSiteTypeId,
+            networkSiteTypes: data.networkSiteTypes,
+            index,
+          })
+        );
+      }),
+    );
+  }
+
+  /*
+   * Parent picker candidates for the TYPE catalog itself. A leaf/unit type
+   * cannot own child types, and a type cannot be placed under itself or
+   * anything already below it. This is the type tree's own shape rule and
+   * stays strict — it is site PLACEMENT that was relaxed, not the catalog.
    */
   public static getValidParentCandidates(data: {
     networkSiteType: NetworkSiteType;
