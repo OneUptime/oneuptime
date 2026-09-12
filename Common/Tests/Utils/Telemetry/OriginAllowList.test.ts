@@ -722,9 +722,10 @@ describe("OriginAllowList.validateAllowedOriginsFormValue", () => {
   /*
    * The one rule that differs between the two callers. A new browser key
    * with no origins is refused on every request from the moment it exists,
-   * so the wizard will not create one; emptying the list on an existing key
-   * is how a server key's leftovers are dropped and how a browser key is
-   * deliberately taken out of service.
+   * so the wizard will not create one; the detail page has to allow an empty
+   * list because that is how a server key's leftovers are dropped, and it
+   * cannot tell the key types apart - the service, which can, still refuses
+   * to empty a browser key's list.
    */
   test.each(["[]", '["   "]'])(
     "refuses %j while creating, where an empty list has no use",

@@ -49,7 +49,7 @@ interface SharedContext {
   page: Page;
   projectId: string;
   browserKeyId: string;
-  originlessKeyId: string;
+  serverKeyWithOriginsId: string;
   serverKeyId: string;
 }
 
@@ -60,7 +60,7 @@ test.describe("Telemetry ingestion key details", () => {
     page: undefined as unknown as Page,
     projectId: "",
     browserKeyId: "",
-    originlessKeyId: "",
+    serverKeyWithOriginsId: "",
     serverKeyId: "",
   };
 
@@ -203,9 +203,14 @@ test.describe("Telemetry ingestion key details", () => {
       pinnedServiceName: "storefront-web",
     });
 
-    ctx.originlessKeyId = await seedKey({
-      name: "Details originless browser key",
-      keyType: "Browser",
+    /*
+     * A server key carrying an allowlist: valid, and the case the service's
+     * own comment calls "a list typed in for later". Clearing it is the
+     * legitimate way to drop those leftovers.
+     */
+    ctx.serverKeyWithOriginsId = await seedKey({
+      name: "Details server key with origins",
+      keyType: "Server",
       allowedOrigins: ["https://retired.example.com"],
     });
 
@@ -356,24 +361,57 @@ test.describe("Telemetry ingestion key details", () => {
   });
 
   /*
-   * Emptying the list is how a browser key is deliberately taken out of
-   * service. It has to be allowed, it has to persist as an empty list, and
-   * the page has to say what it now means - a blank cell would read as "no
-   * restriction" on the one key type where empty means "refuse everything".
+   * Clearing a SERVER key's leftover allowlist is the one case where an
+   * empty list is allowed, so the form must not stand in the way - and the
+   * page has to say what empty now means, because a blank cell would read
+   * as "no restriction" on the key type where empty means the opposite.
    */
-  test("clears an allowlist and warns that the key is now refused", async () => {
-    await openKey(ctx.originlessKeyId);
+  test("clears a server key's leftover allowlist", async () => {
+    await openKey(ctx.serverKeyWithOriginsId);
     await openEditForm();
 
     await fillOrigins("[]");
     await saveButton().click();
     await expect(modal()).toBeHidden({ timeout: 30000 });
 
-    const stored: StoredKey = await readKey(ctx.originlessKeyId);
+    const stored: StoredKey = await readKey(ctx.serverKeyWithOriginsId);
     expect(stored.allowedOrigins).toEqual([]);
 
     await expect(
-      ctx.page.getByText(/refused on every request until at least one origin/i),
+      ctx.page.getByText(/a server key is never origin checked/i),
     ).toBeVisible({ timeout: 30000 });
+  });
+
+  /*
+   * The other direction, and the one that matters: an empty allowlist on a
+   * BROWSER key is a key that accepts nothing, so the server refuses to
+   * write it. The form cannot tell - it never loads keyType, deliberately,
+   * because a field that vanishes for the key type that requires it is the
+   * worst failure mode - so this refusal is the server's, and the test is
+   * here to prove the customer is told what to do instead rather than left
+   * with a saved key that silently stopped working.
+   */
+  test("refuses to clear a browser key's allowlist, and says what to do instead", async () => {
+    await openKey(ctx.browserKeyId);
+    await openEditForm();
+
+    await fillOrigins("[]");
+    await saveButton().click();
+
+    await expect(
+      modal().getByText(/must keep at least one allowed origin/i),
+    ).toBeVisible({ timeout: 30000 });
+    await expect(
+      modal().getByText(/turn the key off or delete it instead/i),
+    ).toBeVisible();
+
+    await modal().getByTestId("modal-footer-close-button").click();
+    await expect(modal()).toBeHidden();
+
+    const stored: StoredKey = await readKey(ctx.browserKeyId);
+    expect(stored.allowedOrigins).toEqual([
+      "https://checkout.example.com",
+      "https://*.example.net",
+    ]);
   });
 });

@@ -371,9 +371,11 @@ export default class OriginAllowList {
    *
    * `allowEmptyList` is the one real difference between the two callers.
    * Creating a browser key with no origins produces a key that is refused on
-   * every request, so the wizard will not do it; emptying the list on an
-   * existing key is how a server key's leftover entries are dropped and how a
-   * browser key is deliberately taken out of service, so the detail page must.
+   * every request, so the wizard will not do it. The detail page has to allow
+   * it, because clearing the list is how a server key's leftover entries are
+   * dropped and that form does not load keyType - and emptying a BROWSER
+   * key's list stays refused by the service, which does know the type and
+   * answers with what to do instead.
    */
   public static validateAllowedOriginsFormValue(data: {
     value: unknown;

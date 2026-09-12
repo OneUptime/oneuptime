@@ -307,10 +307,11 @@ describe("Telemetry ingestion key detail page", () => {
   });
 
   /*
-   * Clearing the list is how a server key's leftover allowlist is removed,
-   * and how a browser key is deliberately taken out of service. An empty
-   * JSON array has to survive as an array: the column is JSON and not null,
-   * and the string "[]" is not an empty list to anything that reads it.
+   * Clearing the list is how a server key's leftover allowlist is removed.
+   * An empty JSON array has to survive as an array: the column is JSON and
+   * not null, and the string "[]" is not an empty list to anything that
+   * reads it. (Emptying a BROWSER key's list is refused by the service,
+   * which - unlike this form - knows the key's type.)
    */
   test("sends an explicitly emptied list as an empty array", async () => {
     storedKey = makeKey({

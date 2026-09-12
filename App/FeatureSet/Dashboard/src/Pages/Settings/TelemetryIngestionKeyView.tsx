@@ -105,10 +105,16 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
              * The same rules the creation wizard applies. Without them the
              * only thing that said no to `{"origin": "..."}` - or to an
              * origin carrying a path, which quietly matches the whole origin
-             * - was the API, in the server's words, after a round trip. An
-             * empty list is allowed here and not in the wizard: emptying it
-             * is how a server key's leftover entries are dropped and how a
-             * browser key is deliberately taken out of service.
+             * - was the API, in the server's words, after a round trip.
+             *
+             * An empty list passes here and not in the wizard. Clearing the
+             * list is how a server key's leftover entries are dropped, and
+             * this form cannot tell the two key types apart: keyType is
+             * deliberately not among the fields it loads. Emptying a BROWSER
+             * key's list stays refused, by the server, which knows the type
+             * and answers with what to do instead ("turn the key off or
+             * delete it") - refusing every empty list here would instead
+             * leave a server key's leftovers unclearable from this page.
              */
             customValidation: (
               values: FormValues<TelemetryIngestionKey>,
