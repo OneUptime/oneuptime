@@ -118,9 +118,17 @@ test.describe("Resource archive actions live in Settings", () => {
         await expect(
           page.getByRole("heading", { name: resourceName, exact: true }),
         ).toBeVisible();
+        /*
+         * Named exactly, matching the assertion made on the Settings page
+         * below. A loose /^Archive/ match also caught the page's own title
+         * heading, because the resource this test creates is itself called
+         * "Archive settings <product>" - so the check failed on every product
+         * while the card it is about was correctly absent.
+         */
         await expect(
           page.getByRole("heading", {
-            name: /^Archive(?: |$)/,
+            name: `Archive ${resource.singularName}`,
+            exact: true,
           }),
         ).toHaveCount(0);
         await expect(
