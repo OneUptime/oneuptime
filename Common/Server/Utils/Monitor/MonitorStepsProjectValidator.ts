@@ -151,29 +151,42 @@ export default class MonitorStepsProjectValidator {
       return;
     }
 
+    const projectScopedReferences: Array<ProjectScopedReference> = [];
+
+    for (const reference of introduced) {
+      const service: DatabaseService<DatabaseBaseModel> | undefined =
+        SERVICE_BY_MODEL[reference.model];
+
+      if (!service) {
+        continue;
+      }
+
+      projectScopedReferences.push({
+        /*
+         * The path — `criteria "Monitor is offline" incident severity` —
+         * rather than the bare model name, so the message points at the
+         * field to fix. monitorSteps can hold a dozen of these.
+         */
+        modelName: `${reference.model} (${reference.path})`,
+        id: reference.id,
+        service: service,
+        /*
+         * Only ids the monitor actually reads at run time are required to
+         * exist — see MonitorStepsReference.isOperative. The rest are still
+         * checked for belonging to this project.
+         */
+        mustExist: reference.isOperative,
+      });
+    }
+
+    if (projectScopedReferences.length === 0) {
+      return;
+    }
+
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: data.projectId,
       subject: "monitor's criteria",
-      references: introduced.map(
-        (reference: MonitorStepsReference): ProjectScopedReference => {
-          return {
-            /*
-             * The path — `criteria "Monitor is offline" incident severity` —
-             * rather than the bare model name, so the message points at the
-             * field to fix. monitorSteps can hold a dozen of these.
-             */
-            modelName: `${reference.model} (${reference.path})`,
-            id: reference.id,
-            service: SERVICE_BY_MODEL[reference.model],
-            /*
-             * Only ids the monitor actually reads at run time are required to
-             * exist — see MonitorStepsReference.isOperative. The rest are still
-             * checked for belonging to this project.
-             */
-            mustExist: reference.isOperative,
-          };
-        },
-      ),
+      references: projectScopedReferences,
     });
   }
 }
