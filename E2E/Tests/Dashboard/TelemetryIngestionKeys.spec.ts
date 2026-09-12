@@ -100,8 +100,23 @@ test.describe("Telemetry ingestion key creation wizard", () => {
     await editor.press("ControlOrMeta+A");
     await editor.press("Backspace");
     await expect(modal().locator(".monaco-editor .view-lines")).toHaveText("");
-    // Insert the whole document so Monaco cannot auto-close its brackets.
     await ctx.page.keyboard.insertText(value);
+    /*
+     * Inserting the whole document at once does not escape Monaco's
+     * auto-closing brackets: CursorsController.type replays the string one
+     * character at a time through the same interceptors as real typing. So
+     * `["https://app.example.com"` landed in the editor as
+     * `["https://app.example.com"]` - valid JSON - and the wizard stepped
+     * past the Browser Settings validation this helper exists to exercise.
+     *
+     * Everything Monaco auto-closes sits after the caret, on the caret's own
+     * line (these fixtures are single-line), so select to the end of the line
+     * and delete it. When the value needed no repair the selection is empty
+     * and Delete at the end of the document is a no-op, which leaves balanced
+     * values exactly as they were inserted.
+     */
+    await editor.press("Shift+End");
+    await editor.press("Delete");
     await modal().getByPlaceholder("storefront-web", { exact: true }).focus();
   };
 
