@@ -46,7 +46,12 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Alert}
+          /*
+           * The model's own icon. Alert used to be here, which now collides
+           * with the Incidents item below — and the rules do more than
+           * alerts anyway.
+           */
+          icon={IconProp.Fire}
         />
         <SideMenuItem
           link={{
@@ -57,6 +62,16 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.ExclaimationCircle}
+        />
+        <SideMenuItem
+          link={{
+            title: "Incidents",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SLO_VIEW_INCIDENTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Alert}
         />
       </SideMenuSection>
 

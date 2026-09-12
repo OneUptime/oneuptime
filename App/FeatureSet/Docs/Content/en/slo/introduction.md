@@ -113,8 +113,9 @@ The SLO's other tabs are:
 | Tab                 | What it shows                                                                                                                                                                       |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Charts**          | SLI, budget remaining and burn rate over time, with reference lines at your target, at the at-risk and exhausted budget boundaries, and at each enabled burn rate rule's threshold. |
-| **Burn Rate Rules** | The rules that page you when the budget burns too fast, and whether each one is currently firing.                                                                                   |
+| **Burn Rate Rules** | The rules that page you when the budget burns too fast, what each one declares, and whether it is currently firing.                                                                 |
 | **Alerts**          | Every alert this SLO's burn rate rules have raised.                                                                                                                                 |
+| **Incidents**       | Every incident this SLO's burn rate rules have declared.                                                                                                                            |
 | **Audit Logs**      | Every change made to this SLO's definition.                                                                                                                                         |
 | **Owners**          | The users and teams notified when the status changes.                                                                                                                               |
 
@@ -123,4 +124,4 @@ For a brand-new SLO with a rolling window, the window is not full yet — a 30-d
 ## Where to read next
 
 - [Error Budgets](/docs/slo/error-budget) — the budget math, how budget recovers, and owner notifications.
-- [Burn Rate Alerts](/docs/slo/burn-rate-alerts) — paging your on-call team when the budget is burning too fast.
+- [Burn Rate Alerts and Incidents](/docs/slo/burn-rate-alerts) — paging your on-call team when the budget is burning too fast.

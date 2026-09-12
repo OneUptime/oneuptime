@@ -398,7 +398,7 @@ const DocsNav: NavGroup[] = [
         url: "/docs/slo/error-budget",
       },
       {
-        title: "Burn Rate Alerts",
+        title: "Burn Rate Alerts and Incidents",
         url: "/docs/slo/burn-rate-alerts",
       },
     ],
