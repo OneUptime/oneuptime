@@ -17,6 +17,13 @@ on:
         type: boolean
         default: false
 
+# Publishing mutates npm, Helm, Docker, Terraform, and GitHub Releases. Never
+# overlap two production runs, and never cancel one after it may have published
+# only part of that immutable artifact set.
+concurrency:
+  group: oneuptime-production-release
+  cancel-in-progress: false
+
 permissions:
   contents: write
   packages: write
@@ -38,7 +45,7 @@ jobs:
   read-version:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     outputs:
       major_minor: ${{ steps.determine.outputs.semver_base }}
       semver_base: ${{ steps.determine.outputs.semver_base }}
@@ -48,7 +55,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          # A release can run for hours while master and release continue to
+          # move. Build every artifact from the immutable event commit so the
+          # source, images, Helm chart, and GitHub tag all have one provenance.
+          ref: ${{ github.sha }}
       - name: Check version and verify not already released
         id: determine
         env:
@@ -93,13 +103,14 @@ jobs:
           # workflow on 2026-08-17; this check happened not to be the step that
           # ran during it. Only a clean 404 counts as "not released".
           #
-          # Asking for the release *by tag* also stops the pipeline blocking on
-          # its own unfinished work: this workflow creates a draft release and
-          # publishes it in a later job, and a draft has no tag, so it 404s
-          # here. `gh release view` saw drafts, which meant one interrupted run
-          # left every later run failing "already released" for a version that
-          # had in fact never shipped. Published releases — the ones this guard
-          # is actually for — still return 200 and still stop the run.
+          # Asking for the *published* release by tag also stops the pipeline
+          # blocking on its own unfinished work. GitHub's endpoint deliberately
+          # excludes drafts, so the draft created later still 404s here even
+          # after this job has pinned the underlying Git ref. `gh release view`
+          # saw drafts, which meant one interrupted run left every later run
+          # failing "already released" for a version that had in fact never
+          # shipped. Published releases — the ones this guard is actually for
+          # — still return 200 and still stop the run.
           release_exists() {
             local tag="$1"
             local out status
@@ -155,6 +166,18 @@ jobs:
       - name: Verify package.json versions match VERSION
         run: node ./Scripts/Install/SyncPackageVersions.js --check
 
+      # Draft releases do not create their Git tag until publication. Pin the
+      # tag while this job still gates every downstream publishing job, so a
+      # later master/release movement cannot split artifact provenance. A
+      # same-SHA rerun verifies the existing tag; a different SHA never moves
+      # it and must use a new version.
+      - name: Pin and verify release tag provenance
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.determine.outputs.semver_base }}
+          EXPECTED_SHA: ${{ github.sha }}
+        run: Scripts/GHA/pin_release_tag.sh "$GITHUB_REPOSITORY" "$RELEASE_TAG" "$EXPECTED_SHA"
+
 
 
   helm-chart-deploy:
@@ -169,7 +192,7 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - name:  Build and Package Helm chart
         run: |
@@ -229,7 +252,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -265,7 +288,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -306,7 +329,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -342,7 +365,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -394,7 +417,7 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -430,7 +453,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -471,7 +494,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -507,7 +530,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -548,7 +571,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -584,7 +607,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -625,7 +648,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -661,7 +684,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -702,7 +725,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -738,7 +761,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -779,7 +802,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -817,7 +840,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -858,7 +881,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -896,7 +919,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -937,7 +960,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -975,7 +998,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1016,7 +1039,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -1054,7 +1077,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1095,7 +1118,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -1131,7 +1154,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1171,6 +1194,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -1211,6 +1236,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -1328,7 +1355,7 @@ jobs:
       # login step fails with "No such file or directory" (exit 127).
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1454,6 +1481,8 @@ jobs:
           echo "=== Disk space after all cleanup ==="
           df -h /
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -1673,6 +1702,8 @@ jobs:
           echo "=== Disk space after all cleanup ==="
           df -h /
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -1748,13 +1779,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
+          fetch-depth: 0
       - run: echo "${{needs.generate-build-number.outputs.build_number}}"
+      - name: Resolve previous published release tag
+        id: previous_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          previous_tag="$(Scripts/GHA/get_latest_published_release_tag.sh "$GITHUB_REPOSITORY")"
+          echo "tag=${previous_tag}" >> "$GITHUB_OUTPUT"
+
+          previous_source_ref="$previous_tag"
+          # Release 13.0.1 was published with mixed provenance: its Docker
+          # images came from this release-workflow SHA, while the public Git
+          # tag was incorrectly created 42 commits later from moving master.
+          # Use the source users actually received as this recovery release's
+          # changelog boundary. Once a correctly pinned release is latest, the
+          # normal tag value above is used automatically.
+          if [ "$previous_tag" = "13.0.1" ]; then
+            previous_source_ref="9a2f47ddd997f7a6d356da6eb98b9717cc115136"
+            echo "::notice::Using the shipped 13.0.1 source commit as the changelog boundary because its public tag has incorrect provenance."
+          fi
+          echo "source_ref=${previous_source_ref}" >> "$GITHUB_OUTPUT"
       - name: "Build Changelog"
         id: build_changelog
         uses: mikepenz/release-changelog-builder-action@v4.2.0
         with:
           configuration: "./Scripts/Release/ChangelogConfig.json"
+          fromTag: "${{ steps.previous_release.outputs.source_ref }}"
+          toTag: "${{ needs.read-version.outputs.major_minor }}"
+          failOnError: true
       - run: echo "Changelog:"
       - name: Print changelog
         env:
@@ -1765,18 +1820,22 @@ jobs:
         shell: bash
         env:
           CHANGELOG_CONTENT: ${{steps.build_changelog.outputs.changelog}}
+          FROM_TAG: ${{ steps.build_changelog.outputs.fromTag }}
+          TO_TAG: ${{ steps.build_changelog.outputs.toTag }}
         run: |
           set -euo pipefail
           OLD_PLACEHOLDER="No significant changes were made. We have just fixed minor bugs for this release. You can find the detailed information in the commit history."
           NEW_PLACEHOLDER="(auto) No categorized pull requests. Fallback will list raw commit messages."
           if echo "$CHANGELOG_CONTENT" | grep -Fq "$OLD_PLACEHOLDER" || echo "$CHANGELOG_CONTENT" | grep -Fq "$NEW_PLACEHOLDER"; then
             echo "Detected empty placeholder changelog. Building commit list fallback."
-            # Find previous tag (skip the most recent tag which might be for an older release). If none, include all commits.
-            if prev_tag=$(git describe --tags --abbrev=0 $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null); then
-              echo "Previous tag: $prev_tag"
-              commits=$(git log --pretty=format:'- %s (%h)' "$prev_tag"..HEAD)
+            # Use the exact range already resolved by the changelog action.
+            # Build-number tags are frequent and must never influence this
+            # fallback's release boundary.
+            if [ -n "$FROM_TAG" ] && [ -n "$TO_TAG" ]; then
+              echo "Release range: $FROM_TAG..$TO_TAG"
+              commits=$(git log --pretty=format:'- %s (%h)' "$FROM_TAG..$TO_TAG")
             else
-              echo "No previous tag found; using full commit history on this branch."
+              echo "No previous published release found; using full commit history."
               commits=$(git log --pretty=format:'- %s (%h)')
             fi
             # If still empty (e.g., no commits), keep placeholder to avoid empty body.
@@ -1822,6 +1881,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: "${{needs.read-version.outputs.major_minor}}"
+          commit: "${{ github.sha }}"
           artifactErrorsFailBuild: true
           draft: true
           allowUpdates: true
@@ -1840,6 +1900,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: "${{needs.read-version.outputs.major_minor}}"
+          commit: "${{ github.sha }}"
           artifactErrorsFailBuild: true
           draft: true
           allowUpdates: true
@@ -1856,6 +1917,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: "${{needs.read-version.outputs.major_minor}}"
+          commit: "${{ github.sha }}"
           artifactErrorsFailBuild: true
           draft: true
           allowUpdates: true
@@ -1902,7 +1964,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       # syft reads the manifest over the registry API using the credentials in
       # ~/.docker/config.json — no image pull, so this job stays small and fast.
@@ -1962,7 +2024,7 @@ jobs:
           swap-storage: true
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -2017,7 +2079,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -2073,7 +2135,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -2204,12 +2266,33 @@ jobs:
 
   finalize-github-release:
     name: Publish GitHub release
-    needs: [infrastructure-agent-deploy, generate-sboms, generate-build-number, read-version]
+    needs:
+      - infrastructure-agent-deploy
+      - generate-sboms
+      - mobile-app-android-deploy
+      - mobile-app-ios-deploy
+      - publish-terraform-provider
+      - generate-build-number
+      - read-version
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/release'
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      # The early read-version gate reserves the tag before any publishing can
+      # start. Verify it again after the long-running builds so a force-move or
+      # delete/recreate during the run can never be made public as this release.
+      - name: Verify release tag provenance before publication
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.read-version.outputs.major_minor }}
+          EXPECTED_SHA: ${{ github.sha }}
+        run: Scripts/GHA/verify_release_tag.sh "$GITHUB_REPOSITORY" "$RELEASE_TAG" "$EXPECTED_SHA"
+
       - name: Publish release
         uses: actions/github-script@v7
         with:
@@ -2290,7 +2373,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -2358,7 +2441,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-node@v4
         with:
