@@ -45,6 +45,23 @@ const readCode: ReadCodeFunction = (...segments: Array<string>): string => {
     .replace(/\s+/g, " ");
 };
 
+const listCodeFiles: (directory: string) => Array<string> = (
+  directory: string,
+): Array<string> => {
+  const files: Array<string> = [];
+
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const entryPath: string = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...listCodeFiles(entryPath));
+    } else if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
+      files.push(entryPath);
+    }
+  }
+
+  return files;
+};
+
 describe("the item overview", () => {
   const overview: string = readCode("Pages", "Inventory", "View", "Index.tsx");
 
@@ -174,7 +191,7 @@ describe("addressable telemetry pages", () => {
     ["Logs.tsx", "LogsViewer"],
     ["Traces.tsx", "TracesViewer"],
     ["Metrics.tsx", "MetricsViewer"],
-    ["Exceptions.tsx", "ExceptionsTable"],
+    ["Exceptions.tsx", "ExceptionsViewer"],
     ["Profiles.tsx", "ProfileTable"],
   ];
 
@@ -211,6 +228,56 @@ describe("addressable telemetry pages", () => {
     expect(logs).toContain("showFilters={true}");
     expect(logs).toContain("enableRealtime={true}");
     expect(logs).toContain("inventory-item-logs-${signal.modelId.toString()}");
+  });
+
+  test("exceptions use the shared list and scope it by entity-key membership", () => {
+    const exceptions: string = readCode(
+      "Pages",
+      "Inventory",
+      "View",
+      "Exceptions.tsx",
+    );
+    const viewer: string = readCode(
+      "Components",
+      "Exceptions",
+      "ExceptionsViewer.tsx",
+    );
+
+    expect(exceptions).toContain("<ExceptionsViewer");
+    expect(exceptions).toContain("entityKeysFilter={[signal.entityKey]}");
+    expect(viewer).toContain(
+      "buildExceptionEntityKeyScope(props.entityKeysFilter)",
+    );
+    expect(viewer).toContain("applyExceptionGroupQueryScope({");
+    expect(exceptions).toContain(
+      'emptyMessage="No exceptions found for this inventory item."',
+    );
+    expect(exceptions).not.toContain("primaryEntityId={signal.modelId}");
+    expect(exceptions).not.toContain("ExceptionsTable");
+    expect(
+      fs.existsSync(
+        path.join(
+          DASHBOARD_SRC,
+          "Components",
+          "Exceptions",
+          "ExceptionsTable.tsx",
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  test("no Dashboard source can bring the legacy exception table back", () => {
+    const legacyTableUsage: RegExp =
+      /from\s+["'][^"']*ExceptionsTable["']|<ExceptionsTable\b/;
+    const references: Array<string> = listCodeFiles(DASHBOARD_SRC)
+      .filter((filePath: string): boolean => {
+        return legacyTableUsage.test(fs.readFileSync(filePath, "utf8"));
+      })
+      .map((filePath: string): string => {
+        return path.relative(DASHBOARD_SRC, filePath);
+      });
+
+    expect(references).toEqual([]);
   });
 
   test("the old combined URL redirects rather than preserving a hidden tab UI", () => {

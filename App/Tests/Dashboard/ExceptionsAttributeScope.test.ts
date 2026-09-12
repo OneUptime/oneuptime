@@ -219,7 +219,7 @@ describe("exceptions viewer wiring", () => {
       .replace(/\s+/g, " ");
 
     expect(source).toContain("getExceptionAttributeSelections");
-    expect(source).toContain("applyExceptionFingerprintScope");
+    expect(source).toContain("applyExceptionGroupQueryScope");
     expect(source).toContain("AnalyticsModelAPI.getList<ExceptionInstance>");
     // Histogram AND facets payloads carry the scope.
     expect(source.match(/payload\["fingerprints"\]/g)?.length).toBe(2);

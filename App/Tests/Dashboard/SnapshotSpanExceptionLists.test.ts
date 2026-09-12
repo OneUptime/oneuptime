@@ -490,20 +490,20 @@ describe("ExceptionsViewer hosts a stored exception-instance query", () => {
     );
   });
 
-  test("the group query drops lastSeenAt while a host query is pinned", () => {
+  test("the group query drops lastSeenAt whenever fingerprints carry the window", () => {
     /*
      * THE trap of the group approach. `lastSeenAt` is the group's last
      * occurrence ANYWHERE, so for an exception still firing after the
      * snapshot ended it sits past the window. ANDing it with the fingerprint
      * set — which was already resolved from instances INSIDE the window —
-     * drops exactly the exceptions an operator opens an incident to find, and
-     * drops them silently: the list just reads "No exceptions found".
+     * drops exactly the exceptions an operator opens an incident to find.
+     * The same applies to attribute/operator searches and fixed entity-key
+     * scopes on historical windows, not only hosted snapshots.
      */
+    expect(EXCEPTIONS_VIEWER).toContain("applyExceptionGroupQueryScope({");
     expect(EXCEPTIONS_VIEWER).toContain(
-      'if (!hostScope.isHosted) { const dateRange: InBetween<Date> = RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange); (q as Record<string, unknown>)["lastSeenAt"] = new InBetween<Date>( dateRange.startValue, dateRange.endValue, ); }',
+      "resolvedFingerprints: resolvedScopeFingerprints",
     );
-    // Exactly one write, so no later line can put the clause back.
-    expect(countOccurrences(EXCEPTIONS_VIEWER, '["lastSeenAt"] =')).toBe(1);
   });
 
   test("an in-flight fingerprint resolution reads as loading, not as empty", () => {
