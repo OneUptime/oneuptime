@@ -262,11 +262,16 @@ describe("the side menu reaches the whole product", () => {
     for (const key of [
       "INVENTORY_VIEW",
       "INVENTORY_VIEW_RELATIONSHIPS",
+      "INVENTORY_VIEW_CUSTOM_FIELDS",
       "INVENTORY_VIEW_LOGS",
       "INVENTORY_VIEW_TRACES",
       "INVENTORY_VIEW_METRICS",
       "INVENTORY_VIEW_PROFILES",
       "INVENTORY_VIEW_EXCEPTIONS",
+      "INVENTORY_VIEW_INCIDENTS",
+      "INVENTORY_VIEW_ALERTS",
+      "INVENTORY_VIEW_SCHEDULED_MAINTENANCE",
+      "INVENTORY_VIEW_AUDIT_LOGS",
       "INVENTORY_VIEW_SETTINGS",
       "INVENTORY_VIEW_DELETE",
     ]) {
@@ -291,6 +296,85 @@ describe("the side menu reaches the whole product", () => {
     expect(itemSideMenu).toContain("INVENTORY_VIEW_SETTINGS");
     expect(itemSideMenu).toContain("INVENTORY_VIEW_DELETE");
     expect(itemSideMenu).not.toContain("props.canEdit");
+  });
+
+  describe("the item detail sections", () => {
+    const itemSideMenu: string = readSource(
+      "Pages",
+      "Inventory",
+      "View",
+      "SideMenu.tsx",
+    );
+
+    const section: (title: string, nextTitle?: string) => string = (
+      title: string,
+      nextTitle?: string,
+    ): string => {
+      const start: number = itemSideMenu.indexOf(`title: "${title}"`);
+      const end: number = nextTitle
+        ? itemSideMenu.indexOf(`title: "${nextTitle}"`, start + 1)
+        : itemSideMenu.indexOf("  ];", start);
+
+      expect(start).toBeGreaterThan(-1);
+      expect(end).toBeGreaterThan(start);
+
+      return itemSideMenu.slice(start, end);
+    };
+
+    const itemTitles: (sectionSource: string) => Array<string> = (
+      sectionSource: string,
+    ): Array<string> => {
+      return Array.from(
+        sectionSource.matchAll(/link:\s*\{\s*title:\s*"([^"]+)"/g),
+        (match: RegExpMatchArray): string => {
+          return match[1] as string;
+        },
+      );
+    };
+
+    test("Operations contains only live operational activity", () => {
+      const operations: string = section("Operations", "Advanced");
+
+      expect(itemTitles(operations)).toEqual([
+        "Incidents",
+        "Alerts",
+        "Scheduled Maintenance",
+      ]);
+      expect(operations).not.toContain("INVENTORY_VIEW_AUDIT_LOGS");
+    });
+
+    test("Advanced contains Settings, Audit Logs, and Delete Item in that order", () => {
+      const advanced: string = section("Advanced");
+
+      expect(itemTitles(advanced)).toEqual([
+        "Settings",
+        "Audit Logs",
+        "Delete Item",
+      ]);
+    });
+
+    test("the Audit Logs destination is declared exactly once", () => {
+      expect(
+        itemSideMenu.match(/PageMap\.INVENTORY_VIEW_AUDIT_LOGS/g),
+      ).toHaveLength(1);
+    });
+
+    test("the Advanced Audit Logs item keeps its route, item scope, and icon", () => {
+      const advanced: string = section("Advanced");
+      const auditStart: number = advanced.indexOf('title: "Audit Logs"');
+      const deleteStart: number = advanced.indexOf('title: "Delete Item"');
+
+      expect(auditStart).toBeGreaterThan(-1);
+      expect(deleteStart).toBeGreaterThan(auditStart);
+
+      const auditItem: string = squash(advanced.slice(auditStart, deleteStart));
+
+      expect(auditItem).toContain(
+        "RouteMap[PageMap.INVENTORY_VIEW_AUDIT_LOGS] as Route",
+      );
+      expect(auditItem).toContain("{ modelId: props.modelId }");
+      expect(auditItem).toContain("icon: IconProp.List");
+    });
   });
 
   test("the detail layout does not hide lifecycle navigation", () => {
