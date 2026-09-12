@@ -1,6 +1,8 @@
 import CalendarEvent from "../../../Types/Calendar/CalendarEvent";
 import UserOverrideUtil, {
+  OverrideEventMeta,
   UserOverrideRecord,
+  OVERRIDE_META_KEY,
 } from "../../../Types/OnCallDutyPolicy/UserOverrideUtil";
 
 function at(
@@ -251,5 +253,107 @@ describe("UserOverrideUtil edge cases", () => {
         overrides: [],
       });
     expect(result).toEqual([base]);
+  });
+});
+
+/*
+ * isOverrideApplicable decides whether an override participates at all for a
+ * given policy context. The suites above only exercise it indirectly through
+ * applyOverridesToEvents, so cover the public method directly here.
+ */
+describe("UserOverrideUtil.isOverrideApplicable", () => {
+  const makeOverride: (
+    onCallDutyPolicyId?: string | null | undefined,
+  ) => UserOverrideRecord = (
+    onCallDutyPolicyId?: string | null | undefined,
+  ): UserOverrideRecord => {
+    return {
+      overrideUserId: "A",
+      routeAlertsToUserId: "B",
+      startsAt: at(9),
+      endsAt: at(11),
+      onCallDutyPolicyId: onCallDutyPolicyId,
+    };
+  };
+
+  test("a global override (no policy id) always applies", () => {
+    expect(
+      UserOverrideUtil.isOverrideApplicable(makeOverride(null), "policy-1"),
+    ).toBe(true);
+    expect(
+      UserOverrideUtil.isOverrideApplicable(makeOverride(undefined), undefined),
+    ).toBe(true);
+  });
+
+  test("a policy-scoped override applies only to its own policy", () => {
+    expect(
+      UserOverrideUtil.isOverrideApplicable(
+        makeOverride("policy-1"),
+        "policy-1",
+      ),
+    ).toBe(true);
+    expect(
+      UserOverrideUtil.isOverrideApplicable(
+        makeOverride("policy-1"),
+        "policy-2",
+      ),
+    ).toBe(false);
+  });
+
+  test("a policy-scoped override does not apply without policy context", () => {
+    expect(
+      UserOverrideUtil.isOverrideApplicable(
+        makeOverride("policy-1"),
+        undefined,
+      ),
+    ).toBe(false);
+  });
+});
+
+/*
+ * getOverrideMeta is how downstream consumers detect a substituted segment and
+ * render it distinctly. Cover the public method directly.
+ */
+describe("UserOverrideUtil.getOverrideMeta", () => {
+  test("returns null for a plain event", () => {
+    expect(UserOverrideUtil.getOverrideMeta(event("A", 8, 10))).toBeNull();
+  });
+
+  test("returns the meta for a segment produced by a substitution", () => {
+    const result: Array<CalendarEvent> =
+      UserOverrideUtil.applyOverridesToEvents({
+        events: [event("A", 8, 12)],
+        overrides: [
+          {
+            overrideUserId: "A",
+            routeAlertsToUserId: "B",
+            startsAt: at(9),
+            endsAt: at(11),
+          },
+        ],
+      });
+
+    const substituted: CalendarEvent | undefined = result.find(
+      (e: CalendarEvent): boolean => {
+        return e.title === "B";
+      },
+    );
+    expect(substituted).toBeDefined();
+
+    const meta: OverrideEventMeta | null = UserOverrideUtil.getOverrideMeta(
+      substituted as CalendarEvent,
+    );
+    expect(meta).not.toBeNull();
+    expect((meta as OverrideEventMeta).originalUserId).toBe("A");
+    expect((meta as OverrideEventMeta).overrideUserId).toBe("B");
+  });
+
+  test("returns null when the marker is present but is not a real override", () => {
+    const plain: CalendarEvent = {
+      ...event("A", 8, 10),
+      [OVERRIDE_META_KEY]: { isOverride: false } as unknown as never,
+    };
+
+    expect(UserOverrideUtil.getOverrideMeta(plain)).toBeNull();
   });
 });
