@@ -42,6 +42,7 @@ import Permission, {
 } from "../../../Types/Permission";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import UserType from "../../../Types/UserType";
+import zlib from "zlib";
 import {
   afterEach,
   beforeAll,
@@ -182,6 +183,12 @@ async function callRoute(data: {
   uri: string;
   request: JSONObject;
   body: JSONObject;
+  /*
+   * Extra request headers (e.g. accept-encoding). Absent by default so
+   * every test that does not name one runs the identity path exactly as
+   * before the chunk route learned to gzip.
+   */
+  headers?: Dictionary<string>;
 }): Promise<CallResult> {
   const route: RecordedRoute = findRoute(data.uri);
 
@@ -193,7 +200,7 @@ async function callRoute(data: {
     body: data.body,
     params: {},
     query: {},
-    headers: { "user-agent": "jest-agent" },
+    headers: { "user-agent": "jest-agent", ...(data.headers ?? {}) },
   } as unknown as ExpressRequest;
 
   const res: ExpressResponse = {
@@ -3980,6 +3987,322 @@ describe("Session replay playback API", () => {
       expect(payloadStatement.query).toContain(
         "ORDER BY chunkIndex ASC, version DESC LIMIT 1 BY chunkIndex",
       );
+    });
+
+    /*
+     * The payload column is stored decompressed and the body is
+     * application/octet-stream, which nginx's gzip_types does not cover,
+     * so the route must compress on the wire itself or a page ships as
+     * 1-8 MB of raw JSON. The browser's fetch() inflates transparently,
+     * so the decoded bytes must be the very same frames.
+     */
+    test("gzips the frames when the caller accepts gzip", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = payloadPrincipal();
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const payload: string = "[" + "1,".repeat(600) + "1]";
+
+      chunkQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          { chunkIndex: 0, servedPayload: payload, isServed: 1 },
+          { chunkIndex: 1, servedPayload: "[22]", isServed: 1 },
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: CHUNKS_ROUTE,
+        request: principal.request,
+        body: {
+          sessionId: "session-1",
+          tabId: "tab-1",
+          chunkIndexes: [0, 1],
+        },
+        headers: { "accept-encoding": "gzip, deflate, br" },
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.deniedWith).toBeUndefined();
+
+      const sent: Buffer = result.sentBuffer as unknown as Buffer;
+      expect(sent).toBeDefined();
+
+      expect(result.headers["Content-Encoding"]).toBe("gzip");
+      expect(result.headers["Vary"]).toBe("Accept-Encoding");
+      expect(result.headers["Content-Type"]).toBe("application/octet-stream");
+      expect(result.headers["Cache-Control"]).toBe("no-store");
+      // Content-Length describes the bytes actually sent, not the frames.
+      expect(result.headers["Content-Length"]).toBe(String(sent.length));
+      expect(sent.length).toBeLessThan(8 + payload.length);
+
+      const decoded: Buffer = zlib.gunzipSync(sent);
+      expect(decoded.length).toBe(8 + payload.length + 8 + 4);
+      expect(decoded.readUInt32LE(0)).toBe(0);
+      expect(decoded.readUInt32LE(4)).toBe(payload.length);
+      expect(decoded.subarray(8, 8 + payload.length).toString("utf8")).toBe(
+        payload,
+      );
+      expect(decoded.readUInt32LE(8 + payload.length)).toBe(1);
+      expect(decoded.readUInt32LE(12 + payload.length)).toBe(4);
+      expect(decoded.subarray(16 + payload.length).toString("utf8")).toBe(
+        "[22]",
+      );
+    });
+
+    test("honours a positive q-value and the x-gzip alias", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = payloadPrincipal();
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const payload: string = "[" + "1,".repeat(600) + "1]";
+
+      for (const acceptEncoding of [
+        "deflate;q=1.0, gzip;q=0.5",
+        "X-GZIP",
+        " br , gzip ; q=0.1 ",
+      ]) {
+        chunkQuerySpy.mockResolvedValue(
+          fakeResultSet([
+            { chunkIndex: 0, servedPayload: payload, isServed: 1 },
+          ]) as never,
+        );
+
+        const result: CallResult = await callRoute({
+          uri: CHUNKS_ROUTE,
+          request: principal.request,
+          body: {
+            sessionId: "session-1",
+            tabId: "tab-1",
+            chunkIndexes: [0],
+          },
+          headers: { "accept-encoding": acceptEncoding },
+        });
+
+        expect(result.thrownToNext).toBeUndefined();
+        expect(result.headers["Content-Encoding"]).toBe("gzip");
+
+        const decoded: Buffer = zlib.gunzipSync(
+          result.sentBuffer as unknown as Buffer,
+        );
+        expect(decoded.readUInt32LE(4)).toBe(payload.length);
+      }
+    });
+
+    test("sends identity frames when Accept-Encoding is absent", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = payloadPrincipal();
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const payload: string = "[" + "1,".repeat(600) + "1]";
+
+      chunkQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          { chunkIndex: 0, servedPayload: payload, isServed: 1 },
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: CHUNKS_ROUTE,
+        request: principal.request,
+        body: {
+          sessionId: "session-1",
+          tabId: "tab-1",
+          chunkIndexes: [0],
+        },
+      });
+
+      const sent: Buffer = result.sentBuffer as unknown as Buffer;
+
+      expect(result.headers["Content-Encoding"]).toBeUndefined();
+      // The answer still depends on the request header, so Vary is set.
+      expect(result.headers["Vary"]).toBe("Accept-Encoding");
+      expect(result.headers["Content-Length"]).toBe(String(8 + payload.length));
+      expect(sent.length).toBe(8 + payload.length);
+      expect(sent.readUInt32LE(0)).toBe(0);
+      expect(sent.readUInt32LE(4)).toBe(payload.length);
+    });
+
+    test("sends identity frames when only br and deflate are accepted", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = payloadPrincipal();
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const payload: string = "[" + "1,".repeat(600) + "1]";
+
+      chunkQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          { chunkIndex: 0, servedPayload: payload, isServed: 1 },
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: CHUNKS_ROUTE,
+        request: principal.request,
+        body: {
+          sessionId: "session-1",
+          tabId: "tab-1",
+          chunkIndexes: [0],
+        },
+        headers: { "accept-encoding": "br, deflate" },
+      });
+
+      const sent: Buffer = result.sentBuffer as unknown as Buffer;
+
+      expect(result.headers["Content-Encoding"]).toBeUndefined();
+      expect(result.headers["Vary"]).toBe("Accept-Encoding");
+      expect(sent.length).toBe(8 + payload.length);
+      expect(sent.readUInt32LE(4)).toBe(payload.length);
+    });
+
+    test("gzip;q=0 is an explicit refusal of gzip", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = payloadPrincipal();
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const payload: string = "[" + "1,".repeat(600) + "1]";
+
+      for (const acceptEncoding of ["gzip;q=0", "gzip;q=0.0, identity"]) {
+        chunkQuerySpy.mockResolvedValue(
+          fakeResultSet([
+            { chunkIndex: 0, servedPayload: payload, isServed: 1 },
+          ]) as never,
+        );
+
+        const result: CallResult = await callRoute({
+          uri: CHUNKS_ROUTE,
+          request: principal.request,
+          body: {
+            sessionId: "session-1",
+            tabId: "tab-1",
+            chunkIndexes: [0],
+          },
+          headers: { "accept-encoding": acceptEncoding },
+        });
+
+        const sent: Buffer = result.sentBuffer as unknown as Buffer;
+
+        expect(result.headers["Content-Encoding"]).toBeUndefined();
+        expect(sent.length).toBe(8 + payload.length);
+        expect(sent.readUInt32LE(4)).toBe(payload.length);
+      }
+    });
+
+    /* Mirrors nginx's gzip_min_length: a tiny page gains nothing. */
+    test("does not gzip a page below the minimum size even when gzip is accepted", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = payloadPrincipal();
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      chunkQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          { chunkIndex: 0, servedPayload: "[1]", isServed: 1 },
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: CHUNKS_ROUTE,
+        request: principal.request,
+        body: {
+          sessionId: "session-1",
+          tabId: "tab-1",
+          chunkIndexes: [0],
+        },
+        headers: { "accept-encoding": "gzip, deflate, br" },
+      });
+
+      const sent: Buffer = result.sentBuffer as unknown as Buffer;
+
+      expect(result.headers["Content-Encoding"]).toBeUndefined();
+      expect(result.headers["Vary"]).toBe("Accept-Encoding");
+      expect(result.headers["Content-Length"]).toBe("11");
+      expect(sent.length).toBe(11);
+      expect(sent.readUInt32LE(0)).toBe(0);
+      expect(sent.readUInt32LE(4)).toBe(3);
+      expect(sent.subarray(8, 11).toString("utf8")).toBe("[1]");
+    });
+
+    /*
+     * The read cap bounds what the player must hold decoded in memory,
+     * so it and the omitted list are judged on the uncompressed frames:
+     * two 5 MiB chunks of one repeated byte gzip to a few KB, yet only
+     * the first may be served.
+     */
+    test("judges the read cap and the omitted-chunks header on the uncompressed frames when compressing", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = payloadPrincipal();
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const fatPayload: string = "a".repeat(5 * 1024 * 1024);
+
+      chunkQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          { chunkIndex: 0, servedPayload: fatPayload, isServed: 1 },
+          { chunkIndex: 1, servedPayload: fatPayload, isServed: 1 },
+          { chunkIndex: 2, servedPayload: "", isServed: 0 },
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: CHUNKS_ROUTE,
+        request: principal.request,
+        body: {
+          sessionId: "session-1",
+          tabId: "tab-1",
+          chunkIndexes: [0, 1, 2],
+        },
+        headers: { "accept-encoding": "gzip, deflate, br" },
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.deniedWith).toBeUndefined();
+
+      const sent: Buffer = result.sentBuffer as unknown as Buffer;
+
+      expect(result.headers["Content-Encoding"]).toBe("gzip");
+      expect(result.headers["Content-Length"]).toBe(String(sent.length));
+      expect(sent.length).toBeLessThan(fatPayload.length);
+      expect(result.headers["X-OneUptime-Replay-Omitted-Chunks"]).toBe("1,2");
+      expect(result.headers["Cache-Control"]).toBe("no-store");
+
+      const decoded: Buffer = zlib.gunzipSync(sent);
+      expect(decoded.readUInt32LE(0)).toBe(0);
+      expect(decoded.readUInt32LE(4)).toBe(fatPayload.length);
+      expect(decoded.length).toBe(8 + fatPayload.length);
     });
 
     test("rejects a non-integer chunk index", async () => {

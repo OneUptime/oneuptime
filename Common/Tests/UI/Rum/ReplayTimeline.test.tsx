@@ -1,14 +1,17 @@
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 import * as React from "react";
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it, jest } from "@jest/globals";
 import ReplayTimeline, {
   ReplayTimelineProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayTimeline";
+import * as ReplayTimelineMath from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayTimelineMath";
 import {
+  ReplayActivityBucket,
   ReplayTimelineMarker,
   ReplayTrackBand,
   buildExactMarkers,
+  offsetToPercent,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayTimelineMath";
 import { ReplaySignal } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplaySignalTypes";
 
@@ -692,5 +695,181 @@ describe("ReplayTimeline activity lane", () => {
     );
 
     expect(screen.getByTestId("timeline-activity").children).toHaveLength(2);
+  });
+});
+
+/*
+ * The clock ticks the timeline ~30 times a second. Everything that is not
+ * the playhead must sit behind a memo that actually holds across ticks:
+ * the per-lane marker arrays are memoised in the parent (a fresh filter
+ * per render would defeat MarkerLane's memo AND its clusters useMemo),
+ * the key handler reads the clock through a ref so the slider's onKeyDown
+ * prop is stable, and the bands/activity/notice children get identical
+ * props from one tick to the next.
+ */
+describe("ReplayTimeline per-tick rendering", () => {
+  const TICK_MS: number = 33;
+  const TICKS: number = 100;
+
+  function busyProps(
+    overrides?: Partial<ReplayTimelineProps>,
+  ): ReplayTimelineProps {
+    const activity: Array<ReplayActivityBucket> = [];
+
+    for (let i: number = 0; i < 180; i++) {
+      activity.push({
+        chunkIndex: i,
+        startMs: (i * DURATION_MS) / 180,
+        endMs: ((i + 1) * DURATION_MS) / 180,
+        intensity: (i % 10) / 10,
+        isMeasured: true,
+      });
+    }
+
+    const bands: Array<ReplayTrackBand> = [];
+
+    for (let i: number = 0; i < 20; i++) {
+      const startMs: number = (i * DURATION_MS) / 20;
+      const endMs: number = ((i + 1) * DURATION_MS) / 20;
+
+      bands.push(
+        i % 4 === 3
+          ? {
+              kind: "gap",
+              startMs: startMs,
+              endMs: endMs,
+              label: "30s missing",
+            }
+          : { kind: "loaded", startMs: startMs, endMs: endMs, label: "" },
+      );
+    }
+
+    const signals: Array<ReplaySignal> = [];
+    const kinds: Array<ReplaySignal["kind"]> = [
+      "network",
+      "client-error",
+      "navigation",
+    ];
+
+    for (let i: number = 0; i < 800; i++) {
+      signals.push(
+        signal({
+          id: `sig-${i}`,
+          kind: kinds[i % 3] as ReplaySignal["kind"],
+          severity: i % 3 === 0 ? "error" : "info",
+          offsetMs: Math.floor((i * DURATION_MS) / 800),
+        }),
+      );
+    }
+
+    return makeProps({
+      activity: activity,
+      bands: bands,
+      markers: buildExactMarkers(signals),
+      ...overrides,
+    });
+  }
+
+  it("moves only the playhead and the slider values across 100 clock ticks", () => {
+    const props: ReplayTimelineProps = busyProps();
+    const view: ReturnType<typeof render> = render(
+      <ReplayTimeline {...props} />,
+    );
+
+    expect(props.markers.length).toBeGreaterThan(100);
+
+    /*
+     * Clusters, not single markers: busyProps packs more than 100 markers
+     * into the lanes, so every one of them is drawn as part of a cluster
+     * and "timeline-marker" never appears.
+     */
+    const firstMarker: HTMLElement = screen.getAllByTestId(
+      "timeline-marker-cluster",
+    )[0] as HTMLElement;
+    const firstActivityCell: Element | null =
+      screen.getByTestId("timeline-activity").firstElementChild;
+    const firstLoadedBand: HTMLElement = screen.getAllByTestId(
+      "timeline-loaded-band",
+    )[0] as HTMLElement;
+    const track: HTMLElement = screen.getByTestId("timeline-track");
+
+    let currentTimeMs: number = 0;
+
+    for (let tick: number = 1; tick <= TICKS; tick++) {
+      currentTimeMs = tick * TICK_MS;
+      view.rerender(
+        <ReplayTimeline {...props} currentTimeMs={currentTimeMs} />,
+      );
+    }
+
+    expect(screen.getByTestId("timeline-playhead").style.left).toBe(
+      `${offsetToPercent(currentTimeMs, DURATION_MS)}%`,
+    );
+    expect(track.getAttribute("aria-valuenow")).toBe(String(currentTimeMs));
+    expect(screen.getAllByTestId("timeline-marker-cluster")[0]).toBe(
+      firstMarker,
+    );
+    expect(screen.getByTestId("timeline-activity").firstElementChild).toBe(
+      firstActivityCell,
+    );
+    expect(screen.getAllByTestId("timeline-loaded-band")[0]).toBe(
+      firstLoadedBand,
+    );
+  });
+
+  it("clusters each lane once per markers array, not once per tick", () => {
+    const clusterSpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      ReplayTimelineMath,
+      "clusterMarkers",
+    );
+
+    try {
+      const props: ReplayTimelineProps = busyProps();
+      const view: ReturnType<typeof render> = render(
+        <ReplayTimeline {...props} />,
+      );
+
+      /* One clustering pass per lane on mount. */
+      const callsAfterMount: number = clusterSpy.mock.calls.length;
+
+      expect(callsAfterMount).toBe(3);
+
+      for (let tick: number = 1; tick <= TICKS; tick++) {
+        view.rerender(
+          <ReplayTimeline {...props} currentTimeMs={tick * TICK_MS} />,
+        );
+      }
+
+      expect(clusterSpy.mock.calls.length).toBe(callsAfterMount);
+
+      /* A new markers array is a real change and re-clusters. */
+      view.rerender(<ReplayTimeline {...props} markers={[...props.markers]} />);
+
+      expect(clusterSpy.mock.calls.length).toBeGreaterThan(callsAfterMount);
+    } finally {
+      clusterSpy.mockRestore();
+    }
+  });
+
+  it("answers slider keys from the latest clock after ticking without a new handler", () => {
+    const seeks: Array<number> = [];
+    const props: ReplayTimelineProps = makeProps({
+      currentTimeMs: 65000,
+      onSeek: (offsetMs: number): void => {
+        seeks.push(offsetMs);
+      },
+    });
+    const view: ReturnType<typeof render> = render(
+      <ReplayTimeline {...props} />,
+    );
+
+    view.rerender(<ReplayTimeline {...props} currentTimeMs={120000} />);
+
+    const track: HTMLElement = screen.getByTestId("timeline-track");
+
+    fireEvent.keyDown(track, { key: "ArrowRight" });
+
+    expect(seeks).toEqual([125000]);
+    expect(track.getAttribute("aria-valuenow")).toBe("120000");
   });
 });

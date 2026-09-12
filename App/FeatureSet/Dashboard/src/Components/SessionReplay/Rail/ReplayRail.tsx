@@ -86,6 +86,7 @@ import {
   REPLAY_SIGNAL_SEEK_PRE_ROLL_MS,
   ReplaySignalMatch,
   buildErrorCounterpartIndex,
+  findLastSignalIndexAtOrBefore,
   findSignalMatch,
   fromExceptionRow,
   fromLogRow,
@@ -626,6 +627,19 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
     );
   }, [rowSignals, props.currentTimeMs, selectedIndex]);
 
+  /*
+   * The plain rule, WITHOUT the selection override: the last row at or
+   * before the playhead. Rows are sorted by offset, so "index >
+   * plainActiveIndex" is exactly "offsetMs > currentTimeMs" - which is
+   * what dims a future row - without comparing every windowed row against
+   * the clock on every tick. activeIndex is the wrong reference for this:
+   * inside a selected row's pre-roll window it jumps ahead to that row, and
+   * the rows between the playhead and it must stay dimmed.
+   */
+  const plainActiveIndex: number = useMemo(() => {
+    return findLastSignalIndexAtOrBefore(rowSignals, props.currentTimeMs);
+  }, [rowSignals, props.currentTimeMs]);
+
   const counterpartIndex: Map<string, string> = useMemo(() => {
     return buildErrorCounterpartIndex(pairClientAndServerErrors(allSignals));
   }, [allSignals]);
@@ -678,6 +692,33 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
 
     return { ...defaults, ...(props.links || {}) };
   }, [props.sessionId, props.startTimeUnixMs, props.links]);
+
+  /*
+   * The link-out per row, built once per rows/links change. ReplayRailRow
+   * is a shallow memo: a `{ route, label }` literal created in renderRows
+   * would be a new object on every tick and re-render every trace-linked
+   * row (every span row, every traced request) 30 times a second, and each
+   * traceView call builds a Route besides.
+   */
+  const rowLinks: Map<string, { route: Route; label: string }> = useMemo(() => {
+    const byId: Map<string, { route: Route; label: string }> = new Map();
+
+    for (const row of rows) {
+      const traceId: string | undefined = row.signal.links.traceId;
+
+      if (!traceId) {
+        continue;
+      }
+
+      const route: Route | null = links.traceView(traceId);
+
+      if (route) {
+        byId.set(row.signal.id, { route: route, label: "trace" });
+      }
+    }
+
+    return byId;
+  }, [rows, links]);
 
   /* ---- Actions. ---- */
 
@@ -1469,9 +1510,6 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
       const counterpartId: string | undefined = counterpartIndex.get(
         row.signal.id,
       );
-      const linkRoute: Route | null = row.signal.links.traceId
-        ? links.traceView(row.signal.links.traceId)
-        : null;
 
       elements.push(
         <ReplayRailRow
@@ -1481,7 +1519,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
           isActive={isActive}
           isSelected={isSelected}
           isFocusStop={index === focusStopIndex}
-          isFuture={row.signal.offsetMs > props.currentTimeMs && !isActive}
+          isFuture={index > plainActiveIndex && !isActive}
           uncertaintyLabel={
             row.signal.alignment === "unanchored" ? uncertaintyLabel : null
           }
@@ -1492,7 +1530,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
                 : "also seen in the browser"
               : null
           }
-          link={linkRoute ? { route: linkRoute, label: "trace" } : null}
+          link={rowLinks.get(row.signal.id) ?? null}
           onActivate={activateRow}
           onSeek={seekRow}
           onHover={hoverRow}

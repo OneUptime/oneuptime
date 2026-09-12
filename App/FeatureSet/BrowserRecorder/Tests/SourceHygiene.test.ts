@@ -414,6 +414,28 @@ describe("source hygiene", (): void => {
     expect(offenders).toEqual([]);
   });
 
+  /*
+   * The sampling cadences are a contract with the player: the stage draws
+   * its cursor transition exactly one mousemove sample long and trusts the
+   * "mousemove-50ms" capability for the number. A literal typed into the
+   * sampling block would let the recorder drift from that promise without
+   * either side noticing, so the block has to read the shared constants.
+   */
+  it("takes its rrweb sampling cadence from the shared constants", (): void => {
+    const recorder: string =
+      sources.find((source: { name: string }): boolean => {
+        return source.name === "Recorder.ts";
+      })?.contents || "";
+
+    expect(recorder).toMatch(/mousemove:\s*SESSION_REPLAY_MOUSEMOVE_SAMPLE_MS/);
+    expect(recorder).toMatch(/scroll:\s*SESSION_REPLAY_SCROLL_SAMPLE_MS/);
+    expect(recorder).toMatch(/input:\s*SESSION_REPLAY_INPUT_SAMPLING/);
+
+    expect(recorder).not.toMatch(/mousemove:\s*\d/);
+    expect(recorder).not.toMatch(/scroll:\s*\d/);
+    expect(recorder).not.toMatch(/input:\s*["']/);
+  });
+
   it("declares rrweb with an exact version, no range", (): void => {
     const packageJson: { dependencies: Record<string, string> } = require(
       nodePath.join(__dirname, "..", "package.json"),

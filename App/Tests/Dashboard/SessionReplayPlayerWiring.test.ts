@@ -320,17 +320,44 @@ describe("the events rail", () => {
   test("is handed the playhead, the transport state, the selection and the seek", () => {
     const railProps: string = slice(
       SOURCE,
-      "<ReplayRail\n      ref={railRef}",
+      "<ReplayRailClocked\n      clock={engine}",
       "/>",
     );
 
-    expect(railProps).toContain("currentTimeMs={snapshot.currentTimeMs}");
-    expect(railProps).toContain('isPlaying={snapshot.phase === "playing"}');
-    expect(railProps).toContain("selectedSignalId={selectedSignalId}");
-    expect(railProps).toContain("onSeek={seekTo}");
-    expect(railProps).toContain("backendStore={backendStore}");
-    expect(railProps).toContain("isExpiredFootage={!isPlayable}");
-    expect(railProps).toContain("onTelemetrySignalsChange=");
+    /*
+     * The playhead no longer rides in on a prop from this component. The
+     * rail subscribes to the engine's clock channel through the wrapper,
+     * at a quantum this component chooses, so the ~30Hz publish stops
+     * re-rendering an 1800-line list for a readout that shows seconds.
+     */
+    expect(railProps).not.toContain("currentTimeMs:");
+    expect(railProps).toContain("quantumMs={");
+    expect(railProps).toContain("REPLAY_RAIL_CLOCK_MS");
+    expect(railProps).toContain("railRef={railRef}");
+    expect(railProps).toContain('isPlaying: snapshot.phase === "playing"');
+    expect(railProps).toContain("selectedSignalId: selectedSignalId");
+    expect(railProps).toContain("onSeek: seekTo");
+    expect(railProps).toContain("backendStore: backendStore");
+    expect(railProps).toContain("isExpiredFootage: !isPlayable");
+    expect(railProps).toContain("onTelemetrySignalsChange:");
+  });
+
+  test("the rail is given the exact playhead while paused and a coarse one while playing", () => {
+    /*
+     * The rail's "now" divider shows tenths of a second when the picture
+     * is still, and there is no frame budget to protect then; while
+     * playing it is quantised so the list re-renders four times a second
+     * instead of thirty.
+     */
+    const railProps: string = slice(
+      SOURCE,
+      "<ReplayRailClocked\n      clock={engine}",
+      "/>",
+    );
+
+    expect(railProps).toMatch(
+      /quantumMs=\{\s*snapshot\.phase === "playing"\s*\?\s*REPLAY_RAIL_CLOCK_MS\s*:\s*REPLAY_CLOCK_EXACT_MS\s*\}/,
+    );
   });
 
   test("stays mounted in the no-footage mode so telemetry still loads", () => {
@@ -367,12 +394,12 @@ describe("the events rail", () => {
      */
     const railProps: string = slice(
       SOURCE,
-      "<ReplayRail\n      ref={railRef}",
+      "<ReplayRailClocked\n      clock={engine}",
       "/>",
     );
 
-    expect(railProps).toContain('className="min-h-0 flex-1"');
-    expect(railProps).not.toContain('className="h-full"');
+    expect(railProps).toContain('className: "min-h-0 flex-1"');
+    expect(railProps).not.toContain('className: "h-full"');
     expect(SOURCE).toContain(
       "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
     );
@@ -396,7 +423,7 @@ describe("the events rail", () => {
 
 describe("the header", () => {
   test("receives the identity the manifest served (null when not permitted)", () => {
-    const headerProps: string = slice(SOURCE, "<ReplayHeader\n", "/>");
+    const headerProps: string = slice(SOURCE, "<ReplayHeaderClocked\n", "/>");
 
     expect(headerProps).toContain(
       "label: manifest.details.identifiedUserLabel",
@@ -404,10 +431,16 @@ describe("the header", () => {
     expect(headerProps).toContain(
       "traits: manifest.details.identifiedUserTraits",
     );
-    expect(headerProps).toContain("isLive={isLive}");
-    expect(headerProps).toContain("startTimeUnixMs={startTimeUnixMs}");
-    expect(headerProps).toContain("currentTimeMs={snapshot.currentTimeMs}");
-    expect(headerProps).toContain("onSwitchTab={switchTab}");
+    expect(headerProps).toContain("isLive: isLive");
+    expect(headerProps).toContain("startTimeUnixMs: startTimeUnixMs");
+    /*
+     * The clock reaches the header through the wrapper's subscription,
+     * not as a prop from here: its readouts show whole seconds, so it
+     * renders four times a second rather than thirty.
+     */
+    expect(headerProps).not.toContain("currentTimeMs:");
+    expect(headerProps).toContain("quantumMs={REPLAY_HEADER_CLOCK_MS}");
+    expect(headerProps).toContain("onSwitchTab: switchTab");
   });
 
   test("drops blank facts rather than rendering an empty row for each", () => {
@@ -500,22 +533,22 @@ describe("this user's other sessions", () => {
   });
 
   test("the header is handed the visitor id with the identity and the lookup state after the pin control", () => {
-    const headerProps: string = slice(SOURCE, "<ReplayHeader\n", "/>");
+    const headerProps: string = slice(SOURCE, "<ReplayHeaderClocked\n", "/>");
 
     /* Inside the pinned identity block, next to the two existing keys. */
     expect(headerProps).toContain("visitorId: manifest.details.visitorId");
 
     const headerElement: string = slice(
       SOURCE,
-      "<ReplayHeader\n",
+      "<ReplayHeaderClocked\n",
       "{recordingNotes.length > 0 && (",
     );
-    const pinIndex: number = headerElement.indexOf("pinControl={");
+    const pinIndex: number = headerElement.indexOf("pinControl: (");
     const stateIndex: number = headerElement.indexOf(
-      "userSessions={userSessions}",
+      "userSessions: userSessions",
     );
     const openIndex: number = headerElement.indexOf(
-      "onOpenUserSession={openUserSession}",
+      "onOpenUserSession: openUserSession",
     );
 
     expect(pinIndex).toBeGreaterThan(-1);

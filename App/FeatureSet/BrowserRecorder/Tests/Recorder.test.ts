@@ -213,6 +213,24 @@ describe("Recorder", (): void => {
   ) => Recorder = (
     overrides?: Partial<SessionReplayConfigResponse>,
   ): Recorder => {
+    /*
+     * Stop whatever this helper started last.
+     *
+     * A test that calls startRecorder twice overwrote `recorder` and left
+     * the first one running, and the afterEach only ever stopped the
+     * last. rrweb's observers are delegated on the document, so an orphan
+     * keeps reporting every later keystroke and mouse move in this file -
+     * under the masking config IT was built with. Two recorders that are
+     * meant to run at once are built by startSiblingTab, which owns its
+     * own lifecycle. (Several tests also construct a Recorder directly
+     * rather than through this helper; those own their own stop() and are
+     * why the sampling tests below run first.)
+     */
+    if (recorder) {
+      recorder.stop();
+      recorder = null;
+    }
+
     const instance: Recorder = new Recorder({
       initOptions: INIT_OPTIONS,
       config: { ...baseConfig(), ...overrides },
@@ -265,6 +283,247 @@ describe("Recorder", (): void => {
    * customer's page from the back/forward cache - a RUM vendor measurably
    * degrading its own customer's Core Web Vitals to collect data about them.
    */
+  /*
+   * FIRST in the file, deliberately.
+   *
+   * rrweb attaches its input and mousemove observers to the document, and
+   * several tests below construct a Recorder directly and never stop it,
+   * so by the time the suite reaches its end two or three orphaned
+   * observers are still reporting every keystroke typed in jsdom - each
+   * under its own masking config. These assertions count events, so they
+   * have to run before any of that exists.
+   */
+  describe("input and mouse sampling", (): void => {
+    afterEach((): void => {
+      jest.useRealTimers();
+    });
+
+    /* rrweb IncrementalSource values. */
+    const SOURCE_MOUSE_MOVE: number = 1;
+    const SOURCE_INPUT: number = 5;
+
+    interface IncrementalEvent {
+      type: number;
+      timestamp: number;
+      data: Record<string, unknown>;
+    }
+
+    /*
+     * Every rrweb event posted by ONE session, in order.
+     *
+     * Scoped to the session under test rather than to everything the mock
+     * saw: earlier tests in this file leave rrweb observers attached to
+     * the document, and rrweb's input observer is delegated, so a leaked
+     * one reports the keystrokes typed here too - under ITS OWN masking
+     * config, which is where the stray masked values came from. That was
+     * invisible while only change events were recorded and every
+     * keystroke makes it visible, so the filter belongs here.
+     */
+    const allPostedEvents: (sessionId: string) => Array<IncrementalEvent> = (
+      sessionId: string,
+    ): Array<IncrementalEvent> => {
+      const events: Array<IncrementalEvent> = [];
+
+      for (const call of fetchMock.mock.calls) {
+        if (String(call[0]).indexOf("session-replay/v1/chunk") < 0) {
+          continue;
+        }
+
+        for (const frame of framesOf(call as Array<unknown>)) {
+          if (frame.envelope.sessionId !== sessionId) {
+            continue;
+          }
+
+          events.push(
+            ...(JSON.parse(frame.payload) as Array<IncrementalEvent>),
+          );
+        }
+      }
+
+      return events;
+    };
+
+    const allPostedBytes: () => string = (): string => {
+      return fetchMock.mock.calls
+        .map((call: Array<unknown>): string => {
+          return framesOf(call)
+            .map((frame: CapturedPost): string => {
+              return JSON.stringify(frame.envelope) + frame.payload;
+            })
+            .join("");
+        })
+        .join("");
+    };
+
+    const incrementalOf: (
+      source: number,
+      sessionId: string,
+    ) => Array<IncrementalEvent> = (
+      source: number,
+      sessionId: string,
+    ): Array<IncrementalEvent> => {
+      return allPostedEvents(sessionId).filter(
+        (event: IncrementalEvent): boolean => {
+          return event.type === 3 && event.data["source"] === source;
+        },
+      );
+    };
+
+    const typeInto: (field: HTMLInputElement, values: Array<string>) => void = (
+      field: HTMLInputElement,
+      values: Array<string>,
+    ): void => {
+      for (const value of values) {
+        field.value = value;
+        field.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    };
+
+    /*
+     * REGRESSION. sampling.input was "last", which makes rrweb listen to
+     * change events only - and a text field fires change on blur or Enter,
+     * so a viewer saw an empty field for the whole time the user typed and
+     * then the final value snapping in. Every keystroke now records, in
+     * order, and the 250 ms quantisation that was always meant for these
+     * events applies to each.
+     */
+    it("records every keystroke of an unmasked field, in order, on 250 ms buckets", async (): Promise<void> => {
+      document.body.innerHTML =
+        "<div id='app'><input id='search' type='text' name='search'></div>";
+
+      const instance: Recorder = startRecorder({
+        maskingMode: SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+        samplePercentage: 100,
+      });
+
+      await flushUploads();
+      fetchMock.mockClear();
+
+      const field: HTMLInputElement = document.getElementById(
+        "search",
+      ) as HTMLInputElement;
+
+      typeInto(field, ["a", "ab", "abc"]);
+
+      await flushUploads();
+      sealByHidingThePage();
+      await flushUploads();
+
+      const inputs: Array<IncrementalEvent> = incrementalOf(
+        SOURCE_INPUT,
+        instance.getSessionId(),
+      );
+
+      expect(
+        inputs.map((event: IncrementalEvent): unknown => {
+          return event.data["text"];
+        }),
+      ).toEqual(["a", "ab", "abc"]);
+
+      for (let i: number = 0; i < inputs.length; i++) {
+        const event: IncrementalEvent = inputs[i] as IncrementalEvent;
+
+        expect(event.timestamp % 250).toBe(0);
+
+        if (i > 0) {
+          expect(event.timestamp).toBeGreaterThanOrEqual(
+            (inputs[i - 1] as IncrementalEvent).timestamp,
+          );
+        }
+      }
+    });
+
+    /*
+     * The other half of the same change: a masked field must NOT turn into
+     * a keystroke counter. The mask is constant-width and rrweb drops a
+     * repeated identical value, so three keystrokes are one event carrying
+     * the mask - and the field visibly activates on the first keystroke
+     * rather than on blur. Nobody later "fixes" this into a per-keystroke
+     * length leak without this test going red.
+     */
+    it("collapses typing into a masked field to one constant-width event", async (): Promise<void> => {
+      document.body.innerHTML =
+        "<div id='app'><input id='pw' type='password' name='password'></div>";
+
+      const instance: Recorder = startRecorder({
+        maskingMode: SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+        samplePercentage: 100,
+      });
+
+      await flushUploads();
+      fetchMock.mockClear();
+
+      const field: HTMLInputElement = document.getElementById(
+        "pw",
+      ) as HTMLInputElement;
+
+      typeInto(field, ["Tr0ub4dor", "Tr0ub4dor&", "Tr0ub4dor&3"]);
+
+      await flushUploads();
+      sealByHidingThePage();
+      await flushUploads();
+
+      const inputs: Array<IncrementalEvent> = incrementalOf(
+        SOURCE_INPUT,
+        instance.getSessionId(),
+      );
+
+      expect(inputs.length).toBe(1);
+      expect(inputs[0]?.data["text"]).toBe("•••");
+      expect((inputs[0] as IncrementalEvent).timestamp % 250).toBe(0);
+
+      expect(allPostedBytes()).not.toContain("Tr0ub4dor");
+      expect(allPostedBytes()).not.toContain("&3");
+    });
+
+    /*
+     * The mousemove cadence, measured rather than read off the options:
+     * rrweb keeps one position per sample window and drops the trailing
+     * edge, so 500 ms of continuous movement at 25 ms steps yields ~10
+     * positions at 50 ms and ~5 at the legacy 100 ms. Modern fake timers
+     * drive Date.now, which is what rrweb's throttle reads.
+     */
+    it("keeps about twenty mouse positions a second", async (): Promise<void> => {
+      jest.useFakeTimers();
+
+      const instance: Recorder = startRecorder({ samplePercentage: 100 });
+
+      for (let i: number = 0; i < 60; i++) {
+        await Promise.resolve();
+      }
+
+      fetchMock.mockClear();
+
+      for (let step: number = 0; step < 20; step++) {
+        document.dispatchEvent(
+          new MouseEvent("mousemove", {
+            bubbles: true,
+            clientX: 10 + step * 5,
+            clientY: 20 + step * 3,
+          }),
+        );
+        jest.advanceTimersByTime(25);
+      }
+
+      /* Past rrweb's 500 ms position-batch callback and a flush tick. */
+      jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS);
+
+      for (let i: number = 0; i < 60; i++) {
+        await Promise.resolve();
+      }
+
+      const positions: number = incrementalOf(
+        SOURCE_MOUSE_MOVE,
+        instance.getSessionId(),
+      ).reduce((count: number, event: IncrementalEvent): number => {
+        return count + (event.data["positions"] as Array<unknown>).length;
+      }, 0);
+
+      expect(positions).toBeGreaterThanOrEqual(9);
+      expect(positions).toBeLessThanOrEqual(11);
+    });
+  });
+
   describe("bfcache safety", (): void => {
     it("never registers unload or beforeunload at runtime", (): void => {
       const windowSpy: jest.SpyInstance = jest.spyOn(
@@ -2614,7 +2873,15 @@ describe("Recorder", (): void => {
         "tags",
         "visibility",
         "visitor-id",
+        "mousemove-50ms",
       ]);
+
+      /*
+       * The cadence capability is a promise about a number the player
+       * builds its cursor transition from; RecorderSampling.test.ts pins
+       * the number itself against the options handed to rrweb.
+       */
+      expect(first.envelope.capabilities).toContain("mousemove-50ms");
 
       fetchMock.mockClear();
       document.body.appendChild(document.createElement("span"));
@@ -2780,6 +3047,12 @@ describe("Recorder", (): void => {
     });
   });
 
+  /*
+   * rrweb's sampling, observed through the real library: what a viewer
+   * sees of typing and of mouse movement is decided here, and the numbers
+   * are a promise to the player (RecorderSampling.test.ts pins the options
+   * object; these pin what those options DO in a real DOM).
+   */
   describe("user agent parsing", (): void => {
     it("recognises the common browsers", (): void => {
       expect(

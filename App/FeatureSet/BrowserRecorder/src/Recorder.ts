@@ -2,6 +2,7 @@ import { record } from "rrweb";
 import {
   SESSION_REPLAY_CHECKOUT_INTERVAL_MS,
   SESSION_REPLAY_FLUSH_INTERVAL_MS,
+  SESSION_REPLAY_INPUT_SAMPLING,
   SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
   SESSION_REPLAY_MAX_CAPTURE_REASON_LENGTH,
   SESSION_REPLAY_MAX_CUSTOM_EVENTS_PER_CHUNK,
@@ -13,7 +14,9 @@ import {
   SESSION_REPLAY_MAX_TRAIT_KEYS,
   SESSION_REPLAY_MAX_TRAIT_KEY_LENGTH,
   SESSION_REPLAY_MAX_TRAIT_VALUE_LENGTH,
+  SESSION_REPLAY_MOUSEMOVE_SAMPLE_MS,
   SESSION_REPLAY_SCHEMA_VERSION,
+  SESSION_REPLAY_SCROLL_SAMPLE_MS,
   SESSION_REPLAY_WIRE_VERSION,
   SessionReplayChunkEnvelope,
   SessionReplayChunkMeta,
@@ -1115,11 +1118,29 @@ export default class Recorder {
         headMetaVerification: true,
       },
 
+      /*
+       * The cadences come from the shared constants rather than being
+       * written here, because the player has to know them: the stage
+       * draws its cursor transition to be exactly one mousemove sample
+       * long (advertised as the "mousemove-50ms" capability on chunk 0),
+       * and a number typed here would drift from it unnoticed. rrweb keeps
+       * one position per mousemove window (trailing edge dropped) and one
+       * scroll sample per window (leading and trailing), so both are a
+       * hard ceiling on the event rate, not an average.
+       *
+       * Input sampling listens to every input event so typing plays back
+       * as typing; "last" only heard change events, and a typed value
+       * appeared as one snap on blur or Enter. Masked fields still cost a
+       * single event per typing run: the mask is constant-width and rrweb
+       * drops a repeated identical value before it reaches emit. The 250 ms
+       * timestamp quantisation in sanitiseEvent is what keeps the
+       * per-keystroke events free of the inter-keystroke timing channel.
+       */
       sampling: {
-        mousemove: 100,
+        mousemove: SESSION_REPLAY_MOUSEMOVE_SAMPLE_MS,
         mouseInteraction: true,
-        scroll: 150,
-        input: "last",
+        scroll: SESSION_REPLAY_SCROLL_SAMPLE_MS,
+        input: SESSION_REPLAY_INPUT_SAMPLING,
       },
 
       /*

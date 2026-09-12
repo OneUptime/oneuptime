@@ -10,6 +10,7 @@ import ChunkLoader, {
 import { createReplayEngine } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Engine/ReplayEngine";
 import {
   REPLAY_FEED_AHEAD_MIN_MS,
+  REPLAY_HIDDEN_TICK_MS,
   ReplayEngine,
   ReplayEngineSnapshot,
   ReplayScheduleHandle,
@@ -263,6 +264,11 @@ interface HarnessOptions {
    * background tab.
    */
   isDocumentHidden?: () => boolean;
+  /*
+   * Left undefined by default, so every scenario that does not ask for it
+   * feeds exactly as it did before the yield existed.
+   */
+  yieldToBrowser?: () => Promise<void>;
 }
 
 interface Harness {
@@ -272,6 +278,10 @@ interface Harness {
   requests: Array<Array<number>>;
   signals: Array<AbortSignal>;
   snapshots: Array<ReplayEngineSnapshot>;
+  /* What the structural channel delivered: one entry per structural change. */
+  structuralSnapshots: Array<ReplayEngineSnapshot>;
+  /* What the clock channel delivered: one entry per publish. */
+  clockTicks: Array<number>;
   scheduled: Array<{ callback: () => void; delayMs: number }>;
   resolveFetch: () => void;
   /*
@@ -284,6 +294,11 @@ interface Harness {
   now: () => number;
   /* Advance the wall clock AND every playing fake Replayer, then TICK. */
   tick: (ms: number) => Promise<void>;
+  /*
+   * Fire a document visibilitychange, the way createBrowserReplayEngineDeps
+   * does. Only wired when the harness was given an isDocumentHidden.
+   */
+  fireVisibilityChange: () => void;
   live: () => FakeReplayer;
   snapshot: () => ReplayEngineSnapshot;
 }
@@ -297,12 +312,15 @@ function makeHarness(options: HarnessOptions): Harness {
   const requests: Array<Array<number>> = [];
   const signals: Array<AbortSignal> = [];
   const snapshots: Array<ReplayEngineSnapshot> = [];
+  const structuralSnapshots: Array<ReplayEngineSnapshot> = [];
+  const clockTicks: Array<number> = [];
   const scheduled: Array<{ callback: () => void; delayMs: number }> = [];
   const pending: Array<{ chunkIndexes: Array<number>; resolve: () => void }> =
     [];
   const omitted: Set<number> = new Set<number>(options.omitChunkIndexes ?? []);
   const failing: Set<number> = new Set<number>(options.failChunkIndexes ?? []);
   const hanging: Set<number> = new Set<number>(options.hangChunkIndexes ?? []);
+  const visibilityListeners: Set<() => void> = new Set<() => void>();
   let clock: number = 10_000;
 
   const loader: ChunkLoader = new ChunkLoader({
@@ -405,6 +423,20 @@ function makeHarness(options: HarnessOptions): Harness {
         // Recorded callbacks are never run; tests drive TICK themselves.
       },
       isDocumentHidden: options.isDocumentHidden,
+      /*
+       * Only a harness that models a hidden tab gets the subscription, so
+       * every other scenario drives exactly the engine it drove before.
+       */
+      subscribeVisibility: options.isDocumentHidden
+        ? (listener: () => void): (() => void) => {
+            visibilityListeners.add(listener);
+
+            return (): void => {
+              visibilityListeners.delete(listener);
+            };
+          }
+        : undefined,
+      yieldToBrowser: options.yieldToBrowser,
     },
     {
       tabId: "tab-1",
@@ -415,6 +447,12 @@ function makeHarness(options: HarnessOptions): Harness {
   engine.subscribe((snapshot: ReplayEngineSnapshot): void => {
     snapshots.push(snapshot);
   });
+  engine.subscribeStructural?.((snapshot: ReplayEngineSnapshot): void => {
+    structuralSnapshots.push(snapshot);
+  });
+  engine.subscribeClock?.((currentTimeMs: number): void => {
+    clockTicks.push(currentTimeMs);
+  });
 
   const harness: Harness = {
     loader: loader,
@@ -423,6 +461,8 @@ function makeHarness(options: HarnessOptions): Harness {
     requests: requests,
     signals: signals,
     snapshots: snapshots,
+    structuralSnapshots: structuralSnapshots,
+    clockTicks: clockTicks,
     scheduled: scheduled,
     resolveFetch: (): void => {
       const waiting: Array<{
@@ -472,6 +512,11 @@ function makeHarness(options: HarnessOptions): Harness {
 
       engine.dispatch({ type: "TICK", nowMs: clock });
       await flush();
+    },
+    fireVisibilityChange: (): void => {
+      for (const listener of [...visibilityListeners]) {
+        listener();
+      }
     },
     live: (): FakeReplayer => {
       const candidates: Array<FakeReplayer> = replayers.filter(
@@ -1407,6 +1452,238 @@ describe("ReplayEngine Replayer configuration", () => {
 
     expect(harness.replayers[0]!.configs).toContainEqual({ speed: 2 });
   });
+
+  it("never lets a replayed Focus steal keyboard focus into the iframe", async () => {
+    /*
+     * rrweb's default answers every recorded Focus with target.focus()
+     * inside its sandboxed iframe, which makes the iframe the Dashboard's
+     * activeElement: keydown then fires in the iframe's document and never
+     * reaches the window listener the shortcuts hang off, so Space and the
+     * arrows die the first time the recorded user focused a field.
+     */
+    const harness: Harness = makeHarness({
+      entries: [makeEntry(0, { hasFullSnapshot: true })],
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "SET_SPEED", speed: 2 });
+
+    expect(harness.replayers[0]!.constructorConfig["triggerFocus"]).toBe(false);
+
+    for (const config of harness.replayers[0]!.configs) {
+      expect(config["triggerFocus"]).not.toBe(true);
+    }
+  });
+});
+
+describe("ReplayEngine snapshot channels", () => {
+  /*
+   * The whole-snapshot channel is a new object on every ~33ms publish, so
+   * a React root subscribed to it reconciles the entire player on every
+   * tick even when only the playhead moved. The structural channel hands
+   * back the same object until something other than currentTimeMs
+   * changes; the clock channel carries the playhead alone.
+   */
+  it("keeps the structural snapshot's identity across ticks that move only the playhead", async () => {
+    const harness: Harness = makeHarness({
+      entries: [makeEntry(0, { hasFullSnapshot: true })],
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+
+    const structural: ReplayEngineSnapshot | undefined =
+      harness.engine.getStructuralSnapshot?.();
+    const snapshotsBefore: number = harness.snapshots.length;
+    const structuralBefore: number = harness.structuralSnapshots.length;
+    const clockBefore: number = harness.clockTicks.length;
+    const ticks: number = 12;
+
+    for (let i: number = 0; i < ticks; i++) {
+      await harness.tick(40);
+    }
+
+    /* The plain channel's cadence is unchanged: one snapshot per publish. */
+    expect(harness.snapshots.length - snapshotsBefore).toBe(ticks);
+    /* The clock channel fires on every publish with the live playhead. */
+    expect(harness.clockTicks.length - clockBefore).toBe(ticks);
+    expect(harness.clockTicks[harness.clockTicks.length - 1]).toBe(
+      harness.snapshot().currentTimeMs,
+    );
+    /* And nothing structural moved, so the structural object is the same one. */
+    expect(harness.structuralSnapshots.length - structuralBefore).toBe(0);
+    expect(harness.engine.getStructuralSnapshot?.()).toBe(structural);
+    expect(harness.snapshot().currentTimeMs).toBeGreaterThan(
+      structural!.currentTimeMs,
+    );
+    expect(harness.engine.getCurrentTimeMs?.()).toBe(
+      harness.snapshot().currentTimeMs,
+    );
+
+    /* (b) on the clock channel too: non-decreasing between seeks. */
+    let previous: number = -1;
+
+    for (const value of harness.clockTicks) {
+      expect(value).toBeGreaterThanOrEqual(previous);
+      previous = value;
+    }
+  });
+
+  it("publishes a new structural snapshot for every change that is not the playhead", async () => {
+    const harness: Harness = makeHarness({
+      entries: [
+        makeEntry(0, { hasFullSnapshot: true }),
+        makeEntry(1),
+        makeEntry(2),
+        makeEntry(3),
+      ],
+    });
+
+    await loadAndFlush(harness, 0, 0);
+
+    const expectStructuralChange: (act: () => void) => void = (
+      act: () => void,
+    ): void => {
+      const before: number = harness.structuralSnapshots.length;
+      const previous: ReplayEngineSnapshot | undefined =
+        harness.engine.getStructuralSnapshot?.();
+
+      act();
+
+      expect(harness.structuralSnapshots.length).toBeGreaterThan(before);
+      expect(harness.engine.getStructuralSnapshot?.()).not.toBe(previous);
+      /* The structural object carries the playhead as of that change. */
+      expect(harness.engine.getStructuralSnapshot?.()!.currentTimeMs).toBe(
+        harness.engine.getCurrentTimeMs?.(),
+      );
+      expect(harness.engine.getStructuralSnapshot?.()).toBe(harness.snapshot());
+    };
+
+    /* phase / intent */
+    expectStructuralChange((): void => {
+      harness.engine.dispatch({ type: "PLAY" });
+    });
+    expectStructuralChange((): void => {
+      harness.engine.dispatch({ type: "PAUSE" });
+    });
+    /*
+     * A seek is deliberately NOT here. Landing inside the fed range while
+     * paused sets pendingSeekMs and clears it again inside the same
+     * publish, so the only field that ends up different is the playhead -
+     * which is the whole point of the split, and is pinned on its own
+     * below rather than being asserted as a structural change here.
+     */
+    /* recordedSize via rrweb's resize */
+    expectStructuralChange((): void => {
+      harness.live().emit("resize", { width: 1024, height: 768 });
+    });
+    /* speed */
+    expectStructuralChange((): void => {
+      harness.engine.dispatch({ type: "SET_SPEED", speed: 2 });
+    });
+    /* buffer, via a stall */
+    expectStructuralChange((): void => {
+      harness.engine.dispatch({ type: "PLAY" });
+      harness.live().emit("finish");
+    });
+  });
+
+  it("treats a paused seek inside the fed range as a clock-only change", async () => {
+    /*
+     * The case the rail, the header and the overlays are re-rendered for
+     * today and must not be: dragging the scrubber while paused to a
+     * moment that is already fed. performSeek sets pendingSeekMs and
+     * landAt clears it before the publish, so nothing structural differs -
+     * the playhead moved, and the picture is repainted by the Replayer
+     * itself, not by React.
+     */
+    /*
+     * One chunk, so the seek cannot also grow the fed range: a seek that
+     * pulls in more footage legitimately IS a structural change, and this
+     * test is about the one that pulls in nothing.
+     */
+    const harness: Harness = makeHarness({
+      entries: [makeEntry(0, { hasFullSnapshot: true })],
+    });
+
+    await loadAndFlush(harness, 0, 0);
+
+    const structural: ReplayEngineSnapshot | undefined =
+      harness.engine.getStructuralSnapshot?.();
+    const structuralBefore: number = harness.structuralSnapshots.length;
+    const clockBefore: number = harness.clockTicks.length;
+
+    harness.engine.dispatch({ type: "SEEK", offsetMs: 5000, token: 1 });
+
+    expect(harness.structuralSnapshots.length).toBe(structuralBefore);
+    expect(harness.engine.getStructuralSnapshot?.()).toBe(structural);
+    expect(harness.clockTicks.length).toBeGreaterThan(clockBefore);
+    expect(harness.engine.getCurrentTimeMs?.()).toBe(5000);
+    expect(harness.snapshot().currentTimeMs).toBe(5000);
+  });
+
+  it("publishes a new structural snapshot when the fed range and loaded chunks grow", async () => {
+    const harness: Harness = makeHarness({
+      entries: [
+        makeEntry(0, { hasFullSnapshot: true }),
+        makeEntry(1),
+        makeEntry(2),
+        makeEntry(3),
+      ],
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+
+    const before: ReplayEngineSnapshot | undefined =
+      harness.engine.getStructuralSnapshot?.();
+
+    /* The first tick asks the feeder for headroom, which feeds chunk 2. */
+    await harness.tick(16);
+
+    const after: ReplayEngineSnapshot | undefined =
+      harness.engine.getStructuralSnapshot?.();
+
+    expect(after).not.toBe(before);
+    expect(after!.fedRange!.toMs).toBeGreaterThan(before!.fedRange!.toMs);
+    expect(after!.loadedChunkIndexes).not.toBe(before!.loadedChunkIndexes);
+  });
+
+  it("stops notifying a listener once it unsubscribes", async () => {
+    const harness: Harness = makeHarness({
+      entries: [makeEntry(0, { hasFullSnapshot: true })],
+    });
+
+    const structuralSeen: Array<ReplayEngineSnapshot> = [];
+    const clockSeen: Array<number> = [];
+    const unsubscribeStructural: (() => void) | undefined =
+      harness.engine.subscribeStructural?.(
+        (snapshot: ReplayEngineSnapshot): void => {
+          structuralSeen.push(snapshot);
+        },
+      );
+    const unsubscribeClock: (() => void) | undefined =
+      harness.engine.subscribeClock?.((currentTimeMs: number): void => {
+        clockSeen.push(currentTimeMs);
+      });
+
+    await loadAndFlush(harness, 0, 0);
+
+    expect(structuralSeen.length).toBeGreaterThan(0);
+    expect(clockSeen.length).toBeGreaterThan(0);
+
+    unsubscribeStructural?.();
+    unsubscribeClock?.();
+
+    const structuralCount: number = structuralSeen.length;
+    const clockCount: number = clockSeen.length;
+
+    harness.engine.dispatch({ type: "PLAY" });
+    await harness.tick(40);
+
+    expect(structuralSeen.length).toBe(structuralCount);
+    expect(clockSeen.length).toBe(clockCount);
+  });
 });
 
 describe("ReplayEngine finish handling", () => {
@@ -1479,6 +1756,190 @@ describe("ReplayEngine finish handling", () => {
     expect(harness.snapshot().intent).toBe(before.intent);
     expect(harness.snapshot().buffer).toBe(before.buffer);
     expect(harness.snapshot().phase).toBe("playing");
+  });
+});
+
+/*
+ * rrweb forgets which event it last played the moment it ends a cast, so
+ * the next play() rebuilds the DOM from the last full snapshot and
+ * re-applies everything since it, synchronously - a visible hitch on
+ * EVERY buffering stall. The engine pre-empts that by pausing rrweb as it
+ * casts the last event it was given: a paused machine drops the END it
+ * would otherwise send itself, and the resume replays nothing.
+ */
+describe("ReplayEngine stall pre-emption", () => {
+  const streamingEntries: Array<SessionReplayChunkManifestEntry> = [
+    makeEntry(0, { hasFullSnapshot: true }),
+    makeEntry(1),
+    makeEntry(2),
+  ];
+
+  it("pre-empts rrweb's END at the last fed event so a stall resumes without a rebuild", async () => {
+    const harness: Harness = makeHarness({
+      entries: streamingEntries,
+      deferFetch: true,
+    });
+
+    harness.engine.dispatch({ type: "LOAD", anchorChunkIndex: 0, targetMs: 0 });
+    harness.engine.dispatch({ type: "PLAY" });
+    harness.resolveFetch();
+    await flush();
+
+    const live: FakeReplayer = harness.replayers[0]!;
+
+    expect(harness.snapshot().buffer).toBe("ok");
+
+    const lastFed: SessionReplayRecordedEvent =
+      live.initialEvents[live.initialEvents.length - 1]!;
+
+    live.emit("event-cast", lastFed);
+    await flush();
+
+    /* Paused with NO offset: the offset form is a play(), which rebuilds. */
+    expect(live.pauseOffsets).toEqual([undefined]);
+    expect(live.isPlaying).toBe(false);
+    expect(harness.snapshot().buffer).toBe("stalled");
+    expect(harness.snapshot().phase).toBe("buffering");
+    expect(harness.snapshot().intent).toBe("playing");
+    expect(harness.snapshot().bufferingSinceMs).toBe(harness.now());
+    expect(harness.replayers.length).toBe(1);
+
+    /* rrweb's own 50ms finish timer, landing on an already-stalled engine. */
+    live.emit("finish");
+
+    expect(harness.snapshot().buffer).toBe("stalled");
+    expect(live.pauseOffsets).toEqual([undefined]);
+    expect(harness.replayers.length).toBe(1);
+
+    harness.resolveFetch();
+    await flush();
+
+    expect(live.added.length).toBeGreaterThan(0);
+    expect(live.playOffsets[live.playOffsets.length - 1]).toBe(
+      live.currentTimeMs,
+    );
+    expect(harness.snapshot().buffer).toBe("ok");
+    expect(harness.snapshot().phase).toBe("playing");
+    expect(harness.snapshot().bufferingSinceMs).toBeNull();
+    /* No rebuild: the same Replayer carried on. */
+    expect(harness.replayers.length).toBe(1);
+  });
+
+  it("does not pre-empt when the recording genuinely ends", async () => {
+    const harness: Harness = makeHarness({
+      entries: [makeEntry(0, { hasFullSnapshot: true })],
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+
+    const live: FakeReplayer = harness.replayers[0]!;
+
+    live.emit("event-cast", live.initialEvents[live.initialEvents.length - 1]!);
+    await flush();
+
+    /* (d) Only the build's own pause(0); nothing pre-empted the ending. */
+    expect(live.pauseOffsets).toEqual([0]);
+    expect(harness.snapshot().buffer).toBe("ok");
+
+    live.emit("finish");
+
+    expect(harness.snapshot().phase).toBe("ended");
+    expect(harness.snapshot().intent).toBe("paused");
+  });
+
+  it("ignores an event-cast that is not the last fed event, and one cast while paused", async () => {
+    const harness: Harness = makeHarness({ entries: streamingEntries });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+
+    const live: FakeReplayer = harness.replayers[0]!;
+
+    live.emit("event-cast", live.initialEvents[0]!);
+    await flush();
+
+    expect(live.pauseOffsets).toEqual([0]);
+    expect(harness.snapshot().buffer).toBe("ok");
+
+    harness.engine.dispatch({ type: "PAUSE" });
+
+    const pausesWhilePaused: number = live.pauseOffsets.length;
+
+    live.emit("event-cast", live.initialEvents[live.initialEvents.length - 1]!);
+    await flush();
+
+    /* A viewer who paused is not stalling: nothing to pre-empt. */
+    expect(live.pauseOffsets.length).toBe(pausesWhilePaused);
+    expect(harness.snapshot().buffer).toBe("ok");
+    expect(harness.snapshot().phase).toBe("paused");
+  });
+
+  it("ignores an event-cast from a Replayer that has been retired", async () => {
+    const harness: Harness = makeHarness({
+      entries: [
+        makeEntry(0, { hasFullSnapshot: true }),
+        makeEntry(1),
+        makeEntry(2, { hasFullSnapshot: true }),
+      ],
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+
+    const retired: FakeReplayer = harness.replayers[0]!;
+
+    harness.engine.dispatch({ type: "SEEK", offsetMs: 2 * CHUNK_MS, token: 1 });
+    await flush();
+
+    expect(harness.replayers.length).toBe(2);
+
+    const live: FakeReplayer = harness.replayers[1]!;
+    const pausesBefore: number = live.pauseOffsets.length;
+    const bufferBefore: string = harness.snapshot().buffer;
+
+    retired.emit(
+      "event-cast",
+      retired.initialEvents[retired.initialEvents.length - 1]!,
+    );
+    await flush();
+
+    expect(live.pauseOffsets.length).toBe(pausesBefore);
+    expect(harness.snapshot().buffer).toBe(bufferBefore);
+  });
+
+  it("resumes incrementally after Play during a pre-empted stall", async () => {
+    const harness: Harness = makeHarness({
+      entries: streamingEntries,
+      deferFetch: true,
+    });
+
+    harness.engine.dispatch({ type: "LOAD", anchorChunkIndex: 0, targetMs: 0 });
+    harness.engine.dispatch({ type: "PLAY" });
+    harness.resolveFetch();
+    await flush();
+
+    const live: FakeReplayer = harness.replayers[0]!;
+
+    live.emit("event-cast", live.initialEvents[live.initialEvents.length - 1]!);
+    await flush();
+
+    expect(harness.snapshot().buffer).toBe("stalled");
+
+    harness.engine.dispatch({ type: "PAUSE" });
+
+    expect(harness.snapshot().phase).toBe("paused");
+
+    harness.engine.dispatch({ type: "PLAY" });
+
+    expect(harness.snapshot().phase).toBe("buffering");
+
+    harness.resolveFetch();
+    await flush();
+
+    expect(harness.snapshot().phase).toBe("playing");
+    expect(live.added.length).toBeGreaterThan(0);
+    expect(harness.replayers.length).toBe(1);
   });
 });
 
@@ -1994,6 +2455,244 @@ describe("ReplayEngine hold-last-frame rebuilds", () => {
 
     expect(harness.replayers[0]!.isDestroyed).toBe(true);
   });
+
+  /*
+   * rrweb rebuilds the ANCHOR's snapshot a millisecond after it is
+   * constructed, all on its own. For a seek that still has to feed
+   * forward to its target, that frame can be a whole checkout behind what
+   * the viewer asked for - so releasing the held frame on the rebuild
+   * alone showed the wrong moment at full opacity for the length of the
+   * feed-forward, and then jumped. The handover needs BOTH halves.
+   */
+  const spanningEntries: Array<SessionReplayChunkManifestEntry> = Array.from(
+    { length: 13 },
+    (_unused: unknown, index: number): SessionReplayChunkManifestEntry => {
+      return makeEntry(index, {
+        hasFullSnapshot: index === 0 || index === 2 || index === 12,
+      });
+    },
+  );
+
+  /* The target is past the page loadFirst reads, so build takes case 2. */
+  const feedForwardTargetMs: number = 11 * CHUNK_MS;
+
+  async function loadThenSeekAcrossAnchors(
+    harness: Harness,
+    targetMs: number,
+  ): Promise<void> {
+    harness.engine.dispatch({ type: "LOAD", anchorChunkIndex: 0, targetMs: 0 });
+    /* The priority pair only; the page behind it stays in flight. */
+    harness.releaseFetch(0);
+    await flush();
+
+    harness.engine.dispatch({ type: "SEEK", offsetMs: targetMs, token: 1 });
+    await flush();
+  }
+
+  it("keeps the held frame and hides the newcomer until a feed-forward landing", async () => {
+    const harness: Harness = makeHarness({
+      entries: spanningEntries,
+      deferFetch: true,
+      autoRebuild: false,
+    });
+
+    await loadThenSeekAcrossAnchors(harness, feedForwardTargetMs);
+
+    /* The new anchor's own page: enough to build on, not enough to land. */
+    harness.releaseFetch(2);
+    await flush();
+
+    expect(harness.replayers.length).toBe(2);
+    expect(harness.snapshot().phase).toBe("seeking");
+    expect(harness.replayers[1]!.wrapper.style.visibility).toBe("hidden");
+    expect(harness.replayers[0]!.isDestroyed).toBe(false);
+    expect(harness.engine.getDiagnostics().isHoldingLastFrame).toBe(true);
+
+    /* rrweb's own rebuild of the ANCHOR frame is not the landing. */
+    harness.replayers[1]!.emit("fullsnapshot-rebuilded");
+
+    expect(harness.replayers[0]!.isDestroyed).toBe(false);
+    expect(harness.replayers[1]!.wrapper.style.visibility).toBe("hidden");
+
+    harness.releaseFetch(8);
+    await flush();
+
+    expect(harness.replayers[1]!.pauseOffsets).toContain(
+      feedForwardTargetMs - 2 * CHUNK_MS,
+    );
+    expect(harness.replayers[1]!.wrapper.style.visibility).toBe("");
+    expect(harness.replayers[0]!.isDestroyed).toBe(true);
+    expect(harness.engine.getDiagnostics().replayersDestroyed).toBe(1);
+    expect(harness.snapshot().currentTimeMs).toBe(feedForwardTargetMs);
+  });
+
+  it("arms the 2s fallback only once a Replayer exists to reveal", async () => {
+    const harness: Harness = makeHarness({
+      entries: spanningEntries,
+      deferFetch: true,
+      autoRebuild: false,
+    });
+
+    await loadThenSeekAcrossAnchors(harness, feedForwardTargetMs);
+
+    /* Still fetching the new anchor: nothing to show in the old frame's place. */
+    expect(harness.replayers.length).toBe(1);
+    expect(
+      harness.scheduled.filter((entry: { delayMs: number }): boolean => {
+        return entry.delayMs === 2000;
+      }),
+    ).toEqual([]);
+    expect(harness.replayers[0]!.isDestroyed).toBe(false);
+
+    harness.releaseFetch(2);
+    await flush();
+
+    const fallback: { callback: () => void; delayMs: number } | undefined =
+      harness.scheduled.find((entry: { delayMs: number }): boolean => {
+        return entry.delayMs === 2000;
+      });
+
+    expect(fallback).toBeDefined();
+
+    fallback!.callback();
+
+    expect(harness.replayers[0]!.isDestroyed).toBe(true);
+    expect(harness.replayers[1]!.wrapper.style.visibility).toBe("");
+  });
+
+  it("does not hide the newcomer when there is no held frame", async () => {
+    const heavy: Array<SessionReplayChunkManifestEntry> = entries.map(
+      (
+        entry: SessionReplayChunkManifestEntry,
+      ): SessionReplayChunkManifestEntry => {
+        return entry.chunkIndex === 2
+          ? { ...entry, payloadBytes: 5 * 1024 * 1024 }
+          : entry;
+      },
+    );
+    const harness: Harness = makeHarness({
+      entries: heavy,
+      autoRebuild: false,
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "SEEK", offsetMs: 2 * CHUNK_MS, token: 1 });
+    await flush();
+
+    /* A blank stage would be worse than an early frame. */
+    expect(harness.replayers[1]!.wrapper.style.visibility).toBe("");
+  });
+
+  it("reveals the newcomer and drops the held frame when the feed-forward halts", async () => {
+    const harness: Harness = makeHarness({
+      entries: spanningEntries,
+      deferFetch: true,
+      autoRebuild: false,
+      failChunkIndexes: [8],
+    });
+
+    await loadThenSeekAcrossAnchors(harness, feedForwardTargetMs);
+    /*
+     * The newcomer is built hidden (the test above pins that) and the
+     * chunk its feed-forward needs never arrives, so the landing that
+     * would reveal it never happens either.
+     */
+    harness.releaseFetch(2);
+    await flush();
+
+    await waitUntil((): boolean => {
+      return harness.snapshot().phase === "error";
+    });
+
+    expect(harness.replayers.length).toBe(2);
+
+    /* An error must never sit over a frame nothing will ever reveal. */
+    expect(harness.replayers[1]!.wrapper.style.visibility).toBe("");
+    expect(harness.replayers[0]!.isDestroyed).toBe(true);
+  });
+
+  it("releases the held frame when the build halts before any Replayer exists", async () => {
+    /*
+     * REGRESSION. The 2s fallback that used to be armed the moment a
+     * frame was held is now armed in build(), after createReplayer - so
+     * a seek whose anchor page never arrives reaches halt() with no
+     * newcomer at all. Nothing was left to reveal and nothing to clean
+     * up: the previous frame stayed on screen dimmed under "Playback
+     * stopped" for the rest of the session, and its Replayer - the
+     * iframe plus every parsed event of the segment - was never freed.
+     */
+    /*
+     * Chunk 12 is the last seek anchor and the only chunk its own page
+     * carries, so failing it fails the whole build before createReplayer.
+     */
+    const harness: Harness = makeHarness({
+      entries: spanningEntries,
+      autoRebuild: false,
+      failChunkIndexes: [12],
+    });
+
+    await loadAndFlush(harness, 0, 0);
+
+    expect(harness.replayers.length).toBe(1);
+
+    harness.engine.dispatch({
+      type: "SEEK",
+      offsetMs: harness.loader.getEntry(12)!.chunkStartOffsetMs,
+      token: 1,
+    });
+
+    await waitUntil((): boolean => {
+      return harness.snapshot().phase === "error";
+    });
+
+    /* The failed build never got as far as a second Replayer. */
+    expect(harness.replayers.length).toBe(1);
+    /* And the one being held was released rather than left on screen. */
+    expect(harness.replayers[0]!.isDestroyed).toBe(true);
+    expect(harness.engine.getDiagnostics().isHoldingLastFrame).toBe(false);
+    expect(harness.engine.getDiagnostics().replayersDestroyed).toBe(
+      harness.engine.getDiagnostics().replayersCreated,
+    );
+  });
+
+  it("keeps the frame the viewer saw when a second seek retires a hidden newcomer", async () => {
+    const harness: Harness = makeHarness({
+      entries: spanningEntries,
+      deferFetch: true,
+      autoRebuild: false,
+    });
+
+    await loadThenSeekAcrossAnchors(harness, feedForwardTargetMs);
+    harness.releaseFetch(2);
+    await flush();
+
+    expect(harness.replayers[1]!.wrapper.style.visibility).toBe("hidden");
+
+    /* A second seek, onto the anchor at chunk 12, before the first landed. */
+    harness.engine.dispatch({
+      type: "SEEK",
+      offsetMs: 12 * CHUNK_MS,
+      token: 2,
+    });
+    await flush();
+
+    /* The newcomer nobody ever saw goes; the frame on screen stays. */
+    expect(harness.replayers[1]!.isDestroyed).toBe(true);
+    expect(harness.replayers[0]!.isDestroyed).toBe(false);
+    expect(harness.engine.getDiagnostics().isHoldingLastFrame).toBe(true);
+
+    harness.resolveFetch();
+    await flush();
+    harness.resolveFetch();
+    await flush();
+
+    expect(harness.replayers.length).toBe(3);
+
+    harness.replayers[2]!.emit("fullsnapshot-rebuilded");
+
+    expect(harness.replayers[0]!.isDestroyed).toBe(true);
+    expect(harness.replayers[2]!.wrapper.style.visibility).toBe("");
+  });
 });
 
 describe("ReplayEngine gaps", () => {
@@ -2231,6 +2930,150 @@ describe("ReplayEngine transport economy", () => {
   });
 });
 
+/*
+ * A pass that feeds several chunks whose bytes are already in the cache
+ * never awaits anything real: the whole burst - thousands of addEvent
+ * calls, each queueing a microtask inside rrweb - lands in ONE task,
+ * exactly at the moments a viewer is watching most closely (a speed
+ * change, a long seek, a stall resume onto a warm page). The engine hands
+ * the main thread back between those chunks when a yield is injected.
+ */
+describe("ReplayEngine feeding in bursts", () => {
+  const pageEntries: Array<SessionReplayChunkManifestEntry> = Array.from(
+    { length: 12 },
+    (_unused: unknown, index: number): SessionReplayChunkManifestEntry => {
+      return makeEntry(index, { hasFullSnapshot: index === 0 });
+    },
+  );
+
+  it("yields between back-to-back cache-hit chunks, but never before the first", async () => {
+    let yieldCount: number = 0;
+
+    const harness: Harness = makeHarness({
+      entries: pageEntries,
+      yieldToBrowser: (): Promise<void> => {
+        yieldCount += 1;
+
+        return new Promise<void>((resolve: () => void): void => {
+          setTimeout(resolve, 0);
+        });
+      },
+    });
+
+    await loadAndFlush(harness, 0, 0);
+
+    /* The prefetch behind the first paint makes the whole pass a cache hit. */
+    for (let index: number = 2; index <= 7; index++) {
+      expect(harness.loader.isChunkDecoded(index)).toBe(true);
+    }
+
+    expect(yieldCount).toBe(0);
+
+    const target: number = 5 * CHUNK_MS + 1000;
+    harness.engine.dispatch({ type: "SEEK", offsetMs: target, token: 1 });
+
+    await waitUntil((): boolean => {
+      return (
+        harness.snapshot().phase === "paused" &&
+        harness.engine.getDiagnostics().lastFedChunkIndex === 7
+      );
+    });
+
+    /* Chunks 2..7: six feeds, five task boundaries, none before feed one. */
+    expect(yieldCount).toBe(5);
+    expect(harness.snapshot().currentTimeMs).toBe(target);
+    /* (c) The seek still landed exactly on its target, in one Replayer. */
+    expect(harness.replayers.length).toBe(1);
+    expect(harness.engine.getDiagnostics().watchdogFireCount).toBe(0);
+  });
+
+  it("does not yield before the chunk a stalled resume is waiting on", async () => {
+    let yieldCount: number = 0;
+
+    const harness: Harness = makeHarness({
+      entries: [
+        makeEntry(0, { hasFullSnapshot: true }),
+        makeEntry(1),
+        makeEntry(2),
+      ],
+      deferFetch: true,
+      yieldToBrowser: (): Promise<void> => {
+        yieldCount += 1;
+
+        return new Promise<void>((resolve: () => void): void => {
+          setTimeout(resolve, 0);
+        });
+      },
+    });
+
+    harness.engine.dispatch({ type: "LOAD", anchorChunkIndex: 0, targetMs: 0 });
+    harness.engine.dispatch({ type: "PLAY" });
+    harness.resolveFetch();
+    await flush();
+
+    harness.replayers[0]!.emit("finish");
+    harness.resolveFetch();
+    await flush();
+
+    /* Nothing may stand between a stalled viewer and the resuming chunk. */
+    expect(yieldCount).toBe(0);
+    expect(harness.snapshot().buffer).toBe("ok");
+    expect(harness.replayers[0]!.playOffsets.length).toBeGreaterThan(1);
+  });
+
+  it("retires a feeding loop that is parked on a yield", async () => {
+    const parked: Array<() => void> = [];
+
+    const harness: Harness = makeHarness({
+      entries: Array.from(
+        { length: 12 },
+        (_unused: unknown, index: number): SessionReplayChunkManifestEntry => {
+          return makeEntry(index, {
+            hasFullSnapshot: index === 0 || index === 8,
+          });
+        },
+      ),
+      yieldToBrowser: (): Promise<void> => {
+        return new Promise<void>((resolve: () => void): void => {
+          parked.push(resolve);
+        });
+      },
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({
+      type: "SEEK",
+      offsetMs: 5 * CHUNK_MS + 1000,
+      token: 1,
+    });
+    await flush();
+
+    /* Parked between the first and the second chunk of the pass. */
+    expect(parked.length).toBe(1);
+
+    const retired: FakeReplayer = harness.replayers[0]!;
+    const addedWhenParked: number = retired.added.length;
+
+    /* A seek onto the snapshot at chunk 8: a rebuild, and a new generation. */
+    harness.engine.dispatch({ type: "SEEK", offsetMs: 9 * CHUNK_MS, token: 2 });
+    await flush();
+
+    expect(harness.replayers.length).toBe(2);
+
+    const landedAt: number | null =
+      harness.engine.getDiagnostics().lastFedChunkIndex;
+
+    parked[0]!();
+    await flush();
+
+    /* (a) and (e): the retired loop fed nothing more, into either Replayer. */
+    expect(retired.added.length).toBe(addedWhenParked);
+    expect(harness.engine.getDiagnostics().lastFedChunkIndex).toBe(landedAt);
+    expect(harness.snapshot().currentTimeMs).toBe(9 * CHUNK_MS);
+    expect(harness.snapshot().phase).toBe("paused");
+  });
+});
+
 describe("ReplayEngine seeking past a hole", () => {
   it("recovers from a seek made while a gap jump is queued instead of buffering for ever", async () => {
     /*
@@ -2346,6 +3189,227 @@ describe("ReplayEngine in a hidden tab", () => {
     await harness.tick(200);
 
     expect(harness.engine.getDiagnostics().watchdogFireCount).toBe(0);
+  });
+
+  /*
+   * rrweb measures elapsed time between requestAnimationFrame callbacks,
+   * and a background tab suspends those. Left running, the first frame
+   * after the viewer returns sees the entire hidden span as elapsed and
+   * casts everything due in it in one synchronous loop: the page freezes,
+   * the picture snaps minutes forward past a header clock that showed it
+   * frozen, and the drained buffer then stalls and rebuilds. Suspending
+   * the Replayer while nobody is looking is the whole fix.
+   */
+  const hiddenEntries: Array<SessionReplayChunkManifestEntry> = [
+    makeEntry(0, { hasFullSnapshot: true }),
+    makeEntry(1),
+    makeEntry(2),
+    makeEntry(3),
+    makeEntry(4),
+  ];
+
+  it("suspends the Replayer while the tab is hidden and resumes it on return", async () => {
+    let hidden: boolean = false;
+
+    const harness: Harness = makeHarness({
+      entries: hiddenEntries,
+      isDocumentHidden: (): boolean => {
+        return hidden;
+      },
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+    await harness.tick(16);
+
+    const live: FakeReplayer = harness.live();
+    const playsBefore: number = live.playOffsets.length;
+    const pausesBefore: number = live.pauseOffsets.length;
+    const clockBefore: number = harness.snapshot().currentTimeMs;
+
+    hidden = true;
+    harness.fireVisibilityChange();
+
+    /* Paused with NO offset, which keeps rrweb's memory of its last cast. */
+    expect(live.pauseOffsets.length).toBe(pausesBefore + 1);
+    expect(live.pauseOffsets[live.pauseOffsets.length - 1]).toBeUndefined();
+    expect(live.isPlaying).toBe(false);
+    /* The viewer's intent is untouched, so the UI still reads "playing". */
+    expect(harness.snapshot().phase).toBe("playing");
+    expect(harness.snapshot().intent).toBe("playing");
+    expect(harness.snapshot().buffer).toBe("ok");
+
+    /* And the tick became the 10Hz timer that a hidden tab can still run. */
+    const lastScheduled: { callback: () => void; delayMs: number } | undefined =
+      harness.scheduled[harness.scheduled.length - 1];
+
+    expect(lastScheduled?.delayMs).toBe(REPLAY_HIDDEN_TICK_MS);
+
+    /* Six seconds away, with the level-triggered check running every tick. */
+    for (let step: number = 0; step < 30; step++) {
+      await harness.tick(200);
+    }
+
+    expect(live.pauseOffsets.length).toBe(pausesBefore + 1);
+    expect(live.playOffsets.length).toBe(playsBefore);
+    expect(harness.snapshot().currentTimeMs).toBe(clockBefore);
+
+    hidden = false;
+    harness.fireVisibilityChange();
+
+    expect(live.playOffsets.length).toBe(playsBefore + 1);
+    expect(live.playOffsets[live.playOffsets.length - 1]).toBe(
+      live.getCurrentTime(),
+    );
+    /* No rebuild, and no stall: the same Replayer simply carried on. */
+    expect(harness.replayers.length).toBe(1);
+    expect(harness.snapshot().buffer).toBe("ok");
+
+    await harness.tick(200);
+
+    expect(harness.snapshot().currentTimeMs).toBe(clockBefore + 200);
+  });
+
+  it("returning to the tab does not cast the hidden span in one burst", async () => {
+    let hidden: boolean = false;
+
+    const harness: Harness = makeHarness({
+      entries: hiddenEntries,
+      isDocumentHidden: (): boolean => {
+        return hidden;
+      },
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+    await harness.tick(16);
+
+    const live: FakeReplayer = harness.live();
+
+    hidden = true;
+    harness.fireVisibilityChange();
+
+    for (let step: number = 0; step < 30; step++) {
+      await harness.tick(200);
+    }
+
+    const before: number = harness.snapshot().currentTimeMs;
+
+    hidden = false;
+    /*
+     * What an unpaused rrweb does on its first frame back: one stale
+     * timestamp turns six seconds of wall clock into six seconds of
+     * playback. A suspended Replayer's clock does not move.
+     */
+    live.advance(6000, harness.snapshot().speed);
+    harness.fireVisibilityChange();
+    await flush();
+
+    expect(harness.snapshot().currentTimeMs).toBe(before);
+    expect(harness.snapshot().buffer).toBe("ok");
+    expect(harness.replayers.length).toBe(1);
+
+    await harness.tick(200);
+
+    expect(harness.snapshot().currentTimeMs - before).toBeLessThanOrEqual(200);
+  });
+
+  it("leaves a viewer who paused while away paused when they return", async () => {
+    let hidden: boolean = false;
+
+    const harness: Harness = makeHarness({
+      entries: hiddenEntries,
+      isDocumentHidden: (): boolean => {
+        return hidden;
+      },
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+    await harness.tick(16);
+
+    const live: FakeReplayer = harness.live();
+    const playsBefore: number = live.playOffsets.length;
+    const pausesBefore: number = live.pauseOffsets.length;
+
+    hidden = true;
+    harness.fireVisibilityChange();
+    harness.engine.dispatch({ type: "PAUSE" });
+
+    /* One pause in total: the suspension already stopped the Replayer. */
+    expect(live.pauseOffsets.length).toBe(pausesBefore + 1);
+
+    hidden = false;
+    harness.fireVisibilityChange();
+
+    expect(live.playOffsets.length).toBe(playsBefore);
+    expect(harness.snapshot().phase).toBe("paused");
+  });
+
+  it("suspends a Play pressed while the tab is still hidden on the next tick", async () => {
+    let hidden: boolean = false;
+
+    const harness: Harness = makeHarness({
+      entries: hiddenEntries,
+      isDocumentHidden: (): boolean => {
+        return hidden;
+      },
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+    await harness.tick(16);
+
+    const live: FakeReplayer = harness.live();
+
+    hidden = true;
+    harness.fireVisibilityChange();
+    harness.engine.dispatch({ type: "PAUSE" });
+    harness.engine.dispatch({ type: "PLAY" });
+
+    expect(live.isPlaying).toBe(true);
+
+    const playsAfterPlay: number = live.playOffsets.length;
+
+    await harness.tick(REPLAY_HIDDEN_TICK_MS);
+
+    /* The backstop: nothing else in the engine knows about visibility. */
+    expect(live.isPlaying).toBe(false);
+
+    hidden = false;
+    harness.fireVisibilityChange();
+
+    expect(live.playOffsets.length).toBe(playsAfterPlay + 1);
+    expect(live.isPlaying).toBe(true);
+  });
+
+  it("stops listening for visibility once the engine is disposed", async () => {
+    let hidden: boolean = false;
+
+    const harness: Harness = makeHarness({
+      entries: hiddenEntries,
+      isDocumentHidden: (): boolean => {
+        return hidden;
+      },
+    });
+
+    await loadAndFlush(harness, 0, 0);
+    harness.engine.dispatch({ type: "PLAY" });
+    await harness.tick(16);
+
+    const live: FakeReplayer = harness.live();
+    const playsBefore: number = live.playOffsets.length;
+    const pausesBefore: number = live.pauseOffsets.length;
+
+    harness.engine.dispatch({ type: "DISPOSE" });
+
+    hidden = true;
+    harness.fireVisibilityChange();
+    hidden = false;
+    harness.fireVisibilityChange();
+
+    expect(live.playOffsets.length).toBe(playsBefore);
+    expect(live.pauseOffsets.length).toBe(pausesBefore);
   });
 });
 

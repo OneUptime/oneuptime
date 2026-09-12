@@ -34,6 +34,7 @@ import {
   buildErrorCounterpartIndex,
   findErrorAfterInteraction,
   findErrorLogsForTrace,
+  findLastSignalIndexAtOrBefore,
   findSignalMatch,
   formatPerformanceMeasure,
   formatSignalBytes,
@@ -713,6 +714,81 @@ describe("custom and marker rows", () => {
       }),
     ).toEqual(["rec:0:0", "rec:0:1"]);
   });
+
+  /*
+   * The loader hands the player one shared array per extraction state and
+   * the player's memo re-runs more often than that array changes; the
+   * batch adapter must not re-adapt thousands of unchanged rows each time.
+   */
+  it("fromTimelineEvents returns the same signals for the same array and clock", () => {
+    const events: Array<ReplayTimelineEvent> = [
+      makeEvent("console", { id: "rec:0:0", level: "warn", message: "a" }),
+      makeEvent("network", {
+        id: "rec:0:1",
+        method: "GET",
+        url: "https://api.example.com/items",
+        status: 200,
+      }),
+    ];
+
+    const first: Array<ReplaySignal> = fromTimelineEvents(events, {
+      startTimeUnixMs: null,
+    });
+    const second: Array<ReplaySignal> = fromTimelineEvents(events, {
+      startTimeUnixMs: null,
+    });
+
+    expect(second).toBe(first);
+    expect(second[0]).toBe(first[0]);
+    expect(second[1]).toBe(first[1]);
+
+    /* The wall clock feeds atUnixMs, so a different clock re-adapts. */
+    const reclocked: Array<ReplaySignal> = fromTimelineEvents(events, {
+      startTimeUnixMs: 1_000,
+    });
+
+    expect(reclocked).not.toBe(first);
+    expect(reclocked[0]).not.toBe(first[0]);
+    expect(reclocked[0]?.detail["atUnixMs"]).toBe(1_000 + 12_500);
+
+    /* Same clock again: the cache follows the latest clock for that array. */
+    expect(fromTimelineEvents(events, { startTimeUnixMs: 1_000 })).toBe(
+      reclocked,
+    );
+
+    /* A different array with identical rows is a different input. */
+    expect(
+      fromTimelineEvents([...events], { startTimeUnixMs: 1_000 }),
+    ).not.toBe(reclocked);
+
+    /* fromTimelineEvent itself stays pure: a fresh object every call. */
+    const event: ReplayTimelineEvent = events[0] as ReplayTimelineEvent;
+
+    expect(fromTimelineEvent(event, { startTimeUnixMs: null })).not.toBe(
+      fromTimelineEvent(event, { startTimeUnixMs: null }),
+    );
+  });
+
+  it("fromTimelineEvents re-adapts an array that was grown in place", () => {
+    const events: Array<ReplayTimelineEvent> = [
+      makeEvent("console", { id: "rec:0:0", level: "log", message: "a" }),
+    ];
+
+    const first: Array<ReplaySignal> = fromTimelineEvents(events, {
+      startTimeUnixMs: null,
+    });
+
+    events.push(
+      makeEvent("console", { id: "rec:0:1", level: "log", message: "b" }),
+    );
+
+    const grown: Array<ReplaySignal> = fromTimelineEvents(events, {
+      startTimeUnixMs: null,
+    });
+
+    expect(grown).not.toBe(first);
+    expect(grown).toHaveLength(2);
+  });
 });
 
 describe("fromLogRow", () => {
@@ -1080,6 +1156,109 @@ describe("mergeSignals", () => {
 
     expect(input[0]?.id).toBe("b");
     expect(mergeSignals()).toEqual([]);
+  });
+});
+
+describe("findLastSignalIndexAtOrBefore", () => {
+  /* The loop the rail used before the binary search; the reference. */
+  function linearReference(
+    signals: Array<ReplaySignal>,
+    currentTimeMs: number,
+  ): number {
+    let index: number = -1;
+
+    for (let i: number = 0; i < signals.length; i++) {
+      const signal: ReplaySignal | undefined = signals[i];
+
+      if (!signal) {
+        break;
+      }
+
+      if (signal.offsetMs <= currentTimeMs) {
+        index = i;
+      } else {
+        break;
+      }
+    }
+
+    return index;
+  }
+
+  const signals: Array<ReplaySignal> = [
+    makeSignal({ id: "a", offsetMs: 1000 }),
+    makeSignal({ id: "b", offsetMs: 2000 }),
+    makeSignal({ id: "c", offsetMs: 2000 }),
+    makeSignal({ id: "d", offsetMs: 2000 }),
+    makeSignal({ id: "e", offsetMs: 3000 }),
+  ];
+
+  it("returns -1 for an empty list, before the first row and for NaN", () => {
+    expect(findLastSignalIndexAtOrBefore([], 5)).toBe(-1);
+    expect(findLastSignalIndexAtOrBefore(signals, 0)).toBe(-1);
+    expect(findLastSignalIndexAtOrBefore(signals, 999)).toBe(-1);
+    expect(findLastSignalIndexAtOrBefore(signals, Number.NaN)).toBe(-1);
+    expect(findLastSignalIndexAtOrBefore([], Number.NaN)).toBe(-1);
+  });
+
+  it("lands on the row exactly at the playhead and on the LAST of a tie", () => {
+    expect(findLastSignalIndexAtOrBefore(signals, 1000)).toBe(0);
+    expect(findLastSignalIndexAtOrBefore(signals, 1999)).toBe(0);
+    expect(findLastSignalIndexAtOrBefore(signals, 2000)).toBe(3);
+    expect(findLastSignalIndexAtOrBefore(signals, 2999)).toBe(3);
+    expect(findLastSignalIndexAtOrBefore(signals, 3000)).toBe(4);
+  });
+
+  it("returns the last index after the last row", () => {
+    expect(findLastSignalIndexAtOrBefore(signals, 3001)).toBe(4);
+    expect(
+      findLastSignalIndexAtOrBefore(signals, Number.POSITIVE_INFINITY),
+    ).toBe(4);
+  });
+
+  it("agrees with the linear scan on random sorted lists with duplicates", () => {
+    /* Deterministic LCG so a failure reproduces. */
+    let seed: number = 0x2f6e2b1;
+    const nextRandom: () => number = (): number => {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      return seed / 0x100000000;
+    };
+
+    const offsets: Array<number> = [];
+    let offset: number = 0;
+
+    for (let i: number = 0; i < 2000; i++) {
+      /* ~30% ties, otherwise a small forward step. */
+      if (nextRandom() > 0.3) {
+        offset += Math.floor(nextRandom() * 500);
+      }
+
+      offsets.push(offset);
+    }
+
+    const random: Array<ReplaySignal> = offsets.map(
+      (value: number, index: number): ReplaySignal => {
+        return makeSignal({ id: `r-${index}`, offsetMs: value });
+      },
+    );
+    const lastOffset: number = offsets[offsets.length - 1] as number;
+
+    for (let probe: number = 0; probe < 500; probe++) {
+      /* Probes span before-first, inside and past-last. */
+      const currentTimeMs: number = Math.floor(
+        nextRandom() * (lastOffset + 2000) - 1000,
+      );
+
+      expect(findLastSignalIndexAtOrBefore(random, currentTimeMs)).toBe(
+        linearReference(random, currentTimeMs),
+      );
+    }
+
+    /* Every distinct offset, exactly. */
+    for (const value of offsets) {
+      expect(findLastSignalIndexAtOrBefore(random, value)).toBe(
+        linearReference(random, value),
+      );
+    }
   });
 });
 

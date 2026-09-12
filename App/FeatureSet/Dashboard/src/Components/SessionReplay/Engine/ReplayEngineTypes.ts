@@ -235,6 +235,19 @@ export type ReplayEngineEventType = ReplayEngineEvent["type"];
 
 export type ReplayEngineListener = (snapshot: ReplayEngineSnapshot) => void;
 
+/* Fed the playhead alone, on every publish. */
+export type ReplayClockListener = (currentTimeMs: number) => void;
+
+/*
+ * The clock channel on its own: what a component that only needs the
+ * playhead (the timeline's needle) subscribes to, so it never re-renders
+ * for a structural change and nothing else re-renders for the clock.
+ */
+export interface ReplayClockSource {
+  subscribeClock: (listener: ReplayClockListener) => () => void;
+  getCurrentTimeMs: () => number;
+}
+
 export interface ReplayEngineApi {
   dispatch: (event: ReplayEngineEvent) => void;
   /* Returns the unsubscribe function. Shaped for useSyncExternalStore. */
@@ -244,6 +257,30 @@ export interface ReplayEngineApi {
   attach: (container: HTMLElement) => void;
   detach: () => void;
   dispose: () => void;
+
+  /*
+   * ---- Additive, optional. ----
+   * The snapshot split into two channels. `subscribe` fires on every
+   * publish (~30Hz while playing) and the whole snapshot is a new object
+   * each time, so a component reading it through useSyncExternalStore
+   * reconciles on every tick even when only the playhead moved. The
+   * structural channel fires only when something OTHER than currentTimeMs
+   * changed and otherwise hands back the same object; the clock channel
+   * carries the playhead alone. Optional so fakes written against the
+   * original contract still compile; consumers fall back to subscribe.
+   */
+  subscribeStructural?:
+    | ((listener: ReplayEngineListener) => () => void)
+    | undefined;
+  /*
+   * The last structurally distinct snapshot. Its `currentTimeMs` is the
+   * playhead AT THE LAST STRUCTURAL CHANGE and must not be read as the
+   * live clock; use getCurrentTimeMs / subscribeClock for that.
+   */
+  getStructuralSnapshot?: (() => ReplayEngineSnapshot) | undefined;
+  subscribeClock?: ((listener: ReplayClockListener) => () => void) | undefined;
+  /* The live playhead: the same value the next snapshot's currentTimeMs carries. */
+  getCurrentTimeMs?: (() => number) | undefined;
 }
 
 /*
@@ -341,6 +378,28 @@ export interface ReplayEngineDeps {
   cancelFrame?: ((handle: ReplayScheduleHandle) => void) | undefined;
   /* document.hidden; drops the tick to 10Hz in a background tab. */
   isDocumentHidden?: (() => boolean) | undefined;
+  /*
+   * document visibilitychange. Fires the listener on every transition and
+   * returns the unsubscribe.
+   *
+   * A poll cannot see the moment a tab is hidden: the engine's playing
+   * tick rides requestAnimationFrame, which the browser suspends for as
+   * long as the tab is in the background, so the next tick the engine gets
+   * is already AFTER the return - by which time rrweb has replayed the
+   * whole hidden span in one frame. This is the only notification that
+   * arrives while nothing is painting.
+   */
+  subscribeVisibility?: ((listener: () => void) => () => void) | undefined;
+  /*
+   * Hand the main thread back between two chunks that are BOTH already
+   * decoded, so a multi-chunk feed does not land as one long task.
+   *
+   * Must resolve in a new TASK (scheduler.yield, or setTimeout 0), never
+   * a resolved promise: rrweb queues one microtask per event it is given,
+   * and a microtask-resolved yield would drain every one of them in the
+   * same task it was meant to break up.
+   */
+  yieldToBrowser?: (() => Promise<void>) | undefined;
 }
 
 /* What createReplayEngine takes beyond the deps. */

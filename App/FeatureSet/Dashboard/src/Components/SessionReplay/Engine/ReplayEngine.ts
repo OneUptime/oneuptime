@@ -34,6 +34,7 @@ import {
   REPLAY_SNAPSHOT_PUBLISH_INTERVAL_MS,
   REPLAY_WATCHDOG_MS,
   ReplayBufferState,
+  ReplayClockListener,
   ReplayEngine,
   ReplayEngineDeps,
   ReplayEngineDiagnostics,
@@ -93,8 +94,11 @@ const GAP_JUMP_LEAD_MS: number = 100;
 const PLAYING_TICK_FALLBACK_MS: number = 16;
 
 /*
- * If the new Replayer never reports a rebuilt snapshot (it always does in
- * practice), the held frame is dropped after this long anyway.
+ * If the new Replayer never reports a rebuilt snapshot AND a landing (it
+ * always does both in practice), the held frame is dropped after this
+ * long anyway. Armed once per created Replayer, not when the old one is
+ * retired: a slow first read would otherwise blank the stage while the
+ * new Replayer did not yet exist to show anything in its place.
  */
 const HOLDOVER_FALLBACK_MS: number = 2000;
 
@@ -108,6 +112,13 @@ interface Segment {
   lastFedChunkIndex: number;
   /* End of the fed range, in session offset. */
   fedUntilOffsetMs: number;
+  /*
+   * The very last event object handed to this Replayer, by IDENTITY: the
+   * same object comes back on "event-cast" when rrweb plays it, which is
+   * the moment - 50ms before rrweb ends the cast - that the engine has to
+   * pre-empt a stall in. See preemptStall.
+   */
+  lastFedEvent: SessionReplayRecordedEvent | null;
   replayer: ReplayerLike;
   /*
    * The transport state actually APPLIED to this Replayer, as opposed to
@@ -115,6 +126,21 @@ interface Segment {
    * timer for nothing, so PLAY/PAUSE only act when this differs.
    */
   appliedIntent: ReplayIntent | null;
+  /*
+   * appliedIntent was forced to "paused" because the document is hidden,
+   * while the viewer's intent is still "playing". Cleared when the tab
+   * comes back (which resumes the cast) or when the viewer pauses.
+   */
+  suspendedForVisibility: boolean;
+  /*
+   * The two halves of "there is something worth looking at in here".
+   * rrweb rebuilds its DOM ~1ms after construction, which is the ANCHOR's
+   * frame and can be a whole checkout behind the seek target; the picture
+   * the viewer asked for only exists once landAt has applied the target
+   * too. The held previous frame is dropped when BOTH are true.
+   */
+  hasRebuilt: boolean;
+  hasLanded: boolean;
 }
 
 /*
@@ -141,12 +167,94 @@ interface TickHandle {
   handle: ReplayScheduleHandle;
 }
 
+/*
+ * The one member of the Scheduling API the engine looks for. Declared
+ * rather than relied on: `scheduler` is not in lib.dom.d.ts, so naming it
+ * directly would not compile, and it is absent in Safari and Firefox.
+ */
+interface SchedulerLike {
+  yield?: () => Promise<void>;
+}
+
 function formatOffset(ms: number): string {
   const total: number = Math.max(0, Math.round(ms / 1000));
   const minutes: number = Math.floor(total / 60);
   const seconds: number = total % 60;
 
   return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+}
+
+/*
+ * Structural equality of two snapshots: every field except the playhead.
+ *
+ * Written as one comparator PER FIELD over a Record keyed by the snapshot's
+ * own keys rather than as a loop over Object.keys, so that adding a field
+ * to ReplayEngineSnapshot fails to compile here instead of silently
+ * becoming clock-only and never reaching a structural subscriber. Every
+ * array/object field is reassigned by the engine, never mutated, so
+ * identity is the right test for all of them except fedRange, which
+ * buildSnapshot allocates fresh on every publish and is compared by value.
+ */
+type StructuralField = Exclude<keyof ReplayEngineSnapshot, "currentTimeMs">;
+
+type SnapshotFieldComparator = (
+  a: ReplayEngineSnapshot,
+  b: ReplayEngineSnapshot,
+) => boolean;
+
+function sameField(field: StructuralField): SnapshotFieldComparator {
+  return (a: ReplayEngineSnapshot, b: ReplayEngineSnapshot): boolean => {
+    return Object.is(a[field], b[field]);
+  };
+}
+
+const STRUCTURAL_COMPARATORS: Record<StructuralField, SnapshotFieldComparator> =
+  {
+    phase: sameField("phase"),
+    intent: sameField("intent"),
+    buffer: sameField("buffer"),
+    durationMs: sameField("durationMs"),
+    speed: sameField("speed"),
+    skipInactive: sameField("skipInactive"),
+    fedRange: (a: ReplayEngineSnapshot, b: ReplayEngineSnapshot): boolean => {
+      if (a.fedRange === null || b.fedRange === null) {
+        return a.fedRange === b.fedRange;
+      }
+
+      return (
+        a.fedRange.fromMs === b.fedRange.fromMs &&
+        a.fedRange.toMs === b.fedRange.toMs
+      );
+    },
+    loadedChunkIndexes: sameField("loadedChunkIndexes"),
+    activeTabId: sameField("activeTabId"),
+    recordedSize: sameField("recordedSize"),
+    bufferingSinceMs: sameField("bufferingSinceMs"),
+    lastGap: sameField("lastGap"),
+    lastIdleSkip: sameField("lastIdleSkip"),
+    error: sameField("error"),
+    pendingSeekMs: sameField("pendingSeekMs"),
+    generation: sameField("generation"),
+    notice: sameField("notice"),
+    idleBands: sameField("idleBands"),
+    feedAheadMs: sameField("feedAheadMs"),
+    earliestPlayableMs: sameField("earliestPlayableMs"),
+  };
+
+const STRUCTURAL_COMPARATOR_LIST: Array<SnapshotFieldComparator> =
+  Object.values(STRUCTURAL_COMPARATORS);
+
+function isStructurallyEqual(
+  a: ReplayEngineSnapshot,
+  b: ReplayEngineSnapshot,
+): boolean {
+  for (const compare of STRUCTURAL_COMPARATOR_LIST) {
+    if (!compare(a, b)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 class ReplayEngineMachine implements ReplayEngine {
@@ -164,6 +272,8 @@ class ReplayEngineMachine implements ReplayEngine {
   private container: HTMLElement | null;
 
   private readonly listeners: Set<ReplayEngineListener>;
+  private readonly structuralListeners: Set<ReplayEngineListener>;
+  private readonly clockListeners: Set<ReplayClockListener>;
   private readonly replayerListeners: Set<ReplayEngineReplayerListener>;
 
   private intent: ReplayIntent;
@@ -204,6 +314,8 @@ class ReplayEngineMachine implements ReplayEngine {
   private idleSkipOriginMs: number | null;
   /* Drops the decode subscription on the loader currently in use. */
   private loaderUnsubscribe: (() => void) | null;
+  /* Drops the document visibilitychange subscription. */
+  private visibilityUnsubscribe: (() => void) | null;
 
   private error: ReplayEngineError | null;
   private notice: ReplayEngineNotice | null;
@@ -218,6 +330,8 @@ class ReplayEngineMachine implements ReplayEngine {
   private tickHandle: TickHandle | null;
   private lastPublishAtMs: number;
   private snapshot: ReplayEngineSnapshot;
+  /* The last snapshot that differed from its predecessor beyond the playhead. */
+  private structuralSnapshot: ReplayEngineSnapshot;
 
   private watchdogLastTimeMs: number;
   private watchdogLastAdvanceAtMs: number;
@@ -245,6 +359,8 @@ class ReplayEngineMachine implements ReplayEngine {
     this.pendingBuild = null;
 
     this.listeners = new Set<ReplayEngineListener>();
+    this.structuralListeners = new Set<ReplayEngineListener>();
+    this.clockListeners = new Set<ReplayClockListener>();
     this.replayerListeners = new Set<ReplayEngineReplayerListener>();
 
     this.intent = "paused";
@@ -268,6 +384,7 @@ class ReplayEngineMachine implements ReplayEngine {
     this.extendToken = 0;
     this.idleSkipOriginMs = null;
     this.loaderUnsubscribe = null;
+    this.visibilityUnsubscribe = null;
 
     this.error = null;
     this.notice = null;
@@ -291,6 +408,7 @@ class ReplayEngineMachine implements ReplayEngine {
     this.isDisposed = false;
 
     this.snapshot = this.buildSnapshot();
+    this.structuralSnapshot = this.snapshot;
 
     /*
      * Bound so callers can hand them straight to useSyncExternalStore
@@ -300,9 +418,17 @@ class ReplayEngineMachine implements ReplayEngine {
     this.dispatch = this.dispatch.bind(this);
     this.subscribe = this.subscribe.bind(this);
     this.getSnapshot = this.getSnapshot.bind(this);
+    this.subscribeStructural = this.subscribeStructural.bind(this);
+    this.getStructuralSnapshot = this.getStructuralSnapshot.bind(this);
+    this.subscribeClock = this.subscribeClock.bind(this);
+    this.getCurrentTimeMs = this.getCurrentTimeMs.bind(this);
     this.onReplayer = this.onReplayer.bind(this);
 
     this.watchLoaderDecodes();
+    this.visibilityUnsubscribe =
+      deps.subscribeVisibility?.((): void => {
+        this.onVisibilityChange();
+      }) ?? null;
   }
 
   /*
@@ -400,6 +526,41 @@ class ReplayEngineMachine implements ReplayEngine {
     return this.snapshot;
   }
 
+  /* Notified only when something other than the playhead changed. */
+  public subscribeStructural(listener: ReplayEngineListener): () => void {
+    this.structuralListeners.add(listener);
+
+    return (): void => {
+      this.structuralListeners.delete(listener);
+    };
+  }
+
+  /*
+   * Same object across every publish that moved only the playhead, so a
+   * useSyncExternalStore consumer bails out on Object.is. Its
+   * currentTimeMs is stale by design: read getCurrentTimeMs for the clock.
+   */
+  public getStructuralSnapshot(): ReplayEngineSnapshot {
+    return this.structuralSnapshot;
+  }
+
+  /* Notified with the playhead on every publish. */
+  public subscribeClock(listener: ReplayClockListener): () => void {
+    this.clockListeners.add(listener);
+
+    return (): void => {
+      this.clockListeners.delete(listener);
+    };
+  }
+
+  /*
+   * The value buildSnapshot writes into currentTimeMs, so (b) and (c)
+   * carry over: monotonic between seeks, the seek target during a rebuild.
+   */
+  public getCurrentTimeMs(): number {
+    return this.currentTimeMs;
+  }
+
   public onReplayer(listener: ReplayEngineReplayerListener): () => void {
     this.replayerListeners.add(listener);
 
@@ -477,6 +638,8 @@ class ReplayEngineMachine implements ReplayEngine {
     this.cancelTick();
     this.loaderUnsubscribe?.();
     this.loaderUnsubscribe = null;
+    this.visibilityUnsubscribe?.();
+    this.visibilityUnsubscribe = null;
     this.destroyHoldover();
 
     if (this.segment) {
@@ -489,6 +652,8 @@ class ReplayEngineMachine implements ReplayEngine {
     this.loader.dispose();
     this.publish();
     this.listeners.clear();
+    this.structuralListeners.clear();
+    this.clockListeners.clear();
     this.replayerListeners.clear();
   }
 
@@ -680,14 +845,48 @@ class ReplayEngineMachine implements ReplayEngine {
         baseOffsetMs: baseOffsetMs,
         lastFedChunkIndex: lastFedChunkIndex,
         fedUntilOffsetMs: this.chunkEndMs(lastFedChunkIndex),
+        /* The array handed to the factory IS what rrweb will cast from. */
+        lastFedEvent: events[events.length - 1] ?? null,
         replayer: replayer,
         appliedIntent: null,
+        suspendedForVisibility: false,
+        hasRebuilt: false,
+        hasLanded: false,
       };
+
+      /*
+       * rrweb appends its wrapper on top of the held one and rebuilds the
+       * ANCHOR's snapshot a millisecond later, entirely on its own - so a
+       * seek that still has to feed forward would show a frame up to a
+       * whole checkout behind the target, at full opacity, and then jump.
+       * Hide it until it has something the viewer asked for. Only when
+       * there is a held frame underneath: with nothing behind it, hiding
+       * would leave a blank stage, which is worse than an early frame.
+       */
+      if (this.holdover !== null) {
+        try {
+          replayer.wrapper.style.visibility = "hidden";
+        } catch {
+          // A wrapper that is already gone has nothing to hide.
+        }
+      }
 
       this.registerHandlers(replayer);
       this.segment = segment;
       this.updateLoadedChunkIndexes();
       this.emitReplayerEvent({ type: "created", replayer: replayer });
+
+      if (this.holdover !== null) {
+        /* Re-armed per Replayer; the previous one belongs to a dead build. */
+        if (this.holdoverTimer !== null) {
+          this.deps.cancel(this.holdoverTimer);
+        }
+
+        this.holdoverTimer = this.deps.schedule((): void => {
+          this.holdoverTimer = null;
+          this.revealSegmentIfReady(true);
+        }, HOLDOVER_FALLBACK_MS);
+      }
 
       if (targetMs <= segment.fedUntilOffsetMs) {
         this.landAt(targetMs);
@@ -747,6 +946,18 @@ class ReplayEngineMachine implements ReplayEngine {
        */
       skipInactive: false,
       /*
+       * ALWAYS false. With it on, rrweb answers every recorded Focus by
+       * calling target.focus({ preventScroll: true }) on the element inside
+       * its sandboxed iframe, which makes that iframe the Dashboard's
+       * document.activeElement. From then on keydown fires inside the
+       * iframe's document and never reaches the window listener in
+       * ReplayScrubber, so Space, the arrows and the speed keys silently
+       * die the first time the recorded user focused an input or button.
+       * Input values still render through rrweb's input handling; only
+       * the replayed caret and focus ring are lost, which nobody misses.
+       */
+      triggerFocus: false,
+      /*
        * Bounds rrweb's own fast-forward, which is never triggered with
        * skipInactive false but is kept at the top of the manual speed
        * control so nothing can ever sprint faster than the loader.
@@ -773,7 +984,15 @@ class ReplayEngineMachine implements ReplayEngine {
         return;
       }
 
-      this.destroyHoldover();
+      /*
+       * Half of the handover. This says the new Replayer has a DOM, not
+       * that it has the DOM the viewer asked for - see Segment.hasRebuilt.
+       */
+      if (this.segment) {
+        this.segment.hasRebuilt = true;
+      }
+
+      this.revealSegmentIfReady(false);
       this.emitReplayerEvent({
         type: "fullsnapshot-rebuilded",
         replayer: replayer,
@@ -809,6 +1028,22 @@ class ReplayEngineMachine implements ReplayEngine {
         return;
       }
 
+      const lastFedEvent: SessionReplayRecordedEvent | null =
+        this.segment?.lastFedEvent ?? null;
+
+      if (lastFedEvent !== null && payload === lastFedEvent) {
+        /*
+         * rrweb has just played the last event it holds and will end the
+         * cast 50ms from now. Pre-empt that on a MICROTASK, never here:
+         * rrweb's frame loop marks itself active again after the cast
+         * callbacks return, so a pause() from inside this handler would
+         * leave its timer looking live and let a later addEvent re-arm it.
+         */
+        void Promise.resolve().then((): void => {
+          this.preemptStall(replayer);
+        });
+      }
+
       const event: { type?: unknown; data?: unknown } =
         (payload as { type?: unknown; data?: unknown }) || {};
 
@@ -838,6 +1073,61 @@ class ReplayEngineMachine implements ReplayEngine {
         this.emitReplayerEvent({ type: "touch", x: data.x, y: data.y });
       }
     });
+  }
+
+  /*
+   * Stall BEFORE rrweb ends its own cast.
+   *
+   * When rrweb drains everything it has been fed it sends itself END, and
+   * END forgets which event it last played. The next play() therefore
+   * starts from the last full snapshot and re-applies every event since
+   * it - a whole DOM rebuild plus up to a checkout's worth of mutations,
+   * synchronously, at the exact moment the picture is meant to start
+   * moving again. Pausing first keeps that memory: a paused rrweb drops
+   * the END it is about to send itself, so the resume at the end of
+   * runExtend only replays what came after the last cast.
+   *
+   * Everything here is a guard against pausing a Replayer that is not
+   * quietly running out of footage: a retired or disposed one, a viewer
+   * who is not playing, a buffer that is already stalled or rebuilding, a
+   * seek or a hole in flight - and, above all, the genuine end of the
+   * recording (d), where the Finish MUST be allowed through.
+   */
+  private preemptStall(replayer: ReplayerLike): void {
+    const segment: Segment | null = this.segment;
+
+    if (
+      !segment ||
+      segment.replayer !== replayer ||
+      this.isDisposed ||
+      this.intent !== "playing" ||
+      this.buffer !== "ok" ||
+      this.pendingGap !== null ||
+      this.feedGoal !== null ||
+      this.pendingSeekMs !== null ||
+      this.loader.getNextChunk(segment.lastFedChunkIndex) === null
+    ) {
+      return;
+    }
+
+    /*
+     * No offset: rrweb's pause(offset) is play(offset) followed by a
+     * pause, which is the rebuild this whole method exists to avoid.
+     */
+    segment.replayer.pause();
+    /*
+     * appliedIntent deliberately stays "playing": this is the engine
+     * stalling, not the viewer pausing, and every stalled resume issues
+     * play() unconditionally.
+     */
+    this.buffer = "stalled";
+
+    if (this.bufferingSinceMs === null) {
+      this.bufferingSinceMs = this.deps.now();
+    }
+
+    this.publish();
+    void this.runExtend(this.generation);
   }
 
   /*
@@ -954,6 +1244,37 @@ class ReplayEngineMachine implements ReplayEngine {
     this.startLoad(next, Math.max(targetMs, nextStartMs));
   }
 
+  /*
+   * Show the new Replayer and let the held frame go.
+   *
+   * `force` is the way out of every state where waiting would strand the
+   * viewer looking at a hidden newcomer: the fallback timer, and a halt
+   * that means there will never be a landing.
+   */
+  private revealSegmentIfReady(force: boolean): void {
+    const segment: Segment | null = this.segment;
+
+    if (!segment) {
+      /*
+       * No newcomer to reveal, so nothing is hidden: keep holding the
+       * last frame rather than blanking the stage under the error.
+       */
+      return;
+    }
+
+    if (!force && !(segment.hasRebuilt && segment.hasLanded)) {
+      return;
+    }
+
+    try {
+      segment.replayer.wrapper.style.visibility = "";
+    } catch {
+      // A wrapper that is already gone has nothing to reveal.
+    }
+
+    this.destroyHoldover();
+  }
+
   /* Apply the intent at a moment inside the fed range. */
   private landAt(targetMs: number): void {
     const segment: Segment | null = this.segment;
@@ -982,6 +1303,9 @@ class ReplayEngineMachine implements ReplayEngine {
     this.bufferingSinceMs = null;
     this.currentTimeMs = Math.max(segment.baseOffsetMs, targetMs);
     this.resetWatchdog();
+    /* The other half of the handover: this frame is the one asked for. */
+    segment.hasLanded = true;
+    this.revealSegmentIfReady(false);
   }
 
   /* ---- Feeding ---- */
@@ -999,6 +1323,8 @@ class ReplayEngineMachine implements ReplayEngine {
     this.isExtending = true;
     this.extendToken += 1;
     const token: number = this.extendToken;
+    /* How many chunks THIS pass has already handed to rrweb. */
+    let fedThisPass: number = 0;
 
     try {
       for (;;) {
@@ -1057,6 +1383,35 @@ class ReplayEngineMachine implements ReplayEngine {
         if (decision.skippedGap) {
           this.queueGap({ gap: decision.skippedGap, shouldReport: true }, goal);
           return;
+        }
+
+        const yieldToBrowser: (() => Promise<void>) | undefined =
+          this.deps.yieldToBrowser;
+
+        if (
+          fedThisPass > 0 &&
+          yieldToBrowser &&
+          this.loader.isChunkDecoded(decision.chunkIndex)
+        ) {
+          /*
+           * A second, third, eighth cache-hit chunk in the same pass -
+           * a speed change to 8x, a long seek, a stall resume onto a
+           * page that already landed - would otherwise be thousands of
+           * addEvent calls in ONE task, each queueing a microtask inside
+           * rrweb, while the frames it is meant to be painting wait. A
+           * chunk that still needs the network yields through its fetch
+           * anyway, and the FIRST chunk of a pass is never delayed:
+           * something is waiting on it (a landing, a stall resume).
+           */
+          await yieldToBrowser();
+
+          if (
+            generation !== this.generation ||
+            this.segment !== segment ||
+            this.extendToken !== token
+          ) {
+            return;
+          }
         }
 
         let events: Array<SessionReplayRecordedEvent> | null = null;
@@ -1142,6 +1497,10 @@ class ReplayEngineMachine implements ReplayEngine {
         /* (a) Only now. */
         segment.lastFedChunkIndex = decision.chunkIndex;
         segment.fedUntilOffsetMs = this.chunkEndMs(decision.chunkIndex);
+        /* Moves with the chunk index: the stall pre-emption watches it. */
+        segment.lastFedEvent =
+          events[events.length - 1] ?? segment.lastFedEvent;
+        fedThisPass += 1;
         this.refineInactivity(decision.chunkIndex);
         this.updateLoadedChunkIndexes();
 
@@ -1151,8 +1510,14 @@ class ReplayEngineMachine implements ReplayEngine {
           this.landAt(liveGoal.targetMs);
         } else if (this.buffer === "stalled" && !liveGoal) {
           /*
-           * rrweb ended the cast while waiting for these events. Resume
-           * from where it stopped now that there is more to play.
+           * rrweb ran out of footage while waiting for these events.
+           * Resume from where it stopped now that there is more to play.
+           *
+           * Normally preemptStall got there first, so rrweb is merely
+           * PAUSED and still remembers its last cast: this play() then
+           * replays nothing. If a long frame let rrweb's own END land
+           * first, it degrades to the full snapshot rebuild that END
+           * always forced.
            */
           if (this.intent === "playing") {
             segment.replayer.play(segment.replayer.getCurrentTime());
@@ -1376,9 +1741,17 @@ class ReplayEngineMachine implements ReplayEngine {
 
     const segment: Segment | null = this.segment;
 
-    if (segment && segment.appliedIntent === "playing") {
-      segment.replayer.pause();
-      segment.appliedIntent = "paused";
+    if (segment) {
+      /*
+       * A viewer who pressed Pause while the tab was hidden meant it: the
+       * visibility suspension must not resume them when they come back.
+       */
+      segment.suspendedForVisibility = false;
+
+      if (segment.appliedIntent === "playing") {
+        segment.replayer.pause();
+        segment.appliedIntent = "paused";
+      }
     }
 
     this.publish();
@@ -1523,6 +1896,93 @@ class ReplayEngineMachine implements ReplayEngine {
     this.publish();
   }
 
+  /*
+   * The tab was hidden or shown. Suspending the Replayer is the point;
+   * rescheduling the tick is what makes the suspension possible at all,
+   * because the rAF tick that was pending when the tab went away will not
+   * run until it comes back, and only a timer keeps the engine alive
+   * meanwhile (rescheduleTick picks one whenever the document is hidden).
+   */
+  private onVisibilityChange(): void {
+    if (this.isDisposed) {
+      return;
+    }
+
+    if (this.segment) {
+      this.syncVisibilitySuspension(this.segment);
+    }
+
+    this.rescheduleTick();
+  }
+
+  /*
+   * Keep rrweb paused for as long as nobody is looking.
+   *
+   * rrweb's clock is measured between requestAnimationFrame callbacks,
+   * and a background tab suspends those: the first frame after the viewer
+   * returns sees the whole hidden span as elapsed time and casts every
+   * event due in it in ONE synchronous loop - hundreds of milliseconds of
+   * frozen page, the picture snapping forward past a header clock that
+   * showed it standing still, then a stall. Pausing while hidden costs
+   * nothing (a paused rrweb still accepts addEvent, so the feed keeps
+   * running) and the resume is incremental, because pause() - unlike the
+   * END that ends a cast - keeps rrweb's memory of its last played event.
+   *
+   * LEVEL-triggered, not edge-triggered: it is called from the tick as
+   * well as from visibilitychange, so a play() issued while hidden by a
+   * landing, a stall resume or the viewer pressing Play is put back to
+   * sleep on the next tick without any of those call sites knowing about
+   * visibility at all.
+   */
+  private syncVisibilitySuspension(segment: Segment): void {
+    const hidden: boolean = this.deps.isDocumentHidden?.() ?? false;
+
+    if (hidden) {
+      if (
+        this.intent === "playing" &&
+        segment.appliedIntent === "playing" &&
+        (this.buffer === "ok" || this.buffer === "gap-pending")
+      ) {
+        /* No offset: the offset form is a play(), which rebuilds. */
+        segment.replayer.pause();
+        segment.appliedIntent = "paused";
+        segment.suspendedForVisibility = true;
+        /*
+         * intent, buffer, bufferingSinceMs and currentTimeMs are all left
+         * alone: the phase the UI shows stays "playing", which is what a
+         * viewer who tabbed away mid-playback comes back to.
+         */
+      }
+
+      return;
+    }
+
+    if (!segment.suspendedForVisibility) {
+      return;
+    }
+
+    segment.suspendedForVisibility = false;
+
+    /*
+     * The buffer check is the resume's own, not a mirror of the suspend
+     * branch: a chunk can fail while the tab is hidden, and halt() moves
+     * the buffer without touching intent or this flag. Resuming then
+     * would run the picture on under a "Playback stopped" overlay with a
+     * frozen clock, and rrweb draining afterwards would turn the error
+     * back into "buffering". Nothing resumes until RETRY says so.
+     */
+    if (
+      this.intent === "playing" &&
+      segment.appliedIntent !== "playing" &&
+      this.buffer !== "halted" &&
+      this.buffer !== "ended"
+    ) {
+      segment.replayer.play(segment.replayer.getCurrentTime());
+      segment.appliedIntent = "playing";
+      this.resetWatchdog();
+    }
+  }
+
   private onTick(nowMs: number): void {
     const segment: Segment | null = this.segment;
 
@@ -1532,6 +1992,12 @@ class ReplayEngineMachine implements ReplayEngine {
         this.buffer === "gap-pending" ||
         this.buffer === "stalled")
     ) {
+      /*
+       * The backstop for every play() the rest of the engine issues
+       * without asking whether anyone is watching.
+       */
+      this.syncVisibilitySuspension(segment);
+
       const reported: number =
         segment.baseOffsetMs + segment.replayer.getCurrentTime();
 
@@ -1883,6 +2349,28 @@ class ReplayEngineMachine implements ReplayEngine {
     this.feedGoal = null;
     this.pendingSeekMs = null;
     this.bufferingSinceMs = null;
+    /*
+     * A halt during a feed-forward leaves a hidden Replayer over a dimmed
+     * held frame and no landing that would ever reveal it, so the error
+     * would be read over a stage that never comes back. Show whatever the
+     * newcomer has.
+     *
+     * When the build failed BEFORE it got as far as creating a Replayer -
+     * the anchor page would not fetch, the anchor decoded empty with no
+     * later snapshot, or the footage was a single frame - there is no
+     * newcomer to reveal and nothing has been armed to clean up after
+     * this one: the 2s fallback is armed in build(), past the point those
+     * paths reach. Without this branch the dimmed previous frame stays on
+     * screen under the error for ever, and the retired Replayer (its
+     * iframe and every parsed event of its segment) is never released,
+     * because RETRY re-enters startLoad with this.segment already null.
+     */
+    if (this.segment) {
+      this.revealSegmentIfReady(true);
+    } else {
+      this.destroyHoldover();
+    }
+
     this.publish();
   }
 
@@ -2006,13 +2494,25 @@ class ReplayEngineMachine implements ReplayEngine {
     }
 
     this.segment = null;
-    this.destroyHoldover();
 
     if (eager) {
+      this.destroyHoldover();
       this.destroyReplayer(segment.replayer);
       return;
     }
 
+    /*
+     * A newcomer that never became visible has nothing on screen to hold:
+     * promoting it would swap the frame the viewer is actually looking at
+     * for a hidden one. This is a seek issued during another seek's
+     * feed-forward - the first newcomer goes, the held frame stays.
+     */
+    if (this.holdover !== null && !(segment.hasRebuilt && segment.hasLanded)) {
+      this.destroyReplayer(segment.replayer);
+      return;
+    }
+
+    this.destroyHoldover();
     this.holdover = segment;
 
     try {
@@ -2022,11 +2522,6 @@ class ReplayEngineMachine implements ReplayEngine {
     } catch {
       // A wrapper that is already gone has nothing to dim.
     }
-
-    this.holdoverTimer = this.deps.schedule((): void => {
-      this.holdoverTimer = null;
-      this.destroyHoldover();
-    }, HOLDOVER_FALLBACK_MS);
   }
 
   private destroyHoldover(): void {
@@ -2162,11 +2657,32 @@ class ReplayEngineMachine implements ReplayEngine {
     };
   }
 
+  /*
+   * One publish, three channels, in a fixed order: the whole-snapshot
+   * subscribers first, exactly as before the split (the harness's
+   * snapshots array pins that cadence and order); then the structural
+   * subscribers, only when something other than the playhead changed;
+   * then the clock subscribers with the playhead alone. The single 33ms
+   * gate in onTick is the only throttle - there is no second one here.
+   */
   private publish(): void {
-    this.snapshot = this.buildSnapshot();
+    const next: ReplayEngineSnapshot = this.buildSnapshot();
+    this.snapshot = next;
 
     for (const listener of [...this.listeners]) {
-      listener(this.snapshot);
+      listener(next);
+    }
+
+    if (!isStructurallyEqual(this.structuralSnapshot, next)) {
+      this.structuralSnapshot = next;
+
+      for (const listener of [...this.structuralListeners]) {
+        listener(next);
+      }
+    }
+
+    for (const listener of [...this.clockListeners]) {
+      listener(next.currentTimeMs);
     }
   }
 }
@@ -2194,6 +2710,9 @@ export function createBrowserReplayEngineDeps(
 ): ReplayEngineDeps {
   const hasPerformance: boolean =
     typeof performance !== "undefined" && typeof performance.now === "function";
+  const schedulerLike: SchedulerLike | undefined = (
+    globalThis as { scheduler?: SchedulerLike }
+  ).scheduler;
 
   return {
     loader: loader,
@@ -2221,6 +2740,33 @@ export function createBrowserReplayEngineDeps(
         : undefined,
     isDocumentHidden: (): boolean => {
       return typeof document !== "undefined" && document.hidden === true;
+    },
+    subscribeVisibility: (listener: () => void): (() => void) => {
+      if (typeof document === "undefined") {
+        return (): void => {
+          // Nothing to listen to outside a browser.
+        };
+      }
+
+      document.addEventListener("visibilitychange", listener);
+
+      return (): void => {
+        document.removeEventListener("visibilitychange", listener);
+      };
+    },
+    /*
+     * scheduler.yield where the browser has it (it comes back at the
+     * front of the queue, ahead of other work), and a zero-delay timer
+     * everywhere else. Both end the current task, which is the point.
+     */
+    yieldToBrowser: (): Promise<void> => {
+      if (typeof schedulerLike?.yield === "function") {
+        return schedulerLike.yield();
+      }
+
+      return new Promise<void>((resolve: () => void): void => {
+        setTimeout(resolve, 0);
+      });
     },
   };
 }

@@ -16,6 +16,7 @@ import {
  */
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
+import Route from "../../../Types/API/Route";
 import { describe, expect, it, jest } from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -534,6 +535,89 @@ describe("ReplayRail row click (scrubber-devtools-5)", () => {
     expect(activeRow).toHaveAttribute("data-future", "false");
     /* The row before it is NOT the active one, which is what the old rule did. */
     expect(rows()[2]).toHaveAttribute("data-active", "false");
+  });
+
+  it("keeps a row between the playhead and the pre-roll-selected row dimmed as future", () => {
+    /*
+     * isFuture is "offset > playhead", NOT "after the active row": in the
+     * selected row's pre-roll window the active row jumps ahead of the
+     * playhead, and a row sitting between the two has not happened yet.
+     */
+    const signals: Array<ReplaySignal> = [
+      ...defaultSignals(),
+      makeSignal("console", 8500, { id: "rec:0:5", title: "between" }),
+    ];
+    const result: RenderResult = renderRail({ signals: signals });
+
+    fireEvent.click(within(rows()[4] as HTMLElement).getByText(/TypeError/));
+
+    result.rerender({ currentTimeMs: 8000, selectedSignalId: "rec:0:4" });
+
+    const allRows: Array<HTMLElement> = rows();
+
+    expect(rowTitles()).toEqual([
+      "rec:0:1",
+      "rec:0:2",
+      "rec:0:3",
+      "rec:0:5",
+      "rec:0:4",
+    ]);
+    expect(allRows[2]).toHaveAttribute("data-future", "false");
+    expect(allRows[2]).toHaveAttribute("data-active", "false");
+    /* 8500 > 8000: still ahead of the playhead even though the active row is past it. */
+    expect(allRows[3]).toHaveAttribute("data-future", "true");
+    expect(allRows[3]).toHaveAttribute("data-active", "false");
+    expect(allRows[4]).toHaveAttribute("data-active", "true");
+    expect(allRows[4]).toHaveAttribute("data-selected", "true");
+    expect(allRows[4]).toHaveAttribute("data-future", "false");
+  });
+
+  it("keeps the trace link on a row across playhead ticks", () => {
+    const traceViewCalls: Array<string> = [];
+    const result: RenderResult = renderRail({
+      currentTimeMs: 1000,
+      links: {
+        traceView: (traceId: string): Route => {
+          traceViewCalls.push(traceId);
+
+          return new Route(`/dashboard/p/traces/${traceId}`);
+        },
+      },
+    });
+
+    const row: HTMLElement = rows()[0] as HTMLElement;
+    const href: string | null =
+      within(row).getByText("trace").closest("a")?.getAttribute("href") ?? null;
+
+    expect(href).not.toBeNull();
+    expect(href).toContain(TRACE_ID);
+
+    /*
+     * Ticks across the row's own offset (2000ms), so the run also covers
+     * the moment isFuture flips: the row must keep its element and its
+     * link identity through the flip, not be rebuilt by it.
+     */
+    for (let tick: number = 1; tick <= 30; tick++) {
+      result.rerender({ currentTimeMs: 1000 + tick * 40 });
+    }
+
+    const sameRow: HTMLElement = rows()[0] as HTMLElement;
+
+    expect(sameRow).toBe(row);
+    expect(
+      within(sameRow).getByText("trace").closest("a")?.getAttribute("href"),
+    ).toBe(href);
+    expect(sameRow).toHaveAttribute("data-future", "false");
+
+    /*
+     * The route is built once per rows/links change, not once per row per
+     * tick. Without that, every trace-linked row got a fresh
+     * `{ route, label }` object on every publish - defeating the row's
+     * own memo and building a Route each time - and the element identity
+     * above would still have held, because React keys the rows by signal
+     * id. So the count is the assertion that can actually fail.
+     */
+    expect(traceViewCalls.length).toBeLessThanOrEqual(2);
   });
 
   it("expands the detail under the selected row and closes it from the detail", () => {
