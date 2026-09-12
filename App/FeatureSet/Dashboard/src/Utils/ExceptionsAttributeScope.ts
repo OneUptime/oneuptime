@@ -17,9 +17,9 @@ import {
  * TelemetryException (the Postgres group row) deliberately has no
  * attributes column — attributes live on the ClickHouse ExceptionInstance
  * rows. An `attributes.<key>` chip therefore compiles as a two-step,
- * client-side cross-store join (the pattern ExceptionsTable already uses
- * for entity scope): (1) one instance query with EVERY filter ANDed + the
- * time window, grouped by fingerprint; (2) the resulting fingerprints
+ * client-side cross-store join (also used for entity scope): (1) one instance
+ * query with EVERY filter ANDed + the time window, grouped by fingerprint;
+ * (2) the resulting fingerprints
  * narrow the Postgres list and ride the histogram/facets payloads (both
  * already accept `fingerprints`).
  *
@@ -40,8 +40,8 @@ export const EXCEPTION_ATTRIBUTE_FACET_PREFIX: string = "attributes.";
 export const NO_MATCH_FINGERPRINT: string = "__attribute-scope-no-match__";
 
 /*
- * Cap on the fingerprints carried into the Postgres IN() — same bound
- * ExceptionsTable uses for its entity-scope join.
+ * Cap on the fingerprints carried into the Postgres IN(), including fixed
+ * entity-scope joins.
  */
 export const MAX_SCOPED_FINGERPRINTS: number = 10_000;
 
@@ -76,6 +76,39 @@ export interface ExceptionInstanceScope {
    * heading. Written before the window and projectId, which always win.
    */
   columnQuery?: Query<ExceptionInstance> | undefined;
+}
+
+/**
+ * Build the fixed entity-membership part of an instance scope.
+ *
+ * Entity keys are stored in an Array(String) column, so even one key must be
+ * represented by Includes (ClickHouse `hasAny`) rather than scalar equality.
+ * Sorting and de-duplicating also gives equivalent prop values one stable
+ * resolution-cache identity.
+ */
+export function buildExceptionEntityKeyScope(
+  entityKeys: ReadonlyArray<string> | undefined,
+): ExceptionInstanceScope {
+  const normalizedEntityKeys: Array<string> = Array.from(
+    new Set(
+      (entityKeys || [])
+        .map((entityKey: string): string => {
+          return entityKey.trim();
+        })
+        .filter((entityKey: string): boolean => {
+          return entityKey.length > 0;
+        }),
+    ),
+  ).sort();
+
+  return {
+    attributeSelections: {},
+    attributePredicates: {},
+    columnPredicates:
+      normalizedEntityKeys.length > 0
+        ? { entityKeys: [new Includes(normalizedEntityKeys)] }
+        : {},
+  };
 }
 
 /**
@@ -422,4 +455,27 @@ export function applyExceptionFingerprintScope(
       ? fingerprints.slice(0, MAX_SCOPED_FINGERPRINTS)
       : [NO_MATCH_FINGERPRINT];
   (query as Record<string, unknown>)["fingerprint"] = new Includes(scoped);
+}
+
+/**
+ * Apply the mutually exclusive time-window strategies for exception groups.
+ *
+ * Without an instance scope, the Postgres group's lastSeenAt is the only
+ * available window filter. With an instance scope, its fingerprints were
+ * already resolved from occurrences inside the window; adding lastSeenAt
+ * would incorrectly hide a group that recurred after a historical window.
+ */
+export function applyExceptionGroupQueryScope(input: {
+  query: Query<TelemetryException>;
+  window: InBetween<Date>;
+  instanceScopeKey: string | null;
+  resolvedFingerprints: Array<string> | null;
+}): void {
+  if (input.instanceScopeKey === null) {
+    (input.query as Record<string, unknown>)["lastSeenAt"] =
+      new InBetween<Date>(input.window.startValue, input.window.endValue);
+    return;
+  }
+
+  applyExceptionFingerprintScope(input.query, input.resolvedFingerprints || []);
 }

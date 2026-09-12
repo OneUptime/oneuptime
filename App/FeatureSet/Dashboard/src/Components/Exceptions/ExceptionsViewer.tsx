@@ -39,7 +39,8 @@ import {
   ExceptionInstanceScope,
   NO_MATCH_FINGERPRINT,
   MAX_SCOPED_FINGERPRINTS,
-  applyExceptionFingerprintScope,
+  applyExceptionGroupQueryScope,
+  buildExceptionEntityKeyScope,
   buildExceptionInstanceScopeQuery,
   mergeExceptionInstanceScopes,
   getExceptionAttributeSelections,
@@ -404,6 +405,13 @@ export interface ExceptionsViewerProps {
    */
   defaultClassScope?: ExceptionClassScope | undefined;
   primaryEntityId?: ObjectID | undefined;
+  /*
+   * Scope to exception groups with an occurrence belonging to any of these
+   * stable entity keys. TelemetryException has no entityKeys column, so this
+   * is resolved through ExceptionInstance fingerprints together with every
+   * other instance-only filter.
+   */
+  entityKeysFilter?: Array<string> | undefined;
   /*
    * A STORED exception-instance query to host — the slice an exception
    * monitor evaluated, kept on the incident / alert row.
@@ -1017,7 +1025,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
    * chips, `@key:value` attribute tokens and any field filter carrying an
    * operator (`@type:Type*`) all resolve against the ClickHouse instance rows
    * first, and the matching fingerprints narrow the list, the chart and the
-   * counts together (the ExceptionsTable entity-scope pattern).
+   * counts together (the same fingerprint join used for fixed entity scope).
    */
   const instanceScope: ExceptionInstanceScope = useMemo(() => {
     const attributePredicates: Dictionary<Array<SearchQueryValue>> = {};
@@ -1045,11 +1053,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       ];
     }
 
-    const userScope: ExceptionInstanceScope = {
-      attributeSelections: getExceptionAttributeSelections({ facetGroups }),
-      attributePredicates,
-      columnPredicates,
-    };
+    const userScope: ExceptionInstanceScope = mergeExceptionInstanceScopes(
+      {
+        attributeSelections: getExceptionAttributeSelections({ facetGroups }),
+        attributePredicates,
+        columnPredicates,
+      },
+      buildExceptionEntityKeyScope(props.entityKeysFilter),
+    );
 
     /*
      * ANDed with the host's stored scope, not layered over it: an incident
@@ -1067,6 +1078,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     searchFieldFilters,
     resolvedServices,
     hostScope,
+    props.entityKeysFilter,
   ]);
 
   const instanceScopeKey: string | null = useMemo(() => {
@@ -1284,32 +1296,22 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
      * Scope the list by the selected time range using lastSeenAt so the
      * viewer + histogram share the same window.
      *
-     * NOT when a host pinned an instance query. The fingerprints below were
+     * NOT when any instance scope is active (a hosted query, an attribute or
+     * operator filter, or fixed entity keys). The fingerprints below were
      * resolved from instances INSIDE the window, so the group set is already
      * window-correct — and `lastSeenAt` is the group's LAST occurrence
-     * anywhere, which for an exception still firing after the snapshot ended
-     * sits past the window. ANDing both would drop exactly the exceptions an
-     * operator opens an incident to find, and drop them silently: the list
-     * would read "No exceptions found".
+     * anywhere. If the same exception was still firing after a historical
+     * range ended, ANDing both clauses would drop it from the list while the
+     * histogram and facets still count its in-range occurrence.
      */
-    if (!hostScope.isHosted) {
-      const dateRange: InBetween<Date> =
-        RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
-      (q as Record<string, unknown>)["lastSeenAt"] = new InBetween<Date>(
-        dateRange.startValue,
-        dateRange.endValue,
-      );
-    }
-
-    /*
-     * Instance scope: resolved fingerprints narrow the list; while the
-     * resolution is still in flight the sentinel keeps the list EMPTY —
-     * a flash of unfiltered exceptions under an active chip would be a
-     * lie.
-     */
-    if (instanceScopeKey) {
-      applyExceptionFingerprintScope(q, resolvedScopeFingerprints || []);
-    }
+    const dateRange: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+    applyExceptionGroupQueryScope({
+      query: q,
+      window: dateRange,
+      instanceScopeKey,
+      resolvedFingerprints: resolvedScopeFingerprints,
+    });
 
     return q;
   }, [

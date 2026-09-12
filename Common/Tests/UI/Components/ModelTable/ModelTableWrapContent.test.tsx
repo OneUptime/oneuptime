@@ -221,8 +221,8 @@ const makeColumns: MakeColumnsFunction = (): Columns<Monitor> => {
       },
     },
     /*
-     * A wrapping column that names its own, wider cap. This is the shape
-     * ExceptionsTable.tsx's "Exception Message" column was migrated to.
+     * A wrapping column that names its own, wider cap. This mirrors the shape
+     * the legacy exception table's "Exception Message" column used.
      */
     {
       field: { monitorType: true },
@@ -433,11 +433,11 @@ describe("ModelTable column wrapping options (OneUptime issue #3585)", () => {
 
     /*
      * `wrapMaxWidthClassName` is the second of the two fields riding the
-     * BaseModelTable spread, and the one ExceptionsTable.tsx depends on: its
-     * "Exception Message" column was migrated from a hand-spelled
+     * BaseModelTable spread, and the exception-message use case depends on it.
+     * The fixture mirrors a column migrated from a hand-spelled
      * "max-w-3xl whitespace-normal break-words" contentClassName onto these
-     * options, so if this field stops making the hop that table silently
-     * loses its width cap.
+     * options, so if this field stops making the hop the cell silently loses
+     * its width cap.
      */
     test("uses wrapMaxWidthClassName on the wrapper when the column names one", async () => {
       renderTable();
