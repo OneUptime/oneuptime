@@ -4,16 +4,14 @@ import OverviewStats from "../../Components/Home/OverviewStats";
 import IncidentStateUtil from "../../Utils/IncidentState";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import RouteMap from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
-import DashboardSideMenu from "./SideMenu";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import Page from "Common/UI/Components/Page/Page";
 import API from "Common/UI/Utils/API/API";
 import UiAnalytics from "Common/UI/Utils/Analytics";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -87,60 +85,43 @@ const Home: FunctionComponent<ComponentProps> = (
   }, [props.projects]);
 
   return (
-    <Page
-      title={"Home"}
-      breadcrumbLinks={[
-        {
-          title: "Project",
-          to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
-        },
-        {
-          title: "Home",
-          to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
-        },
-      ]}
-      sideMenu={
-        <DashboardSideMenu project={props.currentProject || undefined} />
-      }
-    >
-      <div>
-        {/*
-         * GettingStarted and OverviewStats only need the project id and manage
-         * their own loading states — gating them behind the incident-states
-         * fetch would serialize the page's requests for nothing. Only the
-         * incidents table below actually needs the unresolved states.
-         */}
-        {currentProjectId && (
-          <div>
-            <GettingStarted projectId={currentProjectId} />
+    <div>
+      {/*
+       * GettingStarted and OverviewStats only need the project id and manage
+       * their own loading states — gating them behind the incident-states
+       * fetch would serialize the page's requests for nothing. Only the
+       * incidents table below actually needs the unresolved states.
+       */}
+      {currentProjectId && (
+        <div>
+          <GettingStarted projectId={currentProjectId} />
 
-            <OverviewStats projectId={currentProjectId} />
-          </div>
+          <OverviewStats projectId={currentProjectId} />
+        </div>
+      )}
+
+      {isLoading && <PageLoader isVisible={true} />}
+      {error && <ErrorMessage message={error} />}
+
+      {!isLoading &&
+        !error &&
+        currentProjectId &&
+        unresolvedIncidentStates.length > 0 && (
+          <IncidentsTable
+            query={{
+              projectId: currentProjectId,
+              currentIncidentStateId: new Includes(
+                unresolvedIncidentStates.map((state: IncidentState) => {
+                  return state.id!;
+                }),
+              ),
+            }}
+            noItemsMessage="Nice work! No Active Incidents so far."
+            title="Active Incidents"
+            description="Here is a list of all the Active Incidents for this project."
+          />
         )}
-
-        {isLoading && <PageLoader isVisible={true} />}
-        {error && <ErrorMessage message={error} />}
-
-        {!isLoading &&
-          !error &&
-          currentProjectId &&
-          unresolvedIncidentStates.length > 0 && (
-            <IncidentsTable
-              query={{
-                projectId: currentProjectId,
-                currentIncidentStateId: new Includes(
-                  unresolvedIncidentStates.map((state: IncidentState) => {
-                    return state.id!;
-                  }),
-                ),
-              }}
-              noItemsMessage="Nice work! No Active Incidents so far."
-              title="Active Incidents"
-              description="Here is a list of all the Active Incidents for this project."
-            />
-          )}
-      </div>
-    </Page>
+    </div>
   );
 };
 

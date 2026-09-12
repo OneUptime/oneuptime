@@ -1,5 +1,4 @@
 import ComponentProps from "../Pages/PageComponentProps";
-import NetworkSiteLayout from "../Pages/NetworkSite/Layout";
 import NetworkSiteViewLayout from "../Pages/NetworkSite/View/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, NetworkSiteRoutePath } from "../Utils/RouteMap";
@@ -27,7 +26,7 @@ const NetworkSiteRoutes: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <Routes>
-      <PageRoute path="/" element={<NetworkSiteLayout {...props} />}>
+      <PageRoute path="/">
         <PageRoute
           path=""
           element={
