@@ -34,6 +34,7 @@ import NetworkDeviceHydrationUtil from "../Utils/Monitor/NetworkDeviceHydrationU
 import logger, { LogAttributes } from "../Utils/Logger";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { FindWhereProperty } from "../../Types/BaseDatabase/Query";
@@ -126,6 +127,23 @@ const DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE: number = 1000;
  * row from the old path prefix, so every page must start at offset zero.
  */
 const SUBTREE_REBASE_PAGE_SIZE: number = 1000;
+
+/*
+ * How deep a site tree may go, derived from the column that has to hold it:
+ * materializedPath is varchar(ColumnLength.LongText) and every segment costs a
+ * 36-character id plus its separator, after the leading slash.
+ *
+ * The bound has to be stated here now. It used to fall out of the placement
+ * rule for free - a site's depth was exactly its type's depth in the catalog,
+ * because the parent type was pinned recursively. Placement no longer pins
+ * anything (a site may sit under one of its own type), so without this a chain
+ * of thirteen sites would silently overflow the column: Postgres refuses the
+ * write, and it refuses it in onUpdateSuccess, after the parent change has
+ * already been committed.
+ */
+const MAX_SITE_HIERARCHY_PATH_SEGMENTS: number = Math.floor(
+  (ColumnLength.LongText - 1) / 37,
+);
 
 /*
  * Model instances initialise optional fields to undefined. Those properties
@@ -786,6 +804,27 @@ export class Service extends DatabaseService<Model> {
     networkSiteTypeId: ObjectID,
     cache: Map<string, NetworkSiteType>,
   ): Promise<NetworkSiteType> {
+    const networkSiteType: NetworkSiteType | null =
+      await this.findNetworkSiteTypeForHierarchy(networkSiteTypeId, cache);
+
+    if (!networkSiteType) {
+      throw new BadDataException("Network site type not found.");
+    }
+
+    return networkSiteType;
+  }
+
+  /*
+   * The nullable form, for rows that are read as CONTEXT rather than written.
+   * A parent site's type - or a link further up the catalog - can be missing
+   * after a direct database edit, and an unresolvable ancestor proves nothing
+   * about the proposed edge; refusing the whole write there would strand the
+   * site instead of describing a problem the operator can act on.
+   */
+  private async findNetworkSiteTypeForHierarchy(
+    networkSiteTypeId: ObjectID,
+    cache: Map<string, NetworkSiteType>,
+  ): Promise<NetworkSiteType | null> {
     const key: string = normalizeId(networkSiteTypeId);
     const cached: NetworkSiteType | undefined = cache.get(key);
 
@@ -798,7 +837,9 @@ export class Service extends DatabaseService<Model> {
         id: networkSiteTypeId,
         select: {
           _id: true,
+          name: true,
           projectId: true,
+          isUnitLevel: true,
           parentNetworkSiteTypeId: true,
         },
         props: {
@@ -806,19 +847,27 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-    if (!networkSiteType) {
-      throw new BadDataException("Network site type not found.");
+    if (networkSiteType) {
+      cache.set(key, networkSiteType);
     }
 
-    cache.set(key, networkSiteType);
     return networkSiteType;
   }
 
   /*
-   * Assert one proposed site edge against the type hierarchy. Untyped legacy
-   * root rows remain readable/editable, but as soon as a site has a type its
-   * placement is exact: a root type has no parent, and a non-root type has a
-   * parent site whose type is precisely the configured direct parent type.
+   * Assert one proposed site edge against the type hierarchy.
+   *
+   * The type tree describes which levels sit above which; it does NOT dictate
+   * an exact placement. A parent site is always optional, may skip levels, and
+   * may be of an unrelated type — the only inversion refused is a parent whose
+   * type sits BELOW the child's own type. The stricter reading this replaces
+   * (parent must be exactly the configured direct parent type, root types may
+   * never have a parent) made whole hierarchies impossible to build: see
+   * GitHub issue #3744, where every type in the project was top-level and no
+   * parent could be linked at all, by hand or by CSV.
+   *
+   * A unit-level type is the declared leaf of the hierarchy, so its sites hold
+   * devices rather than more sites and can never be a parent here.
    */
   private async validateSiteTypeEdge(data: {
     networkSiteTypeId: ObjectID | null;
@@ -852,32 +901,80 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    const requiredParentTypeId: ObjectID | null =
-      networkSiteType.parentNetworkSiteTypeId || null;
-
-    if (!requiredParentTypeId) {
-      if (data.parentSite) {
-        throw new BadDataException(
-          "A site with a root network site type cannot have a parent site.",
-        );
-      }
-
+    if (!data.parentSite) {
       return;
     }
 
-    if (!data.parentSite) {
+    /*
+     * A parent that predates site types belongs to no level, so no inversion
+     * can be proven against it. Refusing it would make legacy rows permanently
+     * unusable as parents without a data migration nobody can safely write.
+     */
+    if (!data.parentSite.networkSiteTypeId) {
+      return;
+    }
+
+    const parentNetworkSiteType: NetworkSiteType | null =
+      await this.findNetworkSiteTypeForHierarchy(
+        data.parentSite.networkSiteTypeId,
+        data.typeCache,
+      );
+
+    if (!parentNetworkSiteType) {
+      return;
+    }
+
+    const childTypeName: string =
+      networkSiteType.name || "this site's network site type";
+    const parentTypeName: string =
+      parentNetworkSiteType.name || "the parent site's network site type";
+
+    if (parentNetworkSiteType.isUnitLevel === true) {
       throw new BadDataException(
-        "This network site type requires a parent site.",
+        `Sites of network site type "${parentTypeName}" are unit level, so they cannot have child sites.`,
       );
     }
 
-    if (
-      !data.parentSite.networkSiteTypeId ||
-      !sameId(data.parentSite.networkSiteTypeId, requiredParentTypeId)
-    ) {
-      throw new BadDataException(
-        "Parent site must use the configured parent network site type.",
-      );
+    if (sameId(data.networkSiteTypeId, data.parentSite.networkSiteTypeId)) {
+      return;
+    }
+
+    /*
+     * Walk UP from the parent's type. Reaching the child's type means the
+     * parent sits below it, which is the one arrangement that contradicts the
+     * configured hierarchy. The visited set bounds a catalog cycle written
+     * straight into the database, which must fail the request rather than
+     * spin the event loop.
+     */
+    const visited: Set<string> = new Set<string>([
+      normalizeId(data.parentSite.networkSiteTypeId),
+    ]);
+    let ancestorTypeId: ObjectID | null =
+      parentNetworkSiteType.parentNetworkSiteTypeId || null;
+
+    while (ancestorTypeId) {
+      if (sameId(ancestorTypeId, data.networkSiteTypeId)) {
+        throw new BadDataException(
+          `A site of network site type "${childTypeName}" cannot be placed under a site of network site type "${parentTypeName}", because "${parentTypeName}" sits below "${childTypeName}" in the site type hierarchy.`,
+        );
+      }
+
+      if (visited.has(normalizeId(ancestorTypeId))) {
+        break;
+      }
+      visited.add(normalizeId(ancestorTypeId));
+
+      const ancestorType: NetworkSiteType | null =
+        await this.findNetworkSiteTypeForHierarchy(
+          ancestorTypeId,
+          data.typeCache,
+        );
+
+      if (!ancestorType) {
+        break;
+      }
+
+      ancestorTypeId = ancestorType.parentNetworkSiteTypeId || null;
     }
   }
 
@@ -925,6 +1022,19 @@ export class Service extends DatabaseService<Model> {
       });
 
       for (const child of children) {
+        /*
+         * An untyped site is tolerated as a parent only where legacy data
+         * already made it one. Clearing the type of a site that still owns
+         * children would manufacture that shape deliberately, and every
+         * placement check below it would then have nothing to compare
+         * against.
+         */
+        if (!data.proposedNetworkSiteTypeId) {
+          throw new BadDataException(
+            "A network site with child sites must have a network site type.",
+          );
+        }
+
         await this.validateSiteTypeEdge({
           networkSiteTypeId: child.networkSiteTypeId || null,
           parentSite: proposedParent,
@@ -1216,6 +1326,10 @@ export class Service extends DatabaseService<Model> {
 
     if (parentSiteId) {
       parentPath = await this.getMaterializedPathForSite(parentSiteId);
+      this.assertHierarchyDepthFits({
+        parentPath: parentPath,
+        additionalSegments: 1,
+      });
     }
 
     return {
@@ -1224,6 +1338,80 @@ export class Service extends DatabaseService<Model> {
         parentPath: parentPath,
       },
     };
+  }
+
+  /*
+   * Refuse a placement whose resulting path would not fit the column, before
+   * anything is written. `additionalSegments` is the height of what is being
+   * hung off this parent: 1 for a new leaf, and for a move the moved site plus
+   * the deepest thing already under it.
+   */
+  private assertHierarchyDepthFits(data: {
+    parentPath: string | null;
+    additionalSegments: number;
+  }): void {
+    const parentSegments: number = MaterializedPathUtil.segmentsOf(
+      data.parentPath,
+    ).length;
+
+    if (
+      parentSegments + data.additionalSegments <=
+      MAX_SITE_HIERARCHY_PATH_SEGMENTS
+    ) {
+      return;
+    }
+
+    throw new BadDataException(
+      `A network site hierarchy can be at most ${MAX_SITE_HIERARCHY_PATH_SEGMENTS} levels deep, and this placement would make it deeper. Move the sites below it first, or attach this one higher up.`,
+    );
+  }
+
+  /*
+   * How many levels the subtree rooted at `site` occupies, itself included, so
+   * a move can be measured before it is made rather than discovered when the
+   * post-commit rebase writes an over-long path.
+   */
+  private async getSubtreeHeight(site: Model): Promise<number> {
+    if (!site.materializedPath || !site.projectId) {
+      return 1;
+    }
+
+    const ownSegments: number = MaterializedPathUtil.segmentsOf(
+      site.materializedPath,
+    ).length;
+
+    /*
+     * Ordering on the maintained `depth` column keeps this to one row. Rows
+     * with no depth at all are excluded rather than sorted first: such a row
+     * predates path maintenance and would otherwise answer the question with a
+     * shallow path, and leaving the bound permissive for already-broken data
+     * is better than refusing a move the operator can see is fine.
+     */
+    const deepest: Array<Model> = await this.findBy({
+      query: {
+        projectId: site.projectId,
+        materializedPath: this.pathStartsWith(site.materializedPath),
+        depth: QueryHelper.notNull(),
+      },
+      select: {
+        _id: true,
+        materializedPath: true,
+      },
+      sort: {
+        depth: SortOrder.Descending,
+      },
+      limit: 1,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const deepestSegments: number = MaterializedPathUtil.segmentsOf(
+      deepest[0]?.materializedPath,
+    ).length;
+
+    return Math.max(1, deepestSegments - ownSegments + 1);
   }
 
   @CaptureSpan()
@@ -1499,6 +1687,17 @@ export class Service extends DatabaseService<Model> {
             "Cannot move a site under itself or one of its own descendants.",
           );
         }
+
+        /*
+         * The whole subtree moves with the site, so the deepest row in it is
+         * what decides whether the move fits. Measuring it here is the only
+         * chance: the rebase that writes those paths runs after the parent
+         * change has been committed.
+         */
+        this.assertHierarchyDepthFits({
+          parentPath: newParentPath,
+          additionalSegments: await this.getSubtreeHeight(item),
+        });
       }
     }
 
@@ -1825,11 +2024,16 @@ export class Service extends DatabaseService<Model> {
     );
 
     /*
-     * A valid child type explicitly names the deleted site's type as its
-     * required direct parent type. Legacy SET NULL/orphan-repair behaviour
-     * therefore cannot produce a valid edge: promoting the child to root or
-     * attaching it to the grandparent both violate its type. Reject the
-     * delete unless every direct child is part of this same bulk delete.
+     * Reject the delete unless every direct child is part of this same bulk
+     * delete.
+     *
+     * This used to be argued from the type rule - promoting an orphan to root
+     * or to its grandparent was said to be impossible without breaking its
+     * type. That argument no longer holds: a parent is optional now, and a
+     * grandparent is usually a legal parent. The guard stays on its own terms.
+     * Deleting one site is not permission to silently restructure the tree
+     * underneath it, and the operator, not the repair loop, should decide
+     * where those sites belong.
      *
      * Parent ids and result rows are both batched so neither a wide delete nor
      * a wide site is silently truncated at a service query limit.
@@ -1953,6 +2157,15 @@ export class Service extends DatabaseService<Model> {
    * Rewrites the deleted site's former subtree so the '/deletedId/' segment
    * is dropped from every path, and re-points its direct children at the
    * deleted site's parent.
+   *
+   * onBeforeDelete refuses a delete that would leave a surviving child, so
+   * this only runs for rows that got past it - a hard delete, or a child
+   * created in the window between the check and the write. It writes the
+   * promotion without re-checking the placement rule: the grandparent it
+   * promotes to is almost always legal, the alternative is leaving a site
+   * pointing at a row that no longer exists, and the result is visible and
+   * fixable in the parent picker. A repair prefers a whole tree to a
+   * perfectly modelled one.
    */
   private async reattachOrphanedSubtree(deletedSite: Model): Promise<void> {
     const oldPath: string | null = deletedSite.materializedPath || null;

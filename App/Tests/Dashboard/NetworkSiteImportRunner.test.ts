@@ -1,5 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
-import { ParsedSiteRow } from "../../FeatureSet/Dashboard/src/Utils/NetworkSiteCsv";
+import {
+  NetworkSiteTypeOption,
+  ParsedSiteRow,
+} from "../../FeatureSet/Dashboard/src/Utils/NetworkSiteCsv";
 import {
   CreateSiteFunction,
   SiteCreateResult,
@@ -42,6 +45,32 @@ const makeRow: MakeRowFunction = (
     ...overrides,
   };
 };
+
+/*
+ * The placement preflight is an ancestry question, so the runner hands the
+ * planner the whole catalog. Region › Franchisee › Market › Unit, plus an
+ * unrelated "Other" - the catch-all a real project uses as a parent.
+ */
+const SITE_TYPES: Array<NetworkSiteTypeOption> = [
+  { id: "type-region", name: "Region", parentNetworkSiteTypeId: null },
+  {
+    id: "type-franchisee",
+    name: "Franchisee",
+    parentNetworkSiteTypeId: "type-region",
+  },
+  {
+    id: "type-market",
+    name: "Market",
+    parentNetworkSiteTypeId: "type-franchisee",
+  },
+  {
+    id: "type-unit",
+    name: "Unit",
+    parentNetworkSiteTypeId: "type-market",
+    isUnitLevel: true,
+  },
+  { id: "type-other", name: "Other", parentNetworkSiteTypeId: null },
+];
 
 /*
  * A createSite that succeeds for every row, minting a predictable id, and
@@ -212,7 +241,7 @@ describe("runSiteImport — ordering", () => {
     ]);
   });
 
-  test("a correctly typed existing parent passes hierarchy preflight", async () => {
+  test("a preferred-type existing parent passes placement preflight", async () => {
     const recorder: Recorder = recordingCreator();
 
     const summary: SiteImportSummary = await runSiteImport({
@@ -221,7 +250,6 @@ describe("runSiteImport — ordering", () => {
           line: 2,
           name: "Unit 1042",
           parentName: "Springfield Market",
-          requiredParentNetworkSiteTypeId: "type-market",
         }),
       ],
       existingSiteIdByName: new Map<string, string>([
@@ -230,11 +258,42 @@ describe("runSiteImport — ordering", () => {
       existingSiteTypeIdByName: new Map<string, string | null>([
         ["Springfield Market", "type-market"],
       ]),
+      siteTypes: SITE_TYPES,
       createSite: recorder.createSite,
     });
 
     expect(recorder.calls).toEqual([
       { name: "Unit 1042", parentSiteId: "existing-market" },
+    ]);
+    expect(summary.createdCount).toBe(1);
+    expect(summary.skippedCount).toBe(0);
+  });
+
+  test("an unrelated-type existing parent also passes placement preflight", async () => {
+    const recorder: Recorder = recordingCreator();
+
+    const summary: SiteImportSummary = await runSiteImport({
+      rows: [
+        makeRow({
+          line: 2,
+          name: "6241 Daikin Park",
+          networkSiteTypeId: "type-market",
+          siteType: "Market",
+          parentName: "Aramark",
+        }),
+      ],
+      existingSiteIdByName: new Map<string, string>([
+        ["Aramark", "existing-aramark"],
+      ]),
+      existingSiteTypeIdByName: new Map<string, string | null>([
+        ["Aramark", "type-other"],
+      ]),
+      siteTypes: SITE_TYPES,
+      createSite: recorder.createSite,
+    });
+
+    expect(recorder.calls).toEqual([
+      { name: "6241 Daikin Park", parentSiteId: "existing-aramark" },
     ]);
     expect(summary.createdCount).toBe(1);
     expect(summary.skippedCount).toBe(0);
@@ -334,24 +393,26 @@ describe("runSiteImport — rows that can never be created", () => {
     expect(summary.createdCount).toBe(0);
   });
 
-  test("a wrongly typed existing parent is skipped before any create call", async () => {
+  test("an inverted existing parent is skipped before any create call", async () => {
     const recorder: Recorder = recordingCreator();
 
     const summary: SiteImportSummary = await runSiteImport({
       rows: [
         makeRow({
           line: 2,
-          name: "Unit 1042",
-          parentName: "East Region",
-          requiredParentNetworkSiteTypeId: "type-market",
+          name: "East Region",
+          networkSiteTypeId: "type-region",
+          siteType: "Region",
+          parentName: "Springfield Market",
         }),
       ],
       existingSiteIdByName: new Map<string, string>([
-        ["East Region", "existing-region"],
+        ["Springfield Market", "existing-market"],
       ]),
       existingSiteTypeIdByName: new Map<string, string | null>([
-        ["East Region", "type-region"],
+        ["Springfield Market", "type-market"],
       ]),
+      siteTypes: SITE_TYPES,
       createSite: recorder.createSite,
     });
 
@@ -364,10 +425,10 @@ describe("runSiteImport — rows that can never be created", () => {
     });
     expect(summary.results[0]).toEqual({
       line: 2,
-      name: "Unit 1042",
+      name: "East Region",
       status: "skipped",
       message:
-        'Parent site "East Region" does not use the Network Site Type required by "Unit".',
+        'Parent site "Springfield Market" uses siteType "Market", which sits below "Region" in the site type hierarchy.',
     });
   });
 
@@ -384,18 +445,20 @@ describe("runSiteImport — rows that can never be created", () => {
       rows: [
         makeRow({
           line: 2,
-          name: "Invalid Unit",
-          parentName: "East Region",
-          requiredParentNetworkSiteTypeId: "type-market",
+          name: "Invalid Region",
+          networkSiteTypeId: "type-region",
+          siteType: "Region",
+          parentName: "Springfield Market",
         }),
         makeRow({ line: 3, name: "Valid Root" }),
       ],
       existingSiteIdByName: new Map<string, string>([
-        ["East Region", "existing-region"],
+        ["Springfield Market", "existing-market"],
       ]),
       existingSiteTypeIdByName: new Map<string, string | null>([
-        ["East Region", "type-region"],
+        ["Springfield Market", "type-market"],
       ]),
+      siteTypes: SITE_TYPES,
       createSite,
       onProgress: (progress: SiteImportProgress) => {
         if (events.length === 0 && progress.results.length > 0) {
@@ -404,7 +467,7 @@ describe("runSiteImport — rows that can never be created", () => {
       },
     });
 
-    expect(events).toEqual(["preflight:Invalid Unit", "create:Valid Root"]);
+    expect(events).toEqual(["preflight:Invalid Region", "create:Valid Root"]);
   });
 
   test("skipped rows do not count toward the progress total", async () => {

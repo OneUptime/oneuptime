@@ -70,6 +70,7 @@ const EXAMPLE_CSV: string = [
   '"Franchise East",Franchisee,"East Region",,,',
   '"Springfield Market",Market,"Franchise East",,,',
   '"Unit 1042","Unit","Springfield Market","742 Evergreen Terrace, Springfield, IL",39.7817,-89.6501',
+  '"Warehouse 7",Other,"East Region",,,',
 ].join("\n");
 
 export interface ComponentProps {
@@ -124,6 +125,7 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
             select: {
               _id: true,
               name: true,
+              isUnitLevel: true,
               parentNetworkSiteTypeId: true,
             },
             sort: {
@@ -152,6 +154,7 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
               name: siteType.name!,
               parentNetworkSiteTypeId:
                 siteType.parentNetworkSiteTypeId?.toString() || null,
+              isUnitLevel: siteType.isUnitLevel === true,
             };
           }),
       );
@@ -319,6 +322,7 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
         rows: parseResult.rows,
         existingSiteIdByName: existingSiteIdByName,
         existingSiteTypeIdByName: existingSiteTypeIdByName,
+        siteTypes: siteTypes,
         createSite: createSite,
         onProgress: (progress: SiteImportProgress): void => {
           setRowResults(progress.results);
@@ -402,10 +406,12 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
         <p className="text-sm text-gray-500">
           Columns: {SITE_CSV_COLUMNS.join(", ")}. siteType must be one of this
           project&apos;s configured site types
-          {siteTypeNames ? ` (${siteTypeNames})` : ""}. Rows whose parentName is
-          empty or already exists import first, then their children — parents
-          and children can live in the same file. Rows with an unresolvable
-          parent are skipped and reported.
+          {siteTypeNames ? ` (${siteTypeNames})` : ""}. parentName is optional
+          for every type: leave it empty for a top-level site, or name any site
+          that is not below this one in your site type hierarchy. Rows whose
+          parentName is empty or already exists import first, then their
+          children — parents and children can live in the same file. Rows with
+          an unresolvable parent are skipped and reported.
         </p>
 
         <TextArea

@@ -207,3 +207,177 @@ describe("NetworkSiteTypeHierarchyUtil", () => {
     ).toBe(3);
   });
 });
+
+/*
+ * The site PLACEMENT rule, as opposed to the catalog's own shape rule. A site
+ * may sit under any site whose type the hierarchy does not place below its
+ * own; requiring an exact configured-parent match is what made real
+ * hierarchies unbuildable in GitHub issue #3744.
+ */
+describe("NetworkSiteTypeHierarchyUtil site placement rule", () => {
+  /*
+   * Account › Region › Market › Unit (unit level), plus an unrelated root
+   * "Other" — the catch-all the reporting project was trying to nest under.
+   */
+  function catalog(): Array<NetworkSiteType> {
+    return [
+      makeType({ index: 1, name: "Account", order: 1 }),
+      makeType({ index: 2, name: "Region", order: 2, parentIndex: 1 }),
+      makeType({ index: 3, name: "Market", order: 3, parentIndex: 2 }),
+      makeType({
+        index: 4,
+        name: "Unit",
+        order: 4,
+        parentIndex: 3,
+        isUnitLevel: true,
+      }),
+      makeType({ index: 5, name: "Other", order: 5 }),
+    ];
+  }
+
+  function allowed(childIndex: number, parentIndex: number | null): boolean {
+    return NetworkSiteTypeHierarchyUtil.isTypeAllowedAsSiteParentOfType({
+      childNetworkSiteTypeId: typeId(childIndex).toString(),
+      parentNetworkSiteTypeId:
+        parentIndex === null ? null : typeId(parentIndex).toString(),
+      networkSiteTypes: catalog(),
+    });
+  }
+
+  it("allows the configured parent type", () => {
+    expect(allowed(3, 2)).toBe(true);
+  });
+
+  it("allows an unrelated type on either side", () => {
+    expect(allowed(3, 5)).toBe(true);
+    expect(allowed(5, 3)).toBe(true);
+  });
+
+  it("allows a skipped level", () => {
+    expect(allowed(4, 1)).toBe(true);
+  });
+
+  it("allows the same type on both sides", () => {
+    expect(allowed(5, 5)).toBe(true);
+    expect(allowed(2, 2)).toBe(true);
+  });
+
+  it("allows a parent with no type at all", () => {
+    expect(allowed(3, null)).toBe(true);
+  });
+
+  it("allows a child with no type", () => {
+    expect(
+      NetworkSiteTypeHierarchyUtil.isTypeAllowedAsSiteParentOfType({
+        childNetworkSiteTypeId: null,
+        parentNetworkSiteTypeId: typeId(3).toString(),
+        networkSiteTypes: catalog(),
+      }),
+    ).toBe(true);
+  });
+
+  it("refuses a parent whose type is a direct child of the child's type", () => {
+    expect(allowed(2, 3)).toBe(false);
+  });
+
+  it("refuses a parent whose type is a deeper descendant", () => {
+    expect(allowed(1, 3)).toBe(false);
+  });
+
+  it("refuses a unit-level parent whatever the child type", () => {
+    expect(allowed(5, 4)).toBe(false);
+    expect(allowed(1, 4)).toBe(false);
+    expect(allowed(4, 4)).toBe(false);
+  });
+
+  it("is case-insensitive about ids", () => {
+    expect(
+      NetworkSiteTypeHierarchyUtil.isTypeAllowedAsSiteParentOfType({
+        childNetworkSiteTypeId: typeId(2).toString().toUpperCase(),
+        parentNetworkSiteTypeId: typeId(3).toString().toUpperCase(),
+        networkSiteTypes: catalog(),
+      }),
+    ).toBe(false);
+  });
+
+  it("treats a type whose parent link names nothing as a root", () => {
+    const orphan: NetworkSiteType = makeType({
+      index: 9,
+      name: "Orphan",
+      parentIndex: 99,
+    });
+
+    expect(
+      NetworkSiteTypeHierarchyUtil.isTypeAllowedAsSiteParentOfType({
+        childNetworkSiteTypeId: typeId(1).toString(),
+        parentNetworkSiteTypeId: typeId(9).toString(),
+        networkSiteTypes: [...catalog(), orphan],
+      }),
+    ).toBe(true);
+  });
+
+  it("terminates on a cyclic catalog instead of looping forever", () => {
+    const cyclic: Array<NetworkSiteType> = [
+      makeType({ index: 1, name: "A", parentIndex: 2 }),
+      makeType({ index: 2, name: "B", parentIndex: 1 }),
+      makeType({ index: 3, name: "C" }),
+    ];
+
+    expect(
+      NetworkSiteTypeHierarchyUtil.isTypeAllowedAsSiteParentOfType({
+        childNetworkSiteTypeId: typeId(3).toString(),
+        parentNetworkSiteTypeId: typeId(1).toString(),
+        networkSiteTypes: cyclic,
+      }),
+    ).toBe(true);
+
+    // The cycle still answers its own membership question correctly.
+    expect(
+      NetworkSiteTypeHierarchyUtil.isTypeAllowedAsSiteParentOfType({
+        childNetworkSiteTypeId: typeId(2).toString(),
+        parentNetworkSiteTypeId: typeId(1).toString(),
+        networkSiteTypes: cyclic,
+      }),
+    ).toBe(false);
+  });
+
+  it("lists the types a site may be placed under", () => {
+    expect(
+      NetworkSiteTypeHierarchyUtil.getValidSiteParentTypes({
+        networkSiteTypeId: typeId(2).toString(),
+        networkSiteTypes: catalog(),
+      }).map((networkSiteType: NetworkSiteType) => {
+        return networkSiteType.name;
+      }),
+    ).toEqual(["Account", "Region", "Other"]);
+  });
+
+  it("lists the types a new child site may take, mirroring the parent list", () => {
+    expect(
+      NetworkSiteTypeHierarchyUtil.getValidSiteChildTypes({
+        networkSiteTypeId: typeId(2).toString(),
+        networkSiteTypes: catalog(),
+      }).map((networkSiteType: NetworkSiteType) => {
+        return networkSiteType.name;
+      }),
+    ).toEqual(["Region", "Market", "Unit", "Other"]);
+  });
+
+  it("offers no child type at all under a unit-level site", () => {
+    expect(
+      NetworkSiteTypeHierarchyUtil.getValidSiteChildTypes({
+        networkSiteTypeId: typeId(4).toString(),
+        networkSiteTypes: catalog(),
+      }),
+    ).toEqual([]);
+  });
+
+  it("offers every type under a site that has no type", () => {
+    expect(
+      NetworkSiteTypeHierarchyUtil.getValidSiteChildTypes({
+        networkSiteTypeId: null,
+        networkSiteTypes: catalog(),
+      }),
+    ).toHaveLength(5);
+  });
+});
