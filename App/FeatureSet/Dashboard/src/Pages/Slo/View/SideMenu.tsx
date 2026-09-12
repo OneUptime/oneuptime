@@ -75,17 +75,7 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Manage">
-        <SideMenuItem
-          link={{
-            title: "Audit Logs",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SLO_VIEW_AUDIT_LOGS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.List}
-        />
+      <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
             title: "Owners",
@@ -95,6 +85,16 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Team}
+        />
+        <SideMenuItem
+          link={{
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SLO_VIEW_AUDIT_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
         />
         <SideMenuItem
           link={{
