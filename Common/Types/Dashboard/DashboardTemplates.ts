@@ -14,6 +14,10 @@ import MonitorMetricType from "../Monitor/MonitorMetricType";
 import MonitorType from "../Monitor/MonitorType";
 import MetricDashboardMetricType from "../Metrics/MetricDashboardMetricType";
 import { DashboardValueTrendDirection } from "./DashboardComponents/DashboardValueComponent";
+import {
+  SloWidgetDisplayType,
+  SloWidgetMetric,
+} from "./DashboardComponents/DashboardSloComponent";
 
 /*
  * Trace / Exception / Profiles entries are intentionally not in this
@@ -42,6 +46,7 @@ export enum DashboardTemplateType {
   Metrics = "Metrics",
   Rum = "Rum",
   Network = "Network",
+  Slo = "Slo",
 }
 
 /*
@@ -102,6 +107,14 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     description:
       "Core Web Vitals gauges and trends (LCP, INP, CLS, FCP, TTFB), page-load volume and duration, browser errors, and breakdowns by application, route and platform.",
     icon: IconProp.Globe,
+    category: DashboardTemplateCategory.Monitoring,
+  },
+  {
+    type: DashboardTemplateType.Slo,
+    name: "SLO Dashboard",
+    description:
+      "SLI, error budget remaining and burn rate for one objective as tiles and trends, with the monitors, incidents and alerts that spend the budget.",
+    icon: IconProp.Percent,
     category: DashboardTemplateCategory.Monitoring,
   },
   {
@@ -900,6 +913,100 @@ function createNetworkMapComponent(data: {
       viewMode: "map",
       showLabels: data.showLabels ?? true,
       statusFilter: data.statusFilter,
+    },
+  };
+}
+
+/*
+ * An SLO widget names exactly ONE ServiceLevelObjective, by id. A template
+ * cannot know which of a project's SLOs a reader means, so every widget the
+ * SLO template ships leaves `serviceLevelObjectiveId` unset and the renderer
+ * shows its "Click to select an SLO" setup state until the reader picks one
+ * (DashboardSloComponent).
+ *
+ * `widgetTitle` is therefore always set here. Left unset, the renderer titles
+ * a configured widget "<SLO name> · <metric>", which is nicer once an SLO is
+ * chosen but leaves all six unconfigured widgets reading "SLO Widget" in the
+ * template a reader has just created. A self-describing template wins: the
+ * reader can see which tile is the burn rate before anything is configured,
+ * and can rename any of them afterwards.
+ */
+function createSloComponent(data: {
+  title: string;
+  sloMetric: SloWidgetMetric;
+  displayType: SloWidgetDisplayType;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.Slo,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    // Same floor the widget's own default declares (DashboardSloComponentUtil).
+    minHeightInDashboardUnits: 2,
+    minWidthInDashboardUnits: 2,
+    arguments: {
+      widgetTitle: data.title,
+      sloMetric: data.sloMetric,
+      displayType: data.displayType,
+    },
+  };
+}
+
+function createIncidentListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.IncidentList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 6,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 25,
+      viewMode: "list",
+    },
+  };
+}
+
+function createAlertListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.AlertList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 6,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 25,
+      viewMode: "list",
     },
   };
 }
@@ -2839,6 +2946,311 @@ function createRumDashboardConfig(): DashboardViewConfig {
   };
 }
 
+function createSloDashboardConfig(): DashboardViewConfig {
+  /*
+   * What this template can and cannot query, which is what its whole shape
+   * follows from:
+   *
+   * - The three SLO numbers (SLI, error budget remaining, burn rate) live in
+   *   Postgres (the columns the evaluation worker maintains) and in the
+   *   SloHistory ClickHouse table. Neither is in the metric store, so a
+   *   Chart / Value / Gauge widget over a metric NAME can never render them.
+   *   The dedicated Slo widget is the only thing that reads them, and it
+   *   names exactly one SLO by id, which is why the six widgets below ship
+   *   unconfigured and the first text row says so.
+   *
+   * - Dashboard variables do not reach the Slo widget at all: it resolves one
+   *   SLO from its stored id and has nothing to interpolate. The Monitor
+   *   variable below therefore scopes only the metric widgets in the second
+   *   half of the dashboard.
+   *
+   * - Those metric widgets query `oneuptime.monitor.online` and
+   *   `oneuptime.monitor.response.time`, which MonitorMetricUtil emits for
+   *   EVERY probeable monitor in the project. Unscoped they describe the
+   *   project, not the objective. That is exactly what the Monitor variable
+   *   is for, and it binds to the bare `monitorName` attribute key those
+   *   series carry (no `resource.` prefix).
+   *
+   * - Incident and alert METRICS are deliberately NOT on this dashboard even
+   *   though an error budget is spent by incidents, because neither family
+   *   survives the Monitor variable. IncidentService stamps its metrics with
+   *   `monitorNames` (plural, comma-joined) rather than `monitorName`, so
+   *   picking a monitor would silently empty every incident tile while the
+   *   uptime tiles beside them stayed populated. AlertService does write the
+   *   singular key — but a burn-rate alert is declared by EvaluateSlos with
+   *   no monitor attached at all (attaching one would repair the SLO's own
+   *   uptime on resolve), so it carries no `monitorName` and a scoped alert
+   *   tile would hide precisely the alerts this dashboard exists for. The
+   *   incident and alert LISTS below read Postgres and ignore telemetry
+   *   variables entirely, so they stay correct under every selection.
+   *
+   * - Monitor uptime is a PROXY, not the SLI. An availability SLI is
+   *   computed from MonitorStatusTimeline downtime intervals (honouring
+   *   maintenance windows and the SLO's own downtime statuses); the uptime
+   *   tile is the probe's raw 0/1 series averaged over the window. They will
+   *   disagree, which is why the tile is labelled "Monitor Uptime" rather
+   *   than anything that reads as a second opinion on the SLI.
+   */
+  const components: Array<DashboardBaseComponent> = [
+    // Row 0: Title
+    createTextComponent({
+      text: "SLO Dashboard",
+      top: 0,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Row 1: the one instruction a reader needs on a freshly created SLO
+     * dashboard. No other template carries a guidance row, and none of them
+     * has to: their widgets query immediately. Every Slo widget here is
+     * inert until somebody picks an objective, so saying it once beats six
+     * identical "Click to select an SLO" placeholders explaining themselves.
+     */
+    createTextComponent({
+      text: "Pick an objective on each SLO widget below. Use the Monitor variable to scope the uptime and response time widgets to the monitors behind it.",
+      top: 1,
+      left: 0,
+      width: 12,
+      height: 1,
+    }),
+
+    // Row 2: Section header
+    createTextComponent({
+      text: "Objective Health",
+      top: 2,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Rows 3-5: the three numbers an SLO review opens with, in the order
+     * they are read — where the service is (SLI), how much room is left
+     * (error budget), and how fast the room is disappearing (burn rate).
+     * Each tile carries its own status pill and target subline.
+     */
+    createSloComponent({
+      title: "SLI",
+      sloMetric: SloWidgetMetric.Sli,
+      displayType: SloWidgetDisplayType.Tile,
+      top: 3,
+      left: 0,
+      width: 4,
+      height: 3,
+    }),
+    createSloComponent({
+      title: "Error Budget Remaining",
+      sloMetric: SloWidgetMetric.ErrorBudgetRemaining,
+      displayType: SloWidgetDisplayType.Tile,
+      top: 3,
+      left: 4,
+      width: 4,
+      height: 3,
+    }),
+    createSloComponent({
+      title: "Burn Rate",
+      sloMetric: SloWidgetMetric.BurnRate,
+      displayType: SloWidgetDisplayType.Tile,
+      top: 3,
+      left: 8,
+      width: 4,
+      height: 3,
+    }),
+
+    // Row 6: Section header
+    createTextComponent({
+      text: "Error Budget Trends",
+      top: 6,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Rows 7-10: the same three numbers over the dashboard's time range,
+     * read from SloHistory. The SLI chart draws the objective's target as a
+     * reference line, so "are we above the line" is answerable at a glance
+     * rather than by comparing two numbers.
+     */
+    createSloComponent({
+      title: "SLI Over Time",
+      sloMetric: SloWidgetMetric.Sli,
+      displayType: SloWidgetDisplayType.Chart,
+      top: 7,
+      left: 0,
+      width: 6,
+      height: 4,
+    }),
+    createSloComponent({
+      title: "Error Budget Remaining Over Time",
+      sloMetric: SloWidgetMetric.ErrorBudgetRemaining,
+      displayType: SloWidgetDisplayType.Chart,
+      top: 7,
+      left: 6,
+      width: 6,
+      height: 4,
+    }),
+
+    /*
+     * Rows 11-14: burn rate beside the incidents. A burn-rate rule declares
+     * an incident when the budget starts going fast, so the spike and the
+     * record of what was done about it belong on one row.
+     */
+    createSloComponent({
+      title: "Burn Rate Over Time",
+      sloMetric: SloWidgetMetric.BurnRate,
+      displayType: SloWidgetDisplayType.Chart,
+      top: 11,
+      left: 0,
+      width: 6,
+      height: 4,
+    }),
+    createIncidentListComponent({
+      title: "Recent Incidents",
+      top: 11,
+      left: 6,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+    }),
+
+    // Row 15: Section header
+    createTextComponent({
+      text: "Monitors Behind the Objective",
+      top: 15,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Row 16: the probe's own view of the monitors the SLO is built on.
+     *
+     * IsOnline is emitted as 0/1 with unit "", so Avg is an uptime RATIO in
+     * [0, 1] and not a percent — labelled "(avg)" for the same reason the
+     * Monitor template labels its tile that way. Response time gets both an
+     * average and a max: an SLO that is burning on latency usually shows it
+     * in the tail long before the mean moves.
+     */
+    createValueComponent({
+      title: "Monitor Uptime (avg)",
+      top: 16,
+      left: 0,
+      width: 4,
+      metricConfig: {
+        metricName: MonitorMetricType.IsOnline,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsBetter,
+    }),
+    createValueComponent({
+      title: "Avg Response Time",
+      top: 16,
+      left: 4,
+      width: 4,
+      metricConfig: {
+        metricName: MonitorMetricType.ResponseTime,
+        aggregationType: MetricsAggregationType.Avg,
+        legendUnit: "ms",
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "Worst Response Time",
+      top: 16,
+      left: 8,
+      width: 4,
+      metricConfig: {
+        metricName: MonitorMetricType.ResponseTime,
+        aggregationType: MetricsAggregationType.Max,
+        legendUnit: "ms",
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+
+    // Rows 17-19: the same two signals over time.
+    createChartComponent({
+      title: "Monitor Uptime Over Time",
+      chartType: DashboardChartType.Area,
+      top: 17,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: MonitorMetricType.IsOnline,
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Uptime Ratio",
+      },
+    }),
+    createChartComponent({
+      title: "Response Time Over Time",
+      chartType: DashboardChartType.Line,
+      top: 17,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: MonitorMetricType.ResponseTime,
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Avg Response Time",
+        legendUnit: "ms",
+      },
+    }),
+
+    /*
+     * Rows 20-23: the monitors themselves, and the alerts a burn-rate rule
+     * raises. Both read Postgres, so neither is affected by the Monitor
+     * variable — scope the monitor list with its own Labels filter if the
+     * project is large.
+     */
+    createMonitorListComponent({
+      title: "Monitors",
+      top: 20,
+      left: 0,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+    }),
+    createAlertListComponent({
+      title: "Recent Alerts",
+      top: 20,
+      left: 6,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+    }),
+  ];
+
+  /*
+   * Monitor metrics are stored with the bare `monitorName` attribute key
+   * rather than the OTel `resource.` prefix — see
+   * MonitorMetricUtil.buildAttributes — so the variable binds to the bare
+   * key. Multi-select because an objective is normally backed by several
+   * monitors, and picking one of them would describe less than the SLO does.
+   */
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "monitor",
+      label: "Monitor",
+      attributeKey: "monitorName",
+      isMultiSelect: true,
+    }),
+  ];
+
+  return {
+    _type: ObjectType.DashboardViewConfig,
+    components,
+    variables,
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 24),
+  };
+}
+
 function createHostDashboardConfig(): DashboardViewConfig {
   /*
    * Layout notes:
@@ -4146,6 +4558,8 @@ export function getTemplateConfig(
       return createMetricsDashboardConfig();
     case DashboardTemplateType.Rum:
       return createRumDashboardConfig();
+    case DashboardTemplateType.Slo:
+      return createSloDashboardConfig();
     case DashboardTemplateType.Network:
       return createNetworkDashboardConfig();
     case DashboardTemplateType.Blank:
