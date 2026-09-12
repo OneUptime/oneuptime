@@ -1,6 +1,7 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
+import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import Text from "../../../Types/Text";
 import Typeof from "../../../Types/Typeof";
@@ -13,6 +14,33 @@ import buildJSONColumnQuery, { JSONColumnQuery } from "./JSONColumnQuery";
 export type { FindOperator };
 
 export default class QueryHelper {
+  /** Read a boolean whose criteria-backed `true` state is encoded as null. */
+  @CaptureSpan()
+  public static booleanForCriteriaBackedRule(
+    criteriaColumnName: string,
+    value: boolean,
+  ): FindWhereProperty<any> {
+    if (criteriaColumnName.match(/^[A-Za-z_][A-Za-z0-9_]*$/) === null) {
+      throw new Error("Criteria column name must be a plain identifier.");
+    }
+
+    const rid: string = Text.generateRandomText(10);
+
+    return Raw(
+      (alias: string) => {
+        const separatorIndex: number = alias.lastIndexOf(".");
+        const qualifier: string =
+          separatorIndex >= 0 ? alias.slice(0, separatorIndex + 1) : "";
+        const criteriaAlias: string = `${qualifier}"${criteriaColumnName}"`;
+
+        return `((CASE WHEN ${criteriaAlias} IS NULL THEN COALESCE(${alias}, false) ELSE ${alias} IS NULL END) = :${rid})`;
+      },
+      {
+        [rid]: value,
+      },
+    );
+  }
+
   @CaptureSpan()
   public static modulo(
     moduloBy: number,
@@ -776,6 +804,66 @@ export default class QueryHelper {
 
       return jsonQuery.toSql(columnReference);
     }, jsonQuery.parameters);
+  }
+
+  /**
+   * Matches a jsonb document whose named array contains an object with a
+   * particular discriminator and whose second named property contains any of
+   * the supplied values.
+   *
+   * For example, rule criteria store filters as:
+   * `{ filters: [{ field: "monitorLabels", value: ["label-id"] }] }`.
+   * Keeping every key, discriminator, and value in the parameter bag makes
+   * this helper safe for other jsonb documents too. The CASE expressions make
+   * malformed legacy json harmless instead of letting
+   * `jsonb_array_elements*` abort the entire query.
+   */
+  @CaptureSpan()
+  public static jsonArrayObjectsContainAnyArrayValue(data: {
+    arrayKey: string;
+    discriminatorKey: string;
+    discriminatorValue: string;
+    valueArrayKey: string;
+    values: Array<string | ObjectID>;
+  }): FindWhereProperty<any> {
+    const values: Array<string> = Array.from(
+      new Set(
+        data.values.map((value: string | ObjectID): string => {
+          return value.toString();
+        }),
+      ),
+    );
+
+    if (values.length === 0) {
+      return Raw(() => {
+        return "TRUE = FALSE";
+      }, {});
+    }
+
+    if (values.length > LIMIT_MAX) {
+      throw new Error(
+        `JSON array value filters cannot bind more than ${LIMIT_MAX} unique values.`,
+      );
+    }
+
+    const arrayKeyParameter: string = Text.generateRandomText(10);
+    const discriminatorKeyParameter: string = Text.generateRandomText(10);
+    const discriminatorValueParameter: string = Text.generateRandomText(10);
+    const valueArrayKeyParameter: string = Text.generateRandomText(10);
+    const valuesParameter: string = Text.generateRandomText(10);
+
+    return Raw(
+      (alias: string): string => {
+        return `(EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(${alias} -> :${arrayKeyParameter}) = 'array' THEN ${alias} -> :${arrayKeyParameter} ELSE '[]'::jsonb END) AS json_array_item(item) WHERE json_array_item.item ->> :${discriminatorKeyParameter} = :${discriminatorValueParameter} AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(CASE WHEN jsonb_typeof(json_array_item.item -> :${valueArrayKeyParameter}) = 'array' THEN json_array_item.item -> :${valueArrayKeyParameter} ELSE '[]'::jsonb END) AS json_array_value(value) WHERE json_array_value.value = ANY(CAST(:${valuesParameter} AS text[])))))`;
+      },
+      {
+        [arrayKeyParameter]: data.arrayKey,
+        [discriminatorKeyParameter]: data.discriminatorKey,
+        [discriminatorValueParameter]: data.discriminatorValue,
+        [valueArrayKeyParameter]: data.valueArrayKey,
+        [valuesParameter]: values,
+      },
+    );
   }
 
   @CaptureSpan()

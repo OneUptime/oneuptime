@@ -80,7 +80,7 @@ const NetworkSiteChildSites: FunctionComponent<
             title: "Site Type",
             stepId: "site-details",
             description:
-              "Only types configured directly beneath this site's type are available.",
+              "Any type except the ones above this site's own type in the hierarchy. A unit-level site holds devices rather than child sites, so it offers none.",
             fieldType: FormFieldSchemaType.Dropdown,
             fetchDropdownOptions: () => {
               return fetchChildNetworkSiteTypeOptions(modelId);

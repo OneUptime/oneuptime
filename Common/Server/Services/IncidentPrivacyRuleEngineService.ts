@@ -6,13 +6,14 @@ import Monitor from "../../Models/DatabaseModels/Monitor";
 import IncidentFeedService from "./IncidentFeedService";
 import IncidentPrivacyRuleService from "./IncidentPrivacyRuleService";
 import IncidentService from "./IncidentService";
-import MonitorService from "./MonitorService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Red500 } from "../../Types/BrandColors";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 
 class IncidentPrivacyRuleEngineServiceClass {
   /**
@@ -45,6 +46,7 @@ class IncidentPrivacyRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             monitors: { _id: true },
             incidentSeverities: { _id: true },
             incidentLabels: { _id: true },
@@ -166,6 +168,64 @@ class IncidentPrivacyRuleEngineServiceClass {
     incident: Incident,
     rule: IncidentPrivacyRule,
   ): Promise<boolean> {
+    const monitorCache: MonitorRuleCriteriaCache =
+      new MonitorRuleCriteriaCache();
+
+    return await RuleCriteriaMatcher.matchesWithLegacy({
+      rule,
+      legacyFields: [
+        "monitors",
+        "incidentSeverities",
+        "incidentLabels",
+        "monitorLabels",
+        "incidentTitlePattern",
+        "incidentDescriptionPattern",
+        "monitorNamePattern",
+        "monitorDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: async (
+        legacyRule: IncidentPrivacyRule,
+      ): Promise<boolean> => {
+        return await this.doesIncidentMatchLegacyRule(
+          incident,
+          legacyRule,
+          monitorCache,
+        );
+      },
+      correlation: {
+        fields: [
+          "monitorLabels",
+          "monitorNamePattern",
+          "monitorDescriptionPattern",
+        ],
+        getCandidates: (): Array<Monitor> => {
+          return incident.monitors || [];
+        },
+        matchesLegacyRuleForCandidate: async (
+          legacyRule: IncidentPrivacyRule,
+          incidentMonitor: Monitor,
+        ): Promise<boolean> => {
+          const correlatedIncident: Incident = Object.assign(
+            new Incident(),
+            incident,
+          );
+          correlatedIncident.monitors = [incidentMonitor];
+          return await this.doesIncidentMatchLegacyRule(
+            correlatedIncident,
+            legacyRule,
+            monitorCache,
+          );
+        },
+      },
+    });
+  }
+
+  private async doesIncidentMatchLegacyRule(
+    incident: Incident,
+    rule: IncidentPrivacyRule,
+    monitorCache: MonitorRuleCriteriaCache,
+  ): Promise<boolean> {
     if (rule.monitors && rule.monitors.length > 0) {
       if (!incident.monitors || incident.monitors.length === 0) {
         return false;
@@ -240,15 +300,9 @@ class IncidentPrivacyRuleEngineServiceClass {
         if (!incidentMonitor.id) {
           continue;
         }
-        const monitor: Monitor | null = await MonitorService.findOneById({
-          id: incidentMonitor.id,
-          select: {
-            name: true,
-            description: true,
-            labels: { _id: true },
-          },
-          props: { isRoot: true },
-        });
+        const monitor: Monitor | null = await monitorCache.getMonitor(
+          incidentMonitor.id,
+        );
         if (!monitor) {
           continue;
         }

@@ -41,6 +41,8 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import ConfigLogLevel from "../Types/ConfigLogLevel";
 import BaseService from "./BaseService";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import RelationOnlyRuleBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/RelationOnlyRuleBaseModel";
+import RuleBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/RuleBaseModel";
 import { WorkflowRoute } from "../../ServiceRoute";
 import Protocol from "../../Types/API/Protocol";
 import Route from "../../Types/API/Route";
@@ -70,6 +72,12 @@ import Text from "../../Types/Text";
 import Typeof from "../../Types/Typeof";
 import API from "../../Utils/API";
 import Slug from "../../Utils/Slug";
+import { getRuleCriteriaValidationError } from "../../Utils/Rules/RuleCriteriaMatcher";
+import RuleCriteria, {
+  RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN,
+  RuleCriteriaOperator,
+} from "../../Types/Rules/RuleCriteria";
+import { getRuleCriteriaFieldsForModel } from "../../Types/Rules/RuleCriteriaFieldRegistry";
 import {
   DataSource,
   Driver,
@@ -86,6 +94,13 @@ import Realtime from "../Utils/Realtime";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import type AuditLogServiceType from "./AuditLogService";
+
+const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
+  new Set<RuleCriteriaOperator>([
+    RuleCriteriaOperator.HasAnyOf,
+    RuleCriteriaOperator.HasAllOf,
+    RuleCriteriaOperator.HasNoneOf,
+  ]);
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   public modelType!: { new (): TBaseModel };
@@ -662,11 +677,286 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return columnType ? getMaxLengthFromTableColumnType(columnType) : undefined;
   }
 
+  private validateRuleCriteriaForModel(criteria: RuleCriteria): void {
+    const allowedFields: ReadonlyArray<string> | undefined =
+      getRuleCriteriaFieldsForModel(this.modelName);
+
+    if (!allowedFields) {
+      throw new BadDataException(
+        `Rule criteria fields are not registered for ${this.modelName}.`,
+      );
+    }
+
+    if (
+      criteria.isEnabled !== undefined &&
+      !(this.model instanceof RelationOnlyRuleBaseModel)
+    ) {
+      throw new BadDataException(
+        `Rule criteria isEnabled is only supported for relation-only rules.`,
+      );
+    }
+
+    for (const filter of criteria.filters) {
+      if (!allowedFields.includes(filter.field)) {
+        throw new BadDataException(
+          `Rule criteria field "${filter.field}" is not supported for ${this.modelName}.`,
+        );
+      }
+
+      const metadata: TableColumnMetadata | undefined =
+        this.model.getTableColumnMetadata(filter.field);
+
+      if (!metadata) {
+        throw new BadDataException(
+          `Rule criteria field "${filter.field}" is not a column on ${this.modelName}.`,
+        );
+      }
+
+      const isRelationField: boolean =
+        metadata.type === TableColumnType.EntityArray;
+      const isRelationOperator: boolean = RULE_CRITERIA_RELATION_OPERATORS.has(
+        filter.operator,
+      );
+
+      if (isRelationOperator && !isRelationField) {
+        throw new BadDataException(
+          `Rule criteria field "${filter.field}" does not support relation operators.`,
+        );
+      }
+
+      if (!isRelationOperator && isRelationField) {
+        throw new BadDataException(
+          `Rule criteria field "${filter.field}" requires a relation operator.`,
+        );
+      }
+
+      if (
+        isRelationOperator &&
+        (filter.value as Array<string>).some((value: string): boolean => {
+          return !ObjectID.isValidUUID(value);
+        })
+      ) {
+        throw new BadDataException(
+          `Rule criteria field "${filter.field}" requires valid resource IDs.`,
+        );
+      }
+    }
+  }
+
+  private getRuleCriteriaEffectiveEnabledQuery(
+    query: Query<TBaseModel>,
+  ): Query<TBaseModel> {
+    if (!(this.model instanceof RelationOnlyRuleBaseModel)) {
+      return query;
+    }
+
+    const requestedEnabledState: unknown = (query as Record<string, unknown>)[
+      "isEnabled"
+    ];
+
+    if (typeof requestedEnabledState !== "boolean") {
+      return query;
+    }
+
+    return {
+      ...query,
+      isEnabled: QueryHelper.booleanForCriteriaBackedRule(
+        "criteria",
+        requestedEnabledState,
+      ),
+    } as Query<TBaseModel>;
+  }
+
+  private addRuleCriteriaEffectiveEnabledToSelect(
+    select: Select<TBaseModel> | null | undefined,
+  ): boolean {
+    if (
+      !(this.model instanceof RelationOnlyRuleBaseModel) ||
+      !select ||
+      !(select as Record<string, unknown>)["isEnabled"]
+    ) {
+      return false;
+    }
+
+    const criteriaWasSelected: boolean = Boolean(
+      (select as Record<string, unknown>)["criteria"],
+    );
+    (select as Record<string, unknown>)["criteria"] = true;
+
+    return !criteriaWasSelected;
+  }
+
+  private applyRuleCriteriaEffectiveEnabledToItem(
+    item: TBaseModel,
+    mapEffectiveEnabled: boolean = true,
+    removeInternallySelectedCriteria: boolean = false,
+  ): void {
+    if (!(this.model instanceof RelationOnlyRuleBaseModel)) {
+      return;
+    }
+
+    const relationOnlyRule: RelationOnlyRuleBaseModel =
+      item as unknown as RelationOnlyRuleBaseModel;
+
+    if (
+      mapEffectiveEnabled &&
+      relationOnlyRule.criteria !== undefined &&
+      relationOnlyRule.criteria !== null
+    ) {
+      (item as Record<string, unknown>)["isEnabled"] =
+        (item as Record<string, unknown>)["isEnabled"] === null;
+    }
+
+    if (removeInternallySelectedCriteria) {
+      delete (item as Record<string, unknown>)["criteria"];
+    }
+  }
+
+  private applyRelationOnlyRuleRolloutState(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+    options: {
+      hasConfiguredCriteria: boolean;
+      isUpdate: boolean;
+    },
+  ): void {
+    if (!(this.model instanceof RelationOnlyRuleBaseModel)) {
+      return;
+    }
+
+    if (!options.hasConfiguredCriteria) {
+      return;
+    }
+
+    const record: Record<string, unknown> = data as Record<string, unknown>;
+    const criteria: RuleCriteria = record["criteria"] as RuleCriteria;
+    const requestedEnabledState: unknown =
+      typeof criteria.isEnabled === "boolean"
+        ? criteria.isEnabled
+        : record["isEnabled"];
+
+    if (options.isUpdate && typeof requestedEnabledState !== "boolean") {
+      throw new BadDataException(
+        "isEnabled must be supplied when updating criteria for this rule.",
+      );
+    }
+
+    const logicalEnabledState: boolean =
+      typeof requestedEnabledState === "boolean" ? requestedEnabledState : true;
+
+    record["criteria"] = {
+      ...criteria,
+      isEnabled: logicalEnabledState,
+    };
+    record["isEnabled"] = logicalEnabledState ? null : false;
+  }
+
+  private applyLegacyRuleCriteriaSafetyShadow(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+  ): void {
+    const allowedFields: ReadonlyArray<string> | undefined =
+      getRuleCriteriaFieldsForModel(this.modelName);
+
+    if (!allowedFields) {
+      return;
+    }
+
+    if (this.model instanceof RelationOnlyRuleBaseModel) {
+      /*
+       * Omit legacy many-to-many fields from the server-side write. An empty
+       * array would clear existing junction rows and route updates through
+       * repository.save(), whose upsert semantics can resurrect a deleted row.
+       * The fail-closed isEnabled shadow keeps these rules hidden from older
+       * workers without touching their legacy relations.
+       */
+      for (const field of allowedFields) {
+        delete (data as Record<string, unknown>)[field];
+      }
+
+      return;
+    }
+
+    /*
+     * Scalar rule families can expose a never-matching regular expression to
+     * older workers. Relation-only criteria rules encode enabled as null and
+     * disabled as false; older workers query true and therefore see neither.
+     */
+    const safetyPatternField: string | undefined = allowedFields.find(
+      (field: string): boolean => {
+        const metadata: TableColumnMetadata | undefined =
+          this.model.getTableColumnMetadata(field);
+
+        return (
+          metadata?.type !== TableColumnType.EntityArray &&
+          field.match(/(pattern|regex)/i) !== null
+        );
+      },
+    );
+
+    if (!safetyPatternField) {
+      return;
+    }
+
+    for (const field of allowedFields) {
+      const metadata: TableColumnMetadata | undefined =
+        this.model.getTableColumnMetadata(field);
+
+      if (!metadata) {
+        continue;
+      }
+
+      if (metadata.type === TableColumnType.EntityArray) {
+        // Preserve existing junction rows and keep this on repository.update().
+        delete (data as Record<string, unknown>)[field];
+      } else {
+        (data as Record<string, unknown>)[field] = null;
+      }
+    }
+
+    (data as Record<string, unknown>)[safetyPatternField] =
+      RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN;
+  }
+
   private async sanitizeCreateOrUpdate(
     data: TBaseModel | PartialEntity<TBaseModel>,
     props: DatabaseCommonInteractionProps,
     isUpdate: boolean = false,
   ): Promise<TBaseModel | PartialEntity<TBaseModel>> {
+    const criteriaValue: unknown = (data as Record<string, unknown>)[
+      "criteria"
+    ];
+    const hasConfiguredCriteria: boolean =
+      criteriaValue !== undefined && criteriaValue !== null;
+
+    if (
+      this.model instanceof RelationOnlyRuleBaseModel &&
+      isUpdate &&
+      criteriaValue === null
+    ) {
+      throw new BadDataException(
+        "Configured criteria cannot be cleared from this rule. Save an empty criteria set to match every resource.",
+      );
+    }
+
+    if (this.model instanceof RuleBaseModel && hasConfiguredCriteria) {
+      const validationError: string | null =
+        getRuleCriteriaValidationError(criteriaValue);
+
+      if (validationError) {
+        throw new BadDataException(validationError);
+      }
+
+      this.validateRuleCriteriaForModel(criteriaValue as RuleCriteria);
+    }
+
+    this.applyRelationOnlyRuleRolloutState(data, {
+      hasConfiguredCriteria: hasConfiguredCriteria,
+      isUpdate: isUpdate,
+    });
+
+    if (this.model instanceof RuleBaseModel && hasConfiguredCriteria) {
+      this.applyLegacyRuleCriteriaSafetyShadow(data);
+    }
+
     data = this.checkMaxLengthOfFields(data as TBaseModel);
 
     const columns: Columns = this.model.getTableColumns();
@@ -1068,6 +1358,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     try {
       createBy.data = await this.getRepository().save(createBy.data);
+      this.applyRuleCriteriaEffectiveEnabledToItem(createBy.data);
 
       // Seed telemetry context with projectId + <model>Id for this create.
       this.setTelemetryContextFromItem(createBy.data);
@@ -1447,6 +1738,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         limit = new PositiveNumber(limit);
       }
 
+      query = this.getRuleCriteriaEffectiveEnabledQuery(query);
+
       const findBy: FindBy<TBaseModel> = {
         query,
         skip,
@@ -1577,7 +1870,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
         await ModelPermission.checkReadQueryPermission(
           this.modelType,
-          aggregateBy.query,
+          this.getRuleCriteriaEffectiveEnabledQuery(aggregateBy.query),
           null,
           aggregateBy.props,
         );
@@ -1833,6 +2126,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         : await this.onBeforeDelete(deleteBy);
       const beforeDeleteBy: DeleteBy<TBaseModel> = onDelete.deleteBy;
 
+      beforeDeleteBy.query = this.getRuleCriteriaEffectiveEnabledQuery(
+        beforeDeleteBy.query,
+      );
+
       beforeDeleteBy.query = await ModelPermission.checkDeleteQueryPermission(
         this.modelType,
         beforeDeleteBy.query,
@@ -1897,6 +2194,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const beforeDeleteBy: DeleteBy<TBaseModel> = onDelete.deleteBy;
 
       const carryForward: any = onDelete.carryForward;
+
+      beforeDeleteBy.query = this.getRuleCriteriaEffectiveEnabledQuery(
+        beforeDeleteBy.query,
+      );
 
       beforeDeleteBy.query = await ModelPermission.checkDeleteQueryPermission(
         this.modelType,
@@ -2139,6 +2440,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         (onBeforeFind.select as any)["_id"] = true;
       }
 
+      onBeforeFind.query = this.getRuleCriteriaEffectiveEnabledQuery(
+        onBeforeFind.query,
+      );
+
       const result: {
         query: Query<TBaseModel>;
         select: Select<TBaseModel> | null;
@@ -2152,6 +2457,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       onBeforeFind.query = result.query;
       onBeforeFind.select = result.select || undefined;
+
+      const mapEffectiveEnabled: boolean = Boolean(
+        (onBeforeFind.select as Record<string, unknown> | undefined)?.[
+          "isEnabled"
+        ],
+      );
+      const removeInternallySelectedCriteria: boolean =
+        this.addRuleCriteriaEffectiveEnabledToSelect(onBeforeFind.select);
 
       const sortColumnsAddedToSelect: Array<string> =
         this.addSortColumnsToSelect(onBeforeFind);
@@ -2214,6 +2527,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       let decryptedItems: Array<TBaseModel> = [];
 
       for (const item of items) {
+        this.applyRuleCriteriaEffectiveEnabledToItem(
+          item,
+          mapEffectiveEnabled,
+          removeInternallySelectedCriteria,
+        );
         decryptedItems.push(await this.decrypt(item));
       }
 
@@ -2493,6 +2811,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const beforeUpdateBy: UpdateBy<TBaseModel> = onUpdate.updateBy;
       const carryForward: any = onUpdate.carryForward;
 
+      beforeUpdateBy.query = this.getRuleCriteriaEffectiveEnabledQuery(
+        beforeUpdateBy.query,
+      );
+
       beforeUpdateBy.query = await ModelPermission.checkUpdateQueryPermissions(
         this.modelType,
         beforeUpdateBy.query,
@@ -2537,6 +2859,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         _id: true,
         ...Object.fromEntries(dataColumns),
       };
+
+      if (
+        this.model instanceof RelationOnlyRuleBaseModel &&
+        typeof (data as Record<string, unknown>)["isEnabled"] === "boolean" &&
+        (data as Record<string, unknown>)["criteria"] === undefined
+      ) {
+        (selectColumns as Record<string, unknown>)["criteria"] = true;
+      }
 
       if (this.getModel().getTenantColumn()) {
         (selectColumns as any)[this.getModel().getTenantColumn()!.toString()] =
@@ -2633,10 +2963,63 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
          * primary key, INSERTs instead of updating, and dies on the first
          * NOT NULL column.
          */
+        const dataForItem: PartialEntity<TBaseModel> = { ...data };
+
+        if (
+          this.model instanceof RelationOnlyRuleBaseModel &&
+          (data as Record<string, unknown>)["criteria"] === undefined &&
+          typeof (data as Record<string, unknown>)["isEnabled"] === "boolean" &&
+          (item as unknown as RelationOnlyRuleBaseModel).criteria !==
+            undefined &&
+          (item as unknown as RelationOnlyRuleBaseModel).criteria !== null
+        ) {
+          const logicalEnabled: boolean = (data as Record<string, unknown>)[
+            "isEnabled"
+          ] as boolean;
+          const existingCriteria: RuleCriteria = (
+            item as unknown as RelationOnlyRuleBaseModel
+          ).criteria!;
+
+          /*
+           * Keep the transport shadow synchronized with the physical state.
+           * Otherwise a later criteria edit that round-trips this JSON without
+           * a top-level isEnabled value can restore a stale enabled state.
+           */
+          (dataForItem as Record<string, unknown>)["criteria"] = {
+            ...existingCriteria,
+            isEnabled: logicalEnabled,
+          };
+          (dataForItem as Record<string, unknown>)["isEnabled"] = logicalEnabled
+            ? null
+            : false;
+        }
+
         const updatedItem: any = {
-          ...data,
+          ...dataForItem,
           _id: item._id!,
         } as any;
+        const updatedItemForComparison: any = { ...updatedItem };
+        const updateCriteriaValue: unknown = (data as Record<string, unknown>)[
+          "criteria"
+        ];
+        const existingCriteriaValue: unknown = (
+          item as unknown as RelationOnlyRuleBaseModel
+        ).criteria;
+        const isCriteriaBackedComparison: boolean =
+          (updateCriteriaValue !== undefined && updateCriteriaValue !== null) ||
+          (updateCriteriaValue === undefined &&
+            existingCriteriaValue !== undefined &&
+            existingCriteriaValue !== null);
+
+        if (
+          this.model instanceof RelationOnlyRuleBaseModel &&
+          typeof (data as Record<string, unknown>)["isEnabled"] === "boolean" &&
+          isCriteriaBackedComparison
+        ) {
+          updatedItemForComparison.isEnabled = (
+            data as Record<string, unknown>
+          )["isEnabled"];
+        }
 
         if (isDebugLogEnabled) {
           logger.debug("Updated Item", {
@@ -2683,7 +3066,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         if (
           this.getModel().enableWorkflowOn?.update &&
           // Only trigger workflow if there's a change in values
-          !this.hasSameValues({ item, updatedItem })
+          !this.hasSameValues({ item, updatedItem: updatedItemForComparison })
         ) {
           let tenantId: ObjectID | undefined = updateBy.props.tenantId;
 
@@ -2708,7 +3091,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
         if (
           this.getModel().enableAuditLogOn?.update &&
-          !this.hasSameValues({ item, updatedItem }) &&
+          !this.hasSameValues({
+            item,
+            updatedItem: updatedItemForComparison,
+          }) &&
           item.id
         ) {
           const auditLogService: typeof AuditLogServiceType =
@@ -2765,13 +3151,30 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const { item, updatedItem } = data;
     const columns: string[] = Object.keys(updatedItem);
     for (const column of columns) {
+      const currentValue: unknown = item.getColumnValue(column);
+      const updatedValue: unknown = updatedItem[column];
+      const isJSONColumn: boolean =
+        item.getTableColumnMetadata(column)?.type === TableColumnType.JSON;
+
+      /*
+       * Plain JSON objects all stringify through Object.toString as
+       * "[object Object]". Compare their contents instead, while ignoring
+       * insignificant object-key ordering.
+       */
       if (
+        isJSONColumn &&
+        !JSONFunctions.deepEqual(currentValue, updatedValue)
+      ) {
+        return false;
+      }
+
+      if (
+        !isJSONColumn &&
         /*
          * `toString()` is necessary so we can compare wrapped values
          * (e.g. `ObjectID`) with raw values (e.g. `string`)
          */
-        item.getColumnValue(column)?.toString() !==
-        updatedItem[column]?.toString()
+        currentValue?.toString() !== updatedValue?.toString()
       ) {
         return false;
       }

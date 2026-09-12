@@ -1,19 +1,3 @@
-/*
- * Common/UI/Config computes every URL constant at import time from
- * `window?.process?.env`, and a node test environment has no `window` BINDING
- * at all — so the optional chain does not save it, it throws a ReferenceError
- * and the whole suite fails to load. The same stub the sibling
- * SloBurnRateRuleOutputs suite carries, for the same reason: this file imports
- * a page, so its module graph reaches Config.
- */
-jest.mock("Common/UI/Config", (): unknown => {
-  (globalThis as unknown as { window: unknown }).window = {
-    process: { env: {} },
-  };
-
-  return jest.requireActual("Common/UI/Config");
-});
-
 import { describe, expect, test } from "@jest/globals";
 import {
   BURN_RATE_RULE_FORM_FIELDS,
@@ -21,7 +5,7 @@ import {
   validateBurnRateOutputs,
   willCreateAlert,
   willDeclareIncident,
-} from "../../FeatureSet/Dashboard/src/Pages/Slo/View/BurnRateRules";
+} from "../../FeatureSet/Dashboard/src/Pages/Slo/Utils/BurnRateRuleForm";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -39,8 +23,11 @@ import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
  * all.
  *
  * None of that is reachable by rendering under the App project's node
- * environment, so the page exports the two arrays and this suite asserts on
- * the real values rather than on source text.
+ * environment, so the two arrays live in the form's React-free half and this
+ * suite asserts on the real values rather than on source text. Importing them
+ * from the page instead would pull the whole component graph — and react,
+ * which App does not have — into App's test program;
+ * FeatureSetImportsStayReactFree.test.ts is the guard for that.
  */
 
 type FieldOf = ModelField<ServiceLevelObjectiveBurnRateRule>;

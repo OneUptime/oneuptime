@@ -153,10 +153,22 @@ describe("Import Sites modal disarms a stale parse", () => {
     expect(source).toContain('"Unit 1042","Unit","Springfield Market"');
   });
 
-  test("loads type metadata for existing-parent compatibility preflight", () => {
+  /*
+   * The example has to show the thing the importer was refusing in GitHub
+   * issue #3744 — a site hanging off a branch its type is not configured
+   * under — or it teaches the rule that caused the bug.
+   */
+  test("the bundled example also shows a cross-branch placement", () => {
+    expect(source).toContain('"Warehouse 7",Other,"East Region"');
+  });
+
+  test("loads the whole type catalog the placement rule needs", () => {
     expect(source).toContain("parentNetworkSiteTypeId: true");
     expect(source).toContain("networkSiteTypeId: true");
+    expect(source).toContain("isUnitLevel: true");
     expect(source).toContain("existingSiteTypeIdByName");
+    // The planner cannot answer an ancestry question from one type at a time.
+    expect(source).toContain("siteTypes: siteTypes");
   });
 
   test("loads every page of site types and existing parent sites", () => {

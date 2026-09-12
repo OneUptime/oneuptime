@@ -14,6 +14,7 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class VMwareVCenterOwnerRuleEngineServiceClass {
@@ -42,6 +43,7 @@ class VMwareVCenterOwnerRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             notifyOwners: true,
             vmwareVCenterLabels: { _id: true },
             vmwareVCenterNamePattern: true,
@@ -183,6 +185,29 @@ class VMwareVCenterOwnerRuleEngineServiceClass {
   }
 
   private doesVMwareVCenterMatchRule(
+    vmwareVCenter: VMwareVCenter,
+    rule: VMwareVCenterOwnerRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: [
+        "vmwareVCenterLabels",
+        "vmwareVCenterNamePattern",
+        "vmwareVCenterDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (
+        vmwareVCenterRule: VMwareVCenterOwnerRule,
+      ): boolean => {
+        return this.doesVMwareVCenterMatchRuleLegacy(
+          vmwareVCenter,
+          vmwareVCenterRule,
+        );
+      },
+    });
+  }
+
+  private doesVMwareVCenterMatchRuleLegacy(
     vmwareVCenter: VMwareVCenter,
     rule: VMwareVCenterOwnerRule,
   ): boolean {

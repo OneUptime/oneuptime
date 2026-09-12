@@ -15,6 +15,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 
 class AlertEpisodeLabelRuleEngineServiceClass {
   /**
@@ -40,6 +41,7 @@ class AlertEpisodeLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             alertSeverities: { _id: true },
             episodeLabels: { _id: true },
             episodeTitlePattern: true,
@@ -222,6 +224,25 @@ class AlertEpisodeLabelRuleEngineServiceClass {
   }
 
   private doesEpisodeMatchRule(
+    episode: AlertEpisode,
+    rule: AlertEpisodeLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "alertSeverities",
+        "episodeLabels",
+        "episodeTitlePattern",
+        "episodeDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: AlertEpisodeLabelRule): boolean => {
+        return this.doesEpisodeMatchLegacyRule(episode, legacyRule);
+      },
+    });
+  }
+
+  private doesEpisodeMatchLegacyRule(
     episode: AlertEpisode,
     rule: AlertEpisodeLabelRule,
   ): boolean {

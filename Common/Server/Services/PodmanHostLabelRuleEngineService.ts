@@ -10,6 +10,7 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class PodmanHostLabelRuleEngineServiceClass {
@@ -35,6 +36,7 @@ class PodmanHostLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             podmanHostLabels: { _id: true },
             podmanHostNamePattern: true,
             podmanHostDescriptionPattern: true,
@@ -168,6 +170,24 @@ class PodmanHostLabelRuleEngineServiceClass {
   }
 
   private doesPodmanHostMatchRule(
+    podmanHost: PodmanHost,
+    rule: PodmanHostLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: [
+        "podmanHostLabels",
+        "podmanHostNamePattern",
+        "podmanHostDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (podmanHostRule: PodmanHostLabelRule): boolean => {
+        return this.doesPodmanHostMatchRuleLegacy(podmanHost, podmanHostRule);
+      },
+    });
+  }
+
+  private doesPodmanHostMatchRuleLegacy(
     podmanHost: PodmanHost,
     rule: PodmanHostLabelRule,
   ): boolean {

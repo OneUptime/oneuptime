@@ -10,6 +10,7 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class ProxmoxClusterLabelRuleEngineServiceClass {
@@ -37,6 +38,7 @@ class ProxmoxClusterLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             proxmoxClusterLabels: { _id: true },
             proxmoxClusterNamePattern: true,
             proxmoxClusterDescriptionPattern: true,
@@ -171,6 +173,29 @@ class ProxmoxClusterLabelRuleEngineServiceClass {
   }
 
   private doesProxmoxClusterMatchRule(
+    proxmoxCluster: ProxmoxCluster,
+    rule: ProxmoxClusterLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule: rule,
+      legacyFields: [
+        "proxmoxClusterLabels",
+        "proxmoxClusterNamePattern",
+        "proxmoxClusterDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (
+        proxmoxClusterRule: ProxmoxClusterLabelRule,
+      ): boolean => {
+        return this.doesProxmoxClusterMatchRuleLegacy(
+          proxmoxCluster,
+          proxmoxClusterRule,
+        );
+      },
+    });
+  }
+
+  private doesProxmoxClusterMatchRuleLegacy(
     proxmoxCluster: ProxmoxCluster,
     rule: ProxmoxClusterLabelRule,
   ): boolean {

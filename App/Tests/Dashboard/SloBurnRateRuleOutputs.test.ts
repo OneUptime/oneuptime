@@ -1,16 +1,14 @@
 /*
  * Common/UI/Config computes every URL constant at import time from
  * `window?.process?.env`, and a node test environment has no `window` BINDING
- * at all — so the optional chain does not save it, it throws a ReferenceError
- * and the whole suite fails to load. Every UI module on the page's import
- * graph reaches Config eventually.
+ * at all - so the optional chain does not save it, it throws a ReferenceError
+ * and the whole suite fails to load. The UI modules these validators' types
+ * come from reach Config eventually.
  *
  * Sibling suites stub Config down to the one or two constants they need
- * (ReferenceDataCache.test.ts, NetworkSummaryApi.test.ts). That is not enough
- * here: this file imports a page, not a util, so the graph is wide and any
- * export left out of the stub becomes `undefined` in a module-level `new
- * URL(...)` somewhere. Declaring the binding and then loading the real module
- * keeps every constant real and leaves nothing to keep in step.
+ * (ReferenceDataCache.test.ts, NetworkSummaryApi.test.ts). Declaring the
+ * binding and then loading the real module keeps every constant real and
+ * leaves nothing to keep in step.
  */
 jest.mock("Common/UI/Config", (): unknown => {
   (globalThis as unknown as { window: unknown }).window = {
@@ -28,24 +26,25 @@ import {
   validateBurnRateOutputs,
   validateBurnRateThreshold,
   validateBurnRateWindows,
-} from "../../FeatureSet/Dashboard/src/Pages/Slo/View/BurnRateRules";
+} from "../../FeatureSet/Dashboard/src/Pages/Slo/Utils/BurnRateRuleForm";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
 /*
  * A burn rate rule now chooses its outputs: raise an Alert, declare an
- * Incident, or both — and it must do at least one. BurnRateRules.tsx exports
- * two small pure functions for that choice, plus the two older validators for
- * the threshold and the window pair, and nothing exercised any of them.
+ * Incident, or both — and it must do at least one. Four small pure functions
+ * decide that (and the threshold and window pair), and nothing exercised any
+ * of them.
  *
- * They are pure and side-effect free, so this suite imports the page module
- * directly rather than reading it as text. Nothing here renders: the page's
- * React component is never called, and its imports (ModelTable, ModelAPI,
- * Navigation) only have to LOAD under the App project's node environment, not
- * run. If one of them ever grows a module-level `window` access this file is
- * where it shows up first, and the fix is a jest.mock of that module — not a
- * copy of the validators moved somewhere easier to import.
+ * They are imported from Pages/Slo/Utils/BurnRateRuleForm, the React-free
+ * sibling BurnRateRules.tsx re-exports. Importing the PAGE instead is what
+ * this suite did first, and it took out App Test and Compile on master: App
+ * has no react by design, so jest cannot resolve it and tsc pulls the whole
+ * component graph into App's program through this file.
+ * FeatureSetImportsStayReactFree is the guard that names that hop, and the
+ * fix it prescribes - move the pure half into a React-free sibling and
+ * re-export it - is the one applied here.
  */
 
 const NO_OUTPUT_ERROR: string =

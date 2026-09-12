@@ -34,7 +34,15 @@ import { TableColumnMetadata } from "../Types/Database/TableColumn";
 import TableColumnType from "../Types/Database/TableColumnType";
 import BadDataException from "../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../Types/JSON";
+import RuleCriteria, {
+  RuleCriteriaFilter,
+  RuleCriteriaOperator,
+} from "../Types/Rules/RuleCriteria";
 import ModelImportExport from "./ModelImportExport";
+import {
+  getRuleCriteriaValidationError,
+  isValidRuleCriteria,
+} from "./Rules/RuleCriteriaMatcher";
 import RulePatternMatchUtil from "./Rules/RulePatternMatchUtil";
 
 export const LABEL_RULE_EXPORT_FILE_TYPE: string = "oneuptime-label-rules";
@@ -76,6 +84,11 @@ export interface ParsedLabelRuleImport {
   mappings: Array<string>;
   items: Array<{ json: JSONObject; portableJson: JSONObject }>;
 }
+
+export type LabelRuleCriteriaRelationNames = Map<
+  DatabaseBaseModelType,
+  Map<string, string>
+>;
 
 export default class LabelRuleImportExport {
   public static isLabelRuleModel(modelType: DatabaseBaseModelType): boolean {
@@ -126,6 +139,7 @@ export default class LabelRuleImportExport {
     modelType: DatabaseBaseModelType;
     items: Array<BaseModel>;
     exportedAt?: Date | undefined;
+    criteriaRelationNames?: LabelRuleCriteriaRelationNames | undefined;
   }): JSONObject {
     const model: BaseModel = new data.modelType();
     const columns: Array<string> = this.getColumns(data.modelType);
@@ -136,7 +150,16 @@ export default class LabelRuleImportExport {
           const metadata: TableColumnMetadata =
             model.getTableColumnMetadata(column)!;
           const value: unknown = item.getValue(column);
-          if (metadata.type === TableColumnType.EntityArray) {
+          if (column === "criteria" && value !== undefined && value !== null) {
+            json[column] = this.toPortableCriteria({
+              modelType: data.modelType,
+              model,
+              item,
+              criteria: value,
+              criteriaRelationNames: data.criteriaRelationNames,
+              ruleIndex: index,
+            }) as unknown as JSONObject;
+          } else if (metadata.type === TableColumnType.EntityArray) {
             if (!Array.isArray(value)) {
               throw new BadDataException(
                 `Rule ${index + 1}: ${metadata.title || column} could not be read. Refresh and try exporting again.`,
@@ -253,6 +276,23 @@ export default class LabelRuleImportExport {
           }
           const metadata: TableColumnMetadata =
             source.getTableColumnMetadata(column)!;
+          if (column === "criteria") {
+            if (input[column] === null || input[column] === undefined) {
+              portableJson[column] = input[column];
+              continue;
+            }
+            const mappedCriteria: RuleCriteria = this.mapPortableCriteria({
+              criteria: input[column],
+              sourceType,
+              source,
+              destination,
+              destinationColumns,
+              mappings,
+            });
+            portableJson[column] = input[column];
+            json[column] = mappedCriteria as unknown as JSONObject;
+            continue;
+          }
           this.validateValue(
             column,
             input[column],
@@ -358,6 +398,258 @@ export default class LabelRuleImportExport {
     };
   }
 
+  private static toPortableCriteria(data: {
+    modelType: DatabaseBaseModelType;
+    model: BaseModel;
+    item: BaseModel;
+    criteria: unknown;
+    criteriaRelationNames?: LabelRuleCriteriaRelationNames | undefined;
+    ruleIndex: number;
+  }): RuleCriteria {
+    const validationError: string | null = getRuleCriteriaValidationError(
+      data.criteria,
+    );
+    if (validationError || !isValidRuleCriteria(data.criteria)) {
+      throw new BadDataException(
+        `Rule ${data.ruleIndex + 1}: Match Criteria is invalid. ${validationError || "Check the configured conditions."}`,
+      );
+    }
+
+    const allowedFields: Array<string> = this.getColumns(data.modelType).filter(
+      (column: string): boolean => {
+        return column !== "criteria";
+      },
+    );
+    const itemRelationNames: LabelRuleCriteriaRelationNames =
+      this.getItemRelationNames(data.model, data.item);
+
+    const filters: Array<RuleCriteriaFilter> = data.criteria.filters.map(
+      (filter: RuleCriteriaFilter): RuleCriteriaFilter => {
+        if (!allowedFields.includes(filter.field)) {
+          throw new BadDataException(
+            `Rule ${data.ruleIndex + 1}: Match Criteria contains unsupported field "${filter.field}".`,
+          );
+        }
+
+        const metadata: TableColumnMetadata = data.model.getTableColumnMetadata(
+          filter.field,
+        )!;
+        const relationOperator: boolean = this.isRelationCriteriaOperator(
+          filter.operator,
+        );
+
+        if (metadata.type === TableColumnType.EntityArray) {
+          if (!relationOperator || !metadata.modelType) {
+            throw new BadDataException(
+              `Rule ${data.ruleIndex + 1}: ${metadata.title || filter.field} must use a relation criteria operator.`,
+            );
+          }
+
+          const externalNames: Map<string, string> | undefined =
+            data.criteriaRelationNames?.get(metadata.modelType);
+          const loadedNames: Map<string, string> | undefined =
+            itemRelationNames.get(metadata.modelType);
+          const names: Array<string> = (filter.value as Array<string>).map(
+            (id: string): string => {
+              const name: string | undefined =
+                externalNames?.get(id) || loadedNames?.get(id);
+              if (!name) {
+                throw new BadDataException(
+                  `Rule ${data.ruleIndex + 1}: ${metadata.title || filter.field} contains a resource that could not be read. Refresh and try exporting again.`,
+                );
+              }
+              return name;
+            },
+          );
+          this.validateValue(
+            filter.field,
+            names,
+            metadata,
+            data.model.tableName!,
+          );
+          return { ...filter, value: names };
+        }
+
+        if (relationOperator) {
+          throw new BadDataException(
+            `Rule ${data.ruleIndex + 1}: ${metadata.title || filter.field} does not support a relation criteria operator.`,
+          );
+        }
+
+        return { ...filter };
+      },
+    );
+
+    return { ...data.criteria, filters };
+  }
+
+  private static getItemRelationNames(
+    model: BaseModel,
+    item: BaseModel,
+  ): LabelRuleCriteriaRelationNames {
+    const indexes: LabelRuleCriteriaRelationNames = new Map();
+
+    for (const column of model.getTableColumns().columns) {
+      const metadata: TableColumnMetadata | undefined =
+        model.getTableColumnMetadata(column);
+      if (
+        metadata?.type !== TableColumnType.EntityArray ||
+        !metadata.modelType
+      ) {
+        continue;
+      }
+
+      const relations: unknown = item.getValue(column);
+      if (!Array.isArray(relations)) {
+        continue;
+      }
+
+      const names: Map<string, string> =
+        indexes.get(metadata.modelType) || new Map<string, string>();
+      for (const relation of relations) {
+        const relationObject: Record<string, unknown> = relation as Record<
+          string,
+          unknown
+        >;
+        const idValue: unknown =
+          relation instanceof BaseModel
+            ? relation.id
+            : relationObject["_id"] || relationObject["id"];
+        const nameValue: unknown =
+          relation instanceof BaseModel
+            ? relation.getValue("name")
+            : relationObject["name"];
+        const id: string = idValue?.toString() || "";
+        if (id && typeof nameValue === "string" && nameValue.trim()) {
+          names.set(id, nameValue);
+        }
+      }
+      indexes.set(metadata.modelType, names);
+    }
+
+    return indexes;
+  }
+
+  private static mapPortableCriteria(data: {
+    criteria: unknown;
+    sourceType: DatabaseBaseModelType;
+    source: BaseModel;
+    destination: BaseModel;
+    destinationColumns: Array<string>;
+    mappings: Set<string>;
+  }): RuleCriteria {
+    const validationError: string | null = getRuleCriteriaValidationError(
+      data.criteria,
+    );
+    if (validationError || !isValidRuleCriteria(data.criteria)) {
+      throw new BadDataException(
+        `Match Criteria is invalid. ${validationError || "Check the configured conditions."}`,
+      );
+    }
+
+    const sourceColumns: Array<string> = this.getColumns(
+      data.sourceType,
+    ).filter((column: string): boolean => {
+      return column !== "criteria";
+    });
+    const targetColumns: Array<string> = data.destinationColumns.filter(
+      (column: string): boolean => {
+        return column !== "criteria";
+      },
+    );
+
+    const filters: Array<RuleCriteriaFilter> = data.criteria.filters.map(
+      (filter: RuleCriteriaFilter): RuleCriteriaFilter => {
+        if (!sourceColumns.includes(filter.field)) {
+          throw new BadDataException(
+            `Match Criteria contains unknown or protected field "${filter.field}".`,
+          );
+        }
+
+        const sourceMetadata: TableColumnMetadata =
+          data.source.getTableColumnMetadata(filter.field)!;
+        const semanticColumn: string = this.semanticColumn(
+          data.source,
+          filter.field,
+        );
+        const target: string | undefined = targetColumns.find(
+          (candidate: string): boolean => {
+            return (
+              this.semanticColumn(data.destination, candidate) ===
+              semanticColumn
+            );
+          },
+        );
+        if (!target) {
+          throw new BadDataException(
+            `${sourceMetadata.title || filter.field} is configured in Match Criteria but is not supported by ${data.destination.singularName}. No rules were imported.`,
+          );
+        }
+
+        const targetMetadata: TableColumnMetadata =
+          data.destination.getTableColumnMetadata(target)!;
+        if (sourceMetadata.type !== targetMetadata.type) {
+          throw new BadDataException(
+            `${sourceMetadata.title || filter.field} in Match Criteria is incompatible with ${data.destination.singularName}.`,
+          );
+        }
+
+        const relationOperator: boolean = this.isRelationCriteriaOperator(
+          filter.operator,
+        );
+        if (
+          (sourceMetadata.type === TableColumnType.EntityArray) !==
+          relationOperator
+        ) {
+          throw new BadDataException(
+            `${sourceMetadata.title || filter.field} uses an incompatible Match Criteria operator.`,
+          );
+        }
+
+        this.validateValue(
+          target,
+          filter.value,
+          targetMetadata,
+          data.destination.tableName!,
+          filter.operator === RuleCriteriaOperator.MatchesPattern ||
+            filter.operator === RuleCriteriaOperator.DoesNotMatchPattern,
+        );
+        if (
+          typeof filter.value === "string" &&
+          filter.value.length > 0 &&
+          data.source.tableName !== data.destination.tableName &&
+          (filter.operator === RuleCriteriaOperator.MatchesPattern ||
+            filter.operator === RuleCriteriaOperator.DoesNotMatchPattern)
+        ) {
+          this.validatePatternCompatibility(
+            filter.value,
+            data.source.tableName!,
+            data.destination.tableName!,
+          );
+        }
+
+        if (filter.field !== target) {
+          data.mappings.add(
+            `${sourceMetadata.title || filter.field} → ${targetMetadata.title || target}`,
+          );
+        }
+        return { ...filter, field: target };
+      },
+    );
+
+    return { ...data.criteria, filters };
+  }
+
+  private static isRelationCriteriaOperator(
+    operator: RuleCriteriaOperator,
+  ): boolean {
+    return [
+      RuleCriteriaOperator.HasAnyOf,
+      RuleCriteriaOperator.HasAllOf,
+      RuleCriteriaOperator.HasNoneOf,
+    ].includes(operator);
+  }
+
   private static isConfigured(value: unknown): boolean {
     return (
       value !== undefined &&
@@ -422,6 +714,7 @@ export default class LabelRuleImportExport {
     value: unknown,
     metadata: TableColumnMetadata,
     resourceType: string,
+    validatePattern: boolean = true,
   ): void {
     const title: string = metadata.title || column;
     if ((value === undefined || value === null) && !metadata.required) {
@@ -465,7 +758,7 @@ export default class LabelRuleImportExport {
         `${title} must be at most ${maxLength} characters.`,
       );
     }
-    if (column.endsWith("Pattern") && value) {
+    if (validatePattern && column.endsWith("Pattern") && value) {
       const valid: boolean =
         resourceType === "NetworkDeviceLabelRule"
           ? RulePatternMatchUtil.isSupportedPattern(value)

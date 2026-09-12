@@ -10,6 +10,7 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class DockerSwarmClusterLabelRuleEngineServiceClass {
@@ -37,6 +38,7 @@ class DockerSwarmClusterLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             dockerSwarmClusterLabels: { _id: true },
             dockerSwarmClusterNamePattern: true,
             dockerSwarmClusterDescriptionPattern: true,
@@ -173,6 +175,27 @@ class DockerSwarmClusterLabelRuleEngineServiceClass {
   }
 
   private doesDockerSwarmClusterMatchRule(
+    dockerSwarmCluster: DockerSwarmCluster,
+    rule: DockerSwarmClusterLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "dockerSwarmClusterLabels",
+        "dockerSwarmClusterNamePattern",
+        "dockerSwarmClusterDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: DockerSwarmClusterLabelRule): boolean => {
+        return this.doesDockerSwarmClusterMatchLegacyRule(
+          dockerSwarmCluster,
+          legacyRule,
+        );
+      },
+    });
+  }
+
+  private doesDockerSwarmClusterMatchLegacyRule(
     dockerSwarmCluster: DockerSwarmCluster,
     rule: DockerSwarmClusterLabelRule,
   ): boolean {

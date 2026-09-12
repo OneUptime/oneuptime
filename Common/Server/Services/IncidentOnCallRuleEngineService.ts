@@ -7,7 +7,6 @@ import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import IncidentFeedService from "./IncidentFeedService";
 import IncidentOnCallRuleService from "./IncidentOnCallRuleService";
 import IncidentService from "./IncidentService";
-import MonitorService from "./MonitorService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Indigo500 } from "../../Types/BrandColors";
@@ -18,6 +17,8 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 
 class IncidentOnCallRuleEngineServiceClass {
   /**
@@ -43,6 +44,7 @@ class IncidentOnCallRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             monitors: { _id: true },
             incidentSeverities: { _id: true },
             incidentLabels: { _id: true },
@@ -265,6 +267,64 @@ class IncidentOnCallRuleEngineServiceClass {
     incident: Incident,
     rule: IncidentOnCallRule,
   ): Promise<boolean> {
+    const monitorCache: MonitorRuleCriteriaCache =
+      new MonitorRuleCriteriaCache();
+
+    return await RuleCriteriaMatcher.matchesWithLegacy({
+      rule,
+      legacyFields: [
+        "monitors",
+        "incidentSeverities",
+        "incidentLabels",
+        "monitorLabels",
+        "incidentTitlePattern",
+        "incidentDescriptionPattern",
+        "monitorNamePattern",
+        "monitorDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: async (
+        legacyRule: IncidentOnCallRule,
+      ): Promise<boolean> => {
+        return await this.doesIncidentMatchLegacyRule(
+          incident,
+          legacyRule,
+          monitorCache,
+        );
+      },
+      correlation: {
+        fields: [
+          "monitorLabels",
+          "monitorNamePattern",
+          "monitorDescriptionPattern",
+        ],
+        getCandidates: (): Array<Monitor> => {
+          return incident.monitors || [];
+        },
+        matchesLegacyRuleForCandidate: async (
+          legacyRule: IncidentOnCallRule,
+          incidentMonitor: Monitor,
+        ): Promise<boolean> => {
+          const correlatedIncident: Incident = Object.assign(
+            new Incident(),
+            incident,
+          );
+          correlatedIncident.monitors = [incidentMonitor];
+          return await this.doesIncidentMatchLegacyRule(
+            correlatedIncident,
+            legacyRule,
+            monitorCache,
+          );
+        },
+      },
+    });
+  }
+
+  private async doesIncidentMatchLegacyRule(
+    incident: Incident,
+    rule: IncidentOnCallRule,
+    monitorCache: MonitorRuleCriteriaCache,
+  ): Promise<boolean> {
     // Monitors: incident must come from at least one of the rule's monitors
     if (rule.monitors && rule.monitors.length > 0) {
       if (!incident.monitors || incident.monitors.length === 0) {
@@ -343,15 +403,9 @@ class IncidentOnCallRuleEngineServiceClass {
           continue;
         }
 
-        const monitor: Monitor | null = await MonitorService.findOneById({
-          id: incidentMonitor.id,
-          select: {
-            name: true,
-            description: true,
-            labels: { _id: true },
-          },
-          props: { isRoot: true },
-        });
+        const monitor: Monitor | null = await monitorCache.getMonitor(
+          incidentMonitor.id,
+        );
 
         if (!monitor) {
           continue;

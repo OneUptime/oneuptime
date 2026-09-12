@@ -7,6 +7,7 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class IoTFleetLabelRuleEngineServiceClass {
@@ -32,6 +33,7 @@ class IoTFleetLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             iotFleetLabels: { _id: true },
             iotFleetNamePattern: true,
             iotFleetDescriptionPattern: true,
@@ -139,6 +141,24 @@ class IoTFleetLabelRuleEngineServiceClass {
   }
 
   private doesIoTFleetMatchRule(
+    iotFleet: IoTFleet,
+    rule: IoTFleetLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "iotFleetLabels",
+        "iotFleetNamePattern",
+        "iotFleetDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: IoTFleetLabelRule): boolean => {
+        return this.doesIoTFleetMatchLegacyRule(iotFleet, legacyRule);
+      },
+    });
+  }
+
+  private doesIoTFleetMatchLegacyRule(
     iotFleet: IoTFleet,
     rule: IoTFleetLabelRule,
   ): boolean {

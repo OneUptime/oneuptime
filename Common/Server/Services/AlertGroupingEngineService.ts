@@ -28,6 +28,7 @@ import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpis
 import { Green500 } from "../../Types/BrandColors";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -73,6 +74,7 @@ class AlertGroupingEngineServiceClass {
             _id: true,
             name: true,
             priority: true,
+            criteria: true,
             // Match criteria fields
             monitors: {
               _id: true,
@@ -179,6 +181,31 @@ class AlertGroupingEngineServiceClass {
 
   @CaptureSpan()
   private async doesAlertMatchRule(
+    alert: Alert,
+    rule: AlertGroupingRule,
+  ): Promise<boolean> {
+    return await RuleCriteriaMatcher.matchesWithLegacy({
+      rule,
+      legacyFields: [
+        "monitors",
+        "alertSeverities",
+        "alertLabels",
+        "monitorLabels",
+        "alertTitlePattern",
+        "alertDescriptionPattern",
+        "monitorNamePattern",
+        "monitorDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: async (
+        legacyRule: AlertGroupingRule,
+      ): Promise<boolean> => {
+        return await this.doesAlertMatchLegacyRule(alert, legacyRule);
+      },
+    });
+  }
+
+  private async doesAlertMatchLegacyRule(
     alert: Alert,
     rule: AlertGroupingRule,
   ): Promise<boolean> {

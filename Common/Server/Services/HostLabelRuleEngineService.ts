@@ -10,6 +10,7 @@ import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class HostLabelRuleEngineServiceClass {
@@ -34,6 +35,7 @@ class HostLabelRuleEngineServiceClass {
         select: {
           _id: true,
           name: true,
+          criteria: true,
           hostLabels: { _id: true },
           hostNamePattern: true,
           hostDescriptionPattern: true,
@@ -163,6 +165,17 @@ class HostLabelRuleEngineServiceClass {
   }
 
   private doesHostMatchRule(host: Host, rule: HostLabelRule): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: ["hostLabels", "hostNamePattern", "hostDescriptionPattern"],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: HostLabelRule): boolean => {
+        return this.doesHostMatchLegacyRule(host, legacyRule);
+      },
+    });
+  }
+
+  private doesHostMatchLegacyRule(host: Host, rule: HostLabelRule): boolean {
     if (rule.hostLabels && rule.hostLabels.length > 0) {
       if (!host.labels || host.labels.length === 0) {
         return false;

@@ -1,3 +1,4 @@
+import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddSloBurnRateRuleIncidents1792400000000 } from "./1792400000000-AddSloBurnRateRuleIncidents";
 import { AddUserWebAuthnPurpose1792200000000 } from "./1792200000000-AddUserWebAuthnPurpose";
@@ -1174,4 +1175,5 @@ export default [
   AddUserWebAuthnPurpose1792200000000,
   AddGoogleSecOpsDiagnostics1792300000000,
   AddSloBurnRateRuleIncidents1792400000000,
+  AddConfigurableRuleCriteria1792500000000,
 ];

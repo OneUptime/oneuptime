@@ -97,12 +97,17 @@ const NetworkSiteAssignmentRules: FunctionComponent<
             type: FieldType.Text,
           },
         ]}
+        formSteps={[
+          { title: "Basic Info", id: "basic-info" },
+          { title: "Match Criteria", id: "match-criteria" },
+        ]}
         formFields={[
           {
             field: {
               site: true,
             },
             title: "Site",
+            stepId: "basic-info",
             description: "The site matched devices are assigned to.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
@@ -118,6 +123,7 @@ const NetworkSiteAssignmentRules: FunctionComponent<
               subnetCidr: true,
             },
             title: "Subnet CIDR",
+            stepId: "match-criteria",
             description:
               "Devices and endpoints with an IP in this CIDR match. Set this, a hostname pattern, or both.",
             fieldType: FormFieldSchemaType.Text,
@@ -129,6 +135,7 @@ const NetworkSiteAssignmentRules: FunctionComponent<
               hostnamePattern: true,
             },
             title: "Hostname Pattern",
+            stepId: "match-criteria",
             description:
               "Wildcard pattern ('*' matches any run of characters, case-insensitive). It is matched against the device's hostname, its SNMP system name and its display name — a match on any of them assigns the device. Example: *0664* matches UN0664LANSWI03.",
             fieldType: FormFieldSchemaType.Text,
@@ -140,6 +147,7 @@ const NetworkSiteAssignmentRules: FunctionComponent<
               priority: true,
             },
             title: "Priority",
+            stepId: "basic-info",
             description:
               "Higher priority number wins when several rules match; ties are broken by the older rule.",
             fieldType: FormFieldSchemaType.Number,

@@ -33,7 +33,6 @@ import KubernetesClusterOwnerTeamService from "./KubernetesClusterOwnerTeamServi
 import KubernetesClusterOwnerUserService from "./KubernetesClusterOwnerUserService";
 import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
-import MonitorService from "./MonitorService";
 import PodmanHostOwnerTeamService from "./PodmanHostOwnerTeamService";
 import PodmanHostOwnerUserService from "./PodmanHostOwnerUserService";
 import ServiceOwnerTeamService from "./ServiceOwnerTeamService";
@@ -49,6 +48,8 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 
 class IncidentOwnerRuleEngineServiceClass {
   /**
@@ -73,6 +74,7 @@ class IncidentOwnerRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             notifyOwners: true,
             monitors: { _id: true },
             incidentSeverities: { _id: true },
@@ -707,6 +709,64 @@ class IncidentOwnerRuleEngineServiceClass {
     incident: Incident,
     rule: IncidentOwnerRule,
   ): Promise<boolean> {
+    const monitorCache: MonitorRuleCriteriaCache =
+      new MonitorRuleCriteriaCache();
+
+    return await RuleCriteriaMatcher.matchesWithLegacy({
+      rule,
+      legacyFields: [
+        "monitors",
+        "incidentSeverities",
+        "incidentLabels",
+        "monitorLabels",
+        "incidentTitlePattern",
+        "incidentDescriptionPattern",
+        "monitorNamePattern",
+        "monitorDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: async (
+        legacyRule: IncidentOwnerRule,
+      ): Promise<boolean> => {
+        return await this.doesIncidentMatchLegacyRule(
+          incident,
+          legacyRule,
+          monitorCache,
+        );
+      },
+      correlation: {
+        fields: [
+          "monitorLabels",
+          "monitorNamePattern",
+          "monitorDescriptionPattern",
+        ],
+        getCandidates: (): Array<Monitor> => {
+          return incident.monitors || [];
+        },
+        matchesLegacyRuleForCandidate: async (
+          legacyRule: IncidentOwnerRule,
+          incidentMonitor: Monitor,
+        ): Promise<boolean> => {
+          const correlatedIncident: Incident = Object.assign(
+            new Incident(),
+            incident,
+          );
+          correlatedIncident.monitors = [incidentMonitor];
+          return await this.doesIncidentMatchLegacyRule(
+            correlatedIncident,
+            legacyRule,
+            monitorCache,
+          );
+        },
+      },
+    });
+  }
+
+  private async doesIncidentMatchLegacyRule(
+    incident: Incident,
+    rule: IncidentOwnerRule,
+    monitorCache: MonitorRuleCriteriaCache,
+  ): Promise<boolean> {
     if (rule.monitors && rule.monitors.length > 0) {
       if (!incident.monitors || incident.monitors.length === 0) {
         return false;
@@ -781,15 +841,9 @@ class IncidentOwnerRuleEngineServiceClass {
         if (!incidentMonitor.id) {
           continue;
         }
-        const monitor: Monitor | null = await MonitorService.findOneById({
-          id: incidentMonitor.id,
-          select: {
-            name: true,
-            description: true,
-            labels: { _id: true },
-          },
-          props: { isRoot: true },
-        });
+        const monitor: Monitor | null = await monitorCache.getMonitor(
+          incidentMonitor.id,
+        );
         if (!monitor) {
           continue;
         }

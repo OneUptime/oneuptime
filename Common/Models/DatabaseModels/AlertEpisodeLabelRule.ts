@@ -2,7 +2,7 @@ import AlertSeverity from "./AlertSeverity";
 import Label from "./Label";
 import Project from "./Project";
 import User from "./User";
-import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
+import RuleBaseModel from "./DatabaseBaseModel/RuleBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
@@ -75,7 +75,7 @@ import {
   tableDescription:
     "Configure rules for automatically attaching labels to alert episodes when matching episodes are created",
 })
-export default class AlertEpisodeLabelRule extends BaseModel {
+export default class AlertEpisodeLabelRule extends RuleBaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

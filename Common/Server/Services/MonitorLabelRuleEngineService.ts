@@ -13,6 +13,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
+import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 
 class MonitorLabelRuleEngineServiceClass {
@@ -38,6 +39,7 @@ class MonitorLabelRuleEngineServiceClass {
           select: {
             _id: true,
             name: true,
+            criteria: true,
             monitorLabels: { _id: true },
             monitorNamePattern: true,
             monitorDescriptionPattern: true,
@@ -245,6 +247,24 @@ class MonitorLabelRuleEngineServiceClass {
   }
 
   private doesMonitorMatchRule(
+    monitor: Monitor,
+    rule: MonitorLabelRule,
+  ): boolean {
+    return RuleCriteriaMatcher.matchesWithLegacySync({
+      rule,
+      legacyFields: [
+        "monitorLabels",
+        "monitorNamePattern",
+        "monitorDescriptionPattern",
+      ],
+      emptyResult: true,
+      matchesLegacyRule: (legacyRule: MonitorLabelRule): boolean => {
+        return this.doesMonitorMatchLegacyRule(monitor, legacyRule);
+      },
+    });
+  }
+
+  private doesMonitorMatchLegacyRule(
     monitor: Monitor,
     rule: MonitorLabelRule,
   ): boolean {

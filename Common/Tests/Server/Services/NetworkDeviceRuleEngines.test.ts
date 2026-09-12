@@ -13,6 +13,12 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
+import RuleCriteria, {
+  RULE_CRITERIA_SCHEMA_VERSION,
+  RuleCriteriaFilter,
+  RuleCriteriaOperator,
+} from "../../../Types/Rules/RuleCriteria";
 import { describe, expect, it, afterEach } from "@jest/globals";
 
 /*
@@ -89,6 +95,17 @@ function fakeOwnerRule(data: Record<string, unknown>): NetworkDeviceOwnerRule {
   } as unknown as NetworkDeviceOwnerRule;
 }
 
+function criteria(
+  filterCondition: FilterCondition,
+  filters: Array<RuleCriteriaFilter>,
+): RuleCriteria {
+  return {
+    schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+    filterCondition: filterCondition,
+    filters: filters,
+  };
+}
+
 /*
  * The label engine attaches through the relation query builder rather than a
  * model write, so the assertion surface is the `.add(ids)` call at the end of
@@ -123,7 +140,7 @@ describe("NetworkDeviceLabelRuleEngineService - wildcard patterns", () => {
    * The reported bug, end to end: an enabled rule with the glob the user
    * typed, against the device the dashboard showed them.
    */
-  it("attaches labels for the *0664* pattern from issue #2940", async () => {
+  it("falls back to legacy label criteria when criteria is absent", async () => {
     jest
       .spyOn(NetworkDeviceLabelRuleService, "findBy")
       .mockResolvedValue([
@@ -303,8 +320,100 @@ describe("NetworkDeviceLabelRuleEngineService - rule selection and attach", () =
     const query: any = rulesSpy.mock.calls[0]![0].query;
     expect(query.isEnabled).toBe(true);
     expect(query.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(rulesSpy.mock.calls[0]![0].select.criteria).toBe(true);
     // No rules means no reason to re-read the device.
     expect(deviceSpy).not.toHaveBeenCalled();
+  });
+
+  it("matches when any configured criterion matches and ignores stale legacy fields", async () => {
+    jest.spyOn(NetworkDeviceLabelRuleService, "findBy").mockResolvedValue([
+      fakeLabelRule({
+        criteria: criteria(FilterCondition.Any, [
+          {
+            field: "networkDeviceNamePattern",
+            operator: RuleCriteriaOperator.Contains,
+            value: "not-this-device",
+          },
+          {
+            field: "networkDeviceDescriptionPattern",
+            operator: RuleCriteriaOperator.Contains,
+            value: "IOS-XE",
+          },
+        ]),
+        networkDeviceNamePattern: "*stale-and-never-matches*",
+      }),
+    ]);
+    jest.spyOn(NetworkDeviceService, "findOneById").mockResolvedValue(
+      fakeDeviceDetails({
+        description: "Cisco IOS-XE Software",
+        labels: [],
+      }),
+    );
+    const addSpy: jest.Mock = mockLabelAttach();
+
+    await NetworkDeviceLabelRuleEngineService.applyRulesToNetworkDevice(
+      ruleTarget(),
+    );
+
+    expect(addSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("requires all configured criteria when Match All is selected", async () => {
+    jest.spyOn(NetworkDeviceLabelRuleService, "findBy").mockResolvedValue([
+      fakeLabelRule({
+        criteria: criteria(FilterCondition.All, [
+          {
+            field: "networkDeviceNamePattern",
+            operator: RuleCriteriaOperator.Contains,
+            value: "0664",
+          },
+          {
+            field: "networkDeviceDescriptionPattern",
+            operator: RuleCriteriaOperator.EndsWith,
+            value: "Switch",
+          },
+        ]),
+      }),
+    ]);
+    jest.spyOn(NetworkDeviceService, "findOneById").mockResolvedValue(
+      fakeDeviceDetails({
+        description: "Cisco Router",
+        labels: [],
+      }),
+    );
+    const addSpy: jest.Mock = mockLabelAttach();
+
+    await NetworkDeviceLabelRuleEngineService.applyRulesToNetworkDevice(
+      ruleTarget(),
+    );
+
+    expect(addSpy).not.toHaveBeenCalled();
+  });
+
+  it("supports Has All Of for label criteria", async () => {
+    jest.spyOn(NetworkDeviceLabelRuleService, "findBy").mockResolvedValue([
+      fakeLabelRule({
+        criteria: criteria(FilterCondition.All, [
+          {
+            field: "networkDeviceLabels",
+            operator: RuleCriteriaOperator.HasAllOf,
+            value: [PREREQUISITE_LABEL_ID.toString(), LABEL_B_ID.toString()],
+          },
+        ]),
+      }),
+    ]);
+    jest.spyOn(NetworkDeviceService, "findOneById").mockResolvedValue(
+      fakeDeviceDetails({
+        labels: [fakeLabel(PREREQUISITE_LABEL_ID), fakeLabel(LABEL_B_ID)],
+      }),
+    );
+    const addSpy: jest.Mock = mockLabelAttach();
+
+    await NetworkDeviceLabelRuleEngineService.applyRulesToNetworkDevice(
+      ruleTarget(),
+    );
+
+    expect(addSpy).toHaveBeenCalledTimes(1);
   });
 
   it("unions the labels of every matching rule", async () => {
@@ -494,7 +603,7 @@ describe("NetworkDeviceOwnerRuleEngineService - wildcard patterns", () => {
     jest.restoreAllMocks();
   });
 
-  it("adds owners for a *0664* pattern", async () => {
+  it("falls back to legacy owner criteria when criteria is absent", async () => {
     jest
       .spyOn(NetworkDeviceOwnerRuleService, "findBy")
       .mockResolvedValue([
@@ -515,6 +624,74 @@ describe("NetworkDeviceOwnerRuleEngineService - wildcard patterns", () => {
     expect(createUserSpy.mock.calls[0]![0].data.userId.toString()).toBe(
       USER_ID.toString(),
     );
+  });
+
+  it("uses Match Any owner criteria instead of stale legacy fields", async () => {
+    jest.spyOn(NetworkDeviceOwnerRuleService, "findBy").mockResolvedValue([
+      fakeOwnerRule({
+        criteria: criteria(FilterCondition.Any, [
+          {
+            field: "networkDeviceNamePattern",
+            operator: RuleCriteriaOperator.Equals,
+            value: "not-this-device",
+          },
+          {
+            field: "networkDeviceDescriptionPattern",
+            operator: RuleCriteriaOperator.Contains,
+            value: "Catalyst",
+          },
+        ]),
+        networkDeviceNamePattern: "*stale-and-never-matches*",
+      }),
+    ]);
+    jest.spyOn(NetworkDeviceService, "findOneById").mockResolvedValue(
+      fakeDeviceDetails({
+        description: "Cisco Catalyst Switch",
+        labels: [],
+      }),
+    );
+    const createUserSpy: jest.SpyInstance = jest
+      .spyOn(NetworkDeviceOwnerUserService, "create")
+      .mockResolvedValue(undefined as never);
+
+    await NetworkDeviceOwnerRuleEngineService.applyRulesToNetworkDevice(
+      ruleTarget(),
+    );
+
+    expect(createUserSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("supports Match All and Has All Of for owner criteria", async () => {
+    jest.spyOn(NetworkDeviceOwnerRuleService, "findBy").mockResolvedValue([
+      fakeOwnerRule({
+        criteria: criteria(FilterCondition.All, [
+          {
+            field: "networkDeviceNamePattern",
+            operator: RuleCriteriaOperator.Contains,
+            value: "0664",
+          },
+          {
+            field: "networkDeviceLabels",
+            operator: RuleCriteriaOperator.HasAllOf,
+            value: [PREREQUISITE_LABEL_ID.toString(), LABEL_B_ID.toString()],
+          },
+        ]),
+      }),
+    ]);
+    jest.spyOn(NetworkDeviceService, "findOneById").mockResolvedValue(
+      fakeDeviceDetails({
+        labels: [fakeLabel(PREREQUISITE_LABEL_ID), fakeLabel(LABEL_B_ID)],
+      }),
+    );
+    const createUserSpy: jest.SpyInstance = jest
+      .spyOn(NetworkDeviceOwnerUserService, "create")
+      .mockResolvedValue(undefined as never);
+
+    await NetworkDeviceOwnerRuleEngineService.applyRulesToNetworkDevice(
+      ruleTarget(),
+    );
+
+    expect(createUserSpy).toHaveBeenCalledTimes(1);
   });
 
   it("adds owner teams too", async () => {
