@@ -606,6 +606,23 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
+/*
+ * `useRouterTransition: false` is how a caller asks to OBSERVE the Suspense
+ * fallback at all.
+ *
+ * Every react-router v7 router wraps its location update in
+ * React.startTransition unless it is told not to (BrowserRouter and
+ * MemoryRouter both take `useTransitions`). Under a transition React keeps
+ * the previous UI on screen while the new subtree suspends, and it only
+ * shows a fallback for a boundary the navigation itself mounted - so a
+ * PERSISTENT layout's boundary, which is exactly what the wiring cases
+ * below are about, never renders its loader and the assertion times out
+ * against a right pane still showing the page it started on.
+ *
+ * These two branches used to differ by a v7 future flag, which was removed
+ * when it stopped being a flag; the parameter outlived its wiring and both
+ * branches became the same render.
+ */
 function renderApp(path: string, useRouterTransition: boolean = true): void {
   const App: React.FunctionComponent = (
     jest.requireActual(`${dashboardSource}/App`) as {
@@ -613,17 +630,11 @@ function renderApp(path: string, useRouterTransition: boolean = true): void {
     }
   ).default;
 
-  if (!useRouterTransition) {
-    render(
-      <Router.MemoryRouter initialEntries={[path]}>
-        <App />
-      </Router.MemoryRouter>,
-    );
-    return;
-  }
-
   render(
-    <Router.MemoryRouter initialEntries={[path]}>
+    <Router.MemoryRouter
+      initialEntries={[path]}
+      useTransitions={useRouterTransition}
+    >
       <App />
     </Router.MemoryRouter>,
   );
@@ -731,9 +742,9 @@ describe("dashboard secondary page loading", () => {
       pageSuspensionGate = gate;
 
       /*
-       * Dashboard's BrowserRouter does not opt in to the v7 transition flag.
-       * Keep this wiring test production-equivalent so the controlled lazy
-       * child exposes the layout's nearest Suspense fallback.
+       * Transitions off, so the controlled lazy child actually exposes the
+       * layout's nearest Suspense fallback - see renderApp. What is under
+       * test is WHERE that boundary sits, not how React schedules it.
        */
       renderApp(pathFor(routeCase.initialPage), false);
       expect(

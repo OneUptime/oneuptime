@@ -452,9 +452,21 @@ function resetLifecycle(): void {
   }
 }
 
+/*
+ * Transitions off. Every react-router v7 router wraps its location update in
+ * React.startTransition unless told otherwise, and under a transition React
+ * keeps the previous UI on screen rather than showing the fallback of a
+ * boundary that was already mounted - which is precisely the boundary these
+ * cases are about. With transitions on, the suspending outlet never renders
+ * its loader and the "important intermediate frame" below cannot be
+ * observed at all.
+ */
 function renderLayoutCase(layoutCase: LayoutCase, gate: SuspensionGate): void {
   render(
-    <MemoryRouter initialEntries={[layoutCase.initialPath]}>
+    <MemoryRouter
+      initialEntries={[layoutCase.initialPath]}
+      useTransitions={false}
+    >
       <Routes>
         <PageRoute
           path={layoutCase.parentRoute}
