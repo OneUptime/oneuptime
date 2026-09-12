@@ -1,6 +1,8 @@
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
+import Incident from "../../../Models/DatabaseModels/Incident";
+import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "../../../Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
@@ -10,6 +12,8 @@ import User from "../../../Models/DatabaseModels/User";
 import AlertService from "../../../Server/Services/AlertService";
 import AlertSeverityService from "../../../Server/Services/AlertSeverityService";
 import AlertStateTimelineService from "../../../Server/Services/AlertStateTimelineService";
+import IncidentService from "../../../Server/Services/IncidentService";
+import IncidentStateTimelineService from "../../../Server/Services/IncidentStateTimelineService";
 import MonitorStatusService from "../../../Server/Services/MonitorStatusService";
 import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
 import ServiceLevelObjectiveBurnRateRuleService from "../../../Server/Services/ServiceLevelObjectiveBurnRateRuleService";
@@ -23,6 +27,7 @@ import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import OwnerTableRegistry from "../../../Server/Types/Database/Permissions/OwnerTableRegistry";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
+import logger from "../../../Server/Utils/Logger";
 import URL from "../../../Types/API/URL";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -38,9 +43,14 @@ import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
  *   - a brand new SLO must come out of onCreateSuccess already carrying the
  *     two canonical Google-SRE multi-window burn rate rules, with thresholds
  *     scaled to the compliance window (30 days == the textbook 14.4x / 6x),
- *   - disabling or deleting an SLO must resolve the burn-rate alerts it
- *     opened, because the evaluation worker skips SLOs it no longer sees and
- *     would otherwise leave on-call escalations open forever,
+ *   - disabling or deleting an SLO must resolve everything its burn-rate
+ *     rules left open - the Alerts they raised AND the Incidents they
+ *     declared - because the evaluation worker skips SLOs it no longer sees
+ *     and would otherwise leave on-call escalations running forever,
+ *   - and that resolution, while it must attempt every rule, must still
+ *     REACH its caller: the worker's guard path only commits the SLO's new
+ *     status once the resolve succeeded, so a swallowed failure strands the
+ *     records permanently,
  *   - getDueSlos must keep selecting every column the evaluation worker
  *     reads - a dropped column silently produces wrong SLI math.
  */
@@ -58,6 +68,12 @@ const SEVERITY_ID: ObjectID = new ObjectID(
 );
 const RESOLVED_STATE_ID: ObjectID = new ObjectID(
   "66666666-6666-4666-8666-666666666666",
+);
+const RESOLVED_INCIDENT_STATE_ID: ObjectID = new ObjectID(
+  "77777777-7777-4777-8777-777777777777",
+);
+const THIRD_RULE_ID: ObjectID = new ObjectID(
+  "88888888-8888-4888-8888-888888888888",
 );
 
 const TARGET_PERCENTAGE_ERROR_MESSAGE: string =
@@ -166,6 +182,14 @@ function makeAlert(id: ObjectID): Alert {
   alert.id = id;
   alert.projectId = PROJECT_ID;
   return alert;
+}
+
+function makeIncident(id: ObjectID): Incident {
+  const incident: Incident = new Incident();
+  incident._id = id.toString();
+  incident.id = id;
+  incident.projectId = PROJECT_ID;
+  return incident;
 }
 
 function makeUser(id: ObjectID): User {
@@ -984,6 +1008,35 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
     });
   }
 
+  /*
+   * The seeder sets NEITHER output flag, so both rules take the column
+   * defaults - shouldCreateAlert true, shouldCreateIncident false. That
+   * omission is the whole safety property of the incident feature: an existing
+   * install that upgrades keeps seeding alert-only rules, and OneUptime never
+   * starts declaring Incidents on a user's behalf until they turn it on
+   * themselves. Asserting the ABSENCE of the keys (not `false`) is deliberate:
+   * an explicit false here would still be the seeder taking a position on a
+   * column whose default already says it.
+   */
+  it("seeds rules that carry neither output flag, so an upgrade never starts declaring incidents", async () => {
+    await runOnCreateSuccess({
+      windowType: SloWindowType.Rolling,
+      windowDays: 30,
+    });
+
+    const rules: Array<ServiceLevelObjectiveBurnRateRule> = seededRules();
+    expect(rules).toHaveLength(2);
+
+    for (const rule of rules) {
+      expect(rule.shouldCreateIncident).toBeUndefined();
+      expect(rule.shouldCreateAlert).toBeUndefined();
+
+      // And no incident wiring either - severity or on-call policies.
+      expect(rule.incidentSeverityId).toBeUndefined();
+      expect(rule.incidentOnCallDutyPolicies).toBeUndefined();
+    }
+  });
+
   it("keeps every seeded threshold rounded to two decimals", async () => {
     // 0.02 * 24 * 13 = 6.24 and 0.05 * 24 * 13 / 6 = 2.6 in exact arithmetic.
     await runOnCreateSuccess({
@@ -1224,13 +1277,16 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - default alert severity"
 });
 
 describe("ServiceLevelObjectiveService.onUpdateSuccess", () => {
-  let resolveAlertsSpy: jest.SpyInstance;
+  let resolveAlertsAndIncidentsSpy: jest.SpyInstance;
   let updateOneByIdSpy: jest.SpyInstance;
   let findOneByIdSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    resolveAlertsSpy = jest
-      .spyOn(ServiceLevelObjectiveService, "resolveOpenBurnRateAlertsForSlo")
+    resolveAlertsAndIncidentsSpy = jest
+      .spyOn(
+        ServiceLevelObjectiveService,
+        "resolveOpenBurnRateAlertsAndIncidentsForSlo",
+      )
       .mockResolvedValue(undefined);
 
     updateOneByIdSpy = jest
@@ -1246,43 +1302,52 @@ describe("ServiceLevelObjectiveService.onUpdateSuccess", () => {
     jest.restoreAllMocks();
   });
 
-  it("resolves the open burn rate alerts of every SLO that was just disabled", async () => {
+  it("resolves the open burn rate alerts and incidents of every SLO that was just disabled", async () => {
     await callHook("onUpdateSuccess", makeOnUpdate({ isEnabled: false }), [
       SLO_ID,
       OTHER_RULE_ID,
     ]);
 
-    expect(resolveAlertsSpy).toHaveBeenCalledTimes(2);
-    expect(resolveAlertsSpy).toHaveBeenNthCalledWith(1, {
+    expect(resolveAlertsAndIncidentsSpy).toHaveBeenCalledTimes(2);
+    expect(resolveAlertsAndIncidentsSpy).toHaveBeenNthCalledWith(1, {
       sloId: SLO_ID,
       projectId: PROJECT_ID,
     });
-    expect(resolveAlertsSpy).toHaveBeenNthCalledWith(2, {
+    expect(resolveAlertsAndIncidentsSpy).toHaveBeenNthCalledWith(2, {
       sloId: OTHER_RULE_ID,
       projectId: PROJECT_ID,
     });
   });
 
-  it("does not resolve alerts when the SLO is being enabled", async () => {
+  it("does not resolve anything when the SLO is being enabled", async () => {
     await callHook("onUpdateSuccess", makeOnUpdate({ isEnabled: true }), [
       SLO_ID,
     ]);
 
-    expect(resolveAlertsSpy).not.toHaveBeenCalled();
+    expect(resolveAlertsAndIncidentsSpy).not.toHaveBeenCalled();
   });
 
-  it("skips alert resolution for a disabled SLO row it cannot re-read", async () => {
+  it("skips resolution for a disabled SLO row it cannot re-read", async () => {
     findOneByIdSpy.mockResolvedValue(null);
 
     await callHook("onUpdateSuccess", makeOnUpdate({ isEnabled: false }), [
       SLO_ID,
     ]);
 
-    expect(resolveAlertsSpy).not.toHaveBeenCalled();
+    expect(resolveAlertsAndIncidentsSpy).not.toHaveBeenCalled();
   });
 
-  it("swallows a failure while resolving alerts for one disabled SLO and continues", async () => {
-    resolveAlertsSpy
+  /*
+   * resolveOpenBurnRateAlertsAndIncidentsForSlo rethrows now, so that the
+   * worker's guard path can decline to commit its new status and retry next
+   * tick. This hook deliberately does NOT inherit that: it owns its own
+   * try/catch so a dead Alert or Incident service cannot fail the update that
+   * disabled the SLO - the disable is the user's edit, and refusing it would
+   * be worse than a stale open record. Pinned so the propagation change stays
+   * confined to the worker's caller.
+   */
+  it("swallows a throwing resolve for one disabled SLO and still handles the rest", async () => {
+    resolveAlertsAndIncidentsSpy
       .mockRejectedValueOnce(new Error("alert service down"))
       .mockResolvedValueOnce(undefined);
 
@@ -1293,7 +1358,22 @@ describe("ServiceLevelObjectiveService.onUpdateSuccess", () => {
       ]),
     ).resolves.toBeDefined();
 
-    expect(resolveAlertsSpy).toHaveBeenCalledTimes(2);
+    expect(resolveAlertsAndIncidentsSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("swallows a throwing resolve even when the disabled SLO is the only one", async () => {
+    resolveAlertsAndIncidentsSpy.mockRejectedValue(
+      new Error("incident state timeline write failed"),
+    );
+
+    const onUpdate: OnUpdate<ServiceLevelObjective> = makeOnUpdate({
+      isEnabled: false,
+    });
+
+    // Still returns the onUpdate it was handed, so the update itself lands.
+    await expect(callHook("onUpdateSuccess", onUpdate, [SLO_ID])).resolves.toBe(
+      onUpdate,
+    );
   });
 
   const evaluationConfigFields: Array<{ label: string; data: SloFields }> = [
@@ -1348,14 +1428,14 @@ describe("ServiceLevelObjectiveService.onUpdateSuccess", () => {
     expect(updateOneByIdSpy).toHaveBeenCalledTimes(2);
   });
 
-  it("neither resolves alerts nor forces re-evaluation for an unrelated field change", async () => {
+  it("neither resolves records nor forces re-evaluation for an unrelated field change", async () => {
     await callHook(
       "onUpdateSuccess",
       makeOnUpdate({ description: "just a doc tweak" }),
       [SLO_ID],
     );
 
-    expect(resolveAlertsSpy).not.toHaveBeenCalled();
+    expect(resolveAlertsAndIncidentsSpy).not.toHaveBeenCalled();
     expect(updateOneByIdSpy).not.toHaveBeenCalled();
   });
 
@@ -1369,14 +1449,14 @@ describe("ServiceLevelObjectiveService.onUpdateSuccess", () => {
     ).resolves.toBeDefined();
   });
 
-  it("both resolves alerts and forces re-evaluation when a disable is bundled with a config change", async () => {
+  it("both resolves records and forces re-evaluation when a disable is bundled with a config change", async () => {
     await callHook(
       "onUpdateSuccess",
       makeOnUpdate({ isEnabled: false, windowDays: 7 }),
       [SLO_ID],
     );
 
-    expect(resolveAlertsSpy).toHaveBeenCalledTimes(1);
+    expect(resolveAlertsAndIncidentsSpy).toHaveBeenCalledTimes(1);
     expect(updateOneByIdSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -1394,12 +1474,15 @@ describe("ServiceLevelObjectiveService.onUpdateSuccess", () => {
 });
 
 describe("ServiceLevelObjectiveService.onBeforeDelete", () => {
-  let resolveAlertsSpy: jest.SpyInstance;
+  let resolveAlertsAndIncidentsSpy: jest.SpyInstance;
   let findBySpy: jest.SpyInstance;
 
   beforeEach(() => {
-    resolveAlertsSpy = jest
-      .spyOn(ServiceLevelObjectiveService, "resolveOpenBurnRateAlertsForSlo")
+    resolveAlertsAndIncidentsSpy = jest
+      .spyOn(
+        ServiceLevelObjectiveService,
+        "resolveOpenBurnRateAlertsAndIncidentsForSlo",
+      )
       .mockResolvedValue(undefined);
 
     findBySpy = jest.spyOn(ServiceLevelObjectiveService, "findBy");
@@ -1418,7 +1501,7 @@ describe("ServiceLevelObjectiveService.onBeforeDelete", () => {
     } as unknown as DeleteBy<ServiceLevelObjective>;
   }
 
-  it("resolves the open burn rate alerts of every SLO about to be deleted", async () => {
+  it("resolves the open burn rate alerts and incidents of every SLO about to be deleted", async () => {
     const first: ServiceLevelObjective = makeSlo({
       _id: SLO_ID.toString(),
       id: SLO_ID,
@@ -1434,12 +1517,12 @@ describe("ServiceLevelObjectiveService.onBeforeDelete", () => {
 
     const result: unknown = await callHook("onBeforeDelete", makeDeleteBy());
 
-    expect(resolveAlertsSpy).toHaveBeenCalledTimes(2);
-    expect(resolveAlertsSpy).toHaveBeenNthCalledWith(1, {
+    expect(resolveAlertsAndIncidentsSpy).toHaveBeenCalledTimes(2);
+    expect(resolveAlertsAndIncidentsSpy).toHaveBeenNthCalledWith(1, {
       sloId: SLO_ID,
       projectId: PROJECT_ID,
     });
-    expect(resolveAlertsSpy).toHaveBeenNthCalledWith(2, {
+    expect(resolveAlertsAndIncidentsSpy).toHaveBeenNthCalledWith(2, {
       sloId: OTHER_RULE_ID,
       projectId: PROJECT_ID,
     });
@@ -1479,45 +1562,110 @@ describe("ServiceLevelObjectiveService.onBeforeDelete", () => {
 
     await callHook("onBeforeDelete", makeDeleteBy());
 
-    expect(resolveAlertsSpy).not.toHaveBeenCalled();
+    expect(resolveAlertsAndIncidentsSpy).not.toHaveBeenCalled();
   });
 
-  it("does not block the delete when alert resolution throws", async () => {
+  /*
+   * The rule-level resolve propagates its failure now, but a delete the user
+   * asked for must still go through: the hook's own try/catch is what keeps
+   * "the Alert service is down" from making SLOs undeletable. It also has to
+   * keep going, or one unreachable project would strand every later row's
+   * records in the same delete.
+   */
+  it("does not block the delete when the now-propagating resolve throws", async () => {
     findBySpy.mockResolvedValue([
       makeSlo({ _id: SLO_ID.toString(), id: SLO_ID, projectId: PROJECT_ID }),
+      makeSlo({
+        _id: OTHER_RULE_ID.toString(),
+        id: OTHER_RULE_ID,
+        projectId: PROJECT_ID,
+      }),
     ]);
-    resolveAlertsSpy.mockRejectedValue(new Error("alert service down"));
+    resolveAlertsAndIncidentsSpy.mockRejectedValue(
+      new Error("alert service down"),
+    );
 
     await expect(
       callHook("onBeforeDelete", makeDeleteBy()),
     ).resolves.toBeDefined();
+
+    expect(resolveAlertsAndIncidentsSpy).toHaveBeenCalledTimes(2);
   });
 });
 
-describe("ServiceLevelObjectiveService.resolveOpenBurnRateAlertsForSlo", () => {
+describe("ServiceLevelObjectiveService.resolveOpenBurnRateAlertsAndIncidentsForSlo", () => {
+  /*
+   * The clear that follows each rule's resolve writes to the database through
+   * the hookless column path, so every test in here has to stub it or it
+   * reaches a connection that does not exist. The two tests that are ABOUT
+   * the clear re-spy on it to assert; the rest just need it silent.
+   */
+  beforeEach(() => {
+    jest
+      .spyOn(
+        ServiceLevelObjectiveBurnRateRuleService,
+        "clearOpenOutputStateForRule",
+      )
+      .mockResolvedValue(undefined);
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  it("delegates to every burn rate rule of the SLO with the auto-resolve root cause", async () => {
-    const ruleFindBySpy: jest.SpyInstance = jest
-      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
-      .mockResolvedValue([
-        makeBurnRateRule(RULE_ID),
-        makeBurnRateRule(OTHER_RULE_ID),
-      ]);
+  /*
+   * The rule-level resolver always runs BOTH passes, so any test that lets it
+   * run for real has to give the incident pass something to find - otherwise
+   * it would reach the real IncidentService.
+   */
+  function mockNoOpenIncidents(): jest.SpyInstance {
+    return jest.spyOn(IncidentService, "findBy").mockResolvedValue([]);
+  }
 
-    const resolveForRuleSpy: jest.SpyInstance = jest
+  function mockResolveForRule(): jest.SpyInstance {
+    return jest
       .spyOn(
         ServiceLevelObjectiveBurnRateRuleService,
-        "resolveOpenAlertsForRule",
+        "resolveOpenAlertsAndIncidentsForRule",
       )
       .mockResolvedValue(undefined);
+  }
 
-    await ServiceLevelObjectiveService.resolveOpenBurnRateAlertsForSlo({
-      sloId: SLO_ID,
-      projectId: PROJECT_ID,
-    });
+  function mockClearOutputState(): jest.SpyInstance {
+    return jest
+      .spyOn(
+        ServiceLevelObjectiveBurnRateRuleService,
+        "clearOpenOutputStateForRule",
+      )
+      .mockResolvedValue(undefined);
+  }
+
+  function mockRules(
+    rules: Array<ServiceLevelObjectiveBurnRateRule>,
+  ): jest.SpyInstance {
+    return jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue(rules);
+  }
+
+  function resolveForSlo(): Promise<void> {
+    return ServiceLevelObjectiveService.resolveOpenBurnRateAlertsAndIncidentsForSlo(
+      {
+        sloId: SLO_ID,
+        projectId: PROJECT_ID,
+      },
+    );
+  }
+
+  it("delegates to every burn rate rule of the SLO with the auto-resolve root cause", async () => {
+    const ruleFindBySpy: jest.SpyInstance = mockRules([
+      makeBurnRateRule(RULE_ID),
+      makeBurnRateRule(OTHER_RULE_ID),
+    ]);
+
+    const resolveForRuleSpy: jest.SpyInstance = mockResolveForRule();
+
+    await resolveForSlo();
 
     const ruleFindByArg: { query: Record<string, unknown> } = ruleFindBySpy.mock
       .calls[0]![0] as { query: Record<string, unknown> };
@@ -1527,12 +1675,19 @@ describe("ServiceLevelObjectiveService.resolveOpenBurnRateAlertsForSlo", () => {
     });
 
     expect(resolveForRuleSpy).toHaveBeenCalledTimes(2);
+
+    /*
+     * One call per rule covering both outputs - not resolveOpenAlertsForRule.
+     * The root cause is deliberately output-neutral ("Auto-resolved...", not
+     * "Alert auto-resolved..."), because the same string is stamped onto the
+     * Incident timeline as well.
+     */
     expect(resolveForRuleSpy).toHaveBeenNthCalledWith(1, {
       serviceLevelObjectiveId: SLO_ID,
       burnRateRuleId: RULE_ID,
       projectId: PROJECT_ID,
       rootCause:
-        "Alert auto-resolved because the Service Level Objective was disabled or deleted.",
+        "Auto-resolved because the Service Level Objective was disabled or deleted.",
     });
     expect(resolveForRuleSpy).toHaveBeenNthCalledWith(
       2,
@@ -1540,76 +1695,201 @@ describe("ServiceLevelObjectiveService.resolveOpenBurnRateAlertsForSlo", () => {
     );
   });
 
-  it("continues to the next rule when one rule's resolution throws", async () => {
+  /*
+   * This path deliberately does NOT stamp the resolve columns — they drive a
+   * live rule's re-fire suppression, and disabling an SLO is not a burn rate
+   * that recovered. But the evaluation worker reads the CREATED columns to
+   * decide whether an output is already open, so leaving those set told the
+   * worker "an alert is already open" about an alert this very call had just
+   * closed: re-enable the SLO mid-outage and the rule declared nothing for
+   * the rest of the burn, while the dashboard showed a red "Firing" pill.
+   */
+  it("forgets what each rule had open, so a re-enabled SLO can declare again", async () => {
+    mockRules([makeBurnRateRule(RULE_ID), makeBurnRateRule(OTHER_RULE_ID)]);
+    mockResolveForRule();
+
+    const clearSpy: jest.SpyInstance = mockClearOutputState();
+
+    await resolveForSlo();
+
+    expect(clearSpy).toHaveBeenCalledTimes(2);
+    expect(clearSpy).toHaveBeenNthCalledWith(1, {
+      burnRateRuleId: RULE_ID,
+      clearAlert: true,
+      clearIncident: true,
+    });
+    expect(clearSpy).toHaveBeenNthCalledWith(2, {
+      burnRateRuleId: OTHER_RULE_ID,
+      clearAlert: true,
+      clearIncident: true,
+    });
+  });
+
+  it("does not forget anything for a rule whose resolve threw", async () => {
+    mockRules([makeBurnRateRule(RULE_ID)]);
+
     jest
-      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
-      .mockResolvedValue([
-        makeBurnRateRule(RULE_ID),
-        makeBurnRateRule(OTHER_RULE_ID),
-      ]);
+      .spyOn(
+        ServiceLevelObjectiveBurnRateRuleService,
+        "resolveOpenAlertsAndIncidentsForRule",
+      )
+      .mockRejectedValue(new Error("resolve failed"));
+
+    const clearSpy: jest.SpyInstance = mockClearOutputState();
+    jest.spyOn(logger, "error").mockImplementation((): void => {});
+
+    await expect(resolveForSlo()).rejects.toThrow("resolve failed");
+
+    /*
+     * The record is still open. Clearing the rule's columns would make the
+     * worker declare a second one on top of it.
+     */
+    expect(clearSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Why the failure has to PROPAGATE, not just get logged:
+   *
+   * the evaluation worker's Paused / Misconfigured guard calls this and only
+   * commits the SLO's new status once it comes back clean, precisely so that a
+   * failed resolve leaves the old status in place and the next tick retries
+   * the whole transition. While this method swallowed the error the guard saw
+   * a success, committed the status, and the next tick found no transition
+   * left to make - the Alert and the Incident stayed open with their on-call
+   * escalations running, and nothing ever retried them. The record was
+   * stranded for good.
+   *
+   * The loop still has to attempt every rule first, though: one unreachable
+   * rule must not stop the SLO's other rules from being closed. So the shape
+   * is "try all, remember the first failure, rethrow at the end".
+   */
+  it("attempts every rule, logs the failure, and then rejects with the error the failing rule threw", async () => {
+    mockRules([
+      makeBurnRateRule(RULE_ID),
+      makeBurnRateRule(OTHER_RULE_ID),
+      makeBurnRateRule(THIRD_RULE_ID),
+    ]);
+
+    const failure: Error = new Error("alert state timeline write failed");
 
     const resolveForRuleSpy: jest.SpyInstance = jest
       .spyOn(
         ServiceLevelObjectiveBurnRateRuleService,
-        "resolveOpenAlertsForRule",
+        "resolveOpenAlertsAndIncidentsForRule",
       )
-      .mockRejectedValueOnce(new Error("boom"))
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(failure)
       .mockResolvedValueOnce(undefined);
 
-    await expect(
-      ServiceLevelObjectiveService.resolveOpenBurnRateAlertsForSlo({
-        sloId: SLO_ID,
-        projectId: PROJECT_ID,
-      }),
-    ).resolves.toBeUndefined();
+    const loggerErrorSpy: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation((): void => {});
+
+    await expect(resolveForSlo()).rejects.toBe(failure);
+
+    // The middle rule failing did not abort the loop - the third still ran.
+    expect(resolveForRuleSpy).toHaveBeenCalledTimes(3);
+
+    // And the operator still gets the per-rule context the rethrow cannot carry.
+    expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
+    expect(String(loggerErrorSpy.mock.calls[0]![0])).toContain(
+      OTHER_RULE_ID.toString(),
+    );
+  });
+
+  /*
+   * The FIRST error, not the last. The caller retries the whole SLO either
+   * way, but surfacing whatever happened to fail last would bury the original
+   * cause behind a downstream symptom.
+   */
+  it("rejects with the first error when more than one rule fails", async () => {
+    mockRules([
+      makeBurnRateRule(RULE_ID),
+      makeBurnRateRule(OTHER_RULE_ID),
+      makeBurnRateRule(THIRD_RULE_ID),
+    ]);
+
+    const firstFailure: Error = new Error("first rule exploded");
+    const lastFailure: Error = new Error("third rule exploded");
+
+    const resolveForRuleSpy: jest.SpyInstance = jest
+      .spyOn(
+        ServiceLevelObjectiveBurnRateRuleService,
+        "resolveOpenAlertsAndIncidentsForRule",
+      )
+      .mockRejectedValueOnce(firstFailure)
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(lastFailure);
+
+    jest.spyOn(logger, "error").mockImplementation((): void => {});
+
+    await expect(resolveForSlo()).rejects.toBe(firstFailure);
+
+    expect(resolveForRuleSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it("resolves without throwing when no rule fails", async () => {
+    mockRules([makeBurnRateRule(RULE_ID), makeBurnRateRule(OTHER_RULE_ID)]);
+
+    const resolveForRuleSpy: jest.SpyInstance = mockResolveForRule();
+
+    await expect(resolveForSlo()).resolves.toBeUndefined();
 
     expect(resolveForRuleSpy).toHaveBeenCalledTimes(2);
   });
 
-  it("skips a rule row that came back without an id", async () => {
-    jest
-      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
-      .mockResolvedValue([new ServiceLevelObjectiveBurnRateRule()]);
+  /*
+   * A row with no id is SKIPPED, not failed: `continue` must never touch the
+   * remembered error. Counting it as a failure would make a wholly successful
+   * pass reject, and the worker would then retry the same SLO forever.
+   */
+  it("skips a rule row that came back without an id, and does not count it as a failure", async () => {
+    mockRules([
+      new ServiceLevelObjectiveBurnRateRule(),
+      makeBurnRateRule(RULE_ID),
+    ]);
 
-    const resolveForRuleSpy: jest.SpyInstance = jest
-      .spyOn(
-        ServiceLevelObjectiveBurnRateRuleService,
-        "resolveOpenAlertsForRule",
-      )
-      .mockResolvedValue(undefined);
+    const resolveForRuleSpy: jest.SpyInstance = mockResolveForRule();
 
-    await ServiceLevelObjectiveService.resolveOpenBurnRateAlertsForSlo({
-      sloId: SLO_ID,
-      projectId: PROJECT_ID,
-    });
+    await expect(resolveForSlo()).resolves.toBeUndefined();
+
+    expect(resolveForRuleSpy).toHaveBeenCalledTimes(1);
+    expect(resolveForRuleSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ burnRateRuleId: RULE_ID }),
+    );
+  });
+
+  it("resolves cleanly when every rule row lacks an id", async () => {
+    mockRules([
+      new ServiceLevelObjectiveBurnRateRule(),
+      new ServiceLevelObjectiveBurnRateRule(),
+    ]);
+
+    const resolveForRuleSpy: jest.SpyInstance = mockResolveForRule();
+
+    await expect(resolveForSlo()).resolves.toBeUndefined();
 
     expect(resolveForRuleSpy).not.toHaveBeenCalled();
   });
 
   it("is a no-op when the SLO has no burn rate rules", async () => {
-    jest
-      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
-      .mockResolvedValue([]);
+    mockRules([]);
 
-    const resolveForRuleSpy: jest.SpyInstance = jest
-      .spyOn(
-        ServiceLevelObjectiveBurnRateRuleService,
-        "resolveOpenAlertsForRule",
-      )
-      .mockResolvedValue(undefined);
+    const resolveForRuleSpy: jest.SpyInstance = mockResolveForRule();
 
-    await ServiceLevelObjectiveService.resolveOpenBurnRateAlertsForSlo({
-      sloId: SLO_ID,
-      projectId: PROJECT_ID,
-    });
+    await expect(resolveForSlo()).resolves.toBeUndefined();
 
     expect(resolveForRuleSpy).not.toHaveBeenCalled();
   });
 
-  it("queries the open alerts of each rule by that rule's exact fingerprint", async () => {
-    jest
-      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
-      .mockResolvedValue([makeBurnRateRule(RULE_ID)]);
+  /*
+   * Straight through the real rule-level resolver: the fingerprint is the only
+   * thing tying an SLO's rule to the records it opened, so one wrong character
+   * turns the disable path into a silent no-op. Both tables are keyed off the
+   * SAME fingerprint - one rule, one series.
+   */
+  it("queries the open alerts and the open incidents of each rule by that rule's exact fingerprint", async () => {
+    mockRules([makeBurnRateRule(RULE_ID)]);
 
     const alertFindBySpy: jest.SpyInstance = jest
       .spyOn(AlertService, "findBy")
@@ -1619,40 +1899,73 @@ describe("ServiceLevelObjectiveService.resolveOpenBurnRateAlertsForSlo", () => {
       .spyOn(AlertStateTimelineService, "getResolvedStateIdForProject")
       .mockResolvedValue(RESOLVED_STATE_ID);
 
-    const timelineCreateSpy: jest.SpyInstance = jest
+    const alertTimelineCreateSpy: jest.SpyInstance = jest
       .spyOn(AlertStateTimelineService, "create")
       .mockResolvedValue(new AlertStateTimeline());
 
-    await ServiceLevelObjectiveService.resolveOpenBurnRateAlertsForSlo({
-      sloId: SLO_ID,
-      projectId: PROJECT_ID,
-    });
+    const incidentFindBySpy: jest.SpyInstance = jest
+      .spyOn(IncidentService, "findBy")
+      .mockResolvedValue([makeIncident(ObjectID.generate())]);
+
+    jest
+      .spyOn(IncidentStateTimelineService, "getResolvedStateIdForProject")
+      .mockResolvedValue(RESOLVED_INCIDENT_STATE_ID);
+
+    const incidentTimelineCreateSpy: jest.SpyInstance = jest
+      .spyOn(IncidentStateTimelineService, "create")
+      .mockResolvedValue(new IncidentStateTimeline());
+
+    await resolveForSlo();
+
+    const fingerprint: string = `slo:${SLO_ID.toString()}:burn-rule:${RULE_ID.toString()}`;
 
     const alertFindByArg: { query: Record<string, unknown> } = alertFindBySpy
       .mock.calls[0]![0] as { query: Record<string, unknown> };
-
     expect(alertFindByArg.query).toEqual({
       projectId: PROJECT_ID,
-      seriesFingerprint: `slo:${SLO_ID.toString()}:burn-rule:${RULE_ID.toString()}`,
+      seriesFingerprint: fingerprint,
       currentAlertState: { isResolvedState: false },
     });
 
-    // And it actually resolved through the AlertStateTimeline path.
-    expect(timelineCreateSpy).toHaveBeenCalledTimes(1);
-    const timelineArg: { data: { alertStateId: ObjectID; rootCause: string } } =
-      timelineCreateSpy.mock.calls[0]![0] as {
-        data: { alertStateId: ObjectID; rootCause: string };
+    const incidentFindByArg: { query: Record<string, unknown> } =
+      incidentFindBySpy.mock.calls[0]![0] as {
+        query: Record<string, unknown>;
       };
-    expect(timelineArg.data.alertStateId).toEqual(RESOLVED_STATE_ID);
-    expect(timelineArg.data.rootCause).toContain(
+    expect(incidentFindByArg.query).toEqual({
+      projectId: PROJECT_ID,
+      seriesFingerprint: fingerprint,
+      currentIncidentState: { isResolvedState: false },
+    });
+
+    // And both actually resolved, through their own state timeline tables.
+    expect(alertTimelineCreateSpy).toHaveBeenCalledTimes(1);
+    const alertTimelineArg: {
+      data: { alertStateId: ObjectID; rootCause: string };
+    } = alertTimelineCreateSpy.mock.calls[0]![0] as {
+      data: { alertStateId: ObjectID; rootCause: string };
+    };
+    expect(alertTimelineArg.data.alertStateId).toEqual(RESOLVED_STATE_ID);
+    expect(alertTimelineArg.data.rootCause).toContain(
+      "Service Level Objective was disabled or deleted",
+    );
+
+    expect(incidentTimelineCreateSpy).toHaveBeenCalledTimes(1);
+    const incidentTimelineArg: {
+      data: { incidentStateId: ObjectID; rootCause: string };
+    } = incidentTimelineCreateSpy.mock.calls[0]![0] as {
+      data: { incidentStateId: ObjectID; rootCause: string };
+    };
+    expect(incidentTimelineArg.data.incidentStateId).toEqual(
+      RESOLVED_INCIDENT_STATE_ID,
+    );
+    expect(incidentTimelineArg.data.rootCause).toContain(
       "Service Level Objective was disabled or deleted",
     );
   });
 
   it("tolerates the benign same-state race without rethrowing", async () => {
-    jest
-      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
-      .mockResolvedValue([makeBurnRateRule(RULE_ID)]);
+    mockRules([makeBurnRateRule(RULE_ID)]);
+    mockNoOpenIncidents();
 
     jest
       .spyOn(AlertService, "findBy")
@@ -1668,18 +1981,42 @@ describe("ServiceLevelObjectiveService.resolveOpenBurnRateAlertsForSlo", () => {
         new BadDataException("Alert state cannot be same as previous state."),
       );
 
-    await expect(
-      ServiceLevelObjectiveService.resolveOpenBurnRateAlertsForSlo({
-        sloId: SLO_ID,
-        projectId: PROJECT_ID,
-      }),
-    ).resolves.toBeUndefined();
+    await expect(resolveForSlo()).resolves.toBeUndefined();
   });
 
-  it("keeps resolving the remaining open alerts when one alert throws", async () => {
+  /*
+   * The incident twin of the race above. It matters more now that the SLO-level
+   * method rethrows: a benign duplicate-state race leaking out would make the
+   * worker's guard refuse to commit and retry the same already-resolved
+   * incident on every single tick.
+   */
+  it("tolerates the benign same-state race on the incident side too", async () => {
+    mockRules([makeBurnRateRule(RULE_ID)]);
+
+    jest.spyOn(AlertService, "findBy").mockResolvedValue([]);
+
     jest
-      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
-      .mockResolvedValue([makeBurnRateRule(RULE_ID)]);
+      .spyOn(IncidentService, "findBy")
+      .mockResolvedValue([makeIncident(ObjectID.generate())]);
+
+    jest
+      .spyOn(IncidentStateTimelineService, "getResolvedStateIdForProject")
+      .mockResolvedValue(RESOLVED_INCIDENT_STATE_ID);
+
+    jest
+      .spyOn(IncidentStateTimelineService, "create")
+      .mockRejectedValue(
+        new BadDataException(
+          "Incident state cannot be same as previous state.",
+        ),
+      );
+
+    await expect(resolveForSlo()).resolves.toBeUndefined();
+  });
+
+  it("keeps resolving the remaining open alerts when one alert throws, and still reports it", async () => {
+    mockRules([makeBurnRateRule(RULE_ID)]);
+    mockNoOpenIncidents();
 
     jest
       .spyOn(AlertService, "findBy")
@@ -1697,12 +2034,15 @@ describe("ServiceLevelObjectiveService.resolveOpenBurnRateAlertsForSlo", () => {
       .mockRejectedValueOnce(new Error("write conflict"))
       .mockResolvedValueOnce(new AlertStateTimeline());
 
-    await expect(
-      ServiceLevelObjectiveService.resolveOpenBurnRateAlertsForSlo({
-        sloId: SLO_ID,
-        projectId: PROJECT_ID,
-      }),
-    ).resolves.toBeUndefined();
+    jest.spyOn(logger, "error").mockImplementation((): void => {});
+
+    /*
+     * The per-record isolation goes all the way down — the second alert is
+     * still resolved — but the failure travels all the way up, so the worker's
+     * guard path does not commit a status change that would make this
+     * one-shot and strand the first alert forever.
+     */
+    await expect(resolveForSlo()).rejects.toThrow("write conflict");
 
     expect(timelineCreateSpy).toHaveBeenCalledTimes(2);
   });
@@ -2013,7 +2353,10 @@ describe("ServiceLevelObjectiveService - applying the monitor label rule", () =>
       .spyOn(ServiceLevelObjectiveService, "findOneById")
       .mockResolvedValue(makeSlo({ projectId: PROJECT_ID }));
     jest
-      .spyOn(ServiceLevelObjectiveService, "resolveOpenBurnRateAlertsForSlo")
+      .spyOn(
+        ServiceLevelObjectiveService,
+        "resolveOpenBurnRateAlertsAndIncidentsForSlo",
+      )
       .mockResolvedValue(undefined);
     jest.spyOn(AlertSeverityService, "findOneBy").mockResolvedValue(null);
     jest

@@ -176,41 +176,23 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
             fieldType: FormFieldSchemaType.JSON,
             showIf: isBrowserKey,
             required: isBrowserKey,
+            /*
+             * Shared with the key's detail page, which edits the same list
+             * and used to check none of this. A new browser key may not be
+             * created with an empty list: it would be refused on every
+             * request from the moment it exists.
+             */
             customValidation: (
               values: FormValues<TelemetryIngestionKey>,
             ): string | null => {
               if (!values.allowedOrigins) {
                 return null; // Let the required-field validation explain this.
               }
-              let origins: unknown = values.allowedOrigins;
-              if (typeof origins === "string") {
-                try {
-                  origins = JSON.parse(origins);
-                } catch {
-                  return "Allowed Origins is not valid JSON. Enter a JSON array of origins.";
-                }
-              }
-              if (
-                !Array.isArray(origins) ||
-                !origins.some((origin: unknown): boolean => {
-                  return typeof origin === "string" && origin.trim().length > 0;
-                })
-              ) {
-                return "Enter at least one allowed origin as a JSON array.";
-              }
-              for (const origin of origins as Array<unknown>) {
-                if (typeof origin !== "string") {
-                  return "Every allowed origin must be text.";
-                }
-                if (origin.trim()) {
-                  const error: string | null =
-                    OriginAllowList.validateOriginPattern(origin);
-                  if (error) {
-                    return error;
-                  }
-                }
-              }
-              return null;
+
+              return OriginAllowList.validateAllowedOriginsFormValue({
+                value: values.allowedOrigins,
+                allowEmptyList: false,
+              });
             },
             placeholder: '["https://app.example.com"]',
             description:

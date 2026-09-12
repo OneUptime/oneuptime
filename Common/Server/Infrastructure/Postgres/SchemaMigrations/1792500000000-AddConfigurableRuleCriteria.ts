@@ -1,13 +1,13 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 const RULE_CRITERIA_LEGACY_SHADOW_FUNCTION_NAME: string =
-  "set_rule_criteria_legacy_shadow_1792400000000";
+  "set_rule_criteria_legacy_shadow_1792500000000";
 const RULE_CRITERIA_LEGACY_SHADOW_TRIGGER_NAME: string =
-  "TRG_rule_criteria_legacy_shadow_1792400000000";
+  "TRG_rule_criteria_legacy_shadow_1792500000000";
 const RELATION_ONLY_RULE_CRITERIA_SHADOW_FUNCTION_NAME: string =
-  "set_relation_only_rule_criteria_shadow_1792400000000";
+  "set_relation_only_rule_criteria_shadow_1792500000000";
 const RELATION_ONLY_RULE_CRITERIA_SHADOW_TRIGGER_NAME: string =
-  "TRG_relation_only_rule_criteria_shadow_1792400000000";
+  "TRG_relation_only_rule_criteria_shadow_1792500000000";
 const RELATION_ONLY_RULE_CRITERIA_SHADOW_TABLES: ReadonlyArray<string> = [
   "IncidentReminderRule",
   "AlertReminderRule",
@@ -94,10 +94,10 @@ const RULE_CRITERIA_LEGACY_SHADOWS: ReadonlyArray<
   ["WorkflowOwnerRule", "workflowNamePattern"],
 ];
 
-export class AddConfigurableRuleCriteria1792400000000
+export class AddConfigurableRuleCriteria1792500000000
   implements MigrationInterface
 {
-  public readonly name: string = "AddConfigurableRuleCriteria1792400000000";
+  public readonly name: string = "AddConfigurableRuleCriteria1792500000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

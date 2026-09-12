@@ -1,6 +1,7 @@
 import FilterCondition from "../../Types/Filter/FilterCondition";
 import ObjectID from "../../Types/ObjectID";
 import RuleCriteria, {
+  RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN,
   RULE_CRITERIA_SCHEMA_VERSION,
   RuleCriteriaFilter,
   RuleCriteriaOperator,
@@ -843,7 +844,10 @@ export class RuleCriteriaMatcher {
           negate: true,
         };
       default:
-        return { pattern: "(?!)", negate: false };
+        return {
+          pattern: RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN,
+          negate: false,
+        };
     }
   }
 

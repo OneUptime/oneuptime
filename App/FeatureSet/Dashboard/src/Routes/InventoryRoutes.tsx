@@ -1,11 +1,10 @@
 import ComponentProps from "../Pages/PageComponentProps";
-import InventoryLayout from "../Pages/Inventory/Layout";
 import InventoryItemViewLayout from "../Pages/Inventory/View/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, InventoryRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement } from "react";
-import { Navigate, Route as PageRoute, Routes } from "react-router-dom";
+import { Navigate, Outlet, Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
 import InventoryOverview from "../Pages/Inventory/Overview";
@@ -34,7 +33,7 @@ const InventoryRoutes: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <Routes>
-      <PageRoute path="/" element={<InventoryLayout {...props} />}>
+      <PageRoute path="/" element={<Outlet />}>
         {/*
          * The bare product route lands on the Overview, so a link to
          * /inventory is never a blank page.

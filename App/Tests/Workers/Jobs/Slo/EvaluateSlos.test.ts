@@ -1,10 +1,14 @@
 /*
  * Pinned before any import: EnvironmentConfig reads it at module load time, and
- * these tests assert that burn-rate alerts ARE created.
+ * these tests assert that burn-rate alerts ARE created. Its incident twin is
+ * deliberately NOT pinned here — one test below flips it mid-suite, so it goes
+ * through a live getter on a mocked EnvironmentConfig instead.
  */
 process.env["DISABLE_AUTOMATIC_ALERT_CREATION"] = "false";
 
 import Alert from "Common/Models/DatabaseModels/Alert";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
@@ -14,6 +18,7 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import User from "Common/Models/DatabaseModels/User";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Green, Red } from "Common/Types/BrandColors";
 import OneUptimeDate, { Moment } from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
@@ -58,6 +63,14 @@ import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
  *      is retried on the next tick instead of stranding the alert,
  *  11. worker bookkeeping columns are written through the hookless fast path
  *      (no workflow POST / realtime broadcast per tick per SLO).
+ *
+ * ...and the two-output rewrite: a burn rate rule now DECLARES AN INCIDENT as
+ * well as (or instead of) raising an Alert. The two outputs are separate
+ * lifecycles on purpose — their own gate (`shouldCreateAlert !== false` against
+ * `shouldCreateIncident === true`), their own created/resolved column pair,
+ * their own re-fire suppression window, dedupe query, severity table and
+ * on-call list. The tests at the bottom of this file pin each output firing,
+ * suppressing, adopting and resolving without disturbing the other.
  */
 
 type CronHandler = () => Promise<void>;
@@ -115,7 +128,7 @@ jest.mock("Common/Server/Services/ServiceLevelObjectiveService", () => {
       updateOneById: jest.fn(),
       // the hookless fast path used for worker-owned bookkeeping columns.
       updateColumnsByIdWithoutHooks: jest.fn(),
-      resolveOpenBurnRateAlertsForSlo: jest.fn(),
+      resolveOpenBurnRateAlertsAndIncidentsForSlo: jest.fn(),
       findOwners: jest.fn(),
       getSloLinkInDashboard: jest.fn(),
     },
@@ -131,7 +144,15 @@ jest.mock(
         findBy: jest.fn(),
         updateOneById: jest.fn(),
         resolveOpenAlertsForRule: jest.fn(),
-        getBurnRateAlertFingerprint: jest.fn(),
+        resolveOpenIncidentsForRule: jest.fn(),
+        /*
+         * The combined resolver, which the SLO lifecycle hooks use. The worker
+         * must NOT reach for it — it has to know WHICH half succeeded before it
+         * stamps — so it is mocked only so the tests can prove it stayed
+         * untouched.
+         */
+        resolveOpenAlertsAndIncidentsForRule: jest.fn(),
+        getBurnRateFingerprint: jest.fn(),
       },
     };
   },
@@ -164,6 +185,17 @@ jest.mock("Common/Server/Services/AlertSeverityService", () => {
   return { __esModule: true, default: { findOneBy: jest.fn() } };
 });
 
+jest.mock("Common/Server/Services/IncidentService", () => {
+  return {
+    __esModule: true,
+    default: { findOneBy: jest.fn(), create: jest.fn() },
+  };
+});
+
+jest.mock("Common/Server/Services/IncidentSeverityService", () => {
+  return { __esModule: true, default: { findOneBy: jest.fn() } };
+});
+
 jest.mock("Common/Server/Services/ProjectService", () => {
   return {
     __esModule: true,
@@ -185,11 +217,42 @@ jest.mock("Common/Server/Services/UserNotificationSettingService", () => {
   };
 });
 
+/*
+ * DisableAutomaticIncidentCreation is a module-load `const` in the real
+ * EnvironmentConfig, so no amount of process.env writing can move it once this
+ * file's imports have run. TypeScript's CommonJS emit reads it as a property at
+ * every use site, though, so a getter laid over the otherwise real module lets
+ * one test flip the switch the way an operator would. Every other export keeps
+ * its real value — this module is on the import path of half the codebase.
+ */
+let mockDisableAutomaticIncidentCreation: boolean = false;
+
+jest.mock("Common/Server/EnvironmentConfig", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "Common/Server/EnvironmentConfig",
+  ) as Record<string, unknown>;
+
+  const mocked: Record<string, unknown> = {
+    ...actual,
+    __esModule: true,
+  };
+
+  Object.defineProperty(mocked, "DisableAutomaticIncidentCreation", {
+    get: (): boolean => {
+      return mockDisableAutomaticIncidentCreation;
+    },
+  });
+
+  return mocked;
+});
+
 import Semaphore, {
   SemaphoreMutex,
 } from "Common/Server/Infrastructure/Semaphore";
 import AlertService from "Common/Server/Services/AlertService";
 import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
+import IncidentService from "Common/Server/Services/IncidentService";
+import IncidentSeverityService from "Common/Server/Services/IncidentSeverityService";
 import MonitorService from "Common/Server/Services/MonitorService";
 import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import MonitorStatusTimelineService from "Common/Server/Services/MonitorStatusTimelineService";
@@ -208,7 +271,7 @@ interface SloServiceMock {
   getDueSlos: jest.Mock;
   updateOneById: jest.Mock;
   updateColumnsByIdWithoutHooks: jest.Mock;
-  resolveOpenBurnRateAlertsForSlo: jest.Mock;
+  resolveOpenBurnRateAlertsAndIncidentsForSlo: jest.Mock;
   findOwners: jest.Mock;
   getSloLinkInDashboard: jest.Mock;
 }
@@ -217,7 +280,9 @@ interface BurnRuleServiceMock {
   findBy: jest.Mock;
   updateOneById: jest.Mock;
   resolveOpenAlertsForRule: jest.Mock;
-  getBurnRateAlertFingerprint: jest.Mock;
+  resolveOpenIncidentsForRule: jest.Mock;
+  resolveOpenAlertsAndIncidentsForRule: jest.Mock;
+  getBurnRateFingerprint: jest.Mock;
 }
 
 const sloService: SloServiceMock =
@@ -237,6 +302,10 @@ const alertService: { findOneBy: jest.Mock; create: jest.Mock } =
   AlertService as unknown as { findOneBy: jest.Mock; create: jest.Mock };
 const severityService: { findOneBy: jest.Mock } =
   AlertSeverityService as unknown as { findOneBy: jest.Mock };
+const incidentService: { findOneBy: jest.Mock; create: jest.Mock } =
+  IncidentService as unknown as { findOneBy: jest.Mock; create: jest.Mock };
+const incidentSeverityService: { findOneBy: jest.Mock } =
+  IncidentSeverityService as unknown as { findOneBy: jest.Mock };
 const projectService: { getOwners: jest.Mock; findOneById: jest.Mock } =
   ProjectService as unknown as { getOwners: jest.Mock; findOneById: jest.Mock };
 const maintenanceService: { findBy: jest.Mock } =
@@ -273,7 +342,13 @@ const MONITOR_B_ID: ObjectID = new ObjectID("monitor-b");
 const OFFLINE_STATUS_ID: ObjectID = new ObjectID("status-offline");
 const OPERATIONAL_STATUS_ID: ObjectID = new ObjectID("status-operational");
 const SEVERITY_ID: ObjectID = new ObjectID("severity-1");
+const INCIDENT_SEVERITY_ID: ObjectID = new ObjectID("incident-severity-1");
+// The project-wide fallback a rule with no incident severity of its own lands on.
+const FALLBACK_INCIDENT_SEVERITY_ID: ObjectID = new ObjectID(
+  "incident-severity-lowest-order",
+);
 const POLICY_ID: ObjectID = new ObjectID("policy-1");
+const INCIDENT_POLICY_ID: ObjectID = new ObjectID("incident-policy-1");
 const OWNER_ID: ObjectID = new ObjectID("user-1");
 const SECOND_OWNER_ID: ObjectID = new ObjectID("user-2");
 
@@ -416,6 +491,22 @@ interface RuleOverrides {
   lastAlertCreatedAt?: Date | undefined;
   lastAlertResolvedAt?: Date | undefined;
   onCallDutyPolicies?: Array<OnCallDutyPolicy> | undefined;
+  /*
+   * The two output gates. Both are left UNSET by default, which is what a row
+   * written before this feature existed looks like: the alert half must still
+   * fire off `!== false` and the incident half must stay silent off `=== true`.
+   */
+  shouldCreateAlert?: boolean | undefined;
+  shouldCreateIncident?: boolean | undefined;
+  /*
+   * `null` means "no incident severity configured on the rule" — the case that
+   * falls back to the project's lowest-order severity. Omitting the key gives
+   * the rule its own, the way alertSeverityId always has one.
+   */
+  incidentSeverityId?: ObjectID | null | undefined;
+  incidentOnCallDutyPolicies?: Array<OnCallDutyPolicy> | undefined;
+  lastIncidentCreatedAt?: Date | undefined;
+  lastIncidentResolvedAt?: Date | undefined;
 }
 
 // A canonical fast-burn rule: 14.4x over a 60-minute long / 5-minute short window.
@@ -433,6 +524,20 @@ function makeRule(
   rule.shortWindowInMinutes = overrides.shortWindowInMinutes ?? 5;
   rule.alertSeverityId = SEVERITY_ID;
   rule.onCallDutyPolicies = overrides.onCallDutyPolicies ?? [];
+  rule.incidentOnCallDutyPolicies = overrides.incidentOnCallDutyPolicies ?? [];
+
+  if (overrides.incidentSeverityId !== null) {
+    rule.incidentSeverityId =
+      overrides.incidentSeverityId ?? INCIDENT_SEVERITY_ID;
+  }
+
+  if (overrides.shouldCreateAlert !== undefined) {
+    rule.shouldCreateAlert = overrides.shouldCreateAlert;
+  }
+
+  if (overrides.shouldCreateIncident !== undefined) {
+    rule.shouldCreateIncident = overrides.shouldCreateIncident;
+  }
 
   if (overrides.refireSuppressionMinutes !== undefined) {
     rule.refireSuppressionMinutes = overrides.refireSuppressionMinutes;
@@ -444,6 +549,14 @@ function makeRule(
 
   if (overrides.lastAlertResolvedAt) {
     rule.lastAlertResolvedAt = overrides.lastAlertResolvedAt;
+  }
+
+  if (overrides.lastIncidentCreatedAt) {
+    rule.lastIncidentCreatedAt = overrides.lastIncidentCreatedAt;
+  }
+
+  if (overrides.lastIncidentResolvedAt) {
+    rule.lastIncidentResolvedAt = overrides.lastIncidentResolvedAt;
   }
 
   return rule;
@@ -462,6 +575,36 @@ function stubTimelines(
     ).query.monitorId.toString();
 
     return Promise.resolve(rowsByMonitorId[monitorId] || []);
+  });
+}
+
+/*
+ * Three unbroken hours of downtime on the only monitor: both the 60-minute long
+ * and the 5-minute short window of the canonical makeRule() sit far above 14.4x
+ * (100x, in fact), so the rule fires. The shared starting point of every
+ * declaration test.
+ */
+function stubFiringBurn(): void {
+  stubTimelines({
+    [MONITOR_A_ID.toString()]: [
+      up(daysAgo(10), hoursAgo(3)),
+      down(hoursAgo(3)),
+    ],
+  });
+}
+
+/*
+ * The same outage, but it ended four hours ago, so the 60-minute long window is
+ * clean again — what sends a rule that has already fired down the resolution
+ * branch.
+ */
+function stubRecoveredBurn(): void {
+  stubTimelines({
+    [MONITOR_A_ID.toString()]: [
+      up(daysAgo(10), hoursAgo(5)),
+      down(hoursAgo(5), hoursAgo(4)),
+      up(hoursAgo(4)),
+    ],
   });
 }
 
@@ -536,6 +679,21 @@ function createdAlert(): Alert {
   return (alertService.create.mock.calls[0]![0] as { data: Alert }).data;
 }
 
+function createdIncident(): Incident {
+  expect(incidentService.create).toHaveBeenCalledTimes(1);
+  return (incidentService.create.mock.calls[0]![0] as { data: Incident }).data;
+}
+
+/*
+ * Every column the worker stamped onto the burn rate rule this tick, in order.
+ * Which columns travel TOGETHER is itself pinned behaviour: each fire and each
+ * resolve writes the rule once, carrying whichever of the two lifecycles
+ * actually moved.
+ */
+function ruleUpdatePayloads(): Array<Record<string, unknown>> {
+  return payloadsOf(burnRuleService.updateOneById);
+}
+
 /*
  * Reads the date bound into one of QueryHelper's Raw predicates (typeorm keeps
  * the bound parameters on the FindOperator).
@@ -604,7 +762,9 @@ describe("Slo:EvaluateSlos worker", () => {
     sloService.getDueSlos.mockResolvedValue([]);
     sloService.updateOneById.mockResolvedValue(undefined);
     sloService.updateColumnsByIdWithoutHooks.mockResolvedValue(undefined);
-    sloService.resolveOpenBurnRateAlertsForSlo.mockResolvedValue(undefined);
+    sloService.resolveOpenBurnRateAlertsAndIncidentsForSlo.mockResolvedValue(
+      undefined,
+    );
     sloService.findOwners.mockResolvedValue([]);
     sloService.getSloLinkInDashboard.mockResolvedValue(
       "https://oneuptime.com/dashboard/slo/slo-1",
@@ -613,7 +773,11 @@ describe("Slo:EvaluateSlos worker", () => {
     burnRuleService.findBy.mockResolvedValue([]);
     burnRuleService.updateOneById.mockResolvedValue(undefined);
     burnRuleService.resolveOpenAlertsForRule.mockResolvedValue(undefined);
-    burnRuleService.getBurnRateAlertFingerprint.mockReturnValue(
+    burnRuleService.resolveOpenIncidentsForRule.mockResolvedValue(undefined);
+    burnRuleService.resolveOpenAlertsAndIncidentsForRule.mockResolvedValue(
+      undefined,
+    );
+    burnRuleService.getBurnRateFingerprint.mockReturnValue(
       EXPECTED_FINGERPRINT,
     );
 
@@ -624,6 +788,15 @@ describe("Slo:EvaluateSlos worker", () => {
     alertService.findOneBy.mockResolvedValue(null);
     alertService.create.mockResolvedValue(new Alert());
     severityService.findOneBy.mockResolvedValue(null);
+    /*
+     * The incident half mirrors the alert half: nothing open, and no project
+     * severity to fall back on. makeRule() carries its own incidentSeverityId,
+     * so only the tests that deliberately drop it reach this null.
+     */
+    incidentService.findOneBy.mockResolvedValue(null);
+    incidentService.create.mockResolvedValue(new Incident());
+    incidentSeverityService.findOneBy.mockResolvedValue(null);
+    mockDisableAutomaticIncidentCreation = false;
     projectService.getOwners.mockResolvedValue([]);
     projectService.findOneById.mockResolvedValue(null);
     maintenanceService.findBy.mockResolvedValue([]);
@@ -813,11 +986,11 @@ describe("Slo:EvaluateSlos worker", () => {
 
       await runWorkerTick();
 
-      expect(sloService.resolveOpenBurnRateAlertsForSlo).toHaveBeenCalledTimes(
-        1,
-      );
+      expect(
+        sloService.resolveOpenBurnRateAlertsAndIncidentsForSlo,
+      ).toHaveBeenCalledTimes(1);
       const resolveArgs: { sloId: ObjectID; projectId: ObjectID } = sloService
-        .resolveOpenBurnRateAlertsForSlo.mock.calls[0]![0] as {
+        .resolveOpenBurnRateAlertsAndIncidentsForSlo.mock.calls[0]![0] as {
         sloId: ObjectID;
         projectId: ObjectID;
       };
@@ -838,9 +1011,9 @@ describe("Slo:EvaluateSlos worker", () => {
       await runWorkerTick();
 
       expect(slo.sloStatus).toBe(SloStatus.Paused);
-      expect(sloService.resolveOpenBurnRateAlertsForSlo).toHaveBeenCalledTimes(
-        1,
-      );
+      expect(
+        sloService.resolveOpenBurnRateAlertsAndIncidentsForSlo,
+      ).toHaveBeenCalledTimes(1);
       // and only the first tick wrote the status.
       expect(payloadsContaining(sloUpdatePayloads(), "sloStatus")).toHaveLength(
         1,
@@ -854,7 +1027,9 @@ describe("Slo:EvaluateSlos worker", () => {
 
       await runWorkerTick();
 
-      expect(sloService.resolveOpenBurnRateAlertsForSlo).not.toHaveBeenCalled();
+      expect(
+        sloService.resolveOpenBurnRateAlertsAndIncidentsForSlo,
+      ).not.toHaveBeenCalled();
     });
   });
 
@@ -1313,15 +1488,10 @@ describe("Slo:EvaluateSlos worker", () => {
       );
     });
 
-    test("an already-open alert with the same fingerprint suppresses a duplicate (fix 6)", async () => {
+    test("an already-open alert with the same fingerprint is ADOPTED, never duplicated (fix 6)", async () => {
       sloService.getDueSlos.mockResolvedValue([makeSlo()]);
       burnRuleService.findBy.mockResolvedValue([makeRule()]);
-      stubTimelines({
-        [MONITOR_A_ID.toString()]: [
-          up(daysAgo(10), hoursAgo(3)),
-          down(hoursAgo(3)),
-        ],
-      });
+      stubFiringBurn();
 
       const openAlert: Alert = new Alert(new ObjectID("alert-1"));
       alertService.findOneBy.mockResolvedValue(openAlert);
@@ -1329,8 +1499,17 @@ describe("Slo:EvaluateSlos worker", () => {
       await runWorkerTick();
 
       expect(alertService.create).not.toHaveBeenCalled();
-      // lastAlertCreatedAt must not move either - nothing new fired.
-      expect(burnRuleService.updateOneById).not.toHaveBeenCalled();
+
+      /*
+       * lastAlertCreatedAt IS stamped, and that is the repair, not a bug: the
+       * worker only reaches the dedupe query when the rule's own columns say no
+       * alert is open, so an alert that IS open means an earlier tick created
+       * one and then failed to stamp it. Resolution keys on that stamp, so
+       * leaving it unwritten strands the alert and its on-call escalation open
+       * with nothing in the product able to close them. The cost is a "last
+       * fired" that reads later than the truth.
+       */
+      expect(ruleUpdatePayloads()).toEqual([{ lastAlertCreatedAt: NOW }]);
     });
 
     test("an ongoing scheduled maintenance on an attached monitor suppresses alert CREATION", async () => {
@@ -1392,22 +1571,29 @@ describe("Slo:EvaluateSlos worker", () => {
       expect(alertService.create).not.toHaveBeenCalled();
     });
 
-    test("a rule with a zero or missing threshold is skipped entirely", async () => {
+    test("a rule with a zero or missing threshold never fires, and with nothing open resolves nothing either", async () => {
       sloService.getDueSlos.mockResolvedValue([makeSlo()]);
       burnRuleService.findBy.mockResolvedValue([
         makeRule({ burnRateThreshold: 0 }),
       ]);
-      stubTimelines({
-        [MONITOR_A_ID.toString()]: [
-          up(daysAgo(10), hoursAgo(3)),
-          down(hoursAgo(3)),
-        ],
-      });
+      stubFiringBurn();
 
       await runWorkerTick();
 
       expect(alertService.create).not.toHaveBeenCalled();
       expect(alertService.findOneBy).not.toHaveBeenCalled();
+      /*
+       * The guard no longer RETURNS on an unevaluatable rule, it falls through
+       * to the resolver — so "skipped entirely" now has to be proven by the
+       * resolvers staying idle on a rule with nothing open, not by the guard
+       * existing. (A rule that DOES have something open is the interesting case:
+       * see the invalid-configuration tests further down.)
+       */
+      expect(burnRuleService.resolveOpenAlertsForRule).not.toHaveBeenCalled();
+      expect(
+        burnRuleService.resolveOpenIncidentsForRule,
+      ).not.toHaveBeenCalled();
+      expect(burnRuleService.updateOneById).not.toHaveBeenCalled();
     });
   });
 
@@ -1483,7 +1669,7 @@ describe("Slo:EvaluateSlos worker", () => {
       );
     });
 
-    test("a recovered rule that never fired resolves nothing", async () => {
+    test("a recovered rule that never fired resolves nothing through either output", async () => {
       sloService.getDueSlos.mockResolvedValue([makeSlo()]);
       burnRuleService.findBy.mockResolvedValue([makeRule()]);
       stubTimelines({ [MONITOR_A_ID.toString()]: [up(daysAgo(10))] });
@@ -1491,6 +1677,9 @@ describe("Slo:EvaluateSlos worker", () => {
       await runWorkerTick();
 
       expect(burnRuleService.resolveOpenAlertsForRule).not.toHaveBeenCalled();
+      expect(
+        burnRuleService.resolveOpenIncidentsForRule,
+      ).not.toHaveBeenCalled();
       expect(burnRuleService.updateOneById).not.toHaveBeenCalled();
     });
 
@@ -1524,6 +1713,662 @@ describe("Slo:EvaluateSlos worker", () => {
       expect(alertService.create).not.toHaveBeenCalled();
       expect(burnRuleService.resolveOpenAlertsForRule).not.toHaveBeenCalled();
       expect(burnRuleService.updateOneById).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("burn rate rules: declaring an Incident (the second output)", () => {
+    /*
+     * The select is the one thing no other test in this file can catch. Every
+     * case below hands the worker a fully populated rule object, so a column
+     * missing from the real query would leave all of them green while
+     * production read `undefined` — and `shouldCreateIncident === undefined`
+     * is exactly the value that means "declare nothing", forever, silently.
+     */
+    test("asks the database for every column the two outputs are decided from", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([makeRule()]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      const select: Record<string, unknown> = burnRuleService.findBy.mock
+        .calls[0]![0].select as Record<string, unknown>;
+
+      expect(select["shouldCreateAlert"]).toBe(true);
+      expect(select["shouldCreateIncident"]).toBe(true);
+      expect(select["alertSeverityId"]).toBe(true);
+      expect(select["incidentSeverityId"]).toBe(true);
+      expect(select["lastAlertCreatedAt"]).toBe(true);
+      expect(select["lastAlertResolvedAt"]).toBe(true);
+      expect(select["lastIncidentCreatedAt"]).toBe(true);
+      expect(select["lastIncidentResolvedAt"]).toBe(true);
+      expect(select["onCallDutyPolicies"]).toEqual({ _id: true });
+      expect(select["incidentOnCallDutyPolicies"]).toEqual({ _id: true });
+    });
+
+    /*
+     * The reason the two lifecycles are separate columns at all. One output
+     * failing must not cost the other its stamp — an unstamped record is one
+     * the resolution branch will never close.
+     */
+    test("an alert create that throws still lets the incident be declared and stamped", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({ shouldCreateIncident: true }),
+      ]);
+      stubFiringBurn();
+
+      alertService.create.mockRejectedValueOnce(
+        new Error("alert write failed"),
+      );
+
+      await runWorkerTick();
+
+      expect(incidentService.create).toHaveBeenCalledTimes(1);
+
+      const stamps: Array<Record<string, unknown>> = payloadsOf(
+        burnRuleService.updateOneById,
+      );
+
+      expect(stamps).toHaveLength(1);
+      expect(stamps[0]!["lastIncidentCreatedAt"]).toEqual(NOW);
+      expect(stamps[0]).not.toHaveProperty("lastAlertCreatedAt");
+
+      // the failure still reaches the per-rule handler rather than vanishing.
+      expect(mockedLogger.error).toHaveBeenCalled();
+    });
+
+    test("an incident create that throws still lets the alert be raised and stamped", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({ shouldCreateIncident: true }),
+      ]);
+      stubFiringBurn();
+
+      incidentService.create.mockRejectedValueOnce(
+        new Error("incident write failed"),
+      );
+
+      await runWorkerTick();
+
+      expect(alertService.create).toHaveBeenCalledTimes(1);
+
+      const stamps: Array<Record<string, unknown>> = payloadsOf(
+        burnRuleService.updateOneById,
+      );
+
+      expect(stamps).toHaveLength(1);
+      expect(stamps[0]!["lastAlertCreatedAt"]).toEqual(NOW);
+      expect(stamps[0]).not.toHaveProperty("lastIncidentCreatedAt");
+      expect(mockedLogger.error).toHaveBeenCalled();
+    });
+
+    test("declares an Incident that mirrors the alert, pages its own on-call, and touches no monitor", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({
+          shouldCreateIncident: true,
+          onCallDutyPolicies: [new OnCallDutyPolicy(POLICY_ID)],
+          incidentOnCallDutyPolicies: [
+            new OnCallDutyPolicy(INCIDENT_POLICY_ID),
+          ],
+        }),
+      ]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      const incident: Incident = createdIncident();
+      const alert: Alert = createdAlert();
+
+      expect(incident.projectId!.toString()).toBe(PROJECT_ID.toString());
+      expect(incident.incidentSeverityId!.toString()).toBe(
+        INCIDENT_SEVERITY_ID.toString(),
+      );
+      expect(incident.isCreatedAutomatically).toBe(true);
+
+      /*
+       * One burn, one fingerprint and one wording: the Incident and the Alert
+       * describe the same breach, so anyone correlating the two reads the same
+       * numbers and the same rule name.
+       */
+      expect(incident.seriesFingerprint).toBe(EXPECTED_FINGERPRINT);
+      expect(incident.seriesFingerprint).toBe(alert.seriesFingerprint);
+      expect(incident.title).toBe(alert.title);
+      expect(incident.description).toBe(alert.description);
+      expect(incident.rootCause).toBe(alert.rootCause);
+
+      /*
+       * The incident escalates through incidentOnCallDutyPolicies, NOT through
+       * the rule's alert policies: a rule may page the service on-call with the
+       * alert and the incident commander with the incident, and crossing the
+       * two would page the wrong rota at 3am.
+       */
+      expect(
+        (incident.onCallDutyPolicies || []).map((policy: OnCallDutyPolicy) => {
+          return policy._id;
+        }),
+      ).toEqual([INCIDENT_POLICY_ID.toString()]);
+
+      /*
+       * Both of these columns default to TRUE on the model, so silence has to
+       * be written explicitly. An internal error-budget rule crossing 14.4x is
+       * an engineering signal; publishing it on the status page and SMS-ing
+       * every subscriber would be a surprise nobody asked for.
+       */
+      expect(incident.isVisibleOnStatusPage).toBe(false);
+      expect(
+        incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+      ).toBe(false);
+
+      /*
+       * THE ONE THAT BITES. Resolving an incident that carries monitors runs
+       * IncidentService.markMonitorsActiveForMonitoring, which flips each
+       * monitor to its operational status and writes a MonitorStatusTimeline
+       * row — the very rows this worker computes the SLI from. A burn-rate
+       * incident with monitors attached would therefore repair its own SLO's
+       * uptime number the moment it resolved, close a real ongoing downtime
+       * interval, and notify the monitors' owners of a recovery that never
+       * happened. changeMonitorStatusToId is left off for the same reason: a
+       * burn rate is a statement about the error budget, not about whether a
+       * monitor is up right now. The SLO link is carried by the fingerprint.
+       */
+      expect(incident.monitors).toBeUndefined();
+      expect(incident.changeMonitorStatusToId).toBeUndefined();
+    });
+
+    test("shouldCreateAlert false with shouldCreateIncident true declares the incident and no alert at all", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({ shouldCreateAlert: false, shouldCreateIncident: true }),
+      ]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(incidentService.create).toHaveBeenCalledTimes(1);
+      expect(alertService.create).not.toHaveBeenCalled();
+      // the alert half is gated off BEFORE its dedupe query, not after it.
+      expect(alertService.findOneBy).not.toHaveBeenCalled();
+      expect(ruleUpdatePayloads()).toEqual([{ lastIncidentCreatedAt: NOW }]);
+    });
+
+    test("both outputs on: one alert, one incident, and ONE rule update carrying both stamps", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({ shouldCreateAlert: true, shouldCreateIncident: true }),
+      ]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(alertService.create).toHaveBeenCalledTimes(1);
+      expect(incidentService.create).toHaveBeenCalledTimes(1);
+
+      /*
+       * Two stamps, ONE write: the rule model is on the hooked update path, so
+       * a second updateOneById would fire a second workflow POST and a second
+       * realtime broadcast for what is a single fire of a single rule.
+       */
+      expect(burnRuleService.updateOneById).toHaveBeenCalledTimes(1);
+      expect(ruleUpdatePayloads()[0]).toEqual({
+        lastAlertCreatedAt: NOW,
+        lastIncidentCreatedAt: NOW,
+      });
+    });
+
+    test.each([undefined, false])(
+      "shouldCreateIncident %s declares nothing: the column must never read as probably-on",
+      async (shouldCreateIncident: boolean | undefined) => {
+        /*
+         * The `=== true` gate. Unlike the alert column, which defaults to true,
+         * an unset incident column is a rule written before the feature existed
+         * — declaring incidents for all of them on upgrade would have paged
+         * every customer at once.
+         */
+        sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+        burnRuleService.findBy.mockResolvedValue([
+          makeRule({ shouldCreateIncident: shouldCreateIncident }),
+        ]);
+        stubFiringBurn();
+
+        await runWorkerTick();
+
+        expect(incidentService.create).not.toHaveBeenCalled();
+        expect(incidentService.findOneBy).not.toHaveBeenCalled();
+        // ...and the alert half of the same rule is untouched by the gate.
+        expect(alertService.create).toHaveBeenCalledTimes(1);
+        expect(ruleUpdatePayloads()).toEqual([{ lastAlertCreatedAt: NOW }]);
+      },
+    );
+
+    test("shouldCreateAlert unset still raises the alert — the guarantee every pre-feature rule depends on", async () => {
+      const rule: ServiceLevelObjectiveBurnRateRule = makeRule();
+
+      // the fixture really is a row written before the column existed.
+      expect(rule.shouldCreateAlert).toBeUndefined();
+
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([rule]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(alertService.create).toHaveBeenCalledTimes(1);
+      expect(ruleUpdatePayloads()).toEqual([{ lastAlertCreatedAt: NOW }]);
+    });
+
+    test("a rule with no incident severity of its own falls back to the project's lowest-order one", async () => {
+      const fallback: IncidentSeverity = new IncidentSeverity(
+        FALLBACK_INCIDENT_SEVERITY_ID,
+      );
+      incidentSeverityService.findOneBy.mockResolvedValue(fallback);
+
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({ shouldCreateIncident: true, incidentSeverityId: null }),
+      ]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      const lookupArgs: {
+        query: { projectId: ObjectID };
+        sort: { order: SortOrder };
+      } = incidentSeverityService.findOneBy.mock.calls[0]![0] as {
+        query: { projectId: ObjectID };
+        sort: { order: SortOrder };
+      };
+
+      expect(lookupArgs.query.projectId.toString()).toBe(PROJECT_ID.toString());
+      // lowest `order` first === most severe, the MonitorAlert precedence.
+      expect(lookupArgs.sort.order).toBe(SortOrder.Ascending);
+
+      expect(createdIncident().incidentSeverityId!.toString()).toBe(
+        FALLBACK_INCIDENT_SEVERITY_ID.toString(),
+      );
+    });
+
+    test("a project with NO incident severity logs and declares nothing, while the ALERT half of the same rule still fires and stamps", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({ shouldCreateIncident: true, incidentSeverityId: null }),
+      ]);
+      incidentSeverityService.findOneBy.mockResolvedValue(null);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(incidentService.create).not.toHaveBeenCalled();
+      expect(mockedLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining("project has no incident severity"),
+        expect.anything(),
+      );
+
+      /*
+       * The whole point of two lifecycles: a project that never configured
+       * incident severities must not lose its burn-rate PAGING too, and the
+       * unstamped incident column leaves the next tick free to retry.
+       */
+      expect(alertService.create).toHaveBeenCalledTimes(1);
+      expect(ruleUpdatePayloads()).toEqual([{ lastAlertCreatedAt: NOW }]);
+    });
+
+    test("DisableAutomaticIncidentCreation silences the incident without silencing the alert", async () => {
+      mockDisableAutomaticIncidentCreation = true;
+
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({ shouldCreateIncident: true }),
+      ]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(incidentService.create).not.toHaveBeenCalled();
+
+      /*
+       * The dedupe query still ran: the flag is checked AFTER it, so an
+       * incident that is already open is still adopted and stamped even on an
+       * instance that has automatic creation switched off — otherwise flipping
+       * the flag would strand whatever was open at the time.
+       */
+      expect(incidentService.findOneBy).toHaveBeenCalledTimes(1);
+
+      expect(alertService.create).toHaveBeenCalledTimes(1);
+      expect(ruleUpdatePayloads()).toEqual([{ lastAlertCreatedAt: NOW }]);
+    });
+  });
+
+  describe("burn rate rules: per-output dedupe, suppression and lifecycle", () => {
+    test("an incident already open on this fingerprint is adopted, and the missing stamp repaired", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({ shouldCreateAlert: false, shouldCreateIncident: true }),
+      ]);
+      incidentService.findOneBy.mockResolvedValue(
+        new Incident(new ObjectID("incident-1")),
+      );
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(incidentService.create).not.toHaveBeenCalled();
+
+      /*
+       * Same repair as the alert adoption above: the worker only reaches the
+       * dedupe query when the rule's own columns say nothing is open, so an
+       * open incident here is a previous tick that declared and then failed to
+       * stamp. Resolution keys on the stamp, so writing it now is what keeps
+       * that incident closable.
+       */
+      expect(ruleUpdatePayloads()).toEqual([{ lastIncidentCreatedAt: NOW }]);
+    });
+
+    test("a rule already stamped as incident-firing does not even ASK whether an incident is open", async () => {
+      /*
+       * THE REGRESSION THIS PINS: a responder resolves the incident in the UI
+       * while the burn is still going. The dedupe query now finds nothing open,
+       * so a declaration gated on the query alone would re-declare on the very
+       * next one-minute tick — burning an incident number, re-running on-call
+       * escalation and re-notifying, every minute, forever. Gating on the
+       * rule's OWN lifecycle columns means the responder wins until the burn
+       * genuinely recovers and the rule re-fires.
+       */
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({
+          shouldCreateAlert: false,
+          shouldCreateIncident: true,
+          lastIncidentCreatedAt: minutesAgo(30),
+          lastIncidentResolvedAt: hoursAgo(4),
+        }),
+      ]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(incidentService.findOneBy).not.toHaveBeenCalled();
+      expect(incidentService.create).not.toHaveBeenCalled();
+      expect(burnRuleService.updateOneById).not.toHaveBeenCalled();
+    });
+
+    test("an incident that resolved 10 minutes ago is suppressed while the alert, whose own resolve is old, still fires", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({
+          shouldCreateIncident: true,
+          refireSuppressionMinutes: 60,
+          lastAlertCreatedAt: hoursAgo(6),
+          lastAlertResolvedAt: hoursAgo(5),
+          lastIncidentCreatedAt: hoursAgo(6),
+          lastIncidentResolvedAt: minutesAgo(10),
+        }),
+      ]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(alertService.create).toHaveBeenCalledTimes(1);
+      expect(incidentService.create).not.toHaveBeenCalled();
+      expect(ruleUpdatePayloads()).toEqual([{ lastAlertCreatedAt: NOW }]);
+    });
+
+    test("and the mirror image: a freshly resolved ALERT is suppressed while the incident is declared", async () => {
+      /*
+       * Each output measures the quiet period from its OWN resolve stamp. One
+       * shared timer would let an alert that flapped a minute ago hold back an
+       * incident whose own escalation ended hours earlier, and vice versa.
+       */
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({
+          shouldCreateIncident: true,
+          refireSuppressionMinutes: 60,
+          lastAlertCreatedAt: hoursAgo(6),
+          lastAlertResolvedAt: minutesAgo(10),
+          lastIncidentCreatedAt: hoursAgo(6),
+          lastIncidentResolvedAt: hoursAgo(5),
+        }),
+      ]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(incidentService.create).toHaveBeenCalledTimes(1);
+      expect(alertService.create).not.toHaveBeenCalled();
+      expect(ruleUpdatePayloads()).toEqual([{ lastIncidentCreatedAt: NOW }]);
+    });
+
+    test("an ongoing scheduled maintenance silences BOTH outputs of the rule", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({ shouldCreateIncident: true }),
+      ]);
+      stubFiringBurn();
+
+      const event: ScheduledMaintenance = new ScheduledMaintenance();
+      event.monitors = [new Monitor(MONITOR_A_ID)];
+      maintenanceService.findBy.mockResolvedValue([event]);
+
+      await runWorkerTick();
+
+      expect(alertService.create).not.toHaveBeenCalled();
+      expect(incidentService.create).not.toHaveBeenCalled();
+      // planned work pages nobody: the check returns before either dedupe query.
+      expect(alertService.findOneBy).not.toHaveBeenCalled();
+      expect(incidentService.findOneBy).not.toHaveBeenCalled();
+      expect(burnRuleService.updateOneById).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("burn rate rules: resolving each output on its own lifecycle", () => {
+    test("a recovered burn closes both open outputs and stamps both resolves in one update", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({
+          shouldCreateIncident: true,
+          lastAlertCreatedAt: hoursAgo(4),
+          lastIncidentCreatedAt: hoursAgo(4),
+        }),
+      ]);
+      stubRecoveredBurn();
+
+      await runWorkerTick();
+
+      expect(burnRuleService.resolveOpenAlertsForRule).toHaveBeenCalledTimes(1);
+      expect(burnRuleService.resolveOpenIncidentsForRule).toHaveBeenCalledTimes(
+        1,
+      );
+
+      /*
+       * Two separate resolvers rather than the combined
+       * resolveOpenAlertsAndIncidentsForRule the lifecycle hooks call: that one
+       * rethrows the pair as a unit, and the worker has to know WHICH half
+       * succeeded before it stamps.
+       */
+      expect(
+        burnRuleService.resolveOpenAlertsAndIncidentsForRule,
+      ).not.toHaveBeenCalled();
+
+      const incidentResolveArgs: {
+        serviceLevelObjectiveId: ObjectID;
+        burnRateRuleId: ObjectID;
+        projectId: ObjectID;
+        rootCause: string;
+      } = burnRuleService.resolveOpenIncidentsForRule.mock.calls[0]![0] as {
+        serviceLevelObjectiveId: ObjectID;
+        burnRateRuleId: ObjectID;
+        projectId: ObjectID;
+        rootCause: string;
+      };
+
+      expect(incidentResolveArgs.serviceLevelObjectiveId.toString()).toBe(
+        SLO_ID.toString(),
+      );
+      expect(incidentResolveArgs.burnRateRuleId.toString()).toBe(
+        RULE_ID.toString(),
+      );
+      expect(incidentResolveArgs.projectId.toString()).toBe(
+        PROJECT_ID.toString(),
+      );
+      // both records close for the same stated reason.
+      expect(incidentResolveArgs.rootCause).toBe(
+        "Burn rate dropped below threshold.",
+      );
+
+      expect(ruleUpdatePayloads()).toEqual([
+        { lastAlertResolvedAt: NOW, lastIncidentResolvedAt: NOW },
+      ]);
+    });
+
+    test("with only the incident open, the alert resolver is never called and only its own stamp is written", async () => {
+      /*
+       * Resolution reads each output's OWN columns, never the rule's current
+       * configuration: a rule that raised an alert last week and has since been
+       * switched to incidents only must still get that alert closed, and a rule
+       * that never raised one must not have its resolver called at all.
+       */
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({
+          shouldCreateIncident: true,
+          lastIncidentCreatedAt: hoursAgo(4),
+        }),
+      ]);
+      stubRecoveredBurn();
+
+      await runWorkerTick();
+
+      expect(burnRuleService.resolveOpenIncidentsForRule).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(burnRuleService.resolveOpenAlertsForRule).not.toHaveBeenCalled();
+      expect(ruleUpdatePayloads()).toEqual([{ lastIncidentResolvedAt: NOW }]);
+    });
+
+    test("an incident resolver that throws leaves the alert resolved AND stamped, and the incident unstamped", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({
+          shouldCreateIncident: true,
+          lastAlertCreatedAt: hoursAgo(4),
+          lastIncidentCreatedAt: hoursAgo(4),
+        }),
+      ]);
+      burnRuleService.resolveOpenIncidentsForRule.mockRejectedValue(
+        new Error("incident state timeline write failed"),
+      );
+      stubRecoveredBurn();
+
+      await runWorkerTick();
+
+      expect(burnRuleService.resolveOpenAlertsForRule).toHaveBeenCalledTimes(1);
+
+      /*
+       * The unstamped half is the point. The resolve stamp is what tells the
+       * next tick there is nothing left to close, so a side that threw must go
+       * unstamped and be retried, while the side that worked must not be
+       * resolved a second time. One combined stamp would have to choose between
+       * stranding the incident and re-resolving the alert forever.
+       */
+      expect(ruleUpdatePayloads()).toEqual([{ lastAlertResolvedAt: NOW }]);
+
+      // and the failure is surfaced by the per-rule handler, not swallowed.
+      expect(mockedLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining("Error evaluating burn rate rule"),
+        expect.anything(),
+      );
+    });
+
+    test("an unevaluatable rule now RESOLVES its open alert instead of returning early", async () => {
+      /*
+       * THE REGRESSION: this guard used to `return`. A rule whose threshold was
+       * nulled out directly in the database — or written before the create/update
+       * validators existed — kept its alert, its incident and their on-call
+       * escalations open forever, because the worker is the only resolver in the
+       * product and it never got past this line.
+       */
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({ burnRateThreshold: 0, lastAlertCreatedAt: hoursAgo(4) }),
+      ]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(burnRuleService.resolveOpenAlertsForRule).toHaveBeenCalledTimes(1);
+
+      const resolveArgs: { rootCause: string } = burnRuleService
+        .resolveOpenAlertsForRule.mock.calls[0]![0] as {
+        rootCause: string;
+      };
+
+      expect(resolveArgs.rootCause).toContain(
+        "no longer has a valid threshold and window configuration",
+      );
+      expect(ruleUpdatePayloads()).toEqual([{ lastAlertResolvedAt: NOW }]);
+      // nothing FIRES off an unevaluatable rule, whatever the burn is doing.
+      expect(alertService.findOneBy).not.toHaveBeenCalled();
+    });
+
+    test("a rule whose long window was nulled out resolves its open INCIDENT too", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({
+          shouldCreateIncident: true,
+          longWindowInMinutes: 0,
+          lastIncidentCreatedAt: hoursAgo(4),
+        }),
+      ]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(burnRuleService.resolveOpenIncidentsForRule).toHaveBeenCalledTimes(
+        1,
+      );
+
+      const resolveArgs: { rootCause: string } = burnRuleService
+        .resolveOpenIncidentsForRule.mock.calls[0]![0] as {
+        rootCause: string;
+      };
+
+      expect(resolveArgs.rootCause).toContain(
+        "no longer has a valid threshold and window configuration",
+      );
+      expect(ruleUpdatePayloads()).toEqual([{ lastIncidentResolvedAt: NOW }]);
+      expect(incidentService.findOneBy).not.toHaveBeenCalled();
+    });
+
+    test("an open incident is resolved once the SLO no longer has a full long window (fix 9, incident side)", async () => {
+      // ten minutes of history against a 360-minute long window.
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({
+          shouldCreateIncident: true,
+          longWindowInMinutes: 360,
+          shortWindowInMinutes: 30,
+          lastIncidentCreatedAt: hoursAgo(2),
+        }),
+      ]);
+      stubTimelines({ [MONITOR_A_ID.toString()]: [up(minutesAgo(10))] });
+
+      await runWorkerTick();
+
+      const resolveArgs: { rootCause: string } = burnRuleService
+        .resolveOpenIncidentsForRule.mock.calls[0]![0] as {
+        rootCause: string;
+      };
+
+      // the root cause says why, rather than claiming the burn rate recovered.
+      expect(resolveArgs.rootCause).toContain(
+        "no longer has 360 minutes of monitoring history",
+      );
+      expect(ruleUpdatePayloads()).toEqual([{ lastIncidentResolvedAt: NOW }]);
+      // and still nothing is DECLARED on ten minutes of data.
+      expect(incidentService.create).not.toHaveBeenCalled();
+      expect(incidentService.findOneBy).not.toHaveBeenCalled();
     });
   });
 
@@ -1852,7 +2697,7 @@ describe("Slo:EvaluateSlos worker", () => {
     test("a failing resolve does NOT commit the status, and the next tick retries", async () => {
       const slo: ServiceLevelObjective = makeSlo({ monitors: [] });
       sloService.getDueSlos.mockResolvedValue([slo]);
-      sloService.resolveOpenBurnRateAlertsForSlo.mockRejectedValueOnce(
+      sloService.resolveOpenBurnRateAlertsAndIncidentsForSlo.mockRejectedValueOnce(
         new Error("could not load burn rate rules"),
       );
 
@@ -1867,9 +2712,9 @@ describe("Slo:EvaluateSlos worker", () => {
 
       await runWorkerTick();
 
-      expect(sloService.resolveOpenBurnRateAlertsForSlo).toHaveBeenCalledTimes(
-        2,
-      );
+      expect(
+        sloService.resolveOpenBurnRateAlertsAndIncidentsForSlo,
+      ).toHaveBeenCalledTimes(2);
       expect(persistedSloStatus()).toBe(SloStatus.Misconfigured);
       expect(slo.sloStatus).toBe(SloStatus.Misconfigured);
     });
@@ -1882,14 +2727,15 @@ describe("Slo:EvaluateSlos worker", () => {
 
       // resolve strictly before the status write - the whole point of the fix.
       expect(
-        sloService.resolveOpenBurnRateAlertsForSlo.mock.invocationCallOrder[0]!,
+        sloService.resolveOpenBurnRateAlertsAndIncidentsForSlo.mock
+          .invocationCallOrder[0]!,
       ).toBeLessThan(sloService.updateOneById.mock.invocationCallOrder[0]!);
 
       await runWorkerTick();
 
-      expect(sloService.resolveOpenBurnRateAlertsForSlo).toHaveBeenCalledTimes(
-        1,
-      );
+      expect(
+        sloService.resolveOpenBurnRateAlertsAndIncidentsForSlo,
+      ).toHaveBeenCalledTimes(1);
       expect(payloadsContaining(sloUpdatePayloads(), "sloStatus")).toHaveLength(
         1,
       );

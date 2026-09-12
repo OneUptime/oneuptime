@@ -8,6 +8,7 @@ import ServiceLevelObjectiveBurnRateRuleService from "../../../../Server/Service
 import ServiceLevelObjective from "../../../../Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "../../../../Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
+import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import { JSONObject } from "../../../../Types/JSON";
@@ -24,7 +25,10 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  * returns the definition, persisted compliance and burn-rate rules for one
  * SLO; the list mode respects clamps, pagination and the status filter;
  * compliance is always labeled as persisted (never recomputed); and empty
- * results are honest (rowCount 0, no widget).
+ * results are honest (rowCount 0, no widget). Since a burn-rate rule can now
+ * raise an alert, declare an incident, or both, the rule rows also have to
+ * report each output — with the model's defaults applied, so a rule written
+ * before incidents existed is not handed to the LLM as a blank.
  */
 
 const ctx: ToolContext = {
@@ -73,9 +77,20 @@ function buildSlo(data?: {
   return slo;
 }
 
+/*
+ * shouldCreateAlert / shouldCreateIncident and the incident columns are left
+ * unset unless a case asks for them: that is exactly the shape of a rule row
+ * written before burn-rate rules could declare incidents, which is the case
+ * the serializer's defaults exist for.
+ */
 function buildRule(data?: {
   name?: string;
   threshold?: number;
+  shouldCreateAlert?: boolean;
+  shouldCreateIncident?: boolean;
+  incidentSeverity?: string;
+  lastIncidentCreatedAt?: Date;
+  lastIncidentResolvedAt?: Date;
 }): ServiceLevelObjectiveBurnRateRule {
   const rule: ServiceLevelObjectiveBurnRateRule =
     new ServiceLevelObjectiveBurnRateRule();
@@ -89,6 +104,28 @@ function buildRule(data?: {
   const severity: AlertSeverity = new AlertSeverity();
   severity.name = "Critical";
   rule.alertSeverity = severity;
+
+  if (data?.shouldCreateAlert !== undefined) {
+    rule.shouldCreateAlert = data.shouldCreateAlert;
+  }
+
+  if (data?.shouldCreateIncident !== undefined) {
+    rule.shouldCreateIncident = data.shouldCreateIncident;
+  }
+
+  if (data?.incidentSeverity) {
+    const incidentSeverity: IncidentSeverity = new IncidentSeverity();
+    incidentSeverity.name = data.incidentSeverity;
+    rule.incidentSeverity = incidentSeverity;
+  }
+
+  if (data?.lastIncidentCreatedAt) {
+    rule.lastIncidentCreatedAt = data.lastIncidentCreatedAt;
+  }
+
+  if (data?.lastIncidentResolvedAt) {
+    rule.lastIncidentResolvedAt = data.lastIncidentResolvedAt;
+  }
 
   return rule;
 }
@@ -159,6 +196,158 @@ describe("query_slos — detail mode", () => {
     expect(result.rowCount).toBe(0);
     expect(result.widget).toBeUndefined();
     expect(rulesSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A burn-rate rule has two independent outputs — an alert and an incident —
+ * each with its own severity and its own created/resolved stamps. The model
+ * answers "what happens when this rule fires?" purely from these fields, so
+ * both halves are pinned: the select that reaches the database (an unselected
+ * column comes back undefined and quietly reads as its default) and the
+ * serialized row the LLM actually sees.
+ */
+describe("query_slos — burn-rate rule outputs", () => {
+  test("selects both output lifecycles for each rule", async () => {
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(buildSlo() as never);
+    const rulesSpy: jest.SpyInstance = jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue([] as never);
+
+    await QuerySlosTool.execute({ sloId: SLO_ID.toString() }, ctx);
+
+    const select: JSONObject = (rulesSpy.mock.calls[0]?.[0] as JSONObject)[
+      "select"
+    ] as JSONObject;
+
+    expect(select["shouldCreateAlert"]).toBe(true);
+    expect(select["alertSeverity"]).toEqual({ name: true });
+    expect(select["lastAlertCreatedAt"]).toBe(true);
+    expect(select["lastAlertResolvedAt"]).toBe(true);
+    expect(select["shouldCreateIncident"]).toBe(true);
+    expect(select["incidentSeverity"]).toEqual({ name: true });
+    expect(select["lastIncidentCreatedAt"]).toBe(true);
+    expect(select["lastIncidentResolvedAt"]).toBe(true);
+  });
+
+  test("a rule that alerts and declares an incident reports both, with both severities and both stamps", async () => {
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(buildSlo() as never);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue([
+        buildRule({
+          name: "Fast burn",
+          shouldCreateAlert: true,
+          shouldCreateIncident: true,
+          incidentSeverity: "Sev1",
+          lastIncidentCreatedAt: new Date("2026-08-14T10:00:00Z"),
+          lastIncidentResolvedAt: new Date("2026-08-14T11:30:00Z"),
+        }),
+      ] as never);
+
+    const result: ToolExecutionResult = await QuerySlosTool.execute(
+      { sloId: SLO_ID.toString() },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain("createsAlert=true");
+    expect(result.dataForLlm).toContain("alertSeverity=Critical");
+    expect(result.dataForLlm).toContain("createsIncident=true");
+    expect(result.dataForLlm).toContain("incidentSeverity=Sev1");
+    /*
+     * The incident stamps are a lifecycle of their own — the model reads them
+     * to say whether the declared incident is still open, so they must not be
+     * folded into or shadowed by the alert stamps.
+     */
+    expect(result.dataForLlm).toContain(
+      "lastIncidentCreatedAt=2026-08-14T10:00:00.000Z",
+    );
+    expect(result.dataForLlm).toContain(
+      "lastIncidentResolvedAt=2026-08-14T11:30:00.000Z",
+    );
+  });
+
+  test("a rule written before this feature reads as alerts-only, never as a blank", async () => {
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(buildSlo() as never);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      // Neither flag set, i.e. a rule row that predates the incident columns.
+      .mockResolvedValue([buildRule({ name: "Legacy burn" })] as never);
+
+    const result: ToolExecutionResult = await QuerySlosTool.execute(
+      { sloId: SLO_ID.toString() },
+      ctx,
+    );
+
+    /*
+     * The model's defaults (alert on, incident off) must be applied here
+     * rather than emitted as an absent field: a missing createsAlert would
+     * leave the LLM guessing whether an old rule pages anyone at all.
+     */
+    expect(result.dataForLlm).toContain("createsAlert=true");
+    expect(result.dataForLlm).toContain("createsIncident=false");
+    expect(result.dataForLlm).not.toContain("createsAlert=false");
+    expect(result.dataForLlm).not.toContain("createsIncident=true");
+  });
+
+  test("an explicit shouldCreateAlert=false is honoured, so an incident-only rule never reads as alerting", async () => {
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(buildSlo() as never);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue([
+        buildRule({
+          name: "Incident only",
+          shouldCreateAlert: false,
+          shouldCreateIncident: true,
+          incidentSeverity: "Sev2",
+        }),
+      ] as never);
+
+    const result: ToolExecutionResult = await QuerySlosTool.execute(
+      { sloId: SLO_ID.toString() },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain("createsAlert=false");
+    expect(result.dataForLlm).toContain("createsIncident=true");
+    expect(result.dataForLlm).toContain("incidentSeverity=Sev2");
+  });
+
+  test("an incident rule with no severity relation loaded serializes without one instead of throwing", async () => {
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(buildSlo() as never);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue([
+        buildRule({ name: "No severity", shouldCreateIncident: true }),
+      ] as never);
+
+    const result: ToolExecutionResult = await QuerySlosTool.execute(
+      { sloId: SLO_ID.toString() },
+      ctx,
+    );
+
+    // SLO row + the one rule row: the rule still made it through.
+    expect(result.rowCount).toBe(2);
+    expect(result.dataForLlm).toContain("createsIncident=true");
+    expect(result.dataForLlm).not.toContain("incidentSeverity=");
+  });
+
+  test("the tool description tells the model rules can declare incidents and where to follow them", () => {
+    const description: string = QuerySlosTool.description.toLowerCase();
+
+    // Without this the model never learns the incident half of a rule exists.
+    expect(description).toContain("incident");
+    expect(description).toContain("query_incidents");
   });
 });
 

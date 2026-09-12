@@ -352,4 +352,78 @@ export default class OriginAllowList {
 
     return null;
   }
+  /**
+   * Judge what an allowed-origins FORM FIELD holds, in the shape a
+   * customValidation wants: null when the value is acceptable, otherwise the
+   * message to put under the field.
+   *
+   * The list is edited in two places - the ingestion key creation wizard and
+   * the key's detail page - and only the wizard checked it. The detail page
+   * accepted anything that was merely well-formed JSON, so
+   * `{"origin": "https://app.example.com"}` reached the API and came back as
+   * the server's own refusal after a round trip. Sharing the rules is the
+   * only way the two stay the same answer.
+   *
+   * The value arrives as TEXT from the JSON editor, or as the already-parsed
+   * array the fetch loaded, and both are accepted. An absent value is not
+   * this function's business: a required field has its own message for that,
+   * and an optional one means "leave it alone".
+   *
+   * `allowEmptyList` is the one real difference between the two callers.
+   * Creating a browser key with no origins produces a key that is refused on
+   * every request, so the wizard will not do it. The detail page has to allow
+   * it, because clearing the list is how a server key's leftover entries are
+   * dropped and that form does not load keyType - and emptying a BROWSER
+   * key's list stays refused by the service, which does know the type and
+   * answers with what to do instead.
+   */
+  public static validateAllowedOriginsFormValue(data: {
+    value: unknown;
+    allowEmptyList: boolean;
+  }): string | null {
+    if (data.value === undefined || data.value === null) {
+      return null;
+    }
+
+    let origins: unknown = data.value;
+
+    if (typeof origins === "string") {
+      try {
+        origins = JSON.parse(origins);
+      } catch {
+        return "Allowed Origins is not valid JSON. Enter a JSON array of origins.";
+      }
+    }
+
+    if (!Array.isArray(origins)) {
+      return "Enter at least one allowed origin as a JSON array.";
+    }
+
+    const hasAnOrigin: boolean = origins.some((origin: unknown): boolean => {
+      return typeof origin === "string" && origin.trim().length > 0;
+    });
+
+    if (!hasAnOrigin && !data.allowEmptyList) {
+      return "Enter at least one allowed origin as a JSON array.";
+    }
+
+    for (const origin of origins as Array<unknown>) {
+      if (typeof origin !== "string") {
+        return "Every allowed origin must be text.";
+      }
+
+      if (!origin.trim()) {
+        continue;
+      }
+
+      const error: string | null =
+        OriginAllowList.validateOriginPattern(origin);
+
+      if (error) {
+        return error;
+      }
+    }
+
+    return null;
+  }
 }

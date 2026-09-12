@@ -1,6 +1,6 @@
-# Burn Rate Alerts
+# Burn Rate Alerts and Incidents
 
-Error budgets tell you where you stand; burn rate alerts tell you when to get out of bed. A burn rate alert fires a regular OneUptime Alert — with severity, on-call escalation, and workspace notifications — when an SLO is consuming its error budget fast enough to matter.
+Error budgets tell you where you stand; burn rate rules tell you when to get out of bed. When an SLO is consuming its error budget fast enough to matter, a burn rate rule raises a regular OneUptime **Alert**, declares a regular OneUptime **Incident**, or both — with severity, on-call escalation, and workspace notifications.
 
 If you have not read them yet, start with the [SLOs Overview](/docs/slo/introduction) and [Error Budgets](/docs/slo/error-budget).
 
@@ -36,7 +36,7 @@ This is the multi-window, multi-burn-rate pattern from the Google SRE Workbook, 
 
 A rule cannot fire until the SLO has at least a full long window of monitoring history behind it — otherwise a monitor's very first bad check, with only minutes of history to divide by, would compute an enormous burn rate and page someone. In practice that means a freshly created SLO cannot fire its **Fast burn** rule for its first hour, or its **Slow burn** rule for its first six.
 
-The same rule works in reverse: if an SLO stops having enough history to evaluate a rule's long window, any alert that rule has open is auto-resolved rather than left hanging.
+The same rule works in reverse: if an SLO stops having enough history to evaluate a rule's long window, anything that rule has open is auto-resolved rather than left hanging.
 
 ## Default rules
 
@@ -58,23 +58,52 @@ The canonical 14.4x and 6x constants are derived from a 30-day budget, so OneUpt
 
 Calendar-month SLOs are seeded with the 30-day values. You can edit or delete the seeded rules and add your own.
 
-## Burn rate alerts are regular OneUptime Alerts
+## What a rule declares
 
-When a rule fires, OneUptime creates a standard **Alert** — the same object your monitors create — so everything you have built around alerts applies:
+Every rule declares at least one of two things, and you choose which:
 
-- **Severity** — each rule has its own alert severity, so a fast burn can page as critical while a slow burn opens a warning.
-- **On-call policies** — attach on-call duty policies to the rule and the alert executes them: escalation rules, rotations, call/SMS/push/email, the works.
-- **Slack and Microsoft Teams** — workspace notification rules for alerts apply, so burn alerts land in the right channels automatically.
-- **Acknowledge and resolve** — the alert has the normal state timeline; your team can ack it from the dashboard or mobile app, add notes, and track it to resolution.
+|              | **Create Alert**                                  | **Declare Incident**                                                                |
+| ------------ | ------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Default      | On                                                | Off                                                                                 |
+| Weight       | The lightweight signal — lands in the alert inbox | The heavyweight one — takes an incident number and opens the full response workflow |
+| Severity     | Its own **alert severity**                        | Its own **incident severity**                                                       |
+| Escalation   | Its own **alert on-call policies**                | Its own **incident on-call policies**                                               |
+| Status pages | Not published                                     | Not published                                                                       |
 
-The alert's description includes the SLO's numbers at fire time — current SLI, burn rates over both windows, and budget remaining — so the person paged starts with context.
+A rule must do at least one of the two — OneUptime rejects a rule with both switched off, because it would consume an evaluation every minute and declare nothing.
 
-Only one alert per rule is open at a time: while a burn alert is unresolved, the rule will not stack duplicates on top of it.
+The two severities and the two on-call lists are deliberately separate, so you can route the alert to the owning team's rotation and the incident to your major-incident rotation. Leave a severity blank and OneUptime uses the project's most severe one.
+
+They also have separate lifecycles: each is deduplicated on its own, each resolves on its own, and each has its own quiet period after it resolves. Resolving the incident does not reset the alert's suppression, or the other way around.
+
+### Burn rate incidents are not customer-facing
+
+An error budget burning fast is an internal engineering signal, not a declared outage, so a burn rate incident is created **invisible on status pages** and **does not notify status page subscribers**. It also carries no monitors — attaching them would let resolving the incident rewrite the very monitor status history the SLO is measured from.
+
+### If you resolve the incident by hand
+
+Nothing re-declares it. The rule will not open another incident until the burn recovers and the rule genuinely fires again, so you are never fighting the worker while you work an incident.
+
+## Burn rate alerts and incidents are regular OneUptime records
+
+When a rule fires, OneUptime creates a standard **Alert** and/or a standard **Incident** — the same objects your monitors create — so everything you have built around them applies:
+
+- **Severity** — each rule has its own severity, so a fast burn can page as critical while a slow burn opens a warning.
+- **On-call policies** — attach on-call duty policies to the rule and the record executes them: escalation rules, rotations, call/SMS/push/email, the works.
+- **Slack and Microsoft Teams** — workspace notification rules apply, so burn alerts and incidents land in the right channels automatically.
+- **Acknowledge and resolve** — the normal state timeline; your team can ack from the dashboard or mobile app, add notes, and track to resolution.
+
+The description includes the SLO's numbers at fire time — current SLI, burn rates over both windows, and budget remaining — so the person paged starts with context. Both records carry the same description, so the two are easy to correlate.
+
+Only one alert and one incident per rule is open at a time: while either is unresolved, the rule will not stack duplicates on top of it.
+
+The SLO's **Alerts** and **Incidents** tabs list everything its burn rate rules have declared.
 
 ## Resolution and re-fire suppression
 
-- **Alerts resolve on the long window.** OneUptime auto-resolves a burn alert when the _long-window_ burn rate drops back below the threshold. Resolving on the short window would flap — a recurring outage would resolve after five quiet minutes and re-page all night.
-- **Re-fire suppression.** After an alert resolves, the rule will not fire again for a suppression period (by default, the length of the long window). This gives a recovering system room to actually recover without re-paging on residual noise.
+- **Resolution follows the long window.** OneUptime auto-resolves a rule's alert and incident when the _long-window_ burn rate drops back below the threshold. Resolving on the short window would flap — a recurring outage would resolve after five quiet minutes and re-page all night.
+- **Re-fire suppression.** After a record resolves, the rule will not declare that record again for a suppression period (by default, the length of the long window). This gives a recovering system room to actually recover without re-paging on residual noise. The alert and the incident are suppressed independently, each measured from its own resolve.
+- **Turning an output off closes what it opened.** Switch off Create Alert, switch off Declare Incident, or disable the rule entirely, and anything that output has open is resolved immediately — nothing is left escalating for a rule that can no longer justify it. Deleting the rule, or disabling or deleting the SLO, does the same.
 
 ## Low traffic and minimum sample count
 
@@ -84,7 +113,7 @@ The setting becomes relevant with event-based (metric) SLIs, which are not avail
 
 ## Scheduled maintenance
 
-While any monitor attached to the SLO is in an active scheduled maintenance window, burn rate alert creation is suppressed — planned work should not page anyone. Note that the underlying time still counts toward the error budget according to the SLO's downtime statuses.
+While any monitor attached to the SLO is in an active scheduled maintenance window, the rule is suppressed entirely — neither an alert nor an incident is created, because planned work should not page anyone. Note that the underlying time still counts toward the error budget according to the SLO's downtime statuses.
 
 ## Configuring burn rate rules
 
@@ -95,8 +124,10 @@ While any monitor attached to the SLO is in an active scheduled maintenance wind
    - **Name** — e.g., "Fast burn"
    - **Burn rate threshold** — e.g., `14.4`
    - **Long window** and **short window** (in minutes)
-   - **Alert severity** — the severity of the alert this rule creates
-   - **On-call duty policies** — who gets paged
    - **Re-fire suppression** (in minutes) — quiet period after a resolve
+   - **Create alert** — whether this rule raises an Alert (on by default), plus its **alert severity** and **alert on-call duty policies**
+   - **Declare incident** — whether this rule declares an Incident (off by default), plus its **incident severity** and **incident on-call duty policies**
 
-A good starting point is to keep the two seeded rules, route the fast-burn rule to your paging on-call policy at a high severity, and let the slow-burn rule create a lower-severity alert for working-hours follow-up.
+A good starting point is to keep the two seeded rules, route the fast-burn rule to your paging on-call policy at a high severity, and let the slow-burn rule create a lower-severity alert for working-hours follow-up. If your team runs everything through the incident workflow, turn on **Declare incident** for the fast-burn rule — and turn off **Create alert** on it if you would rather not get both.
+
+Seeded rules create an alert and do not declare an incident, so upgrading OneUptime never starts declaring incidents on your behalf.

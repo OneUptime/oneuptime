@@ -30,6 +30,7 @@ import BasicModelForm from "./BasicModelForm";
 import Field from "./Types/Field";
 import Fields from "./Types/Fields";
 import { FormStep } from "./Types/FormStep";
+import FormFieldSchemaType from "./Types/FormFieldSchemaType";
 import FormValues from "./Types/FormValues";
 import FormAnalyticsName from "./Utils/FormAnalyticsName";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
@@ -952,6 +953,67 @@ const ModelForm: <TBaseModel extends BaseModel>(
             arr.push(baseModel);
           }
           valuesToSend[key] = arr;
+        }
+      }
+
+      /*
+       * A JSON field is EDITED as text - CodeEditor hands the form a string -
+       * but a JSON COLUMN holds real JSON, and nothing converted the one into
+       * the other when saving an existing record.
+       *
+       * TelemetryIngestionKeys converts in onBeforeCreate, and ModelForm only
+       * runs that hook on Create (see below). So editing a browser key's
+       * allowed origins from its detail page sent the string
+       * '["https://app.example.com"]' to a column that holds a list, and
+       * TelemetryIngestionKeyService refused it - "Allowed origins must be a
+       * list of origins". Every JSON column edited through a JSON field had
+       * the same gap on update: the session replay origin, mask and block
+       * selector lists, the LLM provider and data source configs, the
+       * auto-remediation command allowlist.
+       *
+       * Both halves of the condition are load-bearing. Not every JSON editor
+       * is backed by a JSON column: GoogleSecOpsConnection.serviceAccountJson
+       * is VeryLongText, edited as JSON because that is what the customer
+       * pastes, and STORED as the text they pasted - parsing that one would
+       * hand the server an object where it expects the string it decrypts and
+       * parses itself. And not every JSON column is edited as text.
+       *
+       * Only a string is converted, and only when it parses. An untouched
+       * field still holds whatever the fetch loaded (already parsed), and
+       * text that is not JSON cannot reach here because
+       * Validation.validateJSONSyntax blocks the submit.
+       */
+      const jsonEditorFieldNames: Set<string> = new Set<string>(
+        props.fields
+          .filter((field: Field<TBaseModel>) => {
+            return field.fieldType === FormFieldSchemaType.JSON;
+          })
+          .map((field: Field<TBaseModel>) => {
+            return field.overrideFieldKey || Object.keys(field.field || {})[0];
+          })
+          .filter((name: string | undefined): name is string => {
+            return Boolean(name);
+          }),
+      );
+
+      for (const key of jsonEditorFieldNames) {
+        if (typeof valuesToSend[key] !== Typeof.String) {
+          continue;
+        }
+
+        const columnMetadata: TableColumnMetadata =
+          model.getTableColumnMetadata(key);
+
+        if (!columnMetadata || columnMetadata.type !== TableColumnType.JSON) {
+          continue;
+        }
+
+        try {
+          valuesToSend[key] = JSON.parse(
+            valuesToSend[key] as string,
+          ) as JSONObject;
+        } catch {
+          // Not JSON; leave it exactly as the user typed it.
         }
       }
 

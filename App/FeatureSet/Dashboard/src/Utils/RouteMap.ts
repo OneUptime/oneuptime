@@ -160,6 +160,7 @@ export const SloRoutePath: Dictionary<string> = {
   [PageMap.SLO_VIEW_CHARTS]: `${RouteParams.ModelID}/charts`,
   [PageMap.SLO_VIEW_BURN_RATE_RULES]: `${RouteParams.ModelID}/burn-rate-rules`,
   [PageMap.SLO_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.SLO_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.SLO_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.SLO_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.SLO_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
@@ -603,7 +604,7 @@ export const TopologyRoutePath: Dictionary<string> = {
 };
 
 export const ExceptionsRoutePath: Dictionary<string> = {
-  [PageMap.EXCEPTIONS]: "overview",
+  [PageMap.EXCEPTIONS]: "unresolved",
   [PageMap.EXCEPTIONS_OVERVIEW]: "overview",
   [PageMap.EXCEPTIONS_UNRESOLVED]: "unresolved",
   [PageMap.EXCEPTIONS_RESOLVED]: "resolved",
@@ -2948,6 +2949,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SLO_VIEW_ALERTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/slos/${
       SloRoutePath[PageMap.SLO_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.SLO_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW_INCIDENTS]
     }`,
   ),
 

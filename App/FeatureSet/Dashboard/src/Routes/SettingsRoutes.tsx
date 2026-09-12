@@ -1,10 +1,10 @@
-import ComponentProps from "../Pages/PageComponentProps";
+import PageComponentProps from "../Pages/PageComponentProps";
 import SettingsLayout from "../Pages/Settings/Layout";
 
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, SettingsRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, lazy, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
@@ -61,6 +61,16 @@ import SettingsAILogs from "../Pages/Settings/AILogs";
 
 import SettingsMcpServer from "../Pages/Settings/McpServer";
 
+const SettingsDangerZone: React.LazyExoticComponent<
+  typeof import("../Pages/Settings/DangerZone").default
+> = lazy(() => {
+  return import("../Pages/Settings/DangerZone");
+});
+
+export interface ComponentProps extends PageComponentProps {
+  onProjectDeleted: () => void;
+}
+
 const SettingsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -76,6 +86,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <ProjectSettings
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_DANGERZONE)}
+          element={
+            <SettingsDangerZone
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_DANGERZONE] as Route}
+              onProjectDeleted={props.onProjectDeleted}
             />
           }
         />

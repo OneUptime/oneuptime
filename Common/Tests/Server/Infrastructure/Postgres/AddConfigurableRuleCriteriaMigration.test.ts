@@ -1,4 +1,4 @@
-import { AddConfigurableRuleCriteria1792400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1792400000000-AddConfigurableRuleCriteria";
+import { AddConfigurableRuleCriteria1792500000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1792500000000-AddConfigurableRuleCriteria";
 import ObjectID from "../../../../Types/ObjectID";
 import RULE_CRITERIA_FIELDS_BY_MODEL from "../../../../Types/Rules/RuleCriteriaFieldRegistry";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
@@ -36,8 +36,8 @@ async function queriesFor(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  const migration: AddConfigurableRuleCriteria1792400000000 =
-    new AddConfigurableRuleCriteria1792400000000();
+  const migration: AddConfigurableRuleCriteria1792500000000 =
+    new AddConfigurableRuleCriteria1792500000000();
   await migration[direction](queryRunner);
 
   return statements;
@@ -255,12 +255,12 @@ describe("AddConfigurableRuleCriteria migration", () => {
       expectedLegacyShadowMappings();
     const droppedTriggerTables: Array<string> = tablesMatching(
       statements,
-      /^DROP TRIGGER "TRG_rule_criteria_legacy_shadow_1792400000000" ON "([^"]+)"$/,
+      /^DROP TRIGGER "TRG_rule_criteria_legacy_shadow_1792500000000" ON "([^"]+)"$/,
     );
     const functionDropIndexes: Array<number> = statements.flatMap(
       (statement: string, index: number): Array<number> => {
         return statement ===
-          'DROP FUNCTION "set_rule_criteria_legacy_shadow_1792400000000"()'
+          'DROP FUNCTION "set_rule_criteria_legacy_shadow_1792500000000"()'
           ? [index]
           : [];
       },
@@ -268,7 +268,7 @@ describe("AddConfigurableRuleCriteria migration", () => {
     const lastPatternTriggerDropIndex: number = statements.reduce(
       (lastIndex: number, statement: string, index: number): number => {
         return statement.startsWith(
-          'DROP TRIGGER "TRG_rule_criteria_legacy_shadow_1792400000000"',
+          'DROP TRIGGER "TRG_rule_criteria_legacy_shadow_1792500000000"',
         )
           ? index
           : lastIndex;
@@ -299,15 +299,15 @@ describe("AddConfigurableRuleCriteria migration", () => {
     const statements: Array<string> = await queriesFor("down");
     const droppedTriggerTables: Array<string> = tablesMatching(
       statements,
-      /^DROP TRIGGER "TRG_relation_only_rule_criteria_shadow_1792400000000" ON "([^"]+)"$/,
+      /^DROP TRIGGER "TRG_relation_only_rule_criteria_shadow_1792500000000" ON "([^"]+)"$/,
     );
     const functionDropIndex: number = statements.indexOf(
-      'DROP FUNCTION "set_relation_only_rule_criteria_shadow_1792400000000"()',
+      'DROP FUNCTION "set_relation_only_rule_criteria_shadow_1792500000000"()',
     );
     const lastTriggerDropIndex: number = statements.reduce(
       (lastIndex: number, statement: string, index: number): number => {
         return statement.startsWith(
-          'DROP TRIGGER "TRG_relation_only_rule_criteria_shadow_1792400000000"',
+          'DROP TRIGGER "TRG_relation_only_rule_criteria_shadow_1792500000000"',
         )
           ? index
           : lastIndex;
@@ -365,8 +365,8 @@ describePostgres("rule criteria migration against Postgres", () => {
   const schema: string = `rule_criteria_${ObjectID.generate().toString().replace(/-/g, "")}`;
   const representativeTable: string = "StatusPageMonitorRule";
   const representativeField: string = "monitorNamePattern";
-  const migration: AddConfigurableRuleCriteria1792400000000 =
-    new AddConfigurableRuleCriteria1792400000000();
+  const migration: AddConfigurableRuleCriteria1792500000000 =
+    new AddConfigurableRuleCriteria1792500000000();
   let database: DataSource;
   let runner: QueryRunner;
   let migrationApplied: boolean = false;
@@ -583,7 +583,7 @@ describePostgres("rule criteria migration against Postgres", () => {
       [schema, representativeTable, ...REMINDER_TABLES],
     );
     const remainingFunctions: Array<{ proname: string }> = await runner.query(
-      `SELECT routine_name AS proname FROM information_schema.routines WHERE routine_schema = $1 AND routine_name IN ('set_rule_criteria_legacy_shadow_1792400000000', 'set_relation_only_rule_criteria_shadow_1792400000000')`,
+      `SELECT routine_name AS proname FROM information_schema.routines WHERE routine_schema = $1 AND routine_name IN ('set_rule_criteria_legacy_shadow_1792500000000', 'set_relation_only_rule_criteria_shadow_1792500000000')`,
       [schema],
     );
     const remainingTriggers: Array<{ trigger_name: string }> =
