@@ -31,6 +31,7 @@ import UiAnalytics from "../../../UI/Utils/Analytics";
 import WebAuthnTestUtil, {
   registrationOptions,
 } from "../../Utils/WebAuthnTestUtil";
+import UserProfileSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/SideMenu";
 import PasskeySettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/Passkeys";
 import TwoFactorSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/TwoFactorAuth";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
@@ -348,16 +349,33 @@ describe("Passkey settings registration", () => {
     });
   });
 
+  /*
+   * The two links are the user profile SIDE MENU's, not the page's. The page
+   * used to render its own <Page sideMenu={...}> wrapper; that moved into
+   * Global/UserProfile/Layout so the menu survives navigation between these
+   * pages instead of remounting, which is the whole point of the layout.
+   * Asserting it here, against the component that owns it, keeps the
+   * contract covered without re-rendering a whole page to reach a menu.
+   */
+  test("gives passkeys and two-factor auth their own entries in the security menu", () => {
+    render(
+      <MemoryRouter initialEntries={["/dashboard/user-profile/passkeys"]}>
+        <UserProfileSideMenu />
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByRole("link", { name: "Passkeys", exact: true }),
+    ).toHaveAttribute("href", "/dashboard/user-profile/passkeys");
+    expect(
+      screen.getByRole("link", { name: /Two.factor authentication/i }),
+    ).toHaveAttribute("href", "/dashboard/user-profile/two-factor-auth");
+  });
+
   test.each([true, false])(
-    "provides distinct navigation and removes the old advice panel: passkeys %s",
+    "removes the old advice panel: passkeys %s",
     (isPasskey: boolean) => {
       renderPage(isPasskey);
-      expect(
-        screen.getByRole("link", { name: "Passkeys", exact: true }),
-      ).toHaveAttribute("href", "/dashboard/user-profile/passkeys");
-      expect(
-        screen.getByRole("link", { name: /Two.factor authentication/i }),
-      ).toHaveAttribute("href", "/dashboard/user-profile/two-factor-auth");
       expect(
         screen.queryByText("Keep another way to sign in"),
       ).not.toBeInTheDocument();
