@@ -5,6 +5,8 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import { Blue, Green, Red, Yellow } from "Common/Types/BrandColors";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import OriginAllowList from "Common/Utils/Telemetry/OriginAllowList";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -99,6 +101,23 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
             title: "Allowed Origins",
             fieldType: FormFieldSchemaType.JSON,
             required: false,
+            /*
+             * The same rules the creation wizard applies. Without them the
+             * only thing that said no to `{"origin": "..."}` - or to an
+             * origin carrying a path, which quietly matches the whole origin
+             * - was the API, in the server's words, after a round trip. An
+             * empty list is allowed here and not in the wizard: emptying it
+             * is how a server key's leftover entries are dropped and how a
+             * browser key is deliberately taken out of service.
+             */
+            customValidation: (
+              values: FormValues<TelemetryIngestionKey>,
+            ): string | null => {
+              return OriginAllowList.validateAllowedOriginsFormValue({
+                value: values.allowedOrigins,
+                allowEmptyList: true,
+              });
+            },
             placeholder: '["https://app.example.com"]',
             description:
               'JSON array of the origins this key may be used from. Required on a browser key and enforced on the server for every request: telemetry from an origin that is not listed, or with no Origin header at all, is refused. Include the scheme and the port. One leading "*." host wildcard is allowed - "https://*.example.com" matches "https://app.example.com" but not "https://example.com". Ignored on a server key.',

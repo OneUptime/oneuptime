@@ -25,6 +25,7 @@ import BasicModelForm from "./BasicModelForm";
 import Field from "./Types/Field";
 import Fields from "./Types/Fields";
 import { FormStep } from "./Types/FormStep";
+import FormFieldSchemaType from "./Types/FormFieldSchemaType";
 import FormValues from "./Types/FormValues";
 import FormAnalyticsName from "./Utils/FormAnalyticsName";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
@@ -935,6 +936,50 @@ const ModelForm: <TBaseModel extends BaseModel>(
             arr.push(baseModel);
           }
           valuesToSend[key] = arr;
+        }
+      }
+
+      /*
+       * A JSON field is EDITED as text - CodeEditor hands the form a string -
+       * but the column behind it holds real JSON, so the two have to be
+       * converted before the model is built.
+       *
+       * Nothing did that on update. TelemetryIngestionKeys converts in
+       * onBeforeCreate, and ModelForm only runs that hook on Create (see
+       * below), so editing a browser key's allowed origins from its detail
+       * page sent the STRING '["https://app.example.com"]' and the server
+       * refused it outright - "Allowed origins must be a list of origins" -
+       * leaving an allowlist that cannot be corrected from the page that
+       * shows it. Every JSON field in the product shared that gap on update:
+       * the session replay origin, mask and block selector lists, the LLM
+       * provider and data source configs, the auto-remediation rules.
+       *
+       * Only a string is converted, and only when it parses. An untouched
+       * field still holds whatever the fetch put there (already parsed), and
+       * text that is not JSON cannot reach here at all because
+       * Validation.validateJSONSyntax blocks the submit - so leaving those
+       * alone changes nothing and keeps the conversion to the one case it is
+       * about.
+       */
+      for (const field of props.fields) {
+        if (field.fieldType !== FormFieldSchemaType.JSON) {
+          continue;
+        }
+
+        const key: string | undefined = field.overrideFieldKey
+          ? field.overrideFieldKey
+          : Object.keys(field.field || {})[0];
+
+        if (!key || typeof valuesToSend[key] !== Typeof.String) {
+          continue;
+        }
+
+        try {
+          valuesToSend[key] = JSON.parse(
+            valuesToSend[key] as string,
+          ) as JSONObject;
+        } catch {
+          // Not JSON; leave it exactly as the user typed it.
         }
       }
 
