@@ -1183,6 +1183,10 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
     throw new BadDataException("Metric config is missing");
   }
 
+  if (!metricMonitorConfig.metricViewConfig) {
+    throw new BadDataException("Metric monitor metric view config is missing");
+  }
+
   const startAndEndDate: InBetween<Date> =
     RollingTimeUtil.convertToStartAndEndDate(
       metricMonitorConfig.rollingTime || RollingTime.Past1Minute,
@@ -1506,6 +1510,12 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     throw new BadDataException("Kubernetes monitor config is missing");
   }
 
+  if (!kubernetesMonitorConfig.metricViewConfig) {
+    throw new BadDataException(
+      "Kubernetes monitor metric view config is missing",
+    );
+  }
+
   const startAndEndDate: InBetween<Date> =
     RollingTimeUtil.convertToStartAndEndDate(
       kubernetesMonitorConfig.rollingTime || RollingTime.Past1Minute,
@@ -1825,6 +1835,10 @@ const monitorDocker: MonitorDockerFunction = async (data: {
     throw new BadDataException("Docker monitor config is missing");
   }
 
+  if (!dockerMonitorConfig.metricViewConfig) {
+    throw new BadDataException("Docker monitor metric view config is missing");
+  }
+
   const startAndEndDate: InBetween<Date> =
     RollingTimeUtil.convertToStartAndEndDate(
       dockerMonitorConfig.rollingTime || RollingTime.Past1Minute,
@@ -2005,6 +2019,10 @@ const monitorHost: MonitorHostFunction = async (data: {
 
   if (!hostMonitorConfig) {
     throw new BadDataException("Host monitor config is missing");
+  }
+
+  if (!hostMonitorConfig.metricViewConfig) {
+    throw new BadDataException("Host monitor metric view config is missing");
   }
 
   const startAndEndDate: InBetween<Date> =
@@ -2196,6 +2214,10 @@ const monitorPodman: MonitorPodmanFunction = async (data: {
     throw new BadDataException("Podman monitor config is missing");
   }
 
+  if (!podmanMonitorConfig.metricViewConfig) {
+    throw new BadDataException("Podman monitor metric view config is missing");
+  }
+
   const startAndEndDate: InBetween<Date> =
     RollingTimeUtil.convertToStartAndEndDate(
       podmanMonitorConfig.rollingTime || RollingTime.Past1Minute,
@@ -2376,6 +2398,12 @@ const monitorProxmox: MonitorProxmoxFunction = async (data: {
 
   if (!proxmoxMonitorConfig) {
     throw new BadDataException("Proxmox monitor config is missing");
+  }
+
+  if (!proxmoxMonitorConfig.metricViewConfig) {
+    throw new BadDataException(
+      "Proxmox monitor metric view config is missing",
+    );
   }
 
   const startAndEndDate: InBetween<Date> =
@@ -3048,6 +3076,10 @@ const monitorIoT: MonitorIoTFunction = async (data: {
     throw new BadDataException("IoT monitor config is missing");
   }
 
+  if (!iotMonitorConfig.metricViewConfig) {
+    throw new BadDataException("IoT monitor metric view config is missing");
+  }
+
   const startAndEndDate: InBetween<Date> =
     RollingTimeUtil.convertToStartAndEndDate(
       iotMonitorConfig.rollingTime || RollingTime.Past1Minute,
@@ -3265,6 +3297,12 @@ const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
 
   if (!dockerSwarmMonitorConfig) {
     throw new BadDataException("Docker Swarm monitor config is missing");
+  }
+
+  if (!dockerSwarmMonitorConfig.metricViewConfig) {
+    throw new BadDataException(
+      "Docker Swarm monitor metric view config is missing",
+    );
   }
 
   const startAndEndDate: InBetween<Date> =
@@ -3575,6 +3613,10 @@ const monitorCeph: MonitorCephFunction = async (data: {
 
   if (!cephMonitorConfig) {
     throw new BadDataException("Ceph monitor config is missing");
+  }
+
+  if (!cephMonitorConfig.metricViewConfig) {
+    throw new BadDataException("Ceph monitor metric view config is missing");
   }
 
   const startAndEndDate: InBetween<Date> =
