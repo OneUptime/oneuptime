@@ -56,6 +56,14 @@ const TelemetryRetentionConfigForm: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * Truncate FIRST, then judge. Checking positivity before truncating let
+   * anything in (0, 1) through - "0.9" is greater than zero, and
+   * Math.trunc(0.9) is 0, so the form emitted a retention of zero days and
+   * the next sweep would delete that pillar's telemetry outright. Whole days
+   * are the only unit this configuration has, so a value that is not at
+   * least one day is not a retention at all; it is an empty field.
+   */
   const parsePositiveOrNull: (raw: string) => number | null = (
     raw: string,
   ): number | null => {
@@ -63,10 +71,14 @@ const TelemetryRetentionConfigForm: FunctionComponent<ComponentProps> = (
       return null;
     }
     const parsed: number = Number(raw);
-    if (!Number.isFinite(parsed) || parsed <= 0) {
+    if (!Number.isFinite(parsed)) {
       return null;
     }
-    return Math.trunc(parsed);
+    const days: number = Math.trunc(parsed);
+    if (days <= 0) {
+      return null;
+    }
+    return days;
   };
 
   const setPillarDefault: (
