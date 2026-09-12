@@ -1250,6 +1250,30 @@ describe("attaching multiple incoming-call policy numbers", () => {
     expect(provider.releaseNumber).not.toHaveBeenCalled();
   });
 
+  test("rejects a malformed policy id on attach before any provider call", async () => {
+    let result: Invocation = await invoke("post", "/assign-existing", {
+      body: {
+        phoneNumberId: "PN-assigned",
+        phoneNumber: "+14155550101",
+        incomingCallPolicyId: "not-a-uuid",
+      },
+    });
+    expectNextError(result.next, "incomingCallPolicyId is not valid");
+
+    result = await invoke("post", "/purchase", {
+      body: {
+        phoneNumber: "+14155550102",
+        incomingCallPolicyId: "not-a-uuid",
+      },
+    });
+    expectNextError(result.next, "incomingCallPolicyId is not valid");
+
+    expect(policyService.findOneById).not.toHaveBeenCalled();
+    expect(provider.assignExistingNumber).not.toHaveBeenCalled();
+    expect(provider.purchaseNumber).not.toHaveBeenCalled();
+    expect(numberService.create).not.toHaveBeenCalled();
+  });
+
   test("releases a newly purchased number when its canonical result collides", async () => {
     const existing: IncomingCallPolicyPhoneNumber = makeNumberRow({
       id: NUMBER_ROW_1,
@@ -1720,6 +1744,34 @@ describe("targeted and legacy phone-number release", () => {
       result.next,
       "This phone number does not have a project Twilio configuration",
     );
+  });
+
+  test("rejects a malformed id before it reaches the database", async () => {
+    let result: Invocation = await invoke(
+      "delete",
+      "/release/:incomingCallPolicyId",
+      { params: { incomingCallPolicyId: "not-a-uuid" } },
+    );
+    expectNextError(result.next, "incomingCallPolicyId is not valid");
+
+    result = await invoke(
+      "delete",
+      "/release/:incomingCallPolicyId/:incomingCallPolicyPhoneNumberId",
+      {
+        params: {
+          incomingCallPolicyId: POLICY_ID.toString(),
+          incomingCallPolicyPhoneNumberId: "not-a-uuid",
+        },
+      },
+    );
+    expectNextError(
+      result.next,
+      "incomingCallPolicyPhoneNumberId is not valid",
+    );
+
+    expect(policyService.findOneById).not.toHaveBeenCalled();
+    expect(numberService.findOneBy).not.toHaveBeenCalled();
+    expect(provider.releaseNumber).not.toHaveBeenCalled();
   });
 });
 

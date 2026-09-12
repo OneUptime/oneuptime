@@ -541,10 +541,23 @@ router.post(
         | string
         | undefined;
 
-      const incomingCallPolicyId: ObjectID | undefined = body[
+      const rawIncomingCallPolicyId: string | undefined = body[
         "incomingCallPolicyId"
-      ]
-        ? new ObjectID(body["incomingCallPolicyId"] as string)
+      ] as string | undefined;
+
+      /*
+       * ObjectID does not validate, so an unparseable id would otherwise
+       * reach Postgres and surface as an untranslated 22P02 server error.
+       */
+      if (
+        rawIncomingCallPolicyId &&
+        !ObjectID.isValidUUID(rawIncomingCallPolicyId)
+      ) {
+        throw new BadDataException("incomingCallPolicyId is not valid");
+      }
+
+      const incomingCallPolicyId: ObjectID | undefined = rawIncomingCallPolicyId
+        ? new ObjectID(rawIncomingCallPolicyId)
         : undefined;
 
       if (!phoneNumberId) {
@@ -721,10 +734,23 @@ router.post(
         | string
         | undefined;
 
-      const incomingCallPolicyId: ObjectID | undefined = body[
+      const rawIncomingCallPolicyId: string | undefined = body[
         "incomingCallPolicyId"
-      ]
-        ? new ObjectID(body["incomingCallPolicyId"] as string)
+      ] as string | undefined;
+
+      /*
+       * ObjectID does not validate, so an unparseable id would otherwise
+       * reach Postgres and surface as an untranslated 22P02 server error.
+       */
+      if (
+        rawIncomingCallPolicyId &&
+        !ObjectID.isValidUUID(rawIncomingCallPolicyId)
+      ) {
+        throw new BadDataException("incomingCallPolicyId is not valid");
+      }
+
+      const incomingCallPolicyId: ObjectID | undefined = rawIncomingCallPolicyId
+        ? new ObjectID(rawIncomingCallPolicyId)
         : undefined;
 
       if (!phoneNumber) {
@@ -911,21 +937,41 @@ async function releasePhoneNumberHandler(
   next: NextFunction,
 ): Promise<ExpressResponse | void> {
   try {
-    const incomingCallPolicyId: ObjectID | undefined = req.params[
+    const rawIncomingCallPolicyId: string | undefined = req.params[
       "incomingCallPolicyId"
-    ]
-      ? new ObjectID(req.params["incomingCallPolicyId"] as string)
-      : undefined;
-
-    const incomingCallPolicyPhoneNumberId: ObjectID | undefined = req.params[
+    ] as string | undefined;
+    const rawIncomingCallPolicyPhoneNumberId: string | undefined = req.params[
       "incomingCallPolicyPhoneNumberId"
-    ]
-      ? new ObjectID(req.params["incomingCallPolicyPhoneNumberId"] as string)
-      : undefined;
+    ] as string | undefined;
 
-    if (!incomingCallPolicyId) {
+    if (!rawIncomingCallPolicyId) {
       throw new BadDataException("incomingCallPolicyId is required");
     }
+
+    /*
+     * ObjectID does not validate, so an unparseable id would otherwise reach
+     * Postgres and surface as an untranslated 22P02 server error.
+     */
+    if (!ObjectID.isValidUUID(rawIncomingCallPolicyId)) {
+      throw new BadDataException("incomingCallPolicyId is not valid");
+    }
+
+    if (
+      rawIncomingCallPolicyPhoneNumberId &&
+      !ObjectID.isValidUUID(rawIncomingCallPolicyPhoneNumberId)
+    ) {
+      throw new BadDataException(
+        "incomingCallPolicyPhoneNumberId is not valid",
+      );
+    }
+
+    const incomingCallPolicyId: ObjectID = new ObjectID(
+      rawIncomingCallPolicyId,
+    );
+    const incomingCallPolicyPhoneNumberId: ObjectID | undefined =
+      rawIncomingCallPolicyPhoneNumberId
+        ? new ObjectID(rawIncomingCallPolicyPhoneNumberId)
+        : undefined;
 
     const incomingCallPolicy: IncomingCallPolicy | null =
       await IncomingCallPolicyService.findOneById({

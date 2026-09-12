@@ -257,6 +257,26 @@ describe("the incoming-call policies table", () => {
       "requestId !== phoneNumberRequestId.current",
     );
   });
+
+  test("exports the numbers themselves and does not sort by the ids it selects", () => {
+    /*
+     * The cell renders from a second request, so the ids this column declares
+     * are plumbing: the CSV must not export them and the header must not
+     * offer to sort by them.
+     */
+    expect(POLICIES_TABLE_CODE).toContain("disableSort: true");
+    expect(POLICIES_TABLE_CODE).toContain(
+      "getExportValue: (item: IncomingCallPolicy): string =>",
+    );
+    expect(POLICIES_TABLE_CODE).toContain('phoneNumberTexts.join("; ")');
+  });
+
+  test("falls back to the legacy scalar while the batch is loading or failed", () => {
+    expect(POLICIES_TABLE_CODE).toContain(
+      "(isLoadingPhoneNumbers || phoneNumbersError) &&",
+    );
+    expect(POLICIES_TABLE_CODE).toContain("if (legacyPhoneNumber) {");
+  });
 });
 
 describe("incoming-call logs", () => {

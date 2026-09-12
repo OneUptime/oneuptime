@@ -37,6 +37,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import {
   getCompactPhoneNumberSummary,
+  getIncomingCallPolicyPhoneNumberText,
   groupIncomingCallPolicyPhoneNumbers,
   includeLegacyIncomingCallPolicyPhoneNumber,
   type CompactPhoneNumberSummary,
@@ -299,16 +300,63 @@ const IncomingCallPoliciesPage: FunctionComponent<
             },
             title: "Phone Numbers",
             type: FieldType.Element,
+            /*
+             * The cell renders from a second request rather than from this
+             * column's own fields, so sorting by them is meaningless and the
+             * CSV would otherwise export the raw ids they declare.
+             */
+            disableSort: true,
+            getExportValue: (item: IncomingCallPolicy): string => {
+              const policyId: string = item.id?.toString() || "";
+              const phoneNumbers: Array<IncomingCallPolicyPhoneNumber> =
+                phoneNumbersByPolicyId[policyId] || [];
+              const phoneNumberTexts: Array<string> = phoneNumbers
+                .map(getIncomingCallPolicyPhoneNumberText)
+                .filter((phoneNumber: string): boolean => {
+                  return Boolean(phoneNumber);
+                });
+
+              if (phoneNumberTexts.length > 0) {
+                return phoneNumberTexts.join("; ");
+              }
+
+              return item.routingPhoneNumber?.toString() || "";
+            },
             getElement: (item: IncomingCallPolicy): ReactElement => {
               const policyId: string = item.id?.toString() || "";
               const phoneNumbers: Array<IncomingCallPolicyPhoneNumber> =
                 phoneNumbersByPolicyId[policyId] || [];
 
-              if (isLoadingPhoneNumbers) {
-                return <span className="text-gray-500">Loading…</span>;
-              }
+              /*
+               * Until the attachment request lands (or when it fails) the row
+               * already carries the legacy scalar number, so show that rather
+               * than blanking a cell that has something true to display.
+               */
+              const legacyPhoneNumber: string =
+                item.routingPhoneNumber?.toString() || "";
 
-              if (phoneNumbersError) {
+              if (
+                (isLoadingPhoneNumbers || phoneNumbersError) &&
+                phoneNumbers.length === 0
+              ) {
+                if (legacyPhoneNumber) {
+                  return (
+                    <div className="flex items-center space-x-2 min-w-0">
+                      <Icon
+                        icon={IconProp.Call}
+                        className="h-4 w-4 text-green-500 flex-shrink-0"
+                      />
+                      <span className="font-mono truncate">
+                        {legacyPhoneNumber}
+                      </span>
+                    </div>
+                  );
+                }
+
+                if (isLoadingPhoneNumbers) {
+                  return <span className="text-gray-500">Loading…</span>;
+                }
+
                 return (
                   <span className="text-red-600" title={phoneNumbersError}>
                     Unavailable
