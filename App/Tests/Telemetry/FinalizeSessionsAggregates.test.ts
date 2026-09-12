@@ -286,9 +286,9 @@ describe("FinalizeSessions engagement aggregates", () => {
       maxChunkIndex: 1,
       chunkIndexes: [0, 1],
       fullSnapshotChunkIndexes: [0],
-      eventCount: "20",
+      totalEventCount: "20",
       payloadBytes: "2000",
-      errorCount: 1,
+      totalErrorCount: 1,
       rageClickCount: 0,
       deadClickCount: 0,
       errorClickCount: 0,
@@ -397,6 +397,17 @@ describe("FinalizeSessions aggregate statement", () => {
 
     expect(query).toContain("sum(clickCount) AS clickCount");
     expect(query).toContain("sum(customEventCount) AS customEventCount");
+    /*
+     * Summed under a different name, or the errorCount / eventCount read
+     * by countIf, minIf and sumIf below resolves to the aggregate alias and
+     * ClickHouse rejects the query. SessionReplayFinalizerClickhouse.test.ts
+     * is what proves the server accepts it; this only keeps the names the
+     * row parser reads in step.
+     */
+    expect(query).toContain("sum(errorCount) AS totalErrorCount");
+    expect(query).toContain("sum(eventCount) AS totalEventCount");
+    expect(query).not.toContain("AS errorCount");
+    expect(query).not.toContain("AS eventCount");
     expect(query).toContain("countIf(errorCount > 0) AS erroredChunkCount");
     expect(query).toContain(
       "minIf(chunkStartOffsetMs, errorCount > 0) AS firstErrorOffsetMs",
