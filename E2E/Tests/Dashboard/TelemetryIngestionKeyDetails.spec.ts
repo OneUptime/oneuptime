@@ -76,8 +76,18 @@ test.describe("Telemetry ingestion key details", () => {
     return ctx.page.getByTestId("modal");
   };
 
+  /*
+   * The rendered editor, not Monaco's focusable control. That control is a
+   * hidden textarea Monaco parks at the caret and collapses to zero size
+   * whenever the editor is not focused, so Firefox reports it as hidden and
+   * every actionability check on it times out.
+   */
   const originsEditor: () => Locator = (): Locator => {
-    return modal().getByRole("textbox", { name: /^Allowed Origins/ });
+    return modal().locator(".monaco-editor").first();
+  };
+
+  const originsLines: () => Locator = (): Locator => {
+    return modal().locator(".monaco-editor .view-lines");
   };
 
   const seedKey: (item: JSONish) => Promise<string> = async (
@@ -142,15 +152,14 @@ test.describe("Telemetry ingestion key details", () => {
   const fillOrigins: (value: string) => Promise<void> = async (
     value: string,
   ): Promise<void> => {
-    const editor: Locator = originsEditor();
-    await expect(editor).toBeVisible({ timeout: 30000 });
-    await editor.focus();
-    await editor.press("ControlOrMeta+A");
-    await editor.press("Backspace");
-    await expect(modal().locator(".monaco-editor .view-lines")).toHaveText("");
+    await expect(originsEditor()).toBeVisible({ timeout: 30000 });
+    await originsLines().click();
+    await ctx.page.keyboard.press("ControlOrMeta+A");
+    await ctx.page.keyboard.press("Backspace");
+    await expect(originsLines()).toHaveText("");
     await ctx.page.keyboard.insertText(value);
-    await editor.press("Shift+End");
-    await editor.press("Delete");
+    await ctx.page.keyboard.press("Shift+End");
+    await ctx.page.keyboard.press("Delete");
     // Blur so Monaco flushes its onChange into the form.
     await modal().getByPlaceholder("storefront-web", { exact: true }).focus();
   };

@@ -91,15 +91,24 @@ test.describe("Telemetry ingestion key creation wizard", () => {
   const fillOrigins: (value: string) => Promise<void> = async (
     value: string,
   ): Promise<void> => {
-    const editor: Locator = modal().getByRole("textbox", {
-      name: "Allowed Origins",
-      exact: true,
+    /*
+     * Wait for - and act on - the editor itself, never Monaco's focusable
+     * control. That control is a hidden textarea Monaco parks at the caret,
+     * and it collapses to zero size whenever the editor is not focused: on
+     * the second call in a step Firefox reports it as hidden, and every
+     * actionability check on it then times out. Clicking the rendered lines
+     * focuses the editor the way a person does, and the keyboard goes
+     * through the page rather than through a locator that has to be
+     * "visible" first.
+     */
+    const lines: Locator = modal().locator(".monaco-editor .view-lines");
+    await expect(modal().locator(".monaco-editor").first()).toBeVisible({
+      timeout: 30000,
     });
-    await expect(editor).toBeVisible({ timeout: 30000 });
-    await editor.focus();
-    await editor.press("ControlOrMeta+A");
-    await editor.press("Backspace");
-    await expect(modal().locator(".monaco-editor .view-lines")).toHaveText("");
+    await lines.click();
+    await ctx.page.keyboard.press("ControlOrMeta+A");
+    await ctx.page.keyboard.press("Backspace");
+    await expect(lines).toHaveText("");
     await ctx.page.keyboard.insertText(value);
     /*
      * Inserting the whole document at once does not escape Monaco's
@@ -115,8 +124,8 @@ test.describe("Telemetry ingestion key creation wizard", () => {
      * and Delete at the end of the document is a no-op, which leaves balanced
      * values exactly as they were inserted.
      */
-    await editor.press("Shift+End");
-    await editor.press("Delete");
+    await ctx.page.keyboard.press("Shift+End");
+    await ctx.page.keyboard.press("Delete");
     await modal().getByPlaceholder("storefront-web", { exact: true }).focus();
   };
 
