@@ -119,14 +119,18 @@ While any monitor attached to the SLO is in an active scheduled maintenance wind
 
 1. Go to **SLOs** in the OneUptime Dashboard and open your SLO
 2. Open the **Burn Rate Rules** tab
-3. Click **Create Burn Rate Rule** (or edit one of the seeded defaults)
-4. Configure:
-   - **Name** — e.g., "Fast burn"
-   - **Burn rate threshold** — e.g., `14.4`
-   - **Long window** and **short window** (in minutes)
-   - **Re-fire suppression** (in minutes) — quiet period after a resolve
-   - **Create alert** — whether this rule raises an Alert (on by default), plus its **alert severity** and **alert on-call duty policies**
-   - **Declare incident** — whether this rule declares an Incident (off by default), plus its **incident severity** and **incident on-call duty policies**
+3. Click **Create SLO Burn Rate Rule** (or edit one of the seeded defaults)
+4. Work through the steps:
+
+| Step                 | What you set                                                                                                                         |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Rule**             | **Name** — e.g., "Fast burn" — and whether the rule is **enabled**.                                                                  |
+| **Burn Window**      | **Burn rate threshold** (e.g., `14.4`), the **long window** and **short window** in minutes, and **re-fire suppression** in minutes. |
+| **What It Declares** | **Create alert** (on by default) and **declare incident** (off by default). At least one must be on.                                 |
+| **Alert Routing**    | The **alert severity** and **alert on-call duty policies**. Shown only when the rule raises an alert.                                |
+| **Incident Routing** | The **incident severity** and **incident on-call duty policies**. Shown only when the rule declares an incident.                     |
+
+The two routing steps appear and disappear with the toggles on **What It Declares**, so a rule that only raises alerts is never asked about incident severity.
 
 A good starting point is to keep the two seeded rules, route the fast-burn rule to your paging on-call policy at a high severity, and let the slow-burn rule create a lower-severity alert for working-hours follow-up. If your team runs everything through the incident workflow, turn on **Declare incident** for the fast-burn rule — and turn off **Create alert** on it if you would rather not get both.
 

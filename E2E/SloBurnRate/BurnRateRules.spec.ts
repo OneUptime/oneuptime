@@ -129,66 +129,216 @@ test("the table reports what each rule declares", async ({
   await screenshot(page, "burn-rate-rules-table-synthetic");
 });
 
-test("the form offers both outputs with their own severity and escalation", async ({
-  page,
-}: {
-  page: Page;
-}) => {
+/*
+ * The create form is a wizard. These walk it, because the interesting part is
+ * not that the fields exist — the unit suite pins that from the exported
+ * arrays — but that the rail reacts: Incident Routing is absent until the rule
+ * says it declares one, and Alert Routing leaves when it says it does not.
+ */
+
+const STEP_RAIL: Array<string> = [
+  "Rule",
+  "Burn Window",
+  "What It Declares",
+  "Alert Routing",
+  "Incident Routing",
+];
+
+/*
+ * The rail in document order, so these assert the SEQUENCE and not just which
+ * steps happen to exist. Steps render as plain list items inside the progress
+ * nav — no role, no accessible name — so this reads the list rather than
+ * looking them up by role.
+ */
+async function visibleSteps(page: Page): Promise<Array<string>> {
+  const titles: Array<string> = await page
+    .locator('nav[aria-label="Progress"] li')
+    .allInnerTexts();
+
+  return titles
+    .map((title: string): string => {
+      return title.trim();
+    })
+    .filter((title: string): boolean => {
+      return title.length > 0;
+    });
+}
+
+async function openCreateForm(page: Page): Promise<void> {
   await page
     .getByRole("button", { name: "Create SLO Burn Rate Rule" })
     .first()
     .click();
 
-  /*
-   * Substring matches, not exact ones: an optional field's label renders as
-   * "<title> (Optional)" in one element, so an exact match finds nothing.
-   */
-  await expect(page.getByText("Create Alert").first()).toBeVisible();
-  await expect(page.getByText("Declare Incident").first()).toBeVisible();
   await expect(
-    page.getByText("Alert On-Call Duty Policies").first(),
+    page.getByText("Create New SLO Burn Rate Rule", { exact: true }),
   ).toBeVisible();
-  await expect(page.getByText("Incident Severity").first()).toBeVisible();
-  await expect(
-    page.getByText("Incident On-Call Duty Policies").first(),
-  ).toBeVisible();
+}
+
+async function next(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+}
+
+test("the form opens as a wizard, and offers no incident routing until asked", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openCreateForm(page);
 
   /*
-   * Create Alert must render ON even though nobody touched it — it carries the
-   * column's own default, so a form showing it off would be telling the user
-   * the opposite of what the row will hold.
+   * Four steps, not five. `shouldCreateIncident` defaults to false, so the
+   * step that configures an incident has nothing to configure — BasicForm
+   * drops a step whose showIf is false from the rail AND from the
+   * next/previous walk, so it cannot be reached by tabbing past it either.
    */
-  const createAlertToggle: ReturnType<Page["locator"]> = page
+  expect(await visibleSteps(page)).toEqual([
+    "Rule",
+    "Burn Window",
+    "What It Declares",
+    "Alert Routing",
+  ]);
+
+  // Enabled carries its column default, so the first step is already truthful.
+  const enabledToggle: ReturnType<Page["locator"]> = page
+    .locator("div")
+    .filter({ hasText: /^Enabled \(Optional\)/ })
+    .last()
+    .locator("[aria-checked]")
+    .first();
+  await expect(enabledToggle).toHaveAttribute("aria-checked", "true");
+
+  await screenshot(page, "burn-rate-rule-form-step-rule-synthetic", false);
+});
+
+test("the step rail gains and loses a routing step with the toggle that owns it", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openCreateForm(page);
+
+  // Step 1 - Rule.
+  await page.getByPlaceholder("Fast burn").fill("Fast burn");
+  await next(page);
+
+  // Step 2 - Burn Window. Every field here is required, so fill them all.
+  await page.getByPlaceholder("14.4").fill("14.4");
+  await page.getByPlaceholder("60").first().fill("60");
+  await page.getByPlaceholder("5").fill("5");
+  await screenshot(page, "burn-rate-rule-form-step-window-synthetic", false);
+  await next(page);
+
+  // Step 3 - What It Declares: both toggles, together, before either routing.
+  const alertToggle: ReturnType<Page["locator"]> = page
     .locator("div")
     .filter({ hasText: /^Create Alert \(Optional\)/ })
     .last()
     .locator("[aria-checked]")
     .first();
-  await expect(createAlertToggle).toHaveAttribute("aria-checked", "true");
-
-  /*
-   * And its neighbour is off, which is the other half of the claim: the two
-   * toggles carry their own column defaults rather than both rendering off.
-   */
-  const declareIncidentToggle: ReturnType<Page["locator"]> = page
+  const incidentToggle: ReturnType<Page["locator"]> = page
     .locator("div")
     .filter({ hasText: /^Declare Incident \(Optional\)/ })
     .last()
     .locator("[aria-checked]")
     .first();
-  await expect(declareIncidentToggle).toHaveAttribute("aria-checked", "false");
+
+  await expect(alertToggle).toHaveAttribute("aria-checked", "true");
+  await expect(incidentToggle).toHaveAttribute("aria-checked", "false");
+
+  await screenshot(page, "burn-rate-rule-form-step-declares-synthetic", false);
+
+  // Declaring an incident adds the step that configures it.
+  await incidentToggle.click();
+  await expect(incidentToggle).toHaveAttribute("aria-checked", "true");
+  expect(await visibleSteps(page)).toEqual(STEP_RAIL);
+
+  await screenshot(
+    page,
+    "burn-rate-rule-form-step-declares-both-synthetic",
+    false,
+  );
+
+  // And dropping the alert takes its routing step away again.
+  await alertToggle.click();
+  await expect(alertToggle).toHaveAttribute("aria-checked", "false");
+  expect(await visibleSteps(page)).toEqual([
+    "Rule",
+    "Burn Window",
+    "What It Declares",
+    "Incident Routing",
+  ]);
 
   /*
-   * Two shots: the modal shows about six fields at a time, and the point of
-   * the change is that the alert half and the incident half are configured
-   * independently.
+   * A rule that declares nothing is refused here rather than after a
+   * round-trip. The server enforces it too — this only saves the trip.
    */
-  await page.getByText("Create Alert").first().scrollIntoViewIfNeeded();
-  await screenshot(page, "burn-rate-rule-form-alert-synthetic", false);
+  await incidentToggle.click();
+  await next(page);
+
+  const noOutputError: ReturnType<Page["locator"]> = page.getByText(
+    "This rule would do nothing. Turn on Create Alert, Declare Incident, or both.",
+  );
+
+  /*
+   * Once, not twice. The validator hangs off the alert toggle alone — both
+   * toggles carrying it rendered the same sentence under each of them.
+   */
+  await expect(noOutputError).toHaveCount(1);
+  await expect(noOutputError).toBeVisible();
+
+  await screenshot(page, "burn-rate-rule-form-no-output-synthetic", false);
+});
+
+test("each routing step configures one output, with its own severity and escalation", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openCreateForm(page);
+
+  await page.getByPlaceholder("Fast burn").fill("Fast burn");
+  await next(page);
+
+  await page.getByPlaceholder("14.4").fill("14.4");
+  await page.getByPlaceholder("60").first().fill("60");
+  await page.getByPlaceholder("5").fill("5");
+  await next(page);
 
   await page
-    .getByText("Incident On-Call Duty Policies")
+    .locator("div")
+    .filter({ hasText: /^Declare Incident \(Optional\)/ })
+    .last()
+    .locator("[aria-checked]")
     .first()
-    .scrollIntoViewIfNeeded();
-  await screenshot(page, "burn-rate-rule-form-incident-synthetic", false);
+    .click();
+  await next(page);
+
+  // Alert Routing - the alert's severity and the alert's policies, alone.
+  await expect(page.getByText("Alert Severity").first()).toBeVisible();
+  await expect(
+    page.getByText("Alert On-Call Duty Policies").first(),
+  ).toBeVisible();
+  await expect(page.getByText("Incident Severity")).toHaveCount(0);
+
+  await screenshot(
+    page,
+    "burn-rate-rule-form-step-alert-routing-synthetic",
+    false,
+  );
+
+  await next(page);
+
+  // Incident Routing - its twin, and nothing about alerts.
+  await expect(page.getByText("Incident Severity").first()).toBeVisible();
+  await expect(
+    page.getByText("Incident On-Call Duty Policies").first(),
+  ).toBeVisible();
+  await expect(page.getByText("Alert Severity")).toHaveCount(0);
+
+  await screenshot(
+    page,
+    "burn-rate-rule-form-step-incident-routing-synthetic",
+    false,
+  );
 });

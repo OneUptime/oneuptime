@@ -1,9 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
 import {
+  BURN_RATE_RULE_FORM_FIELDS,
+  BURN_RATE_RULE_FORM_STEPS,
   describeBurnRateOutputs,
-  validateBurnRateOutputs,
-  validateBurnRateThreshold,
-  validateBurnRateWindows,
 } from "../Utils/BurnRateRuleForm";
 import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
 import Route from "Common/Types/API/Route";
@@ -11,8 +10,6 @@ import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import { Gray500, Green, Red } from "Common/Types/BrandColors";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
-import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
-import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import {
   canSloFireBurnRateRules,
@@ -23,7 +20,6 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -75,6 +71,22 @@ Route the fast-burn rule to a paging on-call policy at a high severity, and let 
 
 ---
 
+### Creating One
+
+The form walks the four questions a rule answers:
+
+| Step | What you set |
+|------|--------------|
+| **Rule** | Its name, and whether it is enabled. |
+| **Burn Window** | The threshold, the long and short windows, and the re-fire suppression. |
+| **What It Declares** | Alert, Incident, or both. |
+| **Alert Routing** | The alert's severity and on-call policies. Only shown when the rule raises one. |
+| **Incident Routing** | The incident's severity and on-call policies. Only shown when the rule declares one. |
+
+The two routing steps appear and disappear with the toggles on **What It Declares**, so a rule that only raises alerts is never asked about incident severity.
+
+---
+
 ### Other Settings
 
 - A rule cannot fire until the SLO has at least a full long window of monitoring history, so a brand-new monitor cannot page you on its first blip. That means a fresh SLO will not fire Fast burn for its first hour, or Slow burn for its first six.
@@ -91,13 +103,19 @@ Route the fast-burn rule to a paging on-call policy at a high severity, and let 
  * See Pages/Slo/Utils/BurnRateRuleForm.
  */
 export {
+  BURN_RATE_RULE_FORM_FIELDS,
+  BURN_RATE_RULE_FORM_STEPS,
   describeBurnRateOutputs,
   validateBurnRateOutputs,
   validateBurnRateThreshold,
   validateBurnRateWindows,
+  willCreateAlert,
+  willDeclareIncident,
 } from "../Utils/BurnRateRuleForm";
 export type {
+  BurnRateRuleOutputFlags,
   DescribeBurnRateOutputsFunction,
+  ReadsBurnRateOutputFlagFunction,
   ValidateBurnRateOutputsFunction,
   ValidateBurnRateThresholdFunction,
   ValidateBurnRateWindowsFunction,
@@ -202,182 +220,8 @@ const SloBurnRateRules: FunctionComponent<
             type: FieldType.Boolean,
           },
         ]}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Fast burn",
-          },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description: "Enable or disable this burn rate rule.",
-            /*
-             * The column default. Without it the toggle renders OFF on a
-             * create form while the row is in fact written enabled — the
-             * form would be telling the user the opposite of what it does.
-             */
-            defaultValue: true,
-          },
-          {
-            field: {
-              burnRateThreshold: true,
-            },
-            title: "Burn Rate Threshold",
-            description:
-              "Fire when the burn rate exceeds this value over both windows. 14.4 is the classic fast-burn threshold for a 30-day window.",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "14.4",
-            customValidation: validateBurnRateThreshold,
-          },
-          {
-            field: {
-              longWindowInMinutes: true,
-            },
-            title: "Long Window (Minutes)",
-            description:
-              "Lookback that confirms the burn is sustained, e.g. 60 for fast burn or 360 for slow burn.",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "60",
-            validation: {
-              minValue: 1,
-            },
-          },
-          {
-            field: {
-              shortWindowInMinutes: true,
-            },
-            title: "Short Window (Minutes)",
-            description:
-              "Lookback that confirms the burn is still happening, e.g. 5 for fast burn or 30 for slow burn. Must be shorter than the long window.",
-            fieldType: FormFieldSchemaType.Number,
-            required: true,
-            placeholder: "5",
-            validation: {
-              minValue: 1,
-            },
-            customValidation: validateBurnRateWindows,
-          },
-          /*
-           * Minimum Sample Count is intentionally absent. It only guards
-           * event-based (Metric) SLIs, which OneUptime does not evaluate
-           * yet — the worker never reads the column, so offering the knob
-           * promised a noise guard that does nothing. The column and its
-           * server-side validation remain for that later phase.
-           */
-          {
-            field: {
-              refireSuppressionMinutes: true,
-            },
-            title: "Re-fire Suppression (Minutes)",
-            description:
-              "Quiet period after an alert or incident resolves before this rule may declare that same record again. Each output is suppressed independently. Defaults to the long window.",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "60",
-            validation: {
-              minValue: 1,
-            },
-          },
-          {
-            field: {
-              shouldCreateAlert: true,
-            },
-            title: "Create Alert",
-            description:
-              "Raise an Alert when this rule fires. A rule must create an alert, declare an incident, or both.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            // The column default, so the toggle shows what the row will hold.
-            defaultValue: true,
-            customValidation: validateBurnRateOutputs,
-          },
-          {
-            field: {
-              alertSeverity: true,
-            },
-            title: "Alert Severity",
-            description:
-              "Severity of the alert this rule creates. Defaults to the project's most severe.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: AlertSeverity,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Alert Severity",
-          },
-          {
-            field: {
-              onCallDutyPolicies: true,
-            },
-            title: "Alert On-Call Duty Policies",
-            description:
-              "On-call policies to execute when this rule creates an alert.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: OnCallDutyPolicy,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select On-Call Policies (optional)",
-          },
-          {
-            field: {
-              shouldCreateIncident: true,
-            },
-            title: "Declare Incident",
-            description:
-              "Declare an Incident when this rule fires. Burn rate incidents are never published to status pages and never notify subscribers.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            customValidation: validateBurnRateOutputs,
-          },
-          {
-            field: {
-              incidentSeverity: true,
-            },
-            title: "Incident Severity",
-            description:
-              "Severity of the incident this rule declares. Defaults to the project's most severe.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: IncidentSeverity,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Incident Severity",
-          },
-          {
-            field: {
-              incidentOnCallDutyPolicies: true,
-            },
-            title: "Incident On-Call Duty Policies",
-            description:
-              "On-call policies to execute when this rule declares an incident. Kept separate from the alert policies so the two can escalate differently.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: OnCallDutyPolicy,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select On-Call Policies (optional)",
-          },
-        ]}
+        formSteps={BURN_RATE_RULE_FORM_STEPS}
+        formFields={BURN_RATE_RULE_FORM_FIELDS}
         columns={[
           {
             field: {
