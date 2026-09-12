@@ -462,7 +462,7 @@ function runGroupByOverChunkRows(rows: Array<RawChunkRow>): Array<JSONObject> {
         .map((row: RawChunkRow): number => {
           return row.chunkIndex;
         }),
-      eventCount: String(
+      totalEventCount: String(
         sum((row: RawChunkRow): number => {
           return row.eventCount;
         }),
@@ -472,7 +472,7 @@ function runGroupByOverChunkRows(rows: Array<RawChunkRow>): Array<JSONObject> {
           return row.payloadBytes;
         }),
       ),
-      errorCount: sum((row: RawChunkRow): number => {
+      totalErrorCount: sum((row: RawChunkRow): number => {
         return row.errorCount;
       }),
       rageClickCount: sum((row: RawChunkRow): number => {
@@ -1787,9 +1787,9 @@ describe("Rum:FinalizeSessions row parsing", () => {
       maxChunkIndex: 2,
       chunkIndexes: [0, 1, 2],
       fullSnapshotChunkIndexes: [0],
-      eventCount: "30",
+      totalEventCount: "30",
       payloadBytes: "3000",
-      errorCount: 1,
+      totalErrorCount: 1,
       rageClickCount: 0,
       deadClickCount: 0,
       errorClickCount: 0,

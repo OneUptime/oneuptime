@@ -536,6 +536,14 @@ export function buildTabAggregateStatement(data: {
    * The WHERE clause is the (projectId, sessionId) prefix of the chunk
    * table's sort key, which is why this is a key-range read and not a
    * scan.
+   *
+   * eventCount and errorCount are summed under a DIFFERENT name on purpose.
+   * ClickHouse resolves an identifier to a SELECT alias before it resolves
+   * it to a column, so `sum(errorCount) AS errorCount` would turn the
+   * `errorCount > 0` inside countIf/minIf (and `eventCount >= ...` inside
+   * sumIf) into a nested aggregate, and the server rejects the whole query
+   * with ILLEGAL_AGGREGATION. Any other column read inside a later
+   * aggregate needs the same treatment.
    */
   return SQL`
     SELECT
@@ -545,9 +553,9 @@ export function buildTabAggregateStatement(data: {
       max(chunkIndex) AS maxChunkIndex,
       groupArray(chunkIndex) AS chunkIndexes,
       groupArrayIf(chunkIndex, hasFullSnapshot) AS fullSnapshotChunkIndexes,
-      sum(eventCount) AS eventCount,
+      sum(eventCount) AS totalEventCount,
       sum(payloadBytes) AS payloadBytes,
-      sum(errorCount) AS errorCount,
+      sum(errorCount) AS totalErrorCount,
       sum(rageClickCount) AS rageClickCount,
       sum(deadClickCount) AS deadClickCount,
       sum(errorClickCount) AS errorClickCount,
@@ -867,9 +875,9 @@ export function parseTabAggregateRow(row: JSONObject): TabChunkAggregate {
     fullSnapshotChunkIndexes: toNumberArrayValue(
       row["fullSnapshotChunkIndexes"],
     ),
-    eventCount: toNumberValue(row["eventCount"]),
+    eventCount: toNumberValue(row["totalEventCount"]),
     payloadBytes: toNumberValue(row["payloadBytes"]),
-    errorCount: toNumberValue(row["errorCount"]),
+    errorCount: toNumberValue(row["totalErrorCount"]),
     rageClickCount: toNumberValue(row["rageClickCount"]),
     deadClickCount: toNumberValue(row["deadClickCount"]),
     errorClickCount: toNumberValue(row["errorClickCount"]),
