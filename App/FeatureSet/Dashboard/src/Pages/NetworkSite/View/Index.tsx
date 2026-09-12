@@ -4,7 +4,6 @@ import PageComponentProps from "../../PageComponentProps";
 import {
   fetchAllNetworkSiteTypeOptions,
   fetchParentNetworkSiteOptions,
-  isParentSiteRequired,
 } from "../../../Components/NetworkSite/NetworkSiteFormDropdownOptions";
 import SiteStatusHero from "../../../Components/NetworkSite/SiteStatusHero";
 import MonitorStatusElement from "../../../Components/MonitorStatus/MonitorStatusElement";
@@ -81,7 +80,7 @@ const NetworkSiteView: FunctionComponent<
             title: "Site Type",
             stepId: "site-details",
             description:
-              "Choose this first. The type's configured parent determines which parent sites are available on the next step.",
+              "Choose this first. On the next step you can place this site under any site that is not below it in the hierarchy, and sites of the type configured directly above are listed first.",
             fieldType: FormFieldSchemaType.Dropdown,
             fetchDropdownOptions: fetchAllNetworkSiteTypeOptions,
             onChange: (
@@ -127,14 +126,14 @@ const NetworkSiteView: FunctionComponent<
             stepId: "hierarchy",
             sectionTitle: "Place This Site",
             sectionDescription:
-              "Only sites whose type is the configured parent of the selected site type are shown.",
+              "Optional. Any site that is not below this one in your site type hierarchy can be the parent. Sites of the type configured directly above are listed first.",
             description:
-              "Top-level site types do not have a parent site. A child site type requires one of the matching sites below.",
+              "Leave this empty to keep the site at the top level. Sites of a type below this one, and sites of a unit-level type, cannot be parents.",
             fieldType: FormFieldSchemaType.Dropdown,
             fetchDropdownOptions: (values: FormValues<NetworkSite>) => {
               return fetchParentNetworkSiteOptions(values, modelId);
             },
-            required: isParentSiteRequired,
+            required: false,
             placeholder: "No parent site (top level)",
           },
           {

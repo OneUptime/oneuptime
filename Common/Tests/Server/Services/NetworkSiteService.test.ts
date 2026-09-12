@@ -111,13 +111,17 @@ function fakeSite(overrides: Record<string, unknown>): NetworkSite {
 
 function fakeNetworkSiteType(data: {
   id: ObjectID;
+  name?: string | undefined;
   parentNetworkSiteTypeId?: ObjectID | undefined;
   projectId?: ObjectID | undefined;
+  isUnitLevel?: boolean | undefined;
 }): any {
   return {
     id: data.id,
     _id: data.id.toString(),
+    name: data.name,
     projectId: data.projectId || PROJECT_ID,
+    isUnitLevel: data.isUnitLevel,
     parentNetworkSiteTypeId: data.parentNetworkSiteTypeId,
   };
 }
@@ -1249,7 +1253,12 @@ describe("NetworkSiteService site-type hierarchy enforcement on create", () => {
     );
   });
 
-  it("rejects a parent for a root type", async () => {
+  /*
+   * Regression block for GitHub issue #3744. Each of these placements was
+   * refused before the placement rule was relaxed to "a parent may be any site
+   * whose type is not below this one's".
+   */
+  it("accepts a parent of the same type", async () => {
     mockNetworkSiteTypes([fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID })]);
     jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
       fakeSite({
@@ -1258,22 +1267,25 @@ describe("NetworkSiteService site-type hierarchy enforcement on create", () => {
         networkSiteTypeId: ROOT_SITE_TYPE_ID,
       }),
     );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(`/${PARENT_SITE_ID.toString()}/`);
 
-    await expect(
-      (NetworkSiteService as any).onBeforeCreate({
-        data: {
-          projectId: PROJECT_ID,
-          networkSiteTypeId: ROOT_SITE_TYPE_ID,
-          parentSiteId: PARENT_SITE_ID,
-        },
-        props: { tenantId: PROJECT_ID },
-      }),
-    ).rejects.toThrow(
-      "A site with a root network site type cannot have a parent site.",
+    const result: any = await (NetworkSiteService as any).onBeforeCreate({
+      data: {
+        projectId: PROJECT_ID,
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
+        parentSiteId: PARENT_SITE_ID,
+      },
+      props: { tenantId: PROJECT_ID },
+    });
+
+    expect(result.carryForward.parentPath).toBe(
+      `/${PARENT_SITE_ID.toString()}/`,
     );
   });
 
-  it("requires a parent for a type configured below another type", async () => {
+  it("accepts no parent for a type configured below another type", async () => {
     mockNetworkSiteTypes([
       fakeNetworkSiteType({
         id: CHILD_SITE_TYPE_ID,
@@ -1281,15 +1293,15 @@ describe("NetworkSiteService site-type hierarchy enforcement on create", () => {
       }),
     ]);
 
-    await expect(
-      (NetworkSiteService as any).onBeforeCreate({
-        data: {
-          projectId: PROJECT_ID,
-          networkSiteTypeId: CHILD_SITE_TYPE_ID,
-        },
-        props: { tenantId: PROJECT_ID },
-      }),
-    ).rejects.toThrow("This network site type requires a parent site.");
+    const result: any = await (NetworkSiteService as any).onBeforeCreate({
+      data: {
+        projectId: PROJECT_ID,
+        networkSiteTypeId: CHILD_SITE_TYPE_ID,
+      },
+      props: { tenantId: PROJECT_ID },
+    });
+
+    expect(result.carryForward.parentPath).toBeNull();
   });
 
   it("accepts a direct parent with exactly the configured type through relation fields", async () => {
@@ -1298,6 +1310,7 @@ describe("NetworkSiteService site-type hierarchy enforcement on create", () => {
         id: CHILD_SITE_TYPE_ID,
         parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
       }),
+      fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID }),
     ]);
     jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
       fakeSite({
@@ -1324,7 +1337,79 @@ describe("NetworkSiteService site-type hierarchy enforcement on create", () => {
     );
   });
 
-  it("rejects a parent whose type is not the configured direct parent", async () => {
+  // The issue's own case: a Market (nested type) under an Other (root type).
+  it("accepts a parent whose type is unrelated to the configured one", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        name: "Market",
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+      fakeNetworkSiteType({ id: ALTERNATE_ROOT_SITE_TYPE_ID, name: "Other" }),
+    ]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID,
+      }),
+    );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(`/${PARENT_SITE_ID.toString()}/`);
+
+    const result: any = await (NetworkSiteService as any).onBeforeCreate({
+      data: {
+        projectId: PROJECT_ID,
+        networkSiteTypeId: CHILD_SITE_TYPE_ID,
+        parentSiteId: PARENT_SITE_ID,
+      },
+      props: { tenantId: PROJECT_ID },
+    });
+
+    expect(result.carryForward.parentPath).toBe(
+      `/${PARENT_SITE_ID.toString()}/`,
+    );
+  });
+
+  it("accepts a parent that skips a configured level", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: GRANDCHILD_SITE_TYPE_ID,
+        parentNetworkSiteTypeId: CHILD_SITE_TYPE_ID,
+      }),
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+      fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID }),
+    ]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(`/${PARENT_SITE_ID.toString()}/`);
+
+    const result: any = await (NetworkSiteService as any).onBeforeCreate({
+      data: {
+        projectId: PROJECT_ID,
+        networkSiteTypeId: GRANDCHILD_SITE_TYPE_ID,
+        parentSiteId: PARENT_SITE_ID,
+      },
+      props: { tenantId: PROJECT_ID },
+    });
+
+    expect(result.carryForward.parentPath).toBe(
+      `/${PARENT_SITE_ID.toString()}/`,
+    );
+  });
+
+  it("accepts a parent that has no site type at all", async () => {
     mockNetworkSiteTypes([
       fakeNetworkSiteType({
         id: CHILD_SITE_TYPE_ID,
@@ -1335,7 +1420,40 @@ describe("NetworkSiteService site-type hierarchy enforcement on create", () => {
       fakeSite({
         id: PARENT_SITE_ID,
         _id: PARENT_SITE_ID.toString(),
-        networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID,
+      }),
+    );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(`/${PARENT_SITE_ID.toString()}/`);
+
+    const result: any = await (NetworkSiteService as any).onBeforeCreate({
+      data: {
+        projectId: PROJECT_ID,
+        networkSiteTypeId: CHILD_SITE_TYPE_ID,
+        parentSiteId: PARENT_SITE_ID,
+      },
+      props: { tenantId: PROJECT_ID },
+    });
+
+    expect(result.carryForward.parentPath).toBe(
+      `/${PARENT_SITE_ID.toString()}/`,
+    );
+  });
+
+  it("rejects a parent whose type sits below this site's type", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID, name: "Region" }),
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        name: "Market",
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    ]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: CHILD_SITE_TYPE_ID,
       }),
     );
 
@@ -1343,13 +1461,116 @@ describe("NetworkSiteService site-type hierarchy enforcement on create", () => {
       (NetworkSiteService as any).onBeforeCreate({
         data: {
           projectId: PROJECT_ID,
-          networkSiteTypeId: CHILD_SITE_TYPE_ID,
+          networkSiteTypeId: ROOT_SITE_TYPE_ID,
           parentSiteId: PARENT_SITE_ID,
         },
         props: { tenantId: PROJECT_ID },
       }),
     ).rejects.toThrow(
-      "Parent site must use the configured parent network site type.",
+      'A site of network site type "Region" cannot be placed under a site of network site type "Market", because "Market" sits below "Region" in the site type hierarchy.',
+    );
+  });
+
+  it("rejects a parent whose type sits below it through a skipped level", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID, name: "Region" }),
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        name: "Franchisee",
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+      fakeNetworkSiteType({
+        id: GRANDCHILD_SITE_TYPE_ID,
+        name: "Market",
+        parentNetworkSiteTypeId: CHILD_SITE_TYPE_ID,
+      }),
+    ]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: GRANDCHILD_SITE_TYPE_ID,
+      }),
+    );
+
+    await expect(
+      (NetworkSiteService as any).onBeforeCreate({
+        data: {
+          projectId: PROJECT_ID,
+          networkSiteTypeId: ROOT_SITE_TYPE_ID,
+          parentSiteId: PARENT_SITE_ID,
+        },
+        props: { tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow('"Market" sits below "Region"');
+  });
+
+  it("rejects a parent whose type is the unit level", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({ id: ALTERNATE_ROOT_SITE_TYPE_ID, name: "Other" }),
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        name: "Unit",
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+        isUnitLevel: true,
+      }),
+    ]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: CHILD_SITE_TYPE_ID,
+      }),
+    );
+
+    await expect(
+      (NetworkSiteService as any).onBeforeCreate({
+        data: {
+          projectId: PROJECT_ID,
+          networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID,
+          parentSiteId: PARENT_SITE_ID,
+        },
+        props: { tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow(
+      'Sites of network site type "Unit" are unit level, so they cannot have child sites.',
+    );
+  });
+
+  it("terminates on a cyclic site type catalog instead of looping forever", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: ROOT_SITE_TYPE_ID,
+        parentNetworkSiteTypeId: CHILD_SITE_TYPE_ID,
+      }),
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+      fakeNetworkSiteType({ id: ALTERNATE_ROOT_SITE_TYPE_ID }),
+    ]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(`/${PARENT_SITE_ID.toString()}/`);
+
+    const result: any = await (NetworkSiteService as any).onBeforeCreate({
+      data: {
+        projectId: PROJECT_ID,
+        networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID,
+        parentSiteId: PARENT_SITE_ID,
+      },
+      props: { tenantId: PROJECT_ID },
+    });
+
+    expect(result.carryForward.parentPath).toBe(
+      `/${PARENT_SITE_ID.toString()}/`,
     );
   });
 
@@ -1511,7 +1732,7 @@ describe("NetworkSiteService site-type hierarchy enforcement on update", () => {
     } as unknown as UpdateBy<NetworkSite>;
   }
 
-  it("rejects attaching a root-typed site to a parent", async () => {
+  it("attaches a root-typed site to a parent of the same type", async () => {
     mockNetworkSiteTypes([fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID })]);
     jest
       .spyOn(NetworkSiteService, "findBy")
@@ -1527,16 +1748,49 @@ describe("NetworkSiteService site-type hierarchy enforcement on update", () => {
       .spyOn(NetworkSiteService, "getMaterializedPathForSite")
       .mockResolvedValue(`/${PARENT_SITE_ID.toString()}/`);
 
-    await expect(
-      (NetworkSiteService as any).onBeforeUpdate(
-        makeTypeUpdate({ parentSiteId: PARENT_SITE_ID }),
-      ),
-    ).rejects.toThrow(
-      "A site with a root network site type cannot have a parent site.",
+    const result: any = await (NetworkSiteService as any).onBeforeUpdate(
+      makeTypeUpdate({ parentSiteId: PARENT_SITE_ID }),
+    );
+
+    expect(result.carryForward.newParentPath).toBe(
+      `/${PARENT_SITE_ID.toString()}/`,
     );
   });
 
-  it("rejects detaching a site whose type requires a parent", async () => {
+  // Linking an existing child to an existing parent - the second half of #3744.
+  it("attaches an existing site to a parent of an unrelated type", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        name: "Market",
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+      fakeNetworkSiteType({ id: ALTERNATE_ROOT_SITE_TYPE_ID, name: "Other" }),
+    ]);
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValue([fakeSite({ networkSiteTypeId: CHILD_SITE_TYPE_ID })]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID,
+      }),
+    );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(`/${PARENT_SITE_ID.toString()}/`);
+
+    const result: any = await (NetworkSiteService as any).onBeforeUpdate(
+      makeTypeUpdate({ parentSiteId: PARENT_SITE_ID }),
+    );
+
+    expect(result.carryForward.newParentId.toString()).toBe(
+      PARENT_SITE_ID.toString(),
+    );
+  });
+
+  it("detaches a site whose type is configured below another type", async () => {
     mockNetworkSiteTypes([
       fakeNetworkSiteType({
         id: CHILD_SITE_TYPE_ID,
@@ -1550,17 +1804,50 @@ describe("NetworkSiteService site-type hierarchy enforcement on update", () => {
       }),
     ]);
 
+    const result: any = await (NetworkSiteService as any).onBeforeUpdate(
+      makeTypeUpdate({ parentSite: null }),
+    );
+
+    expect(result.carryForward.newParentId).toBeNull();
+    expect(result.carryForward.newParentPath).toBeNull();
+  });
+
+  it("rejects re-parenting a site under a site whose type sits below it", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID, name: "Region" }),
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        name: "Market",
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    ]);
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValue([fakeSite({ networkSiteTypeId: ROOT_SITE_TYPE_ID })]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: CHILD_SITE_TYPE_ID,
+      }),
+    );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(`/${PARENT_SITE_ID.toString()}/`);
+
     await expect(
       (NetworkSiteService as any).onBeforeUpdate(
-        makeTypeUpdate({ parentSite: null }),
+        makeTypeUpdate({ parentSiteId: PARENT_SITE_ID }),
       ),
-    ).rejects.toThrow("This network site type requires a parent site.");
+    ).rejects.toThrow('"Market" sits below "Region"');
   });
 
   it("validates a type-only update against the site's existing parent", async () => {
     mockNetworkSiteTypes([
+      fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID, name: "Region" }),
       fakeNetworkSiteType({
         id: CHILD_SITE_TYPE_ID,
+        name: "Market",
         parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
       }),
     ]);
@@ -1625,13 +1912,50 @@ describe("NetworkSiteService site-type hierarchy enforcement on update", () => {
     );
   });
 
-  it("rejects a type change that would invalidate a direct child", async () => {
+  it("rejects a type change that would push this site below its own child", async () => {
     mockNetworkSiteTypes([
-      fakeNetworkSiteType({ id: ALTERNATE_ROOT_SITE_TYPE_ID }),
+      fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID, name: "Region" }),
       fakeNetworkSiteType({
         id: CHILD_SITE_TYPE_ID,
+        name: "Market",
         parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
       }),
+    ]);
+    const childId: ObjectID = new ObjectID(
+      "99999999-9999-4999-8999-999999999999",
+    );
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValueOnce([
+        fakeSite({ networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID }),
+      ])
+      .mockResolvedValueOnce([
+        fakeSite({
+          id: childId,
+          _id: childId.toString(),
+          parentSiteId: SITE_ID,
+          networkSiteTypeId: ROOT_SITE_TYPE_ID,
+        }),
+      ]);
+
+    await expect(
+      (NetworkSiteService as any).onBeforeUpdate(
+        makeTypeUpdate({
+          networkSiteTypeId: CHILD_SITE_TYPE_ID,
+        }),
+      ),
+    ).rejects.toThrow('"Market" sits below "Region"');
+  });
+
+  it("rejects a type change to a unit-level type while the site has children", async () => {
+    mockNetworkSiteTypes([
+      fakeNetworkSiteType({
+        id: CHILD_SITE_TYPE_ID,
+        name: "Unit",
+        parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
+        isUnitLevel: true,
+      }),
+      fakeNetworkSiteType({ id: ALTERNATE_ROOT_SITE_TYPE_ID, name: "Other" }),
     ]);
     const childId: ObjectID = new ObjectID(
       "99999999-9999-4999-8999-999999999999",
@@ -1646,18 +1970,18 @@ describe("NetworkSiteService site-type hierarchy enforcement on update", () => {
           id: childId,
           _id: childId.toString(),
           parentSiteId: SITE_ID,
-          networkSiteTypeId: CHILD_SITE_TYPE_ID,
+          networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID,
         }),
       ]);
 
     await expect(
       (NetworkSiteService as any).onBeforeUpdate(
         makeTypeUpdate({
-          networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID,
+          networkSiteTypeId: CHILD_SITE_TYPE_ID,
         }),
       ),
     ).rejects.toThrow(
-      "Parent site must use the configured parent network site type.",
+      'Sites of network site type "Unit" are unit level, so they cannot have child sites.',
     );
   });
 
@@ -1703,31 +2027,34 @@ describe("NetworkSiteService site-type hierarchy enforcement on update", () => {
 
   it("pages past a full batch so wide sites cannot hide invalid direct children", async () => {
     mockNetworkSiteTypes([
-      fakeNetworkSiteType({ id: ALTERNATE_ROOT_SITE_TYPE_ID }),
-      fakeNetworkSiteType({
-        id: GRANDCHILD_SITE_TYPE_ID,
-        parentNetworkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID,
-      }),
+      fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID, name: "Region" }),
       fakeNetworkSiteType({
         id: CHILD_SITE_TYPE_ID,
+        name: "Market",
         parentNetworkSiteTypeId: ROOT_SITE_TYPE_ID,
       }),
+      fakeNetworkSiteType({ id: ALTERNATE_ROOT_SITE_TYPE_ID, name: "Other" }),
     ]);
+    /*
+     * Every child on page one is fine under the relaxed rule; the one that
+     * inverts the hierarchy is alone on page two, so only a loop that keeps
+     * reading finds it.
+     */
     const child: NetworkSite = fakeSite({
       id: new ObjectID("99999999-9999-4999-8999-999999999999"),
-      networkSiteTypeId: GRANDCHILD_SITE_TYPE_ID,
+      networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID,
     });
     const childReadSkips: Array<number> = [];
     const invalidChildOnSecondPage: NetworkSite = fakeSite({
       id: new ObjectID("aaaaaaaa-1111-4111-8111-111111111111"),
-      networkSiteTypeId: CHILD_SITE_TYPE_ID,
+      networkSiteTypeId: ROOT_SITE_TYPE_ID,
     });
     const findBySpy: jest.SpyInstance = jest
       .spyOn(NetworkSiteService, "findBy")
       .mockImplementation((input: any) => {
         if (input.query._id) {
           return Promise.resolve([
-            fakeSite({ networkSiteTypeId: ROOT_SITE_TYPE_ID }),
+            fakeSite({ networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID }),
           ]);
         }
 
@@ -1746,12 +2073,10 @@ describe("NetworkSiteService site-type hierarchy enforcement on update", () => {
     await expect(
       (NetworkSiteService as any).onBeforeUpdate(
         makeTypeUpdate({
-          networkSiteTypeId: ALTERNATE_ROOT_SITE_TYPE_ID,
+          networkSiteTypeId: CHILD_SITE_TYPE_ID,
         }),
       ),
-    ).rejects.toThrow(
-      "Parent site must use the configured parent network site type.",
-    );
+    ).rejects.toThrow('"Market" sits below "Region"');
 
     expect(findBySpy).toHaveBeenCalledTimes(3);
     expect(childReadSkips).toEqual([0, 1000]);
@@ -1785,7 +2110,7 @@ describe("NetworkSiteService site-type hierarchy enforcement on update", () => {
         makeTypeUpdate({ networkSiteTypeId: null }),
       ),
     ).rejects.toThrow(
-      "Parent site must use the configured parent network site type.",
+      "A network site with child sites must have a network site type.",
     );
   });
 
@@ -1872,6 +2197,187 @@ describe("NetworkSiteService site-type hierarchy enforcement on update", () => {
     await (NetworkSiteService as any).onBeforeUpdate(
       makeTypeUpdate({ networkSiteTypeId: ROOT_SITE_TYPE_ID }),
     );
+
+    expect(findBySpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * materializedPath is varchar(500) and each segment costs 37 characters, so a
+ * path holds 13 ids. The old placement rule bounded depth for free by pinning
+ * a site's depth to its type's depth in the catalog. Nothing pins it now, so
+ * the bound is enforced here - and it has to be enforced BEFORE the write,
+ * because the subtree rebase that would overflow the column runs after the
+ * parent change has already been committed.
+ */
+describe("NetworkSiteService hierarchy depth bound", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function pathOfSegments(count: number): string {
+    return `/${Array.from(
+      { length: count },
+      (_unused: unknown, index: number) => {
+        return new ObjectID(
+          `eeeeeeee-eeee-4eee-8eee-${index.toString().padStart(12, "0")}`,
+        ).toString();
+      },
+    ).join("/")}/`;
+  }
+
+  function mockRootTypedParent(): void {
+    mockNetworkSiteTypes([fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID })]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    );
+  }
+
+  it("accepts a create that lands on the last usable level", async () => {
+    mockRootTypedParent();
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(pathOfSegments(12));
+
+    const result: any = await (NetworkSiteService as any).onBeforeCreate({
+      data: {
+        projectId: PROJECT_ID,
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
+        parentSiteId: PARENT_SITE_ID,
+      },
+      props: { tenantId: PROJECT_ID },
+    });
+
+    expect(result.carryForward.parentPath).toBe(pathOfSegments(12));
+  });
+
+  it("rejects a create one level past what the stored path can hold", async () => {
+    mockRootTypedParent();
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(pathOfSegments(13));
+
+    await expect(
+      (NetworkSiteService as any).onBeforeCreate({
+        data: {
+          projectId: PROJECT_ID,
+          networkSiteTypeId: ROOT_SITE_TYPE_ID,
+          parentSiteId: PARENT_SITE_ID,
+        },
+        props: { tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow("can be at most 13 levels deep");
+  });
+
+  /*
+   * The moved site takes its whole subtree with it, so the deepest row under
+   * it is what decides whether the move fits - not the site's own new depth.
+   */
+  it("measures the moved subtree, not just the moved site", async () => {
+    mockNetworkSiteTypes([fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID })]);
+    const ownPath: string = `/${SITE_ID.toString()}/`;
+    const deepestDescendantPath: string = `${ownPath}${new ObjectID(
+      "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    ).toString()}/${new ObjectID(
+      "dddddddd-dddd-4ddd-8ddd-ddddddddddde",
+    ).toString()}/`;
+
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockImplementation((input: any) => {
+        if (input.query.materializedPath) {
+          return Promise.resolve([
+            fakeSite({ materializedPath: deepestDescendantPath }),
+          ]);
+        }
+
+        return Promise.resolve([
+          fakeSite({
+            networkSiteTypeId: ROOT_SITE_TYPE_ID,
+            materializedPath: ownPath,
+          }),
+        ]);
+      });
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    );
+    // Eleven ancestors + the moved site + its two levels = fourteen.
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(pathOfSegments(11));
+
+    await expect(
+      (NetworkSiteService as any).onBeforeUpdate({
+        query: { _id: SITE_ID.toString() },
+        data: { parentSiteId: PARENT_SITE_ID },
+        props: { tenantId: PROJECT_ID },
+      } as unknown as UpdateBy<NetworkSite>),
+    ).rejects.toThrow("can be at most 13 levels deep");
+  });
+
+  it("allows the same move when the subtree ends one level higher", async () => {
+    mockNetworkSiteTypes([fakeNetworkSiteType({ id: ROOT_SITE_TYPE_ID })]);
+    const ownPath: string = `/${SITE_ID.toString()}/`;
+    const deepestDescendantPath: string = `${ownPath}${new ObjectID(
+      "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    ).toString()}/`;
+
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockImplementation((input: any) => {
+        if (input.query.materializedPath) {
+          return Promise.resolve([
+            fakeSite({ materializedPath: deepestDescendantPath }),
+          ]);
+        }
+
+        return Promise.resolve([
+          fakeSite({
+            networkSiteTypeId: ROOT_SITE_TYPE_ID,
+            materializedPath: ownPath,
+          }),
+        ]);
+      });
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        networkSiteTypeId: ROOT_SITE_TYPE_ID,
+      }),
+    );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(pathOfSegments(11));
+
+    const result: any = await (NetworkSiteService as any).onBeforeUpdate({
+      query: { _id: SITE_ID.toString() },
+      data: { parentSiteId: PARENT_SITE_ID },
+      props: { tenantId: PROJECT_ID },
+    } as unknown as UpdateBy<NetworkSite>);
+
+    expect(result.carryForward.newParentPath).toBe(pathOfSegments(11));
+  });
+
+  it("does not read the subtree when the site is being detached", async () => {
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValue([
+        fakeSite({ materializedPath: `/${SITE_ID.toString()}/` }),
+      ]);
+
+    await (NetworkSiteService as any).onBeforeUpdate({
+      query: { _id: SITE_ID.toString() },
+      data: { parentSiteId: null },
+      props: { tenantId: PROJECT_ID },
+    } as unknown as UpdateBy<NetworkSite>);
 
     expect(findBySpy).toHaveBeenCalledTimes(1);
   });

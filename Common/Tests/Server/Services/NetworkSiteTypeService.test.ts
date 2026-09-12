@@ -468,22 +468,15 @@ describe("NetworkSiteTypeService update hierarchy validation", () => {
     }
   });
 
-  it("allows detaching a type when all existing sites of that type are roots", async () => {
+  /*
+   * Re-parenting a TYPE cannot invalidate the sites OF that type: their
+   * subtree moves with them. What it can do is push the moved type BELOW a
+   * type whose sites are already parented under it, and that inversion is the
+   * only thing refused here.
+   */
+  it("allows detaching a type whatever its sites' parents are", async () => {
     mockParentUpdate({});
-    jest
-      .spyOn(NetworkSiteService, "findBy")
-      .mockResolvedValue([makeSite({ index: 1, typeIndex: 2 })]);
-
-    await expect(
-      (NetworkSiteTypeService as any).onBeforeUpdate(
-        updateBy({ parentNetworkSiteTypeId: null }),
-      ),
-    ).resolves.toBeDefined();
-  });
-
-  it("rejects detaching a type while one of its sites still has a parent", async () => {
-    mockParentUpdate({});
-    jest
+    const siteFindSpy: jest.SpyInstance = jest
       .spyOn(NetworkSiteService, "findBy")
       .mockResolvedValue([
         makeSite({ index: 1, typeIndex: 2, parentIndex: 10 }),
@@ -493,12 +486,13 @@ describe("NetworkSiteTypeService update hierarchy validation", () => {
       (NetworkSiteTypeService as any).onBeforeUpdate(
         updateBy({ parentNetworkSiteTypeId: null }),
       ),
-    ).rejects.toThrow(
-      "Create a new site type under the desired parent, then move and reassign the sites to it",
-    );
+    ).resolves.toBeDefined();
+
+    // Clearing a parent adds no ancestors, so no site is even read.
+    expect(siteFindSpy).not.toHaveBeenCalled();
   });
 
-  it("accepts a new parent type when every site's actual parent has that type", async () => {
+  it("allows a new parent when no site of the gained ancestor types is affected", async () => {
     mockParentUpdate({ parent: makeType({ index: 4 }) });
     jest
       .spyOn(NetworkSiteService, "findBy")
@@ -520,36 +514,97 @@ describe("NetworkSiteTypeService update hierarchy validation", () => {
     ).resolves.toBeDefined();
   });
 
-  it("rejects a new parent when an existing site is root or its parent has another type", async () => {
-    const cases: Array<{
-      sites: Array<NetworkSite>;
-      parentSites: Array<NetworkSite>;
-    }> = [
-      {
-        sites: [makeSite({ index: 1, typeIndex: 2 })],
-        parentSites: [],
-      },
-      {
-        sites: [makeSite({ index: 1, typeIndex: 2, parentIndex: 10 })],
-        parentSites: [makeSite({ index: 10, typeIndex: 9 })],
-      },
-    ];
+  it("allows a new parent even when an existing site of the type is a root", async () => {
+    mockParentUpdate({ parent: makeType({ index: 4 }) });
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockImplementation(async (findBy: any) => {
+        return findBy.query?._id ? [] : [makeSite({ index: 1, typeIndex: 2 })];
+      });
 
-    for (const testCase of cases) {
-      jest.restoreAllMocks();
-      mockParentUpdate({ parent: makeType({ index: 4 }) });
-      jest
-        .spyOn(NetworkSiteService, "findBy")
-        .mockImplementation(async (findBy: any) => {
-          return findBy.query?._id ? testCase.parentSites : testCase.sites;
-        });
+    await expect(
+      (NetworkSiteTypeService as any).onBeforeUpdate(
+        updateBy({ parentNetworkSiteTypeId: typeId(4) }),
+      ),
+    ).resolves.toBeDefined();
+  });
 
-      await expect(
-        (NetworkSiteTypeService as any).onBeforeUpdate(
-          updateBy({ parentNetworkSiteTypeId: typeId(4) }),
-        ),
-      ).rejects.toThrow("Create a new site type under the desired parent");
-    }
+  it("rejects a new parent that would put a site of the new ancestor type under this type", async () => {
+    mockParentUpdate({
+      parent: makeType({ index: 4 }),
+      projectTypes: [
+        makeType({ index: 2, parentIndex: 1 }),
+        makeType({ index: 4 }),
+      ],
+    });
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockImplementation(async (findBy: any) => {
+        if (findBy.query?._id) {
+          return [makeSite({ index: 10, typeIndex: 2 })];
+        }
+
+        return [makeSite({ index: 1, typeIndex: 4, parentIndex: 10 })];
+      });
+
+    await expect(
+      (NetworkSiteTypeService as any).onBeforeUpdate(
+        updateBy({ parentNetworkSiteTypeId: typeId(4) }),
+      ),
+    ).rejects.toThrow(
+      "an existing site is already placed under a site that the move would push below it",
+    );
+  });
+
+  it("rejects the same inversion reached through a descendant of the moving type", async () => {
+    mockParentUpdate({
+      parent: makeType({ index: 4 }),
+      projectTypes: [
+        makeType({ index: 2, parentIndex: 1 }),
+        makeType({ index: 3, parentIndex: 2 }),
+        makeType({ index: 4 }),
+      ],
+    });
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockImplementation(async (findBy: any) => {
+        if (findBy.query?._id) {
+          return [makeSite({ index: 10, typeIndex: 3 })];
+        }
+
+        return [makeSite({ index: 1, typeIndex: 4, parentIndex: 10 })];
+      });
+
+    await expect(
+      (NetworkSiteTypeService as any).onBeforeUpdate(
+        updateBy({ parentNetworkSiteTypeId: typeId(4) }),
+      ),
+    ).rejects.toThrow(
+      "an existing site is already placed under a site that the move would push below it",
+    );
+  });
+
+  it("reads nothing when the new parent is already an ancestor of the old one", async () => {
+    mockParentUpdate({
+      moving: makeType({ index: 2, parentIndex: 4 }),
+      parent: makeType({ index: 1 }),
+      projectTypes: [
+        makeType({ index: 2, parentIndex: 4 }),
+        makeType({ index: 4, parentIndex: 1 }),
+        makeType({ index: 1 }),
+      ],
+    });
+    const siteFindSpy: jest.SpyInstance = jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValue([]);
+
+    await expect(
+      (NetworkSiteTypeService as any).onBeforeUpdate(
+        updateBy({ parentNetworkSiteTypeId: typeId(1) }),
+      ),
+    ).resolves.toBeDefined();
+
+    expect(siteFindSpy).not.toHaveBeenCalled();
   });
 
   it("does not revalidate sites or reorder when the parent did not change", async () => {
@@ -724,29 +779,41 @@ describe("NetworkSiteTypeService update hierarchy validation", () => {
     expect(siteFindSpy).not.toHaveBeenCalled();
   });
 
-  it("validates site parent consistency beyond the first 10,000 rows", async () => {
-    mockParentUpdate({});
-    const rootSite: NetworkSite = makeSite({ index: 1, typeIndex: 2 });
-    const mismatch: NetworkSite = makeSite({
+  it("validates site placement beyond the first 10,000 rows", async () => {
+    mockParentUpdate({
+      parent: makeType({ index: 4 }),
+      projectTypes: [
+        makeType({ index: 2, parentIndex: 1 }),
+        makeType({ index: 4 }),
+      ],
+    });
+    const harmlessSite: NetworkSite = makeSite({ index: 1, typeIndex: 4 });
+    const inverting: NetworkSite = makeSite({
       index: 2,
-      typeIndex: 2,
+      typeIndex: 4,
       parentIndex: 10,
     });
     jest
       .spyOn(NetworkSiteService, "findBy")
       .mockImplementation(async (findBy: any) => {
-        if (findBy.skip === 0) {
-          return new Array<NetworkSite>(10_000).fill(rootSite);
+        if (findBy.query?._id) {
+          return [makeSite({ index: 10, typeIndex: 2 })];
         }
 
-        return [mismatch];
+        if (findBy.skip === 0) {
+          return new Array<NetworkSite>(10_000).fill(harmlessSite);
+        }
+
+        return [inverting];
       });
 
     await expect(
       (NetworkSiteTypeService as any).onBeforeUpdate(
-        updateBy({ parentNetworkSiteTypeId: null }),
+        updateBy({ parentNetworkSiteTypeId: typeId(4) }),
       ),
-    ).rejects.toThrow("Create a new site type under the desired parent");
+    ).rejects.toThrow(
+      "an existing site is already placed under a site that the move would push below it",
+    );
 
     expect(NetworkSiteService.findBy).toHaveBeenCalledWith(
       expect.objectContaining({ skip: 10_000 }),

@@ -40,10 +40,21 @@ describe("Network Site Type settings use parent relationships", () => {
     expect(source).not.toContain('sectionTitle: "Position in the Hierarchy"');
   });
 
-  test("the help explains that parent types constrain site placement", () => {
+  /*
+   * The parent type shapes site placement without dictating it. Copy that
+   * still calls it a validity rule is what sent operators looking for a way
+   * around it in GitHub issue #3744.
+   */
+  test("the help presents parent types as guidance, not a placement rule", () => {
     expect(source).toContain("Choose the type directly above this one");
     expect(source).toContain(
+      "this relationship decides which parent sites are suggested first",
+    );
+    expect(source).not.toContain(
       "this relationship determines which parent sites are valid",
+    );
+    expect(source).not.toContain(
+      "a type that is already in use can move only when its sites already match",
     );
   });
 });
@@ -78,9 +89,28 @@ describe.each([
       expect(source).toContain('title: "Parent Site"');
       expect(source).toContain('stepId: "hierarchy"');
       expect(source).toContain("fetchParentNetworkSiteOptions");
-      expect(source).toContain("required: isParentSiteRequired");
+    });
+
+    /*
+     * A required parent site is the first half of GitHub issue #3744: a
+     * project whose types were all top-level could not satisfy it, and a
+     * project with the seeded five-level tree had to build four ancestors
+     * before it could record one store.
+     */
+    test("never requires a parent site", () => {
+      expect(source).not.toContain("isParentSiteRequired");
+      expect(source).toContain('title: "Parent Site"');
+    });
+
+    test("describes the parent picker as a suggestion, not a filter", () => {
       expect(source).toContain(
+        "Any site that is not below this one in your site type hierarchy can be the parent",
+      );
+      expect(source).not.toContain(
         "Only sites whose type is the configured parent",
+      );
+      expect(source).not.toContain(
+        "A child site type requires one of the matching sites below",
       );
     });
   },
@@ -98,9 +128,12 @@ describe("Child Sites creation respects the known parent's type", () => {
     expect(source).toContain("item.parentSiteId = modelId");
   });
 
-  test("offers only configured direct child types", () => {
+  test("offers every child type the hierarchy does not place above this site", () => {
     expect(source).toContain("fetchChildNetworkSiteTypeOptions(modelId)");
     expect(source).toContain(
+      "Any type except the ones above this site's own type in the hierarchy",
+    );
+    expect(source).not.toContain(
       "Only types configured directly beneath this site's type are available",
     );
     expect(source).not.toContain("type: NetworkSiteType, labelField");
@@ -121,21 +154,58 @@ describe("Network Site hierarchy option loading", () => {
     "NetworkSiteFormDropdownOptions.ts",
   );
 
-  test("filters candidate parent sites by the configured parent type", () => {
-    expect(source).toContain("getConfiguredParentTypeId");
+  /*
+   * Filtering the query by the configured parent type is what made the picker
+   * come back empty for every type in the reporting project (GitHub issue
+   * #3744). The narrowing that replaced it asks for the types the placement
+   * rule allows, which is a superset that can never be empty while any
+   * container type exists.
+   */
+  test("asks for every type the placement rule allows, not one configured type", () => {
+    expect(source).toContain("getValidSiteParentTypes");
     expect(source).toContain(
+      "networkSiteTypeId: new Includes(allowedParentTypeIds)",
+    );
+    expect(source).not.toContain(
       "networkSiteTypeId: new ObjectID(parentNetworkSiteTypeId)",
     );
   });
 
-  test("does not offer the current site or one of its descendants", () => {
-    expect(source).toContain("candidateId === normalizedCurrentId");
-    expect(source).toContain("includes(`/${normalizedCurrentId}/`)");
+  test("reads each candidate's own type so the rule can be applied", () => {
+    expect(source).toContain("networkSiteTypeId: true");
+    expect(source).toContain("materializedPath: true");
+  });
+
+  test("no form field is gated on a required parent site any more", () => {
+    expect(source).not.toContain("isParentSiteRequired");
   });
 
   test("pages through every eligible type and parent site", () => {
     expect(source).toContain("networkSiteTypes.push(...result.data)");
     expect(source).toContain("parentSites.push(...result.data)");
     expect(source).toContain("skip += result.data.length");
+  });
+});
+
+describe("Network Site parent candidate filtering", () => {
+  const source: string = readSource(
+    "Components",
+    "NetworkSite",
+    "SiteTypeHierarchyFormUtil.ts",
+  );
+
+  test("does not offer the current site or one of its descendants", () => {
+    expect(source).toContain("candidateId === normalizedCurrentId");
+    expect(source).toContain("includes(`/${normalizedCurrentId}/`)");
+  });
+
+  test("routes every candidate through the shared placement rule", () => {
+    expect(source).toContain("isTypeAllowedAsSiteParentOfType");
+    expect(source).toContain("isParentSitePlacementAllowed");
+  });
+
+  test("labels the suggested group rather than relying on array order", () => {
+    expect(source).toContain("Suggested —");
+    expect(source).toContain('label: "Other sites"');
   });
 });

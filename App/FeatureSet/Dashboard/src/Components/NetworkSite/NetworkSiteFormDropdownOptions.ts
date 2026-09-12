@@ -1,10 +1,15 @@
 import SiteTypeHierarchyFormUtil from "./SiteTypeHierarchyFormUtil";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
+import NetworkSiteTypeHierarchyUtil from "Common/Utils/NetworkSite/TypeHierarchyUtil";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import ObjectID from "Common/Types/ObjectID";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  DropdownOption,
+  DropdownOptionGroup,
+} from "Common/UI/Components/Dropdown/Dropdown";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 
@@ -22,16 +27,11 @@ const NETWORK_SITE_TYPE_SELECT: {
   parentNetworkSiteTypeId: true,
 };
 
-let cachedNetworkSiteTypes: Array<NetworkSiteType> = [];
-
-export function isParentSiteRequired(values: FormValues<NetworkSite>): boolean {
-  return SiteTypeHierarchyFormUtil.isParentSiteRequired({
-    selectedNetworkSiteTypeValue:
-      values.networkSiteType || values.networkSiteTypeId,
-    networkSiteTypes: cachedNetworkSiteTypes,
-  });
-}
-
+/*
+ * Re-read on every picker open. Site types are a settings table an operator
+ * can edit in another tab, and a stale catalog here would silently offer - or
+ * withhold - parents the server then disagrees about.
+ */
 export async function fetchNetworkSiteTypes(): Promise<Array<NetworkSiteType>> {
   const networkSiteTypes: Array<NetworkSiteType> = [];
   let skip: number = 0;
@@ -59,9 +59,7 @@ export async function fetchNetworkSiteTypes(): Promise<Array<NetworkSiteType>> {
     skip += result.data.length;
   }
 
-  cachedNetworkSiteTypes = networkSiteTypes;
-
-  return cachedNetworkSiteTypes;
+  return networkSiteTypes;
 }
 
 export async function fetchAllNetworkSiteTypeOptions(): Promise<
@@ -84,20 +82,45 @@ export async function fetchParentNetworkSiteTypeOptions(
   });
 }
 
+/*
+ * The selected type's configured parent no longer FILTERS this list - it only
+ * decides which candidates are offered first - because filtering on it left a
+ * project whose types are all top-level with a permanently empty picker and no
+ * way to link anything (GitHub issue #3744).
+ *
+ * What still narrows the read is the placement rule itself: the types a site of
+ * this type may sit under are computable from the catalog the browser already
+ * has, so the query asks for those types rather than for the whole project. In
+ * a franchise estate that is the difference between reading a handful of
+ * containers and reading every unit-level store. The self/subtree exclusion and
+ * the final placement filter run in SiteTypeHierarchyFormUtil, where they are
+ * testable without the API.
+ */
 export async function fetchParentNetworkSiteOptions(
   values: FormValues<NetworkSite>,
   currentNetworkSiteId?: ObjectID | undefined,
-): Promise<Array<DropdownOption>> {
+): Promise<Array<DropdownOption | DropdownOptionGroup>> {
   const networkSiteTypes: Array<NetworkSiteType> =
     await fetchNetworkSiteTypes();
-  const parentNetworkSiteTypeId: string | null =
-    SiteTypeHierarchyFormUtil.getConfiguredParentTypeId({
-      selectedNetworkSiteTypeValue:
-        values.networkSiteType || values.networkSiteTypeId,
-      networkSiteTypes,
-    });
 
-  if (!parentNetworkSiteTypeId) {
+  const childNetworkSiteTypeValue: unknown =
+    values.networkSiteType || values.networkSiteTypeId;
+
+  const allowedParentTypeIds: Array<string> =
+    NetworkSiteTypeHierarchyUtil.getValidSiteParentTypes({
+      networkSiteTypeId: SiteTypeHierarchyFormUtil.getEntityId(
+        childNetworkSiteTypeValue,
+      ),
+      networkSiteTypes,
+    })
+      .map((networkSiteType: NetworkSiteType) => {
+        return networkSiteType.id!.toString();
+      })
+      .filter((id: string) => {
+        return Boolean(id);
+      });
+
+  if (allowedParentTypeIds.length === 0) {
     return [];
   }
 
@@ -109,13 +132,14 @@ export async function fetchParentNetworkSiteOptions(
       {
         modelType: NetworkSite,
         query: {
-          networkSiteTypeId: new ObjectID(parentNetworkSiteTypeId),
+          networkSiteTypeId: new Includes(allowedParentTypeIds),
         },
         limit: LIMIT_PER_PROJECT,
         skip,
         select: {
           _id: true,
           name: true,
+          networkSiteTypeId: true,
           materializedPath: true,
         },
         sort: {
@@ -133,39 +157,14 @@ export async function fetchParentNetworkSiteOptions(
     skip += result.data.length;
   }
 
-  const currentId: string | null =
-    currentNetworkSiteId?.toString() ||
-    SiteTypeHierarchyFormUtil.getEntityId(values._id);
-  const normalizedCurrentId: string | null = currentId
-    ? currentId.toLowerCase()
-    : null;
-
-  return parentSites
-    .filter((networkSite: NetworkSite) => {
-      const candidateId: string | undefined = networkSite.id
-        ?.toString()
-        .toLowerCase();
-      if (!candidateId || candidateId === normalizedCurrentId) {
-        return false;
-      }
-
-      if (
-        normalizedCurrentId &&
-        networkSite.materializedPath
-          ?.toLowerCase()
-          .includes(`/${normalizedCurrentId}/`)
-      ) {
-        return false;
-      }
-
-      return true;
-    })
-    .map((networkSite: NetworkSite): DropdownOption => {
-      return {
-        value: networkSite.id!.toString(),
-        label: networkSite.name || "Unnamed Network Site",
-      };
-    });
+  return SiteTypeHierarchyFormUtil.buildParentSiteOptions({
+    networkSites: parentSites,
+    childNetworkSiteTypeValue,
+    networkSiteTypes,
+    currentNetworkSiteId:
+      currentNetworkSiteId?.toString() ||
+      SiteTypeHierarchyFormUtil.getEntityId(values._id),
+  });
 }
 
 export async function fetchChildNetworkSiteTypeOptions(
@@ -185,12 +184,8 @@ export async function fetchChildNetworkSiteTypeOptions(
     fetchNetworkSiteTypes(),
   ]);
 
-  if (!parentNetworkSite?.networkSiteTypeId) {
-    return [];
-  }
-
-  return SiteTypeHierarchyFormUtil.getChildTypeOptions({
-    parentNetworkSiteTypeValue: parentNetworkSite.networkSiteTypeId,
+  return SiteTypeHierarchyFormUtil.getAllowedChildTypeOptions({
+    parentNetworkSiteTypeValue: parentNetworkSite?.networkSiteTypeId || null,
     networkSiteTypes,
   });
 }
