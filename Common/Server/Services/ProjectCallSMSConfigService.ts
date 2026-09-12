@@ -14,6 +14,9 @@ import IncomingCallPolicyService from "./IncomingCallPolicyService";
 import IncomingCallPolicy from "../../Models/DatabaseModels/IncomingCallPolicy";
 import releaseIncomingCallPhoneNumber from "../Utils/IncomingCallPhoneNumber";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import IncomingCallPolicyPhoneNumberService from "./IncomingCallPolicyPhoneNumberService";
+import IncomingCallPolicyPhoneNumber from "../../Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
+import ModelPermission from "../Types/Database/Permissions/Index";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -101,6 +104,17 @@ export class Service extends DatabaseService<Model> {
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     /*
+     * This hook releases provider resources before DatabaseService reaches its
+     * usual delete permission check. Scope the query first so a denied config
+     * delete cannot release or clear another tenant's phone numbers.
+     */
+    deleteBy.query = await ModelPermission.checkDeleteQueryPermission(
+      Model,
+      deleteBy.query,
+      deleteBy.props,
+    );
+
+    /*
      * When a Call/SMS config is deleted, release any incoming-call numbers
      * provisioned through it (so they don't keep billing on the provider) and
      * clear the now-dangling number fields on those policies. The config still
@@ -111,20 +125,39 @@ export class Service extends DatabaseService<Model> {
       select: {
         _id: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
+      limit: deleteBy.limit,
+      skip: deleteBy.skip,
       props: {
         isRoot: true,
       },
     });
+
+    const configIds: Array<ObjectID> = configs
+      .map((config: Model): ObjectID | null => {
+        return config.id;
+      })
+      .filter((configId: ObjectID | null): configId is ObjectID => {
+        return Boolean(configId);
+      });
+
+    /*
+     * Freeze the caller's offset/limit window before provider side effects.
+     * The original window could otherwise select different rows when
+     * DatabaseService evaluates it again after the releases complete.
+     */
+    deleteBy.query = {
+      _id: QueryHelper.any(configIds),
+    };
+    deleteBy.skip = 0;
+    deleteBy.limit = configIds.length;
 
     for (const config of configs) {
       if (!config.id) {
         continue;
       }
 
-      const policies: Array<IncomingCallPolicy> =
-        await IncomingCallPolicyService.findBy({
+      const phoneNumbers: Array<IncomingCallPolicyPhoneNumber> =
+        await IncomingCallPolicyPhoneNumberService.findAllBy({
           query: {
             projectCallSMSConfigId: config.id,
           },
@@ -133,17 +166,64 @@ export class Service extends DatabaseService<Model> {
             callProviderPhoneNumberId: true,
             projectCallSMSConfigId: true,
           },
-          limit: LIMIT_MAX,
-          skip: 0,
           props: {
             isRoot: true,
           },
         });
 
+      /*
+       * Snapshot scalar-only attachments before deleting child rows. The child
+       * delete hook updates the compatibility mirror and can otherwise erase
+       * an unmatched legacy SID before it is released from the provider.
+       */
+      const policies: Array<IncomingCallPolicy> =
+        await IncomingCallPolicyService.findAllBy({
+          query: {
+            projectCallSMSConfigId: config.id,
+          },
+          select: {
+            _id: true,
+            callProviderPhoneNumberId: true,
+            projectCallSMSConfigId: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      const releasedProviderPhoneNumberIds: Set<string> = new Set();
+
+      for (const phoneNumber of phoneNumbers) {
+        if (
+          !phoneNumber.callProviderPhoneNumberId ||
+          !phoneNumber.projectCallSMSConfigId
+        ) {
+          continue;
+        }
+
+        if (
+          releasedProviderPhoneNumberIds.has(
+            phoneNumber.callProviderPhoneNumberId,
+          )
+        ) {
+          continue;
+        }
+
+        await releaseIncomingCallPhoneNumber({
+          projectCallSMSConfigId: phoneNumber.projectCallSMSConfigId,
+          callProviderPhoneNumberId: phoneNumber.callProviderPhoneNumberId,
+        });
+
+        releasedProviderPhoneNumberIds.add(
+          phoneNumber.callProviderPhoneNumberId,
+        );
+      }
+
       for (const policy of policies) {
         if (
           !policy.callProviderPhoneNumberId ||
-          !policy.projectCallSMSConfigId
+          !policy.projectCallSMSConfigId ||
+          releasedProviderPhoneNumberIds.has(policy.callProviderPhoneNumberId)
         ) {
           continue;
         }
@@ -153,8 +233,77 @@ export class Service extends DatabaseService<Model> {
           callProviderPhoneNumberId: policy.callProviderPhoneNumberId,
         });
 
+        releasedProviderPhoneNumberIds.add(policy.callProviderPhoneNumberId);
+      }
+
+      /*
+       * Delete through the child service before the config itself is removed.
+       * Its hooks re-select the oldest remaining number for each affected
+       * policy and update the legacy compatibility fields accordingly.
+       */
+      const phoneNumberIds: Array<ObjectID> = phoneNumbers
+        .map((phoneNumber: IncomingCallPolicyPhoneNumber): ObjectID | null => {
+          return phoneNumber.id;
+        })
+        .filter((phoneNumberId: ObjectID | null): phoneNumberId is ObjectID => {
+          return Boolean(phoneNumberId);
+        });
+
+      /*
+       * deleteBy is intentionally bounded, so delete the exact snapshotted
+       * child ids in batches. This covers configs with more than LIMIT_MAX
+       * attached numbers and keeps the explicit cleanup bound to the rows
+       * whose provider resources were released above.
+       */
+      for (
+        let offset: number = 0;
+        offset < phoneNumberIds.length;
+        offset += LIMIT_MAX
+      ) {
+        const phoneNumberIdBatch: Array<ObjectID> = phoneNumberIds.slice(
+          offset,
+          offset + LIMIT_MAX,
+        );
+
+        await IncomingCallPolicyPhoneNumberService.deleteBy({
+          query: {
+            _id: QueryHelper.any(phoneNumberIdBatch),
+          },
+          limit: phoneNumberIdBatch.length,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+
+      for (const policy of policies) {
+        if (!policy.id) {
+          continue;
+        }
+
+        const remainingPhoneNumber: IncomingCallPolicyPhoneNumber | null =
+          await IncomingCallPolicyPhoneNumberService.findOneBy({
+            query: {
+              incomingCallPolicyId: policy.id,
+            },
+            select: {
+              _id: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (remainingPhoneNumber) {
+          await IncomingCallPolicyPhoneNumberService.syncPrimaryPhoneNumberToPolicy(
+            policy.id,
+          );
+          continue;
+        }
+
         await IncomingCallPolicyService.updateOneById({
-          id: policy.id!,
+          id: policy.id,
           data: {
             routingPhoneNumber: null,
             callProviderPhoneNumberId: null,

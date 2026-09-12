@@ -31,6 +31,8 @@ import logger, {
   type RequestLike,
 } from "Common/Server/Utils/Logger";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
+import IncomingCallPolicyPhoneNumber from "Common/Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
+import IncomingCallPolicyPhoneNumberService from "Common/Server/Services/IncomingCallPolicyPhoneNumberService";
 import IncomingCallPolicyEscalationRule from "Common/Models/DatabaseModels/IncomingCallPolicyEscalationRule";
 import IncomingCallLog from "Common/Models/DatabaseModels/IncomingCallLog";
 import IncomingCallLogItem from "Common/Models/DatabaseModels/IncomingCallLogItem";
@@ -57,28 +59,70 @@ router.post(
         return;
       }
 
-      // Find the policy by the called phone number
-      const policy: IncomingCallPolicy | null =
-        await IncomingCallPolicyService.findOneBy({
+      const routingPhoneNumber: Phone = new Phone(calledPhoneNumber);
+
+      // Resolve the exact attached number first; child rows are authoritative.
+      const policyPhoneNumber: IncomingCallPolicyPhoneNumber | null =
+        await IncomingCallPolicyPhoneNumberService.findOneBy({
           query: {
-            routingPhoneNumber: new Phone(calledPhoneNumber),
+            phoneNumber: routingPhoneNumber,
           },
           select: {
-            _id: true,
-            projectId: true,
+            incomingCallPolicyId: true,
             projectCallSMSConfigId: true,
-            isEnabled: true,
-            greetingMessage: true,
-            noAnswerMessage: true,
-            noOneAvailableMessage: true,
-            repeatPolicyIfNoOneAnswers: true,
-            repeatPolicyIfNoOneAnswersTimes: true,
-            routingPhoneNumber: true,
+            phoneNumber: true,
           },
           props: {
             isRoot: true,
           },
         });
+
+      const policySelect: {
+        _id: true;
+        projectId: true;
+        projectCallSMSConfigId: true;
+        isEnabled: true;
+        greetingMessage: true;
+        noAnswerMessage: true;
+        noOneAvailableMessage: true;
+        repeatPolicyIfNoOneAnswers: true;
+        repeatPolicyIfNoOneAnswersTimes: true;
+        routingPhoneNumber: true;
+      } = {
+        _id: true,
+        projectId: true,
+        projectCallSMSConfigId: true,
+        isEnabled: true,
+        greetingMessage: true,
+        noAnswerMessage: true,
+        noOneAvailableMessage: true,
+        repeatPolicyIfNoOneAnswers: true,
+        repeatPolicyIfNoOneAnswersTimes: true,
+        routingPhoneNumber: true,
+      };
+
+      let policy: IncomingCallPolicy | null = null;
+
+      if (policyPhoneNumber?.incomingCallPolicyId) {
+        policy = await IncomingCallPolicyService.findOneById({
+          id: policyPhoneNumber.incomingCallPolicyId,
+          select: policySelect,
+          props: {
+            isRoot: true,
+          },
+        });
+      } else {
+        /* Scalar-only rolling-upgrade fallback. */
+        policy = await IncomingCallPolicyService.findOneBy({
+          query: {
+            routingPhoneNumber,
+          },
+          select: policySelect,
+          props: {
+            isRoot: true,
+          },
+        });
+      }
 
       if (!policy) {
         logger.error(
@@ -89,8 +133,12 @@ router.post(
         return;
       }
 
-      // Require project-level Twilio config
-      if (!policy.projectCallSMSConfigId) {
+      const projectCallSMSConfigId: ObjectID | undefined =
+        policyPhoneNumber?.projectCallSMSConfigId ||
+        policy.projectCallSMSConfigId;
+
+      // Require the config that provisioned this exact number.
+      if (!projectCallSMSConfigId) {
         logger.error(
           `Policy ${policy.id?.toString()} does not have a project Twilio config`,
           getLogAttributesFromRequest(req as RequestLike),
@@ -101,7 +149,7 @@ router.post(
 
       // Get project Twilio config
       const customTwilioConfig: TwilioConfig | null =
-        await getProjectTwilioConfig(policy.projectCallSMSConfigId);
+        await getProjectTwilioConfig(projectCallSMSConfigId);
 
       if (!customTwilioConfig) {
         logger.error(
@@ -198,9 +246,8 @@ router.post(
       }
       callLog.incomingCallPolicyId = new ObjectID(policyId);
       callLog.callerPhoneNumber = new Phone(callData.callerPhoneNumber);
-      if (policy.routingPhoneNumber) {
-        callLog.routingPhoneNumber = policy.routingPhoneNumber;
-      }
+      callLog.routingPhoneNumber =
+        policyPhoneNumber?.phoneNumber || routingPhoneNumber;
       callLog.callProviderCallId = callData.callId;
       callLog.status = IncomingCallStatus.Initiated;
       callLog.startedAt = new Date();
@@ -319,7 +366,7 @@ router.post(
         provider,
         greetingMessage,
         userToCall.phoneNumber.toString(),
-        policy.routingPhoneNumber?.toString() || callData.calledPhoneNumber,
+        callLog.routingPhoneNumber?.toString() || callData.calledPhoneNumber,
         firstRule.escalateAfterSeconds || 30,
         statusCallbackUrl,
       );
@@ -354,6 +401,7 @@ router.post(
             currentEscalationRuleOrder: true,
             repeatCount: true,
             incomingCallPolicyId: true,
+            routingPhoneNumber: true,
           },
           props: {
             isRoot: true,
@@ -388,18 +436,48 @@ router.post(
           },
         });
 
-      if (!policy || !policy.projectCallSMSConfigId) {
+      if (!policy) {
         logger.error(
-          "Policy or Twilio config not found",
+          "Policy not found",
           getLogAttributesFromRequest(req as RequestLike),
         );
         res.status(400).send("Configuration error");
         return;
       }
 
-      // Get project Twilio config
+      let policyPhoneNumber: IncomingCallPolicyPhoneNumber | null = null;
+      if (callLog.routingPhoneNumber) {
+        policyPhoneNumber =
+          await IncomingCallPolicyPhoneNumberService.findOneBy({
+            query: {
+              incomingCallPolicyId: callLog.incomingCallPolicyId!,
+              phoneNumber: callLog.routingPhoneNumber,
+            },
+            select: {
+              projectCallSMSConfigId: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+      }
+
+      const projectCallSMSConfigId: ObjectID | undefined =
+        policyPhoneNumber?.projectCallSMSConfigId ||
+        policy.projectCallSMSConfigId;
+
+      if (!projectCallSMSConfigId) {
+        logger.error(
+          "Twilio config not found for called phone number",
+          getLogAttributesFromRequest(req as RequestLike),
+        );
+        res.status(400).send("Configuration error");
+        return;
+      }
+
+      // Get the config that provisioned the exact called number.
       const customTwilioConfig: TwilioConfig | null =
-        await getProjectTwilioConfig(policy.projectCallSMSConfigId);
+        await getProjectTwilioConfig(projectCallSMSConfigId);
 
       if (!customTwilioConfig) {
         logger.error(
@@ -457,6 +535,19 @@ router.post(
         const twiml: string = provider.generateHangupResponse();
         res.type("text/xml");
         return res.send(twiml);
+      }
+
+      if (
+        !callLogItem.incomingCallLogId ||
+        !callLog.id ||
+        callLogItem.incomingCallLogId.toString() !== callLog.id.toString()
+      ) {
+        logger.error(
+          `Call log item ${callLogItemId} does not belong to call log ${callLogId}`,
+          getLogAttributesFromRequest(req as RequestLike),
+        );
+        res.status(400).send("Call log item does not belong to this call log");
+        return;
       }
 
       // Update call log item
@@ -788,7 +879,10 @@ async function dialNextUser(
 
   const twiml: string = provider.generateEscalationResponse(escalationMessage, {
     toPhoneNumber: userToCall.phoneNumber.toString(),
-    fromPhoneNumber: policy.routingPhoneNumber?.toString() || "",
+    fromPhoneNumber:
+      callLog.routingPhoneNumber?.toString() ||
+      policy.routingPhoneNumber?.toString() ||
+      "",
     timeoutSeconds: rule.escalateAfterSeconds || 30,
     statusCallbackUrl,
   });

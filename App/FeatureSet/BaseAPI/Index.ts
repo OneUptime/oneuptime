@@ -849,6 +849,9 @@ import IncomingCallPolicyService, {
 import IncomingCallPolicyEscalationRuleService, {
   Service as IncomingCallPolicyEscalationRuleServiceType,
 } from "Common/Server/Services/IncomingCallPolicyEscalationRuleService";
+import IncomingCallPolicyPhoneNumberService, {
+  Service as IncomingCallPolicyPhoneNumberServiceType,
+} from "Common/Server/Services/IncomingCallPolicyPhoneNumberService";
 import IncomingCallLogService, {
   Service as IncomingCallLogServiceType,
 } from "Common/Server/Services/IncomingCallLogService";
@@ -1322,6 +1325,7 @@ import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallD
 // Incoming Call Policy Models
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
 import IncomingCallPolicyEscalationRule from "Common/Models/DatabaseModels/IncomingCallPolicyEscalationRule";
+import IncomingCallPolicyPhoneNumber from "Common/Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
 import IncomingCallLog from "Common/Models/DatabaseModels/IncomingCallLog";
 import IncomingCallLogItem from "Common/Models/DatabaseModels/IncomingCallLogItem";
 import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
@@ -4674,6 +4678,18 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         IncomingCallPolicyEscalationRule,
         IncomingCallPolicyEscalationRuleService,
+      ).getRouter(),
+    );
+
+    // IncomingCallPolicyPhoneNumber (read-only through model permissions)
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncomingCallPolicyPhoneNumber,
+        IncomingCallPolicyPhoneNumberServiceType
+      >(
+        IncomingCallPolicyPhoneNumber,
+        IncomingCallPolicyPhoneNumberService,
       ).getRouter(),
     );
 

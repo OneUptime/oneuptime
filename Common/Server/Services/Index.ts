@@ -415,6 +415,7 @@ import HostOwnerRuleService from "./HostOwnerRuleService";
 import HostOwnerTeamService from "./HostOwnerTeamService";
 import HostOwnerUserService from "./HostOwnerUserService";
 import IncomingCallPolicyService from "./IncomingCallPolicyService";
+import IncomingCallPolicyPhoneNumberService from "./IncomingCallPolicyPhoneNumberService";
 import PushNotificationLogService from "./PushNotificationLogService";
 import RunnerOwnerTeamService from "./RunnerOwnerTeamService";
 import RunnerOwnerUserService from "./RunnerOwnerUserService";
@@ -854,6 +855,7 @@ const services: Array<BaseService> = [
   HostOwnerTeamService,
   HostOwnerUserService,
   IncomingCallPolicyService,
+  IncomingCallPolicyPhoneNumberService,
   IncomingCallPolicyEscalationRuleService,
   IncomingCallPolicyLabelRuleService,
   IncomingCallPolicyOwnerRuleService,

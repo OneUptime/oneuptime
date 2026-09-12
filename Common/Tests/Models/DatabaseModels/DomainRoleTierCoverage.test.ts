@@ -122,13 +122,14 @@ const NOT_READABLE_BY_THEIR_DOMAIN_ROLES: Array<string> = [
   "StatusPagePrivateUserSession",
 
   /*
-   * The inbound call policy and its escalation rules are configured under
-   * Settings -> Calls rather than alongside on-call schedules, so they follow
-   * the Settings tiers. Their label and owner rules follow their owner models,
-   * which are on-call.
+   * The inbound call policy, its attached phone numbers, and its escalation
+   * rules are configured under Settings -> Calls rather than alongside on-call
+   * schedules, so they follow the Settings tiers. Their label and owner rules
+   * follow their owner models, which are on-call.
    */
   "IncomingCallPolicy",
   "IncomingCallPolicyEscalationRule",
+  "IncomingCallPolicyPhoneNumber",
 ];
 
 /*

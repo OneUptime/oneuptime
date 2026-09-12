@@ -196,6 +196,7 @@ import OnCallDutyPolicyTimeLog from "./OnCallDutyPolicyTimeLog";
 // Incoming Call Policy
 import IncomingCallPolicy from "./IncomingCallPolicy";
 import IncomingCallPolicyEscalationRule from "./IncomingCallPolicyEscalationRule";
+import IncomingCallPolicyPhoneNumber from "./IncomingCallPolicyPhoneNumber";
 import IncomingCallLog from "./IncomingCallLog";
 import IncomingCallLogItem from "./IncomingCallLogItem";
 
@@ -528,6 +529,7 @@ const AllModelTypes: Array<{
   // Incoming Call Policy
   IncomingCallPolicy,
   IncomingCallPolicyEscalationRule,
+  IncomingCallPolicyPhoneNumber,
   IncomingCallLog,
   IncomingCallLogItem,
 
