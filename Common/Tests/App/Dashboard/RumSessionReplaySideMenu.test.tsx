@@ -52,7 +52,7 @@ async function renderApplicationMenu(): Promise<void> {
  * Every page the Session Replay category holds. Named once so the length
  * assertions and the list above cannot disagree about what "every" means.
  */
-const REPLAY_PAGE_COUNT: number = 5;
+const REPLAY_PAGE_COUNT: number = 6;
 
 describe("RUM application Session Replay navigation", () => {
   beforeEach(() => {
@@ -93,6 +93,10 @@ describe("RUM application Session Replay navigation", () => {
         title: "Replay Access Log",
         href: `${APPLICATION_PATH}/session-replay-audit`,
       },
+      {
+        title: "Documentation",
+        href: `${APPLICATION_PATH}/session-replay-documentation`,
+      },
     ]);
     expect(iconCountIn("Session Replay")).toBe(REPLAY_PAGE_COUNT);
   });
@@ -131,6 +135,7 @@ describe("RUM application Session Replay navigation", () => {
     ["session-replay-health", "Health"],
     ["session-replay-settings", "Replay Policy"],
     ["session-replay-audit", "Replay Access Log"],
+    ["session-replay-documentation", "Documentation"],
   ])(
     "mobile navigation locates %s inside the replay category",
     async (path: string, label: string) => {
