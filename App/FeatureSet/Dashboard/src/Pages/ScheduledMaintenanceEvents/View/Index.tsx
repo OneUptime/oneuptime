@@ -110,7 +110,9 @@ const ScheduledMaintenanceView: FunctionComponent<
         });
 
         // Trigger a refresh by toggling the refresh state
-        setRefreshToggle(!refreshToggle);
+        setRefreshToggle((prev: boolean) => {
+          return !prev;
+        });
       } catch {
         // Error resending notification: handle appropriately
       }

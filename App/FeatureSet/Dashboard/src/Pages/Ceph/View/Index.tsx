@@ -163,6 +163,11 @@ const CephClusterOverview: FunctionComponent<
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [pageError, setPageError] = useState<string>("");
+  /*
+   * Toggled on every refresh after the first load, so the details card
+   * re-reads Last Seen and Agent Version along with the rest of the page.
+   */
+  const [detailsRefresher, setDetailsRefresher] = useState<boolean>(false);
 
   // Inventory-backed sections (Postgres, instant).
   const [osdMatrix, setOsdMatrix] = useState<OsdMatrix | null>(null);
@@ -617,6 +622,12 @@ const CephClusterOverview: FunctionComponent<
       return;
     }
     setIsInitialLoading(false);
+
+    if (!showLoader) {
+      setDetailsRefresher((prev: boolean) => {
+        return !prev;
+      });
+    }
 
     // Inventory is Postgres-fast; failures only blank its sections.
     fetchInventory().catch(() => {});
@@ -1421,6 +1432,7 @@ const CephClusterOverview: FunctionComponent<
       <div className="mb-6">{renderQuickLinks()}</div>
       <CardModelDetail<CephCluster>
         name="Ceph Cluster Details"
+        refresher={detailsRefresher}
         cardProps={{
           title: "Ceph Cluster Details",
           description: "Overview of this Ceph cluster.",

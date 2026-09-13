@@ -43,8 +43,10 @@ const AnnouncementView: FunctionComponent<
           },
         });
 
-        // Trigger a refresh by toggling the refresh state
-        setRefreshToggle(!refreshToggle);
+        // Refetch the details card so the status reads Pending.
+        setRefreshToggle((prev: boolean) => {
+          return !prev;
+        });
       } catch {
         // Error resending notification: handle appropriately
       }
@@ -59,6 +61,7 @@ const AnnouncementView: FunctionComponent<
           title: "Status Page Announcement Details",
           description: "Here are more details for this announcement.",
         }}
+        refresher={refreshToggle}
         createEditModalWidth={ModalWidth.Large}
         formSteps={[
           {

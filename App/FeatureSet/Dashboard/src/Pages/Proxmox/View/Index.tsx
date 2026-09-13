@@ -243,6 +243,11 @@ const ProxmoxClusterOverview: FunctionComponent<
     useState<RangeStartAndEndDateTime>(DEFAULT_TIME_RANGE);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
+  /*
+   * Toggled on every auto and manual refresh, so the details card re-reads
+   * Last Seen and Agent Version along with the rest of the page.
+   */
+  const [detailsRefresher, setDetailsRefresher] = useState<boolean>(false);
   const [autoRefreshInterval, setAutoRefreshInterval] =
     useState<AutoRefreshInterval>(() => {
       if (typeof window === "undefined") {
@@ -1143,6 +1148,9 @@ const ProxmoxClusterOverview: FunctionComponent<
         void loadGoldenMetricsRef.current(cluster.name);
         void loadInventory();
         void loadReplication(cluster.name);
+        setDetailsRefresher((prev: boolean) => {
+          return !prev;
+        });
       }
     }, ms);
     return () => {
@@ -1164,6 +1172,9 @@ const ProxmoxClusterOverview: FunctionComponent<
       void loadGoldenMetricsRef.current(cluster.name);
       void loadInventory();
       void loadReplication(cluster.name);
+      setDetailsRefresher((prev: boolean) => {
+        return !prev;
+      });
     }
   };
 
@@ -2609,6 +2620,7 @@ const ProxmoxClusterOverview: FunctionComponent<
       {/* Cluster Details */}
       <CardModelDetail<ProxmoxCluster>
         name="Cluster Details"
+        refresher={detailsRefresher}
         formSteps={[
           {
             title: "Cluster Info",
