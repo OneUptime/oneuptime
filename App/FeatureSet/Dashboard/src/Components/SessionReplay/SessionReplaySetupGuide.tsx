@@ -46,7 +46,7 @@ import SessionReplayInstallSnippet, {
 } from "./SessionReplayInstallSnippet";
 import { RecordingHealthDiagnosisBanner } from "./RecordingHealthCard";
 
-/* Installation instructions and live checks on the application documentation page. */
+/* Installation instructions and live checks on the Session Replay > Documentation page. */
 
 const SESSION_REPLAY_LIST_ROUTE: string = "/telemetry/rum/session-replay/list";
 

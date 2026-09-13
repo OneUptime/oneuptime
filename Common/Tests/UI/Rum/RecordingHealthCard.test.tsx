@@ -416,7 +416,7 @@ describe("getRecordingHealthActionLink", () => {
     ).toContain("/rum/settings/session-replay");
     expect(
       getRecordingHealthActionLink("setup-guide", APP_ID).to.toString(),
-    ).toContain(`/rum/${APP_ID}/documentation`);
+    ).toContain(`/rum/${APP_ID}/session-replay-documentation`);
 
     const consent: { to: { toString: () => string }; openInNewTab: boolean } =
       getRecordingHealthActionLink("docs-consent", APP_ID);

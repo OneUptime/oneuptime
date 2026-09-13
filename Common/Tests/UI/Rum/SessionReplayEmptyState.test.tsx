@@ -293,7 +293,7 @@ describe("SessionReplayEmptyStateView variants", () => {
       screen.getByTestId("list-empty-action").closest("a"),
     ).toHaveAttribute(
       "href",
-      expect.stringContaining(`/rum/${APP_ID}/documentation`),
+      expect.stringContaining(`/rum/${APP_ID}/session-replay-documentation`),
     );
     expect(screen.queryByTestId("setup-guide")).not.toBeInTheDocument();
     expect(postMock).not.toHaveBeenCalled();

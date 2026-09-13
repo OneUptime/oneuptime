@@ -231,7 +231,7 @@ describe("RecordingHealthDashboardView hero, per diagnosis state", () => {
     );
     expect(screen.getByTestId("health-action").closest("a")).toHaveAttribute(
       "href",
-      expect.stringContaining(`/rum/${APP_ID}/documentation`),
+      expect.stringContaining(`/rum/${APP_ID}/session-replay-documentation`),
     );
   });
 

@@ -48,7 +48,8 @@ import {
  */
 
 const HEALTH_DOCS_PATH: string = "/telemetry/session-replay";
-const TROUBLESHOOTING_DOCS_PATH: string = "/rum/session-replay-troubleshooting";
+export const TROUBLESHOOTING_DOCS_PATH: string =
+  "/rum/session-replay-troubleshooting";
 
 export interface RecordingHealthActionLink {
   to: Route | URL;
@@ -77,7 +78,9 @@ export function getRecordingHealthActionLink(
     case "setup-guide":
       return {
         to: RouteUtil.populateRouteParams(
-          RouteMap[PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION] as Route,
+          RouteMap[
+            PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION
+          ] as Route,
           { modelId: modelId },
         ),
         openInNewTab: false,
