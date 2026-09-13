@@ -673,6 +673,73 @@ describe("Transport directives and diagnostics", (): void => {
       expect(detail["bytes"] as number).toBeGreaterThan(
         SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
       );
+
+      /* A non-final tail seals nothing, so nothing sealed in its place. */
+      expect(detail["sealed"]).toBe(false);
+
+      /*
+       * And the message says so. Every pagehide seals and a final tail
+       * always sends at least an empty stand-in, so this record can only be
+       * a hidden tab's non-final flush - a gap in a session that is still
+       * open. It used to read "The final chunk ... was dropped", which told
+       * a customer the recording had ended early when it had not ended.
+       */
+      const message: string = recordFor("final-chunk-too-large")?.message || "";
+
+      expect(message).toContain("non-final");
+      expect(message).toContain("stays open");
+      expect(message).not.toContain("The final chunk");
+    });
+
+    /*
+     * A FINAL tail over the quota is no longer lost whole: its events are
+     * dropped and an empty final frame seals the session under the same
+     * index. The record keeps its code - the loss it reports is the same
+     * footage - and says the session was still sealed and how many events
+     * went, so a support engineer reading it is not told the recording was
+     * left open when it was not.
+     */
+    it("records final-chunk-too-large as sealed when an empty final frame stands in", (): void => {
+      const fetchMock: jest.Mock = setFetch(respond(202));
+
+      const transport: Transport = makeTransport();
+      const huge: string = `[${"x".repeat(SESSION_REPLAY_KEEPALIVE_MAX_BYTES)}]`;
+
+      expect(
+        transport.sendTerminal([
+          {
+            envelope: { ...envelope, isFinal: true, eventCount: 9 },
+            payload: huge,
+          },
+        ]),
+      ).toBe(true);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      const matching: Array<DebugRecord> = getDebugRecords().filter(
+        (record: DebugRecord): boolean => {
+          return record.code === "final-chunk-too-large";
+        },
+      );
+
+      /* One record for one loss, not a "dropped" and a "sealed" both. */
+      expect(matching).toHaveLength(1);
+      expect(matching[0]?.level).toBe("warn");
+
+      const detail: Record<string, unknown> = detailOf("final-chunk-too-large");
+
+      expect(detail["sealed"]).toBe(true);
+      expect(detail["droppedEvents"]).toBe(9);
+      expect(detail["maxBytes"]).toBe(SESSION_REPLAY_KEEPALIVE_MAX_BYTES);
+      expect(detail["bytes"] as number).toBeGreaterThan(
+        SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
+      );
+      expect(recordFor("final-chunk-too-large")?.message).toContain(
+        "empty final chunk",
+      );
+
+      /* The frame went out, so there was no partial flush to report. */
+      expect(codes()).not.toContain("final-flush-partial");
+      expect(serializedRecords()).not.toContain(INGEST_TOKEN);
     });
 
     /*

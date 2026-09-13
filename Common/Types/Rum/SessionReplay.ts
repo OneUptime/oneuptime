@@ -131,6 +131,48 @@ export const SESSION_REPLAY_IDLE_ROLLOVER_MS: number = 30 * 60 * 1000;
 export const SESSION_REPLAY_MAX_SESSION_MS: number = 4 * 60 * 60 * 1000;
 
 /*
+ * When a recording counts as over.
+ *
+ * A session is finalized - its aggregates counted and its "Recording now"
+ * badge dropped - either when no chunk has arrived for
+ * SESSION_REPLAY_IDLE_FINALIZE_MS, or, much sooner, once every tab of it
+ * has ended (see Common/Utils/Rum/SessionReplayRecordingEnded.ts: the
+ * recorder seals a tab on pagehide) and SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS
+ * has passed since the server stored the newest chunk of any of those tabs.
+ * The Dashboard applies the same grace before it calls a session "ended",
+ * so the list, the player and the finalizer agree.
+ *
+ * The idle window stays long because a live tab can be silent for minutes:
+ * the recorder only flushes when something happened. The grace is short
+ * because a final chunk says the tab is gone; it only has to cover the next
+ * page of a multi-page app registering its first chunk under the same
+ * session id (up to one flush interval after it loads), and a queue backlog
+ * between the two.
+ */
+export const SESSION_REPLAY_IDLE_FINALIZE_MS: number = 10 * 60 * 1000;
+export const SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS: number = 60 * 1000;
+
+/*
+ * How long after its final chunk's END a tab may still have started a chunk
+ * and be counted as ended.
+ *
+ * Older recorders, which stay cached on customer pages for as long as the
+ * pinned artifact lives, can post one more non-final chunk after the final
+ * one: on a visible tab the browser fires pagehide BEFORE visibilitychange,
+ * and their hidden handler flushed the visibility event it had just
+ * recorded. That trailing chunk starts at pagehide, but a chunk's end is
+ * its LAST BUFFERED EVENT, which can be up to one flush interval before
+ * pagehide when the user sat still before closing the tab. Hence one flush
+ * interval plus a margin for timer throttling.
+ *
+ * Nothing legitimate records under the same (session, tab) after a seal
+ * other than a back/forward-cache restore, and current recorders give a
+ * restored page a new tab id, so a wider bound cannot hide a live tab.
+ */
+export const SESSION_REPLAY_ENDED_TRAILING_CHUNK_TOLERANCE_MS: number =
+  SESSION_REPLAY_FLUSH_INTERVAL_MS + 10 * 1000;
+
+/*
  * fetch(keepalive) quota is 64KB combined per origin across all in-flight
  * keepalive requests, so the terminal flush gets one request under this
  * cap rather than several that would silently fail against the quota.

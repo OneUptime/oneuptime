@@ -210,6 +210,97 @@ describe("ReplayUserSessionsMenu", () => {
     ).not.toBeInTheDocument();
   });
 
+  /*
+   * github.com/OneUptime/oneuptime/issues/3642: an unfinalized sibling
+   * whose every tab has closed is not recording. The red pulsing dot and
+   * its "Recording now" label are for sessions that may still receive
+   * footage; an ended one gets a still gray dot named "Recording ended".
+   */
+  describe("recording state", () => {
+    function renderOne(overrides: Partial<ReplayUserSessionItem>): HTMLElement {
+      render(
+        <ReplayUserSessionsMenu
+          {...makeProps({
+            sessions: [
+              makeItem("sibling", NOW - 5 * 60 * 1000, overrides),
+              makeItem(CURRENT_ID, NOW - 3 * HOUR_MS),
+            ],
+          })}
+        />,
+      );
+
+      return within(openMenu()).getAllByTestId(
+        "replay-user-session-item",
+      )[0] as HTMLElement;
+    }
+
+    it("a live sibling pulses red as 'Recording now' and is not marked ended", () => {
+      const row: HTMLElement = renderOne({
+        isFinalized: false,
+        hasRecordingEnded: false,
+      });
+
+      const live: HTMLElement = within(row).getByTestId(
+        "replay-user-session-live",
+      );
+
+      expect(live).toHaveAttribute("aria-label", "Recording now");
+      expect(live.className).toContain("animate-pulse");
+      expect(live.className).toContain("bg-red-500");
+      expect(
+        within(row).queryByTestId("replay-user-session-ended"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("an ended sibling that is still being finalized is quietly 'Recording ended', never 'Recording now'", () => {
+      const row: HTMLElement = renderOne({
+        isFinalized: false,
+        hasRecordingEnded: true,
+      });
+
+      expect(
+        within(row).queryByTestId("replay-user-session-live"),
+      ).not.toBeInTheDocument();
+      expect(
+        within(row).queryByLabelText("Recording now"),
+      ).not.toBeInTheDocument();
+
+      const ended: HTMLElement = within(row).getByTestId(
+        "replay-user-session-ended",
+      );
+
+      expect(ended).toHaveAttribute("aria-label", "Recording ended");
+      expect(ended).toHaveAttribute("role", "img");
+      expect(ended.className).not.toContain("animate-pulse");
+      expect(ended.className).not.toContain("bg-red-500");
+    });
+
+    it("an older server's row without the flag keeps the live dot", () => {
+      const row: HTMLElement = renderOne({ isFinalized: false });
+
+      expect(
+        within(row).getByTestId("replay-user-session-live"),
+      ).toBeInTheDocument();
+      expect(
+        within(row).queryByTestId("replay-user-session-ended"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("a finalized sibling carries neither dot, whatever the flag says", () => {
+      const row: HTMLElement = renderOne({
+        isFinalized: true,
+        hasRecordingEnded: true,
+      });
+
+      expect(
+        within(row).queryByTestId("replay-user-session-live"),
+      ).not.toBeInTheDocument();
+      expect(
+        within(row).queryByTestId("replay-user-session-ended"),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it("names the visitor rather than the user when the link is the browser's id", () => {
     render(<ReplayUserSessionsMenu {...makeProps({ kind: "visitor" })} />);
 

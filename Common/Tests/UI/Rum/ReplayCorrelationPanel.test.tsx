@@ -504,6 +504,115 @@ describe("ReplayCorrelationPanel Fidelity tab", () => {
     ).toHaveTextContent("Still recording");
   });
 
+  /*
+   * github.com/OneUptime/oneuptime/issues/3642. The provisional header's
+   * sealedReason is written by the FIRST final chunk to land - in a
+   * multi-page app that is the page the user left, while the next page is
+   * still recording. "How the recording ended" may only quote it once the
+   * recording has ended: finalized, or every tab closed.
+   */
+  describe("before the finalizer has run", () => {
+    it("a live session is 'Still recording' even when its provisional header already says final-chunk", () => {
+      renderPanel({
+        activeTabId: "fidelity",
+        details: makeDetails({
+          sealedReason: SessionReplaySealedReason.FinalChunk,
+          isFinalized: false,
+        }),
+        hasRecordingEnded: false,
+      });
+
+      const reason: HTMLElement = screen.getByTestId(
+        "replay-details-sealed-reason",
+      );
+
+      expect(reason).toHaveTextContent("Still recording");
+      expect(reason).not.toHaveTextContent("Recording ended normally");
+      expect(
+        screen.queryByTestId("replay-details-finalizing"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("an older host that does not pass the flag keeps the not-finalized copy", () => {
+      renderPanel({
+        activeTabId: "fidelity",
+        details: makeDetails({
+          sealedReason: SessionReplaySealedReason.FinalChunk,
+          isFinalized: false,
+        }),
+      });
+
+      expect(
+        screen.getByTestId("replay-details-sealed-reason"),
+      ).toHaveTextContent("Still recording");
+    });
+
+    it("an ended session quotes the final chunk's reason and says the counts are still coming", () => {
+      renderPanel({
+        activeTabId: "fidelity",
+        details: makeDetails({
+          sealedReason: SessionReplaySealedReason.FinalChunk,
+          isFinalized: false,
+        }),
+        hasRecordingEnded: true,
+      });
+
+      const reason: HTMLElement = screen.getByTestId(
+        "replay-details-sealed-reason",
+      );
+
+      expect(reason).toHaveTextContent("Recording ended normally");
+      expect(reason).not.toHaveTextContent("Still recording");
+      expect(screen.getByTestId("replay-details-finalizing")).toHaveTextContent(
+        "Still being finalized",
+      );
+      /*
+       * No fixed time: a session the finalizer lost track of waits for a
+       * far slower sweep, and "within a minute or two" would then be
+       * wrong for hours.
+       */
+      expect(
+        screen.getByTestId("replay-details-finalizing"),
+      ).not.toHaveTextContent(/minute/);
+    });
+
+    it("an ended session without a reason says every tab closed, not 'still recording'", () => {
+      renderPanel({
+        activeTabId: "fidelity",
+        details: makeDetails({ sealedReason: "", isFinalized: false }),
+        hasRecordingEnded: true,
+      });
+
+      const reason: HTMLElement = screen.getByTestId(
+        "replay-details-sealed-reason",
+      );
+
+      expect(reason).toHaveTextContent("Every tab of this session has closed");
+      expect(reason).not.toHaveTextContent("Still recording");
+      expect(
+        screen.getByTestId("replay-details-finalizing"),
+      ).toBeInTheDocument();
+    });
+
+    it("a finalized session quotes the finalizer's reason and no finalizing note, whatever the flag", () => {
+      renderPanel({
+        activeTabId: "fidelity",
+        details: makeDetails({
+          sealedReason: SessionReplaySealedReason.IdleTimeout,
+          isFinalized: true,
+        }),
+        hasRecordingEnded: true,
+      });
+
+      expect(
+        screen.getByTestId("replay-details-sealed-reason"),
+      ).toHaveTextContent("Recording ended after inactivity");
+      expect(
+        screen.queryByTestId("replay-details-finalizing"),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it("shows a sub-second gap in milliseconds, never '0s missing'", () => {
     renderPanel({
       activeTabId: "fidelity",

@@ -69,6 +69,9 @@ function tab(overrides: Partial<TabChunkAggregate>): TabChunkAggregate {
     urlChunkCount: 0,
     routes: [],
     hasFinalChunk: false,
+    finalChunkEndUnixMs: 0,
+    lastChunkStartUnixMs: startUnixMs,
+    lastChunkStoredAtUnixMs: startUnixMs + 15_000,
     sessionStartUnixMs: startUnixMs,
     firstChunkStartUnixMs: startUnixMs,
     lastChunkEndUnixMs: startUnixMs + 15_000,
@@ -428,6 +431,29 @@ describe("FinalizeSessions aggregate statement", () => {
     expect(query).toContain("customEventCount,");
 
     expect(query).not.toMatch(/\bpayload\b/);
+  });
+
+  test("reads each tab's newest server write time for the ended-session grace", () => {
+    const statement: Statement = buildTabAggregateStatement({
+      databaseName: databaseName,
+      projectId: projectId,
+      sessionId: sessionId,
+    });
+
+    /*
+     * version is server unix ms stamped at ingest, so it needs no conversion,
+     * and its alias must not shadow the column the inner query orders by.
+     */
+    expect(statement.query).toContain(
+      "max(version) AS lastChunkStoredAtUnixMs",
+    );
+    expect(statement.query).not.toContain("AS version");
+
+    /* A UInt64 arrives quoted on some server versions. */
+    expect(
+      parseTabAggregateRow({ lastChunkStoredAtUnixMs: "1790000000123" })
+        .lastChunkStoredAtUnixMs,
+    ).toBe(1_790_000_000_123);
   });
 
   /*

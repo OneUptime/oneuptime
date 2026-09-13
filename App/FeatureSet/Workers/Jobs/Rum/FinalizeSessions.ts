@@ -1,4 +1,5 @@
 import RunCron from "../../Utils/Cron";
+import crypto from "crypto";
 import Redis, { ClientType } from "Common/Server/Infrastructure/Redis";
 import RumSessionChunkService from "Common/Server/Services/RumSessionChunkService";
 import RumSessionService from "Common/Server/Services/RumSessionService";
@@ -17,14 +18,24 @@ import ServiceType from "Common/Types/Telemetry/ServiceType";
 import {
   MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
   SESSION_REPLAY_ACTIVE_CHUNK_MIN_EVENTS,
+  SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS,
+  SESSION_REPLAY_IDLE_FINALIZE_MS,
   SESSION_REPLAY_MAX_SESSION_MS,
   SESSION_REPLAY_SCHEMA_VERSION,
   SESSION_REPLAY_WIRE_VERSION,
   SessionReplaySealedReason,
 } from "Common/Types/Rum/SessionReplay";
 import { isSessionReplayStringMap } from "Common/Utils/Rum/SessionReplayStringMap";
+import {
+  hasSessionRecordingEnded,
+  hasTabRecordingEnded,
+} from "Common/Utils/Rum/SessionReplayRecordingEnded";
 import ChunkMath from "Common/Utils/Rum/ChunkMath";
-import { EVERY_FIVE_MINUTE, EVERY_HOUR } from "Common/Utils/CronTime";
+import {
+  EVERY_FIVE_MINUTE,
+  EVERY_HOUR,
+  EVERY_MINUTE,
+} from "Common/Utils/CronTime";
 
 /*
  * ------------------------------------------------------------------
@@ -53,10 +64,28 @@ import { EVERY_FIVE_MINUTE, EVERY_HOUR } from "Common/Utils/CronTime";
  * O(expired) rather than O(every session ever recorded) — the difference
  * between a 5-minute cron and a full table scan of the fattest table in
  * the system.
+ *
+ * Two jobs share that finalization path, and differ only in how they
+ * decide a session is over:
+ *
+ *   Rum:FinalizeSessions        (every 5 minutes) no chunk for
+ *                               SESSION_REPLAY_IDLE_FINALIZE_MS. The only
+ *                               signal for a tab that vanished without a
+ *                               word: bfcache, a mobile OS kill, a
+ *                               discarded tab, a crash.
+ *   Rum:FinalizeEndedSessions   (every minute) every tab of the session
+ *                               sent its final chunk, judged from the
+ *                               chunk rows by the rule the read path
+ *                               shares (Common/Utils/Rum/
+ *                               SessionReplayRecordingEnded). This is what
+ *                               takes a closed tab's "Recording now" badge
+ *                               down in about a minute instead of the idle
+ *                               job's 10-15.
  * ------------------------------------------------------------------
  */
 
 const JOB_NAME: string = "Rum:FinalizeSessions";
+const ENDED_JOB_NAME: string = "Rum:FinalizeEndedSessions";
 
 /*
  * ------------------------------------------------------------------
@@ -76,6 +105,23 @@ const JOB_NAME: string = "Rum:FinalizeSessions";
  *                                     the safety net for a missed SADD.
  *   replay:active:<projectId>         ZSET member "<sessionId>:<tabId>",
  *                                     score = server receive unix ms
+ *   replay:ended:<projectId>          ZSET, the same member format
+ *                                     "<sessionId>:<tabId>", written ONLY
+ *                                     for a frame whose envelope carried
+ *                                     isFinal. score = the same server
+ *                                     receive unix ms the ingest path wrote
+ *                                     to replay:active:<projectId> for that
+ *                                     frame, in the same call, with the
+ *                                     same TTL. A candidate list for
+ *                                     Rum:FinalizeEndedSessions, never a
+ *                                     verdict: a tab that sent a final chunk
+ *                                     can still be followed by the next page
+ *                                     of the session, so the chunk rows are
+ *                                     re-checked before anything is
+ *                                     finalized. Deliberately outside the
+ *                                     replay:active: prefix, which the
+ *                                     reconcile below SCANs and reads as
+ *                                     project ids.
  *   replay:active:reconcile-cursor    STRING, the SCAN cursor the last
  *                                     reconcile stopped at (see
  *                                     reconcileActiveProjectIndex).
@@ -86,6 +132,18 @@ const JOB_NAME: string = "Rum:FinalizeSessions";
  *                                     a byte budget in chunk rows, so the
  *                                     gate leaves the reason here when it
  *                                     refuses a session for one.
+ *
+ * Owned by Rum:FinalizeEndedSessions alone, and deliberately outside both
+ * prefixes above so neither the reconcile's SCAN nor anything that reads
+ * replay:ended:<projectId> can mistake them for a project:
+ *
+ *   replay:finalize-ended:lock        STRING, a per-run token. The job's
+ *                                     single-flight lock (SET NX PX), released
+ *                                     by compare-and-delete.
+ *   replay:finalize-ended:project-cursor
+ *                                     STRING counter, INCRed once per run;
+ *                                     where in the sorted project list the
+ *                                     run starts.
  * ------------------------------------------------------------------
  */
 export const SESSION_REPLAY_ACTIVE_PROJECTS_KEY: string =
@@ -95,9 +153,21 @@ export const SESSION_REPLAY_ACTIVE_KEY_PREFIX: string = "replay:active:";
 
 export const SESSION_REPLAY_SEAL_HINT_KEY_PREFIX: string = "replay:seal:";
 
+export const SESSION_REPLAY_ENDED_KEY_PREFIX: string = "replay:ended:";
+
 export function getActiveSessionsKey(projectId: string): string {
   return `${SESSION_REPLAY_ACTIVE_KEY_PREFIX}${projectId}`;
 }
+
+export function getEndedSessionsKey(projectId: string): string {
+  return `${SESSION_REPLAY_ENDED_KEY_PREFIX}${projectId}`;
+}
+
+export const SESSION_REPLAY_ENDED_RUN_LOCK_KEY: string =
+  "replay:finalize-ended:lock";
+
+export const SESSION_REPLAY_ENDED_PROJECT_CURSOR_KEY: string =
+  "replay:finalize-ended:project-cursor";
 
 export function getSessionSealHintKey(
   projectId: string,
@@ -149,10 +219,23 @@ const SCAN_CURSOR_PATTERN: RegExp = new RegExp("^\\d+$");
  * 10 minutes, deliberately longer than the recorder's 15s flush cadence
  * and longer than any plausible queue backlog: finalizing early would
  * publish an under-count that the next run silently corrects, and the
- * metering rollup reads finalized headers. Two runs of a 5-minute cron
- * fit inside the window, so a single missed run does not delay a session.
+ * metering rollup reads finalized headers.
+ *
+ * The value lives in Common/Types/Rum/SessionReplay now, because the read
+ * path reasons about the same window; it is re-exported here so existing
+ * imports of it from this module keep working.
+ *
+ * What that window costs: on a 5-minute cron a member only becomes
+ * eligible 10 minutes after its last chunk and is picked up by the first
+ * run after that, so an idle session is finalized 10-15 minutes after it
+ * went quiet, and every missed or overrun run adds another 5. (An earlier
+ * comment here claimed a single missed run could not delay a session; at a
+ * 10-minute window on a 5-minute cron it always does.) That latency is
+ * acceptable only for tabs that vanished without a word. A tab that said it
+ * was closing is finalized by Rum:FinalizeEndedSessions below, within about
+ * a minute.
  */
-export const SESSION_REPLAY_IDLE_FINALIZE_MS: number = 10 * 60 * 1000;
+export { SESSION_REPLAY_IDLE_FINALIZE_MS };
 
 /*
  * A member older than this can never produce a useful header: its chunks
@@ -212,6 +295,61 @@ export const SESSION_CORRELATION_WINDOW_PADDING_MS: number = 30 * 60 * 1000;
  * sorted-set members are only removed on success.
  */
 const RUN_BUDGET_MS: number = 4 * 60 * 1000;
+
+/*
+ * Rum:FinalizeEndedSessions' own limits.
+ *
+ * The job runs every minute with a one-minute timeout, so its budget sits
+ * well under both. Whatever a run leaves over stays queued in Redis, because
+ * a candidate is only removed after its session was checked.
+ *
+ * The budget is checked between sessions and once more right before a
+ * session's correlation is resolved (the one slow step inside a check), so
+ * it bounds a run loosely, not exactly: a correlation fetch already under
+ * way can still take its two ClickHouse reads' worth of time. And the queue
+ * runner's timeout does not cancel a job, it only stops waiting for it. So
+ * runs are kept from overlapping by a Redis single-flight lock instead
+ * (SESSION_REPLAY_ENDED_RUN_LOCK_KEY), whose TTL is well over the worst case
+ * of one run: the budget, plus one correlation fetch of two reads at the app
+ * pool's 58 s request timeout each, plus the conditional removals. A run
+ * that finds the lock held skips; one that overruns even the TTL lets the
+ * next run in, which is safe (every write is idempotent, every removal
+ * conditional, and a header's version is stamped before its chunk read) but
+ * wasted work.
+ *
+ * The caps count sessions CHECKED, not finalized: a check that ends in
+ * "still-recording" costs the same chunk-table read as one that writes a
+ * header, and on a multi-page application most checks end that way (every
+ * page navigation seals one tab while the next page keeps recording).
+ */
+export const ENDED_RUN_BUDGET_MS: number = 45 * 1000;
+export const MAX_ENDED_CANDIDATES_PER_PROJECT_PER_RUN: number = 1000;
+export const MAX_ENDED_SESSIONS_PER_RUN: number = 2000;
+export const ENDED_RUN_LOCK_TTL_MS: number = 3 * 60 * 1000;
+
+/*
+ * Each project's share of one run, so a busy tenant cannot starve the rest.
+ *
+ * Projects are walked in sorted order from a start that rotates every run
+ * (SESSION_REPLAY_ENDED_PROJECT_CURSOR_KEY), and each one gets an equal
+ * slice of what is LEFT of the run - sessions and time, divided by the
+ * projects not yet visited - but never less than these floors. Dividing
+ * what is left rather than the whole means a project with nothing to do
+ * hands its share on to the ones after it. The floors keep a run over many
+ * projects doing useful work per project rather than one check each. A
+ * project that uses up its share simply drains over several runs, oldest
+ * candidates first; its leftovers stay queued.
+ */
+export const MIN_ENDED_SESSIONS_PER_PROJECT_PER_RUN: number = 50;
+export const MIN_ENDED_PROJECT_SLICE_MS: number = 5 * 1000;
+const ENDED_PROJECT_CURSOR_TTL_SECONDS: number = 24 * 60 * 60;
+
+/*
+ * Batch size for one conditional-removal script call. A Lua script blocks
+ * Redis for as long as it runs, so a 5000-member reap is split into several
+ * short calls rather than one long one.
+ */
+const MAX_MEMBERS_PER_REMOVAL_SCRIPT: number = 500;
 
 /*
  * Narrow chunk columns the aggregate reads, spelled out literally in the
@@ -274,6 +412,28 @@ export interface TabChunkAggregate {
   urlChunkCount: number;
   routes: Array<string>;
   hasFinalChunk: boolean;
+
+  /*
+   * Whether this tab has ENDED, in the shape
+   * Common/Utils/Rum/SessionReplayRecordingEnded reads (SessionReplayTabEndFacts):
+   * the end of the tab's latest final chunk (0 when it sent none) and the
+   * start of its latest-starting chunk, final or not. A tab whose last chunk
+   * began meaningfully after its final one kept recording, and the session
+   * is not over.
+   *
+   * maxChunkIndex (above) is read by the same rule: a tab that stored its
+   * last permitted index can never store another chunk, so it has ended.
+   *
+   * lastChunkStoredAtUnixMs is the newest chunk row's `version`, which the
+   * ingest path stamps from the SERVER clock at insert. The rule measures
+   * the ended-session grace on it, so the grace needs nothing from Redis
+   * and cannot be skipped by an ended-set ZADD that failed or has not
+   * landed yet.
+   */
+  finalChunkEndUnixMs: number;
+  lastChunkStartUnixMs: number;
+  lastChunkStoredAtUnixMs: number;
+
   sessionStartUnixMs: number;
 
   /*
@@ -514,6 +674,120 @@ export function parseActiveSessionMember(member: string): {
   };
 }
 
+/*
+ * ------------------------------------------------------------------
+ * Conditional member removal.
+ *
+ * Every job that reads an activity or ended sorted set, does slow work, and
+ * then removes what it read has the same race: the ingest path may ZADD the
+ * SAME member again in between, with a newer score, because another chunk
+ * of that tab arrived. A plain ZREM then deletes the fresh entry along with
+ * the stale one. For the finalizer that was a real defect: a chunk processed
+ * while its session was being finalized lost its activity entry, the header
+ * the finalizer had just written did not count that chunk, and nothing
+ * re-queued the session - it stayed provisional (and "Recording now") until
+ * the hourly never-finalized sweep reached it, hours later.
+ *
+ * So removal is conditional on the score: a member goes only if its score
+ * is still no newer than the one the caller acted on. A ZADD that landed in
+ * between raises the score, and the member survives for the next run.
+ *
+ * One script, one key. The read of the score and the removal have to be
+ * atomic or the race just moves between them, and EVAL is the atomic
+ * primitive every supported Redis has (ZREM has no compare-and-delete
+ * form). KEYS holds exactly the one sorted set, so the script hashes to a
+ * single slot and stays valid on Redis Cluster; members and their
+ * thresholds ride in ARGV as flat pairs.
+ *
+ * Exported so tests can emulate exactly this script, and nothing else, in
+ * their in-memory Redis.
+ * ------------------------------------------------------------------
+ */
+export const SESSION_REPLAY_REMOVE_IF_NOT_NEWER_SCRIPT: string = `
+local removed = 0
+for index = 1, #ARGV, 2 do
+  local score = redis.call('ZSCORE', KEYS[1], ARGV[index])
+  if score and tonumber(score) <= tonumber(ARGV[index + 1]) then
+    removed = removed + redis.call('ZREM', KEYS[1], ARGV[index])
+  end
+end
+return removed
+`;
+
+/*
+ * Release half of Rum:FinalizeEndedSessions' single-flight lock: delete the
+ * key only while it still holds this run's token. A plain DEL is a race in
+ * disguise - a run that overran the TTL would delete the lock a LATER run
+ * legitimately took, and let a third run in beside it. One key in KEYS, so
+ * it is Redis Cluster safe. Exported so tests can emulate exactly this
+ * script in their in-memory Redis.
+ */
+export const SESSION_REPLAY_ENDED_RUN_LOCK_RELEASE_SCRIPT: string = `
+if redis.call('GET', KEYS[1]) == ARGV[1] then
+  return redis.call('DEL', KEYS[1])
+end
+return 0
+`;
+
+export interface ConditionalMemberRemoval {
+  member: string;
+  /*
+   * The newest score at which the member may still be removed: normally the
+   * score the caller read before it did its work.
+   */
+  maxScore: number;
+}
+
+/*
+ * Remove each member whose current score exists and is <= its maxScore.
+ * Returns how many were removed. A member that is already gone, or whose
+ * score moved past its threshold, is left alone and not counted.
+ *
+ * An entry whose threshold is not a finite number is dropped rather than
+ * sent: tonumber() of "NaN" is nil in Lua and the comparison would raise,
+ * failing the whole batch. Not removing is always the safe direction - the
+ * member is simply looked at again next run.
+ */
+export async function removeActivityMembersIfNotNewer(
+  client: ClientType,
+  key: string,
+  entries: Array<ConditionalMemberRemoval>,
+): Promise<number> {
+  const valid: Array<ConditionalMemberRemoval> = entries.filter(
+    (entry: ConditionalMemberRemoval): boolean => {
+      return entry.member.length > 0 && Number.isFinite(entry.maxScore);
+    },
+  );
+
+  let removed: number = 0;
+
+  for (
+    let offset: number = 0;
+    offset < valid.length;
+    offset += MAX_MEMBERS_PER_REMOVAL_SCRIPT
+  ) {
+    const args: Array<string> = [];
+
+    for (const entry of valid.slice(
+      offset,
+      offset + MAX_MEMBERS_PER_REMOVAL_SCRIPT,
+    )) {
+      args.push(entry.member, String(entry.maxScore));
+    }
+
+    const result: unknown = await client.eval(
+      SESSION_REPLAY_REMOVE_IF_NOT_NEWER_SCRIPT,
+      1,
+      key,
+      ...args,
+    );
+
+    removed += toNumberValue(result);
+  }
+
+  return removed;
+}
+
 export function buildTabAggregateStatement(data: {
   databaseName: string;
   projectId: ObjectID;
@@ -625,6 +899,27 @@ export function buildTabAggregateStatement(data: {
       toUnixTimestamp64Milli(min(chunkStartTime)) AS firstChunkStartUnixMs,
       arraySort(arrayDistinct(arrayFlatten(groupArray(routes)))) AS routes,
       max(toUInt8(isFinal)) AS hasFinalChunk,
+      /*
+       * Has this tab ENDED? The facts hasTabRecordingEnded reads, spelled
+       * exactly as Common/Utils/Rum/SessionReplayRecordingEnded documents
+       * them so the finalizer and the read path judge the same rows the same
+       * way. maxIf over no final chunk returns the epoch, which reads as 0
+       * and is ignored because hasFinalChunk is 0 then.
+       *
+       * The aliases are new names on purpose - see the shadowing note above:
+       * isFinal, chunkEndTime and chunkStartTime are all read inside other
+       * aggregates of this SELECT, so none of them may become an alias.
+       *
+       * maxChunkIndex (near the top) is also one of these facts. The newest
+       * row's write time is max(version): version is a UInt64 of SERVER
+       * unix milliseconds stamped at ingest, already the unit the rule
+       * wants, and it comes back as a quoted string on some server versions
+       * (the parser coerces it). Aliased to a new name, never "version",
+       * which the inner query orders by.
+       */
+      toUnixTimestamp64Milli(maxIf(chunkEndTime, isFinal)) AS finalChunkEndUnixMs,
+      toUnixTimestamp64Milli(max(chunkStartTime)) AS lastChunkStartUnixMs,
+      max(version) AS lastChunkStoredAtUnixMs,
       toUnixTimestamp64Milli(min(sessionStartTime)) AS sessionStartUnixMs,
       toUnixTimestamp64Milli(max(chunkEndTime)) AS lastChunkEndUnixMs,
       max(chunkEndOffsetMs) AS maxChunkEndOffsetMs,
@@ -895,6 +1190,9 @@ export function parseTabAggregateRow(row: JSONObject): TabChunkAggregate {
     urlChunkCount: toNumberValue(row["urlChunkCount"]),
     routes: toTextArrayValue(row["routes"]),
     hasFinalChunk: toBooleanValue(row["hasFinalChunk"]),
+    finalChunkEndUnixMs: toNumberValue(row["finalChunkEndUnixMs"]),
+    lastChunkStartUnixMs: toNumberValue(row["lastChunkStartUnixMs"]),
+    lastChunkStoredAtUnixMs: toNumberValue(row["lastChunkStoredAtUnixMs"]),
     sessionStartUnixMs: toNumberValue(row["sessionStartUnixMs"]),
     firstChunkStartUnixMs: toNumberValue(row["firstChunkStartUnixMs"]),
     lastChunkEndUnixMs: toNumberValue(row["lastChunkEndUnixMs"]),
@@ -1689,11 +1987,57 @@ export async function fetchSessionCorrelation(data: {
 export type FinalizeSessionOutcome = "written" | "no-chunks" | "erased";
 
 /*
+ * What the gated variant (requireRecordingEnded) can answer on top of
+ * FinalizeSessionOutcome.
+ *
+ * "still-recording" means the chunk rows show at least one tab of every
+ * application still going - no final chunk yet, or a chunk that started
+ * after the final one - so NOTHING was written.
+ *
+ * "settling" means some application's tabs have ALL ended, but its newest
+ * chunk was stored less than SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS ago, and
+ * no application qualified for a header. Nothing was written. Unlike
+ * "still-recording" it resolves by itself within the grace, without a new
+ * final chunk, so the caller keeps whatever brought it here queued.
+ *
+ * "deferred" means the session HAD ended, but the caller's shouldDefer said
+ * to stop before the slow part of the write, so nothing was written and the
+ * caller keeps the session queued. Only a caller that passes shouldDefer
+ * can see it.
+ *
+ * All three are only ever returned when the caller asked for the gate; the
+ * idle path and the sweep never see them.
+ */
+export type GatedFinalizeSessionOutcome =
+  | FinalizeSessionOutcome
+  | "still-recording"
+  | "settling"
+  | "deferred";
+
+export interface FinalizeSessionResult {
+  outcome: GatedFinalizeSessionOutcome;
+  /*
+   * The tab ids whose application got a header in this call, de-duplicated.
+   * Empty for every outcome but "written".
+   *
+   * A tab id that ALSO appears under an application that was not written is
+   * left out: the activity member is "<sessionId>:<tabId>" with no
+   * application in it, so a caller acting on it on behalf of the finished
+   * application would touch the still-recording one's queue entry too.
+   */
+  writtenTabIds: Array<string>;
+}
+
+/*
  * Finalize one session.
  *
  * Returns "no-chunks" when the session has no stored chunks at all — the
  * caller treats that as "nothing to do" and drops the activity entry
  * rather than retrying forever.
+ *
+ * The idle path and the never-finalized sweep call this. It is the
+ * ungated form of finalizeSessionWithTabs below and never returns
+ * "still-recording", "settling" or "deferred".
  */
 export async function finalizeSession(data: {
   projectId: ObjectID;
@@ -1706,9 +2050,89 @@ export async function finalizeSession(data: {
    */
   correlation?: SessionCorrelation | undefined;
 }): Promise<FinalizeSessionOutcome> {
+  const result: FinalizeSessionResult = await finalizeSessionWithTabs({
+    projectId: data.projectId,
+    sessionId: data.sessionId,
+    databaseName: data.databaseName,
+    correlation: data.correlation,
+    requireRecordingEnded: false,
+  });
+
+  if (
+    result.outcome === "still-recording" ||
+    result.outcome === "settling" ||
+    result.outcome === "deferred"
+  ) {
+    /*
+     * Unreachable: only the gated call answers these.
+     * Thrown rather than mapped to an outcome, because every caller's catch
+     * leaves the session queued for a retry, which is the one response that
+     * cannot lose data.
+     */
+    throw new Error(
+      `ungated finalization of session ${data.sessionId} reported ${result.outcome}`,
+    );
+  }
+
+  return result.outcome;
+}
+
+/*
+ * Finalize one session, optionally only if its recording has ENDED.
+ *
+ * With requireRecordingEnded, a header is written only for the applications
+ * whose every tab has ended by the shared rule
+ * (Common/Utils/Rum/SessionReplayRecordingEnded.hasSessionRecordingEnded),
+ * judged from the same chunk rows the aggregate is built from - so the check
+ * and the numbers it publishes can never disagree. When no application
+ * qualifies the answer is "still-recording" and nothing is inserted.
+ *
+ * That is per application because the header is: two applications on one
+ * origin share the browser-minted sessionId, and one of them closing says
+ * nothing about the other.
+ *
+ * The rule also applies the ended-session grace, on the chunk rows' own
+ * server write times: an application whose newest chunk (of any of its
+ * tabs) was stored less than SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS before
+ * this check is held back. The job reads only candidates older than the
+ * grace, but a session's OTHER tabs are found through the chunk rows, not
+ * the candidates. Without the grace, a user who spent under a minute on
+ * page B of a multi-page app would have the session finalized off page A's
+ * old candidate the instant B's final chunk landed - before page C's first
+ * chunk registered - and page C would re-open it. The read path applies the
+ * same grace the same way, so the Dashboard never calls a session "ended"
+ * that this would still hold back. Measured on rows rather than on
+ * ended-set scores, the grace cannot be skipped by a tab whose ZADD failed
+ * or has not landed yet.
+ */
+export async function finalizeSessionWithTabs(data: {
+  projectId: ObjectID;
+  sessionId: string;
+  databaseName: string;
+  correlation?: SessionCorrelation | undefined;
+  /*
+   * Lazy alternative to `correlation`, called at most once and only when a
+   * header is actually about to be written. Rum:FinalizeEndedSessions checks
+   * far more sessions than it finalizes (every page navigation of a
+   * multi-page application seals a tab while the next page records on), so
+   * paying for the grouped Span / ExceptionInstance reads up front would
+   * spend them mostly on sessions that turn out to be still recording.
+   */
+  resolveCorrelation?:
+    | (() => Promise<SessionCorrelation | undefined>)
+    | undefined;
+  requireRecordingEnded?: boolean | undefined;
+  /*
+   * Asked once, after the gate has passed and right before correlation is
+   * resolved: true answers "deferred" and writes nothing. Lets a run near
+   * the end of its budget leave the session queued instead of starting the
+   * slow correlation reads, which the run budget cannot interrupt.
+   */
+  shouldDefer?: (() => boolean) | undefined;
+}): Promise<FinalizeSessionResult> {
   /*
    * The erasure tombstone is checked FIRST, before a single chunk row is
-   * read.
+   * read - and before the recording-ended gate, which reads chunk rows too.
    *
    * The erasure job submits `ALTER ... DELETE` mutations and deliberately
    * does not wait for them, and a ClickHouse mutation only ever rewrites
@@ -1720,11 +2144,16 @@ export async function finalizeSession(data: {
    * for the subject who asked to be erased — a row no mutation will ever
    * see and nothing will ever delete again.
    *
+   * It is checked a SECOND time right before the insert (below), because
+   * everything in between - the chunk and header reads, and above all a
+   * lazily resolved batch correlation - can take long enough for an
+   * erasure to tombstone the session and submit its mutations meanwhile.
+   *
    * isSessionErased fails CLOSED by THROWING when Redis cannot answer.
-   * That propagates to finalizeExpiredSessions' per-session catch, which
-   * counts a failure and leaves the activity entries in place, so the
-   * session is retried next run instead of either being resurrected or
-   * being silently dropped off the queue on a transient blip.
+   * That propagates to the calling job's per-session catch, which counts a
+   * failure and leaves the activity entries in place, so the session is
+   * retried next run instead of either being resurrected or being silently
+   * dropped off the queue on a transient blip.
    */
   const erased: boolean = await isSessionErased({
     projectId: data.projectId.toString(),
@@ -1735,8 +2164,24 @@ export async function finalizeSession(data: {
     logger.info(
       `${JOB_NAME}: session ${data.sessionId} in project ${data.projectId.toString()} is tombstoned as erased; refusing to write a header.`,
     );
-    return "erased";
+    return { outcome: "erased", writtenTabIds: [] };
   }
+
+  /*
+   * The header's version, stamped BEFORE the chunk rows are read.
+   *
+   * RumSession is a ReplacingMergeTree(version), so the highest version
+   * wins. Stamped after the slow steps below (correlation above all), an
+   * overlapping or stalled finalization that read the chunk rows EARLIER
+   * could stamp a HIGHER version than a later one that saw more chunks, and
+   * its stale aggregate would replace the complete header for good. Stamped
+   * here, a header built from a later snapshot of the rows always wins.
+   *
+   * The same instant is the server "now" the recording-ended grace is
+   * measured against: taken before the read, it can only make the grace
+   * stricter, never skip it.
+   */
+  const writtenAt: Date = OneUptimeDate.getCurrentDate();
 
   const tabRows: Array<JSONObject> = await readRows(
     buildTabAggregateStatement({
@@ -1747,7 +2192,7 @@ export async function finalizeSession(data: {
   );
 
   if (tabRows.length === 0) {
-    return "no-chunks";
+    return { outcome: "no-chunks", writtenTabIds: [] };
   }
 
   /*
@@ -1790,6 +2235,48 @@ export async function finalizeSession(data: {
   }
 
   /*
+   * Which applications get a header in this call. Ungated, all of them -
+   * the idle path and the sweep have already decided the session is over.
+   * Gated, only those whose tabs have all ended and settled.
+   */
+  let applicationsToWrite: Array<Array<TabChunkAggregate>> = Array.from(
+    tabsByApplication.values(),
+  );
+
+  if (data.requireRecordingEnded) {
+    const nowUnixMs: number = writtenAt.getTime();
+
+    /*
+     * Ended (every tab), then settled (the shared rule, which also applies
+     * the grace). The first set only decides between "settling" and
+     * "still-recording" when nothing qualifies.
+     */
+    const endedApplications: Array<Array<TabChunkAggregate>> =
+      applicationsToWrite.filter((tabs: Array<TabChunkAggregate>): boolean => {
+        return tabs.every((tab: TabChunkAggregate): boolean => {
+          return hasTabRecordingEnded(tab);
+        });
+      });
+
+    applicationsToWrite = endedApplications.filter(
+      (tabs: Array<TabChunkAggregate>): boolean => {
+        return hasSessionRecordingEnded(tabs, nowUnixMs);
+      },
+    );
+
+    if (applicationsToWrite.length === 0) {
+      return {
+        outcome: endedApplications.length > 0 ? "settling" : "still-recording",
+        writtenTabIds: [],
+      };
+    }
+  }
+
+  if (data.shouldDefer && data.shouldDefer()) {
+    return { outcome: "deferred", writtenTabIds: [] };
+  }
+
+  /*
    * Read once for the whole session: the seal hint is keyed on
    * (projectId, sessionId) and describes why UPLOADS stopped, which is a
    * per-session fact even when two applications shared the id.
@@ -1799,10 +2286,13 @@ export async function finalizeSession(data: {
     sessionId: data.sessionId,
   });
 
-  const writtenAt: Date = OneUptimeDate.getCurrentDate();
+  const correlation: SessionCorrelation | undefined =
+    data.correlation ??
+    (data.resolveCorrelation ? await data.resolveCorrelation() : undefined);
+
   const rows: Array<JSONObject> = [];
 
-  for (const tabs of tabsByApplication.values()) {
+  for (const tabs of applicationsToWrite) {
     const aggregate: SessionChunkAggregate = combineTabAggregates(tabs);
 
     let header: ProvisionalSessionHeader | null = null;
@@ -1855,9 +2345,9 @@ export async function finalizeSession(data: {
          * error than the merged header this split replaced, and the ids are
          * the session's, not the application's.
          */
-        traceIds: data.correlation ? data.correlation.traceIds : [],
-        exceptionFingerprints: data.correlation
-          ? data.correlation.exceptionFingerprints
+        traceIds: correlation ? correlation.traceIds : [],
+        exceptionFingerprints: correlation
+          ? correlation.exceptionFingerprints
           : [],
         writtenAt: writtenAt,
         sealedReasonHint: sealedReasonHint,
@@ -1866,18 +2356,43 @@ export async function finalizeSession(data: {
   }
 
   /*
+   * The tombstone again, as the last thing before the write.
+   *
+   * The first check ran before every read above, and the lazy correlation
+   * in particular is two grouped ClickHouse reads over a whole batch that
+   * can take seconds on a busy cluster. An erasure that tombstoned the
+   * session and submitted its ALTER DELETE on RumSession during that time
+   * would never see the row inserted here, and the erasure job does not
+   * revisit a session it has already tombstoned - so that row, carrying the
+   * subject's identity, would outlive the erasure until TTL. Re-checking
+   * shrinks the window to this one Redis round trip. Fails closed, like the
+   * first check.
+   */
+  const erasedWhileFinalizing: boolean = await isSessionErased({
+    projectId: data.projectId.toString(),
+    sessionId: data.sessionId,
+  });
+
+  if (erasedWhileFinalizing) {
+    logger.info(
+      `${JOB_NAME}: session ${data.sessionId} in project ${data.projectId.toString()} was tombstoned as erased while its header was being built; refusing to write it.`,
+    );
+    return { outcome: "erased", writtenTabIds: [] };
+  }
+
+  /*
    * wait_for_async_insert is forced on for this one row.
    *
    * insertJsonRows defaults to wait_for_async_insert: 0, where the await
    * resolves as soon as ClickHouse has accepted the row into its
-   * async-insert buffer — NOT when it is durable. The caller ZREMs the
-   * session's activity entries immediately after this resolves, so a
-   * buffer flush failure would silently lose the header while the session
-   * is already off the queue, leaving it provisional (zeroed aggregates)
-   * and unmetered forever. Finalization is one small row per session and
+   * async-insert buffer — NOT when it is durable. The caller removes the
+   * session's queue entries immediately after this resolves, so a buffer
+   * flush failure would silently lose the header while the session is
+   * already off the queue, leaving it provisional (zeroed aggregates) and
+   * unmetered forever. Finalization is one small row per session and
    * application, not a hot ingest path, so paying for the durability ack
-   * is cheap and it is what makes the ZREM-only-on-success contract below
-   * actually true.
+   * is cheap and it is what makes the remove-only-on-success contract
+   * below actually true.
    */
   await RumSessionService.insertJsonRows(rows, {
     clickhouseSettings: {
@@ -1885,7 +2400,25 @@ export async function finalizeSession(data: {
     },
   });
 
-  return "written";
+  const writtenTabIds: Set<string> = new Set<string>();
+
+  for (const tabs of applicationsToWrite) {
+    for (const tab of tabs) {
+      writtenTabIds.add(tab.tabId);
+    }
+  }
+
+  for (const tabs of tabsByApplication.values()) {
+    if (applicationsToWrite.includes(tabs)) {
+      continue;
+    }
+
+    for (const tab of tabs) {
+      writtenTabIds.delete(tab.tabId);
+    }
+  }
+
+  return { outcome: "written", writtenTabIds: Array.from(writtenTabIds) };
 }
 
 /*
@@ -2249,8 +2782,39 @@ export async function finalizeExpiredSessions(): Promise<void> {
          * Only remove the activity entries after a successful write, so a
          * ClickHouse blip leaves the session queued instead of leaving it
          * permanently provisional.
+         *
+         * And only if nothing re-queued them meanwhile: each member goes
+         * only while its score is still the one read above. A chunk of that
+         * tab processed during the finalization raised the score, was not
+         * counted in the header just written, and has to stay queued so a
+         * later run re-derives the session including it. The unconditional
+         * ZREM this replaces deleted exactly those entries.
          */
-        await client.zrem(activeKey, members);
+        const removals: Array<ConditionalMemberRemoval> = members.map(
+          (member: string): ConditionalMemberRemoval => {
+            return {
+              member: member,
+              maxScore: lastActivityUnixMsByMember.get(member) ?? cutoffUnixMs,
+            };
+          },
+        );
+
+        await removeActivityMembersIfNotNewer(client, activeKey, removals);
+
+        /*
+         * The same members leave the ended set too, under the same
+         * thresholds, or Rum:FinalizeEndedSessions would read the candidate
+         * a minute later and finalize this session a second time. An ended
+         * candidate's score is the receive time of the tab's final chunk,
+         * which is never newer than the tab's activity score read above -
+         * unless another final chunk landed during this finalization, and
+         * then the candidate rightly stays for the ended job to re-check.
+         */
+        await removeActivityMembersIfNotNewer(
+          client,
+          getEndedSessionsKey(projectId),
+          removals,
+        );
       } catch (error) {
         failedCount++;
         logger.error(
@@ -2264,6 +2828,592 @@ export async function finalizeExpiredSessions(): Promise<void> {
     logger.debug(
       `${JOB_NAME}: finalized ${finalizedCount} session(s) with ${failedCount} failure(s)`,
     );
+  }
+}
+
+/*
+ * ------------------------------------------------------------------
+ * Rum:FinalizeEndedSessions
+ *
+ * Finalizes a session as soon as its recording is over, instead of 10-15
+ * minutes later.
+ *
+ * The recorder sends a final chunk when a tab closes (pagehide). The ingest
+ * path used to treat that only as a label, so a closed tab sat in the list
+ * as "Recording now" until the idle path above noticed nothing had arrived
+ * for SESSION_REPLAY_IDLE_FINALIZE_MS. The ingest path now also records the
+ * tab in replay:ended:<projectId>, and this job turns those candidates into
+ * finalized headers:
+ *
+ *   1. Read candidates older than SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS.
+ *      That is only a cheap prefilter: the grace itself is applied by the
+ *      shared rule in step 2, on the chunk rows' server write times. It
+ *      covers the next page of a multi-page application registering its
+ *      first chunk under the same session id, and a queue backlog between
+ *      the two.
+ *   2. Group them by session, and ask the gated finalize whether every tab
+ *      of the session has ended and settled, judged from the chunk rows by
+ *      the rule the read path shares. Only then is a header written.
+ *   3. Remove the candidates that were checked, conditionally, so nothing a
+ *      newer final chunk re-queued is lost. The ACTIVITY entries stay, so
+ *      the idle path finalizes every early-finalized session once more (see
+ *      the removal below for why).
+ *
+ * One run at a time (a Redis single-flight lock), and a fair share of each
+ * run per project, from a start that rotates between runs - see the limits
+ * near the top of this module.
+ *
+ * Tabs that never send a final chunk (bfcache, a mobile OS kill, a
+ * discarded tab) are not this job's business: they have no candidate and
+ * stay with the idle path. So does project discovery - this job reads the
+ * project index as it stands and never reconciles it, because the idle job
+ * already does, and a SCAN every minute would cost five times as much.
+ * ------------------------------------------------------------------
+ */
+
+export interface FinalizeEndedSessionsSummary {
+  candidates: number;
+  checked: number;
+  finalized: number;
+  stillRecording: number;
+  /* Sessions whose tabs had all ended, held back by the grace; kept queued. */
+  settling: number;
+  /* Sessions that had ended but were left queued for the next run's budget. */
+  deferred: number;
+  failed: number;
+  budgetExhausted: boolean;
+  /* The run did nothing because an earlier run still holds the lock. */
+  skippedLockHeld: boolean;
+}
+
+interface EndedSessionCandidate {
+  member: string;
+  score: number;
+}
+
+/*
+ * The run's project order: the indexed projects, de-duplicated and SORTED,
+ * then rotated to start at `cursor` (modulo the count).
+ *
+ * SMEMBERS answers in an order that is stable for as long as the set is
+ * (insertion order for a small set, hash-bucket order for a large one), so
+ * walking it as returned put the same project first every single minute. A
+ * busy project there spent the run budget on its own backlog and every
+ * project after it waited for the idle path, 10-15 minutes, which is the
+ * bug this job exists to fix. Sorting makes the order independent of
+ * Redis' encoding, and the rotating start makes every project first in
+ * turn. Exported so tests can pin the rotation itself.
+ */
+export function rotateEndedProjectOrder(
+  projectIds: Array<string>,
+  cursor: number,
+): Array<string> {
+  const sorted: Array<string> = Array.from(new Set<string>(projectIds)).sort();
+
+  if (sorted.length <= 1) {
+    return sorted;
+  }
+
+  const safeCursor: number = Number.isFinite(cursor) ? Math.floor(cursor) : 0;
+  const start: number =
+    ((safeCursor % sorted.length) + sorted.length) % sorted.length;
+
+  return sorted.slice(start).concat(sorted.slice(0, start));
+}
+
+/*
+ * Advance the persisted project cursor and return where this run starts.
+ *
+ * A counter in Redis rather than the wall clock, so a skipped or overlapping
+ * run still moves the start on by exactly one. If Redis cannot answer, the
+ * minute number stands in: still a rotation, just not a gapless one. The
+ * TTL only keeps an abandoned counter from living forever; a counter that
+ * expires restarts from 1, which is as good a start as any.
+ */
+async function nextEndedProjectCursor(
+  client: ClientType,
+  nowUnixMs: number,
+): Promise<number> {
+  try {
+    const cursor: number = Number(
+      await client.incr(SESSION_REPLAY_ENDED_PROJECT_CURSOR_KEY),
+    );
+
+    await client.expire(
+      SESSION_REPLAY_ENDED_PROJECT_CURSOR_KEY,
+      ENDED_PROJECT_CURSOR_TTL_SECONDS,
+    );
+
+    if (Number.isFinite(cursor)) {
+      return cursor;
+    }
+  } catch (error) {
+    logger.debug(
+      `${ENDED_JOB_NAME}: could not advance the project cursor, rotating by the minute instead: ${getErrorMessage(error)}`,
+    );
+  }
+
+  return Math.floor(nowUnixMs / (60 * 1000));
+}
+
+function createEndedSessionsSummary(): FinalizeEndedSessionsSummary {
+  return {
+    candidates: 0,
+    checked: 0,
+    finalized: 0,
+    stillRecording: 0,
+    settling: 0,
+    deferred: 0,
+    failed: 0,
+    budgetExhausted: false,
+    skippedLockHeld: false,
+  };
+}
+
+export async function finalizeEndedSessions(): Promise<FinalizeEndedSessionsSummary> {
+  const summary: FinalizeEndedSessionsSummary = createEndedSessionsSummary();
+
+  const client: ClientType | null = Redis.getClient();
+
+  if (!client || !Redis.isConnected()) {
+    logger.warn(
+      `${ENDED_JOB_NAME}: Redis is not connected; skipping this run. Ended sessions are found through Redis, and the idle finalizer picks them up once it is back.`,
+    );
+    return summary;
+  }
+
+  /*
+   * Single flight, across replicas.
+   *
+   * The queue runner's one-minute timeout stops WAITING for a run, it does
+   * not cancel it, and the worker queue runs many jobs at once. So without
+   * this a run stalled in a slow correlation fetch had the next minute's
+   * run start on the same candidates, repeating the same heavy Span and
+   * ExceptionInstance scans on a cluster that was already slow - load
+   * amplification exactly when it hurts most. The token makes the release
+   * safe: a run that overran the TTL cannot delete the lock a later run
+   * took (see SESSION_REPLAY_ENDED_RUN_LOCK_RELEASE_SCRIPT).
+   */
+  const lockToken: string = crypto.randomUUID();
+
+  let lockAcquired: "OK" | null = null;
+
+  try {
+    lockAcquired = await client.set(
+      SESSION_REPLAY_ENDED_RUN_LOCK_KEY,
+      lockToken,
+      "PX",
+      ENDED_RUN_LOCK_TTL_MS,
+      "NX",
+    );
+  } catch (error) {
+    logger.warn(
+      `${ENDED_JOB_NAME}: could not take the run lock; skipping this run: ${getErrorMessage(error)}`,
+    );
+    return summary;
+  }
+
+  if (lockAcquired !== "OK") {
+    summary.skippedLockHeld = true;
+    logger.debug(
+      `${ENDED_JOB_NAME}: an earlier run still holds the lock; skipping this run.`,
+    );
+    return summary;
+  }
+
+  try {
+    await runFinalizeEndedSessions(client, summary);
+  } finally {
+    try {
+      await client.eval(
+        SESSION_REPLAY_ENDED_RUN_LOCK_RELEASE_SCRIPT,
+        1,
+        SESSION_REPLAY_ENDED_RUN_LOCK_KEY,
+        lockToken,
+      );
+    } catch (error) {
+      /* The TTL releases it instead; the next run or two may skip. */
+      logger.warn(
+        `${ENDED_JOB_NAME}: could not release the run lock; it expires on its own: ${getErrorMessage(error)}`,
+      );
+    }
+  }
+
+  if (summary.budgetExhausted) {
+    logger.warn(
+      `${ENDED_JOB_NAME}: run budget exhausted after checking ${summary.checked} session(s); the remaining candidates are picked up next run.`,
+    );
+  }
+
+  if (summary.candidates > 0 || summary.failed > 0) {
+    logger.debug(
+      `${ENDED_JOB_NAME}: read ${summary.candidates} ended candidate(s), checked ${summary.checked} session(s): finalized ${summary.finalized}, still recording ${summary.stillRecording}, settling ${summary.settling}, deferred ${summary.deferred}, ${summary.failed} failure(s)`,
+    );
+  }
+
+  return summary;
+}
+
+async function runFinalizeEndedSessions(
+  client: ClientType,
+  summary: FinalizeEndedSessionsSummary,
+): Promise<void> {
+  const databaseName: string = getDatabaseName();
+  const runStartedAt: number = Date.now();
+  const runDeadlineUnixMs: number = runStartedAt + ENDED_RUN_BUDGET_MS;
+
+  /*
+   * Only a prefilter now. The grace is applied by hasSessionRecordingEnded
+   * on the chunk rows' write times, for every tab of the session; reading
+   * only candidates at least that old just spares a chunk-table read for a
+   * final chunk that could not pass it yet.
+   */
+  const cutoffUnixMs: number =
+    runStartedAt - SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS;
+
+  const indexedProjectIds: Array<string> = await client.smembers(
+    SESSION_REPLAY_ACTIVE_PROJECTS_KEY,
+  );
+
+  /*
+   * No cursor round trip when there is nothing to rotate: on most installs
+   * the index holds no project, or one.
+   */
+  const projectIds: Array<string> = rotateEndedProjectOrder(
+    indexedProjectIds,
+    new Set<string>(indexedProjectIds).size > 1
+      ? await nextEndedProjectCursor(client, runStartedAt)
+      : 0,
+  );
+
+  for (
+    let position: number = 0;
+    position < projectIds.length && !summary.budgetExhausted;
+    position++
+  ) {
+    const projectId: string = projectIds[position]!;
+    const projectStartedAt: number = Date.now();
+
+    if (projectStartedAt > runDeadlineUnixMs) {
+      summary.budgetExhausted = true;
+      break;
+    }
+
+    const checksLeft: number = MAX_ENDED_SESSIONS_PER_RUN - summary.checked;
+
+    if (checksLeft <= 0) {
+      break;
+    }
+
+    /*
+     * An equal share of what is LEFT of the run, over the projects not yet
+     * visited (this one included), with floors - see the limits near the top
+     * of this module.
+     */
+    const projectsLeft: number = projectIds.length - position;
+
+    const sessionShare: number = Math.min(
+      checksLeft,
+      Math.max(
+        MIN_ENDED_SESSIONS_PER_PROJECT_PER_RUN,
+        Math.floor(checksLeft / projectsLeft),
+      ),
+    );
+
+    const projectDeadlineUnixMs: number = Math.min(
+      runDeadlineUnixMs,
+      projectStartedAt +
+        Math.max(
+          MIN_ENDED_PROJECT_SLICE_MS,
+          Math.floor((runDeadlineUnixMs - projectStartedAt) / projectsLeft),
+        ),
+    );
+
+    await finalizeEndedSessionsOfProject({
+      client: client,
+      summary: summary,
+      databaseName: databaseName,
+      projectId: projectId,
+      cutoffUnixMs: cutoffUnixMs,
+      runDeadlineUnixMs: runDeadlineUnixMs,
+      projectDeadlineUnixMs: projectDeadlineUnixMs,
+      sessionShare: sessionShare,
+    });
+  }
+}
+
+async function finalizeEndedSessionsOfProject(data: {
+  client: ClientType;
+  summary: FinalizeEndedSessionsSummary;
+  databaseName: string;
+  projectId: string;
+  cutoffUnixMs: number;
+  runDeadlineUnixMs: number;
+  projectDeadlineUnixMs: number;
+  sessionShare: number;
+}): Promise<void> {
+  const client: ClientType = data.client;
+  const summary: FinalizeEndedSessionsSummary = data.summary;
+  const projectId: string = data.projectId;
+  const endedKey: string = getEndedSessionsKey(projectId);
+
+  const candidatesBySessionId: Map<
+    string,
+    Array<EndedSessionCandidate>
+  > = new Map<string, Array<EndedSessionCandidate>>();
+
+  try {
+    /*
+     * Oldest first, so a project with more settled candidates than its share
+     * drains in arrival order across runs.
+     */
+    const membersWithScores: Array<string> = await client.zrangebyscore(
+      endedKey,
+      "-inf",
+      data.cutoffUnixMs,
+      "WITHSCORES",
+      "LIMIT",
+      0,
+      MAX_ENDED_CANDIDATES_PER_PROJECT_PER_RUN,
+    );
+
+    for (
+      let index: number = 0;
+      index + 1 < membersWithScores.length;
+      index += 2
+    ) {
+      const member: string = membersWithScores[index]!;
+      const score: number = toNumberValue(membersWithScores[index + 1]);
+      const parsed: { sessionId: string; tabId: string } | null =
+        parseActiveSessionMember(member);
+
+      if (!parsed) {
+        logger.warn(
+          `${ENDED_JOB_NAME}: dropping malformed ended member "${member}" for project ${projectId}`,
+        );
+        await client.zrem(endedKey, member);
+        continue;
+      }
+
+      summary.candidates++;
+
+      const candidate: EndedSessionCandidate = {
+        member: member,
+        score: score,
+      };
+
+      const existing: Array<EndedSessionCandidate> | undefined =
+        candidatesBySessionId.get(parsed.sessionId);
+
+      if (existing) {
+        existing.push(candidate);
+      } else {
+        candidatesBySessionId.set(parsed.sessionId, [candidate]);
+      }
+    }
+  } catch (error) {
+    logger.error(
+      `${ENDED_JOB_NAME}: could not read the ended set for project ${projectId}: ${getErrorMessage(error)}`,
+    );
+    return;
+  }
+
+  /*
+   * This project's share of the run, oldest sessions first (a Map keeps
+   * insertion order, and the candidates arrived oldest first). The rest stay
+   * queued. Cut BEFORE the correlation window is derived, so the batch's
+   * grouped reads cover only the sessions this run can actually check.
+   */
+  const sessionsInShare: Array<[string, Array<EndedSessionCandidate>]> =
+    Array.from(candidatesBySessionId.entries()).slice(0, data.sessionShare);
+
+  if (sessionsInShare.length === 0) {
+    return;
+  }
+
+  let batchOldestUnixMs: number = Number.MAX_SAFE_INTEGER;
+  let batchNewestUnixMs: number = 0;
+
+  for (const [, candidates] of sessionsInShare) {
+    for (const candidate of candidates) {
+      batchOldestUnixMs = Math.min(batchOldestUnixMs, candidate.score);
+      batchNewestUnixMs = Math.max(batchNewestUnixMs, candidate.score);
+    }
+  }
+
+  const projectObjectId: ObjectID = new ObjectID(projectId);
+
+  /*
+   * One grouped read per telemetry table for the whole batch, exactly as
+   * the idle path does it and over the same kind of window: the scores are
+   * the receive times of each tab's LAST chunk, so the window opens a full
+   * session length before the oldest of them.
+   *
+   * Fetched lazily, on the first session that actually gets a header, and
+   * then shared by the rest of the batch. Most checks here end in
+   * "still-recording" and need no correlation at all.
+   */
+  let correlationForBatch: Promise<Map<string, SessionCorrelation>> | null =
+    null;
+
+  const sessionIdsInBatch: Array<string> = sessionsInShare.map(
+    ([sessionId]: [string, Array<EndedSessionCandidate>]): string => {
+      return sessionId;
+    },
+  );
+
+  const getCorrelationForBatch: () => Promise<
+    Map<string, SessionCorrelation>
+  > = (): Promise<Map<string, SessionCorrelation>> => {
+    if (!correlationForBatch) {
+      correlationForBatch = fetchSessionCorrelation({
+        databaseName: data.databaseName,
+        projectId: projectObjectId,
+        sessionIds: sessionIdsInBatch,
+        windowStartUnixMs:
+          batchOldestUnixMs -
+          SESSION_REPLAY_MAX_SESSION_MS -
+          SESSION_CORRELATION_WINDOW_PADDING_MS,
+        windowEndUnixMs:
+          batchNewestUnixMs + SESSION_CORRELATION_WINDOW_PADDING_MS,
+      });
+    }
+
+    return correlationForBatch;
+  };
+
+  /*
+   * Past the project's slice (which never outlasts the run's budget). Checked
+   * between sessions, and handed to the finalize as its defer check so a
+   * session that has ended but would start the slow correlation reads past
+   * the slice stays queued instead.
+   */
+  const isPastProjectSlice: () => boolean = (): boolean => {
+    return Date.now() > data.projectDeadlineUnixMs;
+  };
+
+  for (const [sessionId, candidates] of sessionsInShare) {
+    if (Date.now() > data.runDeadlineUnixMs) {
+      summary.budgetExhausted = true;
+      break;
+    }
+
+    if (summary.checked >= MAX_ENDED_SESSIONS_PER_RUN) {
+      break;
+    }
+
+    if (isPastProjectSlice()) {
+      logger.debug(
+        `${ENDED_JOB_NAME}: project ${projectId} used its share of this run; its remaining candidates are picked up next run.`,
+      );
+      break;
+    }
+
+    summary.checked++;
+
+    const candidateRemovals: Array<ConditionalMemberRemoval> = candidates.map(
+      (candidate: EndedSessionCandidate): ConditionalMemberRemoval => {
+        return { member: candidate.member, maxScore: candidate.score };
+      },
+    );
+
+    try {
+      const result: FinalizeSessionResult = await finalizeSessionWithTabs({
+        projectId: projectObjectId,
+        sessionId: sessionId,
+        databaseName: data.databaseName,
+        requireRecordingEnded: true,
+        shouldDefer: isPastProjectSlice,
+        resolveCorrelation: async (): Promise<
+          SessionCorrelation | undefined
+        > => {
+          return (await getCorrelationForBatch()).get(sessionId);
+        },
+      });
+
+      if (result.outcome === "deferred") {
+        /*
+         * The session had ended, but writing it would have started past the
+         * slice. Nothing was written and nothing is removed: the candidates
+         * are the only thing that brings the session back here next run.
+         */
+        summary.deferred++;
+
+        if (Date.now() > data.runDeadlineUnixMs) {
+          summary.budgetExhausted = true;
+        }
+
+        break;
+      }
+
+      if (result.outcome === "settling") {
+        /*
+         * Every tab has ended, but the newest chunk is younger than the grace.
+         * Nothing new has to happen for this to pass, so the candidates stay
+         * and the session is re-checked next run. Removing them would leave
+         * it to the idle path whenever no fresher candidate exists to bring
+         * it back: a tab that reached the chunk cap (it sends no final
+         * chunk), a final chunk whose ended-set ZADD failed, or an older
+         * recorder's trailing chunk stored just after the final one.
+         */
+        summary.settling++;
+        continue;
+      }
+
+      if (result.outcome === "written") {
+        summary.finalized++;
+      } else if (result.outcome === "still-recording") {
+        summary.stillRecording++;
+      } else if (result.outcome === "no-chunks") {
+        logger.debug(
+          `${ENDED_JOB_NAME}: session ${sessionId} in project ${projectId} has no stored chunks yet; leaving it to the idle finalizer.`,
+        );
+      }
+
+      /*
+       * Whatever the answer, the candidates that were checked leave the ended
+       * set, each under the score it was read with, and the ACTIVITY entries
+       * stay where they are.
+       *
+       * "still-recording", "erased" or "no-chunks": nothing was written, or
+       * may be, or can be yet. Removing the candidates is right, not lossy: a
+       * session can only BECOME all-ended when one of its still-live tabs
+       * sends a final chunk, and that final chunk adds a fresh candidate
+       * which brings the session back here. Keeping the checked candidates
+       * instead would re-read the chunk table every minute, for as long as
+       * the session lives, for every session of a multi-page application -
+       * every page navigation seals one tab while the next page records on.
+       *
+       * "written": the header is finalized, and the Dashboard's "Recording
+       * now" badge is down, which is this job's whole purpose. The activity
+       * entries are STILL left for the idle path, which finalizes the session
+       * once more SESSION_REPLAY_IDLE_FINALIZE_MS after its last chunk. That
+       * second pass is deliberate, not waste: the trace ids and exception
+       * fingerprints on the header come from a correlation read taken about a
+       * minute after the tab closed, and spans and exceptions from the same
+       * page can land later than that (a different exporter schedule, a
+       * queue retry with backoff). The idle pass re-reads correlation once
+       * that telemetry has settled, and buildFinalizedSessionRow merges it
+       * with the ids the first header already carries, so nothing is lost
+       * and the late ids are added. It also re-counts any chunk that landed
+       * after this run's read, on a header whose version - stamped before
+       * that read - it outranks.
+       */
+      await removeActivityMembersIfNotNewer(
+        client,
+        endedKey,
+        candidateRemovals,
+      );
+    } catch (error) {
+      /*
+       * Everything stays where it is: the candidate is re-checked next
+       * minute and the activity entry still backs it with the idle path.
+       */
+      summary.failed++;
+      logger.error(
+        `${ENDED_JOB_NAME}: failed to finalize ended session ${sessionId} in project ${projectId}: ${getErrorMessage(error)}`,
+      );
+    }
   }
 }
 
@@ -2671,6 +3821,28 @@ RunCron(
       await finalizeExpiredSessions();
     } catch (error) {
       logger.error(`${JOB_NAME}: ${getErrorMessage(error)}`);
+    }
+  },
+);
+
+/*
+ * Every minute, because this job's whole purpose is latency: a closed tab
+ * should stop saying "Recording now" within about a minute. The timeout is
+ * one interval; the run's own budget (ENDED_RUN_BUDGET_MS) keeps it well
+ * inside that.
+ */
+RunCron(
+  ENDED_JOB_NAME,
+  {
+    schedule: EVERY_MINUTE,
+    runOnStartup: false,
+    timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(1),
+  },
+  async (): Promise<void> => {
+    try {
+      await finalizeEndedSessions();
+    } catch (error) {
+      logger.error(`${ENDED_JOB_NAME}: ${getErrorMessage(error)}`);
     }
   },
 );

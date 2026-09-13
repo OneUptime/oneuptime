@@ -1,8 +1,21 @@
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
@@ -18,7 +31,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * cursor; Next disabled without a cursor; unplayable rows never offer
  * Watch; the ignored user filter is called out instead of chipped; the
  * 30-day search cap reads as its fix; the Users page is a navigation away
- * and its hand-off lands here as the reference, never as the URL.
+ * and its hand-off lands here as the reference, never as the URL; a
+ * session whose tabs have all closed reads "Recording ended", and the page
+ * re-reads itself while it shows an unfinalized session - for a bounded
+ * number of ticks, and never while the viewer's pointer or focus is in the
+ * table (issue #3642).
  */
 
 const postMock: MockFunction = getJestMockFunction();
@@ -55,6 +72,8 @@ import SessionReplayTable, {
   fetchSessionReplayList,
   parseSessionReplaySummary,
   SESSION_REPLAY_FRUSTRATION_COUNTERS,
+  SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS,
+  SESSION_REPLAY_LIST_AUTO_REFRESH_MS,
   SESSION_REPLAY_LIST_URL_STORAGE_KEY,
   SESSION_REPLAY_SIGNAL_BADGES,
   SessionReplayListResult,
@@ -198,7 +217,10 @@ function mockApi(
   list: (
     data: JSONObject,
     index: number,
-  ) => HTTPResponse<JSONObject> | HTTPErrorResponse,
+  ) =>
+    | HTTPResponse<JSONObject>
+    | HTTPErrorResponse
+    | Promise<HTTPResponse<JSONObject> | HTTPErrorResponse>,
   status: JSONObject = wireStatus(),
 ): void {
   let listCalls: number = 0;
@@ -290,6 +312,27 @@ describe("parseSessionReplaySummary", () => {
 
     expect(parseSessionReplaySummary(legacy).identifiedUserKey).toBe("");
     expect(parseSessionReplaySummary(legacy).visitorId).toBe("");
+  });
+
+  it("reads hasRecordingEnded, and an older server's row without it as false", () => {
+    expect(
+      parseSessionReplaySummary(
+        wireRow({ isFinalized: 0, hasRecordingEnded: true }),
+      ).hasRecordingEnded,
+    ).toBe(true);
+    expect(
+      parseSessionReplaySummary(
+        wireRow({ isFinalized: 0, hasRecordingEnded: 1 }),
+      ).hasRecordingEnded,
+    ).toBe(true);
+    expect(
+      parseSessionReplaySummary(
+        wireRow({ isFinalized: 0, hasRecordingEnded: false }),
+      ).hasRecordingEnded,
+    ).toBe(false);
+    expect(
+      parseSessionReplaySummary(wireRow({ isFinalized: 0 })).hasRecordingEnded,
+    ).toBe(false);
   });
 
   it("an older server's row has undefined counters, never 0", () => {
@@ -516,6 +559,82 @@ describe("SessionReplayTable rendering", () => {
     expect(row).not.toHaveTextContent("0 pages");
     expect(row).not.toHaveTextContent("0 clicks");
     expect(screen.getByTestId("session-row-watch")).toBeInTheDocument();
+  });
+
+  /*
+   * Issue #3642: a closed tab kept "Recording now · live" and its pulsing
+   * dot for 10-15 minutes, because every unfinalized row read as live.
+   * The server now says when every tab has ended.
+   */
+  it("a session whose every tab has closed says Recording ended, finalizing, with no live dot", async () => {
+    mockApi(() => {
+      return listResponse([
+        wireRow({
+          isFinalized: 0,
+          hasRecordingEnded: true,
+          sealedReason: "final-chunk",
+          chunkCount: 0,
+          durationMs: 0,
+          pageCount: 0,
+          errorCount: 0,
+          rageClickCount: 0,
+          traceCount: 0,
+          exceptionGroupCount: 0,
+          clickCount: 0,
+          activeMs: 0,
+        }),
+      ]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+
+    const badge: HTMLElement = screen.getByTestId("session-row-playability");
+
+    expect(badge).toHaveAttribute("data-kind", "ended");
+    expect(badge.getAttribute("aria-label")).toContain("Recording ended:");
+    expect(row).toHaveTextContent("Recording ended");
+    expect(row).toHaveTextContent("finalizing · Always-on");
+    expect(row).not.toHaveTextContent("Recording now");
+    expect(row).not.toHaveTextContent("live ·");
+    expect(screen.queryByTestId("session-row-live")).toBeNull();
+    /* Not counted yet is still true: the finalizer has not run. */
+    expect(row).toHaveTextContent("Not counted yet");
+    expect(screen.getByTestId("session-row-activity")).toHaveTextContent(
+      "counting",
+    );
+    /* The footage is stored and plays. */
+    expect(screen.getByTestId("session-row-watch")).toBeInTheDocument();
+  });
+
+  it("a live row and an ended row side by side: only the live one pulses", async () => {
+    mockApi(() => {
+      return listResponse([
+        wireRow({ isFinalized: 0, hasRecordingEnded: false }),
+        wireRow({
+          sessionId: SESSION_B,
+          isFinalized: 0,
+          hasRecordingEnded: true,
+        }),
+        wireRow({ sessionId: SESSION_C, hasRecordingEnded: true }),
+      ]);
+    });
+
+    renderTable();
+
+    const rows: Array<HTMLElement> = await waitForRows(3);
+
+    const kinds: Array<string | null> = screen
+      .getAllByTestId("session-row-playability")
+      .map((badge: HTMLElement): string | null => {
+        return badge.getAttribute("data-kind");
+      });
+
+    expect(kinds).toEqual(["recording", "ended", "playable"]);
+    expect(screen.getAllByTestId("session-row-live")).toHaveLength(1);
+    expect(rows[0]).toContainElement(screen.getByTestId("session-row-live"));
+    expect(rows[0]).toHaveTextContent("live · Always-on");
   });
 
   it("an unplayable row never offers Watch and keeps the reason reachable by keyboard", async () => {
@@ -1700,5 +1819,696 @@ describe("SessionReplayTable facet integration", () => {
     expect(screen.getByTestId("session-replay-facets")).not.toHaveTextContent(
       "jane@acme.com",
     );
+  });
+});
+
+/*
+ * Issue #3642: the list never refreshed, so a badge read when the page
+ * loaded stayed on screen however long ago its tab had closed. While the
+ * page shows an unfinalized row it now re-reads itself, silently and in
+ * place, every SESSION_REPLAY_LIST_AUTO_REFRESH_MS - and only while the
+ * document is visible.
+ */
+describe("SessionReplayTable auto-refresh", () => {
+  let visibilityState: DocumentVisibilityState = "visible";
+
+  beforeEach(() => {
+    visibilityState = "visible";
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: (): DocumentVisibilityState => {
+        return visibilityState;
+      },
+    });
+    jest.useFakeTimers({
+      doNotFake: ["nextTick", "queueMicrotask", "setImmediate"],
+    });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    delete (document as unknown as Record<string, unknown>)["visibilityState"];
+  });
+
+  function listRequestCount(): number {
+    return requestsTo("/session-replay/list").length;
+  }
+
+  async function advance(ms: number): Promise<void> {
+    await act(async (): Promise<void> => {
+      jest.advanceTimersByTime(ms);
+    });
+  }
+
+  function setVisibility(state: DocumentVisibilityState): void {
+    visibilityState = state;
+
+    act((): void => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+  }
+
+  function playabilityKinds(): Array<string | null> {
+    return screen
+      .getAllByTestId("session-row-playability")
+      .map((badge: HTMLElement): string | null => {
+        return badge.getAttribute("data-kind");
+      });
+  }
+
+  interface Deferred {
+    promise: Promise<HTTPResponse<JSONObject> | HTTPErrorResponse>;
+    resolve: (value: HTTPResponse<JSONObject> | HTTPErrorResponse) => void;
+  }
+
+  function deferred(): Deferred {
+    let resolve: (
+      value: HTTPResponse<JSONObject> | HTTPErrorResponse,
+    ) => void = (): void => {
+      /* replaced below */
+    };
+    const promise: Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> =
+      new Promise<HTTPResponse<JSONObject> | HTTPErrorResponse>(
+        (
+          done: (value: HTTPResponse<JSONObject> | HTTPErrorResponse) => void,
+        ): void => {
+          resolve = done;
+        },
+      );
+
+    return { promise: promise, resolve: resolve };
+  }
+
+  it("refreshes every interval while a row is unfinalized, follows the badge, and stops once all are finalized", async () => {
+    mockApi((_data: JSONObject, index: number) => {
+      if (index === 0) {
+        return listResponse([wireRow({ isFinalized: 0, chunkCount: 0 })]);
+      }
+
+      if (index === 1) {
+        return listResponse([
+          wireRow({ isFinalized: 0, chunkCount: 0, hasRecordingEnded: true }),
+        ]);
+      }
+
+      return listResponse([wireRow()]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    expect(playabilityKinds()).toEqual(["recording"]);
+    expect(listRequestCount()).toBe(1);
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS - 1000);
+
+    expect(listRequestCount()).toBe(1);
+
+    await advance(1000);
+
+    await waitFor(() => {
+      expect(playabilityKinds()).toEqual(["ended"]);
+    });
+
+    expect(listRequestCount()).toBe(2);
+    expect(screen.queryByTestId("session-row-live")).toBeNull();
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS);
+
+    await waitFor(() => {
+      expect(playabilityKinds()).toEqual(["playable"]);
+    });
+
+    expect(listRequestCount()).toBe(3);
+
+    /* Every row is finalized: nothing left to change, nothing polled. */
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS * 4);
+
+    expect(listRequestCount()).toBe(3);
+  });
+
+  it("never polls a page whose rows are all finalized", async () => {
+    mockApi(() => {
+      return listResponse([wireRow(), wireRow({ sessionId: SESSION_B })]);
+    });
+
+    renderTable();
+
+    await waitForRows(2);
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS * 3);
+
+    expect(listRequestCount()).toBe(1);
+  });
+
+  it("keeps the page, the cursor, the filters and the sort, and never flashes the skeleton", async () => {
+    const pageOneCursor: JSONObject = {
+      startTimeUnixMs: NOW - 3 * 60_000,
+      sessionId: SESSION_A,
+    };
+    const pageTwoCursor: JSONObject = {
+      startTimeUnixMs: NOW - 9 * 60_000,
+      sessionId: SESSION_B,
+    };
+    const refresh: Deferred = deferred();
+
+    window.history.replaceState(null, "", "/?browser=Firefox");
+
+    mockApi((_data: JSONObject, index: number) => {
+      if (index === 0) {
+        return listResponse([wireRow({ isFinalized: 0 })], pageOneCursor);
+      }
+
+      if (index === 1) {
+        return listResponse(
+          [wireRow({ sessionId: SESSION_B, isFinalized: 0 })],
+          pageTwoCursor,
+        );
+      }
+
+      return refresh.promise;
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    fireEvent.click(screen.getByTestId("pagination-next-button"));
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("session-row")[0]).toHaveAttribute(
+        "data-session-id",
+        SESSION_B,
+      );
+    });
+
+    expect(window.location.search).toContain("page=2");
+    expect(listRequestCount()).toBe(2);
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS);
+
+    await waitFor(() => {
+      expect(listRequestCount()).toBe(3);
+    });
+
+    const pageTwo: JSONObject = requestsTo("/session-replay/list")[1]!.data;
+    const refreshed: JSONObject = requestsTo("/session-replay/list")[2]!.data;
+
+    /*
+     * The same request as the page on screen, cursor and all. Only the
+     * window's edges may differ: a relative range ("past day") is
+     * re-evaluated against the clock on every read, the Refresh button's
+     * way too.
+     */
+    const withoutWindow: (data: JSONObject) => JSONObject = (
+      data: JSONObject,
+    ): JSONObject => {
+      const copy: JSONObject = { ...data };
+
+      delete copy["startTime"];
+      delete copy["endTime"];
+
+      return copy;
+    };
+
+    expect(refreshed["cursor"]).toEqual(pageOneCursor);
+    expect(refreshed["filters"]).toEqual({ browserNames: ["Firefox"] });
+    expect(withoutWindow(refreshed)).toEqual(withoutWindow(pageTwo));
+    expect(Object.keys(refreshed).sort()).toEqual(Object.keys(pageTwo).sort());
+
+    /* In flight: the rows stay, no skeleton, the page does not move. */
+    expect(screen.queryByTestId("table-skeleton-loader")).toBeNull();
+    expect(screen.getAllByTestId("session-row")).toHaveLength(1);
+    expect(window.location.search).toContain("page=2");
+
+    await act(async (): Promise<void> => {
+      refresh.resolve(
+        listResponse([wireRow({ sessionId: SESSION_B })], pageTwoCursor),
+      );
+    });
+
+    await waitFor(() => {
+      expect(playabilityKinds()).toEqual(["playable"]);
+    });
+
+    expect(screen.queryByTestId("table-skeleton-loader")).toBeNull();
+    expect(window.location.search).toContain("page=2");
+    expect(window.location.search).toContain("browser=Firefox");
+    expect(screen.getByTestId("pagination-next-button")).not.toBeDisabled();
+    expect(
+      screen.getAllByTestId("session-row")[0]?.getAttribute("data-session-id"),
+    ).toBe(SESSION_B);
+  });
+
+  it("does not poll while the document is hidden, and catches up when it is visible again", async () => {
+    mockApi(() => {
+      return listResponse([wireRow({ isFinalized: 0 })]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    setVisibility("hidden");
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS * 5);
+
+    expect(listRequestCount()).toBe(1);
+
+    /* The rows are minutes old: read them now, not in another 30s. */
+    setVisibility("visible");
+
+    await waitFor(() => {
+      expect(listRequestCount()).toBe(2);
+    });
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS);
+
+    await waitFor(() => {
+      expect(listRequestCount()).toBe(3);
+    });
+  });
+
+  it("a quick hide and show does not re-read rows that are still fresh", async () => {
+    mockApi(() => {
+      return listResponse([wireRow({ isFinalized: 0 })]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    setVisibility("hidden");
+    await advance(2000);
+    setVisibility("visible");
+    await advance(2000);
+
+    expect(listRequestCount()).toBe(1);
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS);
+
+    await waitFor(() => {
+      expect(listRequestCount()).toBe(2);
+    });
+  });
+
+  it("never starts while the document is hidden at mount", async () => {
+    visibilityState = "hidden";
+
+    mockApi(() => {
+      return listResponse([wireRow({ isFinalized: 0 })]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS * 3);
+
+    expect(listRequestCount()).toBe(1);
+  });
+
+  it("unmounting clears the timer", async () => {
+    mockApi(() => {
+      return listResponse([wireRow({ isFinalized: 0 })]);
+    });
+
+    const view: ReturnType<typeof render> = renderTable();
+
+    await waitForRows(1);
+
+    view.unmount();
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS * 3);
+
+    expect(listRequestCount()).toBe(1);
+
+    /* Nor does a visibility change after unmount start one. */
+    setVisibility("hidden");
+    setVisibility("visible");
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS);
+
+    expect(listRequestCount()).toBe(1);
+  });
+
+  it("a failed refresh keeps the rows, shows no error, and the next tick retries", async () => {
+    mockApi((_data: JSONObject, index: number) => {
+      if (index === 1) {
+        return new HTTPErrorResponse(503, { message: "busy" }, {});
+      }
+
+      return listResponse([wireRow({ isFinalized: 0 })]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS);
+
+    await waitFor(() => {
+      expect(listRequestCount()).toBe(2);
+    });
+
+    expect(screen.queryByTestId("list-error")).toBeNull();
+    expect(screen.getAllByTestId("session-row")).toHaveLength(1);
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS);
+
+    await waitFor(() => {
+      expect(listRequestCount()).toBe(3);
+    });
+
+    expect(screen.queryByTestId("list-error")).toBeNull();
+  });
+
+  it("a tick never supersedes a load the viewer started", async () => {
+    const manual: Deferred = deferred();
+
+    mockApi((_data: JSONObject, index: number) => {
+      if (index === 1) {
+        return manual.promise;
+      }
+
+      return listResponse([wireRow({ isFinalized: 0 })]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh sessions" }));
+
+    await waitFor(() => {
+      expect(listRequestCount()).toBe(2);
+    });
+
+    /* The viewer's load is still in the air: the tick stands down. */
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS);
+
+    expect(listRequestCount()).toBe(2);
+
+    await act(async (): Promise<void> => {
+      manual.resolve(
+        listResponse([wireRow({ sessionId: SESSION_B, isFinalized: 0 })]),
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("session-row")[0]).toHaveAttribute(
+        "data-session-id",
+        SESSION_B,
+      );
+    });
+
+    expect(screen.queryByTestId("table-skeleton-loader")).toBeNull();
+  });
+
+  /*
+   * On a busy application the newest page always holds a live session, so
+   * "until every row is finalized" never comes. The refresh is capped at
+   * SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS since the viewer last
+   * started a load or came back to the tab.
+   */
+  async function exhaustRefreshBudget(): Promise<void> {
+    for (
+      let tick: number = 1;
+      tick <= SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS;
+      tick++
+    ) {
+      await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS);
+
+      await waitFor(() => {
+        expect(listRequestCount()).toBe(1 + tick);
+      });
+    }
+  }
+
+  it("stops after the maximum number of silent reads on a page that never settles", async () => {
+    expect(
+      SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS *
+        SESSION_REPLAY_LIST_AUTO_REFRESH_MS,
+    ).toBe(10 * 60_000);
+
+    mockApi(() => {
+      return listResponse([wireRow({ isFinalized: 0 })]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    await exhaustRefreshBudget();
+
+    /* Still unfinalized, still visible: and yet nothing more is read. */
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS * 10);
+
+    expect(listRequestCount()).toBe(
+      1 + SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS,
+    );
+    expect(screen.getAllByTestId("session-row")).toHaveLength(1);
+  });
+
+  it("a load the viewer starts restores the whole budget and restarts the timer", async () => {
+    mockApi(() => {
+      return listResponse([wireRow({ isFinalized: 0 })]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    await exhaustRefreshBudget();
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS * 3);
+
+    const exhaustedAt: number = 1 + SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS;
+
+    expect(listRequestCount()).toBe(exhaustedAt);
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh sessions" }));
+
+    await waitFor(() => {
+      expect(listRequestCount()).toBe(exhaustedAt + 1);
+    });
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS);
+
+    await waitFor(() => {
+      expect(listRequestCount()).toBe(exhaustedAt + 2);
+    });
+
+    /* A whole new budget, not one more tick. */
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS);
+
+    await waitFor(() => {
+      expect(listRequestCount()).toBe(exhaustedAt + 3);
+    });
+  });
+
+  it("coming back to the tab restores the budget", async () => {
+    mockApi(() => {
+      return listResponse([wireRow({ isFinalized: 0 })]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    await exhaustRefreshBudget();
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS * 3);
+
+    const exhaustedAt: number = 1 + SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS;
+
+    expect(listRequestCount()).toBe(exhaustedAt);
+
+    setVisibility("hidden");
+    setVisibility("visible");
+
+    /* The rows are stale: read now, then keep going on the timer. */
+    await waitFor(() => {
+      expect(listRequestCount()).toBe(exhaustedAt + 1);
+    });
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS);
+
+    await waitFor(() => {
+      expect(listRequestCount()).toBe(exhaustedAt + 2);
+    });
+  });
+
+  /*
+   * Common Table keys rows by position, so a refresh that puts a new
+   * session at the top leaves every row element where it was, carrying
+   * the next session's props. A tick that finds the viewer's pointer or
+   * focus in the table stands down; the next one tries again.
+   */
+  it("a tick stands down while the pointer is over the table, and goes ahead once it leaves", async () => {
+    mockApi((_data: JSONObject, index: number) => {
+      if (index === 0) {
+        return listResponse([wireRow({ isFinalized: 0 })]);
+      }
+
+      return listResponse([
+        wireRow({ sessionId: SESSION_B, isFinalized: 0 }),
+        wireRow({ isFinalized: 0 }),
+      ]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    fireEvent.mouseEnter(screen.getByTestId("session-table"));
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS * 3);
+
+    expect(listRequestCount()).toBe(1);
+    expect(screen.getAllByTestId("session-row")[0]).toHaveAttribute(
+      "data-session-id",
+      SESSION_A,
+    );
+
+    fireEvent.mouseLeave(screen.getByTestId("session-table"));
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS);
+
+    await waitFor(() => {
+      expect(listRequestCount()).toBe(2);
+    });
+
+    await waitForRows(2);
+  });
+
+  it("a tick stands down while a row has focus, so Enter opens the session the viewer focused", async () => {
+    mockApi((_data: JSONObject, index: number) => {
+      if (index === 0) {
+        return listResponse([wireRow({ isFinalized: 0 })]);
+      }
+
+      return listResponse([
+        wireRow({ sessionId: SESSION_B, isFinalized: 0 }),
+        wireRow({ isFinalized: 0 }),
+      ]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForRows(1);
+
+    act((): void => {
+      (row as HTMLElement).focus();
+    });
+
+    expect(document.activeElement).toBe(row);
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS * 3);
+
+    expect(listRequestCount()).toBe(1);
+    expect(document.activeElement).toHaveAttribute(
+      "data-session-id",
+      SESSION_A,
+    );
+
+    fireEvent.keyDown(row as HTMLElement, { key: "Enter" });
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(
+      (navigateMock.mock.calls[0]![0] as { toString: () => string }).toString(),
+    ).toContain(SESSION_A);
+
+    /* Focus leaves the table: the next tick reads the page. */
+    act((): void => {
+      (row as HTMLElement).blur();
+    });
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS);
+
+    await waitFor(() => {
+      expect(listRequestCount()).toBe(2);
+    });
+
+    await waitForRows(2);
+  });
+
+  it("ticks skipped under the viewer's hand do not spend the budget", async () => {
+    mockApi(() => {
+      return listResponse([wireRow({ isFinalized: 0 })]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    fireEvent.mouseEnter(screen.getByTestId("session-table"));
+
+    await advance(
+      SESSION_REPLAY_LIST_AUTO_REFRESH_MS *
+        (SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS + 5),
+    );
+
+    expect(listRequestCount()).toBe(1);
+
+    fireEvent.mouseLeave(screen.getByTestId("session-table"));
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS);
+
+    await waitFor(() => {
+      expect(listRequestCount()).toBe(2);
+    });
+  });
+
+  it("a refresh that lands after the viewer reloaded is thrown away", async () => {
+    const stale: Deferred = deferred();
+
+    mockApi((_data: JSONObject, index: number) => {
+      if (index === 1) {
+        return stale.promise;
+      }
+
+      if (index === 2) {
+        return listResponse([
+          wireRow({ sessionId: SESSION_B, isFinalized: 0 }),
+        ]);
+      }
+
+      return listResponse([wireRow({ isFinalized: 0 })]);
+    });
+
+    renderTable();
+
+    await waitForRows(1);
+
+    await advance(SESSION_REPLAY_LIST_AUTO_REFRESH_MS);
+
+    await waitFor(() => {
+      expect(listRequestCount()).toBe(2);
+    });
+
+    /* The viewer asks for a fresh read while the silent one hangs. */
+    fireEvent.click(screen.getByRole("button", { name: "Refresh sessions" }));
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("session-row")[0]).toHaveAttribute(
+        "data-session-id",
+        SESSION_B,
+      );
+    });
+
+    await act(async (): Promise<void> => {
+      stale.resolve(
+        listResponse([wireRow({ sessionId: SESSION_C, isFinalized: 0 })]),
+      );
+    });
+
+    await advance(100);
+
+    expect(screen.getAllByTestId("session-row")[0]).toHaveAttribute(
+      "data-session-id",
+      SESSION_B,
+    );
+    expect(screen.queryByTestId("table-skeleton-loader")).toBeNull();
   });
 });

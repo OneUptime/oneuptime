@@ -20,6 +20,10 @@ import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableNam
 import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
 import { SESSION_REPLAY_ACTIVE_CHUNK_MIN_EVENTS } from "Common/Types/Rum/SessionReplay";
 import {
+  hasSessionRecordingEnded,
+  hasTabRecordingEnded,
+} from "Common/Utils/Rum/SessionReplayRecordingEnded";
+import {
   afterAll,
   beforeAll,
   describe,
@@ -221,7 +225,7 @@ const chunkFixtures: Array<ChunkFixture> = [
   {
     tabId: "tab-b",
     chunkIndex: 0,
-    version: 1000,
+    version: 2000,
     startOffsetMs: 20000,
     eventCount: 12,
     errorCount: 3,
@@ -519,6 +523,59 @@ integration("Rum:FinalizeSessions against ClickHouse", () => {
     expect(tabB.firstErrorOffsetMs).toBe(20000);
     expect(tabB.activeMs).toBe(CHUNK_DURATION_MS);
     expect(tabB.hasFinalChunk).toBe(false);
+  });
+
+  test("the chunk aggregate reads each tab's end facts, and the shared rule agrees", async () => {
+    /*
+     * The two expressions the recording-ended rule reads sit beside
+     * aggregates that read isFinal, chunkStartTime and chunkEndTime, which
+     * is exactly where an alias clash becomes ILLEGAL_AGGREGATION - so the
+     * server has to accept them, not just the string test.
+     */
+    const rows: Array<JSONObject> = await readRows(
+      buildTabAggregateStatement({
+        databaseName: database,
+        projectId: projectId,
+        sessionId: sessionId,
+      }),
+    );
+
+    const tabs: Map<string, TabChunkAggregate> = new Map<
+      string,
+      TabChunkAggregate
+    >(
+      rows.map((row: JSONObject): [string, TabChunkAggregate] => {
+        const tab: TabChunkAggregate = parseTabAggregateRow(row);
+        return [tab.tabId, tab];
+      }),
+    );
+
+    const tabA: TabChunkAggregate = tabs.get("tab-a")!;
+    const tabB: TabChunkAggregate = tabs.get("tab-b")!;
+
+    /* tab-a's final chunk 3 spans 45s-60s and is also its latest start. */
+    expect(tabA.finalChunkEndUnixMs).toBe(sessionStart.getTime() + 60000);
+    expect(tabA.lastChunkStartUnixMs).toBe(sessionStart.getTime() + 45000);
+    expect(hasTabRecordingEnded(tabA)).toBe(true);
+
+    /* maxIf over no final chunk is the epoch, which reads as 0. */
+    expect(tabB.finalChunkEndUnixMs).toBe(0);
+    expect(tabB.lastChunkStartUnixMs).toBe(sessionStart.getTime() + 20000);
+    expect(hasTabRecordingEnded(tabB)).toBe(false);
+
+    /*
+     * max(chunkIndex) and max(version) sit beside aggregates that read both
+     * columns too, and max(version) must cover the deduped rows: tab-a's
+     * stale redelivery of chunk 2 is version 500, its newest rows 1000.
+     */
+    expect(tabA.maxChunkIndex).toBe(3);
+    expect(tabA.lastChunkStoredAtUnixMs).toBe(1000);
+    expect(tabB.maxChunkIndex).toBe(0);
+    expect(tabB.lastChunkStoredAtUnixMs).toBe(2000);
+
+    /* Stored long before "now", so only tab-b being live holds it back. */
+    expect(hasSessionRecordingEnded([tabA], Date.now())).toBe(true);
+    expect(hasSessionRecordingEnded([tabA, tabB], Date.now())).toBe(false);
   });
 
   test("the batch correlation reads execute and find the session's telemetry", async () => {

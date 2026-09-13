@@ -107,6 +107,15 @@ test.describe("Session Replay", () => {
     page: Page;
   }) => {
     /*
+     * The journey's ten minutes, plus five for its last hop: the tab closes
+     * and the dashboard has to stop calling the session live. That cannot
+     * happen sooner than SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS (60s, server
+     * clock) after the sealing chunk is stored, and the hop allows the
+     * every-minute ended-session finalizer a run or two on top.
+     */
+    test.setTimeout(900000);
+
+    /*
      * Growth when billing is on: every replay READ route refuses a lower
      * plan with 402, while ingest has no plan gate at all - so on a Free
      * project the chunks below would be accepted and stored and then be
@@ -164,18 +173,27 @@ test.describe("Session Replay", () => {
 
     /*
      * One journey in six 15-second slots, with slot 2 deliberately never
-     * delivered and slot 4 deliberately silent:
+     * delivered and slot 4 deliberately silent, then two seconds of a
+     * seventh in which the tab is closed:
      *
      *   0  land on /, add to cart, navigate to /cart        (identity, tags)
      *   1  /cart throws, the checkout call fails            (the error)
      *   2  MISSING - the recorder never delivered it        (the gap)
      *   3  /checkout, a fresh snapshot                      (anchor after the hole)
      *   4  the user reads the page and touches nothing      (the idle stretch)
-     *   5  a rage click, the final chunk                    (identity again)
+     *   5  a rage click, identify() again                   (identity again)
+     *   6  the tab closes                                   (the seal, hop 16)
      *
      * The URLs differ per chunk on purpose - that is what makes exitUrl and
      * routes[] falsifiable - and every custom event lands at a known offset
      * so the rail and the timeline can be checked against it.
+     *
+     * Chunks 0-5 leave the tab OPEN. A tab whose final chunk has landed is a
+     * recording that has ended (Common/Utils/Rum/SessionReplayRecordingEnded),
+     * and a minute later the list, the player and the finalizer all stop
+     * treating it as live - which would take away the live dot, the Live
+     * pill and the manifest poll that hops 4, 6 and 14 exist to check. So
+     * the seal is posted last, in hop 16, which checks exactly that.
      */
     await postSessionReplayChunk({
       page,
@@ -312,6 +330,13 @@ test.describe("Session Replay", () => {
       activityEveryMs: null,
     });
 
+    /*
+     * NOT final: the tab is still open (see above). It is still a
+     * meta-bearing chunk - the recorder sends meta on the next chunk after
+     * identify()/setTags() - so it carries the entry url, the identity and
+     * the tags, and the provisional header the list and player read is
+     * built from it.
+     */
     await postSessionReplayChunk({
       page,
       ingestionKey,
@@ -323,7 +348,6 @@ test.describe("Session Replay", () => {
       url: checkout,
       routes: [checkout],
       entryUrl: home,
-      isFinal: true,
       rageClickCount: 1,
       identifiedUserRef: userRef,
       identifiedUserTraits: { plan: "pro", company: "E2E Ltd" },
@@ -414,9 +438,10 @@ test.describe("Session Replay", () => {
     ).toHaveText(userRef, { timeout: 30000 });
 
     /*
-     * Not finalized yet (the finalizer waits for ten idle minutes), so the
-     * row is honest about it: Recording now, a live dot, and Watch offered
-     * because footage exists.
+     * Not finalized yet, and not ended either: no tab has sent a final
+     * chunk, so nothing but the ten-minute idle window could finalize it.
+     * The row is honest about it: Recording now, a live dot, and Watch
+     * offered because footage exists.
      */
     await expect(
       listRow.getByTestId("session-row-playability"),
@@ -425,8 +450,8 @@ test.describe("Session Replay", () => {
 
     /*
      * The provisional header carries the routes of its NEWEST meta-bearing
-     * chunk (the final one, on /checkout); the union across every chunk is
-     * the finalizer's, and is pinned at the unit level.
+     * chunk (chunk 5, on /checkout); the union across every chunk is the
+     * finalizer's, and is pinned at the unit level.
      */
     await expect(listRow.getByTestId("session-row-routes")).toContainText(
       "/checkout",
@@ -481,7 +506,10 @@ test.describe("Session Replay", () => {
     /* One browser tab: the header shows no tab pills at all, not one. */
     await expect(page.getByTestId("replay-tab-pill")).toHaveCount(0);
 
-    /* Provisional session: the header says so and the shell polls. */
+    /*
+     * Provisional session whose tab is still open: the header says Live and
+     * the shell polls.
+     */
     await expect(page.getByTestId("replay-live-pill")).toBeVisible();
     await expect(page.getByTestId("replay-player")).toHaveAttribute(
       "data-replay-live",
@@ -594,11 +622,12 @@ test.describe("Session Replay", () => {
      * Hop 7: the session says where it began.
      *
      * meta.entryUrl used to be read from location.href when the envelope was
-     * built, and meta rides the FINAL chunk as well as chunk 0 - so the last
-     * chunk overwrote the header with the exit url and every session that
-     * navigated was filed as beginning wherever its user stopped. Here the
-     * final chunk carries the same entryUrl as chunk 0, and the panel has to
-     * agree.
+     * built, and meta rides later chunks as well as chunk 0 (the one after
+     * identify()/setTags(), and the final one) - so the latest of them
+     * overwrote the header with the page the user was on, and every session
+     * that navigated was filed as beginning wherever its user stopped. Here
+     * chunk 5, meta-bearing and flushed on /checkout, carries the same
+     * entryUrl as chunk 0, and the panel has to agree.
      *
      * EXACT: `checkout` has `home` as a prefix, so a substring match would
      * hold even when the Entry URL row shows the checkout page - which is
@@ -817,6 +846,9 @@ test.describe("Session Replay", () => {
      * the view id it was given, and the server must reuse the audit row
      * rather than logging a "view" per poll. The count is read before and
      * after one complete poll cycle.
+     *
+     * Live because its tab is still open. Once the session is finalized the
+     * poll stops, so this hop must stay ahead of the seal in hop 16.
      */
     const viewsBefore: number = await readSessionReplayViewCount({
       page,
@@ -899,11 +931,121 @@ test.describe("Session Replay", () => {
     await expect(menuLink).toHaveCount(0);
 
     /*
+     * Hop 16: the tab closes, and the dashboard stops calling it live.
+     *
+     * A closed tab used to keep "Recording now", the pulsing dot and the
+     * player's Live pill for the 10-15 minutes the idle finalizer took,
+     * because "not finalized" was read as "still recording". The recorder
+     * says a tab is gone: on pagehide it posts a final chunk. Once every tab
+     * of a session has sent one, the session has ended.
+     *
+     * The seal is a short, nearly silent chunk 6 on the same tab: the user
+     * closed the page two seconds into the slot after the rage click. Like
+     * every final chunk it is meta-bearing, and it repeats the session's
+     * entry url, identity and tags, as the recorder does.
+     */
+    await postSessionReplayChunk({
+      page,
+      ingestionKey,
+      appIdentifier,
+      sessionId,
+      tabId,
+      chunkIndex: 6,
+      sessionStartUnixMs,
+      url: checkout,
+      routes: [checkout],
+      entryUrl: home,
+      isFinal: true,
+      activityEveryMs: null,
+      chunkEndOffsetMs: JOURNEY_DURATION_MS + 2000,
+      identifiedUserRef: userRef,
+      identifiedUserTraits: { plan: "pro", company: "E2E Ltd" },
+      tags: { build: buildTag, team: "checkout" },
+    });
+
+    /*
+     * The list. "Ended" is not instant, by design: the server calls a
+     * session ended only once SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS (60s)
+     * has passed since its newest chunk was stored, measured on the server's
+     * clock, so the next page of a multi-page app cannot be mistaken for a
+     * closed tab. Until then the row may still read "Recording now".
+     *
+     * Rum:FinalizeEndedSessions (every minute) applies the same grace and
+     * then finalizes the session, after which the row is Partial (chunk 2
+     * never arrived) - and a cron run can land between two polls, so the
+     * "Recording ended" state may be over before the list is read. Either
+     * answer is the fix working; "recording" after four minutes is the bug.
+     *
+     * Each attempt reloads the list, as hop 3 does, rather than waiting on
+     * the list's own 30s auto-refresh: a failure then names the state the
+     * server returned, not a timer that did not fire.
+     */
+    const playability: Locator = listRow.getByTestId("session-row-playability");
+    const endedOrFinalizedKind: RegExp = /^(ended|partial|playable)$/;
+
+    await pollUntil({
+      page,
+      what: `session ${sessionId.slice(0, 12)} reading Recording ended or finalized`,
+      timeoutMs: 240000,
+      run: async (): Promise<boolean> => {
+        await openSessionReplayList({ page, projectId, rumApplicationId });
+        await listRow.waitFor({ state: "visible", timeout: 30000 });
+
+        const kind: string =
+          (await playability.getAttribute("data-kind")) ?? "";
+
+        // eslint-disable-next-line no-console
+        console.log(
+          `[sessionReplay] sealed session ${sessionId.slice(0, 12)} kind=${kind}`,
+        );
+
+        return endedOrFinalizedKind.test(kind);
+      },
+    });
+
+    await expect(
+      playability,
+      "A session whose only tab sent its final chunk must stop reading Recording now once the grace has passed",
+    ).toHaveAttribute("data-kind", endedOrFinalizedKind);
+    await expect(
+      listRow.getByTestId("session-row-live"),
+      "A closed tab must not keep the pulsing live dot",
+    ).toHaveCount(0);
+
+    /*
+     * The player reads the same rule from the manifest header, and time
+     * only moves forward, so a session the list has just called ended (or
+     * finalized) is not Live here either. The header is waited for first,
+     * as in hop 6, so the assertions below are about a loaded manifest and
+     * not about the loading shell.
+     */
+    await openSessionReplayPlayer({
+      page,
+      projectId,
+      rumApplicationId,
+      sessionId,
+    });
+
+    await expect(page.getByTestId("replay-header")).toBeVisible({
+      timeout: 60000,
+    });
+    await expect(
+      page.getByTestId("replay-player"),
+      "The player must not call a session live once its only tab has closed",
+    ).toHaveAttribute("data-replay-live", "false", { timeout: 60000 });
+    await expect(
+      page.getByTestId("replay-live-pill"),
+      "A closed tab must not keep the player's Live pill",
+    ).toHaveCount(0);
+
+    /*
      * The FINALIZED exitUrl and routes[] are deliberately not asserted here.
-     * Finalization is a 5-minute cron behind a 10-minute idle cutoff, so
-     * proving it end to end means idling this spec for a quarter of an hour -
-     * a cost the whole suite would pay, and the kind of long sleep that makes
-     * a suite flaky rather than thorough.
+     * The ended-session finalizer is a one-minute cron sharing the worker
+     * queue with every other job in the stack, and hop 16 accepts "ended"
+     * precisely so this spec does not time that queue. Waiting for the
+     * finalized header as well would make the spec's result depend on how
+     * busy the workers are - the kind of long wait that makes a suite flaky
+     * rather than thorough.
      *
      * That derivation is covered exhaustively at the unit level instead, in
      * App/Tests/Workers/SessionReplayFinalizer.test.ts: exit url from the last

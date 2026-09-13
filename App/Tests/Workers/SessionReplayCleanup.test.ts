@@ -34,12 +34,24 @@ class MockRedis {
   >();
   public connected: boolean = true;
   public failingKeys: Set<string> = new Set<string>();
+  /* Every plain ZREM, so a test can prove removals went through the script. */
+  public zremCalls: Array<string> = [];
+  /* Every conditional-removal script call's KEYS[1]. */
+  public evalKeys: Array<string> = [];
+  /*
+   * Runs right after a range read returns: the window in which the ingest
+   * path can re-queue a member the job is about to remove.
+   */
+  public afterRangeRead: ((key: string) => void) | null = null;
 
   public reset(): void {
     this.sets = new Map<string, Set<string>>();
     this.zsets = new Map<string, Map<string, number>>();
     this.failingKeys = new Set<string>();
     this.connected = true;
+    this.zremCalls = [];
+    this.evalKeys = [];
+    this.afterRangeRead = null;
   }
 
   public zadd(key: string, score: number, member: string): void {
@@ -70,13 +82,12 @@ class MockRedis {
 
         return Promise.resolve(this.zsets.has(key) ? 1 : 0);
       },
+      /* ZRANGEBYSCORE key -inf max [WITHSCORES] LIMIT offset count */
       zrangebyscore: (
         key: string,
         _min: string,
         max: number,
-        _limitToken: string,
-        offset: number,
-        count: number,
+        ...rest: Array<string | number>
       ): Promise<Array<string>> => {
         const zset: Map<string, number> | undefined = this.zsets.get(key);
 
@@ -84,20 +95,76 @@ class MockRedis {
           return Promise.resolve([]);
         }
 
-        const matched: Array<string> = Array.from(zset.entries())
+        const withScores: boolean = rest.includes("WITHSCORES");
+        const limitAt: number = rest.indexOf("LIMIT");
+        const offset: number = Number(rest[limitAt + 1]);
+        const count: number = Number(rest[limitAt + 2]);
+
+        const matched: Array<[string, number]> = Array.from(zset.entries())
           .filter(([, score]: [string, number]): boolean => {
             return score <= max;
           })
           .sort(([, a]: [string, number], [, b]: [string, number]): number => {
             return a - b;
           })
-          .map(([member]: [string, number]): string => {
-            return member;
-          });
+          .slice(offset, offset + count);
 
-        return Promise.resolve(matched.slice(offset, offset + count));
+        const flat: Array<string> = [];
+
+        for (const [member, score] of matched) {
+          flat.push(member);
+
+          if (withScores) {
+            flat.push(String(score));
+          }
+        }
+
+        if (this.afterRangeRead) {
+          this.afterRangeRead(key);
+        }
+
+        return Promise.resolve(flat);
+      },
+      /* Emulates exactly the finalizer's conditional-removal script. */
+      eval: (
+        script: string,
+        numKeys: number,
+        ...args: Array<string | number>
+      ): Promise<number> => {
+        if (
+          script !== SESSION_REPLAY_REMOVE_IF_NOT_NEWER_SCRIPT ||
+          numKeys !== 1
+        ) {
+          return Promise.reject(new Error("unexpected EVAL in MockRedis"));
+        }
+
+        const key: string = String(args[0]);
+        const argv: Array<string> = args.slice(1).map(String);
+        const zset: Map<string, number> | undefined = this.zsets.get(key);
+
+        this.evalKeys.push(key);
+
+        let removed: number = 0;
+
+        for (let index: number = 0; index + 1 < argv.length; index += 2) {
+          const score: number | undefined = zset?.get(argv[index]!);
+
+          if (score !== undefined && score <= Number(argv[index + 1])) {
+            zset!.delete(argv[index]!);
+            removed++;
+          }
+        }
+
+        /* Redis drops an emptied sorted set outright. */
+        if (zset && zset.size === 0) {
+          this.zsets.delete(key);
+        }
+
+        return Promise.resolve(removed);
       },
       zrem: (key: string, members: Array<string>): Promise<number> => {
+        this.zremCalls.push(key);
+
         const zset: Map<string, number> | undefined = this.zsets.get(key);
 
         if (!zset) {
@@ -146,7 +213,9 @@ import { pruneAbandonedSessionActivity } from "../../FeatureSet/Workers/Jobs/Rum
 import {
   SESSION_REPLAY_ACTIVE_PROJECTS_KEY,
   SESSION_REPLAY_ACTIVITY_ABANDON_MS,
+  SESSION_REPLAY_REMOVE_IF_NOT_NEWER_SCRIPT,
   getActiveSessionsKey,
+  getEndedSessionsKey,
 } from "../../FeatureSet/Workers/Jobs/Rum/FinalizeSessions";
 
 const projectId: string = "6600000000000000000000a1";
@@ -279,6 +348,132 @@ describe("Rum:CleanupStaleResources activity prune", () => {
     expect(removed).toBe(1);
     /* The failing project is left indexed to be retried. */
     expect(indexed()).toEqual([projectId]);
+  });
+
+  test("abandoned entries are removed through the conditional script, never a plain ZREM", async () => {
+    const activeKey: string = getActiveSessionsKey(projectId);
+
+    mockRedis.sadd(SESSION_REPLAY_ACTIVE_PROJECTS_KEY, projectId);
+    mockRedis.zadd(
+      activeKey,
+      Date.now() - SESSION_REPLAY_ACTIVITY_ABANDON_MS - 60_000,
+      "old-session:tab-a",
+    );
+
+    expect(await pruneAbandonedSessionActivity()).toBe(1);
+    expect(mockRedis.zremCalls).toEqual([]);
+    expect(mockRedis.evalKeys).toContain(activeKey);
+  });
+
+  test("an entry the ingest path refreshed between the read and the removal survives", async () => {
+    /*
+     * The read-then-remove race: a long-silent tab posts a chunk just as its
+     * entry is being reaped. An unconditional ZREM deleted the fresh entry,
+     * and the session was only finalized by the hourly sweep, hours later.
+     */
+    const activeKey: string = getActiveSessionsKey(projectId);
+    const refreshedAt: number = Date.now();
+
+    mockRedis.sadd(SESSION_REPLAY_ACTIVE_PROJECTS_KEY, projectId);
+    mockRedis.zadd(
+      activeKey,
+      Date.now() - SESSION_REPLAY_ACTIVITY_ABANDON_MS - 60_000,
+      "revived-session:tab-a",
+    );
+    mockRedis.zadd(
+      activeKey,
+      Date.now() - SESSION_REPLAY_ACTIVITY_ABANDON_MS - 60_000,
+      "dead-session:tab-a",
+    );
+
+    mockRedis.afterRangeRead = (key: string): void => {
+      if (key === activeKey) {
+        mockRedis.zadd(activeKey, refreshedAt, "revived-session:tab-a");
+      }
+    };
+
+    const removed: number = await pruneAbandonedSessionActivity();
+
+    expect(removed).toBe(1);
+    expect(mockRedis.zsets.get(activeKey)?.get("revived-session:tab-a")).toBe(
+      refreshedAt,
+    );
+    expect(mockRedis.zsets.get(activeKey)?.has("dead-session:tab-a")).toBe(
+      false,
+    );
+    /* The project still has work, so it stays indexed. */
+    expect(indexed()).toEqual([projectId]);
+    /* The warning counts what was actually reaped. */
+    expect(String(warn.mock.calls[0]![0])).toContain("reaped 1 ");
+  });
+
+  test("when every abandoned entry was refreshed in time, nothing is reaped and nothing is reported", async () => {
+    const activeKey: string = getActiveSessionsKey(projectId);
+
+    mockRedis.sadd(SESSION_REPLAY_ACTIVE_PROJECTS_KEY, projectId);
+    mockRedis.zadd(
+      activeKey,
+      Date.now() - SESSION_REPLAY_ACTIVITY_ABANDON_MS - 60_000,
+      "revived-session:tab-a",
+    );
+
+    mockRedis.afterRangeRead = (key: string): void => {
+      if (key === activeKey) {
+        mockRedis.zadd(activeKey, Date.now(), "revived-session:tab-a");
+      }
+    };
+
+    expect(await pruneAbandonedSessionActivity()).toBe(0);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  test("ended-session candidates past the abandon window are reaped too; recent ones are left alone", async () => {
+    const activeKey: string = getActiveSessionsKey(projectId);
+    const endedKey: string = getEndedSessionsKey(projectId);
+    const now: number = Date.now();
+
+    mockRedis.sadd(SESSION_REPLAY_ACTIVE_PROJECTS_KEY, projectId);
+    mockRedis.zadd(activeKey, now - 30_000, "live-session:tab-a");
+    mockRedis.zadd(
+      endedKey,
+      now - SESSION_REPLAY_ACTIVITY_ABANDON_MS - 60_000,
+      "stuck-session:tab-a",
+    );
+    mockRedis.zadd(endedKey, now - 90_000, "closing-session:tab-a");
+
+    /* Ended candidates are not activity entries and are not counted as such. */
+    expect(await pruneAbandonedSessionActivity()).toBe(0);
+
+    expect(Array.from(mockRedis.zsets.get(endedKey)?.keys() || [])).toEqual([
+      "closing-session:tab-a",
+    ]);
+    expect(mockRedis.zremCalls).toEqual([]);
+  });
+
+  test("an ended candidate refreshed between the read and the removal survives", async () => {
+    const activeKey: string = getActiveSessionsKey(projectId);
+    const endedKey: string = getEndedSessionsKey(projectId);
+    const refreshedAt: number = Date.now();
+
+    mockRedis.sadd(SESSION_REPLAY_ACTIVE_PROJECTS_KEY, projectId);
+    mockRedis.zadd(activeKey, refreshedAt, "revived-session:tab-a");
+    mockRedis.zadd(
+      endedKey,
+      refreshedAt - SESSION_REPLAY_ACTIVITY_ABANDON_MS - 60_000,
+      "revived-session:tab-a",
+    );
+
+    mockRedis.afterRangeRead = (key: string): void => {
+      if (key === endedKey) {
+        mockRedis.zadd(endedKey, refreshedAt, "revived-session:tab-a");
+      }
+    };
+
+    await pruneAbandonedSessionActivity();
+
+    expect(mockRedis.zsets.get(endedKey)?.get("revived-session:tab-a")).toBe(
+      refreshedAt,
+    );
   });
 
   test("the prune is a no-op rather than a throw when Redis is down", async () => {

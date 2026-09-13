@@ -1410,5 +1410,472 @@ describe("Transport", (): void => {
       );
       expect(transport.getDroppedChunkCount()).toBe(1);
     });
+
+    /*
+     * REGRESSION (a closed tab stayed "Recording now"). A final piece bigger
+     * than the keepalive quota on its own - one large DOM insertion right
+     * before the tab closed - used to be dropped WHOLE: sendTerminal found
+     * nothing that fit and issued no request at all, so the server never
+     * learned the tab had ended, and the sealing index was a hole. The
+     * sealing frame now always goes out, empty if it has to.
+     *
+     * The chunker now empties a final piece too large for any request before
+     * it is minted, so what reaches this substitution in the recorder is a
+     * frame pushed over the quota by its envelope. The oversized payloads
+     * below exercise the same backstop directly: the transport measures the
+     * frame it is given, whatever produced it.
+     */
+    describe("the sealing frame", (): void => {
+      interface SentFrame {
+        envelope: SessionReplayChunkEnvelope;
+        payload: string;
+      }
+
+      /* framesOf, keeping each frame's payload as well as its envelope. */
+      const sentFrames: (body: Uint8Array) => Array<SentFrame> = (
+        body: Uint8Array,
+      ): Array<SentFrame> => {
+        const frames: Array<SentFrame> = [];
+        let offset: number = 0;
+
+        while (offset < body.length) {
+          const newlineIndex: number = body.indexOf(0x0a, offset);
+
+          const parsed: SessionReplayChunkEnvelope = JSON.parse(
+            new TextDecoder().decode(body.slice(offset, newlineIndex)),
+          ) as SessionReplayChunkEnvelope;
+
+          const start: number = newlineIndex + 1;
+
+          frames.push({
+            envelope: parsed,
+            payload: new TextDecoder().decode(
+              body.slice(start, start + parsed.payloadBytes),
+            ),
+          });
+
+          offset = start + parsed.payloadBytes;
+        }
+
+        return frames;
+      };
+
+      const finalEnvelopeAt: (index: number) => SessionReplayChunkEnvelope = (
+        index: number,
+      ): SessionReplayChunkEnvelope => {
+        return {
+          ...envelope,
+          chunkIndex: index,
+          isFinal: true,
+          chunkStartOffsetMs: 40_000,
+          chunkEndOffsetMs: 52_000,
+          eventCount: 3,
+          droppedEvents: 2,
+          hasFullSnapshot: true,
+          signals: { ...Chunker.emptySignals(), clickCount: 4, errorCount: 1 },
+          routes: ["https://shop.example.com/checkout"],
+          traceIds: ["0af7651916cd43dd8448eb211c80319c"],
+          fidelityNotices: ["canvas-not-recorded"],
+          meta: {
+            entryUrl: "https://shop.example.com/",
+            browserName: "Chrome",
+            browserVersion: "126.0",
+            osName: "macOS",
+            deviceType: "desktop",
+            viewportWidth: 1280,
+            viewportHeight: 800,
+          },
+        };
+      };
+
+      /* ~70 KB: one indivisible event no keepalive request can carry. */
+      const oversizedPayload: string = `[{"type":3,"data":"${"m".repeat(70 * 1024)}"}]`;
+
+      const lastBody: (fetchMock: jest.Mock) => Uint8Array = (
+        fetchMock: jest.Mock,
+      ): Uint8Array => {
+        const init: Record<string, unknown> = fetchMock.mock.calls[
+          fetchMock.mock.calls.length - 1
+        ]?.[1] as Record<string, unknown>;
+
+        return init["body"] as Uint8Array;
+      };
+
+      it("sends an empty final frame in place of a final piece over the quota", (): void => {
+        const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
+
+        globalRecord["fetch"] = fetchMock;
+
+        const transport: Transport = makeTransport();
+
+        expect(
+          transport.sendTerminal([
+            { envelope: finalEnvelopeAt(7), payload: oversizedPayload },
+          ]),
+        ).toBe(true);
+
+        /* A request WAS made, and it is the keepalive one. */
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(
+          (fetchMock.mock.calls[0]?.[1] as Record<string, unknown>)[
+            "keepalive"
+          ],
+        ).toBe(true);
+
+        const body: Uint8Array = lastBody(fetchMock);
+
+        expect(body.length).toBeLessThanOrEqual(
+          SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
+        );
+
+        const frames: Array<SentFrame> = sentFrames(body);
+
+        expect(frames).toHaveLength(1);
+
+        const sealing: SentFrame = frames[0] as SentFrame;
+
+        /* It seals, under the index that would have been sealed. */
+        expect(sealing.envelope.isFinal).toBe(true);
+        expect(sealing.envelope.chunkIndex).toBe(7);
+
+        /* It carries no footage, and says so. */
+        expect(sealing.payload).toBe("[]");
+        expect(JSON.parse(sealing.payload)).toEqual([]);
+        expect(sealing.envelope.payloadBytes).toBe(2);
+        expect(sealing.envelope.payloadEncoding).toBe("identity");
+        expect(sealing.envelope.eventCount).toBe(0);
+        expect(sealing.envelope.hasFullSnapshot).toBe(false);
+
+        /* The three events it could not carry join the two already dropped. */
+        expect(sealing.envelope.droppedEvents).toBe(5);
+
+        /* Everything the finalizer sums and the header is built from stays. */
+        expect(sealing.envelope.signals.clickCount).toBe(4);
+        expect(sealing.envelope.signals.errorCount).toBe(1);
+        expect(sealing.envelope.routes).toEqual([
+          "https://shop.example.com/checkout",
+        ]);
+        expect(sealing.envelope.traceIds).toEqual([
+          "0af7651916cd43dd8448eb211c80319c",
+        ]);
+        expect(sealing.envelope.fidelityNotices).toEqual([
+          "canvas-not-recorded",
+        ]);
+        expect(sealing.envelope.meta?.entryUrl).toBe(
+          "https://shop.example.com/",
+        );
+        expect(sealing.envelope.sessionId).toBe(envelope.sessionId);
+        expect(sealing.envelope.tabId).toBe(envelope.tabId);
+
+        /*
+         * Offsets: an empty chunk claims no span, and its end is where the
+         * recording really stopped - the dropped piece's end - so start <=
+         * end and neither goes back before the piece itself began.
+         */
+        expect(sealing.envelope.chunkStartOffsetMs).toBe(52_000);
+        expect(sealing.envelope.chunkEndOffsetMs).toBe(52_000);
+
+        /* The frame was delivered, emptied: not a dropped chunk. */
+        expect(transport.getDroppedChunkCount()).toBe(0);
+      });
+
+      it("never replaces a final frame that fits", (): void => {
+        const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
+
+        globalRecord["fetch"] = fetchMock;
+
+        const payload: string = `[{"type":3,"data":"${"f".repeat(40 * 1024)}"}]`;
+
+        expect(
+          makeTransport().sendTerminal([
+            { envelope: finalEnvelopeAt(2), payload: payload },
+          ]),
+        ).toBe(true);
+
+        const frames: Array<SentFrame> = sentFrames(lastBody(fetchMock));
+
+        expect(frames).toHaveLength(1);
+        expect(frames[0]?.payload).toBe(payload);
+        expect(frames[0]?.envelope.eventCount).toBe(3);
+        expect(frames[0]?.envelope.droppedEvents).toBe(2);
+        expect(frames[0]?.envelope.chunkStartOffsetMs).toBe(40_000);
+      });
+
+      /*
+       * A piece whose PAYLOAD fits the recorder's budget can still be over
+       * the quota once its envelope is on it. The transport measures the
+       * real frame, so that case seals too.
+       */
+      it("replaces a final frame that is over the quota only once its envelope is added", (): void => {
+        const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
+
+        globalRecord["fetch"] = fetchMock;
+
+        const payload: string = `[${"x".repeat(SESSION_REPLAY_KEEPALIVE_MAX_BYTES - 100)}]`;
+
+        expect(payload.length).toBeLessThan(SESSION_REPLAY_KEEPALIVE_MAX_BYTES);
+
+        expect(
+          makeTransport().sendTerminal([
+            { envelope: finalEnvelopeAt(3), payload: payload },
+          ]),
+        ).toBe(true);
+
+        const frames: Array<SentFrame> = sentFrames(lastBody(fetchMock));
+
+        expect(frames).toHaveLength(1);
+        expect(frames[0]?.envelope.isFinal).toBe(true);
+        expect(frames[0]?.envelope.chunkIndex).toBe(3);
+        expect(frames[0]?.payload).toBe("[]");
+      });
+
+      /*
+       * The rest of a pagehide split rides with an emptied seal. This used
+       * to hand the transport an older piece next to an OVERSIZED final one,
+       * which the chunker never produces: an older piece only survives its
+       * budget when the final piece is small, and a final piece too large
+       * for any request is emptied by the chunker itself, before it is
+       * minted (Chunker.closeSplit). So what really arrives is the older
+       * footage the chunker kept - here ~30 KB - beside an already-empty
+       * final piece: both go out, whole, in index order, with nothing
+       * substituted and nothing dropped.
+       */
+      it("carries the older pieces the chunker kept beside the empty seal it built", (): void => {
+        const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
+
+        globalRecord["fetch"] = fetchMock;
+
+        const transport: Transport = makeTransport();
+        const olderPayload: string = `[{"type":3,"data":"${"s".repeat(30 * 1024)}"}]`;
+        const emptySeal: SessionReplayChunkEnvelope = {
+          ...finalEnvelopeAt(6),
+          eventCount: 0,
+          hasFullSnapshot: false,
+          chunkStartOffsetMs: 52_000,
+          droppedEvents: 3,
+        };
+
+        expect(
+          transport.sendTerminal([
+            {
+              envelope: {
+                ...envelope,
+                chunkIndex: 5,
+                eventCount: 40,
+                droppedEvents: 3,
+              },
+              payload: olderPayload,
+            },
+            { envelope: emptySeal, payload: "[]" },
+          ]),
+        ).toBe(true);
+
+        const body: Uint8Array = lastBody(fetchMock);
+
+        expect(body.length).toBeLessThanOrEqual(
+          SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
+        );
+
+        const frames: Array<SentFrame> = sentFrames(body);
+
+        expect(
+          frames.map((frame: SentFrame): number => {
+            return frame.envelope.chunkIndex;
+          }),
+        ).toEqual([5, 6]);
+        expect(frames[0]?.payload).toBe(olderPayload);
+        expect(frames[0]?.envelope.isFinal).toBe(false);
+        expect(frames[1]?.envelope.isFinal).toBe(true);
+        expect(frames[1]?.payload).toBe("[]");
+
+        /* The seal was already empty: its disclosure is not counted twice. */
+        expect(frames[1]?.envelope.droppedEvents).toBe(3);
+        expect(transport.getDroppedChunkCount()).toBe(0);
+      });
+
+      /*
+       * Retry-queue frames and a final that do not all fit: the queue is
+       * what gives way, never the seal - whether the seal fits whole or
+       * only as its empty stand-in.
+       */
+      it("drops queued frames, never the seal, when they do not all fit", async (): Promise<void> => {
+        jest.useFakeTimers();
+        delete globalRecord["CompressionStream"];
+
+        globalRecord["fetch"] = jest
+          .fn()
+          .mockResolvedValue(respond(429, "", { "retry-after": "60" }));
+
+        const transport: Transport = makeTransport();
+        const queued: string = `[${"q".repeat(30 * 1024)}]`;
+
+        await transport.send(envelopeAt(1), queued);
+        await transport.send(envelopeAt(2), queued);
+
+        expect(transport.getQueueDepth()).toBe(2);
+
+        const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
+        globalRecord["fetch"] = fetchMock;
+
+        /* A 40 KB final: fits whole, but not beside either 30 KB frame. */
+        const finalPayload: string = `[${"f".repeat(40 * 1024)}]`;
+
+        expect(
+          transport.sendTerminal([
+            { envelope: finalEnvelopeAt(3), payload: finalPayload },
+          ]),
+        ).toBe(true);
+
+        const frames: Array<SentFrame> = sentFrames(lastBody(fetchMock));
+
+        expect(
+          frames.map((frame: SentFrame): number => {
+            return frame.envelope.chunkIndex;
+          }),
+        ).toEqual([3]);
+        expect(frames[0]?.envelope.isFinal).toBe(true);
+        expect(frames[0]?.payload).toBe(finalPayload);
+        expect(transport.getDroppedChunkCount()).toBe(2);
+      });
+
+      it("keeps the emptied seal and the queued frames that fit beside it", async (): Promise<void> => {
+        jest.useFakeTimers();
+        delete globalRecord["CompressionStream"];
+
+        globalRecord["fetch"] = jest
+          .fn()
+          .mockResolvedValue(respond(429, "", { "retry-after": "60" }));
+
+        const transport: Transport = makeTransport();
+        const queued: string = `[${"q".repeat(30 * 1024)}]`;
+
+        await transport.send(envelopeAt(1), queued);
+        await transport.send(envelopeAt(2), queued);
+
+        const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
+        globalRecord["fetch"] = fetchMock;
+
+        expect(
+          transport.sendTerminal([
+            { envelope: finalEnvelopeAt(3), payload: oversizedPayload },
+          ]),
+        ).toBe(true);
+
+        const body: Uint8Array = lastBody(fetchMock);
+
+        expect(body.length).toBeLessThanOrEqual(
+          SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
+        );
+
+        const frames: Array<SentFrame> = sentFrames(body);
+
+        /* The oldest queued frame fits beside the stand-in; the next does not. */
+        expect(
+          frames.map((frame: SentFrame): number => {
+            return frame.envelope.chunkIndex;
+          }),
+        ).toEqual([1, 3]);
+        expect(frames[1]?.envelope.isFinal).toBe(true);
+        expect(frames[1]?.payload).toBe("[]");
+        expect(transport.getDroppedChunkCount()).toBe(1);
+      });
+
+      /*
+       * Only a FINAL frame gets a stand-in. A non-final tail (a hidden tab's
+       * keepalive flush; every pagehide seals) seals nothing, so an empty
+       * frame would only spend quota to say nothing; it is dropped and
+       * counted.
+       */
+      it("still drops a non-final tail that is over the quota", (): void => {
+        const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
+
+        globalRecord["fetch"] = fetchMock;
+
+        const transport: Transport = makeTransport();
+
+        expect(
+          transport.sendTerminal([
+            {
+              envelope: { ...finalEnvelopeAt(4), isFinal: false },
+              payload: oversizedPayload,
+            },
+          ]),
+        ).toBe(false);
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(transport.getDroppedChunkCount()).toBe(1);
+      });
+
+      it("sends nothing, stand-in included, once the transport is disabled", async (): Promise<void> => {
+        globalRecord["fetch"] = jest.fn().mockResolvedValue(respond(401));
+
+        const transport: Transport = makeTransport();
+
+        await transport.send(envelope, "[{}]");
+
+        expect(transport.isDisabled()).toBe(true);
+
+        const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
+        globalRecord["fetch"] = fetchMock;
+
+        expect(
+          transport.sendTerminal([
+            { envelope: finalEnvelopeAt(1), payload: oversizedPayload },
+          ]),
+        ).toBe(false);
+        expect(fetchMock).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("buildEmptySealingEnvelope", (): void => {
+      it("collapses both offsets onto the end and discloses the events", (): void => {
+        const sealing: SessionReplayChunkEnvelope =
+          Transport.buildEmptySealingEnvelope({
+            ...envelope,
+            isFinal: true,
+            chunkStartOffsetMs: 1_000,
+            chunkEndOffsetMs: 9_000,
+            eventCount: 12,
+            droppedEvents: 3,
+          });
+
+        expect(sealing.chunkStartOffsetMs).toBe(9_000);
+        expect(sealing.chunkEndOffsetMs).toBe(9_000);
+        expect(sealing.eventCount).toBe(0);
+        expect(sealing.droppedEvents).toBe(15);
+        expect(sealing.hasFullSnapshot).toBe(false);
+        expect(sealing.isFinal).toBe(true);
+        expect(sealing.chunkIndex).toBe(envelope.chunkIndex);
+      });
+
+      /*
+       * Defensive: a piece whose offsets arrived inverted still yields
+       * start <= end, and never an offset earlier than the piece's own start.
+       */
+      it("never moves an offset back before the piece's own start", (): void => {
+        const sealing: SessionReplayChunkEnvelope =
+          Transport.buildEmptySealingEnvelope({
+            ...envelope,
+            chunkStartOffsetMs: 9_000,
+            chunkEndOffsetMs: 8_750,
+          });
+
+        expect(sealing.chunkStartOffsetMs).toBe(9_000);
+        expect(sealing.chunkEndOffsetMs).toBe(9_000);
+      });
+
+      it("does not mutate the envelope it was given", (): void => {
+        const original: SessionReplayChunkEnvelope = {
+          ...envelope,
+          eventCount: 4,
+          droppedEvents: 1,
+        };
+
+        Transport.buildEmptySealingEnvelope(original);
+
+        expect(original.eventCount).toBe(4);
+        expect(original.droppedEvents).toBe(1);
+        expect(original.chunkStartOffsetMs).toBe(0);
+      });
+    });
   });
 });

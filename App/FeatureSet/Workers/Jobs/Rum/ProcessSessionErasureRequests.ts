@@ -1,5 +1,5 @@
 import RunCron from "../../Utils/Cron";
-import { getActiveSessionsKey } from "./FinalizeSessions";
+import { getActiveSessionsKey, getEndedSessionsKey } from "./FinalizeSessions";
 import Redis, { ClientType } from "Common/Server/Infrastructure/Redis";
 import {
   ERASURE_TOMBSTONE_TTL_SECONDS,
@@ -157,8 +157,8 @@ const MAX_REQUESTS_PER_RUN: number = 200;
 export const STALE_IN_PROGRESS_RECLAIM_MS: number = 2 * 60 * 60 * 1000;
 
 /*
- * Activity-set members scanned per erased batch when purging the
- * finalizer's work queue. Bounded so a pathological project cannot turn
+ * Sorted-set members scanned per erased batch, per set, when purging the
+ * finalizers' work queues. Bounded so a pathological project cannot turn
  * one erasure batch into an unbounded Redis walk.
  */
 const MAX_ACTIVITY_PURGE_SCAN_ITERATIONS: number = 200;
@@ -616,7 +616,7 @@ async function countChunksForSessions(data: {
 }
 
 /*
- * Take the erased sessions off the finalizer's work queue.
+ * Take the erased sessions off the finalizer's work queues.
  *
  * The finalizer derives a session header from the chunk rows and writes it
  * with `version = Date.now()`, and ClickHouse mutations only rewrite the
@@ -626,14 +626,23 @@ async function countChunksForSessions(data: {
  * identifiedUserKey, entryUrl, routes and countryCode for the subject who
  * asked to be erased — and nothing ever deletes that row again.
  *
- * The finalizer also checks the tombstone, so this is the second of two
+ * `replay:ended:<projectId>` is purged the same way. It is the candidate
+ * list of Rum:FinalizeEndedSessions, which runs every minute and checks each
+ * candidate against the chunk rows - still visible until the mutation
+ * lands - so an erased session left in it would be looked at again and again,
+ * with the tombstone as the only thing between it and a fresh header.
+ *
+ * The finalizer also checks the tombstone (twice: before it reads anything,
+ * and again right before it inserts), so this is the second of two
  * independent guards rather than the only one. It matters on its own
- * because it stops the session being ENQUEUED at all, which is cheaper and
+ * because it stops the session being PICKED UP at all, which is cheaper and
  * survives a Redis restart differently to the tombstone check.
  *
- * Members are "<sessionId>:<tabId>", so the match is on the sessionId
- * prefix rather than on the whole member: one session can have several
- * tabs and every one of them has to go.
+ * Members of both sets are "<sessionId>:<tabId>", so the match is on the
+ * sessionId prefix rather than on the whole member: one session can have
+ * several tabs and every one of them has to go.
+ *
+ * Returns how many entries were removed across both sets.
  */
 export async function purgeErasedSessionsFromActivitySet(data: {
   projectId: string;
@@ -650,8 +659,28 @@ export async function purgeErasedSessionsFromActivitySet(data: {
   }
 
   const erased: Set<string> = new Set<string>(data.sessionIds);
-  const activeKey: string = getActiveSessionsKey(data.projectId);
 
+  let removed: number = 0;
+
+  for (const key of [
+    getActiveSessionsKey(data.projectId),
+    getEndedSessionsKey(data.projectId),
+  ]) {
+    removed += await purgeErasedSessionsFromSortedSet({
+      client: client,
+      key: key,
+      erased: erased,
+    });
+  }
+
+  return removed;
+}
+
+async function purgeErasedSessionsFromSortedSet(data: {
+  client: ClientType;
+  key: string;
+  erased: Set<string>;
+}): Promise<number> {
   let removed: number = 0;
   let cursor: string = "0";
   let iterations: number = 0;
@@ -659,17 +688,18 @@ export async function purgeErasedSessionsFromActivitySet(data: {
   do {
     /*
      * ZSCAN returns a flat [member, score, member, score, ...] array, so
-     * the stride is 2. Scanning once over the whole activity set is
-     * cheaper than one MATCH per erased session id: a batch carries up to
-     * MAX_SESSION_IDS_PER_MUTATION ids while the activity set only ever
-     * holds the sessions seen in the last few hours.
+     * the stride is 2. Scanning once over the whole set is cheaper than one
+     * MATCH per erased session id: a batch carries up to
+     * MAX_SESSION_IDS_PER_MUTATION ids while either set only ever holds the
+     * sessions seen in the last few hours.
      */
-    const [nextCursor, entries]: [string, Array<string>] = await client.zscan(
-      activeKey,
-      cursor,
-      "COUNT",
-      ACTIVITY_PURGE_SCAN_COUNT,
-    );
+    const [nextCursor, entries]: [string, Array<string>] =
+      await data.client.zscan(
+        data.key,
+        cursor,
+        "COUNT",
+        ACTIVITY_PURGE_SCAN_COUNT,
+      );
 
     cursor = nextCursor;
     iterations++;
@@ -687,13 +717,13 @@ export async function purgeErasedSessionsFromActivitySet(data: {
       const sessionId: string =
         separatorIndex > 0 ? member.substring(0, separatorIndex) : member;
 
-      if (erased.has(sessionId)) {
+      if (data.erased.has(sessionId)) {
         doomed.push(member);
       }
     }
 
     if (doomed.length > 0) {
-      removed += await client.zrem(activeKey, doomed);
+      removed += await data.client.zrem(data.key, doomed);
     }
   } while (cursor !== "0" && iterations < MAX_ACTIVITY_PURGE_SCAN_ITERATIONS);
 
@@ -711,10 +741,10 @@ export async function eraseSessionBatch(data: {
   });
 
   /*
-   * Immediately after the tombstone and before any DELETE: the finalizer
-   * runs every 5 minutes and must not be holding a queue entry that would
-   * write a fresh header for one of these sessions while the mutations
-   * are still draining.
+   * Immediately after the tombstone and before any DELETE: the finalizers
+   * (every 5 minutes for idle sessions, every minute for ended ones) must
+   * not be holding a queue entry that would write a fresh header for one
+   * of these sessions while the mutations are still draining.
    */
   const activityEntriesRemoved: number =
     await purgeErasedSessionsFromActivitySet({
@@ -724,7 +754,7 @@ export async function eraseSessionBatch(data: {
 
   if (activityEntriesRemoved > 0) {
     logger.info(
-      `${JOB_NAME}: removed ${activityEntriesRemoved} pending activity entr(ies) for erased sessions in project ${data.projectId.toString()}`,
+      `${JOB_NAME}: removed ${activityEntriesRemoved} pending finalizer queue entr(ies) for erased sessions in project ${data.projectId.toString()}`,
     );
   }
 

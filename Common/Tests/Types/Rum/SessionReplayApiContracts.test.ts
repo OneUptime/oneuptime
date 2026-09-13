@@ -42,6 +42,7 @@ import {
   SESSION_REPLAY_VISITOR_ID_PATTERN,
   SessionReplayChunkManifestEntry,
 } from "../../../Types/Rum/SessionReplay";
+import { JSONObject } from "../../../Types/JSON";
 
 /*
  * The DTOs are the wire between the Dashboard and TelemetryAPI's
@@ -429,6 +430,65 @@ describe("SessionReplayApi - the additive contracts the surfaces already ship", 
     expect(withKeys.identifiedUserTraits).toBeUndefined();
     expect(neverIdentified.identifiedUserKey).toBe("");
     expect(neverIdentified.visitorId).toBe("");
+  });
+
+  /*
+   * "Not finalized" is not "still recording". A closed tab's session stays
+   * unfinalized until the finalizer runs, so /list and /manifest now also
+   * say whether every tab of it has ended. Additive on both: an older
+   * server answers without it, and the Dashboard then falls back to
+   * reading "not finalized" as "recording", which is what it always did.
+   */
+  it("/list and /manifest: hasRecordingEnded is additive, and an older payload without it still parses", () => {
+    expect(legacyListItem.hasRecordingEnded).toBeUndefined();
+    expect(legacyHeader.hasRecordingEnded).toBeUndefined();
+
+    /* A payload exactly as an older server sends it, through the wire. */
+    const olderListWire: JSONObject = JSON.parse(
+      JSON.stringify({ ...legacyListItem, isFinalized: false }),
+    ) as JSONObject;
+    const olderHeaderWire: JSONObject = JSON.parse(
+      JSON.stringify({ ...legacyHeader, isFinalized: false }),
+    ) as JSONObject;
+
+    expect("hasRecordingEnded" in olderListWire).toBe(false);
+    expect("hasRecordingEnded" in olderHeaderWire).toBe(false);
+    /* The defensive reader turns "absent" into "not known to have ended". */
+    expect(readDtoBoolean(olderListWire, "hasRecordingEnded")).toBe(false);
+    expect(readDtoBoolean(olderHeaderWire, "hasRecordingEnded")).toBe(false);
+
+    const olderListItem: SessionReplayListItemDto =
+      olderListWire as unknown as SessionReplayListItemDto;
+    expect(olderListItem.isFinalized).toBe(false);
+    expect(olderListItem.hasRecordingEnded).toBeUndefined();
+
+    /* A current server: a closed tab's unfinalized session. */
+    const endedItem: SessionReplayListItemDto = {
+      ...legacyListItem,
+      isFinalized: false,
+      hasRecordingEnded: true,
+    };
+    const liveItem: SessionReplayListItemDto = {
+      ...legacyListItem,
+      isFinalized: false,
+      hasRecordingEnded: false,
+    };
+    const endedHeader: SessionReplayManifestHeaderDto = {
+      ...legacyHeader,
+      isFinalized: false,
+      hasRecordingEnded: true,
+    };
+
+    const endedWire: JSONObject = JSON.parse(
+      JSON.stringify(endedItem),
+    ) as JSONObject;
+    const endedHeaderWire: JSONObject = JSON.parse(
+      JSON.stringify(endedHeader),
+    ) as JSONObject;
+
+    expect(readDtoBoolean(endedWire, "hasRecordingEnded")).toBe(true);
+    expect(readDtoBoolean(endedHeaderWire, "hasRecordingEnded")).toBe(true);
+    expect(liveItem.hasRecordingEnded).toBe(false);
   });
 
   /*

@@ -1,6 +1,7 @@
 import Chunker, {
   PendingChunk,
   SESSION_REPLAY_TRUNCATED_NOTICE,
+  SplitCloseResult,
   utf8ByteLength,
 } from "../src/Chunker";
 import {
@@ -681,6 +682,72 @@ describe("Chunker", (): void => {
       expect(chunks.length).toBe(481);
       expect(chunker.getClosedChunkCount()).toBe(480);
     });
+
+    /*
+     * A page restored from the back/forward cache records as a NEW tab, whose
+     * chunk indexes start again at 0. The cap is a cap per (session, tab) -
+     * the ingest gate counts it by chunk index - so its count starts over with
+     * the index: a count left behind would truncate the new tab early, and an
+     * index reset without the count would let the tab's indexes run past the
+     * cap while the chunker still thought it had room.
+     */
+    it("starts the cap count over for a new tab, and only then", (): void => {
+      const chunker: Chunker = makeChunker(10);
+
+      for (let i: number = 0; i < 479; i++) {
+        chunker.add(event({ bytes: 10 }));
+      }
+
+      expect(chunker.getClosedChunkCount()).toBe(479);
+
+      chunker.countSignal("clickCount", 3);
+      chunker.addFidelityNotice(SessionReplayFidelityNotice.CanvasNotRecorded);
+
+      chunker.beginNewTab();
+
+      expect(chunker.getClosedChunkCount()).toBe(0);
+      expect(chunker.hasReachedSessionChunkCap()).toBe(false);
+
+      /* A whole tab's worth fits again, with no disclosure. */
+      for (let i: number = 0; i < 479; i++) {
+        chunker.add(event({ bytes: 10 }));
+      }
+
+      expect(chunker.hasEmittedTruncation()).toBe(false);
+      expect(truncationCallbacks).toBe(0);
+      expect(chunks).toHaveLength(958);
+
+      const firstOfNewTab: PendingChunk = chunks[479] as PendingChunk;
+
+      /* Per-chunk counters belonged to the old tab; the page's notices stay. */
+      expect(firstOfNewTab.signals.clickCount).toBe(0);
+      expect(firstOfNewTab.fidelityNotices).toContain(
+        SessionReplayFidelityNotice.CanvasNotRecorded,
+      );
+
+      /* And the cap still holds for the new tab. */
+      chunker.add(event({ bytes: 10 }));
+      chunker.add(event({ bytes: 10 }));
+
+      expect(chunker.hasEmittedTruncation()).toBe(true);
+      expect(chunker.getClosedChunkCount()).toBe(480);
+    });
+
+    it("drops and counts anything still open when a new tab begins", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.add(event());
+      chunker.add(event());
+
+      chunker.beginNewTab();
+
+      expect(chunker.getOpenEventCount()).toBe(0);
+      expect(chunker.getDroppedEventCount()).toBe(2);
+
+      chunker.close(false);
+
+      expect(chunks).toHaveLength(0);
+    });
   });
 });
 
@@ -816,15 +883,154 @@ describe("Chunker engagement counters and split close", (): void => {
       expect(chunks[0]?.chunkEndOffsetMs).toBe(1500);
     });
 
-    it("keeps the sealing piece even when it alone is over the total budget", (): void => {
+    /*
+     * A FINAL newest piece over the total budget on its own cannot go out
+     * with its footage in any request. It is sealed EMPTY here, before an
+     * index is minted, rather than minted whole for the transport to empty.
+     */
+    it("seals empty when the final piece alone is over the total budget", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.countSignal("clickCount", 2);
+      chunker.addRoute("https://shop.example.com/checkout");
+      chunker.add(event({ timestampMs: SESSION_START + 1000 }));
+      chunker.add(event({ timestampMs: SESSION_START + 1800 }));
+
+      const result: SplitCloseResult = chunker.closeSplit(true, 70, 40);
+
+      expect(chunks).toHaveLength(1);
+
+      const seal: PendingChunk = chunks[0] as PendingChunk;
+
+      expect(seal.isFinal).toBe(true);
+      expect(seal.payload).toBe("[]");
+      expect(seal.eventCount).toBe(0);
+      expect(seal.rawBytes).toBe(0);
+      expect(seal.hasFullSnapshot).toBe(false);
+
+      /* Dated at the end of the footage it replaces, claiming no span. */
+      expect(seal.chunkStartOffsetMs).toBe(1800);
+      expect(seal.chunkEndOffsetMs).toBe(1800);
+
+      /* Still the sealing piece: the counters and routes ride it. */
+      expect(seal.signals.clickCount).toBe(2);
+      expect(seal.routes).toEqual(["https://shop.example.com/checkout"]);
+
+      /* The loss is counted, and reported apart from older pieces. */
+      expect(chunker.getDroppedEventCount()).toBe(2);
+      expect(result).toEqual({ emptiedSealEvents: 2, emptiedSealBytes: 63 });
+      expect(chunker.getClosedChunkCount()).toBe(1);
+    });
+
+    /*
+     * A NON-final one seals nothing, so an empty stand-in would only spend
+     * quota to say nothing: it is minted whole, as before.
+     */
+    it("keeps a non-final newest piece whole even when it alone is over the total budget", (): void => {
       const chunker: Chunker = makeChunker();
 
       chunker.add(event({ timestampMs: SESSION_START + 1000 }));
-      chunker.closeSplit(true, 70, 1);
+
+      const result: SplitCloseResult = chunker.closeSplit(false, 70, 1);
+
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.isFinal).toBe(false);
+      expect(chunks[0]?.eventCount).toBe(1);
+      expect(chunker.getDroppedEventCount()).toBe(0);
+      expect(result.emptiedSealEvents).toBe(0);
+    });
+
+    /*
+     * REGRESSION. Small events, then one event too big for any request, then
+     * the tab closes. The oversized piece used to be charged its whole
+     * weight, which exhausted the budget at once: every older piece was
+     * dropped, and the transport then sent a two-byte empty frame in its
+     * place - so footage that would have fitted beside it was thrown away.
+     */
+    it("keeps the older pieces that fit beside an empty seal", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      for (let i: number = 0; i < 3; i++) {
+        chunker.add(event({ timestampMs: SESSION_START + 1000 + i * 100 }));
+      }
+
+      chunker.add(
+        event({
+          json: `{"type":3,"data":"${"x".repeat(300)}"}`,
+          bytes: 320,
+          timestampMs: SESSION_START + 2000,
+        }),
+      );
+
+      /* Pieces: [three 30-byte events] (94 bytes) and [the 320-byte one]. */
+      const result: SplitCloseResult = chunker.closeSplit(true, 100, 200);
+
+      expect(chunks).toHaveLength(2);
+
+      const older: PendingChunk = chunks[0] as PendingChunk;
+      const seal: PendingChunk = chunks[1] as PendingChunk;
+
+      expect(older.isFinal).toBe(false);
+      expect(older.eventCount).toBe(3);
+      expect(older.chunkStartOffsetMs).toBe(1000);
+      expect(older.chunkEndOffsetMs).toBe(1200);
+
+      expect(seal.isFinal).toBe(true);
+      expect(seal.payload).toBe("[]");
+      expect(seal.chunkStartOffsetMs).toBe(2000);
+
+      /* Only the oversized event is lost. */
+      expect(chunker.getDroppedEventCount()).toBe(1);
+      expect(result.emptiedSealEvents).toBe(1);
+      expect(chunker.getClosedChunkCount()).toBe(2);
+    });
+
+    /*
+     * Every piece beside the newest brings a frame, and a frame brings an
+     * envelope the payload budget does not include. Charged here, before an
+     * index is minted, so the transport is never handed a minted piece it
+     * has no room for.
+     */
+    it("charges each extra piece its envelope before minting it", (): void => {
+      const withoutOverhead: Chunker = makeChunker();
+
+      for (let i: number = 0; i < 4; i++) {
+        withoutOverhead.add(
+          event({ timestampMs: SESSION_START + 1000 + i * 100 }),
+        );
+      }
+
+      /* Two pieces of 63 payload bytes; 126 fits a 130-byte budget. */
+      withoutOverhead.closeSplit(true, 70, 130);
+
+      expect(chunks).toHaveLength(2);
+
+      const withOverhead: Chunker = makeChunker();
+
+      for (let i: number = 0; i < 4; i++) {
+        withOverhead.add(
+          event({ timestampMs: SESSION_START + 1000 + i * 100 }),
+        );
+      }
+
+      /* The older piece's frame would cost 63 + 10: over what is left. */
+      withOverhead.closeSplit(true, 70, 130, 10);
 
       expect(chunks).toHaveLength(1);
       expect(chunks[0]?.isFinal).toBe(true);
-      expect(chunker.getDroppedEventCount()).toBe(0);
+      expect(chunks[0]?.eventCount).toBe(2);
+      expect(withOverhead.getDroppedEventCount()).toBe(2);
+
+      /* The newest piece is never charged one: its envelope is budgeted. */
+      const newestOnly: Chunker = makeChunker();
+
+      newestOnly.add(event({ timestampMs: SESSION_START + 1000 }));
+      newestOnly.add(event({ timestampMs: SESSION_START + 1100 }));
+      newestOnly.closeSplit(true, 70, 63, 1_000);
+
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.eventCount).toBe(2);
+      expect(newestOnly.getDroppedEventCount()).toBe(0);
     });
 
     it("cuts the open chunk into pieces under the byte cap, final on the last", (): void => {
@@ -915,6 +1121,85 @@ describe("Chunker engagement counters and split close", (): void => {
       expect(chunks).toHaveLength(1);
       expect(chunks[0]?.isFinal).toBe(true);
       expect(chunks[0]?.payload).toBe("[]");
+    });
+
+    /*
+     * The server decides a tab has ended from "a final chunk, and no chunk
+     * STARTED after its END". So the empty seal that follows a hide flush
+     * must not claim an end earlier than the footage before it, nor a start
+     * after its own end.
+     */
+    it("gives the empty final chunk sane offsets after the chunk before it", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.add(event({ timestampMs: SESSION_START + 1000 }));
+      chunker.add(event({ timestampMs: SESSION_START + 4000 }));
+      chunker.closeSplit(false, 70, 70);
+
+      chunker.closeSplit(true, 70, 70);
+
+      expect(chunks).toHaveLength(2);
+
+      const previous: PendingChunk = chunks[0] as PendingChunk;
+      const seal: PendingChunk = chunks[1] as PendingChunk;
+
+      expect(seal.isFinal).toBe(true);
+      expect(seal.eventCount).toBe(0);
+      expect(seal.chunkStartOffsetMs).toBeLessThanOrEqual(
+        seal.chunkEndOffsetMs,
+      );
+      expect(seal.chunkStartOffsetMs).toBeGreaterThanOrEqual(
+        previous.chunkEndOffsetMs,
+      );
+    });
+
+    /*
+     * rrweb stamps events through a Date.now it captured at load, the
+     * chunker reads Date.now() when it seals, and a wall clock can step
+     * backwards under an NTP correction. Whichever clock is behind, the
+     * empty seal is never dated before the footage it follows.
+     */
+    it("never dates the empty final chunk before the chunk ahead of it, even when the clock steps back", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.add(event({ timestampMs: SESSION_START + 90_000 }));
+      chunker.close(false);
+
+      const clock: jest.SpyInstance = jest
+        .spyOn(Date, "now")
+        .mockReturnValue(SESSION_START + 30_000);
+
+      try {
+        chunker.close(true);
+      } finally {
+        clock.mockRestore();
+      }
+
+      const seal: PendingChunk = chunks[1] as PendingChunk;
+
+      expect(seal.isFinal).toBe(true);
+      expect(seal.chunkStartOffsetMs).toBe(90_000);
+      expect(seal.chunkEndOffsetMs).toBe(90_000);
+    });
+
+    it("still dates the empty final chunk at now when now is later", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      chunker.add(event({ timestampMs: SESSION_START + 1_000 }));
+      chunker.close(false);
+
+      const clock: jest.SpyInstance = jest
+        .spyOn(Date, "now")
+        .mockReturnValue(SESSION_START + 5_000);
+
+      try {
+        chunker.closeSplit(true, 70, 70);
+      } finally {
+        clock.mockRestore();
+      }
+
+      expect(chunks[1]?.chunkStartOffsetMs).toBe(5_000);
+      expect(chunks[1]?.chunkEndOffsetMs).toBe(5_000);
     });
 
     it("emits nothing for a non-final split with nothing open", (): void => {

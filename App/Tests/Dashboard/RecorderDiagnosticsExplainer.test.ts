@@ -109,6 +109,36 @@ describe("RecorderDiagnosticsExplainer code table", () => {
     expect(explainRecorderDebugCode("constructor").isKnown).toBe(false);
     expect(explainRecorderDebugCode("__proto__").isKnown).toBe(false);
   });
+
+  /*
+   * github.com/OneUptime/oneuptime/issues/3642: final-chunk-too-large is
+   * logged for two different outcomes, told apart by `sealed` in the
+   * detail. sealed: true - the final chunk's events were dropped and an
+   * empty final chunk sealed the session. sealed: false - a chunk that was
+   * NOT final was dropped whole, so nothing was sealed and the session is
+   * still open with a gap. Describing both as "the final chunk was dropped"
+   * told a customer their recording ended early when it had not ended.
+   */
+  test("final-chunk-too-large explains both sealed outcomes, and never calls a non-final chunk final", () => {
+    const explanation: string = explainRecorderDebugCode(
+      "final-chunk-too-large",
+    ).explanation;
+
+    const sealedTrue: number = explanation.indexOf("sealed: true");
+    const sealedFalse: number = explanation.indexOf("sealed: false");
+
+    expect(sealedTrue).toBeGreaterThan(-1);
+    expect(sealedFalse).toBeGreaterThan(sealedTrue);
+
+    const whenSealed: string = explanation.slice(sealedTrue, sealedFalse);
+    const whenNotSealed: string = explanation.slice(sealedFalse);
+
+    expect(whenSealed).toContain("final chunk");
+    expect(whenSealed).toContain("empty final chunk sealed the session");
+    expect(whenNotSealed).toContain("not a final chunk");
+    expect(whenNotSealed).toContain("stays open with a gap");
+    expect(whenNotSealed).not.toMatch(/last seconds|ends early/);
+  });
 });
 
 describe("explainRecorderDiagnostics input handling", () => {

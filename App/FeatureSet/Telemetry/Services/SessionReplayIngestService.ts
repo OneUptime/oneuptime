@@ -102,6 +102,33 @@ export class SessionReplayStorageFlushError extends Error {
  *                                       bounded SCAN happens to reach it.
  *   replay:active:<projectId>           ZSET member "<sessionId>:<tabId>",
  *                                       score = server receive unix ms.
+ *   replay:ended:<projectId>            ZSET, same member format, holding
+ *                                       only the (session, tab) pairs for
+ *                                       which this worker wrote a chunk row
+ *                                       that ENDS the tab: its final chunk,
+ *                                       or its last permitted chunk index
+ *                                       (MAX_SESSION_REPLAY_CHUNKS_PER_SESSION
+ *                                       - 1), past which the gate refuses
+ *                                       everything, the recorder's own
+ *                                       truncation seal included. Each
+ *                                       member is written in the same call,
+ *                                       with the SAME score, as its
+ *                                       replay:active:<projectId> entry, so
+ *                                       the finalizer can remove a member
+ *                                       only while its score is still the
+ *                                       one it read (a chunk that landed in
+ *                                       between re-ZADDs it with a newer
+ *                                       score).
+ *                                       A candidate list, not a verdict: the
+ *                                       finalizer re-checks the chunk rows
+ *                                       (Common/Utils/Rum/
+ *                                       SessionReplayRecordingEnded) before
+ *                                       finalizing early, and measures the
+ *                                       grace on those rows' server write
+ *                                       time, never on this score. A missing
+ *                                       member therefore only costs the
+ *                                       early trigger, never the grace.
+ *                                       Same TTL as active.
  *   replay:seal:<projectId>:<sessionId> STRING, a SessionReplaySealedReason
  *                                       the GATE knows and the finalizer
  *                                       cannot derive from chunk rows: today
@@ -117,6 +144,13 @@ export class SessionReplayStorageFlushError extends Error {
  *                                       session (audit finding ingest-6).
  */
 const ACTIVE_SESSION_KEY_PREFIX: string = "replay:active:";
+/*
+ * Deliberately NOT under replay:active:. The finalizer's project-index
+ * reconcile SCANs replay:active:* and reads every match as a project's
+ * active ZSET; an ended key there would be mistaken for a project called
+ * "ended:<projectId>".
+ */
+const ENDED_SESSION_KEY_PREFIX: string = "replay:ended:";
 const ACTIVE_PROJECTS_KEY: string = "replay:active:projects";
 const SEAL_HINT_KEY_PREFIX: string = "replay:seal:";
 const SESSION_START_KEY_PREFIX: string = "replay:session-start:";
@@ -137,7 +171,9 @@ const SESSION_CARRY_KEY_PREFIX: string = "replay:session-carry:";
 /*
  * Long enough that a session idle for the finalizer's whole 10-minute
  * window is still present when the cron next runs, short enough that a
- * project's set cannot grow without bound if the finalizer stops.
+ * project's set cannot grow without bound if the finalizer stops. Shared
+ * by replay:ended:<projectId>, whose members are a subset of active's and
+ * must not outlive them.
  */
 const ACTIVE_SESSION_TTL_SECONDS: number = 6 * 60 * 60;
 
@@ -936,6 +972,13 @@ export default class SessionReplayIngestService {
     const headerRows: Array<JSONObject> = [];
 
     /*
+     * The frames that END their tab (see isTabEndingEnvelope) and actually
+     * became chunk rows, for replay:ended. See recordActiveSessions for why
+     * a dropped one is left out.
+     */
+    const writtenEndingEnvelopes: Array<SessionReplayChunkEnvelope> = [];
+
+    /*
      * Running job-wide decompression allowance, spent frame by frame. This
      * is what bounds the worker: every decoded frame stays resident until
      * the submit below, so the ceiling has to be per job, not per frame.
@@ -1163,17 +1206,29 @@ export default class SessionReplayIngestService {
         }),
       );
 
+      if (this.isTabEndingEnvelope(envelope)) {
+        writtenEndingEnvelopes.push(envelope);
+      }
+
       /*
        * The provisional header is written on chunk 0, and again on a later
        * chunk that carries meta with something the header must learn - a
        * tag set after chunk 0, traits from a late identify() call, or the
-       * terminal chunk's "recording ended". It carries ONLY chunk-invariant
-       * identity plus whatever that chunk knew. Every aggregate is left at
-       * zero for the finalizer to compute with one GROUP BY:
-       * ReplacingMergeTree is pure last-write-wins, so a read-modify-write
-       * increment here would be a lost-update bug at the worker's
-       * concurrency. The finalizer reads the NEWEST header version, which
-       * is how "tags from the highest-version meta" reaches the list.
+       * terminal chunk's sealedReason "final-chunk". It carries ONLY
+       * chunk-invariant identity plus whatever that chunk knew. Every
+       * aggregate is left at zero for the finalizer to compute with one
+       * GROUP BY: ReplacingMergeTree is pure last-write-wins, so a
+       * read-modify-write increment here would be a lost-update bug at the
+       * worker's concurrency. The finalizer reads the NEWEST header version,
+       * which is how "tags from the highest-version meta" reaches the list.
+       *
+       * Even the terminal chunk's version stays isFinalized=false. A final
+       * chunk ends one TAB, not necessarily the session (every page load of
+       * a multi-page app shares the session id), and a header this worker
+       * marked finalized would carry zero aggregates. Ending the recording
+       * early is the finalizer's job: recordActiveSessions lists the tab in
+       * replay:ended:<projectId>, and the finalizer finalizes the session
+       * once every tab's chunk rows say it ended and the grace has passed.
        */
       if (this.shouldWriteProvisionalHeader(envelope)) {
         /*
@@ -1253,9 +1308,42 @@ export default class SessionReplayIngestService {
      * Register the session with the finalizer only after its rows landed, so
      * the finalizer never sees a session with nothing to aggregate. Recorded
      * per frame's (session, tab) pair, keyed so a re-delivered chunk just
-     * refreshes the score.
+     * refreshes the score. A tab whose final chunk (or last permitted chunk)
+     * was written is also listed as ended, which is what lets a closed tab
+     * stop reading "Recording now" within the finalizer's short grace
+     * instead of its 10-minute idle window.
      */
-    await this.recordActiveSessions(projectId, parsed.frames);
+    await this.recordActiveSessions(
+      projectId,
+      parsed.frames,
+      writtenEndingEnvelopes,
+    );
+  }
+
+  /*
+   * Does this chunk, once written, end its tab by the shared rule
+   * (Common/Utils/Rum/SessionReplayRecordingEnded, hasTabRecordingEnded)?
+   *
+   * - A final chunk: the recorder sealed the tab on pagehide or stop.
+   * - The tab's LAST PERMITTED index, MAX_SESSION_REPLAY_CHUNKS_PER_SESSION
+   *   - 1. The recorder's truncation seal is minted the next index, which
+   *   the gate and the cap check in processFromQueue both refuse, and the
+   *   recorder shuts down right after it, so the chunk at this index is the
+   *   last row the tab will ever have. Without listing it here a capped tab
+   *   has no ended member at all, and a closed long-lived tab keeps
+   *   "Recording now" for the whole idle window even though the rule already
+   *   counts it as ended.
+   *
+   * Exactly the last index, not ">=": anything past it was dropped above
+   * and never reaches the caller.
+   */
+  private static isTabEndingEnvelope(
+    envelope: SessionReplayChunkEnvelope,
+  ): boolean {
+    return (
+      envelope.isFinal === true ||
+      envelope.chunkIndex === MAX_SESSION_REPLAY_CHUNKS_PER_SESSION - 1
+    );
   }
 
   /*
@@ -1266,6 +1354,12 @@ export default class SessionReplayIngestService {
    * identify() case), or the terminal flag. Every other chunk writes no
    * header, so a re-delivered mid-session frame cannot churn header
    * versions.
+   *
+   * The terminal flag's header version records sealedReason "final-chunk"
+   * and nothing more: it stays isFinalized=false, and it is NOT what ends
+   * the recording early (a header-level reason cannot, since the session id
+   * spans every tab). That is replay:ended:<projectId> plus the finalizer;
+   * see recordActiveSessions.
    */
   private static shouldWriteProvisionalHeader(
     envelope: SessionReplayChunkEnvelope,
@@ -2216,47 +2310,119 @@ export default class SessionReplayIngestService {
    * seen. Best-effort: a missed ZADD means the session stays provisional
    * until a later chunk re-registers it, which is a degraded read rather
    * than lost data - so it must never fail an otherwise-successful job.
+   *
+   * ---- Ended tabs ----
+   *
+   * A tab's final chunk used to register exactly like any other chunk, so
+   * the finalizer only learned a closed tab was gone by waiting out the
+   * 10-minute idle window, and the list said "Recording now" about it for
+   * 10-15 minutes. Every (session, tab) for which this job WROTE a chunk
+   * that ends the tab is now also ZADDed into replay:ended:<projectId>,
+   * with the same member and the SAME score as its active entry, so the
+   * every-minute Rum:FinalizeEndedSessions job can finalize the session
+   * once the shared rule (Common/Utils/Rum/SessionReplayRecordingEnded)
+   * says every one of its tabs has ended and the grace has passed.
+   *
+   * "Ends the tab" follows that rule (isTabEndingEnvelope): a final chunk,
+   * or the tab's last permitted chunk index. The second matters for a
+   * long-lived tab that hit MAX_SESSION_REPLAY_CHUNKS_PER_SESSION: its
+   * truncation seal is refused by the gate, so its last permitted chunk is
+   * the only row that can ever say it is over.
+   *
+   * What this set is NOT is the grace clock. The rule measures the grace on
+   * the chunk rows' own server write time (their `version`), so the list,
+   * the player and the finalizer all hold back the same session for the
+   * same time, and none of them needs Redis to do it. The score only
+   * triggers the check early and bounds the finalizer's conditional
+   * removals; see the ended key in the layout comment at the top.
+   *
+   * Only frames that became chunk rows, not every ending frame in the body.
+   * A frame dropped in the loop above (erased session, consent,
+   * scrub-incomplete, undecodable, over the chunk cap) left nothing in
+   * ClickHouse, so listing it would only buy the finalizer a chunk-table
+   * query that finds nothing that ends the tab. Harmless, but pointless,
+   * and a candidate list the finalizer can trust to mean "an ending chunk
+   * row exists" is easier to reason about. The active registration still
+   * covers every frame, as it always has.
+   *
+   * Ingest never REMOVES an ended member. A chunk that arrives after the
+   * final one (an older recorder's trailing visibility chunk, posted at
+   * pagehide) only advances the active score, and the finalizer decides
+   * from the chunk rows, where the shared rule applies the trailing-chunk
+   * tolerance. Membership is a hint, the rows are the verdict.
    */
   private static async recordActiveSessions(
     projectId: ObjectID,
     frames: Array<ParsedSessionReplayFrame>,
+    writtenEndingEnvelopes: Array<SessionReplayChunkEnvelope>,
   ): Promise<void> {
     const client: ClientType | null = Redis.getClient();
 
     if (!client || !Redis.isConnected()) {
+      /*
+       * Not silent. These rows landed, but nothing told the finalizer, so
+       * the session reads "Recording now" until a later chunk registers it
+       * once Redis is back - or, if none ever comes (the tab was closed),
+       * until the hourly never-finalized sweep finds the provisional
+       * header. An operator looking at a stuck badge needs to see why.
+       */
+      logger.warn(
+        `SessionReplayIngestService: Redis is not connected, so session replay chunks for project ${projectId.toString()} were not registered with the finalizer. Their sessions stay unfinalized until a later chunk registers them or the never-finalized sweep seals them.`,
+      );
       return;
     }
 
-    const key: string = `${ACTIVE_SESSION_KEY_PREFIX}${projectId.toString()}`;
+    const activeKey: string = `${ACTIVE_SESSION_KEY_PREFIX}${projectId.toString()}`;
+    const endedKey: string = `${ENDED_SESSION_KEY_PREFIX}${projectId.toString()}`;
+
+    /*
+     * ONE score for both sets. The finalizer uses an ended candidate's score
+     * as the threshold for removing the matching active member (and removes
+     * either only while its score is no newer than that), which depends on
+     * the two being written equal, so this must never become two
+     * Date.now() calls.
+     */
     const score: number = Date.now();
 
-    const members: Set<string> = new Set<string>();
+    const activeMembers: Set<string> = new Set<string>();
 
     for (const frame of frames) {
-      members.add(`${frame.envelope.sessionId}:${frame.envelope.tabId}`);
+      activeMembers.add(this.getSessionTabMember(frame.envelope));
     }
 
-    if (members.size === 0) {
+    if (activeMembers.size === 0) {
       return;
     }
 
-    /* One multi-member ZADD, not one round trip per (session, tab). */
-    const scoreMemberPairs: Array<string | number> = [];
+    /*
+     * A Set, so a tab whose ending chunk appears twice in one body (a
+     * catch-up request re-sending it), or whose last permitted chunk is
+     * also its final one, is still one member.
+     */
+    const endedMembers: Set<string> = new Set<string>();
 
-    for (const member of members) {
-      scoreMemberPairs.push(score, member);
+    for (const envelope of writtenEndingEnvelopes) {
+      endedMembers.add(this.getSessionTabMember(envelope));
     }
 
+    let isActiveRegistered: boolean = false;
+
     try {
-      await client.zadd(key, ...scoreMemberPairs);
-      await client.expire(key, ACTIVE_SESSION_TTL_SECONDS);
+      /* One multi-member ZADD, not one round trip per (session, tab). */
+      await client.zadd(
+        activeKey,
+        ...this.toScoreMemberPairs(score, activeMembers),
+      );
+      isActiveRegistered = true;
+
+      await client.expire(activeKey, ACTIVE_SESSION_TTL_SECONDS);
 
       /*
        * The finalizer's project index. Without this the first recordings of
        * a newly enabled project sat provisional (0 chunks, 0 duration) until
        * the finalizer's periodic keyspace SCAN happened to find the key -
        * which on a large keyspace it can miss for good (audit findings
-       * ingest-15, workers-lifecycle-6).
+       * ingest-15, workers-lifecycle-6). The ended job walks the same index.
        */
       await client.sadd(ACTIVE_PROJECTS_KEY, projectId.toString());
     } catch (err) {
@@ -2265,6 +2431,61 @@ export default class SessionReplayIngestService {
       );
       logger.warn(err);
     }
+
+    /*
+     * Never an ended member without its active one: the finalizer removes
+     * active members up to an ended candidate's score, and an ended entry
+     * newer than (or without) its active entry has no meaning. If the active
+     * ZADD failed the tab simply falls back to the idle path, like a tab
+     * that never sent a final chunk.
+     */
+    if (!isActiveRegistered || endedMembers.size === 0) {
+      return;
+    }
+
+    try {
+      await client.zadd(
+        endedKey,
+        ...this.toScoreMemberPairs(score, endedMembers),
+      );
+      await client.expire(endedKey, ACTIVE_SESSION_TTL_SECONDS);
+    } catch (err) {
+      /*
+       * Only the EARLY trigger is lost, never correctness: the rows are
+       * written and the active member stands. The session is still
+       * finalized early if another of its tabs has a candidate (that check
+       * reads every tab's rows, this one's included, and applies the grace
+       * to them), and otherwise on the idle window.
+       */
+      logger.warn(
+        `SessionReplayIngestService: could not register ended sessions for project ${projectId.toString()}; they will be finalized early only if another tab of the same session is a candidate, otherwise on the idle window`,
+      );
+      logger.warn(err);
+    }
+  }
+
+  /*
+   * "<sessionId>:<tabId>", the member format of both replay:active:* and
+   * replay:ended:*. Mirrored by the finalizer, which splits on the colon.
+   */
+  private static getSessionTabMember(
+    envelope: SessionReplayChunkEnvelope,
+  ): string {
+    return `${envelope.sessionId}:${envelope.tabId}`;
+  }
+
+  /* ZADD's flat [score, member, score, member, ...] argument list. */
+  private static toScoreMemberPairs(
+    score: number,
+    members: Set<string>,
+  ): Array<string | number> {
+    const scoreMemberPairs: Array<string | number> = [];
+
+    for (const member of members) {
+      scoreMemberPairs.push(score, member);
+    }
+
+    return scoreMemberPairs;
   }
 
   /*
