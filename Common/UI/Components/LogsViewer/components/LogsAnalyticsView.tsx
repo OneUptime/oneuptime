@@ -35,6 +35,15 @@ import { APP_API_URL } from "../../../Config";
 import ModelAPI from "../../../Utils/ModelAPI/ModelAPI";
 import ComponentLoader from "../../ComponentLoader/ComponentLoader";
 import OneUptimeDate from "../../../../Types/Date";
+import useTelemetryEntityNames from "../../../Utils/Telemetry/UseTelemetryEntityNames";
+import { TelemetryEntityNameMap } from "../../../Utils/Telemetry/TelemetryEntityNames";
+import {
+  collectAnalyticsEntityIds,
+  getAnalyticsDimensionLabel,
+  getAnalyticsGroupValueLabel,
+  getAnalyticsSeriesLabel,
+  LogsEntityResolutionRequest,
+} from "../LogsEntityNames";
 
 type AnalyticsChartType = "timeseries" | "toplist" | "table";
 type AnalyticsAggregation = "count" | "unique";
@@ -107,12 +116,22 @@ interface PivotedTimeseriesRow {
   [key: string]: number | string;
 }
 
-function pivotTimeseriesData(rows: Array<AnalyticsTimeseriesRow>): {
+/*
+ * Series keys stay the raw joined group values (ids for an entity
+ * dimension) so two entities that share a name remain two series;
+ * `seriesLabels` carries what the legend and tooltip print for each key.
+ */
+export function pivotTimeseriesData(
+  rows: Array<AnalyticsTimeseriesRow>,
+  entityNameMap?: TelemetryEntityNameMap | undefined,
+): {
   pivotedData: Array<PivotedTimeseriesRow>;
   seriesKeys: Array<string>;
+  seriesLabels: Record<string, string>;
 } {
   const map: Map<string, PivotedTimeseriesRow> = new Map();
   const seriesKeysSet: Set<string> = new Set();
+  const seriesLabels: Record<string, string> = {};
 
   for (const row of rows) {
     let pivotRow: PivotedTimeseriesRow | undefined = map.get(row.time);
@@ -122,15 +141,20 @@ function pivotTimeseriesData(rows: Array<AnalyticsTimeseriesRow>): {
       map.set(row.time, pivotRow);
     }
 
-    const groupKey: string =
-      Object.values(row.groupValues).join(" / ") || "count";
+    const groupValues: Record<string, string> = row.groupValues || {};
+    const groupKey: string = Object.values(groupValues).join(" / ") || "count";
     seriesKeysSet.add(groupKey);
+    if (seriesLabels[groupKey] === undefined) {
+      seriesLabels[groupKey] =
+        getAnalyticsSeriesLabel(groupValues, entityNameMap) || groupKey;
+    }
     pivotRow[groupKey] = ((pivotRow[groupKey] as number) || 0) + row.count;
   }
 
   return {
     pivotedData: Array.from(map.values()),
     seriesKeys: Array.from(seriesKeysSet),
+    seriesLabels,
   };
 }
 
@@ -205,6 +229,8 @@ function computeDefaultBucketSize(startTime: Date, endTime: Date): number {
 interface AnalyticsTooltipProps {
   active?: boolean;
   label?: string;
+  // Series key -> printed label (entity names instead of ids).
+  seriesLabels?: Record<string, string> | undefined;
   payload?: Array<{
     dataKey: string;
     value: number;
@@ -266,7 +292,9 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
                   className="inline-block h-2.5 w-2.5 rounded-[3px]"
                   style={{ backgroundColor: entry.color }}
                 />
-                <span className="text-xs text-gray-600">{entry.key}</span>
+                <span className="text-xs text-gray-600">
+                  {props.seriesLabels?.[entry.key] || entry.key}
+                </span>
               </div>
               <span className="font-mono text-xs font-semibold tabular-nums text-gray-800">
                 {entry.value.toLocaleString()}
@@ -304,6 +332,14 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
   >([]);
   const [topListData, setTopListData] = useState<Array<AnalyticsTopItem>>([]);
   const [tableData, setTableData] = useState<Array<AnalyticsTableRow>>([]);
+  /*
+   * The group-by the data on screen was fetched with. The picker can move
+   * ahead of the data while a refetch is in flight, and labels must follow
+   * the data (a top list row's value belongs to this dimension).
+   */
+  const [resultGroupByFields, setResultGroupByFields] = useState<Array<string>>(
+    [],
+  );
 
   const allDimensionOptions: Array<{ value: string; label: string }> =
     useMemo(() => {
@@ -340,15 +376,17 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
           bucketSizeInMinutes: computeDefaultBucketSize(startTime, endTime),
         } as JSONObject;
 
-        if (
+        const requestGroupBy: Array<string> =
           groupByFields.length > 0 &&
           groupByFields[0] &&
           groupByFields[0].length > 0
-        ) {
-          (requestData as Record<string, unknown>)["groupBy"] =
-            groupByFields.filter((f: string) => {
-              return f.length > 0;
-            });
+            ? groupByFields.filter((f: string) => {
+                return f.length > 0;
+              })
+            : [];
+
+        if (requestGroupBy.length > 0) {
+          (requestData as Record<string, unknown>)["groupBy"] = requestGroupBy;
         }
 
         if (aggregation === "unique" && aggregationField) {
@@ -437,6 +475,8 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
 
         const data: unknown = response.data["data"] || [];
 
+        setResultGroupByFields(requestGroupBy);
+
         if (chartType === "timeseries") {
           setTimeseriesData(data as Array<AnalyticsTimeseriesRow>);
         } else if (chartType === "toplist") {
@@ -468,9 +508,34 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
     void fetchAnalytics();
   }, [fetchAnalytics]);
 
-  const { pivotedData, seriesKeys } = useMemo(() => {
-    return pivotTimeseriesData(timeseriesData);
-  }, [timeseriesData]);
+  /*
+   * Group values of an entity dimension (primaryEntityId, hostId, …) are
+   * ids — for a RUM application's logs the RumApplication id. One resolver
+   * request names every id the current result shows. Grouped rows are read
+   * by their own groupValues keys, not resultGroupByFields: after a chart
+   * type switch the rows on screen may predate the last fetch's group-by.
+   */
+  const entityResolutionRequest: LogsEntityResolutionRequest = useMemo(() => {
+    return collectAnalyticsEntityIds({
+      groupByFields: resultGroupByFields,
+      groupedRows:
+        chartType === "timeseries"
+          ? timeseriesData
+          : chartType === "table"
+            ? tableData
+            : [],
+      topListItems: chartType === "toplist" ? topListData : [],
+    });
+  }, [resultGroupByFields, chartType, timeseriesData, tableData, topListData]);
+
+  const entityNameMap: TelemetryEntityNameMap = useTelemetryEntityNames(
+    entityResolutionRequest.ids,
+    { typeHints: entityResolutionRequest.typeHints },
+  );
+
+  const { pivotedData, seriesKeys, seriesLabels } = useMemo(() => {
+    return pivotTimeseriesData(timeseriesData, entityNameMap);
+  }, [timeseriesData, entityNameMap]);
 
   const renderSelectControl: (
     label: string,
@@ -633,7 +698,9 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                   backgroundColor: CHART_COLORS[index % CHART_COLORS.length],
                 }}
               />
-              <span className="text-[11px] text-gray-500">{key}</span>
+              <span className="text-[11px] text-gray-500">
+                {seriesLabels[key] || key}
+              </span>
             </div>
           );
         })}
@@ -708,7 +775,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                   tickFormatter={formatYAxisTick}
                 />
                 <Tooltip
-                  content={<AnalyticsTooltip />}
+                  content={<AnalyticsTooltip seriesLabels={seriesLabels} />}
                   cursor={{
                     stroke: "var(--ou-accent-muted, #c7d2fe)",
                     strokeWidth: 1,
@@ -767,7 +834,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                   tickFormatter={formatYAxisTick}
                 />
                 <Tooltip
-                  content={<AnalyticsTooltip />}
+                  content={<AnalyticsTooltip seriesLabels={seriesLabels} />}
                   cursor={{ fill: "rgba(99,102,241,0.04)" }}
                 />
                 {seriesKeys.map((key: string, index: number) => {
@@ -840,7 +907,11 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                   style={{ backgroundColor: color }}
                 />
                 <div className="w-44 min-w-0 truncate text-sm font-medium text-gray-700">
-                  {item.value || "(empty)"}
+                  {getAnalyticsGroupValueLabel(
+                    resultGroupByFields[0],
+                    item.value,
+                    entityNameMap,
+                  ) || "(empty)"}
                 </div>
                 <div className="flex-1">
                   <div className="relative h-7 w-full overflow-hidden rounded-md bg-gray-50">
@@ -901,7 +972,13 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                       key={key}
                       className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400"
                     >
-                      {key}
+                      {getAnalyticsDimensionLabel(
+                        key,
+                        tableData.map((row: AnalyticsTableRow): string => {
+                          return row.groupValues?.[key] || "";
+                        }),
+                        entityNameMap,
+                      )}
                     </th>
                   );
                 })}
@@ -934,7 +1011,11 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                           key={key}
                           className="whitespace-nowrap px-4 py-2.5 text-sm text-gray-700"
                         >
-                          {row.groupValues[key] || "(empty)"}
+                          {getAnalyticsGroupValueLabel(
+                            key,
+                            row.groupValues[key] || "",
+                            entityNameMap,
+                          ) || "(empty)"}
                         </td>
                       );
                     })}

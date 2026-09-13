@@ -30,6 +30,14 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import OneUptimeDate from "Common/Types/Date";
 import { formatTickTime, formatTooltipLabel } from "./TraceTimeFormat";
+import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import {
+  TraceAnalyticsPivotedRow,
+  buildTraceAnalyticsValueLabels,
+  collectTraceAnalyticsEntityIds,
+  pivotTraceAnalyticsTimeseries,
+} from "./TracesEntityDisplay";
 
 type AnalyticsChartType = "timeseries" | "toplist" | "table";
 
@@ -130,20 +138,6 @@ const DIMENSION_OPTIONS: Array<{ value: string; label: string }> = [
 
 const TOP_LIST_LIMITS: Array<number> = [5, 10, 25, 50, 100];
 
-const STATUS_LABEL: Record<string, string> = {
-  "0": "Unset",
-  "1": "Ok",
-  "2": "Error",
-};
-
-const KIND_LABEL: Record<string, string> = {
-  SPAN_KIND_SERVER: "Server",
-  SPAN_KIND_CLIENT: "Client",
-  SPAN_KIND_PRODUCER: "Producer",
-  SPAN_KIND_CONSUMER: "Consumer",
-  SPAN_KIND_INTERNAL: "Internal",
-};
-
 function isDurationMetric(metric: string): boolean {
   return metric !== "count" && metric !== "errorCount";
 }
@@ -193,11 +187,6 @@ function computeDefaultBucketSize(startTime: Date, endTime: Date): number {
     return 360;
   }
   return 1440;
-}
-
-interface PivotedRow {
-  time: string;
-  [series: string]: number | string;
 }
 
 interface AnalyticsTooltipProps {
@@ -291,24 +280,66 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
       return [...DIMENSION_OPTIONS, ...attributeOptions];
     }, [props.attributeKeys]);
 
-  const displayGroupValue: (key: string, raw: string) => string = useCallback(
-    (key: string, raw: string): string => {
-      if (!raw) {
-        return "(empty)";
-      }
-      if (key === "primaryEntityId") {
-        return props.serviceNameMap[raw] || raw;
-      }
-      if (key === "statusCode") {
-        return STATUS_LABEL[raw] || raw;
-      }
-      if (key === "kind") {
-        return KIND_LABEL[raw] || raw;
-      }
-      return raw;
-    },
-    [props.serviceNameMap],
-  );
+  /*
+   * Split by "Service", a group value is a span's primaryEntityId. The
+   * server names Services itself, so an id that still arrives as an id is
+   * normally a RUM application, a host or another non-Service entity —
+   * resolve those so the legend, the top list and the table read as names
+   * rather than UUIDs.
+   */
+  const unnamedEntityIds: Array<string> = useMemo(() => {
+    return collectTraceAnalyticsEntityIds({
+      rows: [...timeseriesData, ...tableData],
+      topList: topListData,
+      topListGroupKey: groupByFields[0] || "",
+      serviceNameMap: props.serviceNameMap,
+    });
+  }, [
+    timeseriesData,
+    tableData,
+    topListData,
+    groupByFields,
+    props.serviceNameMap,
+  ]);
+
+  const entityNames: TelemetryEntityNameMap =
+    useTelemetryEntityNames(unnamedEntityIds);
+
+  /*
+   * Top list labels, unique per raw value: a Service "checkout" and a RUM
+   * application "checkout" must not both read "checkout".
+   */
+  const topListLabels: Map<string, string> = useMemo(() => {
+    return buildTraceAnalyticsValueLabels({
+      key: groupByFields[0] || "",
+      values: topListData.map((item: TopItem): string => {
+        return item.value;
+      }),
+      serviceNameMap: props.serviceNameMap,
+      entityNames,
+    });
+  }, [topListData, groupByFields, props.serviceNameMap, entityNames]);
+
+  // Table cell labels, unique per raw value within each column.
+  const tableColumnLabels: Map<string, Map<string, string>> = useMemo(() => {
+    const byColumn: Map<string, Map<string, string>> = new Map();
+
+    for (const key of Object.keys(tableData[0]?.groupValues || {})) {
+      byColumn.set(
+        key,
+        buildTraceAnalyticsValueLabels({
+          key,
+          values: tableData.map((row: TableRow): string => {
+            return row.groupValues[key] || "";
+          }),
+          serviceNameMap: props.serviceNameMap,
+          entityNames,
+        }),
+      );
+    }
+
+    return byColumn;
+  }, [tableData, props.serviceNameMap, entityNames]);
 
   const fetchAnalytics: () => Promise<void> =
     useCallback(async (): Promise<void> => {
@@ -397,42 +428,30 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
     void fetchAnalytics();
   }, [fetchAnalytics]);
 
-  const { pivotedData, seriesKeys } = useMemo(() => {
-    const map: Map<string, PivotedRow> = new Map();
-    const seriesKeysSet: Set<string> = new Set();
+  /*
+   * Series are identified by their RAW group values and labelled uniquely
+   * (see pivotTraceAnalyticsTimeseries). Keying them by the display label
+   * merged two same-named entities into one series.
+   */
+  const {
+    pivotedData,
+    seriesKeys,
+  }: {
+    pivotedData: Array<TraceAnalyticsPivotedRow>;
+    seriesKeys: Array<string>;
+  } = useMemo(() => {
     const metricLabel: string =
       METRIC_OPTIONS.find((opt: { value: string }) => {
         return opt.value === metric;
       })?.label || metric;
 
-    for (const row of timeseriesData) {
-      let pivotRow: PivotedRow | undefined = map.get(row.time);
-      if (!pivotRow) {
-        pivotRow = { time: row.time };
-        map.set(row.time, pivotRow);
-      }
-
-      const groupEntries: Array<[string, string]> = Object.entries(
-        row.groupValues,
-      );
-      const seriesKey: string =
-        groupEntries.length > 0
-          ? groupEntries
-              .map(([key, value]: [string, string]): string => {
-                return displayGroupValue(key, value);
-              })
-              .join(" / ")
-          : metricLabel;
-
-      seriesKeysSet.add(seriesKey);
-      pivotRow[seriesKey] = row.value;
-    }
-
-    return {
-      pivotedData: Array.from(map.values()),
-      seriesKeys: Array.from(seriesKeysSet),
-    };
-  }, [timeseriesData, metric, displayGroupValue]);
+    return pivotTraceAnalyticsTimeseries({
+      rows: timeseriesData,
+      serviceNameMap: props.serviceNameMap,
+      entityNames,
+      metricLabel,
+    });
+  }, [timeseriesData, metric, props.serviceNameMap, entityNames]);
 
   const renderSelectControl: (
     label: string,
@@ -763,7 +782,6 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
       return renderEmptyState();
     }
 
-    const groupByKey: string = groupByFields[0] || "";
     const maxValue: number = Math.max(
       ...topListData.map((item: TopItem) => {
         return item.metricValue;
@@ -795,7 +813,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                   style={{ backgroundColor: color }}
                 />
                 <div className="w-56 min-w-0 truncate text-sm font-medium text-gray-700">
-                  {displayGroupValue(groupByKey, item.value)}
+                  {topListLabels.get(item.value || "") || item.value}
                 </div>
                 <div className="flex-1">
                   <div className="relative h-7 w-full overflow-hidden rounded-md bg-gray-50">
@@ -890,7 +908,11 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                           key={key}
                           className="max-w-[320px] truncate whitespace-nowrap px-4 py-2.5 text-sm text-gray-700"
                         >
-                          {displayGroupValue(key, row.groupValues[key] || "")}
+                          {tableColumnLabels
+                            .get(key)
+                            ?.get(row.groupValues[key] || "") ||
+                            row.groupValues[key] ||
+                            ""}
                         </td>
                       );
                     })}

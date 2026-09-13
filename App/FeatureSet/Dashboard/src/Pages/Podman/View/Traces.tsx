@@ -71,12 +71,19 @@ const PodmanHostTraces: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * Filter on the machine's hostIdentifier (what telemetry carries in
+       * host.name) but show the host's friendly name on the locked chip.
+       */}
       <TracesViewer
         attributeFilters={{
           "resource.host.name": host.hostIdentifier,
         }}
         attributeFilterDisplayKeys={{
           "resource.host.name": "Podman Host",
+        }}
+        attributeFilterDisplayValues={{
+          "resource.host.name": host.name || host.hostIdentifier,
         }}
       />
     </Fragment>

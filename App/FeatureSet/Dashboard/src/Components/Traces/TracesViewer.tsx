@@ -129,6 +129,20 @@ import {
   toTraceDurationFilter,
 } from "./TracesSearchCompile";
 import { shouldAdoptTimeRangeOverride } from "../../Utils/SharedTelemetryTimeCursor";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
+import {
+  ResolvedTelemetryEntity,
+  TelemetryEntityNameMap,
+} from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import {
+  buildFacetDisplayNames,
+  buildLockedAttributeChip,
+  buildTraceEntityTypeHints,
+  collectTraceEntityIdsToResolve,
+  getSpanEntity,
+  resolveTraceChipDisplay,
+} from "./TracesEntityDisplay";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
@@ -454,6 +468,14 @@ function readInitialUrlState(): InitialUrlState {
 interface Props {
   primaryEntityId?: ObjectID | undefined;
   /*
+   * The ServiceType of `primaryEntityId` — which table the id lives in. A
+   * span's primaryEntityId is polymorphic (a RUM application's spans carry
+   * the RumApplication id), so without this the scope chip can only guess
+   * "Service". When set, the chip reads e.g. "RUM Application" immediately
+   * and the name lookup goes straight to that table.
+   */
+  scopeEntityType?: ServiceType | undefined;
+  /*
    * Scope traces to a resource by OTel resource attribute (e.g.
    * { "resource.k8s.cluster.name": "<clusterIdentifier>" }). Used by the
    * Host / Docker / Kubernetes views, which key telemetry off resource
@@ -461,6 +483,13 @@ interface Props {
    */
   attributeFilters?: Record<string, string> | undefined;
   attributeFilterDisplayKeys?: Record<string, string> | undefined;
+  /*
+   * Display-only override of the locked attribute chip's value, keyed like
+   * `attributeFilters`. Resource pages scope by a machine identifier while
+   * already holding the resource's friendly name; the filter keeps the
+   * identifier, the chip shows the name.
+   */
+  attributeFilterDisplayValues?: Record<string, string> | undefined;
   /*
    * Scope to a OneUptime entity by its stable entityKeys (membership).
    * Compiles to `hasAny(entityKeys, [...])` server-side — the entity
@@ -640,6 +669,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   const [kubernetesClusters, setKubernetesClusters] = useState<
     Array<KubernetesCluster>
   >([]);
+  /*
+   * Whether the Service list above has landed (or failed). Span rows only
+   * ask the entity-name lookup about ids that list does not name, and before
+   * it lands every id looks unnamed.
+   */
+  const [resourcesLoaded, setResourcesLoaded] = useState<boolean>(false);
 
   /*
    * A pinned snapshot window outranks a controlled one and the URL: it
@@ -1317,6 +1352,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         setKubernetesClusters(clusterResult.data || []);
       } catch {
         // non-critical
+      } finally {
+        setResourcesLoaded(true);
       }
     };
     void loadResources();
@@ -2181,11 +2218,18 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
             (chipKey.startsWith(ATTRIBUTE_CHIP_PREFIX)
               ? chipKey.substring(ATTRIBUTE_CHIP_PREFIX.length)
               : chipKey);
+          /*
+           * The server's resolved facet name is the fallback seed: the
+           * sidebar showed it, and the facet list can drop the value once
+           * this very filter narrows the window.
+           */
           const displayValue: string =
             config?.valueDisplayMap?.[value] ||
             (chipKey.startsWith(ATTRIBUTE_CHIP_PREFIX)
               ? describeSearchValue(chipValue)
-              : value);
+              : facetData[facetKey]?.find((facet: FacetValue): boolean => {
+                  return facet.value === value;
+                })?.displayName || value);
           return [
             ...prev,
             { facetKey: chipKey, value: chipValue, displayKey, displayValue },
@@ -2193,7 +2237,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         });
         setPage(1);
       },
-      [facetConfigs],
+      [facetConfigs, facetData],
     );
 
   const handleRemoveFilter: (facetKey: string, value: string) => void =
@@ -2226,38 +2270,81 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   }, []);
 
   /*
+   * Server-resolved facet display names (Services, for the primaryEntityId
+   * facet), so a chip the user added from the sidebar keeps the name the
+   * sidebar showed even when the explorer's own Service list does not have
+   * that row.
+   */
+  const facetDisplayNames: Record<
+    string,
+    Record<string, string>
+  > = useMemo(() => {
+    return buildFacetDisplayNames(facetData);
+  }, [facetData]);
+
+  const scopeEntityId: string | undefined = props.primaryEntityId?.toString();
+
+  /*
+   * One entity-name lookup for everything on screen that names an entity by
+   * id: every primaryEntityId / legacy serviceId chip (the locked scope, the
+   * stored-query scope, facet / URL / saved-view chips) and every span row
+   * whose entity is not a loaded Service. A span's primaryEntityId is
+   * polymorphic — a RUM application's spans carry the RumApplication id — and
+   * this explorer only loads Services, which is how a RUM traces tab came to
+   * read "Service: 84858d6c-…" and "unknown service" on every row.
+   */
+  const entityIdsToResolve: Array<string> = useMemo(() => {
+    return collectTraceEntityIdsToResolve({
+      chips: [
+        ...(scopeEntityId
+          ? [{ facetKey: "primaryEntityId", value: scopeEntityId }]
+          : []),
+        ...(spanScope.chips as Array<SpanScopeChip>),
+        ...activeFilters,
+      ],
+      spanEntityIds: spans.map((span: Span): string | undefined => {
+        return span.primaryEntityId?.toString();
+      }),
+      knownNames: [serviceNameMap, facetDisplayNames["primaryEntityId"]],
+      includeSpanEntityIds: resourcesLoaded,
+    });
+  }, [
+    scopeEntityId,
+    spanScope,
+    activeFilters,
+    spans,
+    serviceNameMap,
+    facetDisplayNames,
+    resourcesLoaded,
+  ]);
+
+  const entityTypeHints: Record<string, ServiceType> = useMemo(() => {
+    return buildTraceEntityTypeHints(scopeEntityId, props.scopeEntityType);
+  }, [scopeEntityId, props.scopeEntityType]);
+
+  const entityNames: TelemetryEntityNameMap = useTelemetryEntityNames(
+    entityIdsToResolve,
+    { typeHints: entityTypeHints },
+  );
+
+  /*
    * Read-only chips for prop-level scoping (e.g. service view page), merged
-   * with the user-added chips. Display labels are re-derived from
-   * facetConfigs here so URL-restored chips (which only carry facetKey/value)
-   * still show the human-readable label once services/hosts/etc. load.
+   * with the user-added chips. Display labels are re-derived here (see
+   * resolveTraceChipDisplay) so URL-restored chips (which only carry
+   * facetKey/value) still show the human-readable label once services, facets
+   * and entity names load.
    */
   const mergedActiveFilters: Array<ActiveFilter> = useMemo(() => {
     const resolveDisplay: (chip: ActiveFilter) => ActiveFilter = (
       chip: ActiveFilter,
     ) => {
-      const config: FacetConfig | undefined = facetConfigs.find(
-        (c: FacetConfig): boolean => {
-          return c.key === chip.facetKey;
-        },
-      );
-      let displayKey: string = config?.title || chip.facetKey;
-      let displayValue: string =
-        config?.valueDisplayMap?.[chip.value] || chip.value;
-      if (chip.facetKey.startsWith(ATTRIBUTE_SEARCH_CHIP_PREFIX)) {
-        displayKey = chip.facetKey.substring(
-          ATTRIBUTE_SEARCH_CHIP_PREFIX.length,
-        );
-        displayValue = `~${chip.value}`;
-      } else if (chip.facetKey.startsWith(ATTRIBUTE_CHIP_PREFIX)) {
-        displayKey = chip.facetKey.substring(ATTRIBUTE_CHIP_PREFIX.length);
-        /*
-         * The chip stores a grammar token; show what it means — escapes
-         * resolved, so a clicked `/api/*` reads as `/api/*` and not as the
-         * `\*` the query needs.
-         */
-        displayValue = describeSearchValue(chip.value);
-      }
-      return { ...chip, displayKey, displayValue };
+      return resolveTraceChipDisplay(chip, {
+        facetConfigs,
+        facetDisplayNames,
+        entityNames,
+        scopeEntityId,
+        scopeEntityType: props.scopeEntityType,
+      });
     };
 
     const base: Array<ActiveFilter> = [];
@@ -2331,15 +2418,14 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         if (!value) {
           continue;
         }
-        const displayKey: string =
-          props.attributeFilterDisplayKeys?.[key] || key;
-        base.push({
-          facetKey: `attributes.${key}`,
-          value,
-          displayKey,
-          displayValue: value,
-          readOnly: true,
-        });
+        base.push(
+          buildLockedAttributeChip({
+            key,
+            value,
+            displayKeys: props.attributeFilterDisplayKeys,
+            displayValues: props.attributeFilterDisplayValues,
+          }),
+        );
       }
     }
     /*
@@ -2363,12 +2449,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     return [...base, ...activeFilters.map(resolveDisplay), ...spanTypeChip];
   }, [
     props.primaryEntityId,
+    props.scopeEntityType,
     props.attributeFilters,
     props.attributeFilterDisplayKeys,
+    props.attributeFilterDisplayValues,
+    scopeEntityId,
     spanScope,
     activeFilters,
     submittedSearch,
     facetConfigs,
+    facetDisplayNames,
+    entityNames,
     rootOnly,
   ]);
 
@@ -2878,9 +2969,20 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       emptyMessage={props.emptyMessage || "No traces found"}
       itemLabel="traces"
       renderRow={(span: Span): ReactElement => {
-        const service: Service | undefined = span.primaryEntityId
-          ? serviceById[span.primaryEntityId.toString()]
-          : undefined;
+        /*
+         * A loaded Service renders exactly as before; any other entity (a RUM
+         * application, a host) shows the name the entity lookup resolved
+         * rather than "unknown service".
+         */
+        const spanEntity: {
+          service?: Service | undefined;
+          entity?: ResolvedTelemetryEntity | undefined;
+        } = getSpanEntity({
+          spanEntityId: span.primaryEntityId,
+          serviceById,
+          entityNames,
+        });
+        const service: Service | undefined = spanEntity.service;
         const spanKey: string = span.spanId?.toString() || "";
         const isExpanded: boolean =
           spanKey !== "" && expandedSpanId === spanKey;
@@ -2889,6 +2991,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
             <TraceRow
               span={span}
               service={service}
+              entity={spanEntity.entity}
               maxDurationNano={maxDurationNano}
               isExpanded={isExpanded}
               onToggle={() => {
@@ -2899,6 +3002,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
               <SpanDetailsPanel
                 span={span}
                 service={service}
+                entity={spanEntity.entity}
                 traceRoute={getTraceRoute(span)}
                 onFilterByAttribute={(key: string, value: string) => {
                   /*

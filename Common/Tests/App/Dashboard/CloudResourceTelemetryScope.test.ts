@@ -119,6 +119,47 @@ describe("getCloudResourceAttributeDisplayKeys", () => {
     expect(getCloudResourceAttributeDisplayKeys(null)).toEqual({});
   });
 
+  test("labels are words a person reads, never the raw OTel key", () => {
+    const labels: Array<string> = Object.values(
+      getCloudResourceAttributeDisplayKeys({
+        cloudPlatform: "aws_ecs",
+        cloudAccountId: "123456789012",
+        cloudRegion: "us-east-1",
+      }),
+    );
+
+    expect(labels.length).toBe(3);
+
+    for (const label of labels) {
+      expect(label).not.toMatch(/^resource\./);
+      expect(label).not.toContain(".");
+    }
+  });
+
+  test("display keys never change the filter values", () => {
+    const resource: {
+      cloudPlatform: string;
+      cloudAccountId: string;
+      cloudRegion: string;
+    } = {
+      cloudPlatform: "aws_ecs",
+      cloudAccountId: "123456789012",
+      cloudRegion: "us-east-1",
+    };
+
+    const before: Record<string, string> =
+      getCloudResourceAttributeFilters(resource);
+
+    getCloudResourceAttributeDisplayKeys(resource);
+
+    expect(getCloudResourceAttributeFilters(resource)).toEqual(before);
+    expect(Object.values(before)).toEqual([
+      "aws_ecs",
+      "123456789012",
+      "us-east-1",
+    ]);
+  });
+
   test("always has the same key set as the filter", () => {
     const cases: Array<{
       cloudPlatform?: string;

@@ -58,14 +58,22 @@ import {
   readSavedViewFilters,
   SavedViewFilterTuple,
 } from "Common/Utils/Telemetry/SavedViewFilters";
-import useServiceNames from "../Telemetry/useServiceNames";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
+import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import {
+  MetricsEntityLookup,
+  buildMetricsActiveFilterChips,
+  buildMetricsIncludedFacetChip,
+  collectMetricsEntityLookup,
+  getMetricsAppliedEntityFilterIds,
+} from "../../Utils/MetricsEntityChipDisplay";
 import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
 import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
 import TelemetrySavedViewType from "Common/Types/Telemetry/TelemetrySavedViewType";
 import EqualToOrNull from "Common/Types/BaseDatabase/EqualToOrNull";
 import Dictionary from "Common/Types/Dictionary";
 import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
-import { describeSearchValue } from "Common/Types/Telemetry/TelemetrySearchQuery";
 import {
   ATTRIBUTE_FACET_PREFIX,
   METRICS_FIELD_ALIAS_MAP,
@@ -379,6 +387,14 @@ interface EntityScopeFilter {
 interface Props {
   serviceIds?: Array<ObjectID> | undefined;
   /*
+   * What the ids in `serviceIds` are. The slot is polymorphic — a RUM
+   * application page passes its RumApplication id, a host page its Host id
+   * — so the locked chip must not assume "Service". When set, the chip's key
+   * is this type's label from the first render and the name lookup goes
+   * straight to the right table. Display only; filtering is unchanged.
+   */
+  scopeEntityType?: ServiceType | undefined;
+  /*
    * Restrict the service badges rendered in each row. This is separate from
    * serviceIds because some legacy entity pages use serviceIds with an ID
    * that does not belong to a Service.
@@ -386,6 +402,12 @@ interface Props {
   serviceIdsToDisplay?: Array<ObjectID> | undefined;
   attributeFilters?: Record<string, string> | undefined;
   attributeFilterDisplayKeys?: Record<string, string> | undefined;
+  /*
+   * Display-only override of the locked attribute chip's value, keyed like
+   * `attributeFilters` — e.g. a host page scoping by `resource.host.name`
+   * can show the host's name while the filter keeps the identifier.
+   */
+  attributeFilterDisplayValues?: Record<string, string> | undefined;
   /*
    * Scope to a OneUptime entity by its stable entityKeys (membership) —
    * compiles to `hasAny(entityKeys, [...])` server-side.
@@ -487,16 +509,6 @@ const MetricsViewer: FunctionComponent<Props> = (
   const [error, setError] = useState<string>("");
 
   const [services, setServices] = useState<Array<Service>>([]);
-
-  /*
-   * Resolve the scoped service id(s) to names so the read-only "Service" chip
-   * shows the service name instead of a raw UUID. Scoped views don't load the
-   * full service list (facets are hidden), so this targeted lookup is the only
-   * name source for the chip. Filtering itself still uses the stable id.
-   */
-  const scopedServiceNameMap: Record<string, string> = useServiceNames(
-    props.serviceIds,
-  );
 
   const [facetData, setFacetData] = useState<FacetData>({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
@@ -891,13 +903,16 @@ const MetricsViewer: FunctionComponent<Props> = (
     // Prop-level service filter
     const propServiceIds: Array<ObjectID> = props.serviceIds || [];
 
-    // Active facet filters for service
-    const facetServiceIds: Array<ObjectID> = [];
-    for (const filter of activeFilters) {
-      if (filter.facetKey === "primaryEntityId") {
-        facetServiceIds.push(new ObjectID(filter.value));
-      }
-    }
+    /*
+     * Active facet filters for service. The legacy `serviceId` alias is
+     * applied like `primaryEntityId`: the chip bar labels both as the same
+     * entity filter, so both have to actually filter the list.
+     */
+    const facetServiceIds: Array<ObjectID> = getMetricsAppliedEntityFilterIds(
+      activeFilters,
+    ).map((id: string): ObjectID => {
+      return new ObjectID(id);
+    });
 
     const mergedServiceIds: Array<ObjectID> = [
       ...propServiceIds,
@@ -1247,22 +1262,23 @@ const MetricsViewer: FunctionComponent<Props> = (
           ) {
             return prev;
           }
-          const config: FacetConfig | undefined = facetConfigs.find(
-            (c: FacetConfig): boolean => {
-              return c.key === facetKey;
-            },
-          );
-          // Attribute chips (`attributes.<key>`) display as just `<key>`.
-          const displayKey: string = facetKey.startsWith(ATTRIBUTE_FACET_PREFIX)
-            ? facetKey.substring(ATTRIBUTE_FACET_PREFIX.length)
-            : config?.title || facetKey;
-          const displayValue: string =
-            config?.valueDisplayMap?.[value] || value;
-          return [...prev, { facetKey, value, displayKey, displayValue }];
+          /*
+           * Keep the facet endpoint's resolved name as a fallback: a service
+           * beyond the loaded list would otherwise be chipped as its id.
+           */
+          return [
+            ...prev,
+            buildMetricsIncludedFacetChip({
+              facetKey,
+              value,
+              facetConfigs,
+              facetData,
+            }),
+          ];
         });
         setPage(1);
       },
-      [facetConfigs],
+      [facetConfigs, facetData],
     );
 
   const handleRemoveFilter: (facetKey: string, value: string) => void =
@@ -1280,77 +1296,48 @@ const MetricsViewer: FunctionComponent<Props> = (
     setPage(1);
   }, []);
 
+  /*
+   * Every entity id a chip names — the page's locked scope plus any
+   * primaryEntityId / serviceId / hostId / … chip the user added or a link or
+   * saved view restored — resolved in ONE lookup. The id is polymorphic (a
+   * RUM application, a host, a cluster, …), so resolving against the Service
+   * table alone left those chips reading "Service: <uuid>". The page's
+   * scopeEntityType hints its scope ids straight to their own table.
+   */
+  const entityLookup: MetricsEntityLookup = useMemo(() => {
+    return collectMetricsEntityLookup({
+      scopeIds: props.serviceIds,
+      scopeEntityType: props.scopeEntityType,
+      filters: activeFilters,
+    });
+  }, [props.serviceIds, props.scopeEntityType, activeFilters]);
+
+  const entityNameMap: TelemetryEntityNameMap = useTelemetryEntityNames(
+    entityLookup.ids,
+    { typeHints: entityLookup.typeHints },
+  );
+
   // Read-only chips for prop-level scoping (e.g. service view page)
   const mergedActiveFilters: Array<ActiveFilter> = useMemo(() => {
-    const resolveDisplay: (chip: ActiveFilter) => ActiveFilter = (
-      chip: ActiveFilter,
-    ) => {
-      const config: FacetConfig | undefined = facetConfigs.find(
-        (c: FacetConfig): boolean => {
-          return c.key === chip.facetKey;
-        },
-      );
-      const isAttributeChip: boolean = chip.facetKey.startsWith(
-        ATTRIBUTE_FACET_PREFIX,
-      );
-      const displayKey: string = isAttributeChip
-        ? chip.facetKey.substring(ATTRIBUTE_FACET_PREFIX.length)
-        : config?.title || chip.displayKey || chip.facetKey;
-      /*
-       * An attribute chip stores its value in the search grammar, so a
-       * literal asterisk arrives escaped (`a\*b`) and an any-of list arrives
-       * bracketed. The chip has to show the value the user typed, not its
-       * escaping.
-       */
-      const displayValue: string = isAttributeChip
-        ? describeSearchValue(chip.value)
-        : config?.valueDisplayMap?.[chip.value] ||
-          (chip.facetKey === "primaryEntityId"
-            ? scopedServiceNameMap[chip.value]
-            : undefined) ||
-          chip.displayValue ||
-          chip.value;
-      return { ...chip, displayKey, displayValue };
-    };
-
-    const base: Array<ActiveFilter> = [];
-    if (props.serviceIds && props.serviceIds.length > 0) {
-      for (const primaryEntityId of props.serviceIds) {
-        base.push(
-          resolveDisplay({
-            facetKey: "primaryEntityId",
-            value: primaryEntityId.toString(),
-            displayKey: "Service",
-            displayValue: primaryEntityId.toString(),
-            readOnly: true,
-          }),
-        );
-      }
-    }
-    if (props.attributeFilters) {
-      for (const [key, value] of Object.entries(props.attributeFilters)) {
-        if (!value) {
-          continue;
-        }
-        const displayKey: string =
-          props.attributeFilterDisplayKeys?.[key] || key;
-        base.push({
-          facetKey: `attributes.${key}`,
-          value,
-          displayKey,
-          displayValue: value,
-          readOnly: true,
-        });
-      }
-    }
-    return [...base, ...activeFilters.map(resolveDisplay)];
+    return buildMetricsActiveFilterChips({
+      scopeIds: props.serviceIds,
+      scopeEntityType: props.scopeEntityType,
+      attributeFilters: props.attributeFilters,
+      attributeFilterDisplayKeys: props.attributeFilterDisplayKeys,
+      attributeFilterDisplayValues: props.attributeFilterDisplayValues,
+      activeFilters,
+      facetConfigs,
+      nameMap: entityNameMap,
+    });
   }, [
     props.serviceIds,
+    props.scopeEntityType,
     props.attributeFilters,
     props.attributeFilterDisplayKeys,
+    props.attributeFilterDisplayValues,
     activeFilters,
     facetConfigs,
-    scopedServiceNameMap,
+    entityNameMap,
   ]);
 
   // Row click → navigate to metric viewer

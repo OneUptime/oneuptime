@@ -60,6 +60,12 @@ import {
   ScopedServiceCoverage,
   computeScopedServiceCoverage,
 } from "../../Utils/ServiceCoverage";
+import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import {
+  getMetricsScopeFallbackLabel,
+  getMetricsUnnamedScopeIds,
+} from "../../Utils/MetricsEntityChipDisplay";
 
 interface MetricCategory {
   name: string;
@@ -446,6 +452,30 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
     });
   }, [services]);
 
+  /*
+   * Names for selected ids the service list does not cover. The carried id
+   * is a telemetry entity id — it can be a RUM application, a host, a
+   * cluster — so the pill resolves it across every entity table rather than
+   * showing a raw UUID it cannot name.
+   *
+   * Only ids that still need a name are sent: one the service list already
+   * names takes its option's label, and a non-UUID value (a hand-edited
+   * link) cannot be an entity row — resolving either would only fan out
+   * requests across the entity tables for a result the pill never uses.
+   */
+  const unnamedSelectedServiceIds: Array<string> = useMemo(() => {
+    return getMetricsUnnamedScopeIds({
+      selectedIds: selectedServiceIds,
+      knownIds: serviceOptions.map((option: DropdownOption): string => {
+        return option.value.toString();
+      }),
+    });
+  }, [selectedServiceIds, serviceOptions]);
+
+  const selectedEntityNames: TelemetryEntityNameMap = useTelemetryEntityNames(
+    unnamedSelectedServiceIds,
+  );
+
   const selectedServiceOptions: Array<DropdownOption> = useMemo(() => {
     return selectedServiceIds.map((serviceId: string): DropdownOption => {
       /*
@@ -456,10 +486,16 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
       return (
         serviceOptions.find((option: DropdownOption): boolean => {
           return option.value === serviceId;
-        }) || { value: serviceId, label: serviceId }
+        }) || {
+          value: serviceId,
+          label: getMetricsScopeFallbackLabel({
+            id: serviceId,
+            nameMap: selectedEntityNames,
+          }),
+        }
       );
     });
-  }, [selectedServiceIds, serviceOptions]);
+  }, [selectedServiceIds, serviceOptions, selectedEntityNames]);
 
   /*
    * Editing the scope by hand means it is no longer the saved view's scope,

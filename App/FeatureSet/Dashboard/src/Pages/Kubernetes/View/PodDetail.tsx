@@ -61,6 +61,11 @@ const KubernetesClusterPodDetail: FunctionComponent<
         id: modelId,
         select: {
           clusterIdentifier: true,
+          /*
+           * The name is display-only: the Logs tab's locked cluster chip
+           * reads it instead of the machine identifier.
+           */
+          name: true,
         },
       });
       setCluster(item);
@@ -449,6 +454,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
       children: (
         <KubernetesLogsTab
           clusterIdentifier={clusterIdentifier}
+          clusterName={cluster.name}
           podName={podName}
           namespace={podObject?.metadata.namespace}
         />

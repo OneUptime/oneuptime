@@ -79,6 +79,10 @@ const HostTraces: FunctionComponent<PageComponentProps> = (): ReactElement => {
        * histogram / facet scoping — display behavior is unchanged. Drop the
        * attribute fallback (here and in the attributeFilters query merge)
        * once deploy-date + max retention has passed.
+       *
+       * The chip's filter value stays the hostIdentifier (what telemetry
+       * carries in host.name); attributeFilterDisplayValues only swaps what
+       * the chip reads for the host's friendly name.
        */}
       <TracesViewer
         attributeFilters={{
@@ -86,6 +90,9 @@ const HostTraces: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         attributeFilterDisplayKeys={{
           "resource.host.name": "Host",
+        }}
+        attributeFilterDisplayValues={{
+          "resource.host.name": host.name || host.hostIdentifier,
         }}
         entityScope={{
           entityKeys: [

@@ -212,11 +212,19 @@ describe("Cloud Environment telemetry scope", () => {
     },
   );
 
-  test("Traces and Metrics also hand the viewer display keys from the helper", () => {
-    for (const tab of ["Traces", "Metrics"]) {
+  test("Logs, Traces and Metrics all hand the viewer display keys from the helper", () => {
+    /*
+     * Logs used to be the odd one out: its locked chips read the raw
+     * "resource.cloud.platform" OTel keys while the other two tabs said
+     * "Platform".
+     */
+    for (const tab of ["Logs", "Traces", "Metrics"]) {
       const code: string = readCode(`Pages/Cloud/View/${tab}.tsx`);
 
       expect(code).toContain("getCloudResourceAttributeDisplayKeys(");
+      expect(code).toContain(
+        "attributeFilterDisplayKeys={attributeFilterDisplayKeys}",
+      );
     }
   });
 
