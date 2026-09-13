@@ -185,6 +185,12 @@ export interface ReplayStageOverlaysProps {
   /* No-footage mode: replaces the stage with an explained empty state. */
   absence?: ReplayFootageAbsence | null | undefined;
   sealedReason?: SealedReasonCopy | null | undefined;
+  /*
+   * Footage may still be recorded into this session: not finalized AND
+   * not every tab has closed (isManifestRecordingLive). An unfinalized
+   * session whose tabs have all closed is NOT live - reaching its end is
+   * the end of the replay, not a wait for a chunk that will never come.
+   */
   isLive?: boolean | undefined;
 }
 
@@ -256,7 +262,7 @@ function describeAbsence(
         title: "No footage was stored",
         description:
           sealedReason?.description ||
-          "The session was finalized without a single chunk. The signals in the rail are everything that remains of it.",
+          "The session ended without a single chunk of footage. The signals in the rail are everything that remains of it.",
         phaseWord: "empty",
       };
   }

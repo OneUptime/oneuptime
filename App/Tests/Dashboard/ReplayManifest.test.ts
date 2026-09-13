@@ -11,6 +11,8 @@ import {
   findTabContinuingAfter,
   getRetentionDays,
   hasPlayableFootage,
+  isManifestAwaitingFinalization,
+  isManifestRecordingLive,
   parseManifest,
   pickInitialTab,
 } from "../../FeatureSet/Dashboard/src/Components/SessionReplay/ReplayManifest";
@@ -461,6 +463,158 @@ describe("retention and absence", () => {
     expect(describeFootageAbsence(parseManifest(none), START_UNIX_MS)).toEqual({
       kind: "none-stored",
     });
+  });
+});
+
+/*
+ * github.com/OneUptime/oneuptime/issues/3642: "not finalized" and "still
+ * recording" are different facts. The header's additive hasRecordingEnded
+ * says every tab has closed; the player's Live pill follows it, while the
+ * manifest poll keeps waiting for the finalized header.
+ */
+describe("hasRecordingEnded", () => {
+  function provisional(
+    hasRecordingEnded: boolean | number | undefined,
+  ): JSONObject {
+    const response: JSONObject = fullResponse();
+    const header: JSONObject = response["header"] as JSONObject;
+
+    header["isFinalized"] = 0;
+    header["chunkCount"] = 0;
+
+    if (hasRecordingEnded === undefined) {
+      delete header["hasRecordingEnded"];
+    } else {
+      header["hasRecordingEnded"] = hasRecordingEnded as boolean | number;
+    }
+
+    return response;
+  }
+
+  test("reads the flag off an unfinalized header, as a boolean or the 1/0 ClickHouse writes", () => {
+    expect(parseManifest(provisional(true)).hasRecordingEnded).toBe(true);
+    expect(parseManifest(provisional(1)).hasRecordingEnded).toBe(true);
+    expect(parseManifest(provisional(false)).hasRecordingEnded).toBe(false);
+    expect(parseManifest(provisional(0)).hasRecordingEnded).toBe(false);
+  });
+
+  test("an older server that does not send it reads as false", () => {
+    const manifest: SessionReplayManifest = parseManifest(
+      provisional(undefined),
+    );
+
+    expect(manifest.hasRecordingEnded).toBe(false);
+    expect(isManifestRecordingLive(manifest)).toBe(true);
+  });
+
+  test("a finalized header is never 'ended but finalizing', whatever it carries", () => {
+    const response: JSONObject = fullResponse();
+
+    (response["header"] as JSONObject)["hasRecordingEnded"] = true;
+
+    const manifest: SessionReplayManifest = parseManifest(response);
+
+    expect(manifest.hasRecordingEnded).toBe(false);
+    expect(isManifestRecordingLive(manifest)).toBe(false);
+    expect(isManifestAwaitingFinalization(manifest)).toBe(false);
+  });
+
+  test("a live session is live and awaiting finalization", () => {
+    const manifest: SessionReplayManifest = parseManifest(provisional(false));
+
+    expect(isManifestRecordingLive(manifest)).toBe(true);
+    expect(isManifestAwaitingFinalization(manifest)).toBe(true);
+  });
+
+  test("an ended session is no longer live, but is still awaiting finalization", () => {
+    const manifest: SessionReplayManifest = parseManifest(provisional(true));
+
+    /* The Live pill goes out ... */
+    expect(isManifestRecordingLive(manifest)).toBe(false);
+    /* ... while the 30s poll keeps waiting for the finalized header. */
+    expect(isManifestAwaitingFinalization(manifest)).toBe(true);
+  });
+
+  /*
+   * What the server can actually send for such a session. hasRecordingEnded
+   * is only true when the chunk table has rows for it, and the manifest
+   * reads the same rows, so the unfinalized header's chunkCount is
+   * reconciled up to at least 1 and a tab is present. The only way to have
+   * nothing playable is for every stored chunk to be empty - the recorder's
+   * sealing chunk (eventCount 0) sent in place of a final chunk that was
+   * over the keepalive quota. The expiry is the unfinalized header's
+   * max(retentionDate), which is in the future.
+   */
+  function emptySealOnly(hasRecordingEnded: boolean): JSONObject {
+    const response: JSONObject = provisional(hasRecordingEnded);
+    const header: JSONObject = response["header"] as JSONObject;
+
+    header["chunkCount"] = 1;
+    header["eventCount"] = 0;
+    header["sealedReason"] = hasRecordingEnded ? "final-chunk" : "";
+    header["expiresAtUnixMs"] = START_UNIX_MS + 7 * DAY_MS;
+    response["tabs"] = [
+      {
+        tabId: "tab-a",
+        firstChunkStartOffsetMs: 0,
+        chunks: [
+          chunkRow(0, "tab-a", 0, 0, {
+            eventCount: 0,
+            hasFullSnapshot: 0,
+            payloadBytes: 2,
+          }),
+        ],
+        gaps: [],
+      },
+    ];
+
+    return response;
+  }
+
+  test("an ended session whose only stored chunk is empty is 'none stored', not 'expired' on a future date", () => {
+    const manifest: SessionReplayManifest = parseManifest(emptySealOnly(true));
+
+    expect(manifest.counts.chunkCount).toBe(1);
+    expect(hasPlayableFootage(manifest)).toBe(false);
+    expect(describeFootageAbsence(manifest, START_UNIX_MS + DAY_MS)).toEqual({
+      kind: "none-stored",
+    });
+  });
+
+  test("a live session whose only stored chunk is empty is still waiting for footage", () => {
+    expect(
+      describeFootageAbsence(
+        parseManifest(emptySealOnly(false)),
+        START_UNIX_MS + 60_000,
+      ),
+    ).toEqual({ kind: "not-yet-uploaded" });
+  });
+
+  test("a finalized session whose rows are all empty is 'none stored': nothing aged out of the index", () => {
+    const response: JSONObject = emptySealOnly(true);
+
+    (response["header"] as JSONObject)["isFinalized"] = 1;
+
+    expect(
+      describeFootageAbsence(parseManifest(response), START_UNIX_MS + DAY_MS),
+    ).toEqual({ kind: "none-stored" });
+  });
+
+  test("an unfinalized header past its real expiry still reads as expired", () => {
+    const response: JSONObject = emptySealOnly(true);
+
+    expect(
+      describeFootageAbsence(
+        parseManifest(response),
+        START_UNIX_MS + 8 * DAY_MS,
+      )?.kind,
+    ).toBe("expired");
+  });
+
+  test("an ended session with footage plays, like any other", () => {
+    expect(
+      describeFootageAbsence(parseManifest(provisional(true)), START_UNIX_MS),
+    ).toBeNull();
   });
 });
 

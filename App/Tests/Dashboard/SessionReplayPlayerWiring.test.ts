@@ -225,7 +225,7 @@ describe("live sessions", () => {
     const pollEffect: string = slice(
       SOURCE,
       "const poll: () => Promise<void>",
-      "}, [isLive, viewId,",
+      "}, [\n    isAwaitingFinalization,\n    viewId,",
     );
 
     expect(pollEffect).toContain("refresh: { viewId: viewId }");
@@ -265,11 +265,55 @@ describe("live sessions", () => {
     expect(auditWriting[0]).toContain("accessReason:");
   });
 
-  test("polling is gated on the session not being finalized", () => {
-    expect(SOURCE).toContain(
+  /*
+   * github.com/OneUptime/oneuptime/issues/3642 split one flag in two. The
+   * poll keeps running until the finalized header lands - an ended
+   * session's counts only arrive through it - while "live" (the pill, the
+   * caught-up overlay) goes out as soon as every tab has closed.
+   */
+  test("polling is gated on the session not being finalized, not on it being live", () => {
+    expect(SOURCE).toMatch(
+      /const isAwaitingFinalization: boolean =\s*manifest !== null && isManifestAwaitingFinalization\(manifest\);/,
+    );
+    expect(SOURCE).toMatch(/if \(!isAwaitingFinalization\) \{\s*return;\s*\}/);
+    expect(SOURCE).not.toMatch(/if \(!isLive\) \{\s*return;\s*\}/);
+  });
+
+  test("live means not finalized AND not every tab has ended", () => {
+    expect(SOURCE).toMatch(
+      /const isLive: boolean =\s*manifest !== null && isManifestRecordingLive\(manifest\);/,
+    );
+    /* The old definition read every unfinalized session as live. */
+    expect(SOURCE).not.toContain(
       "const isLive: boolean = manifest !== null && !manifest.isFinalized;",
     );
-    expect(SOURCE).toMatch(/if \(!isLive\) \{\s*return;\s*\}/);
+  });
+
+  test("each refresh replaces the manifest, so hasRecordingEnded follows the server", () => {
+    const pollEffect: string = slice(
+      SOURCE,
+      "const poll: () => Promise<void>",
+      "}, [\n    isAwaitingFinalization,\n    viewId,",
+    );
+
+    expect(pollEffect).toMatch(/\.\.\.refreshed,/);
+  });
+
+  test("the stage overlays, the root attribute and the header all read the live flag", () => {
+    expect(SOURCE).toContain('data-replay-live={isLive ? "true" : "false"}');
+    expect(SOURCE).toMatch(/sealedReason: sealedReason,\s*isLive: isLive,/);
+  });
+
+  test("the details panel is told when every tab has ended", () => {
+    const panel: string = slice(SOURCE, "<ReplayCorrelationPanel\n", "/>");
+
+    expect(panel).toContain("hasRecordingEnded={manifest.hasRecordingEnded}");
+  });
+
+  test("the sealed reason is quoted once the recording has ended, not while it is live", () => {
+    expect(SOURCE).toContain(
+      "manifest && (manifest.isFinalized || manifest.hasRecordingEnded)",
+    );
   });
 });
 
@@ -498,7 +542,7 @@ describe("this user's other sessions", () => {
   const lookup: string = slice(
     SOURCE,
     "const kind: ReplayUserSessionsKind = resolveReplayUserSessionsKind({",
-    "const isLive: boolean",
+    "const isAwaitingFinalization: boolean",
   );
 
   test("the lookup effect is keyed on the session, the identity keys and the clock, not the manifest object", () => {
@@ -545,7 +589,7 @@ describe("this user's other sessions", () => {
     );
     const pinIndex: number = headerElement.indexOf("pinControl: (");
     const stateIndex: number = headerElement.indexOf(
-      "userSessions: userSessions",
+      "userSessions: displayedUserSessions",
     );
     const openIndex: number = headerElement.indexOf(
       "onOpenUserSession: openUserSession",
@@ -586,8 +630,49 @@ describe("this user's other sessions", () => {
       "onNewerUserSession={openNewerUserSession}",
     );
     expect(SOURCE).toContain(
-      "findAdjacentUserSessions(userSessions.sessions, sessionId)",
+      "findAdjacentUserSessions(displayedUserSessions.sessions, sessionId)",
     );
+  });
+
+  /*
+   * github.com/OneUptime/oneuptime/issues/3642: the lookup runs once, so
+   * its row for the watched session kept pulsing "Recording now" after the
+   * poll turned the Live pill off. The header and the older/newer steps get
+   * the lookup state with that one entry overlaid from the latest manifest,
+   * and the overlay is keyed on the flags, never on the manifest object
+   * (which would be a new state for the header on every poll) - and never
+   * re-runs the lookup.
+   */
+  test("the watched session's menu entry follows the manifest poll, without re-running the lookup", () => {
+    const overlay: string = slice(
+      SOURCE,
+      "const displayedUserSessions: ReplayUserSessionsState =",
+      "const adjacentUserSessions",
+    );
+
+    expect(overlay).toContain("overlayCurrentReplayUserSession(");
+    expect(overlay).toContain("userSessions,");
+    expect(overlay).toContain("isFinalized: isManifestFinalized,");
+    expect(overlay).toContain("hasRecordingEnded: hasManifestRecordingEnded,");
+
+    const dependencies: string = slice(overlay, "}, [", "]);");
+
+    expect(dependencies).toContain("isManifestFinalized");
+    expect(dependencies).toContain("hasManifestRecordingEnded");
+    expect(dependencies).not.toMatch(/\bmanifest\b\s*,/);
+
+    expect(SOURCE).toMatch(
+      /const isManifestFinalized: boolean = manifest\?\.isFinalized \?\? false;/,
+    );
+    expect(SOURCE).toMatch(
+      /const hasManifestRecordingEnded: boolean =\s*manifest\?\.hasRecordingEnded \?\? false;/,
+    );
+
+    /* Nothing hands the header the raw, point-in-time lookup state. */
+    expect(SOURCE).not.toContain("userSessions: userSessions");
+    /* The lookup's dependencies do not grow the two flags. */
+    expect(lookup).not.toContain("manifest?.hasRecordingEnded");
+    expect(lookup).not.toContain("manifest?.isFinalized");
   });
 
   test("still never writes to the clipboard directly", () => {

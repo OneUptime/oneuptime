@@ -286,14 +286,60 @@ minted at all. `getVisitorId()` returns it.
     its `fetch` issued at all. An open chunk larger than the budget still
     goes out through the ordinary path, which is the only one that can carry
     it — a tab hidden midway through a heavy interval can lose that tail.
-  - Hiding does NOT seal the session. Only `pagehide` (with
-    `persisted !== true`) sends `isFinal`.
+  - Hiding does NOT seal the session. **Every `pagehide` does**, whatever
+    `event.persisted` says. A page entering the back/forward cache
+    (`persisted === true`) is sealed like any other: most cached pages are
+    never restored — the user closes the browser and the cached document is
+    evicted without another event — and the server only calls a session
+    ended once every one of its tabs has, so one unsealed cached page used
+    to keep the whole session "Recording now" until the idle finalizer ran.
+    A page the browser kills or discards without `pagehide` still sends
+    nothing and is left to the idle finalizer.
+  - **A page restored from the back/forward cache records as a new tab.**
+    On `pageshow` with `persisted === true` the sealed tab stays sealed: the
+    recorder mints a fresh tab id, starts its chunk sequence (and the
+    per-tab chunk cap) again at 0, re-checks the session's idle and duration
+    limits (rotating onto a new session if they have passed), and opens
+    chunk 0 on a full snapshot carrying the meta, the way a reloaded page
+    would, followed by the `bfcache-restore` marker and fidelity notice.
+    Nothing is ever minted under the old tab id again; `onSessionChange`
+    listeners are told the new tab id.
+  - **Nothing is posted after the seal.** Closing a visible tab fires
+    `pagehide` BEFORE `visibilitychange` to hidden, so once the final chunk
+    has gone the hidden handler, the flush timer and every other flush path
+    stand down for that session and tab, and events recorded afterwards
+    (the visibility change itself, rrweb's teardown mutations) are not
+    uploaded. The server reads "a final chunk, and no chunk started after
+    it" as *this tab has ended* and stops showing the session as recording
+    without waiting out the idle window. Hiding first and closing second
+    still sends a non-final chunk and then the final one. The seal is lifted
+    only by something that starts a new recording: a session rotation or a
+    consent re-grant (a new session id), or a back/forward-cache restore (a
+    new tab id).
   - The sealing chunk goes first, then the rest of the split newest-first,
     then chunks still waiting for a retry. What one request cannot carry is
     cut at the chunker, before a chunk index is minted for it, and reported
     as `droppedEvents` on the envelope with a `final-flush-truncated`
     diagnostic — an index minted for a request that is never issued is a hole
-    the player reports as a missing chunk forever.
+    the player reports as a missing chunk forever. Every piece beside the
+    sealing one is charged its own envelope (8 KB) as well as its payload,
+    so what is minted is what the request can carry.
+  - **A sealing frame always goes on the wire.** When the newest piece of a
+    final flush cannot fit one request by itself (one indivisible event
+    larger than the 48 KB payload budget, such as a big DOM insertion just
+    before the tab closed), the chunker drops its events and seals with an
+    empty final piece instead: payload `[]`, `eventCount` 0, the dropped
+    events added to `droppedEvents`, both offsets at the dropped footage's
+    end, and the same signals, routes and meta. That piece costs the budget
+    only its two bytes, so the older footage of the split still goes out
+    beside it. The `final-chunk-too-large` diagnostic reports it with
+    `sealed: true`. The transport keeps the same substitution as a backstop
+    for a final frame that goes over the 56 KB quota only once its envelope
+    is added.
+  - A non-final terminal flush is now only a hidden tab's early flush. If
+    its frame does not fit it is dropped whole, and `final-chunk-too-large`
+    reports `sealed: false`: the tab did not close, so the session stays
+    open with a gap.
 - **`traceparent` injection is opt-in per origin, and skips `Request`
   objects.** By default `NetworkRecorder` only READS a traceparent the host
   page already set. When the application's **trace propagation origins**
@@ -339,8 +385,9 @@ user really saw.
 **`unload` and `beforeunload` are never registered.** Both disqualify the
 customer's page from the back/forward cache. A RUM vendor degrading its own
 customer's Core Web Vitals in order to collect data about them has failed at
-its job. Terminal flushes use `visibilitychange` and `pagehide`, branching on
-`event.persisted`. Asserted by both a runtime and a source-level test.
+its job. Terminal flushes use `visibilitychange` and `pagehide`, and a page
+restored from the cache is picked up on `pageshow` (`event.persisted`).
+Asserted by both a runtime and a source-level test.
 
 **The terminal flush is `fetch(keepalive)`, not `sendBeacon`.** `sendBeacon`
 cannot set request headers, and the ingest middleware reads the auth token

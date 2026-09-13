@@ -191,6 +191,17 @@ export interface SessionReplayListItemDto {
    * and what the player's "other sessions from this visitor" reads.
    */
   visitorId?: string;
+  /*
+   * Additive. True when the session is not finalized yet but every tab of
+   * it has ended - sent its final chunk, or stored its last permitted chunk
+   * index - and the newest of its chunks was stored at least
+   * SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS ago (see
+   * Common/Utils/Rum/SessionReplayRecordingEnded.ts): the recording is
+   * over and only the finalizer's counting is pending. Always false for a
+   * finalized session, and absent from an older server, where the
+   * Dashboard falls back to reading "not finalized" as "recording".
+   */
+  hasRecordingEnded?: boolean;
 }
 
 export interface SessionReplayListResponseDto {
@@ -435,6 +446,12 @@ export interface SessionReplayManifestHeaderDto {
    */
   identifiedUserKey?: string;
   visitorId?: string;
+  /*
+   * Additive; same meaning as SessionReplayListItemDto.hasRecordingEnded.
+   * The player uses it to stop calling a session "Live" once every tab has
+   * closed, while it keeps polling until the finalized header arrives.
+   */
+  hasRecordingEnded?: boolean;
 }
 
 export interface SessionReplayManifestTabDto {

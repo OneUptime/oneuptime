@@ -243,6 +243,7 @@ import {
   discoverActiveProjectIds,
   finalizeSession,
   getActiveSessionsKey,
+  getEndedSessionsKey,
 } from "../../FeatureSet/Workers/Jobs/Rum/FinalizeSessions";
 import { ClientType } from "Common/Server/Infrastructure/Redis";
 import {
@@ -646,6 +647,83 @@ describe("Rum:ProcessSessionErasureRequests activity purge", () => {
     expect(removed).toBe(1);
   });
 
+  test("the ended-session candidates of an erased session are purged too", async () => {
+    /*
+     * Rum:FinalizeEndedSessions reads this set every minute and checks each
+     * candidate against chunk rows that stay visible until the mutation
+     * lands, so an erased session left in it would be looked at again and
+     * again with only the tombstone between it and a fresh header.
+     */
+    const activeKey: string = getActiveSessionsKey(projectId.toString());
+    const endedKey: string = getEndedSessionsKey(projectId.toString());
+    const client: MockRedisClient = mockRedis.client();
+
+    await client.zadd(activeKey, 1, `${sessionId}:tab-a`);
+    await client.zadd(endedKey, 1, `${sessionId}:tab-a`);
+    await client.zadd(endedKey, 2, `${sessionId}:tab-b`);
+    await client.zadd(endedKey, 3, "another-session:tab-a");
+
+    const removed: number = await purgeErasedSessionsFromActivitySet({
+      projectId: projectId.toString(),
+      sessionIds: [sessionId],
+    });
+
+    expect(removed).toBe(3);
+    expect(Array.from(mockRedis.zsets.get(activeKey)?.keys() || [])).toEqual(
+      [],
+    );
+    expect(Array.from(mockRedis.zsets.get(endedKey)?.keys() || [])).toEqual([
+      "another-session:tab-a",
+    ]);
+  });
+
+  test("eraseSessionBatch takes the session off the ended set before any delete is submitted", async () => {
+    const endedKey: string = getEndedSessionsKey(projectId.toString());
+    const client: MockRedisClient = mockRedis.client();
+    const endedMembersAtDelete: Array<Array<string>> = [];
+
+    await client.zadd(endedKey, 1, `${sessionId}:tab-a`);
+
+    chunkService.executeQuery = (): Promise<unknown> => {
+      return Promise.resolve(resultSetOf([{ chunkCount: 1 }]));
+    };
+
+    for (const service of [
+      RumSessionChunkService,
+      RumSessionService,
+      LogService,
+      SpanService,
+      ExceptionInstanceService,
+    ]) {
+      jest
+        .spyOn(
+          service as unknown as { execute: () => Promise<unknown> },
+          "execute",
+        )
+        .mockImplementation(((): Promise<unknown> => {
+          endedMembersAtDelete.push(
+            Array.from(mockRedis.zsets.get(endedKey)?.keys() || []),
+          );
+          return Promise.resolve({});
+        }) as never);
+    }
+
+    jest.spyOn(RumSessionPinService, "deleteBy").mockResolvedValue(0 as never);
+
+    try {
+      await eraseSessionBatch({
+        databaseName: databaseName,
+        projectId: projectId,
+        sessionIds: [sessionId],
+      });
+
+      expect(endedMembersAtDelete.length).toBeGreaterThan(0);
+      expect(endedMembersAtDelete[0]).toEqual([]);
+    } finally {
+      jest.restoreAllMocks();
+    }
+  });
+
   test("the purge is a no-op rather than a throw when Redis is down", async () => {
     mockRedis.connected = false;
 
@@ -834,6 +912,39 @@ describe("Rum:FinalizeSessions does not resurrect erased sessions", () => {
       }),
     ).rejects.toBeInstanceOf(ErasureTombstoneUnavailableError);
 
+    expect(insertedRows).toEqual([]);
+  });
+
+  test("an erasure that lands while the header is being built still writes NO header back", async () => {
+    /*
+     * The finalizer's first tombstone check passes, then the erasure job
+     * tombstones the session and submits its ALTER DELETE while the finalizer
+     * is still reading (the lazy batch correlation of the ended-session job
+     * is two grouped ClickHouse reads). A row inserted after that submission
+     * is never deleted, and the erasure job does not revisit a tombstoned
+     * session - so the finalizer checks again right before it inserts.
+     */
+    chunkService.executeQuery = async (
+      statement: Statement,
+    ): Promise<unknown> => {
+      if (statement.query.includes("toString(startTime) AS startTimeText")) {
+        await writeErasureTombstones({
+          projectId: projectId.toString(),
+          sessionIds: [sessionId],
+        });
+        return resultSetOf([provisionalHeaderRow]);
+      }
+
+      return resultSetOf([tabAggregateRow]);
+    };
+
+    const outcome: FinalizeSessionOutcome = await finalizeSession({
+      projectId: projectId,
+      sessionId: sessionId,
+      databaseName: databaseName,
+    });
+
+    expect(outcome).toBe("erased");
     expect(insertedRows).toEqual([]);
   });
 

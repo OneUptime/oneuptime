@@ -83,6 +83,12 @@ export interface ReplayHeaderProps {
   startTimeUnixMs: number | null;
   currentTimeMs: number;
   durationMs: number;
+  /*
+   * Footage may still be recorded: not finalized and not every tab has
+   * closed (isManifestRecordingLive). Drives the Live pill, so it goes out
+   * once the server calls the session ended - about a minute after its
+   * last tab closed - rather than when the finalizer counts it.
+   */
   isLive: boolean;
   tabs: Array<ReplayHeaderTab>;
   onSwitchTab: (tabId: string) => void;

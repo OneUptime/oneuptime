@@ -108,7 +108,7 @@ export const SESSION_REPLAY_SIGNAL_OPTIONS: Array<SessionReplaySignalOption> = [
     value: "playable",
     label: "Playable",
     description:
-      "Sessions with footage to watch: still recording, or finalized with chunks and not lost.",
+      "Sessions with footage to watch: not finalized yet (recording, or ended and still being counted), or finalized with chunks and not lost.",
   },
   {
     value: "slow",
@@ -119,7 +119,8 @@ export const SESSION_REPLAY_SIGNAL_OPTIONS: Array<SessionReplaySignalOption> = [
   {
     value: "live",
     label: "Live",
-    description: "Sessions that have not been finalized yet.",
+    description:
+      "Sessions that have not been finalized yet: still recording, or ended and still being counted.",
   },
   {
     value: "traced",

@@ -6,6 +6,7 @@ import {
   formatIdleShare,
   formatSessionDuration,
   getSessionReplayPlayability,
+  isSessionReplayRecordingLive,
   SESSION_REPLAY_ESTIMATED_CHUNK_SECONDS,
   SessionReplayPlayability,
   SessionReplayPlayabilityInput,
@@ -13,7 +14,7 @@ import {
 } from "../../FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayPlayability";
 
 /*
- * The Recording badge: five honest states, each with the copy the list
+ * The Recording badge: six honest states, each with the copy the list
  * shows, and Watch offered only where the player has something to show.
  */
 
@@ -46,6 +47,156 @@ describe("getSessionReplayPlayability", () => {
     expect(result.isWatchable).toBe(true);
     expect(result.tooltip).toContain("not been finalized");
     expect(result.tooltip).toContain("10 minutes");
+    expect(result.detail).toBe("live");
+  });
+
+  /*
+   * github.com/OneUptime/oneuptime/issues/3642: a closed tab kept its
+   * "Recording now · live" badge for the 10-15 minutes the idle finalizer
+   * took, because every unfinalized row read as recording. Once the server
+   * says every tab has ended, the row says so.
+   */
+  describe("a session whose every tab has closed", () => {
+    test("reads 'Recording ended', neutral, finalizing, and still watchable", () => {
+      const result: SessionReplayPlayability = getSessionReplayPlayability(
+        input({ isFinalized: false, chunkCount: 0, hasRecordingEnded: true }),
+        NOW,
+      );
+
+      expect(result.kind).toBe("ended");
+      expect(result.text).toBe("Recording ended");
+      expect(result.severity).toBe("neutral");
+      expect(result.detail).toBe("finalizing");
+      expect(result.isWatchable).toBe(true);
+    });
+
+    /*
+     * No fixed time. The finalizer usually counts an ended session within
+     * a minute or so, but one whose registration with it was lost (Redis
+     * restarted in between) waits for a much slower sweep, and a badge
+     * promising "a minute or two" would then be wrong for hours.
+     */
+    test("the tooltip says nothing more is recorded and that the counts follow, promising no fixed time", () => {
+      const result: SessionReplayPlayability = getSessionReplayPlayability(
+        input({ isFinalized: false, hasRecordingEnded: true }),
+        NOW,
+      );
+
+      expect(result.tooltip).toBe(
+        "Every tab of this session has closed, so nothing more is being recorded. The footage plays now; duration, pages and signals are counted shortly, when the session is finalized.",
+      );
+      expect(result.tooltip).not.toContain("live");
+      expect(result.tooltip).not.toMatch(/\d+ minutes?/);
+      expect(result.tooltip).not.toMatch(/a minute or two|within a minute/);
+    });
+
+    test("the recording tooltip promises no fixed time for a closed tab either", () => {
+      const result: SessionReplayPlayability = getSessionReplayPlayability(
+        input({ isFinalized: false, hasRecordingEnded: false }),
+        NOW,
+      );
+
+      expect(result.tooltip).not.toMatch(/a minute or two|within a minute/);
+      expect(result.tooltip).toContain("Recording ended shortly after");
+    });
+
+    test("is never called 'Recording now' or 'live'", () => {
+      const result: SessionReplayPlayability = getSessionReplayPlayability(
+        input({ isFinalized: false, hasRecordingEnded: true }),
+        NOW,
+      );
+
+      expect(result.text).not.toBe("Recording now");
+      expect(result.detail).not.toBe("live");
+    });
+
+    test("recording-lost still wins over ended", () => {
+      const result: SessionReplayPlayability = getSessionReplayPlayability(
+        input({
+          isFinalized: false,
+          hasRecordingEnded: true,
+          sealedReason: "recording-lost",
+        }),
+        NOW,
+      );
+
+      expect(result.kind).toBe("lost");
+      expect(result.isWatchable).toBe(false);
+    });
+
+    test("an ended session with a zero provisional chunk count is not metadata-only", () => {
+      /*
+       * The provisional header's chunkCount is 0 by design; the footage
+       * exists (the final chunk is one of it) and is only uncounted.
+       */
+      const result: SessionReplayPlayability = getSessionReplayPlayability(
+        input({
+          isFinalized: false,
+          hasRecordingEnded: true,
+          chunkCount: 0,
+          missingChunkCount: 0,
+        }),
+        NOW,
+      );
+
+      expect(result.kind).toBe("ended");
+    });
+
+    test("a finalized session ignores the flag and reads as its counts say", () => {
+      expect(
+        getSessionReplayPlayability(input({ hasRecordingEnded: true }), NOW)
+          .kind,
+      ).toBe("playable");
+      expect(
+        getSessionReplayPlayability(
+          input({ hasRecordingEnded: true, missingChunkCount: 2 }),
+          NOW,
+        ).kind,
+      ).toBe("partial");
+      expect(
+        getSessionReplayPlayability(
+          input({ hasRecordingEnded: true, chunkCount: 0 }),
+          NOW,
+        ).kind,
+      ).toBe("metadata-only");
+    });
+
+    test("an older server's row without the flag, or with it false, is still 'Recording now'", () => {
+      const legacy: SessionReplayPlayabilityInput = input({
+        isFinalized: false,
+      });
+
+      delete legacy.hasRecordingEnded;
+
+      expect(getSessionReplayPlayability(legacy, NOW).kind).toBe("recording");
+      expect(
+        getSessionReplayPlayability(
+          input({ isFinalized: false, hasRecordingEnded: undefined }),
+          NOW,
+        ).kind,
+      ).toBe("recording");
+      expect(
+        getSessionReplayPlayability(
+          input({ isFinalized: false, hasRecordingEnded: false }),
+          NOW,
+        ).kind,
+      ).toBe("recording");
+    });
+
+    test("ended ignores the expiry and the missing-chunk estimate: neither is counted yet", () => {
+      const result: SessionReplayPlayability = getSessionReplayPlayability(
+        input({
+          isFinalized: false,
+          hasRecordingEnded: true,
+          missingChunkCount: 3,
+          expiresAtUnixMs: NOW + 3600 * 1000 * 2,
+        }),
+        NOW,
+      );
+
+      expect(result.kind).toBe("ended");
+      expect(result.detail).toBe("finalizing");
+    });
   });
 
   test("playable footage says when it expires", () => {
@@ -147,6 +298,52 @@ describe("getSessionReplayPlayability", () => {
         NOW,
       ).tooltip,
     ).toContain("1 chunk of footage");
+  });
+});
+
+describe("isSessionReplayRecordingLive", () => {
+  test("live only while not finalized and not every tab has ended", () => {
+    expect(isSessionReplayRecordingLive({ isFinalized: false })).toBe(true);
+    expect(
+      isSessionReplayRecordingLive({
+        isFinalized: false,
+        hasRecordingEnded: false,
+      }),
+    ).toBe(true);
+    expect(
+      isSessionReplayRecordingLive({
+        isFinalized: false,
+        hasRecordingEnded: undefined,
+      }),
+    ).toBe(true);
+    expect(
+      isSessionReplayRecordingLive({
+        isFinalized: false,
+        hasRecordingEnded: true,
+      }),
+    ).toBe(false);
+    expect(isSessionReplayRecordingLive({ isFinalized: true })).toBe(false);
+    expect(
+      isSessionReplayRecordingLive({
+        isFinalized: true,
+        hasRecordingEnded: true,
+      }),
+    ).toBe(false);
+  });
+
+  test("agrees with the badge: live exactly when the badge says 'Recording now'", () => {
+    for (const isFinalized of [true, false]) {
+      for (const hasRecordingEnded of [true, false, undefined]) {
+        const row: SessionReplayPlayabilityInput = input({
+          isFinalized: isFinalized,
+          hasRecordingEnded: hasRecordingEnded,
+        });
+
+        expect(isSessionReplayRecordingLive(row)).toBe(
+          getSessionReplayPlayability(row, NOW).kind === "recording",
+        );
+      }
+    }
   });
 });
 

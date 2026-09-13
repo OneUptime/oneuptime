@@ -909,6 +909,29 @@ describe("ReplayStageOverlays", () => {
       ).toHaveTextContent("Recording ended after inactivity");
     });
 
+    /*
+     * github.com/OneUptime/oneuptime/issues/3642: "none stored" is also
+     * what a session whose every tab closed with nothing playable reads,
+     * before the finalizer has run - so its fallback copy may not claim
+     * the session was finalized.
+     */
+    it("a session that ended with nothing stored is not described as finalized", () => {
+      render(
+        <ReplayStageOverlays
+          {...makeProps({ absence: { kind: "none-stored" } })}
+        />,
+      );
+
+      const absent: HTMLElement = screen.getByTestId("replay-footage-absent");
+
+      expect(absent).toHaveTextContent("No footage was stored");
+      expect(absent).toHaveTextContent(
+        "The session ended without a single chunk of footage.",
+      );
+      expect(absent).not.toHaveTextContent("finalized");
+      expect(absent).not.toHaveTextContent("Waiting for the first chunk");
+    });
+
     it("does not render its own phase word while a stage is mounted", () => {
       renderOverlays();
 
