@@ -85,7 +85,6 @@ import ErrorClass, {
 } from "Common/Types/Telemetry/ErrorClass";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ProjectUtil from "Common/UI/Utils/Project";
-import UserUtil from "Common/UI/Utils/User";
 import API from "Common/UI/Utils/API/API";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -94,7 +93,6 @@ import { APP_API_URL } from "Common/UI/Config";
 import { JSONObject } from "Common/Types/JSON";
 import Navigation from "Common/UI/Utils/Navigation";
 import Route from "Common/Types/API/Route";
-import OneUptimeDate from "Common/Types/Date";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -1912,39 +1910,6 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     [],
   );
 
-  // Bulk-ish actions via toolbar trailing
-  const handleResolveAll: () => Promise<void> = useCallback(async () => {
-    const ids: Array<ObjectID> = exceptions
-      .filter((e: TelemetryException): boolean => {
-        return !e.isResolved;
-      })
-      .map((e: TelemetryException): ObjectID => {
-        return (e._id || e.id) as ObjectID;
-      })
-      .filter((id: ObjectID | null): id is ObjectID => {
-        return Boolean(id);
-      });
-    if (ids.length === 0) {
-      return;
-    }
-    try {
-      for (const id of ids) {
-        await ModelAPI.updateById<TelemetryException>({
-          id,
-          modelType: TelemetryException,
-          data: {
-            isResolved: true,
-            markedAsResolvedAt: OneUptimeDate.getCurrentDate(),
-            markedAsResolvedByUserId: UserUtil.getUserId() || null,
-          },
-        });
-      }
-      void fetchExceptions();
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-  }, [exceptions, fetchExceptions]);
-
   const statusPills: ReactElement = (
     <div className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-0.5">
       {(
@@ -2040,20 +2005,6 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       {classPills}
     </div>
   );
-
-  const trailingActions: ReactElement | null =
-    status === "unresolved" && exceptions.length > 0 ? (
-      <button
-        type="button"
-        className="inline-flex items-center gap-1.5 rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 shadow-sm transition-colors hover:border-emerald-400 hover:bg-emerald-100"
-        onClick={() => {
-          void handleResolveAll();
-        }}
-        title="Resolve all visible exceptions"
-      >
-        Resolve page
-      </button>
-    ) : null;
 
   return (
     <TelemetryViewer<TelemetryException>
@@ -2207,7 +2158,6 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         setPage(1);
       }}
       toolbarLeadingActions={leadingActions}
-      toolbarTrailingActions={trailingActions}
       // Facets
       showFacetSidebar={true}
       facetData={mergedFacetData}
