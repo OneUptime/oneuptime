@@ -53,16 +53,14 @@ describe("the Users page is reachable", () => {
       'title: "Session Replay"',
     );
     const usersIndex: number = sideMenuSource.indexOf('title: "Replay Users"');
-    const policyIndex: number = sideMenuSource.indexOf(
-      'title: "Replay Policy"',
-    );
+    const nextIndex: number = sideMenuSource.indexOf('title: "Health"');
 
     expect(sessionReplayIndex).toBeGreaterThan(-1);
     expect(usersIndex).toBeGreaterThan(sessionReplayIndex);
-    expect(policyIndex).toBeGreaterThan(usersIndex);
+    expect(nextIndex).toBeGreaterThan(usersIndex);
 
-    /* The item between "Replay Users" and "Replay Policy" resolves the users key. */
-    const usersItem: string = sideMenuSource.slice(usersIndex, policyIndex);
+    /* The item between "Replay Users" and the next entry resolves the users key. */
+    const usersItem: string = sideMenuSource.slice(usersIndex, nextIndex);
 
     expect(usersItem).toContain(
       "PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS",

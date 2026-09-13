@@ -884,11 +884,12 @@ describe("Session Replay docs page", (): void => {
   });
 
   /*
-   * docs-and-design-fidelity-3. The health section promises the card shows
-   * what the newest recorder announced it can capture. That is only true
-   * while the read path actually carries the field to the card.
+   * docs-and-design-fidelity-3. The health section promises the Health page
+   * shows what the newest recorder announced it can capture. That is only
+   * true while the read path actually carries the field to the page, which
+   * RecordingHealthDashboard renders since recording health got its own page.
    */
-  it("only promises recorder capabilities on the health card while the API carries them", (): void => {
+  it("only promises recorder capabilities on the Health page while the API carries them", (): void => {
     expect(
       readRepo("Common/Server/Utils/SessionReplay/SessionReplayReadService.ts"),
     ).toContain("recorderCapabilities");
@@ -896,12 +897,12 @@ describe("Session Replay docs page", (): void => {
       "recorderCapabilities:",
     );
 
-    const card: string = fs.readFileSync(
-      path.join(DASHBOARD_REPLAY_DIR, "RecordingHealthCard.tsx"),
+    const healthPage: string = fs.readFileSync(
+      path.join(DASHBOARD_REPLAY_DIR, "RecordingHealthDashboard.tsx"),
       "utf8",
     );
 
-    expect(card).toContain("recorderCapabilities");
+    expect(healthPage).toContain("recorderCapabilities");
 
     expect(section(readPage(), "## Recording health")).toContain(
       "capabilities of the newest recorder that reported",
