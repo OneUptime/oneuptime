@@ -212,6 +212,30 @@ describe("Navigation route matching", () => {
       "",
     );
   });
+
+  test.each([
+    [
+      "/dashboard/project/security-events/",
+      "/dashboard/project/security-events",
+    ],
+    [
+      "/dashboard/project/security-events",
+      "/dashboard/project/security-events/",
+    ],
+  ])(
+    "treats trailing slashes as the same route for %s",
+    (currentPath: string, routePath: string) => {
+      Navigation.setLocation({
+        pathname: currentPath,
+        search: "",
+        hash: "",
+        state: null,
+        key: "navigation-trailing-slash",
+      });
+
+      expect(Navigation.isOnThisPage(new Route(routePath))).toBe(true);
+    },
+  );
 });
 
 describe("Navigation internal route safety", () => {
