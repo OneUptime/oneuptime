@@ -85,6 +85,14 @@ export interface ReplayUserSessionItem {
   hasError: boolean;
   errorCount: number;
   isFinalized: boolean;
+  /*
+   * Every tab of this unfinalized session has closed: nothing more is
+   * being recorded, only the finalizer's counting is pending, so the menu
+   * must not mark it as recording. The parser always sets it (false when
+   * an older server did not send the flag); optional so a stand-in built
+   * elsewhere need not name it, and absent reads as false.
+   */
+  hasRecordingEnded?: boolean | undefined;
   identifiedUserKey: string;
   visitorId: string;
   /* null when the caller lacks the identity permission (the field is absent). */
@@ -220,6 +228,7 @@ export function parseReplayUserSessionItem(
     hasError: readDtoBoolean(row, "hasError"),
     errorCount: readDtoNumber(row, "errorCount"),
     isFinalized: readDtoBoolean(row, "isFinalized"),
+    hasRecordingEnded: readDtoBoolean(row, "hasRecordingEnded"),
     identifiedUserKey: readDtoString(row, "identifiedUserKey"),
     visitorId: readDtoString(row, "visitorId"),
     identifiedUserLabel: hasLabel
@@ -281,7 +290,7 @@ function compareNewestFirst(
  * one visit and anonymous on the next shows up under the key on one and
  * the visitor id on the other. A fetched row wins over `current` (the
  * manifest-built stand-in) because it is the fresher read - a live
- * session's row says whether it has since finalized - and `current` is
+ * session's row says whether it has since ended or finalized - and `current` is
  * only inserted when no request returned it, which happens when the
  * session is too new for the list's index, too old for the window, or
  * further from now than the newer walk could page (isTruncated).
@@ -341,6 +350,71 @@ export function findAdjacentUserSessions(
     newer: index > 0 ? sessions[index - 1] ?? null : null,
     older: sessions[index + 1] ?? null,
   };
+}
+
+/*
+ * What the player knows NOW about the session being watched: its latest
+ * manifest's two recording flags.
+ */
+export interface ReplayCurrentSessionRecordingState {
+  sessionId: string;
+  isFinalized: boolean;
+  hasRecordingEnded: boolean;
+}
+
+/*
+ * The lookup's state with the watched session's entry brought up to date
+ * from the latest manifest.
+ *
+ * The lookup runs once per session (see the player: re-running it on every
+ * 30 s manifest poll would re-read the list route twice a minute), so its
+ * rows are a point-in-time read. For every OTHER session that is fine -
+ * the menu says "Recording now" about a sibling as of when it opened. For
+ * the session on screen it is not: the header's Live pill follows the
+ * manifest poll and goes out when the last tab closes, and a menu entry
+ * still pulsing "Recording now" beside it is the very contradiction
+ * issue #3642 is about. So the watched entry takes isFinalized and
+ * hasRecordingEnded from the manifest, the same source as the pill.
+ *
+ * Returns the state it was given, by identity, when there is nothing to
+ * change (no manifest yet, the session not in the list, the flags already
+ * equal), so a memo over it does not hand the header a new object on
+ * every poll.
+ */
+export function overlayCurrentReplayUserSession(
+  state: ReplayUserSessionsState,
+  current: ReplayCurrentSessionRecordingState | null,
+): ReplayUserSessionsState {
+  if (!current || current.sessionId.length === 0) {
+    return state;
+  }
+
+  let hasChanged: boolean = false;
+
+  const sessions: Array<ReplayUserSessionItem> = state.sessions.map(
+    (item: ReplayUserSessionItem): ReplayUserSessionItem => {
+      if (item.sessionId !== current.sessionId) {
+        return item;
+      }
+
+      if (
+        item.isFinalized === current.isFinalized &&
+        (item.hasRecordingEnded === true) === current.hasRecordingEnded
+      ) {
+        return item;
+      }
+
+      hasChanged = true;
+
+      return {
+        ...item,
+        isFinalized: current.isFinalized,
+        hasRecordingEnded: current.hasRecordingEnded,
+      };
+    },
+  );
+
+  return hasChanged ? { ...state, sessions: sessions } : state;
 }
 
 /* ---- Copy. ---- */

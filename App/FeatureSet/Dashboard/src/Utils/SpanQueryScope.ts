@@ -43,6 +43,12 @@ import {
  * A read-only scope chip. `displayKey` / `displayValue` are seeds — the
  * viewer re-derives them from its facet configs so a service id shows as the
  * service's name once services load.
+ *
+ * A `primaryEntityId` chip's "Service" key is only the seed too: the column is
+ * polymorphic, and the viewer swaps the key for the resolved entity's type
+ * ("RUM Application", "Host") and the value for its name — see
+ * resolveTraceChipDisplay in Components/Traces/TracesEntityDisplay. A chip
+ * without a facet config keeps the seeded key ("Resource", "Trace").
  */
 export interface SpanScopeChip {
   facetKey: string;

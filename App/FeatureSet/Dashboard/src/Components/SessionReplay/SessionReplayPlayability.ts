@@ -16,10 +16,29 @@ import { SESSION_REPLAY_FLUSH_INTERVAL_MS } from "Common/Types/Rum/SessionReplay
  * job), so an unfinalized row's zero means "not counted yet", not "no
  * footage" - and unfinalized rows sit at the top of a newest-first list
  * during a live incident.
+ *
+ * "Not finalized" is two different states, and the badge tells them apart.
+ * A session whose every tab has ended (hasRecordingEnded, judged
+ * server-side by Common/Utils/Rum/SessionReplayRecordingEnded.ts: each tab
+ * sent its final chunk or reached the chunk cap, and a short grace has
+ * passed with no new tab turning up) is over: nothing more is being
+ * recorded, only the finalizer's counting is pending, and it reads
+ * "Recording ended". The tooltip promises no fixed time for that counting:
+ * the finalizer usually gets there within a minute or so, but a session
+ * whose registration with it was lost waits for a slower sweep. Only a session that may
+ * still receive footage reads "Recording now". Reading every unfinalized
+ * row as live is how a closed tab kept its red "Recording now" badge for
+ * the 10-15 minutes the idle finalizer used to take. An older server does
+ * not send the flag, and undefined falls back to the old reading.
+ *
+ * Order, first match wins: lost, ended, recording, then the finalized
+ * states (metadata-only, partial, playable). A finalized row never reads
+ * as ended or recording whatever the flag says - its counts are in.
  */
 
 export type SessionReplayPlayabilityKind =
   | "recording"
+  | "ended"
   | "playable"
   | "partial"
   | "metadata-only"
@@ -53,6 +72,34 @@ export interface SessionReplayPlayabilityInput {
   missingChunkCount: number;
   /* argMax(retentionDate) as unix ms; undefined on an older server. */
   expiresAtUnixMs?: number | undefined;
+  /*
+   * Every tab of an unfinalized session has sent its final chunk. Additive:
+   * undefined on an older server, which reads as false - "not finalized"
+   * is then all anyone knows, and it keeps meaning "recording".
+   */
+  hasRecordingEnded?: boolean | undefined;
+}
+
+/*
+ * Is anything still being recorded into this session? True only for an
+ * unfinalized session that has not ended. The one definition the list's
+ * live dot, the player's Live pill and the user-sessions menu all use, so
+ * the three never disagree about a closed tab. One definition is not
+ * enough on its own: each surface also has to read fresh flags. The list
+ * re-reads itself while a row is unfinalized, and the player overlays its
+ * polled manifest onto the watched session's menu entry
+ * (overlayCurrentReplayUserSession); the menu's OTHER entries are the
+ * lookup's point-in-time read.
+ *
+ * Deliberately NOT the same as "not finalized": that one still gates what
+ * waits on the finalizer (the "counting" placeholders, the manifest poll
+ * that picks up the finalized header, the rail's telemetry refresh).
+ */
+export function isSessionReplayRecordingLive(row: {
+  isFinalized: boolean;
+  hasRecordingEnded?: boolean | undefined;
+}): boolean {
+  return !row.isFinalized && row.hasRecordingEnded !== true;
 }
 
 /*
@@ -118,13 +165,31 @@ export function getSessionReplayPlayability(
     };
   }
 
+  /*
+   * Ended but not yet counted. Neutral rather than info: nothing is
+   * happening that the viewer can follow, so it must not look like the
+   * live badge - but nothing is wrong either. Watchable, because every
+   * chunk the tabs sent is already stored and plays like any other.
+   */
+  if (!row.isFinalized && row.hasRecordingEnded === true) {
+    return {
+      kind: "ended",
+      text: "Recording ended",
+      severity: "neutral",
+      tooltip:
+        "Every tab of this session has closed, so nothing more is being recorded. The footage plays now; duration, pages and signals are counted shortly, when the session is finalized.",
+      detail: "finalizing",
+      isWatchable: true,
+    };
+  }
+
   if (!row.isFinalized) {
     return {
       kind: "recording",
       text: "Recording now",
       severity: "info",
       tooltip:
-        "This session has not been finalized yet: footage plays as it arrives, and duration, pages and signals are counted when it closes (about 10 minutes after the last chunk).",
+        "This session has not been finalized yet and may still be recording: footage plays as it arrives. It reads Recording ended shortly after its last tab closes, and duration, pages and signals are counted when it is finalized - about 10 minutes after the last chunk when the browser went away without saying so.",
       detail: "live",
       isWatchable: true,
     };

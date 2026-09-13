@@ -110,6 +110,13 @@ const NetworkDeviceSettings: FunctionComponent<
    */
   const [isDeviceMonitorBacked, setIsDeviceMonitorBacked] =
     useState<boolean>(false);
+  /*
+   * Toggled after the Device Settings card saves. Changing the monitoring
+   * method makes the server rewrite isPollingEnabled, which the polling card
+   * shows - and that card has no other reason to look again.
+   */
+  const [pollingCardRefresher, setPollingCardRefresher] =
+    useState<boolean>(false);
 
   const fetchMonitoringMethod: PromiseVoidFunction =
     async (): Promise<void> => {
@@ -253,6 +260,9 @@ const NetworkDeviceSettings: FunctionComponent<
         isEditable={true}
         editButtonText="Edit Settings"
         onSaveSuccess={() => {
+          setPollingCardRefresher((prev: boolean) => {
+            return !prev;
+          });
           fetchMonitoringMethod().catch(() => {
             // handled inside.
           });
@@ -553,6 +563,7 @@ const NetworkDeviceSettings: FunctionComponent<
             : "The assigned probe pings this device on its own schedule and, when it has SNMP credentials, walks it too — inventory, interfaces, topology neighbors, endpoints, and health OIDs. Monitors are only needed to alert on what these polls report.",
         }}
         isEditable={!isDeviceMonitorBacked}
+        refresher={pollingCardRefresher}
         editButtonText="Edit Polling"
         formSteps={[
           {

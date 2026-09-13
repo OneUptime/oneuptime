@@ -37,6 +37,20 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import ServiceElement from "../Service/ServiceElement";
 import TopErrorsPanel from "./TopErrorsPanel";
 import {
+  LogsResourceDisplay,
+  LogsResourceRef,
+  LogsScopeSelection,
+  buildLogsResourceTypeHints,
+  collectLogsInsightsResourceRefs,
+  collectLogsResourceIds,
+  decodeLogsScopeSelection,
+  describeLogsResource,
+  labelLogsScopeOption,
+} from "./LogsResourceDisplay";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
+import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import {
   fetchInsightsHistogram,
   fetchResourceBreakdown,
   fetchScopeFacets,
@@ -396,6 +410,42 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
   }, [services]);
 
   /*
+   * Resource ids the Service list cannot name. Logs are keyed on a
+   * polymorphic primaryEntityId, so a RUM application, host or cluster
+   * reporting logs has no Service row — the cards, the "Top errors" rows
+   * and the picker used to show its raw UUID. Resolve those against their
+   * own tables (hinted by the facet they came from) with one lookup.
+   */
+  const resourceRefsToName: Array<LogsResourceRef> = useMemo(() => {
+    return collectLogsInsightsResourceRefs({
+      breakdownResourceIds: resourceBreakdown
+        .slice(0, RESOURCE_CARD_LIMIT)
+        .map((row: ResourceLogBreakdown): string => {
+          return row.resourceId;
+        }),
+      errorPatterns,
+      scopeFacets,
+      selectedScopeValues,
+    });
+  }, [resourceBreakdown, errorPatterns, scopeFacets, selectedScopeValues]);
+
+  const unnamedResourceIds: Array<string> = useMemo(() => {
+    return collectLogsResourceIds(resourceRefsToName, (resourceId: string) => {
+      return Boolean(serviceById.get(resourceId)?.name);
+    });
+  }, [resourceRefsToName, serviceById]);
+
+  const resourceTypeHints: Record<string, ServiceType> | undefined =
+    useMemo(() => {
+      return buildLogsResourceTypeHints(resourceRefsToName);
+    }, [resourceRefsToName]);
+
+  const resourceNames: TelemetryEntityNameMap = useTelemetryEntityNames(
+    unnamedResourceIds,
+    { typeHints: resourceTypeHints },
+  );
+
+  /*
    * One option group per resource kind. Built from the facet response
    * rather than from the project's Service list so the picker offers
    * exactly what has telemetry in the window — including hosts and
@@ -416,16 +466,19 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
         options: values.map((value: ScopeFacetValue): DropdownOption => {
           return {
             value: encodeScopeSelection(facetKey, value.value),
-            label:
-              serviceById.get(value.value)?.name?.toString() ||
-              value.displayName,
+            label: labelLogsScopeOption({
+              id: value.value,
+              nameMap: resourceNames,
+              knownName: serviceById.get(value.value)?.name?.toString(),
+              facetDisplayName: value.displayName,
+            }),
           };
         }),
       });
     }
 
     return groups;
-  }, [scopeFacets, serviceById]);
+  }, [scopeFacets, serviceById, resourceNames]);
 
   const scopeOptionByValue: Map<string, DropdownOption> = useMemo(() => {
     const map: Map<string, DropdownOption> = new Map();
@@ -447,19 +500,30 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
          * moved and that host stopped logging) still has to render, or the
          * user would have a filter they cannot see or remove.
          */
-        return (
-          scopeOptionByValue.get(value) || {
-            value,
-            label: value.split(":")[1] || value,
-          }
-        );
+        const option: DropdownOption | undefined =
+          scopeOptionByValue.get(value);
+
+        if (option) {
+          return option;
+        }
+
+        const decoded: LogsScopeSelection = decodeLogsScopeSelection(value);
+
+        return {
+          value,
+          label: labelLogsScopeOption({
+            id: decoded.id,
+            nameMap: resourceNames,
+            knownName: serviceById.get(decoded.id)?.name?.toString(),
+          }),
+        };
       })
       .filter(
         (option: DropdownOption | undefined): option is DropdownOption => {
           return option !== undefined;
         },
       );
-  }, [selectedScopeValues, scopeOptionByValue]);
+  }, [selectedScopeValues, scopeOptionByValue, resourceNames, serviceById]);
 
   const rangeLabel: string = describeTimeRange(timeRange);
 
@@ -772,6 +836,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
         timeRange={timeRange}
         isLoading={isLoading}
         serviceNameById={serviceById}
+        resourceNames={resourceNames}
         selectedPattern={selectedPattern?.pattern}
         onSelect={(row: TopErrorPatternRow): void => {
           setSelectedPattern(row);
@@ -803,6 +868,10 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
             const service: Service | undefined = serviceById.get(
               row.resourceId,
             );
+            const resourceDisplay: LogsResourceDisplay = describeLogsResource({
+              resourceId: row.resourceId,
+              nameMap: resourceNames,
+            });
             const coverage: number = Math.round(
               (row.total / maxResourceVolume) * 100,
             );
@@ -812,12 +881,29 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
                 <div className="mb-4 flex items-start justify-between gap-2">
                   {service ? (
                     <ServiceElement service={service} />
+                  ) : resourceDisplay.name !== row.resourceId ? (
+                    /*
+                     * Logs primary-keyed on a RUM application, host, cluster
+                     * or other non-Service resource have no Service row, so
+                     * they are named from their own table, with their type.
+                     */
+                    <span
+                      className="min-w-0 truncate text-sm font-medium text-gray-900"
+                      title={row.resourceId}
+                    >
+                      {resourceDisplay.name}
+                      {resourceDisplay.typeLabel && (
+                        <span className="ml-2 text-xs font-normal text-gray-400">
+                          {resourceDisplay.typeLabel}
+                        </span>
+                      )}
+                    </span>
                   ) : (
                     /*
-                     * Logs primary-keyed on a host, cluster or other
-                     * non-Service resource have no Service row to name them.
-                     * Showing the raw id beats dropping the row: it is still
-                     * volume the user is paying for and can search on.
+                     * Nothing could name it (deleted, or a table the user
+                     * cannot read). Showing the raw id beats dropping the
+                     * row: it is still volume the user is paying for and can
+                     * search on.
                      */
                     <span className="truncate font-mono text-xs text-gray-500">
                       {row.resourceId}

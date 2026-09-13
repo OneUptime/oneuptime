@@ -91,6 +91,17 @@ export interface ReplayCorrelationPanelProps {
   onTabChange: (tabId: string) => void;
   sessionId: string;
   details: ReplaySessionDetails;
+  /*
+   * Every tab of this unfinalized session has closed
+   * (SessionReplayManifest.hasRecordingEnded). It decides what "How the
+   * recording ended" may say before the finalizer has run: a live
+   * session's provisional header can carry "final-chunk" from a page the
+   * user already navigated away from, so its sealed reason is only quoted
+   * once the recording has really ended. A prop rather than a details
+   * field so the details shape (ReplaySessionDetails.ts) stays the
+   * manifest's header as served. Absent reads as false.
+   */
+  hasRecordingEnded?: boolean | undefined;
   fidelityNotices: Array<string>;
   /*
    * Assets the recorder could not capture. Optional because nothing on the
@@ -583,9 +594,23 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
     </div>
   );
 
-  const sealedReasonCopy: SealedReasonCopy | null = getSealedReasonCopy(
-    d.sealedReason,
-  );
+  /*
+   * Three states, not two. Finalized: the reason the finalizer wrote.
+   * Not finalized but every tab closed: the reason the final chunk wrote
+   * ("ended normally") is already true, with a note that the counts are
+   * still to come. Not finalized and not ended: still recording, whatever
+   * reason the provisional header happens to carry - "Recording ended
+   * normally" beside a Live pill is the contradiction this avoids.
+   */
+  const isAwaitingFinalization: boolean = d.isFinalized === false;
+  const hasRecordingEnded: boolean =
+    isAwaitingFinalization && props.hasRecordingEnded === true;
+  const isStillRecording: boolean =
+    isAwaitingFinalization && !hasRecordingEnded;
+
+  const sealedReasonCopy: SealedReasonCopy | null = isStillRecording
+    ? null
+    : getSealedReasonCopy(d.sealedReason);
 
   /*
    * Playback problems first: "a stretch is unplayable" must not sit under
@@ -624,9 +649,20 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
           className="text-xs text-gray-500"
           data-testid="replay-details-sealed-reason"
         >
-          {d.isFinalized === false
+          {isStillRecording
             ? "Still recording - the session has not been sealed yet, so more chunks may arrive."
-            : "The recorder did not report why this recording ended."}
+            : hasRecordingEnded
+              ? "Every tab of this session has closed, so nothing more is being recorded."
+              : "The recorder did not report why this recording ended."}
+        </div>
+      )}
+      {hasRecordingEnded && (
+        <div
+          className="mt-1 text-xs text-gray-500"
+          data-testid="replay-details-finalizing"
+        >
+          Still being finalized: duration, pages and signals are counted
+          shortly, when the session is finalized.
         </div>
       )}
 

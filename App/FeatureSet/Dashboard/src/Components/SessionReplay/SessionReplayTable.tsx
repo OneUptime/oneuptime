@@ -95,6 +95,7 @@ import {
   formatIdleShare,
   formatSessionDuration,
   getSessionReplayPlayability,
+  isSessionReplayRecordingLive,
   SessionReplayPlayability,
   SessionReplayPlayabilitySeverity,
 } from "./SessionReplayPlayability";
@@ -183,6 +184,14 @@ export interface SessionReplaySummary {
    * WITH the column means "anonymous", no column means "hidden from you".
    */
   isIdentityVisible?: boolean | undefined;
+  /*
+   * Every tab of this unfinalized session has closed, so the row reads
+   * "Recording ended" rather than "Recording now" (see
+   * SessionReplayPlayability). The parser always sets it, false when an
+   * older server did not send the flag; optional only so a summary built
+   * by hand elsewhere need not name it.
+   */
+  hasRecordingEnded?: boolean | undefined;
 }
 
 export interface SessionReplayListFilter {
@@ -218,6 +227,39 @@ export interface SessionReplayListResult {
 }
 
 const SESSION_REPLAY_LIST_ROUTE: string = "/telemetry/rum/session-replay/list";
+
+/*
+ * How often the list re-reads its current page on its own while that page
+ * shows a session the finalizer has not counted yet. A closed tab turns
+ * "Recording now" into "Recording ended" about a minute after its last
+ * chunk was stored (the server waits out a short grace, in case the next
+ * page of the app picks the session up), and into Playable once the
+ * finalizer has counted it, usually a minute or so after that; without a
+ * refresh the badge a viewer is looking at stays whatever it was when the
+ * page loaded. The same cadence as the player's live manifest poll
+ * (LIVE_MANIFEST_POLL_MS), and only while the document is visible - a
+ * background tab polling the list endpoint twice a minute is load nobody
+ * is looking at.
+ */
+export const SESSION_REPLAY_LIST_AUTO_REFRESH_MS: number = 30 * 1000;
+
+/*
+ * The most silent refreshes the list makes on its own before it stops:
+ * 20 ticks, about 10 minutes. Counted from the last load the viewer
+ * started (the first load, a filter, sort or page change, Refresh, Retry)
+ * or the last time the tab became visible again, each of which restores
+ * the whole budget.
+ *
+ * Without a cap the refresh never ends on a busy application: the newest
+ * page nearly always holds a session that is still recording, so "stop
+ * once every row is finalized" never comes, and every open list re-runs
+ * the whole window's list aggregation twice a minute for as long as it is
+ * on a screen. Ten minutes is several times what a viewer who is watching
+ * waits for - a closed tab's "Recording now" becoming "Recording ended"
+ * and then Playable takes two or three minutes - and past it, a list left
+ * open on a wall screen waits for its Refresh button like any other page.
+ */
+export const SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS: number = 20;
 
 /*
  * Where the list stamps its own URL so the player's "Sessions" back link
@@ -299,6 +341,11 @@ export function parseSessionReplaySummary(
     isIdentityVisible:
       record["identifiedUserLabel"] !== undefined &&
       record["identifiedUserLabel"] !== null,
+    /*
+     * Absent from an older server, which reads as false: "not finalized"
+     * then keeps meaning "recording", the only thing that server can say.
+     */
+    hasRecordingEnded: readDtoBoolean(record, "hasRecordingEnded"),
   };
 }
 
@@ -534,6 +581,21 @@ export function toListBackLinkValue(href: string): string {
     return "";
   }
 }
+
+/*
+ * Whether anyone can see the list right now. A backgrounded tab, a
+ * minimised window or a locked screen reads "hidden", and the list stops
+ * refreshing itself until it is looked at again.
+ */
+function isDocumentVisible(): boolean {
+  return document.visibilityState === "visible";
+}
+
+/*
+ * "visible": a load the viewer caused - it shows the skeleton and reports
+ * errors. "silent": the auto-refresh re-reading the page in place.
+ */
+type SessionReplayListLoadMode = "visible" | "silent";
 
 function readStorage(key: string): string | null {
   try {
@@ -881,14 +943,19 @@ function getSessionReplayCells(
     <div key="0">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          {!row.isFinalized && playability.kind === "recording" && (
-            <span
-              className="h-2 w-2 flex-none animate-pulse rounded-full bg-red-500"
-              role="img"
-              aria-label="Recording now"
-              data-testid="session-row-live"
-            />
-          )}
+          {/*
+           * Only a session that may still receive footage pulses. An
+           * ended one is waiting on the finalizer, not on the end user.
+           */}
+          {isSessionReplayRecordingLive(row) &&
+            playability.kind === "recording" && (
+              <span
+                className="h-2 w-2 flex-none animate-pulse rounded-full bg-red-500"
+                role="img"
+                aria-label="Recording now"
+                data-testid="session-row-live"
+              />
+            )}
           {route ? (
             <Link
               to={route}
@@ -1299,16 +1366,107 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
    */
   const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
 
-  const load: (generation: number) => Promise<void> = useCallback(
-    async (generation: number): Promise<void> => {
+  /*
+   * The generation of the load that is still waiting on the server, or
+   * null when none is. The silent refresh reads it so a tick never
+   * supersedes a load the viewer started (which would leave that load's
+   * spinner to a response the generation check then throws away), and
+   * never stacks a second request behind a slow one of its own.
+   */
+  const inFlightGenerationRef: React.MutableRefObject<number | null> = useRef<
+    number | null
+  >(null);
+
+  /* When the rows on screen were last read, for the refresh on return. */
+  const lastLoadedAtRef: React.MutableRefObject<number> = useRef<number>(0);
+
+  /*
+   * Silent refreshes made since the viewer last started a load or came
+   * back to the tab; the auto-refresh stops at
+   * SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS. A ref, not state: counting
+   * a tick must not re-render the list.
+   */
+  const silentRefreshCountRef: React.MutableRefObject<number> =
+    useRef<number>(0);
+
+  /*
+   * Bumped by every load the viewer starts. The auto-refresh effect lists
+   * it, so a load that restores the budget also restarts a timer that had
+   * run out - the Refresh button leaves the rows' finalized state, and so
+   * the effect's other dependencies, exactly as they were.
+   */
+  const [viewerLoadEpoch, setViewerLoadEpoch] = useState<number>(0);
+
+  /*
+   * The table's own region (header and rows), and whether the pointer is
+   * over it. Read by the auto-refresh, which stands down while the viewer
+   * is interacting with the rows: see isViewerInteractingWithTable.
+   */
+  const tableRegionRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+  const isPointerOverTableRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  /*
+   * A stable callback ref, so it runs only when the region mounts or
+   * unmounts. The region unmounts while the list shows an error, and
+   * mouseleave does not fire for an element that is removed from under
+   * the pointer, so the flag is cleared here rather than left to claim a
+   * hover that ended with the element.
+   */
+  const setTableRegion: (element: HTMLDivElement | null) => void = useCallback(
+    (element: HTMLDivElement | null): void => {
+      tableRegionRef.current = element;
+
+      if (!element) {
+        isPointerOverTableRef.current = false;
+      }
+    },
+    [],
+  );
+
+  const load: (
+    generation: number,
+    mode?: SessionReplayListLoadMode,
+  ) => Promise<void> = useCallback(
+    async (
+      generation: number,
+      mode: SessionReplayListLoadMode = "visible",
+    ): Promise<void> => {
+      /*
+       * A silent load is the auto-refresh: the same page, filters, sort
+       * and cursor, re-read in place. It never shows the skeleton (which
+       * would collapse the table and throw the viewer's scroll position),
+       * never clears an error or the cursors learned for later pages, and
+       * a failure keeps the rows already on screen - the next tick is the
+       * retry, and a viewer who wants one now has the Refresh button.
+       */
+      const isSilent: boolean = mode === "silent";
+
+      inFlightGenerationRef.current = generation;
+
+      if (!isSilent) {
+        /*
+         * The viewer asked for this read, so they are looking: the
+         * auto-refresh gets its whole budget back, and its timer restarts
+         * if it had run out.
+         */
+        silentRefreshCountRef.current = 0;
+        setViewerLoadEpoch((epoch: number): number => {
+          return epoch + 1;
+        });
+      }
+
       try {
-        setIsLoading(true);
-        setError(null);
+        if (!isSilent) {
+          setIsLoading(true);
+          setError(null);
+        }
 
         const range: InBetween<Date> =
           RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
 
-        if (pageNumber === 1) {
+        if (pageNumber === 1 && !isSilent) {
           /*
            * Back at the top, so every cursor learned under the previous
            * filter, range, sort or page size is stale - and a cursor from
@@ -1361,11 +1519,12 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
         setIsIdentityFilterIgnored(
           result.ignoredFilters.includes("identifiedUserRef"),
         );
-        setNowUnixMs(Date.now());
+        lastLoadedAtRef.current = Date.now();
+        setNowUnixMs(lastLoadedAtRef.current);
         setRows(result.sessions);
         setHasMore(result.nextCursor !== null);
       } catch (err) {
-        if (generation === loadGenerationRef.current) {
+        if (generation === loadGenerationRef.current && !isSilent) {
           setError(
             describeSessionReplayListError(
               API.getFriendlyMessage(err),
@@ -1374,6 +1533,10 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
           );
         }
       } finally {
+        if (inFlightGenerationRef.current === generation) {
+          inFlightGenerationRef.current = null;
+        }
+
         if (generation === loadGenerationRef.current) {
           setIsLoading(false);
         }
@@ -1432,6 +1595,146 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
       loadGenerationRef.current += 1;
     };
   }, [load]);
+
+  /*
+   * Auto-refresh while this page shows a session that is not finalized.
+   *
+   * Such a row's badge is a moment's truth: "Recording now" becomes
+   * "Recording ended" about a minute after its last tab closed, and
+   * Playable once the finalizer has counted it, usually a minute or so
+   * later. The page re-reads itself every SESSION_REPLAY_LIST_AUTO_REFRESH_MS
+   * until every row on it is finalized, then stops - a page of finished
+   * sessions has nothing left to change.
+   *
+   * Silent (see load): same filters, sort, page and cursor, no skeleton,
+   * no pagination reset. It takes a generation like every other load, so
+   * a response that lands after the viewer changed the query is dropped
+   * by the same check; and it skips a tick while any load is still in the
+   * air rather than superseding it.
+   *
+   * Bounded: at most SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS silent
+   * reads since the viewer last started a load or came back to the tab,
+   * then the timer stops until one of those happens again. On a busy
+   * application the newest page always holds a live session, so "until
+   * every row is finalized" alone would never end.
+   *
+   * Never under the viewer's hand. Rows are keyed by position (Common
+   * Table), so a refresh that inserts a session at the top leaves every
+   * row element in place carrying the NEXT session's props: the row a
+   * keyboard user has focused, or the one under the pointer, would open a
+   * different session than the one they chose. A tick that finds focus in
+   * the table or the pointer over it does nothing and costs nothing - the
+   * next tick tries again.
+   *
+   * Only while the document is visible. Hidden, the timer is cleared;
+   * back to visible, it restarts - with an immediate read when the rows
+   * are already a full interval old, so a viewer returning after ten
+   * minutes is not shown ten-minute-old badges for another thirty seconds.
+   * No timer while the list shows an error: its Retry is the way back.
+   */
+  const hasUnfinalizedRow: boolean = rows.some(
+    (row: SessionReplaySummary): boolean => {
+      return !row.isFinalized;
+    },
+  );
+  const isShowingError: boolean = error !== null;
+
+  useEffect((): (() => void) | void => {
+    if (!hasUnfinalizedRow || isShowingError) {
+      return;
+    }
+
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    const stop: VoidFunction = (): void => {
+      if (timer !== null) {
+        clearInterval(timer);
+        timer = null;
+      }
+    };
+
+    const isViewerInteractingWithTable: () => boolean = (): boolean => {
+      if (isPointerOverTableRef.current) {
+        return true;
+      }
+
+      const region: HTMLDivElement | null = tableRegionRef.current;
+      const focused: Element | null = document.activeElement;
+
+      return Boolean(
+        region && focused && focused !== region && region.contains(focused),
+      );
+    };
+
+    const refreshSilently: VoidFunction = (): void => {
+      if (inFlightGenerationRef.current !== null) {
+        return;
+      }
+
+      if (
+        silentRefreshCountRef.current >=
+        SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS
+      ) {
+        stop();
+        return;
+      }
+
+      if (isViewerInteractingWithTable()) {
+        return;
+      }
+
+      silentRefreshCountRef.current += 1;
+      loadGenerationRef.current += 1;
+      void load(loadGenerationRef.current, "silent");
+    };
+
+    const start: VoidFunction = (): void => {
+      if (
+        timer !== null ||
+        !isDocumentVisible() ||
+        silentRefreshCountRef.current >=
+          SESSION_REPLAY_LIST_AUTO_REFRESH_MAX_TICKS
+      ) {
+        return;
+      }
+
+      timer = setInterval(refreshSilently, SESSION_REPLAY_LIST_AUTO_REFRESH_MS);
+    };
+
+    const handleVisibilityChange: VoidFunction = (): void => {
+      if (!isDocumentVisible()) {
+        stop();
+        /*
+         * Switching tabs moves no pointer out of anything, so no
+         * mouseleave follows. Whoever comes back gets a fresh reading on
+         * their first move, not a hover remembered from before.
+         */
+        isPointerOverTableRef.current = false;
+        return;
+      }
+
+      /* Back to the tab: somebody is looking again. */
+      silentRefreshCountRef.current = 0;
+
+      if (
+        timer === null &&
+        Date.now() - lastLoadedAtRef.current >=
+          SESSION_REPLAY_LIST_AUTO_REFRESH_MS
+      ) {
+        refreshSilently();
+      }
+
+      start();
+    };
+
+    start();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return (): void => {
+      stop();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [hasUnfinalizedRow, isShowingError, load, viewerLoadEpoch]);
 
   const openSession: (route: Route, openInNewTab: boolean) => void =
     useCallback((route: Route, openInNewTab: boolean): void => {
@@ -1710,7 +2013,16 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
               </div>
             </div>
           ) : (
-            <div data-testid="session-table">
+            <div
+              data-testid="session-table"
+              ref={setTableRegion}
+              onMouseEnter={(): void => {
+                isPointerOverTableRef.current = true;
+              }}
+              onMouseLeave={(): void => {
+                isPointerOverTableRef.current = false;
+              }}
+            >
               <Table<SessionReplayTableRow>
                 id="session-replay-table"
                 data={tableRows}

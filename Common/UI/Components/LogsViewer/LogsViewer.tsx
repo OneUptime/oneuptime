@@ -69,6 +69,16 @@ import OneUptimeDate from "../../../Types/Date";
 import useHistogramZoom, {
   HistogramZoomState,
 } from "../Charts/Utils/useHistogramZoom";
+import useTelemetryEntityNames from "../../Utils/Telemetry/UseTelemetryEntityNames";
+import { TelemetryEntityNameMap } from "../../Utils/Telemetry/TelemetryEntityNames";
+import {
+  collectLogsEntityIdsToResolve,
+  enrichLogsActiveFilters,
+  LogsEntityLookupMaps,
+  LogsEntityResolutionRequest,
+  PrimaryEntitySuggestions,
+  resolvePrimaryEntitySuggestions,
+} from "./LogsEntityNames";
 
 export interface ComponentProps {
   logs: Array<Log>;
@@ -217,12 +227,26 @@ const getSeverityWeight: (severity: string | undefined) => number = (
   return severityWeight[normalized] || 0;
 };
 
-// Resolve a human-readable service name to its UUID using the serviceMap.
+/*
+ * Resolve a human-readable service name to its UUID. The labels the
+ * `service:` suggestions were rendered with come first: each names exactly
+ * one id and they also cover entities that are not Services (a RUM
+ * application, a host), so picking "checkout (RUM Application)" — or a RUM
+ * application called like a preloaded Service — filters by the entity the
+ * user picked rather than by the first Service with that name. A typed name
+ * the suggestions do not hold falls back to the preloaded Services.
+ */
 function resolveServiceNameToId(
   name: string,
   serviceMap: Dictionary<Service>,
+  suggestionLabelToId?: Record<string, string> | undefined,
 ): string | undefined {
   const lowerName: string = name.toLowerCase();
+
+  const suggestedId: string | undefined = suggestionLabelToId?.[lowerName];
+  if (suggestedId) {
+    return suggestedId;
+  }
 
   for (const [id, service] of Object.entries(serviceMap)) {
     if (service?.name && service.name.toLowerCase() === lowerName) {
@@ -700,6 +724,82 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     }
   }, [props.onPageChange, props.page]);
 
+  const entityLookupMaps: LogsEntityLookupMaps = useMemo(() => {
+    return {
+      serviceMap,
+      hostMap,
+      dockerHostMap,
+      podmanHostMap,
+      kubernetesClusterMap,
+    };
+  }, [serviceMap, hostMap, dockerHostMap, podmanHostMap, kubernetesClusterMap]);
+
+  /*
+   * primaryEntityId values the `service:` dropdown offers. The lazily
+   * fetched attribute values override the parent's, as in the merge below.
+   */
+  const primaryEntitySuggestionIds: Array<string> = useMemo(() => {
+    return (
+      attributeValueSuggestions["primaryEntityId"] ||
+      props.valueSuggestions?.["primaryEntityId"] ||
+      []
+    );
+  }, [attributeValueSuggestions, props.valueSuggestions]);
+
+  /*
+   * One resolver request for every id on screen the preloaded maps cannot
+   * name: chips, the Service column / details header of the displayed logs,
+   * `service:` suggestions and sidebar facet rows. A RUM application's or a
+   * serverless function's logs otherwise read as raw UUIDs, because only
+   * Services / hosts / clusters are preloaded. Held back while those maps
+   * load so ids they will name are not looked up twice.
+   */
+  const entityResolutionRequest: LogsEntityResolutionRequest = useMemo(() => {
+    if (isPageLoading) {
+      return { ids: [], typeHints: {} };
+    }
+
+    return collectLogsEntityIdsToResolve({
+      filters: [
+        ...(props.baseActiveFilters || []),
+        ...(props.activeFilters || []),
+      ],
+      logs: displayedLogs,
+      facetData: props.facetData,
+      suggestionIds: primaryEntitySuggestionIds,
+      maps: entityLookupMaps,
+    });
+  }, [
+    isPageLoading,
+    props.baseActiveFilters,
+    props.activeFilters,
+    displayedLogs,
+    props.facetData,
+    primaryEntitySuggestionIds,
+    entityLookupMaps,
+  ]);
+
+  const entityNameMap: TelemetryEntityNameMap = useTelemetryEntityNames(
+    entityResolutionRequest.ids,
+    { typeHints: entityResolutionRequest.typeHints },
+  );
+
+  const primaryEntitySuggestions: PrimaryEntitySuggestions = useMemo(() => {
+    return resolvePrimaryEntitySuggestions({
+      ids: primaryEntitySuggestionIds,
+      facetValues: props.facetData?.["primaryEntityId"],
+      serviceMap,
+      resourceMaps: entityLookupMaps,
+      entityNameMap,
+    });
+  }, [
+    primaryEntitySuggestionIds,
+    props.facetData,
+    serviceMap,
+    entityLookupMaps,
+    entityNameMap,
+  ]);
+
   const handleSearchSubmit: () => void = useCallback((): void => {
     const queryFilter: Record<string, unknown> = queryStringToFilter(
       searchQuery,
@@ -714,6 +814,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       const resolvedId: string | undefined = resolveServiceNameToId(
         serviceName,
         serviceMap,
+        primaryEntitySuggestions.labelToId,
       );
 
       if (resolvedId) {
@@ -729,7 +830,14 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     resetPage();
     setSelectedLogId(null);
     props.onFilterChanged(mergedFilter);
-  }, [searchQuery, serviceMap, filterData, resetPage, props]);
+  }, [
+    searchQuery,
+    serviceMap,
+    primaryEntitySuggestions,
+    filterData,
+    resetPage,
+    props,
+  ]);
 
   // Scroll focused row into view
   useEffect(() => {
@@ -891,68 +999,29 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * Enrich active filters with resolved display values (e.g. service names)
+   * Enrich active filters with resolved display values (e.g. service names).
+   * Preloaded maps first, then a name the parent already supplied, then the
+   * generic resolver for entities the maps do not cover (see
+   * LogsEntityNames.enrichLogsActiveFilter). Base (read-only) chips go
+   * through the same rules so a scope chip handed over as a bare id still
+   * gets named, while one the parent already named is left alone.
    * Must be before early returns to maintain consistent hook call order.
    */
   const enrichedActiveFilters: Array<ActiveFilter> = useMemo(() => {
-    if (!props.activeFilters) {
-      return [];
-    }
+    return enrichLogsActiveFilters(
+      props.activeFilters,
+      entityLookupMaps,
+      entityNameMap,
+    );
+  }, [props.activeFilters, entityLookupMaps, entityNameMap]);
 
-    return props.activeFilters.map((filter: ActiveFilter): ActiveFilter => {
-      if (filter.facetKey === "primaryEntityId" && serviceMap[filter.value]) {
-        const service: Service | undefined = serviceMap[filter.value];
-        return {
-          ...filter,
-          displayValue: service?.name || filter.value,
-        };
-      }
-      if (filter.facetKey === "hostId" && hostMap[filter.value]) {
-        const host: Host | undefined = hostMap[filter.value];
-        return {
-          ...filter,
-          displayValue: host?.name || host?.hostIdentifier || filter.value,
-        };
-      }
-      if (filter.facetKey === "dockerHostId" && dockerHostMap[filter.value]) {
-        const dockerHost: DockerHost | undefined = dockerHostMap[filter.value];
-        return {
-          ...filter,
-          displayValue:
-            dockerHost?.name || dockerHost?.hostIdentifier || filter.value,
-        };
-      }
-      if (filter.facetKey === "podmanHostId" && podmanHostMap[filter.value]) {
-        const podmanHost: PodmanHost | undefined = podmanHostMap[filter.value];
-        return {
-          ...filter,
-          displayValue:
-            podmanHost?.name || podmanHost?.hostIdentifier || filter.value,
-        };
-      }
-      if (
-        filter.facetKey === "kubernetesClusterId" &&
-        kubernetesClusterMap[filter.value]
-      ) {
-        const cluster: KubernetesCluster | undefined =
-          kubernetesClusterMap[filter.value];
-        return {
-          ...filter,
-          displayValue:
-            cluster?.name || cluster?.clusterIdentifier || filter.value,
-        };
-      }
-
-      return filter;
-    });
-  }, [
-    props.activeFilters,
-    serviceMap,
-    hostMap,
-    dockerHostMap,
-    podmanHostMap,
-    kubernetesClusterMap,
-  ]);
+  const enrichedBaseActiveFilters: Array<ActiveFilter> = useMemo(() => {
+    return enrichLogsActiveFilters(
+      props.baseActiveFilters,
+      entityLookupMaps,
+      entityNameMap,
+    );
+  }, [props.baseActiveFilters, entityLookupMaps, entityNameMap]);
 
   /*
    * Replace primaryEntityId UUIDs with human-readable names in value suggestions,
@@ -974,20 +1043,16 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         ...attributeValueSuggestions,
       };
 
-      if (
-        suggestions["primaryEntityId"] &&
-        Object.keys(serviceMap).length > 0
-      ) {
-        suggestions["primaryEntityId"] = suggestions["primaryEntityId"].map(
-          (id: string) => {
-            const service: Service | undefined = serviceMap[id];
-            return service?.name || id;
-          },
-        );
+      if (suggestions["primaryEntityId"]) {
+        suggestions["primaryEntityId"] = primaryEntitySuggestions.labels;
       }
 
       return suggestions;
-    }, [props.valueSuggestions, serviceMap, attributeValueSuggestions]);
+    }, [
+      props.valueSuggestions,
+      primaryEntitySuggestions,
+      attributeValueSuggestions,
+    ]);
 
   /*
    * Wrap onFieldValueSelect to resolve service names back to UUIDs
@@ -1005,6 +1070,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         const resolvedId: string | undefined = resolveServiceNameToId(
           value,
           serviceMap,
+          primaryEntitySuggestions.labelToId,
         );
 
         if (resolvedId) {
@@ -1015,7 +1081,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
 
       props.onFieldValueSelect!(fieldKey, value);
     };
-  }, [props.onFieldValueSelect, serviceMap]);
+  }, [props.onFieldValueSelect, serviceMap, primaryEntitySuggestions]);
 
   const selectedColumns: Array<string> = props.selectedColumns
     ? normalizeLogsTableColumns(props.selectedColumns)
@@ -1133,13 +1199,10 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       )}
 
       {/* Active filter chips (read-only base filters + user-applied filters) */}
-      {((props.baseActiveFilters && props.baseActiveFilters.length > 0) ||
+      {(enrichedBaseActiveFilters.length > 0 ||
         (enrichedActiveFilters.length > 0 && props.onRemoveFilter)) && (
         <ActiveFilterChips
-          filters={[
-            ...(props.baseActiveFilters || []),
-            ...enrichedActiveFilters,
-          ]}
+          filters={[...enrichedBaseActiveFilters, ...enrichedActiveFilters]}
           onRemove={props.onRemoveFilter || (() => {})}
           onClearAll={props.onClearAllFilters || (() => {})}
         />
@@ -1175,6 +1238,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               dockerHostMap={dockerHostMap}
               podmanHostMap={podmanHostMap}
               kubernetesClusterMap={kubernetesClusterMap}
+              entityNameMap={entityNameMap}
               onIncludeFilter={props.onFacetInclude || (() => {})}
               onExcludeFilter={props.onFacetExclude || (() => {})}
               activeFilters={props.activeFilters}
@@ -1197,6 +1261,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               <LogsTable
                 logs={displayedLogs}
                 serviceMap={serviceMap}
+                resourceEntityMaps={entityLookupMaps}
+                entityNameMap={entityNameMap}
                 isLoading={props.isLoading}
                 focusedRowIndex={
                   focusedRowIndex >= 0 ? focusedRowIndex : undefined
@@ -1227,6 +1293,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                     <LogDetailsPanel
                       log={log}
                       serviceMap={serviceMap}
+                      resourceEntityMaps={entityLookupMaps}
+                      entityNameMap={entityNameMap}
                       onClose={() => {
                         setSelectedLogId(null);
                       }}

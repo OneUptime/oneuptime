@@ -16,6 +16,8 @@ import Dictionary from "../../../../Types/Dictionary";
 import ComponentLoader from "../../ComponentLoader/ComponentLoader";
 import { getSeverityColor } from "./severityColors";
 import LogSeverity from "../../../../Types/Log/LogSeverity";
+import { TelemetryEntityNameMap } from "../../../Utils/Telemetry/TelemetryEntityNames";
+import { mergeFacetValueDisplayMap } from "../LogsEntityNames";
 
 export interface LogsFacetSidebarProps {
   facetData: FacetData;
@@ -25,6 +27,12 @@ export interface LogsFacetSidebarProps {
   dockerHostMap?: Dictionary<DockerHost>;
   podmanHostMap?: Dictionary<PodmanHost>;
   kubernetesClusterMap?: Dictionary<KubernetesCluster>;
+  /*
+   * Generic resolver names for resource facet values the maps above do not
+   * hold (e.g. a RUM application id under "Service"). Used only when the
+   * server sent no displayName and no preloaded map names the value.
+   */
+  entityNameMap?: TelemetryEntityNameMap | undefined;
   onIncludeFilter: (facetKey: string, value: string) => void;
   onExcludeFilter: (facetKey: string, value: string) => void;
   activeFilters?: Array<ActiveFilter> | undefined;
@@ -189,28 +197,43 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
   }, []);
 
   const serviceDisplayMap: Record<string, string> = useMemo(() => {
-    return buildServiceDisplayMap(props.serviceMap);
-  }, [props.serviceMap]);
+    return mergeFacetValueDisplayMap(
+      buildServiceDisplayMap(props.serviceMap),
+      props.entityNameMap,
+    );
+  }, [props.serviceMap, props.entityNameMap]);
 
   const serviceColorMap: Record<string, string> = useMemo(() => {
     return buildServiceColorMap(props.serviceMap);
   }, [props.serviceMap]);
 
   const hostDisplayMap: Record<string, string> = useMemo(() => {
-    return buildHostDisplayMap(props.hostMap);
-  }, [props.hostMap]);
+    return mergeFacetValueDisplayMap(
+      buildHostDisplayMap(props.hostMap),
+      props.entityNameMap,
+    );
+  }, [props.hostMap, props.entityNameMap]);
 
   const dockerHostDisplayMap: Record<string, string> = useMemo(() => {
-    return buildDockerHostDisplayMap(props.dockerHostMap);
-  }, [props.dockerHostMap]);
+    return mergeFacetValueDisplayMap(
+      buildDockerHostDisplayMap(props.dockerHostMap),
+      props.entityNameMap,
+    );
+  }, [props.dockerHostMap, props.entityNameMap]);
 
   const podmanHostDisplayMap: Record<string, string> = useMemo(() => {
-    return buildPodmanHostDisplayMap(props.podmanHostMap);
-  }, [props.podmanHostMap]);
+    return mergeFacetValueDisplayMap(
+      buildPodmanHostDisplayMap(props.podmanHostMap),
+      props.entityNameMap,
+    );
+  }, [props.podmanHostMap, props.entityNameMap]);
 
   const clusterDisplayMap: Record<string, string> = useMemo(() => {
-    return buildClusterDisplayMap(props.kubernetesClusterMap);
-  }, [props.kubernetesClusterMap]);
+    return mergeFacetValueDisplayMap(
+      buildClusterDisplayMap(props.kubernetesClusterMap),
+      props.entityNameMap,
+    );
+  }, [props.kubernetesClusterMap, props.entityNameMap]);
 
   const facetKeys: Array<string> = useMemo(() => {
     const priorityKeys: Array<string> = [
@@ -281,7 +304,7 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
           let valueDisplayMap: Record<string, string> | undefined;
           let valueColorMap: Record<string, string> | undefined;
 
-          if (key === "primaryEntityId") {
+          if (key === "primaryEntityId" || key === "serviceId") {
             valueDisplayMap = serviceDisplayMap;
             valueColorMap = serviceColorMap;
           } else if (key === "hostId") {

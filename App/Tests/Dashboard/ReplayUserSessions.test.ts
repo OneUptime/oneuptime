@@ -7,6 +7,7 @@ import type {
   ReplayUserSessionDescription,
   ReplayUserSessionItem,
   ReplayUserSessionsFetchResult,
+  ReplayUserSessionsState,
   ReplayUserSessionsWindow,
 } from "../../FeatureSet/Dashboard/src/Components/SessionReplay/ReplayUserSessions";
 
@@ -274,6 +275,26 @@ describe("mergeReplayUserSessions", () => {
     expect(merged[0]?.errorCount).toBe(3);
   });
 
+  test("a fetched row's 'recording ended' wins over a stand-in that was still live", () => {
+    /*
+     * The manifest the stand-in was built from can predate the tab
+     * closing; the list row read afterwards is the fresher fact.
+     */
+    const fetched: ReplayUserSessionItem = item("current", NOW - 2 * DAY_MS, {
+      isFinalized: false,
+      hasRecordingEnded: true,
+    });
+    const merged: Array<ReplayUserSessionItem> =
+      userSessions.mergeReplayUserSessions([[fetched]], {
+        ...current,
+        isFinalized: false,
+        hasRecordingEnded: false,
+      });
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0]?.hasRecordingEnded).toBe(true);
+  });
+
   test("orders equal start times by session id so the list is stable", () => {
     const first: Array<ReplayUserSessionItem> =
       userSessions.mergeReplayUserSessions(
@@ -348,6 +369,125 @@ describe("findAdjacentUserSessions", () => {
       newer: null,
       older: null,
     });
+  });
+});
+
+/*
+ * github.com/OneUptime/oneuptime/issues/3642: the lookup runs once per
+ * session, so its row for the session being watched is as old as the page.
+ * The player overlays the latest manifest's flags onto that one entry, so
+ * the menu's dot goes out with the header's Live pill.
+ */
+describe("overlayCurrentReplayUserSession", () => {
+  function readyState(
+    sessions: Array<ReplayUserSessionItem>,
+  ): ReplayUserSessionsState {
+    return {
+      status: "ready",
+      kind: "identified",
+      sessions: sessions,
+      currentSessionId: "current",
+      isTruncated: false,
+    };
+  }
+
+  const liveAtLookup: Array<ReplayUserSessionItem> = [
+    item("newer", NOW, { isFinalized: false, hasRecordingEnded: false }),
+    item("current", NOW - DAY_MS, {
+      isFinalized: false,
+      hasRecordingEnded: false,
+    }),
+    item("older", NOW - 2 * DAY_MS),
+  ];
+
+  test("the watched entry takes the manifest's 'recording ended', and stops reading as live", () => {
+    const state: ReplayUserSessionsState = readyState(liveAtLookup);
+
+    const overlaid: ReplayUserSessionsState =
+      userSessions.overlayCurrentReplayUserSession(state, {
+        sessionId: "current",
+        isFinalized: false,
+        hasRecordingEnded: true,
+      });
+
+    expect(overlaid).not.toBe(state);
+    expect(overlaid.sessions[1]).toEqual({
+      ...liveAtLookup[1],
+      isFinalized: false,
+      hasRecordingEnded: true,
+    });
+    /* The input is not mutated: React state stays what the lookup set. */
+    expect(state.sessions[1]?.hasRecordingEnded).toBe(false);
+  });
+
+  test("the watched entry takes the manifest's finalization too", () => {
+    const overlaid: ReplayUserSessionsState =
+      userSessions.overlayCurrentReplayUserSession(readyState(liveAtLookup), {
+        sessionId: "current",
+        isFinalized: true,
+        hasRecordingEnded: false,
+      });
+
+    expect(overlaid.sessions[1]?.isFinalized).toBe(true);
+    expect(overlaid.sessions[1]?.hasRecordingEnded).toBe(false);
+  });
+
+  test("every other entry stays the lookup's point-in-time read, by identity", () => {
+    const overlaid: ReplayUserSessionsState =
+      userSessions.overlayCurrentReplayUserSession(readyState(liveAtLookup), {
+        sessionId: "current",
+        isFinalized: false,
+        hasRecordingEnded: true,
+      });
+
+    expect(overlaid.sessions[0]).toBe(liveAtLookup[0]);
+    expect(overlaid.sessions[2]).toBe(liveAtLookup[2]);
+    expect(overlaid.status).toBe("ready");
+    expect(overlaid.currentSessionId).toBe("current");
+  });
+
+  test("returns the same state when nothing changes, so a memo over it is stable across polls", () => {
+    const state: ReplayUserSessionsState = readyState(liveAtLookup);
+
+    /* The same flags. An absent hasRecordingEnded reads as false. */
+    expect(
+      userSessions.overlayCurrentReplayUserSession(state, {
+        sessionId: "current",
+        isFinalized: false,
+        hasRecordingEnded: false,
+      }),
+    ).toBe(state);
+
+    const absentFlag: ReplayUserSessionsState = readyState([
+      item("current", NOW, { isFinalized: false }),
+    ]);
+
+    expect(
+      userSessions.overlayCurrentReplayUserSession(absentFlag, {
+        sessionId: "current",
+        isFinalized: false,
+        hasRecordingEnded: false,
+      }),
+    ).toBe(absentFlag);
+
+    /* No manifest yet, no id, or the session not in the list. */
+    expect(userSessions.overlayCurrentReplayUserSession(state, null)).toBe(
+      state,
+    );
+    expect(
+      userSessions.overlayCurrentReplayUserSession(state, {
+        sessionId: "",
+        isFinalized: true,
+        hasRecordingEnded: false,
+      }),
+    ).toBe(state);
+    expect(
+      userSessions.overlayCurrentReplayUserSession(state, {
+        sessionId: "missing",
+        isFinalized: true,
+        hasRecordingEnded: false,
+      }),
+    ).toBe(state);
   });
 });
 
@@ -459,10 +599,42 @@ describe("parseReplayUserSessionItem", () => {
       hasError: true,
       errorCount: 2,
       isFinalized: true,
+      hasRecordingEnded: false,
       identifiedUserKey: USER_KEY,
       visitorId: VISITOR,
       identifiedUserLabel: "jane@acme.com",
     });
+  });
+
+  /*
+   * github.com/OneUptime/oneuptime/issues/3642: the menu marks a sibling
+   * as recording only while it is not finalized AND has not ended, so the
+   * row carries the server's flag - as a boolean or the 1/0 ClickHouse
+   * serialises - and an older server's row without it reads as false.
+   */
+  test("reads hasRecordingEnded, as a boolean or 0/1, and false when absent", () => {
+    for (const [wire, expected] of [
+      [true, true],
+      [1, true],
+      ["1", true],
+      [false, false],
+      [0, false],
+    ] as Array<[boolean | number | string, boolean]>) {
+      expect(
+        userSessions.parseReplayUserSessionItem(
+          wireRow({ isFinalized: 0, hasRecordingEnded: wire }) as Record<
+            string,
+            unknown
+          >,
+        ).hasRecordingEnded,
+      ).toBe(expected);
+    }
+
+    expect(
+      userSessions.parseReplayUserSessionItem(
+        wireRow({ isFinalized: 0 }) as Record<string, unknown>,
+      ).hasRecordingEnded,
+    ).toBe(false);
   });
 
   test("falls back to the ISO start time on an older server", () => {

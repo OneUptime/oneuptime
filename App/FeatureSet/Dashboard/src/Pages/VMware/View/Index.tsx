@@ -202,6 +202,11 @@ const VMwareVCenterOverview: FunctionComponent<
     useState<RangeStartAndEndDateTime>(DEFAULT_TIME_RANGE);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
+  /*
+   * Toggled on every auto and manual refresh, so the details card re-reads
+   * Last Seen and Agent Version along with the rest of the page.
+   */
+  const [detailsRefresher, setDetailsRefresher] = useState<boolean>(false);
   const [autoRefreshInterval, setAutoRefreshInterval] =
     useState<AutoRefreshInterval>(() => {
       if (typeof window === "undefined") {
@@ -1092,6 +1097,9 @@ const VMwareVCenterOverview: FunctionComponent<
       if (vcenter?.name) {
         void loadGoldenMetricsRef.current(vcenter.name);
         void loadInventory();
+        setDetailsRefresher((prev: boolean) => {
+          return !prev;
+        });
       }
     }, ms);
     return () => {
@@ -1112,6 +1120,9 @@ const VMwareVCenterOverview: FunctionComponent<
     if (vcenter?.name) {
       void loadGoldenMetricsRef.current(vcenter.name);
       void loadInventory();
+      setDetailsRefresher((prev: boolean) => {
+        return !prev;
+      });
     }
   };
 
@@ -2373,6 +2384,7 @@ const VMwareVCenterOverview: FunctionComponent<
       {/* vCenter Details */}
       <CardModelDetail<VMwareVCenter>
         name="vCenter Details"
+        refresher={detailsRefresher}
         formSteps={[
           {
             title: "vCenter Info",

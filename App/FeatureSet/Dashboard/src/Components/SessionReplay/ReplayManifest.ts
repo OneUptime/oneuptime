@@ -16,6 +16,7 @@ import {
   readDtoUnixMs,
 } from "Common/Types/Rum/SessionReplayApi";
 import type { ReplaySessionDetails } from "./ReplaySessionDetails";
+import { isSessionReplayRecordingLive } from "./SessionReplayPlayability";
 
 /*
  * The /manifest response, mapped onto what the player needs.
@@ -77,6 +78,15 @@ export interface SessionReplayManifest {
   rumApplicationId: string;
   durationMs: number;
   isFinalized: boolean;
+  /*
+   * Every tab of this unfinalized session has sent its final chunk, so
+   * nothing more is being recorded and only the finalizer's counting is
+   * pending (SessionReplayManifestHeaderDto.hasRecordingEnded). Always
+   * false once isFinalized is true, and false from an older server that
+   * does not send it. See isManifestRecordingLive and
+   * isManifestAwaitingFinalization for the two questions it separates.
+   */
+  hasRecordingEnded: boolean;
   sealedReason: string;
   /* True when the chunk index itself was cut short server-side. */
   isChunkIndexTruncated: boolean;
@@ -278,6 +288,13 @@ export function parseManifest(data: JSONObject): SessionReplayManifest {
   );
   const sealedReason: string = readDtoString(headerRecord, "sealedReason");
   const isFinalized: boolean = readBooleanLoose(header, "isFinalized");
+  /*
+   * Gated on isFinalized as well as read: the server promises false for a
+   * finalized header, and a response that broke the promise must not turn
+   * a finished session back into a "still finalizing" one.
+   */
+  const hasRecordingEnded: boolean =
+    !isFinalized && readBooleanLoose(header, "hasRecordingEnded");
   const durationMs: number = readDtoNumber(headerRecord, "durationMs");
 
   const details: ReplaySessionDetails = {
@@ -328,6 +345,7 @@ export function parseManifest(data: JSONObject): SessionReplayManifest {
     rumApplicationId: readDtoString(headerRecord, "rumApplicationId"),
     durationMs: durationMs,
     isFinalized: isFinalized,
+    hasRecordingEnded: hasRecordingEnded,
     sealedReason: sealedReason,
     isChunkIndexTruncated: readBooleanLoose(data, "isChunkIndexTruncated"),
     tabs: tabs,
@@ -368,6 +386,32 @@ export function parseManifest(data: JSONObject): SessionReplayManifest {
 }
 
 /* ---- Derived facts. ---- */
+
+/*
+ * Is the recording still going? The player's Live pill, the "caught up
+ * with the live recording" overlay and the user-sessions menu's red dot
+ * ask this, and a session whose every tab has closed answers no even
+ * while the finalizer has yet to count it. Once it said yes for every
+ * unfinalized session, so a closed tab stayed "Live" for 10-15 minutes.
+ */
+export function isManifestRecordingLive(
+  manifest: SessionReplayManifest,
+): boolean {
+  return isSessionReplayRecordingLive(manifest);
+}
+
+/*
+ * Is the header still provisional? The 30 s manifest poll asks this, and
+ * keeps running for an ended session: the finalized header - its counts,
+ * duration and sealed reason - only arrives through that poll, and a
+ * trailing chunk the tab posted as it closed can still land. So can the
+ * rail's telemetry refresh, and every "counting" placeholder.
+ */
+export function isManifestAwaitingFinalization(
+  manifest: SessionReplayManifest,
+): boolean {
+  return !manifest.isFinalized;
+}
 
 export function tabHasFootage(tab: SessionReplayManifestTab): boolean {
   return tab.chunks.some((chunk: SessionReplayManifestChunk): boolean => {
@@ -513,8 +557,25 @@ export function describeFootageAbsence(
     };
   }
 
-  /* Chunks were counted but not one is in the index: they aged out. */
-  if (manifest.counts.chunkCount > 0) {
+  /*
+   * Chunks were counted but not one is in the index: they aged out.
+   *
+   * Only a FINALIZED header's chunkCount is a count the finalizer took. An
+   * unfinalized header's is reconciled from the chunk rows the same read
+   * found (at least 1 whenever any row exists), so it proves the rows are
+   * there, not that they expired - and a session whose tabs all closed
+   * with only an empty sealing chunk stored would read "Footage expired"
+   * on a date still in the future. Nor does a finalized header whose rows
+   * ARE still in the index (every one of them empty) mean anything aged
+   * out. Real expiry is the explicit expiresAtUnixMs check above.
+   */
+  if (
+    manifest.isFinalized &&
+    manifest.counts.chunkCount > 0 &&
+    manifest.tabs.every((tab: SessionReplayManifestTab): boolean => {
+      return tab.chunks.length === 0;
+    })
+  ) {
     return {
       kind: "expired",
       expiresAtUnixMs: manifest.expiresAtUnixMs,
@@ -522,8 +583,13 @@ export function describeFootageAbsence(
     };
   }
 
-  /* A live header with nothing flushed yet: the recorder is still buffering. */
-  if (!manifest.isFinalized) {
+  /*
+   * A live header with nothing flushed yet: the recorder is still
+   * buffering. Only while it is live - a session whose every tab has
+   * closed with nothing playable will not be sent anything more, and
+   * "waiting for the first chunk" would be a wait with no end.
+   */
+  if (isManifestRecordingLive(manifest)) {
     return { kind: "not-yet-uploaded" };
   }
 

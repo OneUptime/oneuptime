@@ -49,7 +49,11 @@ import {
 } from "Common/Utils/Rum/SessionReplayStringMap";
 import SessionSampling from "Common/Utils/Rum/SessionSampling";
 import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
-import Chunker, { PendingChunk, utf8ByteLength } from "./Chunker";
+import Chunker, {
+  PendingChunk,
+  SplitCloseResult,
+  utf8ByteLength,
+} from "./Chunker";
 import ClickRecorder from "./ClickRecorder";
 import Config, {
   RECORDER_VERSION,
@@ -85,8 +89,9 @@ import Transport, { TerminalChunk } from "./Transport";
  *    the customer's page from the back/forward cache, which would mean a RUM
  *    vendor measurably degrading its own customer's Core Web Vitals in order
  *    to collect data about them. Terminal flushes hang off visibilitychange
- *    and pagehide instead, branching on event.persisted. There is a
- *    source-level test asserting the two strings never appear.
+ *    and pagehide instead, and a page restored from the back/forward cache
+ *    is picked up on pageshow (event.persisted). There is a source-level
+ *    test asserting the two strings never appear.
  *
  * 2. The recorder always RECORDS into a bounded ring buffer, and separately
  *    decides whether it may UPLOAD. Consent, sampling and the trigger all
@@ -168,6 +173,20 @@ const MAX_PENDING_CUSTOM_EVENTS: number = 200;
  */
 const KEEPALIVE_PAYLOAD_BUDGET_BYTES: number =
   SESSION_REPLAY_KEEPALIVE_MAX_BYTES - 8 * 1024;
+
+/*
+ * What each EXTRA frame of a terminal request costs beyond its payload: the
+ * room for one envelope that KEEPALIVE_PAYLOAD_BUDGET_BYTES leaves under the
+ * quota. The payload budget already pays for the sealing frame's envelope;
+ * every older piece that rides beside it brings an envelope of its own (up
+ * to MAX_ENVELOPE_JSON_BYTES, and the first piece of a tab carries the meta
+ * and the capabilities), so the chunker charges each one this much before
+ * it mints an index for it. Counting payloads alone let a split whose
+ * payloads fit mint pieces whose frames did not, and the transport had to
+ * leave a minted index out of the request.
+ */
+const KEEPALIVE_FRAME_OVERHEAD_BYTES: number =
+  SESSION_REPLAY_KEEPALIVE_MAX_BYTES - KEEPALIVE_PAYLOAD_BUDGET_BYTES;
 
 /*
  * What the envelope JSON may weigh.
@@ -346,6 +365,8 @@ export default class Recorder {
    * Mutable: both are replaced wholesale when the session rolls over. A
    * rotated session is a different recording with its own start time and its
    * own chunk sequence, so it needs a fresh Chunker rather than a reset one.
+   * A bfcache restore changes only identity.tabId and starts the chunker's
+   * sequence over (onBfcacheRestore): the same session, a new tab.
    */
   private identity: SessionIdentityState;
   private chunker: Chunker;
@@ -394,6 +415,26 @@ export default class Recorder {
    */
   private terminalChunks: Array<TerminalChunk> = [];
 
+  /*
+   * This session's final chunk has been handed to the transport: the
+   * (session, tab) is SEALED, and nothing more may be posted under it.
+   *
+   * Set once the sealing close has returned (sealCurrentSession,
+   * flushTerminal(true), shutdown), so the pieces of the sealing flush
+   * itself pass the guard in onChunkClosed. Cleared only by something that
+   * legitimately opens a new recording: switchSession (a rotation, an
+   * adoption, a consent re-grant - a new session id and a new chunk
+   * sequence), revokeConsent, and a bfcache restore - which never reopens
+   * the sealed tab, but moves the recorder onto a NEW tab id with a chunk
+   * sequence of its own (onBfcacheRestore), so the sealed (session, tab)
+   * stays ended.
+   *
+   * It used to gate only a second FINAL chunk. On a visible tab that is
+   * closed the browser fires pagehide BEFORE visibilitychange(hidden), so
+   * the hidden handler posted one more, non-final chunk - carrying the
+   * visibility event it had just recorded - behind the seal, and the server
+   * could no longer tell a closed tab from one still recording.
+   */
   private hasSentFinalChunk: boolean = false;
   private lastSensitiveScanAtMs: number = 0;
   private droppedEvents: number = 0;
@@ -745,14 +786,26 @@ export default class Recorder {
       }
     };
 
-    this.pageHideListener = (event: PageTransitionEvent): void => {
+    this.pageHideListener = (_event: PageTransitionEvent): void => {
       /*
+       * EVERY pagehide seals this tab, persisted or not.
+       *
        * persisted === true means the page is going into the back/forward
-       * cache and may come back with its JavaScript state intact. Flushing
-       * WITHOUT isFinal keeps the session open, so returning to it continues
-       * the same recording instead of orphaning it as truncated.
+       * cache and MAY come back. It used to flush without isFinal to keep
+       * the tab open for that return - but most cached pages never return:
+       * the user closes the browser, and the browser evicts the cached
+       * document without firing anything at all. That tab's last chunk
+       * then stayed non-final forever, and because the server only calls a
+       * session ended once EVERY tab has ended, one ordinary link click
+       * away from a cache-eligible page kept the whole session "Recording
+       * now" until the idle finalizer ran - the very bug the per-tab rule
+       * exists to fix.
+       *
+       * A page that does come back is not reopened under the sealed tab: it
+       * records on as a NEW tab (onBfcacheRestore), which is how the server
+       * already sees a page reloaded or navigated back to without the cache.
        */
-      this.flushTerminal(event.persisted !== true);
+      this.flushTerminal(true);
     };
 
     this.pageShowListener = (event: PageTransitionEvent): void => {
@@ -1308,7 +1361,18 @@ export default class Recorder {
       this.hasSeenFullSnapshot = true;
     }
 
-    if (this.uploading) {
+    if (this.uploading && this.hasSentFinalChunk) {
+      /*
+       * Recorded after this tab's session was sealed: on a closed tab that
+       * is the visibility event the browser dispatches after pagehide, and
+       * whatever rrweb's observers report while the document is torn down.
+       * Feeding the chunker would let a size or checkout boundary close a
+       * chunk behind the seal, so the event goes nowhere. Counted, so that
+       * if the page ever comes back (a bfcache restore, which records on as
+       * a new tab) the next chunk discloses the loss rather than hiding it.
+       */
+      this.droppedEvents++;
+    } else if (this.uploading) {
       this.chunker.add(buffered);
 
       /*
@@ -1648,6 +1712,16 @@ export default class Recorder {
       return;
     }
 
+    /*
+     * A sealed tab has nothing left to flush and must not start a chunk
+     * behind its final one. The rotation check above still ran: a rotation
+     * is the legitimate way for a tab that is somehow still alive to begin
+     * a NEW recording, and it clears the seal as it does.
+     */
+    if (this.hasSentFinalChunk) {
+      return;
+    }
+
     this.chunker.close(false);
   }
 
@@ -1860,8 +1934,16 @@ export default class Recorder {
       return;
     }
 
-    this.hasSentFinalChunk = true;
-    this.chunker.close(true);
+    /*
+     * Marked sealed AFTER the close, so the final chunk itself is not
+     * refused by onChunkClosed's guard; in a finally, so a close that throws
+     * still cannot seal twice.
+     */
+    try {
+      this.chunker.close(true);
+    } finally {
+      this.hasSentFinalChunk = true;
+    }
   }
 
   /*
@@ -2009,9 +2091,16 @@ export default class Recorder {
    * its chances with a tab that stays alive. Every event added while hidden
    * flushes early at the same budget (see onRrwebEvent), so this is the
    * chunk that grew large while the tab was VISIBLE.
+   *
+   * And nothing at all once the tab is sealed. Closing a VISIBLE tab fires
+   * pagehide first and visibilitychange(hidden) second (the HTML spec's
+   * unload order), so by the time this runs pagehide has already sent the
+   * final chunk - and posting what was recorded since (the visibility
+   * event, at least) put a non-final chunk BEHIND the seal on every closed
+   * tab.
    */
   private onHidden(): void {
-    if (this.stopped || !this.uploading) {
+    if (this.stopped || !this.uploading || this.hasSentFinalChunk) {
       return;
     }
 
@@ -2039,18 +2128,21 @@ export default class Recorder {
       return;
     }
 
-    if (isFinal && this.hasSentFinalChunk) {
+    /*
+     * A sealed tab sends nothing more, final or not: a second final would
+     * be a duplicate, and a non-final one (a hidden handler running after
+     * pagehide) would be a chunk behind the seal. See hasSentFinalChunk.
+     */
+    if (this.hasSentFinalChunk) {
       return;
-    }
-
-    if (isFinal) {
-      this.hasSentFinalChunk = true;
     }
 
     this.isTerminalFlush = true;
     this.terminalChunks = [];
 
     const droppedBefore: number = this.chunker.getDroppedEventCount();
+
+    let split: SplitCloseResult = { emptiedSealEvents: 0, emptiedSealBytes: 0 };
 
     try {
       /*
@@ -2059,19 +2151,43 @@ export default class Recorder {
        * still send is one request's worth however it is cut up. Anything
        * older than that is dropped here, counted, and reported on the
        * envelope as droppedEvents - not minted a chunk index and handed to a
-       * request the browser will refuse.
+       * request the browser will refuse. Every piece beside the sealing one
+       * is charged its envelope as well, so what is minted is what fits.
        */
-      this.chunker.closeSplit(
+      split = this.chunker.closeSplit(
         isFinal,
         KEEPALIVE_PAYLOAD_BUDGET_BYTES,
         KEEPALIVE_PAYLOAD_BUDGET_BYTES,
+        KEEPALIVE_FRAME_OVERHEAD_BYTES,
       );
     } finally {
       this.isTerminalFlush = false;
+
+      /*
+       * Sealed once the split has been minted, and not before: its pieces
+       * must pass onChunkClosed's guard. Everything after this point - the
+       * hidden handler that runs next on a closed tab, the flush timer,
+       * rrweb's last mutations - is refused.
+       */
+      if (isFinal) {
+        this.hasSentFinalChunk = true;
+      }
     }
 
+    /*
+     * Two different losses, reported apart. The OLDEST pieces the budget
+     * could not carry are final-flush-truncated, as they always were. The
+     * newest footage sealed empty - one event too large for any request -
+     * is the loss final-chunk-too-large (sealed: true) has always named,
+     * and is reported under that code whether the chunker emptied the seal
+     * (the ordinary case now) or the transport had to (its backstop, for a
+     * frame pushed over by its envelope); only one of the two ever does for
+     * one flush. maxBytes is the payload budget it was measured against.
+     */
     const droppedEvents: number =
-      this.chunker.getDroppedEventCount() - droppedBefore;
+      this.chunker.getDroppedEventCount() -
+      droppedBefore -
+      split.emptiedSealEvents;
 
     if (droppedEvents > 0) {
       debugWarn(
@@ -2080,6 +2196,20 @@ export default class Recorder {
         {
           droppedEvents: droppedEvents,
           budgetBytes: KEEPALIVE_PAYLOAD_BUDGET_BYTES,
+        },
+      );
+    }
+
+    if (split.emptiedSealEvents > 0) {
+      debugWarn(
+        "final-chunk-too-large",
+        "The final chunk was over the keepalive quota; its events were dropped and an empty final chunk sealed the session in its place.",
+        {
+          bytes: split.emptiedSealBytes,
+          maxBytes: KEEPALIVE_PAYLOAD_BUDGET_BYTES,
+          droppedEvents: split.emptiedSealEvents,
+          droppedChunks: 0,
+          sealed: true,
         },
       );
     }
@@ -2093,41 +2223,112 @@ export default class Recorder {
     }
   }
 
+  /*
+   * The page came back from the back/forward cache with its JavaScript
+   * state intact but an unknown amount of wall-clock time elapsed. The
+   * session may have aged out, the URL may have changed, and rrweb's node
+   * ids no longer describe what is on screen.
+   *
+   * It records on as a NEW TAB: a fresh tab id, a chunk sequence starting
+   * at 0 whose chunk 0 opens on a full snapshot and carries the meta, as a
+   * reloaded page's would. The pagehide that sent it into the cache SEALED
+   * the old tab (see pageHideListener), and the old tab must stay sealed:
+   * the server calls a tab ended on "a final chunk, and nothing started
+   * after it", so reopening it would bring back the very ambiguity the seal
+   * exists to remove, and a page that is never restored - the common case -
+   * could not have waited for it. So the old (session, tab) is never
+   * written to again: every chunk minted from here on is minted under the
+   * new tab id, whose counter is new; the transport's retry queue was
+   * emptied into the sealing request, and a post still in flight from
+   * before the cache carries an index BELOW the seal, which the server
+   * reads as footage before the end, not after it.
+   *
+   * Order is load-bearing:
+   *
+   *   1. The old tab is sealed if somehow it is not (a pageshow with no
+   *      pagehide before it), through the ordinary path - the page is alive.
+   *   2. The tab id and its counter change while the seal still stands, so
+   *      nothing can be minted under the old id in between and nothing is
+   *      minted under the new one before it has a sequence.
+   *   3. The session is re-evaluated with the seal STILL standing. A
+   *      rotation seals the outgoing session first (sealCurrentSession),
+   *      and with the seal lifted that would put an empty final chunk 0 on
+   *      the new tab before it recorded anything. switchSession lifts the
+   *      seal itself, as it does for every rotation. (A recorder that was
+   *      not uploading has no seal to keep standing, and nothing to seal:
+   *      sealCurrentSession does nothing for it either way.)
+   *   4. Only then is the seal lifted, the snapshot taken, and the restore
+   *      disclosed - snapshot FIRST, so chunk 0 is a seek anchor rather
+   *      than a marker followed by a snapshot mid-chunk.
+   */
   private onBfcacheRestore(): void {
-    /*
-     * The page came back from the back/forward cache with its JavaScript
-     * state intact but an unknown amount of wall-clock time elapsed. The
-     * session may have aged out, the URL may have changed, and rrweb's node
-     * ids no longer describe what is on screen - so re-evaluate identity,
-     * disclose the discontinuity, and take a fresh snapshot.
-     */
-    this.chunker.addFidelityNotice(SessionReplayFidelityNotice.BfcacheRestore);
-    this.emitCustomEvent(BFCACHE_CUSTOM_EVENT_TAG, {
-      restoredAtUnixMs: Date.now(),
-    });
+    if (this.stopped || !this.started) {
+      return;
+    }
 
     const now: number = Date.now();
 
     this.isHidden = this.documentRef.visibilityState === "hidden";
-    this.hasSentFinalChunk = false;
+
+    /* 1. */
+    this.sealCurrentSession();
 
     /*
-     * A session that changed while the page was away is a different
-     * recording - and this used to STOP the recorder for the rest of the
-     * page's life, so a user coming Back after lunch got no recording at
-     * all. Now it rotates (or adopts a sibling tab's session) exactly as the
-     * flush timer would.
+     * Sealing can be what trips the chunk cap, whose disclosure chunk shuts
+     * the recorder down; a stopped recorder starts no tab.
      */
-    if (this.maybeRotateSession(now)) {
-      this.routeRecorder.handle("popstate", this.windowRef);
+    if (this.stopped) {
       return;
     }
 
-    /* Returning is activity; written through on the next tick. */
-    this.lastUserActivityUnixMs = now;
+    /* 2. */
+    const tabId: string = SessionId.rotateTabId();
+
+    SessionId.resetChunkIndex(tabId);
+
+    this.identity = { ...this.identity, tabId: tabId };
+    this.customEventsInChunk = 0;
+    this.customEventsDroppedInChunk = 0;
+
+    /*
+     * 3. A session that changed while the page was away is a different
+     * recording - and this used to STOP the recorder for the rest of the
+     * page's life, so a user coming Back after lunch got no recording at
+     * all. Now it rotates (or adopts a sibling tab's session) exactly as the
+     * flush timer would, onto the new tab id.
+     */
+    const rotated: boolean = this.maybeRotateSession(now);
+
+    if (!rotated) {
+      /*
+       * 4. The same session, a new tab. switchSession did all of this for a
+       * rotated one; here the chunker is kept (its session start, and the
+       * fidelity notices that still describe this page) and only its
+       * sequence starts over with the index.
+       */
+      this.hasSentFinalChunk = false;
+      this.chunker.beginNewTab();
+
+      /*
+       * Where THIS tab began, like any page load: chunk 0 carries it as
+       * meta.entryUrl, and routes[] starts with it.
+       */
+      this.entryUrl = this.scrubUrl(this.windowRef.location.href);
+      this.chunker.addRoute(this.entryUrl);
+
+      /* Returning is activity; written through on the next tick. */
+      this.lastUserActivityUnixMs = now;
+
+      this.takeFullSnapshot();
+      this.notifySessionChange();
+    }
+
+    this.chunker.addFidelityNotice(SessionReplayFidelityNotice.BfcacheRestore);
+    this.emitCustomEvent(BFCACHE_CUSTOM_EVENT_TAG, {
+      restoredAtUnixMs: now,
+    });
 
     this.routeRecorder.handle("popstate", this.windowRef);
-    this.takeFullSnapshot();
   }
 
   private onChunkClosed(chunk: PendingChunk): void {
@@ -2154,6 +2355,24 @@ export default class Recorder {
         },
       );
 
+      return;
+    }
+
+    /*
+     * Nothing is posted behind a seal: the one place every close path meets,
+     * checked BEFORE a chunk index is minted, so a refused chunk leaves no
+     * hole in the sequence. The call sites (onHidden, flushTerminal, the
+     * flush timer, onRrwebEvent) already stop short of closing a chunk on a
+     * sealed tab; this is what keeps a future path from reopening the bug
+     * where the server saw a chunk start after the final one and could no
+     * longer tell that the tab had been closed. The pieces of the sealing
+     * flush itself pass, because the seal is only marked once that close
+     * has returned. No diagnostics code of its own: it is unreachable today,
+     * and the events are disclosed through droppedEvents if the page ever
+     * records on (a rotation, or a bfcache restore as a new tab).
+     */
+    if (this.hasSentFinalChunk) {
+      this.droppedEvents += chunk.eventCount;
       return;
     }
 
@@ -3047,13 +3266,14 @@ export default class Recorder {
      * to expire as idle-timeout ten minutes later.
      */
     if (seal && this.uploading && !this.hasSentFinalChunk) {
-      this.hasSentFinalChunk = true;
-
       try {
         this.clickRecorder.stop(this.documentRef);
         this.chunker.close(true);
       } catch {
         /* Sealing is best effort; the teardown below must still run. */
+      } finally {
+        /* After the close, for the reason sealCurrentSession gives. */
+        this.hasSentFinalChunk = true;
       }
     }
 

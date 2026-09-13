@@ -92,9 +92,22 @@ const PodmanHostLogs: FunctionComponent<
       title="Container Logs"
       description="Live OpenTelemetry logs from all containers on this Podman host. Use the filter bar to scope by severity, trace id, or any resource attribute."
     >
+      {/*
+       * The pinned attributes are machine values (hostIdentifier, runtime
+       * slug) that the filter must keep matching. The display overrides make
+       * the locked chips read "Podman Host: <name>" and "Runtime: podman"
+       * instead of raw OTel resource keys and the host's machine id.
+       */}
       <DashboardLogsViewer
         id={`podman-host-logs-${modelId.toString()}`}
         logQuery={logQuery}
+        attributeFilterDisplayKeys={{
+          "resource.host.name": "Podman Host",
+          "resource.container.runtime": "Runtime",
+        }}
+        attributeFilterDisplayValues={{
+          "resource.host.name": host.name || host.hostIdentifier || "",
+        }}
         showFilters={true}
         enableRealtime={true}
         noLogsMessage="No container logs found. Make sure the Podman agent's filelog receiver is configured and the collector is running."

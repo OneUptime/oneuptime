@@ -96,10 +96,16 @@ const CephClusterLogs: FunctionComponent<
        * entityScope matches new rows via the bloom-indexed `entityKeys`
        * membership column, with the resource-attribute equality as the
        * fallback inside the same OR — the pattern Kubernetes/View pages use.
+       *
+       * The chip value is already the cluster's name, so only the key needs a
+       * label: "Cluster" (as on the Metrics tab) instead of the raw OTel key.
        */}
       <DashboardLogsViewer
         id={`ceph-cluster-logs-${modelId.toString()}`}
         logQuery={logQuery}
+        attributeFilterDisplayKeys={{
+          "resource.ceph.cluster.name": "Cluster",
+        }}
         entityScope={{
           entityKeys: [
             keyForCephCluster(

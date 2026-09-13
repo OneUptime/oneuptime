@@ -3,7 +3,9 @@ import { REPLAY_SHORTCUT_GROUPS } from "../../../FeatureSet/Dashboard/src/Compon
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import Permission from "Common/Types/Permission";
 import {
+  MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
   SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
+  SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS,
   SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
   SESSION_REPLAY_MAX_CAPTURE_REASON_LENGTH,
   SESSION_REPLAY_MAX_CUSTOM_EVENTS_PER_CHUNK,
@@ -882,11 +884,12 @@ describe("Session Replay docs page", (): void => {
   });
 
   /*
-   * docs-and-design-fidelity-3. The health section promises the card shows
-   * what the newest recorder announced it can capture. That is only true
-   * while the read path actually carries the field to the card.
+   * docs-and-design-fidelity-3. The health section promises the Health page
+   * shows what the newest recorder announced it can capture. That is only
+   * true while the read path actually carries the field to the page, which
+   * RecordingHealthDashboard renders since recording health got its own page.
    */
-  it("only promises recorder capabilities on the health card while the API carries them", (): void => {
+  it("only promises recorder capabilities on the Health page while the API carries them", (): void => {
     expect(
       readRepo("Common/Server/Utils/SessionReplay/SessionReplayReadService.ts"),
     ).toContain("recorderCapabilities");
@@ -894,12 +897,12 @@ describe("Session Replay docs page", (): void => {
       "recorderCapabilities:",
     );
 
-    const card: string = fs.readFileSync(
-      path.join(DASHBOARD_REPLAY_DIR, "RecordingHealthCard.tsx"),
+    const healthPage: string = fs.readFileSync(
+      path.join(DASHBOARD_REPLAY_DIR, "RecordingHealthDashboard.tsx"),
       "utf8",
     );
 
-    expect(card).toContain("recorderCapabilities");
+    expect(healthPage).toContain("recorderCapabilities");
 
     expect(section(readPage(), "## Recording health")).toContain(
       "capabilities of the newest recorder that reported",
@@ -941,5 +944,79 @@ describe("Session Replay docs page", (): void => {
     }
 
     expect(readPage()).toContain("Replay Policy");
+  });
+
+  /*
+   * github.com/OneUptime/oneuptime/issues/3642. When a recording counts as
+   * ended is a contract between the recorder, the finalizer and the
+   * dashboard (Common/Utils/Rum/SessionReplayRecordingEnded.ts), and the
+   * page is where a customer learns it:
+   *
+   * - every pagehide seals the tab, back/forward cache included, and a
+   *   restored page records on as a new tab - so the page may no longer
+   *   say that only a "real unload" ends a tab;
+   * - a tab that reached the chunk cap has ended too;
+   * - "Recording ended" appears after the grace, about a minute, and the
+   *   counts follow when the session is finalized - with no fixed-time
+   *   promise, since a session the finalizer lost track of waits far
+   *   longer;
+   * - the list's own refresh is bounded.
+   */
+  it("describes when a recording has ended the way the shared rule decides it", (): void => {
+    const page: string = readPage();
+    const install: string = section(
+      page,
+      "### What a healthy install looks like",
+    );
+
+    expect(install).not.toMatch(/only a real unload/i);
+    expect(install).not.toContain("`persisted` false");
+    expect(install).toMatch(/back\/forward cache \(every `pagehide`\)/);
+    expect(install).toMatch(/records on as a new tab/);
+
+    expect(SESSION_REPLAY_ENDED_FINALIZE_GRACE_MS).toBe(60 * 1000);
+    expect(page).toMatch(
+      /Recording ended_ about a minute after every tab of the session has ended/,
+    );
+    expect(page).toContain(
+      `reached the chunk cap (${MAX_SESSION_REPLAY_CHUNKS_PER_SESSION} chunks`,
+    );
+    expect(page).not.toMatch(
+      /the page went into the back\/forward cache, a mobile browser/,
+    );
+
+    /* No fixed time for the counts. */
+    const endedRow: string =
+      page.split("\n").find((line: string): boolean => {
+        return line.startsWith("| **Recording ended**");
+      }) || "";
+
+    expect(endedRow).not.toBe("");
+    expect(endedRow).not.toMatch(/minute/);
+    expect(endedRow).toContain("counted shortly");
+
+    /* The list refresh is capped, and says how to get it back. */
+    expect(page).toMatch(/for up to 10 minutes after you last loaded the list/);
+  });
+
+  it("tells the two final-chunk-too-large outcomes apart on the troubleshooting page", (): void => {
+    const row: string =
+      readContent("en/rum/session-replay-troubleshooting.md")
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.startsWith("| `final-chunk-too-large`");
+        }) || "";
+
+    expect(row).not.toBe("");
+    expect(row).not.toContain("The last chunk of the session");
+    expect(row).not.toContain("Nothing else is lost");
+
+    const sealedTrue: number = row.indexOf("`sealed: true`");
+    const sealedFalse: number = row.indexOf("`sealed: false`");
+
+    expect(sealedTrue).toBeGreaterThan(-1);
+    expect(sealedFalse).toBeGreaterThan(sealedTrue);
+    expect(row.slice(sealedTrue, sealedFalse)).toContain("empty final chunk");
+    expect(row.slice(sealedFalse)).toContain("stays open with a gap");
   });
 });

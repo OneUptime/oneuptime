@@ -30,6 +30,13 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
+import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import {
+  ProfileEntityDisplay,
+  getProfileEntityDisplay,
+  isKnownProfileEntityType,
+} from "../../../Utils/ProfilesEntityDisplay";
 
 const ProfileViewPage: FunctionComponent<
   PageComponentProps
@@ -276,30 +283,6 @@ const ExplainerCard: FunctionComponent<ExplainerCardProps> = (
   );
 };
 
-/**
- * Friendly label for the resource type a profile is attached to.
- * primaryEntityId alone is ambiguous — the same column holds service,
- * host, docker and k8s ids, disambiguated by primaryEntityType.
- */
-function getEntityTypeLabel(entityType: ServiceType | undefined): string {
-  switch (entityType) {
-    case ServiceType.OpenTelemetry:
-      return "Service";
-    case ServiceType.Host:
-      return "Host";
-    case ServiceType.DockerHost:
-      return "Docker host";
-    case ServiceType.PodmanHost:
-      return "Podman host";
-    case ServiceType.KubernetesCluster:
-      return "Kubernetes cluster";
-    case ServiceType.Monitor:
-      return "Monitor";
-    default:
-      return "Resource";
-  }
-}
-
 interface ProfileSummaryCardProps {
   profile: Profile;
   profileId: string;
@@ -324,6 +307,37 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
   const traceId: string | undefined = p.traceId?.toString();
 
   /*
+   * primaryEntityId alone is ambiguous — the same column holds service,
+   * host, container, cluster and RUM application ids, disambiguated by
+   * primaryEntityType. The type goes in as a hint so the name comes back in
+   * one targeted lookup; until it does, the card shows the type label over
+   * the raw id rather than nothing.
+   */
+  const entityId: string = p.primaryEntityId?.toString() || "";
+  const entityType: ServiceType | undefined = p.primaryEntityType;
+
+  const entityIds: Array<string> = useMemo(() => {
+    return entityId ? [entityId] : [];
+  }, [entityId]);
+
+  const entityTypeHints: Record<string, ServiceType> = useMemo(() => {
+    return entityId && isKnownProfileEntityType(entityType)
+      ? { [entityId]: entityType }
+      : {};
+  }, [entityId, entityType]);
+
+  const entityNames: TelemetryEntityNameMap = useTelemetryEntityNames(
+    entityIds,
+    { typeHints: entityTypeHints },
+  );
+
+  const source: ProfileEntityDisplay = getProfileEntityDisplay({
+    entityId,
+    entityType,
+    nameMap: entityNames,
+  });
+
+  /*
    * Plain anchor download (same idiom as attachment downloads): auth
    * rides on the session cookie, and the tenant comes from the query
    * param because an <a> tag cannot send custom headers.
@@ -339,16 +353,18 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
   return (
     <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-        {p.primaryEntityId && (
+        {entityId && (
           <div>
             <div className="text-[10px] uppercase tracking-wider text-gray-400">
-              {getEntityTypeLabel(p.primaryEntityType)}
+              {source.typeLabel}
             </div>
             <div
-              className="text-sm font-medium text-gray-900 mt-0.5 font-mono truncate max-w-[16rem]"
-              title={p.primaryEntityId.toString()}
+              className={`text-sm font-medium text-gray-900 mt-0.5 truncate max-w-[16rem] ${
+                source.isResolved ? "" : "font-mono"
+              }`}
+              title={entityId}
             >
-              {p.primaryEntityId.toString()}
+              {source.isResolved ? source.primary : entityId}
             </div>
           </div>
         )}

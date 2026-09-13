@@ -7,6 +7,7 @@ import React, {
   useMemo,
 } from "react";
 import { FacetValue } from "../types";
+import { getFacetValueDisplayLabel } from "../LogsEntityNames";
 import FacetValueRow from "./FacetValueRow";
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
@@ -73,9 +74,7 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
     const query: string = searchText.toLowerCase().trim();
     return props.values.filter((facet: FacetValue) => {
       const displayName: string =
-        facet.displayName ??
-        props.valueDisplayMap?.[facet.value] ??
-        facet.value;
+        getFacetValueDisplayLabel(facet, props.valueDisplayMap) || facet.value;
       return displayName.toLowerCase().includes(query);
     });
   }, [props.values, props.valueDisplayMap, searchText]);
@@ -149,9 +148,10 @@ const FacetSection: FunctionComponent<FacetSectionProps> = (
               <FacetValueRow
                 key={facet.value}
                 value={facet.value}
-                displayValue={
-                  facet.displayName ?? props.valueDisplayMap?.[facet.value]
-                }
+                displayValue={getFacetValueDisplayLabel(
+                  facet,
+                  props.valueDisplayMap,
+                )}
                 count={facet.count}
                 maxCount={maxCount}
                 color={props.valueColorMap?.[facet.value]}

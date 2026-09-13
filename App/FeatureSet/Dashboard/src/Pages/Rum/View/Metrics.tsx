@@ -15,6 +15,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MetricsViewer from "../../../Components/Metrics/MetricsViewer";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
 
 const RumApplicationMetrics: FunctionComponent<
   PageComponentProps
@@ -73,7 +74,16 @@ const RumApplicationMetrics: FunctionComponent<
 
   return (
     <Fragment>
-      <MetricsViewer serviceIds={[modelId]} />
+      {/*
+       * Telemetry for a RUM application carries the RumApplication id in
+       * primaryEntityId, not a Service id. Tell the viewer so the locked
+       * scope chip reads "RUM Application: <name>" instead of
+       * "Service: <uuid>".
+       */}
+      <MetricsViewer
+        serviceIds={[modelId]}
+        scopeEntityType={ServiceType.RealUserMonitor}
+      />
     </Fragment>
   );
 };

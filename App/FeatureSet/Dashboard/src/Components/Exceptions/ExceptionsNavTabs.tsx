@@ -42,12 +42,13 @@ const ExceptionsNavTabs: FunctionComponent<Props> = (
             isResolved: false,
             isArchived: false,
             /*
-             * The badge has to count what the tab it sits on SHOWS. The
-             * Unresolved list opens on the "Issues" class lens, which hides
-             * user errors and expected denials, so counting every unresolved
-             * group would put a 400 on a tab that lists 12 — and the number a
-             * user cannot reconcile with the list is the number that teaches
-             * them to ignore the badge.
+             * The badge is the outstanding actionable backlog signal for the
+             * unified Exceptions tab. It deliberately remains unresolved and
+             * unarchived when the in-page status filter changes.
+             *
+             * Match the default "Issues" class lens, which hides user errors
+             * and expected denials, so this count represents work that needs
+             * attention rather than every captured exception group.
              *
              * IncludesNone, matching ExceptionsViewer exactly: it compiles to
              * `NOT IN ('user-error', 'expected-denial')`, so a class this
@@ -71,28 +72,18 @@ const ExceptionsNavTabs: FunctionComponent<Props> = (
   }, []);
 
   /*
-   * Unresolved / Resolved / Archived are the SAME ExceptionsViewer with a
-   * different status default, so the service filter, the search and the
-   * window the user set on one of them describe the other two just as well.
-   * They used to be dropped on every tab click — filter to five services in
-   * Unresolved, click Resolved, and the filter was gone.
+   * The Exceptions destination is the only top-level tab backed by
+   * ExceptionsViewer. Carry list scope into it from preserved legacy status
+   * URLs; Insights and Setup Guide do not render that scope.
    *
-   * Insights deliberately does not carry: it is a different, unscoped
-   * component, and handing it a filtered URL would put a scope in the
-   * address bar that none of its numbers honour.
-   *
-   * `status` is not in the carried set, so each tab still selects its own —
-   * carrying it would make every tab show whichever status the user came
-   * from.
+   * `status` is not in the carried set because the unified list owns it.
    */
   const tabs: Array<TelemetryTab> = [
     {
-      key: "unresolved",
-      label: "Unresolved",
+      key: "exceptions",
+      label: "Exceptions",
       icon: IconProp.Alert,
-      to: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.EXCEPTIONS_UNRESOLVED] as Route,
-      ),
+      to: RouteUtil.populateRouteParams(RouteMap[PageMap.EXCEPTIONS] as Route),
       ...(unresolvedCount !== null && unresolvedCount > 0
         ? {
             badge: {
@@ -110,24 +101,6 @@ const ExceptionsNavTabs: FunctionComponent<Props> = (
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.EXCEPTIONS_OVERVIEW] as Route,
       ),
-    },
-    {
-      key: "resolved",
-      label: "Resolved",
-      icon: IconProp.Check,
-      to: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.EXCEPTIONS_RESOLVED] as Route,
-      ),
-      carriesScope: true,
-    },
-    {
-      key: "archived",
-      label: "Archived",
-      icon: IconProp.Archive,
-      to: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.EXCEPTIONS_ARCHIVED] as Route,
-      ),
-      carriesScope: true,
     },
     {
       key: "setup",

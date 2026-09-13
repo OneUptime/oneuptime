@@ -97,9 +97,11 @@ export function getCloudResourceAttributeFilters(
 }
 
 /*
- * Human labels for the filter chips the Traces / Metrics viewers render
- * above their results. Same keys as getCloudResourceAttributeFilters, so the
- * two can never disagree about which chips to show.
+ * Human labels for the filter chips the Logs / Traces / Metrics viewers
+ * render above their results. Same keys as getCloudResourceAttributeFilters,
+ * so the two can never disagree about which chips to show — and every key
+ * the filter sends gets a label, so no tab shows a raw
+ * "resource.cloud.*" OTel key.
  */
 export function getCloudResourceAttributeDisplayKeys(
   resource: CloudResourceScopeSource | null | undefined,

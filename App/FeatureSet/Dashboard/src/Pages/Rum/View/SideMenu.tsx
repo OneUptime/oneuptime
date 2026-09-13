@@ -122,6 +122,18 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Health",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_HEALTH
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Heartbeat}
+        />
+        <SideMenuItem
+          link={{
             title: "Replay Policy",
             to: RouteUtil.populateRouteParams(
               RouteMap[

@@ -295,11 +295,12 @@ export default class SessionId {
     });
 
     /*
-     * A rotated session starts its own chunk sequence. This matters on a
-     * bfcache restore or an idle rollover, where the session id changes
-     * while the tab id does not: without the reset the new session's first
-     * chunk would claim an index the finalizer then reports as preceded by
-     * missing chunks.
+     * A rotated session starts its own chunk sequence. This matters on an
+     * idle or duration rollover inside a live page, where the session id
+     * changes while the tab id does not: without the reset the new session's
+     * first chunk would claim an index the finalizer then reports as
+     * preceded by missing chunks. (A bfcache restore mints a new tab id
+     * before it gets here, so its counter is new anyway.)
      */
     SessionId.resetChunkIndex(tabId);
 

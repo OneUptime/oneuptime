@@ -40,6 +40,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useMemo,
   useState,
 } from "react";
 
@@ -119,6 +120,34 @@ export function describeEffectiveRecordingState(
   }
 }
 
+/*
+ * The Recording pill reads the health poller itself instead of a diagnosis
+ * handed down by the page. ModelDetail builds its field renderers once, when
+ * it mounts, so a getElement that closes over page state keeps the value that
+ * state had on that render. Health has not answered by then, so the pill
+ * used to read "On (project switch not checked yet)" forever. The poller is
+ * shared per application (RecordingHealthCard already subscribes to it), so
+ * this adds no request.
+ */
+export function EffectiveRecordingStatePill(props: {
+  rumApplicationId: ObjectID | string;
+  isApplicationEnabled: boolean | undefined;
+}): ReactElement {
+  const health: SessionReplayHealthSnapshot = useSessionReplayHealth(
+    props.rumApplicationId,
+    { pollIntervalMs: SESSION_REPLAY_HEALTH_POLL_SLOW_MS },
+  );
+
+  const diagnosis: RecordingHealthDiagnosis | null = health.isLoading
+    ? null
+    : health.diagnosis;
+
+  const state: { text: string; color: typeof Green } =
+    describeEffectiveRecordingState(props.isApplicationEnabled, diagnosis);
+
+  return <Pill color={state.color} text={state.text} />;
+}
+
 function Chips(props: {
   values: Array<string> | undefined;
   emptyCopy: string;
@@ -160,7 +189,19 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
    * Route is ":id/session-replay-settings", so the model id is one segment
    * before the end. Same as Pages/Rum/View/Clients.tsx.
    */
-  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const modelIdString: string = Navigation.getLastParamAsString(1);
+
+  /*
+   * ModelDetail refetches whenever the modelId it is handed changes by
+   * identity, and this page lifts the loaded policy into state. A fresh
+   * ObjectID per render would therefore refetch on every render, forever:
+   * each load re-rendered the page, which handed the card a new id, which
+   * loaded again, so the policy card sat on its loading bar. The id is
+   * memoized on the route param it came from.
+   */
+  const modelId: ObjectID = useMemo((): ObjectID => {
+    return new ObjectID(modelIdString);
+  }, [modelIdString]);
 
   /*
    * The loaded policy, captured from the detail card so the 0% alert and
@@ -168,14 +209,6 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
    * an edit (the card refetches on save and calls onItemLoaded again).
    */
   const [application, setApplication] = useState<RumApplication | null>(null);
-
-  const health: SessionReplayHealthSnapshot = useSessionReplayHealth(modelId, {
-    pollIntervalMs: SESSION_REPLAY_HEALTH_POLL_SLOW_MS,
-  });
-
-  const diagnosis: RecordingHealthDiagnosis | null = health.isLoading
-    ? null
-    : health.diagnosis;
 
   const recordsNothing: boolean =
     application !== null &&
@@ -459,13 +492,17 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                 title: "Recording",
                 fieldType: FieldType.Element,
                 getElement: (item: RumApplication): ReactElement => {
-                  const state: { text: string; color: typeof Green } =
-                    describeEffectiveRecordingState(
-                      item.isSessionReplayEnabled,
-                      diagnosis,
-                    );
-
-                  return <Pill color={state.color} text={state.text} />;
+                  /*
+                   * The id comes from the loaded row, not from this render's
+                   * modelId: ModelDetail keeps the closure from its first
+                   * render, and the row is what the card is showing.
+                   */
+                  return (
+                    <EffectiveRecordingStatePill
+                      rumApplicationId={item.id?.toString() || modelIdString}
+                      isApplicationEnabled={item.isSessionReplayEnabled}
+                    />
+                  );
                 },
               },
               {

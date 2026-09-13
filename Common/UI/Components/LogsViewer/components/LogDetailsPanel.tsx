@@ -31,6 +31,15 @@ import { APP_API_URL } from "../../../Config";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import ObjectID from "../../../../Types/ObjectID";
+import {
+  DEFAULT_TELEMETRY_ENTITY_LABEL,
+  TelemetryEntityNameMap,
+} from "../../../Utils/Telemetry/TelemetryEntityNames";
+import {
+  getLogEntityDisplay,
+  LogEntityDisplay,
+  LogsResourceEntityMaps,
+} from "../LogsEntityNames";
 
 type LogDetailTab = "details" | "context";
 
@@ -39,6 +48,17 @@ export type LogContextScope = "nearby" | "trace";
 export interface LogDetailsPanelProps {
   log: Log;
   serviceMap: Dictionary<Service>;
+  /*
+   * Names for primaryEntityIds serviceMap does not hold (RUM application,
+   * host, …) so the header names the entity instead of printing its id.
+   */
+  entityNameMap?: TelemetryEntityNameMap | undefined;
+  /*
+   * Preloaded host / Docker host / Podman host / Kubernetes cluster maps.
+   * Agent-ingested telemetry is primary-keyed on those rows, and such ids
+   * are named from these maps rather than sent to the resolver.
+   */
+  resourceEntityMaps?: LogsResourceEntityMaps | undefined;
   onClose?: () => void;
   getTraceRoute?:
     | ((traceId: string, log: Log) => Route | URL | undefined)
@@ -231,11 +251,23 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
 
   const variant: "floating" | "embedded" = props.variant || "floating";
   const primaryEntityId: string = props.log.primaryEntityId?.toString() || "";
-  const service: Service | undefined = props.serviceMap[primaryEntityId];
-  const serviceName: string =
-    service?.name || primaryEntityId || "Unknown service";
-  const serviceColor: string =
-    (service?.serviceColor && service?.serviceColor.toString()) || "#64748b";
+  const entityDisplay: LogEntityDisplay = getLogEntityDisplay({
+    primaryEntityId,
+    serviceMap: props.serviceMap,
+    resourceMaps: props.resourceEntityMaps,
+    entityNameMap: props.entityNameMap,
+  });
+  const serviceName: string = entityDisplay.name || "Unknown service";
+  const serviceColor: string = entityDisplay.color || "#64748b";
+  /*
+   * "Service" is what the header has always implied; only a different kind
+   * of entity (a RUM application, a host) earns an explicit type badge.
+   */
+  const entityTypeBadge: string | undefined =
+    entityDisplay.typeLabel &&
+    entityDisplay.typeLabel !== DEFAULT_TELEMETRY_ENTITY_LABEL
+      ? entityDisplay.typeLabel
+      : undefined;
 
   const bodyDetails: PreparedBody = useMemo(() => {
     return prepareBody(props.log.body?.toString());
@@ -626,6 +658,14 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
               <SeverityBadge severity={props.log.severityText} />
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              {entityTypeBadge && (
+                <span
+                  className={smallBadgeClass}
+                  data-testid="log-details-entity-type"
+                >
+                  {entityTypeBadge}
+                </span>
+              )}
               {props.log.time && (
                 <span className={smallBadgeClass}>
                   <Icon icon={IconProp.Clock} className="h-3 w-3" />

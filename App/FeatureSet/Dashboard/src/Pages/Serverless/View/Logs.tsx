@@ -92,9 +92,24 @@ const ServerlessFunctionLogs: FunctionComponent<
       title="Function Logs"
       description="Live OpenTelemetry logs from this serverless function. Use the filter bar to scope by severity, trace id, or any resource attribute."
     >
+      {/*
+       * The attribute value is the function's faas.name identifier, which is
+       * what the filter must match — but the locked chip would read
+       * "resource.faas.name: <identifier>". The display overrides label it
+       * "Function: <name>" without touching the filter.
+       */}
       <DashboardLogsViewer
         id={`serverless-logs-${modelId.toString()}`}
         logQuery={logQuery}
+        attributeFilterDisplayKeys={{
+          "resource.faas.name": "Function",
+        }}
+        attributeFilterDisplayValues={{
+          "resource.faas.name":
+            serverlessFunction.name ||
+            serverlessFunction.functionIdentifier ||
+            "",
+        }}
         showFilters={true}
         enableRealtime={true}
         noLogsMessage="No logs found for this function. Make sure your OTel collector forwards logs with the faas.name resource attribute."
