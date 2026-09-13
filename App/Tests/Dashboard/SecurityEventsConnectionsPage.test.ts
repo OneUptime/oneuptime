@@ -73,6 +73,11 @@ const TAB_RULE_PATTERN: RegExp =
 const FIELD_HEAD_PATTERN: RegExp = /field:\s*\{\s*(\w+):\s*true/g;
 /* Matches `title: "..."` inside a single extracted entry. */
 const TITLE_PATTERN: RegExp = /title:\s*"([^"]*)"/;
+/* Matches `stepId: "..."` inside a single extracted form field. */
+const STEP_ID_PATTERN: RegExp = /stepId:\s*"([^"]+)"/;
+/* Matches the simple `{ title, id }` entries in the formSteps array. */
+const FORM_STEP_PATTERN: RegExp =
+  /\{\s*title:\s*"([^"]+)",\s*id:\s*"([^"]+)"\s*,?\s*\}/g;
 /* Fields fetched for row actions even when they are not visible columns. */
 const SELECT_MORE_FIELDS_PATTERN: RegExp =
   /selectMoreFields=\{\{([\s\S]*?)\}\}/;
@@ -187,6 +192,11 @@ interface FieldEntry {
   body: string;
 }
 
+interface FormStep {
+  title: string;
+  id: string;
+}
+
 /*
  * Split a formFields/columns array into one entry per column, so an
  * assertion about `noValueMessage` or `doNotShowWhenEditing` is anchored
@@ -219,6 +229,16 @@ function titleOf(entry: FieldEntry): string {
   return match[1] as string;
 }
 
+function stepIdOf(entry: FieldEntry): string {
+  const match: RegExpMatchArray | null = STEP_ID_PATTERN.exec(entry.body);
+
+  if (!match) {
+    throw new Error(`Form field "${entry.columnName}" has no stepId`);
+  }
+
+  return match[1] as string;
+}
+
 function getEntry(entries: Array<FieldEntry>, columnName: string): FieldEntry {
   const entry: FieldEntry | undefined = entries.find(
     (candidate: FieldEntry) => {
@@ -236,6 +256,16 @@ function getEntry(entries: Array<FieldEntry>, columnName: string): FieldEntry {
 const formFieldEntries: Array<FieldEntry> = splitFieldEntries(
   extractArrayProp(connectionsPageSource, "formFields"),
 );
+const formSteps: Array<FormStep> = Array.from(
+  extractArrayProp(connectionsPageSource, "formSteps").matchAll(
+    FORM_STEP_PATTERN,
+  ),
+).map((match: RegExpMatchArray): FormStep => {
+  return {
+    title: match[1] as string,
+    id: match[2] as string,
+  };
+});
 const columnEntries: Array<FieldEntry> = splitFieldEntries(
   extractArrayProp(connectionsPageSource, "columns"),
 );
@@ -585,6 +615,78 @@ describe("Security events connections page content", () => {
     );
 
     expect(serviceAccountField.body).toContain("doNotShowWhenEditing: true");
+  });
+
+  test("the form has the exact ordered Google SecOps workflow", () => {
+    expect(formSteps).toEqual([
+      { title: "Basic Info", id: "basic-info" },
+      { title: "Google SecOps", id: "google-secops" },
+      { title: "Polling", id: "polling" },
+    ]);
+  });
+
+  test("every form step id is unique", () => {
+    const stepIds: Array<string> = formSteps.map((step: FormStep) => {
+      return step.id;
+    });
+
+    expect(new Set(stepIds).size).toBe(stepIds.length);
+  });
+
+  test("every form field is assigned to its exact workflow step", () => {
+    expect(
+      formFieldEntries.map((entry: FieldEntry) => {
+        return { field: entry.columnName, stepId: stepIdOf(entry) };
+      }),
+    ).toEqual([
+      { field: "name", stepId: "basic-info" },
+      { field: "region", stepId: "google-secops" },
+      { field: "instanceResourceName", stepId: "google-secops" },
+      { field: "serviceAccountJson", stepId: "google-secops" },
+      { field: "includeNonAlertingDetections", stepId: "polling" },
+      { field: "isEnabled", stepId: "basic-info" },
+      { field: "pollIntervalInMinutes", stepId: "polling" },
+    ]);
+  });
+
+  test("every field uses a declared step and every step contains fields", () => {
+    const declaredStepIds: Set<string> = new Set(
+      formSteps.map((step: FormStep) => {
+        return step.id;
+      }),
+    );
+    const assignedStepIds: Array<string> = formFieldEntries.map(stepIdOf);
+
+    for (const assignedStepId of assignedStepIds) {
+      expect(declaredStepIds.has(assignedStepId)).toBe(true);
+    }
+
+    for (const declaredStepId of declaredStepIds) {
+      expect(assignedStepIds).toContain(declaredStepId);
+    }
+  });
+
+  test("the Google SecOps step remains usable when credentials are hidden on edit", () => {
+    const serviceAccountField: FieldEntry = getEntry(
+      formFieldEntries,
+      "serviceAccountJson",
+    );
+
+    expect(stepIdOf(serviceAccountField)).toBe("google-secops");
+    expect(serviceAccountField.body).toContain("doNotShowWhenEditing: true");
+
+    const visibleConnectionFields: Array<string> = formFieldEntries
+      .filter((entry: FieldEntry) => {
+        return (
+          stepIdOf(entry) === "google-secops" &&
+          !entry.body.includes("doNotShowWhenEditing: true")
+        );
+      })
+      .map((entry: FieldEntry) => {
+        return entry.columnName;
+      });
+
+    expect(visibleConnectionFields).toEqual(["region", "instanceResourceName"]);
   });
 
   test("rotating the service account key has its own action", () => {
