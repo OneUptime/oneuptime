@@ -71,7 +71,16 @@ import ModelEventType from "Common/Types/Realtime/ModelEventType";
 import Select from "Common/Types/BaseDatabase/Select";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
-import useServiceNames from "../Telemetry/useServiceNames";
+import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
+import {
+  applyLogsEntityChipDisplay,
+  buildFacetDisplayNames,
+  buildLogsEntityTypeHints,
+  buildLogsScopeEntityChips,
+  collectLogsEntityIds,
+} from "./LogsEntityChipDisplay";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -131,6 +140,24 @@ import { makeLogSignalId } from "../SessionReplay/Rail/ReplaySignalTypes";
 export interface ComponentProps {
   id: string;
   serviceIds?: Array<ObjectID> | undefined;
+  /*
+   * What the `serviceIds` actually are. A log row's `primaryEntityId` is
+   * polymorphic — a RUM application page passes its RumApplication id here,
+   * a host page its Host id — so the locked scope chip reads e.g.
+   * "RUM Application: checkout-web" instead of "Service: <uuid>". Display
+   * only: the filter is the id either way. Omitted means "resolve it".
+   */
+  scopeEntityType?: ServiceType | undefined;
+  /*
+   * Display-only overrides for the locked chips built from
+   * `logQuery.attributes`, keyed by the attribute key as it appears there
+   * (e.g. "resource.host.name"). A resource page scopes by a machine
+   * identifier the telemetry carries but already has the friendly name
+   * loaded; these let the chip show "Host: web-01" while the filter keeps
+   * matching the identifier.
+   */
+  attributeFilterDisplayKeys?: Record<string, string> | undefined;
+  attributeFilterDisplayValues?: Record<string, string> | undefined;
   enableRealtime?: boolean;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
@@ -820,6 +847,12 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       time: true,
       projectId: true,
       primaryEntityId: true,
+      /*
+       * primaryEntityId is polymorphic. The row's type is the hint the
+       * shared viewer passes to the name resolver, so a RUM application or
+       * host id goes straight to its own table instead of probing each one.
+       */
+      primaryEntityType: true,
       spanId: true,
       traceId: true,
       sessionId: true,
@@ -840,12 +873,29 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   }, [props.serviceIds]);
 
   /*
-   * Resolve the scoped service id(s) to names so the read-only "Service" chip
-   * shows the service name instead of a raw UUID. Filtering still uses the
-   * stable id (primaryEntityId); this only maps that id to a friendly label.
+   * Resolve every entity id a chip can show — the page's locked scope and
+   * any user / URL / saved-view `primaryEntityId` chip — in ONE lookup, so
+   * chips name the entity ("RUM Application: checkout-web") instead of
+   * showing a raw UUID. Not Service-only: a RUM application, host or
+   * cluster id lives in its own table. When the page said what its scope
+   * ids are, they are hinted straight to that table. Filtering still uses
+   * the stable id; this only maps that id to a label.
    */
-  const scopedServiceNameMap: Record<string, string> = useServiceNames(
-    props.serviceIds,
+  const entityChipIds: Array<string> = useMemo(() => {
+    return collectLogsEntityIds({
+      scopeIds: props.serviceIds,
+      appliedFacetFilters,
+    });
+  }, [props.serviceIds, appliedFacetFilters]);
+
+  const entityTypeHints: Record<string, ServiceType> | undefined =
+    useMemo(() => {
+      return buildLogsEntityTypeHints(props.serviceIds, props.scopeEntityType);
+    }, [props.serviceIds, props.scopeEntityType]);
+
+  const entityNameMap: TelemetryEntityNameMap = useTelemetryEntityNames(
+    entityChipIds,
+    { typeHints: entityTypeHints },
   );
 
   /*
@@ -2110,21 +2160,16 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   // Build read-only base filter chips from props (serviceIds, traceIds, spanIds, logQuery attributes)
   const baseActiveFilters: Array<ActiveFilter> = useMemo(() => {
-    const filters: Array<ActiveFilter> = [];
-
-    if (props.serviceIds && props.serviceIds.length > 0) {
-      for (const primaryEntityId of props.serviceIds) {
-        const serviceIdString: string = primaryEntityId.toString();
-        filters.push({
-          facetKey: "primaryEntityId",
-          value: serviceIdString,
-          displayKey: "Service",
-          displayValue:
-            scopedServiceNameMap[serviceIdString] || serviceIdString,
-          readOnly: true,
-        });
-      }
-    }
+    /*
+     * The scope chip names the entity with its real type — "RUM Application"
+     * the moment the page says so, the resolved type otherwise, "Service"
+     * until then — and its resolved name, never the raw id.
+     */
+    const filters: Array<ActiveFilter> = buildLogsScopeEntityChips({
+      scopeIds: props.serviceIds,
+      nameMap: entityNameMap,
+      scopeEntityType: props.scopeEntityType,
+    });
 
     if (props.traceIds && props.traceIds.length > 0) {
       for (const traceId of props.traceIds) {
@@ -2164,18 +2209,34 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       }
     }
 
-    filters.push(...buildAttributeFilterChips(logQueryAttributes));
+    filters.push(
+      ...buildAttributeFilterChips(logQueryAttributes, {
+        displayKeys: props.attributeFilterDisplayKeys,
+        displayValues: props.attributeFilterDisplayValues,
+      }),
+    );
 
     return filters;
   }, [
     props.serviceIds,
+    props.scopeEntityType,
     props.traceIds,
     props.spanIds,
     props.sessionIds,
     traceIdStrings,
     logQueryAttributes,
-    scopedServiceNameMap,
+    props.attributeFilterDisplayKeys,
+    props.attributeFilterDisplayValues,
+    entityNameMap,
   ]);
+
+  /*
+   * Names the server already resolved for the entity facet. Derived once per
+   * facet response so the chip list does not rebuild on unrelated facets.
+   */
+  const entityFacetDisplayNames: Record<string, string> = useMemo(() => {
+    return buildFacetDisplayNames(facetData["primaryEntityId"]);
+  }, [facetData]);
 
   // Build activeFilters array for UI display
   const activeFilters: Array<ActiveFilter> = useMemo(() => {
@@ -2240,8 +2301,28 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       }
     }
 
-    return filters;
-  }, [appliedFacetFilters, traceIdStrings]);
+    /*
+     * Entity chips (a facet click, the search bar, a URL or saved view) carry
+     * an id. Name them here — the server's facet displayName first, the
+     * generic resolver for the ids it does not cover (a RUM application,
+     * host, cluster…) — so the shared viewer's own Service-only enrichment
+     * never has to know about other entity types. It only overrides a chip
+     * whose id IS a loaded Service, with that same service name.
+     */
+    return applyLogsEntityChipDisplay(filters, {
+      nameMap: entityNameMap,
+      scopeIds: props.serviceIds,
+      scopeEntityType: props.scopeEntityType,
+      knownNames: entityFacetDisplayNames,
+    });
+  }, [
+    appliedFacetFilters,
+    traceIdStrings,
+    entityNameMap,
+    props.serviceIds,
+    props.scopeEntityType,
+    entityFacetDisplayNames,
+  ]);
 
   if (error) {
     return <ErrorMessage message={error} />;

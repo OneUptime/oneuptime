@@ -8,7 +8,9 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -29,6 +31,8 @@ import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Service from "Common/Models/DatabaseModels/Service";
 import Host from "Common/Models/DatabaseModels/Host";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ServiceElement from "../Service/ServiceElement";
 import ProfileUtil from "../../Utils/ProfileUtil";
@@ -37,6 +41,15 @@ import Link from "Common/UI/Components/Link/Link";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
+import {
+  ProfileEntityDisplay,
+  ProfileEntityRef,
+  buildProfileEntityTypeHints,
+  collectProfileEntityRefs,
+  getProfileEntityDisplay,
+  getProfileEntityRefsKey,
+  getProfileServiceFilterChipDisplay,
+} from "../../Utils/ProfilesEntityDisplay";
 
 const PROFILE_TYPE_FILTER_OPTIONS: Array<{ label: string; value: string }> = [
   { label: "CPU time", value: "cpu" },
@@ -63,36 +76,6 @@ export interface ComponentProps {
    * compiles to `hasAny(entityKeys, [...])` server-side.
    */
   entityKeys?: Array<string> | undefined;
-}
-
-/**
- * Human label for a profile's primaryEntityType discriminator. Profiles
- * don't only come from Services — host-level eBPF agents stamp Host,
- * container collectors stamp DockerHost / KubernetesCluster — so the
- * Service column must be able to say what kind of thing produced the
- * recording even when no Service row exists for it.
- */
-function getEntityTypeLabel(entityType: string): string {
-  switch (entityType) {
-    case ServiceType.OpenTelemetry:
-      return "Service";
-    case ServiceType.Host:
-      return "Host";
-    case ServiceType.DockerHost:
-      return "Docker host";
-    case ServiceType.PodmanHost:
-      return "Podman host";
-    case ServiceType.KubernetesCluster:
-      return "Kubernetes cluster";
-    case ServiceType.Monitor:
-      return "Monitor";
-    case ServiceType.ServerlessFunction:
-      return "Serverless function";
-    case ServiceType.CloudResource:
-      return "Cloud resource";
-    default:
-      return "Unknown source";
-  }
 }
 
 const ProfileTable: FunctionComponent<ComponentProps> = (
@@ -133,6 +116,124 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
     () => {
       return Navigation.getQueryStringByName("profileType");
     },
+  );
+
+  /*
+   * Sources on the loaded page that neither the Service nor the Host list can
+   * name — RUM applications, clusters, serverless functions, hosts past the
+   * per-project cap. Captured from the table's own fetch so the cells, which
+   * render synchronously, can show names once one lookup lands.
+   */
+  const [unnamedEntityRefs, setUnnamedEntityRefs] = useState<
+    Array<ProfileEntityRef>
+  >([]);
+
+  const knownEntityIds: Set<string> = useMemo(() => {
+    const ids: Set<string> = new Set<string>();
+    for (const service of telemetryServices) {
+      if (service.id) {
+        ids.add(service.id.toString());
+      }
+    }
+    for (const host of hosts) {
+      if (host.id) {
+        ids.add(host.id.toString());
+      }
+    }
+    return ids;
+  }, [telemetryServices, hosts]);
+
+  const handleProfilesFetched: (profiles: Array<Profile>) => void = useCallback(
+    (profiles: Array<Profile>): void => {
+      const refs: Array<ProfileEntityRef> = collectProfileEntityRefs({
+        profiles,
+        knownIds: knownEntityIds,
+      });
+      setUnnamedEntityRefs(
+        (prev: Array<ProfileEntityRef>): Array<ProfileEntityRef> => {
+          // Same sources as last page: keep state so nothing re-renders.
+          return getProfileEntityRefsKey(prev) === getProfileEntityRefsKey(refs)
+            ? prev
+            : refs;
+        },
+      );
+    },
+    [knownEntityIds],
+  );
+
+  /*
+   * What the loaded Service / Host lists call the `?serviceId=` deep-link id,
+   * if anything. A host-level (eBPF) source is linked here by its Host id.
+   */
+  const serviceFilterListNames: {
+    serviceName: string | undefined;
+    hostName: string | undefined;
+  } = useMemo(() => {
+    if (!serviceIdFilter) {
+      return { serviceName: undefined, hostName: undefined };
+    }
+    const host: Host | undefined = hosts.find((candidate: Host): boolean => {
+      return candidate.id?.toString() === serviceIdFilter;
+    });
+    return {
+      serviceName: telemetryServices.find((service: Service): boolean => {
+        return service.id?.toString() === serviceIdFilter;
+      })?.name,
+      hostName: host ? host.name || host.hostIdentifier : undefined,
+    };
+  }, [serviceIdFilter, telemetryServices, hosts]);
+
+  /*
+   * One lookup for every name this table shows: the page's unnamed sources
+   * (type-hinted, so each goes straight to its table) plus the `?serviceId=`
+   * deep-link chip, whose id may not be a Service at all.
+   */
+  const entityIdsToResolve: Array<string> = useMemo(() => {
+    /*
+     * Wait for the Service / Host lists: until they land every id looks
+     * unnamed, and a deep link to a loaded Service would be looked up for
+     * nothing.
+     */
+    if (isPageLoading) {
+      return [];
+    }
+    const ids: Array<string> = unnamedEntityRefs.map(
+      (ref: ProfileEntityRef): string => {
+        return ref.id;
+      },
+    );
+    /*
+     * Skip the lookup only when the chip can name the id from the lists by
+     * itself. `knownEntityIds` is the wrong test here: it also holds a Host
+     * with neither name nor identifier, which the chip cannot print.
+     */
+    const isChipNamedByLists: boolean = Boolean(
+      serviceIdFilter &&
+        getProfileServiceFilterChipDisplay({
+          serviceId: serviceIdFilter,
+          serviceName: serviceFilterListNames.serviceName,
+          hostName: serviceFilterListNames.hostName,
+          nameMap: undefined,
+        }).isResolved,
+    );
+    if (serviceIdFilter && !isChipNamedByLists) {
+      ids.push(serviceIdFilter);
+    }
+    return ids;
+  }, [
+    isPageLoading,
+    unnamedEntityRefs,
+    serviceIdFilter,
+    serviceFilterListNames,
+  ]);
+
+  const entityTypeHints: Record<string, ServiceType> = useMemo(() => {
+    return buildProfileEntityTypeHints(unnamedEntityRefs);
+  }, [unnamedEntityRefs]);
+
+  const entityNames: TelemetryEntityNameMap = useTelemetryEntityNames(
+    entityIdsToResolve,
+    { typeHints: entityTypeHints },
   );
 
   const query: Query<Profile> = React.useMemo(() => {
@@ -302,6 +403,24 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * The deep-link chip names the source once it is known — the loaded
+   * Service and Host lists first, then the shared resolver — instead of an
+   * 8-character id prefix nobody can read.
+   */
+  const serviceFilterChip: {
+    key: string;
+    value: string;
+    isResolved: boolean;
+  } | null = serviceIdFilter
+    ? getProfileServiceFilterChipDisplay({
+        serviceId: serviceIdFilter,
+        serviceName: serviceFilterListNames.serviceName,
+        hostName: serviceFilterListNames.hostName,
+        nameMap: entityNames,
+      })
+    : null;
+
   if (isPageLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -355,13 +474,14 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
             </span>
           )}
 
-          {serviceIdFilter && (
+          {serviceIdFilter && serviceFilterChip && (
             <span className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 ring-1 ring-indigo-200">
-              Service
-              <span title={serviceIdFilter}>
-                {telemetryServices.find((service: Service) => {
-                  return service.id?.toString() === serviceIdFilter;
-                })?.name || `${serviceIdFilter.substring(0, 8)}…`}
+              {serviceFilterChip.key}
+              <span
+                className={serviceFilterChip.isResolved ? "" : "font-mono"}
+                title={serviceIdFilter}
+              >
+                {serviceFilterChip.value}
               </span>
               <button
                 type="button"
@@ -422,6 +542,9 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                 }
           }
           query={query}
+          onFetchSuccess={(profiles: Array<Profile>) => {
+            handleProfilesFetched(profiles);
+          }}
           selectMoreFields={{
             profileId: true,
             durationNano: true,
@@ -565,22 +688,41 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                   }
                 }
 
-                const shortId: string =
-                  entityId.length > 12
-                    ? `${entityId.substring(0, 8)}…`
-                    : entityId;
+                /*
+                 * Every other source (RUM application, cluster, serverless
+                 * function, …) is named by the shared resolver. Until — or
+                 * unless — it resolves, the type label over a short id.
+                 */
+                const source: ProfileEntityDisplay = getProfileEntityDisplay({
+                  entityId,
+                  entityType,
+                  nameMap: entityNames,
+                });
+
+                if (source.isResolved) {
+                  return (
+                    <div className="flex flex-col">
+                      <span className="text-sm text-gray-900" title={entityId}>
+                        {source.primary}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {source.typeLabel}
+                      </span>
+                    </div>
+                  );
+                }
 
                 return (
                   <div className="flex flex-col">
                     <span className="text-sm text-gray-900">
-                      {getEntityTypeLabel(entityType)}
+                      {source.primary}
                     </span>
-                    {shortId && (
+                    {source.shortId && (
                       <span
                         className="text-xs font-mono text-gray-400"
                         title={entityId}
                       >
-                        {shortId}
+                        {source.shortId}
                       </span>
                     )}
                   </div>

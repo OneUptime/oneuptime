@@ -104,6 +104,19 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import ExceptionRow from "./ExceptionRow";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
+import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import {
+  ExceptionEntityChipRef,
+  ExceptionKnownChipIds,
+  buildExceptionEntityTypeHints,
+  buildExceptionFacetDisplayNames,
+  buildExceptionKnownChipIds,
+  collectExceptionEntityChipIds,
+  getExceptionFacetIncludeDisplayValue,
+  resolveExceptionChipDisplay,
+} from "../../Utils/ExceptionsEntityChipDisplay";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 
@@ -406,6 +419,13 @@ export interface ExceptionsViewerProps {
   defaultClassScope?: ExceptionClassScope | undefined;
   primaryEntityId?: ObjectID | undefined;
   /*
+   * Which table `primaryEntityId` points at (a RUM application page passes
+   * ServiceType.RealUserMonitor). The id is polymorphic, and without this the
+   * locked chip could only guess "Service" until a lookup across every
+   * table landed. Display only — the filter is the id either way.
+   */
+  scopeEntityType?: ServiceType | undefined;
+  /*
    * Scope to exception groups with an occurrence belonging to any of these
    * stable entity keys. TelemetryException has no entityKeys column, so this
    * is resolved through ExceptionInstance fingerprints together with every
@@ -527,6 +547,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   const [kubernetesClusters, setKubernetesClusters] = useState<
     Array<KubernetesCluster>
   >([]);
+  /*
+   * Whether the Service / host / cluster lists above have settled (loaded or
+   * failed). Chip ids are held back from the name resolver until then — see
+   * collectExceptionEntityChipIds.
+   */
+  const [areResourceListsLoaded, setAreResourceListsLoaded] =
+    useState<boolean>(false);
 
   const [searchValue, setSearchValue] = useState<string>(
     initialUrlState.search,
@@ -724,6 +751,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         setKubernetesClusters(clusterResult.data || []);
       } catch {
         // non-critical
+      } finally {
+        /*
+         * Settled either way: on failure the resolver is the only name source
+         * left, so the held chip ids must be released.
+         */
+        setAreResourceListsLoaded(true);
       }
     };
     void loadResources();
@@ -1817,13 +1850,20 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
             },
           );
           const displayKey: string = config?.title || facetKey;
-          const displayValue: string =
-            config?.valueDisplayMap?.[value] || value;
+          /*
+           * The server's resolved name is the fallback for a resource the
+           * client-side list (capped per project) never loaded.
+           */
+          const displayValue: string = getExceptionFacetIncludeDisplayValue({
+            value,
+            config,
+            facetValues: mergedFacetData[facetKey],
+          });
           return [...prev, { facetKey, value, displayKey, displayValue }];
         });
         setPage(1);
       },
-      [facetConfigs],
+      [facetConfigs, mergedFacetData],
     );
 
   const handleRemoveFilter: (facetKey: string, value: string) => void =
@@ -1842,10 +1882,74 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   }, []);
 
   /*
+   * Every chip that names a telemetry entity by id — the page scope, the
+   * host's stored scope and the user's own chips — resolved in ONE lookup.
+   * primaryEntityId is polymorphic, and the Service list this viewer loads
+   * cannot name a RUM application, a host beyond the per-project cap, or the
+   * projectId "Unknown Service" bucket; without this those chips read
+   * "Service: 84858d6c-…".
+   */
+  const scopeEntityId: string | undefined = props.primaryEntityId?.toString();
+
+  const entityChipRefs: Array<ExceptionEntityChipRef> = useMemo(() => {
+    return [...hostScope.chips, ...activeFilters].map(
+      (chip: ExceptionEntityChipRef): ExceptionEntityChipRef => {
+        return { facetKey: chip.facetKey, value: chip.value };
+      },
+    );
+  }, [hostScope, activeFilters]);
+
+  const facetDisplayNames: Record<
+    string,
+    Record<string, string>
+  > = useMemo(() => {
+    return buildExceptionFacetDisplayNames(mergedFacetData);
+  }, [mergedFacetData]);
+
+  /*
+   * Ids a chip's own facet already names (the loaded lists, the server facet
+   * names). Sending those to the resolver would add a request on every
+   * Service Exceptions mount for a name that is already on screen.
+   */
+  const knownEntityChipIds: ExceptionKnownChipIds = useMemo(() => {
+    return buildExceptionKnownChipIds({ facetConfigs, facetDisplayNames });
+  }, [facetConfigs, facetDisplayNames]);
+
+  const entityChipIds: Array<string> = useMemo(() => {
+    return collectExceptionEntityChipIds({
+      scopeEntityId,
+      scopeEntityType: props.scopeEntityType,
+      chips: entityChipRefs,
+      knownIds: knownEntityChipIds,
+      isKnownIdsPending: !areResourceListsLoaded,
+    });
+  }, [
+    scopeEntityId,
+    props.scopeEntityType,
+    entityChipRefs,
+    knownEntityChipIds,
+    areResourceListsLoaded,
+  ]);
+
+  const entityTypeHints: Record<string, ServiceType> = useMemo(() => {
+    return buildExceptionEntityTypeHints({
+      scopeEntityId,
+      scopeEntityType: props.scopeEntityType,
+      chips: entityChipRefs,
+    });
+  }, [scopeEntityId, props.scopeEntityType, entityChipRefs]);
+
+  const entityNames: TelemetryEntityNameMap = useTelemetryEntityNames(
+    entityChipIds,
+    { typeHints: entityTypeHints },
+  );
+
+  /*
    * Read-only chips for prop-level scoping (e.g. service view page), merged
-   * with user-added chips. Display labels are re-derived from facetConfigs so
+   * with user-added chips. Display labels are re-derived on every render so
    * URL-restored chips (which only carry facetKey/value) still render the
-   * human-readable label once services/hosts/etc. load.
+   * human-readable label once services/hosts/entity names load. See
+   * Utils/ExceptionsEntityChipDisplay for the precedence.
    */
   const mergedActiveFilters: Array<ActiveFilter> = useMemo(() => {
     const resolveDisplay: (chip: ActiveFilter) => ActiveFilter = (
@@ -1856,14 +1960,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
           return c.key === chip.facetKey;
         },
       );
-      const displayKey: string = chip.facetKey.startsWith("attributes.")
-        ? chip.facetKey.substring("attributes.".length)
-        : config?.title || chip.displayKey || chip.facetKey;
-      const displayValue: string =
-        config?.valueDisplayMap?.[chip.value] ||
-        chip.displayValue ||
-        chip.value;
-      return { ...chip, displayKey, displayValue };
+      return resolveExceptionChipDisplay({
+        chip,
+        config,
+        entityNames,
+        facetDisplayNames: facetDisplayNames[chip.facetKey],
+        scopeEntityId,
+        scopeEntityType: props.scopeEntityType,
+      });
     };
 
     const base: Array<ActiveFilter> = [];
@@ -1895,7 +1999,16 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       );
     }
     return [...base, ...activeFilters.map(resolveDisplay)];
-  }, [props.primaryEntityId, hostScope, activeFilters, facetConfigs]);
+  }, [
+    props.primaryEntityId,
+    props.scopeEntityType,
+    scopeEntityId,
+    hostScope,
+    activeFilters,
+    facetConfigs,
+    entityNames,
+    facetDisplayNames,
+  ]);
 
   // Row click → navigate to exception detail
   const handleRowClick: (exception: TelemetryException) => void = useCallback(

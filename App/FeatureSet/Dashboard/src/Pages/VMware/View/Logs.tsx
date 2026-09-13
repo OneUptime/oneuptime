@@ -101,10 +101,16 @@ const VMwareVCenterLogs: FunctionComponent<
        * attributes-equality filter into the query itself — that defeats the
        * OR. Drop the attribute fallback (here and in the logQuery merge)
        * once deploy-date + max retention has passed.
+       *
+       * The chip value is already the vCenter's name, so only the key needs a
+       * label: "vCenter" (as on the Metrics tab) instead of the raw OTel key.
        */}
       <DashboardLogsViewer
         id={`vmware-vcenter-logs-${modelId.toString()}`}
         logQuery={logQuery}
+        attributeFilterDisplayKeys={{
+          "resource.vmware.vcenter.name": "vCenter",
+        }}
         entityScope={{
           entityKeys: [
             keyForVMwareVCenter(

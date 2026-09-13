@@ -44,10 +44,18 @@ import {
 import LlmSpanPanel from "./LlmSpanPanel";
 import { resolveReplayMomentRouteForSession } from "../../Utils/RumSessionLookup";
 import { makeSpanSignalId } from "../SessionReplay/Rail/ReplaySignalTypes";
+import { ResolvedTelemetryEntity } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import { SpanEntityDisplay, getSpanEntityDisplay } from "./TracesEntityDisplay";
 
 export interface SpanDetailsPanelProps {
   span: Span;
   service?: Service | undefined;
+  /*
+   * The span's entity when it is not a loaded Service (a RUM application, a
+   * host), resolved by the explorer. Its name and type label replace
+   * "Service: unknown service".
+   */
+  entity?: ResolvedTelemetryEntity | undefined;
   // Base route to the span's full trace (without the spanId highlight query).
   traceRoute?: Route | undefined;
   // Adds an `attributes.<key>:<value>` chip to the parent explorer's filters.
@@ -438,8 +446,12 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
     spanDurationInUnixNano: durationNano,
   });
 
-  const serviceName: string = service?.name || "unknown service";
-  const serviceColor: string = service?.serviceColor?.toString() || "#64748b";
+  const entityDisplay: SpanEntityDisplay = getSpanEntityDisplay({
+    service,
+    entity: props.entity,
+  });
+  const serviceName: string = entityDisplay.name;
+  const serviceColor: string = entityDisplay.color || "#64748b";
 
   const statusColor: string = getStatusColor(span.statusCode);
   const statusLabel: string = getStatusLabel(span.statusCode);
@@ -572,7 +584,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
     "text-[11px] uppercase tracking-wide text-gray-400";
 
   const overviewRows: Array<{ label: string; value: ReactElement | string }> = [
-    { label: "Service", value: serviceName },
+    { label: entityDisplay.typeLabel, value: serviceName },
     { label: "Status", value: statusLabel },
     { label: "Duration", value: durationLabel },
     { label: "Span Kind", value: kindLabel },
