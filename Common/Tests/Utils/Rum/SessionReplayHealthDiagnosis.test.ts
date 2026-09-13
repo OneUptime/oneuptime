@@ -2,6 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 import {
   SESSION_REPLAY_REFUSAL_ALERT_THRESHOLD,
   SESSION_REPLAY_STALE_CHUNK_MS,
+  describeRefusalReason,
   diagnoseRecordingHealth,
   formatBytesForCopy,
   formatCountForCopy,
@@ -989,5 +990,44 @@ describe("SessionReplayRefusalReason", () => {
     expect(isSessionReplayRefusalReason("origin-not-allowed")).toBe(true);
     expect(isSessionReplayRefusalReason("accepted")).toBe(false);
     expect(isSessionReplayRefusalReason(42)).toBe(false);
+  });
+});
+
+describe("describeRefusalReason", () => {
+  it("has human copy for every reason in the gate's vocabulary, never the slug itself", () => {
+    for (const reason of SESSION_REPLAY_REFUSAL_REASONS) {
+      const label: string | null = describeRefusalReason(reason);
+
+      expect({ reason, hasLabel: typeof label === "string" }).toEqual({
+        reason,
+        hasLabel: true,
+      });
+      expect(label).not.toBe(reason);
+      expect((label as string).length).toBeGreaterThan(0);
+    }
+  });
+
+  it("reads the same words the diagnosis title uses", () => {
+    expect(describeRefusalReason("origin-not-allowed")).toBe(
+      "origin not allowed",
+    );
+    expect(describeRefusalReason("consent-required")).toBe(
+      "consent was not granted",
+    );
+
+    const diagnosis: RecordingHealthDiagnosis = diagnose(
+      healthy({
+        refusalsLast24h: [{ reason: "rate-limited", count: 40 }],
+      }),
+    );
+
+    expect(diagnosis.title).toContain(
+      describeRefusalReason("rate-limited") as string,
+    );
+  });
+
+  it("is null for a reason this build has no copy for (a worker drop reason, a newer gate)", () => {
+    expect(describeRefusalReason("scrub-incomplete")).toBeNull();
+    expect(describeRefusalReason("")).toBeNull();
   });
 });

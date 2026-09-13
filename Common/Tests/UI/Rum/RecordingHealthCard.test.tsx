@@ -11,13 +11,13 @@ import { RecordingHealthStatus } from "../../../Types/Rum/SessionReplayHealth";
 import { diagnoseRecordingHealth } from "../../../Utils/Rum/SessionReplayHealth";
 
 /*
- * The health card (settings page, and the body the strip expands into) and
- * the installation test rows that share its diagnosis.
+ * The Replay Policy page's recording-health summary card, the shared paste
+ * box, the action links, and the installation test rows that share the
+ * diagnosis. (The full health picture is RecordingHealthDashboard.test.tsx.)
  *
- * Facts say "unknown" for a counter the server could not read; refusals
- * and drops are separate lines; bytes draw a progress bar only when a
- * limit exists; the diagnostics paste box explains real recorder codes and
- * reports malformed input; the installation rows branch their copy on the
+ * The summary shows only the diagnosis and a way to the Health page; the
+ * diagnostics paste box explains real recorder codes and reports malformed
+ * input; the installation rows branch their copy on the
  * capture trigger (settings-setup-2), link failing rows to the page that
  * fixes them (settings-setup-3) and describe both origin allowlists
  * (settings-setup-6).
@@ -56,8 +56,11 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import {
-  RecordingHealthCardView,
+  RecorderDiagnosticsPasteBox,
+  RecordingHealthSummaryView,
   getRecordingHealthActionLink,
+  getRecordingHealthPageRoute,
+  getReplayPolicyPageRoute,
   labelEnum,
   CAPTURE_TRIGGER_LABELS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/RecordingHealthCard";
@@ -150,7 +153,7 @@ function makeSnapshot(
 function renderCard(snapshot: SessionReplayHealthSnapshot): void {
   render(
     <MemoryRouter>
-      <RecordingHealthCardView rumApplicationId={APP_ID} health={snapshot} />
+      <RecordingHealthSummaryView rumApplicationId={APP_ID} health={snapshot} />
     </MemoryRouter>,
   );
 }
@@ -202,144 +205,43 @@ beforeEach(() => {
   clearSessionReplayHealthStore();
 });
 
-describe("RecordingHealthCardView facts", () => {
-  it("renders the fact grid from the status with relative ages", () => {
+describe("RecordingHealthSummaryView (the Replay Policy page's card)", () => {
+  it("shows the one-line diagnosis and nothing of the full health page", () => {
     renderCard(makeSnapshot(makeStatus()));
 
     expect(screen.getByTestId("health-card")).toHaveAttribute(
       "data-state",
       "healthy",
     );
-    expect(screen.getByTestId("health-fact-config-fetch")).toHaveTextContent(
-      "12s ago",
+    expect(screen.getByTestId("health-diagnosis")).toHaveTextContent(
+      "Recording healthy",
     );
-    expect(screen.getByTestId("health-fact-last-chunk")).toHaveTextContent(
-      "5m ago",
-    );
-    expect(screen.getByTestId("health-fact-sessions")).toHaveTextContent(
-      "143 (120 playable)",
-    );
-    expect(screen.getByTestId("health-fact-policy")).toHaveTextContent(
-      "Always, sampling 100%",
-    );
-    expect(screen.getByTestId("health-fact-policy")).toHaveTextContent(
-      "Not required; Sensitive inputs masked, page text recorded; retention 7 days.",
-    );
-    expect(
-      screen.getByTestId("health-fact-recorder-version"),
-    ).toHaveTextContent("1.4.0");
+    /* The fact grid, budgets and paste box live on the Health page now. */
+    expect(screen.queryByTestId("health-fact-last-chunk")).toBeNull();
+    expect(screen.queryByTestId("health-bytes")).toBeNull();
+    expect(screen.queryByTestId("diagnostics-paste-box")).toBeNull();
+    expect(screen.queryByTestId("health-pipeline")).toBeNull();
   });
 
-  it("lists refusals by reason, most frequent first, and drops on their own line", () => {
-    render(
-      <MemoryRouter>
-        <RecordingHealthCardView
-          rumApplicationId={APP_ID}
-          health={makeSnapshot(
-            makeStatus({
-              refusalsLast24h: [
-                { reason: "rate-limited", count: 3 },
-                { reason: "origin-not-allowed", count: 2 },
-              ],
-            }),
-            {
-              extras: {
-                dropsLast24h: [{ reason: "scrub-incomplete", count: 12 }],
-                recorderCapabilities: ["click-events", "web-vitals"],
-              },
-            },
-          )}
-        />
-      </MemoryRouter>,
-    );
+  it("offers a way to the Health page", () => {
+    renderCard(makeSnapshot(makeStatus()));
 
-    const refusals: HTMLElement = screen.getByTestId("health-fact-refusals");
-    const items: Array<HTMLElement> = Array.from(
-      refusals.querySelectorAll("li"),
-    );
-
-    expect(
-      items.map((item: HTMLElement) => {
-        return item.textContent;
-      }),
-    ).toEqual(["3 rate-limited", "2 origin-not-allowed"]);
-    expect(screen.getByTestId("health-fact-drops")).toHaveTextContent(
-      "12 scrub-incomplete",
-    );
-    expect(screen.getByTestId("health-fact-capabilities")).toHaveTextContent(
-      "click-events, web-vitals",
-    );
+    expect(screen.getByText("View health details")).toBeInTheDocument();
   });
 
-  it("says never / unknown / none reported rather than 0 or a blank", () => {
+  it("carries the diagnosis action for a state that has one", () => {
     renderCard(
       makeSnapshot(
-        makeStatus({
-          lastConfigFetchAt: null,
-          lastChunkReceivedAt: null,
-          sessionsLast24h: null,
-          refusalsLast24h: null,
-          publishedRecorderVersion: null,
-          projectBytesUsedToday: null,
-        }),
+        makeStatus({ lastConfigFetchAt: null, lastChunkReceivedAt: null }),
       ),
     );
 
-    expect(screen.getByTestId("health-fact-config-fetch")).toHaveTextContent(
-      "never",
+    expect(screen.getByTestId("health-card")).toHaveAttribute(
+      "data-state",
+      "never-loaded",
     );
-    expect(screen.getByTestId("health-fact-last-chunk")).toHaveTextContent(
-      "never",
-    );
-    expect(screen.getByTestId("health-fact-sessions")).toHaveTextContent(
-      "unknown",
-    );
-    expect(screen.getByTestId("health-fact-refusals")).toHaveTextContent(
-      "unknown (the counter store was unreachable)",
-    );
-    expect(screen.getByTestId("health-fact-drops")).toHaveTextContent(
-      "unknown",
-    );
-    expect(
-      screen.getByTestId("health-fact-recorder-version"),
-    ).toHaveTextContent("not reported");
-    expect(screen.getByTestId("health-bytes")).toHaveTextContent(
-      "unknown (the usage counter was unreachable)",
-    );
-    expect(screen.getByTestId("health-card").textContent).not.toMatch(
-      /\b0 refus/,
-    );
-  });
-
-  it("draws a progress bar for a budgeted counter and plain text when no ceiling is set", () => {
-    renderCard(
-      makeSnapshot(
-        makeStatus({
-          applicationBytesUsedThisMonth: 512 * 1024 * 1024,
-          monthlyBudgetInGB: 2,
-        }),
-      ),
-    );
-
-    const bars: Array<HTMLElement> = screen.getAllByRole("progressbar");
-
-    /* Daily (1 GB limit) and monthly (2 GB budget). */
-    expect(bars).toHaveLength(2);
-    expect(screen.getByTestId("health-bytes")).toHaveTextContent(
-      "512 of 2048 MB",
-    );
-  });
-
-  it("with no monthly budget says so instead of drawing an empty bar", () => {
-    renderCard(
-      makeSnapshot(
-        makeStatus({ applicationBytesUsedThisMonth: 3 * 1024 * 1024 }),
-      ),
-    );
-
-    expect(screen.getAllByRole("progressbar")).toHaveLength(1);
-    expect(screen.getByTestId("health-bytes")).toHaveTextContent(
-      "3 MB used; no monthly budget is set (0 or blank means no ceiling)",
+    expect(screen.getByTestId("health-action")).toHaveTextContent(
+      "Open the setup guide",
     );
   });
 
@@ -371,11 +273,16 @@ describe("RecordingHealthCardView facts", () => {
     expect(screen.getByTestId("health-card-error")).toHaveTextContent(
       "Server said: Forbidden",
     );
+    expect(screen.queryByTestId("health-diagnosis")).toBeNull();
   });
 
   it("loading says so", () => {
     renderCard(makeSnapshot(null, { isLoading: true, fetchedAtUnixMs: null }));
 
+    expect(screen.getByTestId("health-card")).toHaveAttribute(
+      "data-state",
+      "loading",
+    );
     expect(screen.getByTestId("health-card-loading")).toHaveTextContent(
       "Checking recording health",
     );
@@ -383,8 +290,56 @@ describe("RecordingHealthCardView facts", () => {
 });
 
 describe("Recorder diagnostics paste box", () => {
+  function renderPasteBox(showHeading?: boolean): void {
+    render(
+      <MemoryRouter>
+        <RecorderDiagnosticsPasteBox showHeading={showHeading} />
+      </MemoryRouter>,
+    );
+  }
+
+  it("keeps its own heading by default and drops it inside a panel that has one", () => {
+    const { unmount } = render(
+      <MemoryRouter>
+        <RecorderDiagnosticsPasteBox />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId("diagnostics-paste-box")).toHaveTextContent(
+      "Ask the browser instead",
+    );
+
+    unmount();
+    renderPasteBox(false);
+
+    expect(screen.getByTestId("diagnostics-paste-box")).not.toHaveTextContent(
+      "Ask the browser instead",
+    );
+    expect(screen.getByTestId("diagnostics-paste-box")).toHaveTextContent(
+      "run this in the browser console",
+    );
+  });
+
+  it("cannot explain an empty box", () => {
+    renderPasteBox();
+
+    expect(screen.getByTestId("diagnostics-explain")).toBeDisabled();
+
+    fireEvent.change(screen.getByTestId("diagnostics-paste-input"), {
+      target: { value: "   " },
+    });
+
+    expect(screen.getByTestId("diagnostics-explain")).toBeDisabled();
+
+    fireEvent.change(screen.getByTestId("diagnostics-paste-input"), {
+      target: { value: "{}" },
+    });
+
+    expect(screen.getByTestId("diagnostics-explain")).not.toBeDisabled();
+  });
+
   it("reports malformed input instead of throwing", () => {
-    renderCard(makeSnapshot(makeStatus()));
+    renderPasteBox();
 
     fireEvent.change(screen.getByTestId("diagnostics-paste-input"), {
       target: { value: "not json {" },
@@ -397,7 +352,7 @@ describe("Recorder diagnostics paste box", () => {
   });
 
   it("explains real codes, picks the last outcome as the headline and flags unknown codes", () => {
-    renderCard(makeSnapshot(makeStatus()));
+    renderPasteBox();
 
     const diagnostics: JSONObject = {
       version: "1.4.0",
@@ -472,6 +427,18 @@ describe("getRecordingHealthActionLink", () => {
     expect(consent.to.toString()).toContain("#privacy");
     expect(csp.openInNewTab).toBe(true);
     expect(csp.to.toString()).toContain("#content-security-policy");
+  });
+
+  it("the Health and Replay Policy page routes are siblings of the session list, never children of it", () => {
+    expect(getRecordingHealthPageRoute(APP_ID).toString()).toContain(
+      `/rum/${APP_ID}/session-replay-health`,
+    );
+    expect(getReplayPolicyPageRoute(APP_ID).toString()).toContain(
+      `/rum/${APP_ID}/session-replay-settings`,
+    );
+    expect(getRecordingHealthPageRoute(APP_ID).toString()).not.toContain(
+      "session-replay/",
+    );
   });
 
   it("labelEnum never leaks a raw enum value", () => {

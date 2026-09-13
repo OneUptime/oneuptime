@@ -17,6 +17,7 @@ import ReplayUsers from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Se
 import Documentation from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Documentation";
 import ReplayPolicy from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplaySettings";
 import ReplayAccessLog from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayAudit";
+import ReplayHealth from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayHealth";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import Project from "Common/Models/DatabaseModels/Project";
 import ObjectID from "Common/Types/ObjectID";
@@ -158,7 +159,7 @@ const health = {
   allowedOrigins: ["https://shop.example.com"],
   samplePercentage: 100,
   captureTrigger: "Always",
-  consentMode: "Implicit",
+  consentMode: "NotRequired",
   maskingMode: "MaskInputsOnly",
   retentionInDays: 30,
   publishedRecorderVersion: "13.0.0",
@@ -183,6 +184,44 @@ const health = {
     "frustration",
   ],
 };
+/*
+ * ?health= swaps the ingest-status answer for one of the diagnosis states the
+ * Replay Health page has to draw; absent is the healthy default above.
+ */
+const healthScenario = params.get("health");
+if (healthScenario === "refusing") {
+  Object.assign(health, {
+    refusalsLast24h: [
+      { reason: "origin-not-allowed", count: 212 },
+      { reason: "rate-limited", count: 9 },
+    ],
+    dropsLast24h: [{ reason: "scrub-incomplete", count: 3 }],
+    allowedOrigins: [],
+    projectBytesUsedToday: 900000000,
+  });
+}
+if (healthScenario === "disabled") {
+  Object.assign(health, {
+    isProjectAllowed: false,
+    lastChunkReceivedAt: new Date(now - 3 * 86400000).toISOString(),
+    lastConfigFetchAt: new Date(now - 3 * 86400000).toISOString(),
+    sessionsLast24h: 0,
+    playableSessionsLast24h: 0,
+  });
+}
+if (healthScenario === "never") {
+  Object.assign(health, {
+    lastChunkReceivedAt: null,
+    lastConfigFetchAt: null,
+    lastSessionStartedAt: null,
+    sessionsLast24h: 0,
+    playableSessionsLast24h: 0,
+    refusalsLast24h: null,
+    dropsLast24h: null,
+    projectBytesUsedToday: null,
+    recorderCapabilities: null,
+  });
+}
 function listMatches(row, filters) {
   if (filters.hasError && !row.hasError) return false;
   if (filters.hasFrustration && !row.rageClickCount && !row.deadClickCount)
@@ -666,6 +705,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="documentation" element={<Documentation />} />
         <Route path="session-replay-settings" element={<ReplayPolicy />} />
         <Route path="session-replay-audit" element={<ReplayAccessLog />} />
+        <Route path="session-replay-health" element={<ReplayHealth />} />
       </Route>
     </Routes>
   </BrowserRouter>,

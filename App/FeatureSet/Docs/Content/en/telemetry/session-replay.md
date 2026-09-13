@@ -14,7 +14,8 @@ If you would rather store less, there are two dials and they compose:
 - A RUM application — create one from _Resources → Real User Monitoring_, or let one be auto-discovered from your telemetry. See [Real User Monitoring](/docs/rum/index).
 - A **Telemetry Ingestion Token** — _Project Settings → Telemetry & APM → Ingestion Keys_. Create it with the **Browser** surface; see [Set your allowed origins in production](#set-your-allowed-origins-in-production) for why.
 - Session Replay is **on by default**. Settings live in two places:
-  - **Per application**, under _Real User Monitoring → your application → Replay Policy_: the recording policy (masking, consent, sampling, retention, budgets), the **Recording health** card, the privacy summary, the **Test your installation** panel and **Record a specific user's next session**.
+  - **Per application**, under _Real User Monitoring → your application → Replay Policy_: the recording policy (masking, consent, sampling, retention, budgets), a **Recording health** summary, the privacy summary, the **Test your installation** panel and **Record a specific user's next session**.
+  - Whether recordings are actually arriving has its own page, _Real User Monitoring → your application → **Health**_ (see [Recording health](#recording-health)).
   - **Project-wide**, under _Real User Monitoring → Settings → Session Replay_: the master switch that stops every application at once, and a read-only roster of every application's policy.
 
 ## Install
@@ -102,7 +103,7 @@ Be precise about what it is not:
 - **It follows the consent rules of the session id.** `revokeConsent()` removes it from storage along with the session, nothing is written while consent is withdrawn, and a later `grantConsent()` mints a new one — so a user who withdraws consent and comes back is not re-linked to the sessions they asked you to forget. Under Do Not Track or Global Privacy Control no recorder runs, so no id is minted.
 - **It cannot be the target of an erasure request.** The request types are unchanged (see [Erasing sessions](#erasing-sessions)); a `visitor:` search narrows the list to one browser's sessions, from which you take the session ids to erase.
 
-`OneUptimeReplay.getVisitorId()` returns the current id, or an empty string before the recorder has started, after `stop()`, and between a `revokeConsent()` and the next `grantConsent()`. Recorders built before this existed sent none, so the sessions they recorded have an empty `visitorId`: the list shows them as _Anonymous_ and the Users page files them under **Unlinked sessions**. A recorder that mints one lists `visitor-id` among its `capabilities` in `getDiagnostics()` and on the health card.
+`OneUptimeReplay.getVisitorId()` returns the current id, or an empty string before the recorder has started, after `stop()`, and between a `revokeConsent()` and the next `grantConsent()`. Recorders built before this existed sent none, so the sessions they recorded have an empty `visitorId`: the list shows them as _Anonymous_ and the Users page files them under **Unlinked sessions**. A recorder that mints one lists `visitor-id` among its `capabilities` in `getDiagnostics()` and on the **Health** page.
 
 ## JavaScript API
 
@@ -148,7 +149,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 | `stopReason` | Why it stopped, when it has: `api` (your `stop()`), `server-directive`, `transport-failure` or `chunk-cap`. |
 | `bootstrapDecision` | Why the artifact did or did not build a recorder: `started`, `privacy-signal`, `directive-stop`, `already-started`, `cancelled-before-start` (a queued `revokeConsent`/`stop`) or `not-started`. |
 | `decisions` | Every gate's answer: `isSampled`, `captureTrigger`, `consentMode`, `consentState`, `uploadsAllowed`, `uploadBlockedBy` (`consent`, `transport` or `null`), `lastDirective` and its reason, and `startDecision` (`recording-and-uploading`, `recording-into-memory`, `not-sampled`, `not-started`). |
-| `capabilities` | What this recorder build captures: `click-events`, `web-vitals`, `custom-events`, `traits`, `tags`, `visibility`, `visitor-id`. The dashboard's health card shows the same list for the newest session, so an old cached artifact is easy to spot. |
+| `capabilities` | What this recorder build captures: `click-events`, `web-vitals`, `custom-events`, `traits`, `tags`, `visibility`, `visitor-id`. The dashboard's **Health** page shows the same list for the newest session, so an old cached artifact is easy to spot. |
 | `tags`, `hasTraits`, `triggerReason`, `isRecording`, `isUploading`, `sessionId`, `tabId`, `visitorId`, `version` | The session's current state. `isRecording` is true only while the recorder is actually recording. `visitorId` is `null` until a recorder exists and `""` while consent is withdrawn. |
 | `records` | The last 250 decisions with stable codes — including the loader's, from before the artifact existed. Every code is explained in [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting#codes). |
 
@@ -197,7 +198,7 @@ Your ingestion token lives in plain sight in your page's JavaScript — that is 
 - **On the key.** Create the ingestion key with the **Browser** surface and list its **Allowed Origins** (`https://app.example.com`, or `https://*.example.com` for one level of subdomain). A Browser key refuses a request from an unlisted origin, or with no `Origin` header at all. Give it an **Expires At** too: a scraped copy of the token then stops working on a date you chose rather than never.
 - **On the application.** _Replay Policy → Allowed origins_ restricts which origins may write recordings into **this application**, whichever key they present. Once set, an exact-origin match is required and a request presenting no `Origin` header is refused.
 
-A request has to pass both. The rate limit and daily byte budget bound how *much* an attacker could write; only the allowlists say anything about whether a recording is genuine. Set at least one of them before you point real traffic at the recorder; refused uploads show up on the **Recording health** card as `origin-not-allowed`.
+A request has to pass both. The rate limit and daily byte budget bound how *much* an attacker could write; only the allowlists say anything about whether a recording is genuine. Set at least one of them before you point real traffic at the recorder; refused uploads show up on the **Health** page as `origin-not-allowed`.
 
 ### Always masked
 
@@ -247,7 +248,7 @@ Your banner usually resolves before the recorder script has loaded, so queue the
 (window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push(["grantConsent"]);
 ```
 
-Under _Require explicit_ the recorder records into memory from the first event and uploads the whole buffer once consent arrives, so the seconds before the banner was accepted are not lost. Until it arrives the **Recording health** card reads "waiting for consent", which is a policy answer rather than a fault.
+Under _Require explicit_ the recorder records into memory from the first event and uploads the whole buffer once consent arrives, so the seconds before the banner was accepted are not lost. Until it arrives the **Health** page reads "waiting for consent", which is a policy answer rather than a fault.
 
 `revokeConsent()` forgets two things, and a later `grantConsent()` mints both afresh:
 
@@ -298,7 +299,7 @@ If you want recordings linked to backend traces **without** a browser tracing SD
 
 ### The session list
 
-_Real User Monitoring → your application → Session Replay_ lists the sessions in the selected time range (the past 24 hours by default), newest first. A line above the list — the **recording health strip** — says whether recordings are arriving right now, and why not if they are not (see [Recording health](#recording-health)).
+_Real User Monitoring → your application → Session Replay_ lists the sessions in the selected time range (the past 24 hours by default), newest first. Whether recordings are arriving right now, and why not if they are not, is on the application's **Health** page (see [Recording health](#recording-health)); when the list is empty, its empty state names the same cause.
 
 Each row shows:
 
@@ -440,22 +441,22 @@ Press `?` in the player for this list. Shortcuts never fire while you are typing
 
 ## Recording health
 
-The **recording health strip** on the sessions page and the **Recording health** card on the application's _Replay Policy_ page answer "is anything being recorded, and if not, why?" from the server's side. The diagnosis names one cause, quantifies it and offers one action; it never says "disconnected" without a reason. The states, in the order they are checked:
+The **Health** page — _Real User Monitoring → your application → Session Replay → Health_ — answers "is anything being recorded, and if not, why?" from the server's side, and the _Replay Policy_ page repeats its one-line diagnosis above the policy. The diagnosis names one cause, quantifies it and offers one action; it never says "disconnected" without a reason. The states, in the order they are checked:
 
 | State | What it means | What to do |
 | --- | --- | --- |
 | `disabled-project` | The project-wide master switch is off. | Turn it on under _RUM → Settings → Session Replay_. |
 | `disabled-app` | Session replay is off for this application. | Turn it on under _Replay Policy_. |
 | `budget-paused` | The application's monthly budget or the deployment's daily byte limit is spent; live recorders have been told to stop. | Raise the budget, or wait for the next day / month. |
-| `refusing` | Uploads are arriving and being refused — the strip says the top reason and the count in the past 24 hours, for example `origin-not-allowed` (212 uploads from an origin that is not in your allowed origins) or `not-sampled`. | Follow the reason: edit the allowed origins, raise the sample percentage, and so on. |
+| `refusing` | Uploads are arriving and being refused — the diagnosis says the top reason and the count in the past 24 hours, for example `origin-not-allowed` (212 uploads from an origin that is not in your allowed origins) or `not-sampled`. | Follow the reason: edit the allowed origins, raise the sample percentage, and so on. |
 | `never-loaded` | No browser has ever fetched this application's policy. The script tag is not on the page, or the identifier does not match. | The setup guide on the sessions page walks through it. |
 | `loaded-never-uploaded` | The recorder fetched its policy recently but no chunk has ever arrived. The detail explains it from the policy: sampling is 0%, consent mode is _Require explicit_ and the page has not granted it, the trigger is _On error or frustration_ and nothing has fired — or, with a healthy policy, a CSP or ad blocker is refusing the ingest URL. | The action matches the cause. |
 | `stale` | Recorders keep fetching the policy but no chunk has arrived for more than six hours. | Same causes as above, on a page that used to work: check what changed. |
-| `healthy-quiet` | No chunk for more than six hours **and** no page has fetched the policy in the past 24 hours either, with nothing switched off, over budget or being refused. No recorder is running on this application right now — a low-traffic or staging app, or a snippet that is no longer on the page. The card quantifies both silences. | If your pages are being served, check that the script tag is still on them; otherwise nothing. |
-| `healthy` | Chunks are arriving: the strip shows the last chunk's age, sessions today and the sample percentage. | Nothing. |
-| `unknown` | The status endpoint could not be read. | Retry; check the permission error the card shows. |
+| `healthy-quiet` | No chunk for more than six hours **and** no page has fetched the policy in the past 24 hours either, with nothing switched off, over budget or being refused. No recorder is running on this application right now — a low-traffic or staging app, or a snippet that is no longer on the page. The page quantifies both silences. | If your pages are being served, check that the script tag is still on them; otherwise nothing. |
+| `healthy` | Chunks are arriving: the diagnosis shows the last chunk's age, sessions today and the sample percentage. | Nothing. |
+| `unknown` | The status endpoint could not be read. | Retry; check the permission error the page shows. |
 
-The card also lists refusals and drops by reason, bytes used today and this month against their limits, the published recorder version and the capabilities of the newest recorder that reported. Counters that come from Valkey read **unknown** — never 0 — when Valkey is unreachable. Below it, a textarea takes the output of `getDiagnostics()` and explains every code in it.
+Below the diagnosis, the page lays a recording out as four stages — **Recorder loaded**, **Recording allowed**, **Chunks received** and **Sessions in 24h** — each marked green, amber or red by what the server knows about it, so the first amber or red stage is where recordings stop. Under that it lists uploads refused at the gate and chunks dropped after acceptance by reason, bytes used today and this month against their limits, the policy as the recorder receives it, the published recorder version and the capabilities of the newest recorder that reported. Counters that come from Valkey read **unknown** — never 0 — when Valkey is unreachable. At the bottom, **Ask the browser** takes the output of `getDiagnostics()` and explains every code in it.
 
 ## Performance capture triggers
 
@@ -537,7 +538,7 @@ Every playback is recorded in an audit trail under _Real User Monitoring → you
 
 Under the default _Always_ trigger a working page posts a chunk about every 15 seconds **while the user is doing something**; an idle page posts nothing, so interact with it before deciding the install is broken. If you have set the capture trigger to _On error or frustration_, the recorder records into memory and uploads only when something goes wrong, so **a healthy page makes exactly one request to OneUptime per page load** — the config fetch — and posts nothing else until an error, a 5xx, a frustration signal or a performance budget breach happens. From a Network tab that is indistinguishable from an installation that does not work.
 
-Two things tell you which one you are looking at. From the server's side, the **Recording health** strip above the session list and the card on the _Replay Policy_ page (see [Recording health](#recording-health)). From the browser's side, the recorder's own diagnostics:
+Two things tell you which one you are looking at. From the server's side, the application's **Health** page (see [Recording health](#recording-health)). From the browser's side, the recorder's own diagnostics:
 
 ```js
 localStorage.setItem("oneuptime.sessionReplay.debug", "true");
@@ -550,13 +551,13 @@ Every decision the recorder makes is then printed with a stable code, and
 OneUptimeReplay.getDiagnostics();
 ```
 
-returns the last 250 of them together with the recorder's `state`, `decisions` and `capabilities` — **whether or not diagnostics were switched on when they happened**, so you do not have to reproduce the problem first. It carries no page content by construction, so it is safe to paste into a support ticket, and the health card has a box that explains it for you.
+returns the last 250 of them together with the recorder's `state`, `decisions` and `capabilities` — **whether or not diagnostics were switched on when they happened**, so you do not have to reproduce the problem first. It carries no page content by construction, so it is safe to paste into a support ticket, and the **Health** page has a box that explains it for you.
 
 [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting) explains every code and what to do about it, and the **Test your installation** panel on the _Replay Policy_ page answers the same question from the server's side.
 
 ## Self-hosted notes
 
 - Session Replay is **on** at the deployment level by default. Set `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` to turn it off for the whole instance — recorders already running on customer pages then stop recording, not just uploading.
-- Set `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` to bound disk use. Replay is the largest table in the system, and an unbounded configuration can push ClickHouse into capacity pruning. When the limit is spent the health card reads "Uploads paused for today".
+- Set `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` to bound disk use. Replay is the largest table in the system, and an unbounded configuration can push ClickHouse into capacity pruning. When the limit is spent the **Health** page reads "Uploads paused for today".
 - Recordings are stored in ClickHouse. No object storage is required.
 - `SESSION_REPLAY_DEBUG=true` makes every recorder this deployment serves print its decisions to the browser console. It is the one diagnostics switch that does not need somebody at the failing browser, so it is useful when a customer reports "nothing happens" on a page you cannot open a console on. It changes no policy — not sampling, not masking, not consent — but it logs on **every** page every recorder runs on, so turn it on, collect one reload, and turn it off.
