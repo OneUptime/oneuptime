@@ -24,6 +24,13 @@ actual reconstructed footage advancing, pause/seek/speed, visibility of speed
 options, event search and details, rail collapse, keyboard tab navigation, and
 mobile overflow and controls.
 
+The Replay Policy page is covered too: the policy card must settle after its
+mount reads and stay loaded (a page that hands it a new model id per render
+reloads it forever), the Recording pill must follow health that answers after
+the policy (`?health=hold`) or reports the project switch off
+(`?project=off`), and saving the edit form must reload the card exactly once.
+The fixture returns a new model instance per read, as the real API does.
+
 Screenshots are written to `output/playwright/session-replay-ui/`. They are
 production UI screenshots with synthetic data, not screenshots of a separate
 mockup. Failure traces and screenshots are under its `test-results` directory.
