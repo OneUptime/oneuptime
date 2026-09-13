@@ -1,7 +1,11 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
-import { getSloFormFields } from "./SloFormFields";
+import {
+  getSloFormFields,
+  SLO_CREATE_INITIAL_VALUES,
+  SLO_FORM_STEPS,
+} from "./SloFormFields";
 import SloStatusPill from "../../Components/Slo/SloStatusPill";
 import MonitorsElement from "../../Components/Monitor/Monitors";
 import Route from "Common/Types/API/Route";
@@ -18,17 +22,11 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Label from "Common/Models/DatabaseModels/Label";
 import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
-import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Gray500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
-import {
-  DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
-  DEFAULT_ROLLING_WINDOW_DAYS,
-  getSloBudgetTier,
-  SloBudgetTier,
-} from "Common/Utils/Slo/SloHealth";
+import { getSloBudgetTier, SloBudgetTier } from "Common/Utils/Slo/SloHealth";
 import { formatSloBurnRate } from "Common/Utils/Slo/SloWidgetFormat";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Columns from "Common/UI/Components/ModelTable/Columns";
@@ -394,24 +392,22 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
           },
         ]}
+        formSteps={SLO_FORM_STEPS}
         formFields={getSloFormFields()}
         /*
          * Seeds for the create modal only — the edit form is populated from
-         * the saved model. These are the DB defaults for four NOT NULL
-         * columns, so without them the user would have to fill in four
-         * boxes whose answer is already the right one.
+         * the saved model. The scalar values are the DB defaults for four NOT
+         * NULL columns, so without them the user would have to fill in four
+         * boxes whose answer is already the right one. The empty monitors
+         * array lets conditional validation recognize an SLO that will be
+         * populated entirely by its monitor-label rule.
          *
          * Deliberately NOT the form fields' `defaultValue`: FormField falls
          * back to defaultValue whenever the current value is FALSY, which
          * makes a cleared number box snap back to the default mid-typing
          * and renders a legitimately saved at-risk threshold of 0 as 20.
          */
-        createInitialValues={{
-          windowType: SloWindowType.Rolling,
-          windowDays: DEFAULT_ROLLING_WINDOW_DAYS,
-          atRiskThresholdPercentage: DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
-          multiMonitorMode: SloMultiMonitorMode.AnyDown,
-        }}
+        createInitialValues={SLO_CREATE_INITIAL_VALUES}
         columns={[
           ...getSloTableColumns(),
           {
