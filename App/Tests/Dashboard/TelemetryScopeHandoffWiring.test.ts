@@ -12,7 +12,7 @@ import path from "path";
  * What is left over — and what this suite owns — is a handful of properties
  * that live in the SHAPE of a component rather than in any function it
  * calls: where a piece of state is seeded from, which effect is gated on
- * what, which of five sibling tab objects carries the marker, and whether
+ * what, which of three sibling tab objects carries the marker, and whether
  * two chips render inside the same block.
  *
  * None of those can be observed from a unit test of a helper, and every one
@@ -185,7 +185,7 @@ describe("the Logs explorer's first URL write is never narrower than the link", 
   });
 });
 
-describe("the Exceptions status tabs carry scope, and Insights does not", () => {
+describe("the Exceptions list tab carries scope, and its siblings do not", () => {
   const EXCEPTIONS_NAV_TABS: string =
     "Components/Exceptions/ExceptionsNavTabs.tsx";
 
@@ -198,30 +198,28 @@ describe("the Exceptions status tabs carry scope, and Insights does not", () => 
     );
   }
 
-  test("exactly three of the five tabs carry the scope", () => {
+  test("exactly one of the three tabs carries the scope", () => {
     /*
-     * Three, not five. The count on its own is a weak guard — see the
-     * per-tab test below — but it is what catches a sixth tab being added
+     * One, not three. The count on its own is a weak guard — see the
+     * per-tab test below — but it is what catches another tab being added
      * with the marker copy-pasted along with the rest of the object.
      */
     expect(countOccurrences(exceptionsTabsArray(), "carriesScope: true")).toBe(
-      3,
+      1,
     );
   });
 
   test.each([
-    ["unresolved", true],
-    ["resolved", true],
-    ["archived", true],
+    ["exceptions", true],
     ["overview", false],
     ["setup", false],
   ])(
     "the %s tab object is the one that decides, not the count",
     (key: string, carries: boolean) => {
       /*
-       * Unresolved / Resolved / Archived are the SAME viewer with a
-       * different status default, so a service filter, a search or a window
-       * set on one describes the other two exactly. Those three carry.
+       * Exceptions is the unified viewer, so a service filter, search or
+       * window from a preserved legacy status URL still describes it. It
+       * carries that scope.
        *
        * Insights must not. It is a different, unscoped component: handing it
        * a filtered URL would put a scope in the address bar that none of its
@@ -230,7 +228,7 @@ describe("the Exceptions status tabs carry scope, and Insights does not", () => 
        * them. Setup Guide is not a view of the data at all.
        *
        * Asserting per tab rather than by count is the point: moving the
-       * marker from Archived to Insights keeps the count at three and breaks
+       * marker from Exceptions to Insights keeps the count at one and breaks
        * exactly this test.
        */
       const entry: string = tabEntry(exceptionsTabsArray(), key);
@@ -348,8 +346,8 @@ describe("the provenance chip never outruns the applied scope", () => {
 
 describe("every viewer that carries scope writes its window down", () => {
   /*
-   * Including the Exceptions viewer, whose three status tabs carry scope for
-   * the same reason the telemetry tabs do.
+   * Including the Exceptions viewer, whose unified list tab carries scope in
+   * the same way the telemetry list tabs do.
    */
   const SCOPE_CARRYING_VIEWERS: Array<[string, string]> = [
     ["Logs", "Components/Logs/LogsViewer.tsx"],
