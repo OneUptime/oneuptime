@@ -59,6 +59,16 @@ function getTabDefinitions(source: string): Array<TabDefinition> {
 }
 
 describe("Exceptions landing navigation", () => {
+  test("does not offer page-scoped bulk resolution", () => {
+    const source: string = readSquashed(
+      "Components/Exceptions/ExceptionsViewer.tsx",
+    );
+
+    expect(source).not.toContain("handleResolveAll");
+    expect(source).not.toContain("Resolve all visible exceptions");
+    expect(source).not.toContain("Resolve page");
+  });
+
   test.each([
     ["/dashboard/project-id/exceptions", "unresolved"],
     ["/dashboard/project-id/exceptions/unresolved", "unresolved"],
