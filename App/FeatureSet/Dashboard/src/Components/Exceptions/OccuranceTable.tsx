@@ -1,6 +1,7 @@
 import SpanStatusElement from "../Span/SpanStatusElement";
 import ProjectUtil from "Common/UI/Utils/Project";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import ObjectID from "Common/Types/ObjectID";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import AnalyticsModelTable from "Common/UI/Components/ModelTable/AnalyticsModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -31,9 +32,11 @@ import {
   lookupRumSessionsBySessionIds,
 } from "../../Utils/RumSessionLookup";
 import { makeExceptionSignalId } from "../SessionReplay/Rail/ReplaySignalTypes";
+import { buildExceptionOccurrenceQuery } from "../../Utils/ExceptionDetailData";
 
 export interface ComponentProps {
   exceptionFingerprint: string;
+  primaryEntityId?: ObjectID | undefined;
 }
 
 const OccouranceTable: FunctionComponent<ComponentProps> = (
@@ -128,10 +131,11 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
             description:
               "View all the traces that are related to this exception.",
           }}
-          query={{
+          query={buildExceptionOccurrenceQuery({
             projectId: ProjectUtil.getCurrentProjectId()!,
             fingerprint: props.exceptionFingerprint,
-          }}
+            primaryEntityId: props.primaryEntityId,
+          })}
           onFetchSuccess={(data: Array<ExceptionInstance>) => {
             void resolveSessionAnchors(data);
           }}

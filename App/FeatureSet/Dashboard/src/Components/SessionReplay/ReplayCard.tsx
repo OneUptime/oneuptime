@@ -89,6 +89,11 @@ export interface ReplayCardProps {
   exceptionInstanceId?: string | undefined;
   /* Exception group fingerprint, when the caller only has the group. */
   fingerprint?: string | undefined;
+  /*
+   * Exception-group service scope. A fingerprint alone is not globally
+   * unique, so exception pages should provide this whenever it is known.
+   */
+  primaryEntityId?: ObjectID | undefined;
   /* Absolute time of the occurrence, used to position playback. */
   errorTimeUnixMs?: number | undefined;
   className?: string | undefined;
@@ -158,13 +163,20 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
 
   const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
 
-  const { rumApplicationId, sessionId, fingerprint, errorTimeUnixMs } = props;
+  const {
+    rumApplicationId,
+    sessionId,
+    fingerprint,
+    primaryEntityId,
+    errorTimeUnixMs,
+  } = props;
   /*
    * Navigation-derived ObjectIDs are new objects on every render, so the
    * callback below keys on the string. Otherwise every parent re-render
    * refires the lookup.
    */
   const rumApplicationIdString: string = rumApplicationId?.toString() ?? "";
+  const primaryEntityIdString: string = primaryEntityId?.toString() ?? "";
 
   const load: (generation: number) => Promise<void> = useCallback(
     async (generation: number): Promise<void> => {
@@ -193,6 +205,9 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
             ),
             data: {
               fingerprint: fingerprint,
+              ...(primaryEntityIdString
+                ? { primaryEntityId: primaryEntityIdString }
+                : {}),
               /*
                * Pins the search to the occurrence's own session, and lets
                * the server derive a partition window from the moment
@@ -270,7 +285,13 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
         }
       }
     },
-    [rumApplicationIdString, sessionId, fingerprint, errorTimeUnixMs],
+    [
+      rumApplicationIdString,
+      sessionId,
+      fingerprint,
+      primaryEntityIdString,
+      errorTimeUnixMs,
+    ],
   );
 
   useEffect(() => {

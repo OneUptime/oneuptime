@@ -2645,6 +2645,13 @@ export default class SessionReplayReadService {
     projectId: ObjectID;
     exceptionFingerprint: string;
     /*
+     * Exception fingerprints are unique per primary entity, not per project.
+     * Keep this optional for older callers, but exception pages should always
+     * provide it so neither the live side index nor finalized headers can mix
+     * identically fingerprinted groups from different services.
+     */
+    primaryEntityId?: ObjectID | undefined;
+    /*
      * null means "no label restriction". An EMPTY array means the caller
      * can reach no applications at all and must get no rows - the two are
      * not the same and collapsing them would leak every session in the
@@ -2681,6 +2688,7 @@ export default class SessionReplayReadService {
       await SessionReplayReadService.getSessionIdsForExceptionInstances({
         projectId: data.projectId,
         exceptionFingerprint: data.exceptionFingerprint,
+        primaryEntityId: data.primaryEntityId,
         startTime: startTime,
         endTime: endTime,
         sessionId: data.sessionId,
@@ -2773,12 +2781,32 @@ export default class SessionReplayReadService {
       );
     }
 
-    statement.append(
-      SQL` AND (hasAny(exceptionFingerprints, [${{
-        type: TableColumnType.Text,
-        value: data.exceptionFingerprint,
-      }}])`,
-    );
+    statement.append(" AND (");
+
+    if (data.primaryEntityId) {
+      /*
+       * Finalized replay headers carry only their RUM application and a flat
+       * fingerprint list. For a scoped browser exception the application is
+       * its primary entity. Backend exceptions may still join a replay, but
+       * only through a session id confirmed by the scoped instance lookup.
+       */
+      statement.append(
+        SQL`(rumApplicationId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.primaryEntityId,
+        }} AND hasAny(exceptionFingerprints, [${{
+          type: TableColumnType.Text,
+          value: data.exceptionFingerprint,
+        }}]))`,
+      );
+    } else {
+      statement.append(
+        SQL`hasAny(exceptionFingerprints, [${{
+          type: TableColumnType.Text,
+          value: data.exceptionFingerprint,
+        }}])`,
+      );
+    }
 
     if (instanceSessionIds.length > 0) {
       statement.append(
@@ -2791,13 +2819,26 @@ export default class SessionReplayReadService {
 
     statement.append(")");
 
-    statement.append(
-      SQL` GROUP BY projectId, rumApplicationId, sessionId
-           HAVING (hasAny(aggExceptionFingerprints, [${{
-             type: TableColumnType.Text,
-             value: data.exceptionFingerprint,
-           }}])`,
-    );
+    statement.append(" GROUP BY projectId, rumApplicationId, sessionId HAVING (");
+
+    if (data.primaryEntityId) {
+      statement.append(
+        SQL`(rumApplicationId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.primaryEntityId,
+        }} AND hasAny(aggExceptionFingerprints, [${{
+          type: TableColumnType.Text,
+          value: data.exceptionFingerprint,
+        }}]))`,
+      );
+    } else {
+      statement.append(
+        SQL`hasAny(aggExceptionFingerprints, [${{
+          type: TableColumnType.Text,
+          value: data.exceptionFingerprint,
+        }}])`,
+      );
+    }
 
     if (instanceSessionIds.length > 0) {
       statement.append(
@@ -2868,6 +2909,7 @@ export default class SessionReplayReadService {
   private static async getSessionIdsForExceptionInstances(data: {
     projectId: ObjectID;
     exceptionFingerprint: string;
+    primaryEntityId?: ObjectID | undefined;
     startTime: Date;
     endTime: Date;
     sessionId?: string | undefined;
@@ -2895,6 +2937,15 @@ export default class SessionReplayReadService {
           ),
         }}
     `;
+
+    if (data.primaryEntityId) {
+      statement.append(
+        SQL` AND primaryEntityId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.primaryEntityId,
+        }}`,
+      );
+    }
 
     /*
      * A pinned sessionId narrows this lookup; it does NOT replace it.

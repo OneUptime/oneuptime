@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -61,6 +62,7 @@ const APP_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
 const SESSION_ID: string = "a1b2c3d4e5f60718293a4b5c6d7e8f90";
 const OTHER_SESSION_ID: string = "b1b2c3d4e5f60718293a4b5c6d7e8f90";
 const INSTANCE_ID: string = "0193c0de-5555-4aaa-8bbb-000000000005";
+const PRIMARY_ENTITY_ID: string = "0193c0de-7777-4aaa-8bbb-000000000007";
 const FINGERPRINT: string = "fp-0123456789abcdef";
 const SESSION_START: Date = new Date("2026-08-14T10:00:00.000Z");
 const SESSION_END: Date = new Date("2026-08-14T10:10:00.000Z");
@@ -161,6 +163,31 @@ describe("ReplayCard request", () => {
     });
     expect(postMock).not.toHaveBeenCalled();
     expect(container.textContent).toBe("");
+  });
+
+  it("keeps the primary-entity scope on both the pinned request and its unpinned fallback", async () => {
+    postMock
+      .mockResolvedValueOnce(okResponse([]))
+      .mockResolvedValueOnce(okResponse([sessionRow()]));
+
+    renderCard({ primaryEntityId: new ObjectID(PRIMARY_ENTITY_ID) });
+
+    await screen.findByTestId("replay-card");
+
+    expect(postMock).toHaveBeenCalledTimes(2);
+
+    for (const call of postMock.mock.calls) {
+      const request: { data: JSONObject } = call[0] as {
+        data: JSONObject;
+      };
+
+      expect(request.data["fingerprint"]).toBe(FINGERPRINT);
+      expect(request.data["primaryEntityId"]).toBe(PRIMARY_ENTITY_ID);
+    }
+
+    expect(
+      (postMock.mock.calls[1]![0] as { data: JSONObject }).data["sessionId"],
+    ).toBeUndefined();
   });
 });
 

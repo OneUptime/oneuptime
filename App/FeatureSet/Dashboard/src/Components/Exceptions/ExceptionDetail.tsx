@@ -14,7 +14,6 @@ import ServiceElement from "../Service/ServiceElement";
 export interface ComponentProps {
   exceptionType?: string | undefined;
   message?: string | undefined;
-  stackTrace?: string | undefined;
   fingerprint?: string | undefined;
   firstSeenAt?: Date | undefined;
   lastSeenAt?: Date | undefined;
@@ -81,15 +80,6 @@ const ExceptionDetail: FunctionComponent<ComponentProps> = (
     });
   }
 
-  if (props.stackTrace) {
-    fields.push({
-      key: "stackTrace",
-      title: "Stack Trace",
-      description: "The stack trace of the exception.",
-      fieldType: FieldType.Code,
-    });
-  }
-
   if (props.firstSeenAt) {
     fields.push({
       key: "firstSeenAt",
@@ -111,7 +101,7 @@ const ExceptionDetail: FunctionComponent<ComponentProps> = (
   if (props.occuranceCount) {
     fields.push({
       key: "occuranceCount",
-      title: "Occurance Count",
+      title: "Occurrence Count",
       description: "The number of times this exception has occurred.",
       fieldType: FieldType.Number,
     });
@@ -175,8 +165,8 @@ const ExceptionDetail: FunctionComponent<ComponentProps> = (
 
   return (
     <Card
-      title={"Exception Details"}
-      description={"Here are more details of this exception."}
+      title={"Exception Metadata"}
+      description={"Technical details used to identify and group this exception."}
     >
       <div>
         <Detail<ComponentProps> item={props} fields={fields} />

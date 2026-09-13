@@ -2695,6 +2695,38 @@ describe("SessionReplayReadService statements", () => {
       expect(boundValues(headers)).toContain("s-9");
     });
 
+    test("scopes both live instances and finalized fingerprint matches to the exception's primary entity", async () => {
+      const primaryEntityId: ObjectID = ObjectID.generate();
+
+      exceptionQuerySpy.mockResolvedValue(
+        fakeResultSet([{ sessionId: "scoped-live-session" }]) as never,
+      );
+
+      await SessionReplayReadService.getSessionsForException({
+        projectId: projectId,
+        exceptionFingerprint: "shared-fingerprint",
+        primaryEntityId: primaryEntityId,
+        accessibleRumApplicationIds: null,
+        limit: 5,
+      });
+
+      const instances: Statement = statementOf(exceptionQuerySpy);
+      expect(instances.query).toContain("AND primaryEntityId = ");
+      expect(boundValues(instances)).toContain(primaryEntityId.toString());
+
+      const headers: Statement = statementOf(headerQuerySpy);
+      const where: string = whereSection(headers.query);
+      expect(where).toMatch(
+        /\(rumApplicationId = \{p\d+:String\} AND hasAny\(exceptionFingerprints/,
+      );
+      expect(where).toContain("OR sessionId IN (");
+      expect(headers.query).toMatch(
+        /HAVING \(\(rumApplicationId = \{p\d+:String\} AND hasAny\(aggExceptionFingerprints/,
+      );
+      expect(boundValues(headers)).toContain(primaryEntityId.toString());
+      expect(boundValues(headers)).toContainEqual(["scoped-live-session"]);
+    });
+
     test("a pinned session the instance table has never seen falls back to the fingerprint alone", async () => {
       /* The session exists, but it never threw this exception. */
       exceptionQuerySpy.mockResolvedValue(fakeResultSet([]) as never);

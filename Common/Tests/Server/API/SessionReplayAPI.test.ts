@@ -4685,6 +4685,55 @@ describe("Session replay playback API", () => {
       expect(findBySpy).not.toHaveBeenCalled();
     });
 
+    test("validates and applies the exception group's primary-entity scope", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+
+      const bad: CallResult = await callRoute({
+        uri: FOR_EXCEPTION_ROUTE,
+        request: principal.request,
+        body: { fingerprint: "fp-1", primaryEntityId: "not-an-id" },
+      });
+
+      expect(bad.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+      expect(exceptionQuerySpy).not.toHaveBeenCalled();
+
+      jest.clearAllMocks();
+      mockProps(principal.databaseProps);
+
+      await callRoute({
+        uri: FOR_EXCEPTION_ROUTE,
+        request: principal.request,
+        body: {
+          fingerprint: "fp-1",
+          primaryEntityId: applicationAId.toString(),
+        },
+      });
+
+      const instanceStatement: Statement = exceptionQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(instanceStatement.query).toContain("AND primaryEntityId = ");
+      expect(Object.values(instanceStatement.query_params)).toContain(
+        applicationAId.toString(),
+      );
+
+      const headerStatement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(headerStatement.query).toContain("rumApplicationId = ");
+      expect(Object.values(headerStatement.query_params)).toContain(
+        applicationAId.toString(),
+      );
+    });
+
     test("projects the frustration counters and masking mode the replay card renders", async () => {
       const principal: {
         request: JSONObject;

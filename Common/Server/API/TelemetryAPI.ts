@@ -6056,6 +6056,9 @@ router.post(
         );
       }
 
+      const primaryEntityId: ObjectID | undefined =
+        readOptionalObjectIdFromBody(body, "primaryEntityId");
+
       /*
        * An exception is not scoped to a RUM application, so there is no
        * single application to authorize against. Restrict the query to
@@ -6116,6 +6119,7 @@ router.post(
         await SessionReplayReadService.getSessionsForException({
           projectId: projectId,
           exceptionFingerprint: fingerprint,
+          ...(primaryEntityId !== undefined && { primaryEntityId }),
           accessibleRumApplicationIds: accessibleApplications.applicationIds,
           ...(startTime !== undefined && { startTime }),
           ...(endTime !== undefined && { endTime }),

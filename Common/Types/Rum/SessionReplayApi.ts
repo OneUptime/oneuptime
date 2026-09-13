@@ -549,6 +549,12 @@ export interface SessionReplayViewsResponseDto {
 
 export interface SessionReplayForExceptionRequestDto {
   fingerprint: string;
+  /*
+   * Optional exception-group scope. Fingerprints are unique only within a
+   * primary entity, so callers that know the group must send this to avoid
+   * matching an identically fingerprinted exception from another service.
+   */
+  primaryEntityId?: string;
   /* ISO-8601 bounds; without them the server defaults to a 30-day window. */
   startTime?: string;
   endTime?: string;

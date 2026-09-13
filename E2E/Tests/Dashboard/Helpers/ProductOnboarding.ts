@@ -80,11 +80,26 @@ export const registerAndCreateProject: RegisterAndCreateProjectFunction =
     await page.getByTestId("confirmPassword").fill(E2E_SIGNUP_PASSWORD);
     await page.getByTestId("Sign Up").click();
 
-    await page.waitForURL(
-      URL.fromString(BASE_URL.toString())
-        .addRoute("/dashboard/welcome")
-        .toString(),
-    );
+    const welcomeUrl: string = URL.fromString(BASE_URL.toString())
+      .addRoute("/dashboard/welcome")
+      .toString();
+
+    /*
+     * Accounts currently hands a newly registered user to the Dashboard root.
+     * Older deployments redirect that root to /dashboard/welcome themselves,
+     * while newer ones leave the root in place until project selection has
+     * loaded. Accept either hand-off, then make the onboarding destination
+     * explicit so the remainder of the shared helper is deterministic.
+     */
+    await page.waitForURL(/\/dashboard(?:\/welcome)?\/?$/);
+
+    if (page.url() !== welcomeUrl) {
+      await page.goto(welcomeUrl, { waitUntil: "domcontentloaded" });
+    }
+
+    await page
+      .getByTestId("create-new-project-button")
+      .waitFor({ state: "visible" });
 
     await page.getByTestId("create-new-project-button").click();
     await page.getByTestId("modal").waitFor({ state: "visible" });
