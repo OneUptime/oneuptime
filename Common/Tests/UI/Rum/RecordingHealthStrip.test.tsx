@@ -235,14 +235,14 @@ describe("RecordingHealthStripView per diagnosis state", () => {
       "Open the setup guide",
     );
     /*
-     * The setup guide lives on the application's documentation page - see
+     * The setup guide lives on the application's Session Replay > Documentation page - see
      * getRecordingHealthActionLink's "setup-guide" case, and
      * SessionReplayEmptyState.test.tsx, which asserts the same destination for
      * the same target.
      */
     expect(screen.getByTestId("health-action").closest("a")).toHaveAttribute(
       "href",
-      expect.stringContaining(`/rum/${APP_ID}/documentation`),
+      expect.stringContaining(`/rum/${APP_ID}/session-replay-documentation`),
     );
     expect(screen.queryByTestId("health-strip-dismiss")).toBeNull();
   });

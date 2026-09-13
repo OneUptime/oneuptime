@@ -300,7 +300,7 @@ test("search guidance is optional and an empty result offers a direct reset", as
   await expect(rows(page)).toHaveCount(8);
 });
 
-test("the first recording empty state keeps setup documentation on the documentation page", async ({
+test("the first recording empty state keeps setup documentation on the session replay documentation page", async ({
   page,
 }: {
   page: Page;
@@ -318,7 +318,9 @@ test("the first recording empty state keeps setup documentation on the documenta
   await page
     .getByRole("button", { name: "Set up recording", exact: true })
     .click();
-  await expect(page).toHaveURL(`${applicationRoute}/documentation`);
+  await expect(page).toHaveURL(
+    `${applicationRoute}/session-replay-documentation`,
+  );
   await expect(
     page.getByText("Create a telemetry ingestion key", { exact: true }),
   ).toBeVisible();

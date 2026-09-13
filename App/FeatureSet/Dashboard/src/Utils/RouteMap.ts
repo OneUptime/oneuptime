@@ -454,6 +454,11 @@ export const RumRoutePath: Dictionary<string> = {
    * whose id happened to be "settings".
    */
   [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS]: `${RouteParams.ModelID}/session-replay-settings`,
+  /*
+   * The setup guide and reference links. A sibling of /session-replay for
+   * the same reason as the pages above.
+   */
+  [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION]: `${RouteParams.ModelID}/session-replay-documentation`,
   [PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.RUM_APPLICATION_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.RUM_APPLICATION_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
@@ -4411,6 +4416,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/rum/${
       RumRoutePath[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION]
     }`,
   ),
 

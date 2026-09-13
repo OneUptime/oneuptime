@@ -144,6 +144,18 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Eye}
         />
+        <SideMenuItem
+          link={{
+            title: "Documentation",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.BookOpen}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Settings">

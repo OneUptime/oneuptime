@@ -93,6 +93,15 @@ export function getRumBreadcrumbs(path: string): Array<Link> | undefined {
         "Session Replay Settings",
       ],
     ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION,
+      [
+        "Project",
+        "Real User Monitoring",
+        "View Application",
+        "Session Replay Documentation",
+      ],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.RUM_SETTINGS_SESSION_REPLAY, [
       "Project",
       "Real User Monitoring",
