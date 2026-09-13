@@ -10,6 +10,8 @@ const applicationRoute: string =
   "/dashboard/10000000-0000-4000-8000-000000000001/rum/20000000-0000-4000-8000-000000000001";
 const listRoute: string = `${applicationRoute}/session-replay`;
 const usersRoute: string = `${applicationRoute}/session-replay-users`;
+const healthRoute: string = `${applicationRoute}/session-replay-health`;
+const policyRoute: string = `${applicationRoute}/session-replay-settings`;
 const playerRoute: string = `${listRoute}/${"a".repeat(32)}`;
 interface FixtureRequest {
   route: string;
@@ -48,7 +50,14 @@ const openList: (page: Page, query?: string) => Promise<void> = async (
 ): Promise<void> => {
   await page.goto(`${listRoute}${query}`);
   await expect(page.getByTestId("session-search-input")).toBeVisible();
-  await expect(page.getByTestId("health-strip-level")).toBeAttached();
+};
+const openHealth: (page: Page, scenario?: string) => Promise<void> = async (
+  page: Page,
+  scenario: string = "",
+): Promise<void> => {
+  await page.goto(`${healthRoute}${scenario ? `?health=${scenario}` : ""}`);
+  await expect(page.getByTestId("health-hero")).toBeVisible();
+  await expect(page.getByTestId("health-level")).not.toHaveText("loading");
 };
 const openPlayer: (page: Page, query?: string) => Promise<void> = async (
   page: Page,
@@ -134,12 +143,19 @@ test("uses the shared table and groups replay navigation in its own category", a
   await expect(section.getByRole("link")).toHaveText([
     "Session Replay",
     "Replay Users",
+    "Health",
     "Replay Policy",
     "Replay Access Log",
   ]);
   await expect(
     section.getByRole("link", { name: "Replay Users" }),
   ).toHaveAttribute("href", usersRoute);
+  await expect(
+    section.getByRole("link", { name: "Health", exact: true }),
+  ).toHaveAttribute("href", healthRoute);
+  /* Recording health lives on its own page now, not above the list. */
+  await expect(page.getByTestId("health-strip")).toHaveCount(0);
+  await expect(page.getByTestId("health-hero")).toHaveCount(0);
   await expect(
     section.getByRole("link", { name: "Replay Policy" }),
   ).toHaveAttribute("href", `${applicationRoute}/session-replay-settings`);
@@ -160,6 +176,174 @@ test("uses the shared table and groups replay navigation in its own category", a
   await expect(
     section.getByRole("button", { name: "Session Replay", exact: true }),
   ).toHaveAttribute("aria-expanded", "true");
+});
+
+test("the health page reads a healthy application stage by stage", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openHealth(page);
+  await expect(page.getByTestId("health-level")).toHaveText("healthy");
+  await expect(page.getByTestId("health-title")).toHaveText(
+    "Recording healthy",
+  );
+  await expect(page.getByTestId("health-action")).toHaveCount(0);
+  const stages: Locator = page
+    .getByTestId("health-pipeline")
+    .getByRole("listitem");
+  await expect(stages).toHaveCount(4);
+  for (const key of ["recorder", "policy", "uploads", "sessions"]) {
+    await expect(page.getByTestId(`health-stage-${key}`)).toHaveAttribute(
+      "data-tone",
+      "ok",
+    );
+  }
+  await expect(page.getByTestId("health-stage-sessions-value")).toHaveText("8");
+  await expect(page.getByTestId("health-refusals")).toHaveAttribute(
+    "data-kind",
+    "none",
+  );
+  await expect(page.getByTestId("health-meter-project-day")).toContainText(
+    "of 1 GB",
+  );
+  await expect(page.getByTestId("health-policy-consent")).toContainText(
+    "Not required",
+  );
+  await expect(page.getByTestId("health-capabilities")).toContainText(
+    "frustration",
+  );
+  await expect(page.getByTestId("diagnostics-paste-box")).toBeVisible();
+  /* Every stage sits side by side on a laptop-wide viewport. */
+  const tops: Array<number> = await stages.evaluateAll(
+    (items: Array<Element>): Array<number> => {
+      return items.map((item: Element): number => {
+        return Math.round(item.getBoundingClientRect().top);
+      });
+    },
+  );
+  expect(new Set(tops).size).toBe(1);
+  await noHorizontalOverflow(page);
+  await screenshot(page, "session-replay-health");
+  /* Refresh reads the status again. */
+  const before: number = (await state(page)).requests.filter(
+    (request: FixtureRequest): boolean => {
+      return request.route === "ingest-status";
+    },
+  ).length;
+  await page.getByTestId("health-refresh").click();
+  await expect
+    .poll(async (): Promise<number> => {
+      return (await state(page)).requests.filter(
+        (request: FixtureRequest): boolean => {
+          return request.route === "ingest-status";
+        },
+      ).length;
+    })
+    .toBeGreaterThan(before);
+  await expect(page.getByTestId("health-level")).toHaveText("healthy");
+});
+
+test("the health page names refusals, the stage they stop and the fix", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openHealth(page, "refusing");
+  await expect(page.getByTestId("health-level")).toHaveText("refusing");
+  await expect(page.getByTestId("health-title")).toHaveText(
+    "212 uploads refused in 24h: origin not allowed",
+  );
+  await expect(page.getByTestId("health-stage-uploads")).toHaveAttribute(
+    "data-tone",
+    "warning",
+  );
+  await expect(page.getByTestId("health-stage-uploads-value")).toHaveText(
+    "221 refused",
+  );
+  const refusalRows: Locator = page.getByTestId("health-refusals-row");
+  await expect(refusalRows).toHaveCount(2);
+  await expect(refusalRows.first()).toHaveAttribute(
+    "data-reason",
+    "origin-not-allowed",
+  );
+  await expect(refusalRows.first()).toContainText("Origin not allowed");
+  await expect(page.getByTestId("health-drops-row")).toContainText(
+    "scrub-incomplete",
+  );
+  await expect(page.getByTestId("health-meter-project-day")).toHaveAttribute(
+    "data-tone",
+    "warning",
+  );
+  await expect(page.getByTestId("health-policy-origins")).toContainText(
+    "Any origin the ingestion key allows",
+  );
+  await screenshot(page, "session-replay-health-refusing");
+  /* The one action goes to the page that owns allowed origins. */
+  await expect(
+    page.getByTestId("health-action").locator("xpath=ancestor::a"),
+  ).toHaveAttribute("href", policyRoute);
+  await page.getByTestId("health-action").click();
+  await expect(page).toHaveURL(new RegExp(`${policyRoute}$`));
+  /* The policy page keeps only the summary, and links back. */
+  await expect(page.getByTestId("health-card")).toHaveAttribute(
+    "data-state",
+    "refusing",
+  );
+  await expect(page.getByTestId("health-pipeline")).toHaveCount(0);
+  await page.getByRole("button", { name: "View health details" }).click();
+  await expect(page).toHaveURL(new RegExp(`${healthRoute}`));
+  await expect(page.getByTestId("health-hero")).toBeVisible();
+});
+
+test("the health page separates a switched-off project from a recorder that never loaded", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openHealth(page, "disabled");
+  await expect(page.getByTestId("health-level")).toHaveText("disabled-project");
+  await expect(page.getByTestId("health-stage-policy")).toHaveAttribute(
+    "data-tone",
+    "error",
+  );
+  await expect(page.getByTestId("health-action")).toHaveText("Turn it on");
+  await openHealth(page, "never");
+  await expect(page.getByTestId("health-level")).toHaveText("never-loaded");
+  await expect(page.getByTestId("health-stage-recorder-value")).toHaveText(
+    "Never",
+  );
+  await expect(page.getByTestId("health-stage-uploads")).toHaveAttribute(
+    "data-tone",
+    "neutral",
+  );
+  await expect(page.getByTestId("health-refusals")).toHaveAttribute(
+    "data-kind",
+    "unknown",
+  );
+  await expect(page.getByTestId("health-meter-project-day")).toContainText(
+    "Unknown",
+  );
+  await expect(page.getByTestId("health-capabilities")).toContainText(
+    "not reported yet",
+  );
+  await expect(page.getByTestId("health-action")).toHaveText(
+    "Open the setup guide",
+  );
+  await screenshot(page, "session-replay-health-never-loaded");
+});
+
+test("the health page fits a narrow viewport", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHealth(page, "refusing");
+  await expect(page.getByTestId("health-pipeline")).toBeVisible();
+  await expect(page.getByTestId("health-refresh")).toBeVisible();
+  await noHorizontalOverflow(page);
+  await screenshot(page, "session-replay-health-mobile");
 });
 
 test("the users page rolls the window up by person and hands one person to the list", async ({

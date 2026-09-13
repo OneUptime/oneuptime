@@ -430,12 +430,14 @@ describe("Bundle hygiene", () => {
     const pageFiles: Array<string> = [
       "Pages/Rum/View/SessionReplaySettings.tsx",
       "Pages/Rum/View/SessionReplayAudit.tsx",
+      "Pages/Rum/View/SessionReplayHealth.tsx",
       "Pages/Rum/Settings/SessionReplay.tsx",
     ];
     const ownedComponents: Array<string> = [
       "useSessionReplayHealth.ts",
-      "RecordingHealthStrip.tsx",
       "RecordingHealthCard.tsx",
+      "RecordingHealthDashboard.tsx",
+      "RecordingHealthModel.ts",
       "RecorderDiagnosticsExplainer.ts",
       "SessionReplayInstallSnippet.tsx",
       "PrivacySummaryCard.tsx",

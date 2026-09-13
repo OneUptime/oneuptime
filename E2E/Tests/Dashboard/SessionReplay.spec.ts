@@ -23,6 +23,7 @@ import {
   hexId,
   networkEvent,
   openRumApplications,
+  openSessionReplayHealth,
   openSessionReplayList,
   openSessionReplayPlayer,
   postSessionReplayChunk,
@@ -44,7 +45,7 @@ import {
  * Everything below the recorder bundle, exercised the way a customer's
  * browser exercises it: a real ingestion key, real chunk frames posted to
  * /telemetry/session-replay/v1/chunk, and then the real dashboard reading
- * them back - the roster's Connected pill, the health strip, the list with
+ * them back - the roster's Connected pill, the Health page, the list with
  * its search grammar and sort, the player, the rail and the audit log.
  *
  * This is the only coverage of several hops that unit tests cannot reach,
@@ -434,30 +435,38 @@ test.describe("Session Replay", () => {
     await expect(listRow.getByTestId("session-row-watch")).toBeVisible();
 
     /*
-     * Hop 5: the health strip agrees with the ingest.
+     * Hop 5: the Health page agrees with the ingest.
      *
      * Its word is the diagnosis state. "healthy" needs the last-chunk stamp,
      * which the ingest writes only after the chunk is durably flushed, so
-     * the strip can lag the list by a poll.
+     * the page can lag the list by a poll.
      */
     await pollUntil({
       page,
-      what: "health strip reading healthy",
+      what: "Health page reading healthy",
       timeoutMs: 120000,
       run: async (): Promise<boolean> => {
-        await openSessionReplayList({ page, projectId, rumApplicationId });
+        await openSessionReplayHealth({ page, projectId, rumApplicationId });
 
-        const level: Locator = page.getByTestId("health-strip-level");
+        const level: Locator = page.getByTestId("health-level");
 
-        await level.waitFor({ state: "attached", timeout: 30000 });
+        await expect(level).not.toHaveText("loading", { timeout: 30000 });
 
         return (await level.textContent())?.trim() === "healthy";
       },
     });
 
-    await expect(page.getByTestId("health-strip")).toContainText(
+    await expect(page.getByTestId("health-title")).toHaveText(
       "Recording healthy",
     );
+    await expect(page.getByTestId("health-stage-uploads")).toHaveAttribute(
+      "data-tone",
+      "ok",
+    );
+
+    /* Back to the list, which carries no health strip of its own any more. */
+    await openSessionReplayList({ page, projectId, rumApplicationId });
+    await expect(page.getByTestId("health-strip")).toHaveCount(0);
 
     /*
      * Hop 6: Watch opens the player and the player PLAYS (#3601).
@@ -1161,14 +1170,11 @@ test.describe("Session Replay", () => {
      * #3527's other half. "Nothing has been recorded here yet" is what this
      * page used to say for an application whose recorder is demonstrably
      * loading, which sends the customer back to re-paste a snippet that was
-     * never the problem. The strip has to separate "never loaded" from
-     * "loaded, and here is what is stopping the upload", and the detail has
-     * to name the cause and quantify it.
+     * never the problem. The list's empty state and the Health page both
+     * have to separate "never loaded" from "loaded, and here is what is
+     * stopping the upload", and the detail has to name the cause and
+     * quantify it.
      */
-    await expect(
-      page.getByTestId("health-strip-level"),
-      "#3527: a recorder that fetched its policy must not be reported as never installed",
-    ).toHaveText("loaded-never-uploaded");
     await expect(
       page.getByTestId("list-empty-detail"),
       "The empty state must name the cause: sampling is 0%",
@@ -1177,6 +1183,24 @@ test.describe("Session Replay", () => {
       page.getByTestId("list-empty-variant"),
       "A loaded-but-silent application must not be filed as never-installed",
     ).not.toHaveText("never-installed");
+
+    await openSessionReplayHealth({
+      page,
+      projectId,
+      rumApplicationId: quietApplicationId,
+    });
+    await expect(
+      page.getByTestId("health-level"),
+      "#3527: a recorder that fetched its policy must not be reported as never installed",
+    ).toHaveText("loaded-never-uploaded", { timeout: 30000 });
+    await expect(
+      page.getByTestId("health-detail"),
+      "The Health page must name the cause: sampling is 0%",
+    ).toContainText("sample percentage is 0%");
+    await expect(
+      page.getByTestId("health-stage-policy"),
+      "0% sampling is the stage that stops the recording",
+    ).toHaveAttribute("data-tone", "error");
   });
 
   /*

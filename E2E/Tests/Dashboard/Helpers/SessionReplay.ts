@@ -948,6 +948,33 @@ export const openSessionReplayList: OpenSessionReplayListFunction =
     });
   };
 
+type OpenSessionReplayHealthFunction = (data: {
+  page: Page;
+  projectId: string;
+  rumApplicationId: string;
+}) => Promise<void>;
+
+/* The application's Replay Health page, ready once its hero has rendered. */
+export const openSessionReplayHealth: OpenSessionReplayHealthFunction =
+  async (data: {
+    page: Page;
+    projectId: string;
+    rumApplicationId: string;
+  }): Promise<void> => {
+    const healthUrl: string = URL.fromString(BASE_URL.toString())
+      .addRoute(
+        `/dashboard/${data.projectId}/rum/${data.rumApplicationId}/session-replay-health`,
+      )
+      .toString();
+
+    await gotoProjectPage({
+      page: data.page,
+      projectId: data.projectId,
+      url: healthUrl,
+      ready: data.page.getByTestId("health-hero"),
+    });
+  };
+
 type OpenSessionReplayPlayerFunction = (data: {
   page: Page;
   projectId: string;

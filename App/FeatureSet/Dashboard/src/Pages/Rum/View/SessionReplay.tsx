@@ -7,7 +7,6 @@ import { Navigate } from "react-router-dom";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import SessionReplayTable from "../../../Components/SessionReplay/SessionReplayTable";
-import RecordingHealthStrip from "../../../Components/SessionReplay/RecordingHealthStrip";
 import {
   buildTimeRangeSearch,
   readTimeRangeFromSearch,
@@ -20,7 +19,11 @@ import {
 export const LEGACY_USERS_VIEW_QUERY_KEY: string = "view";
 export const LEGACY_USERS_VIEW_QUERY_VALUE: string = "users";
 
-/* Recording health stays outside the table; setup lives on Documentation. */
+/*
+ * Only the sessions. Recording health has its own page (Replay Health) and
+ * setup lives on Documentation; an empty list still names its cause through
+ * the table's empty state.
+ */
 const RumApplicationSessionReplay: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -57,7 +60,6 @@ const RumApplicationSessionReplay: FunctionComponent<
 
   return (
     <Fragment>
-      <RecordingHealthStrip rumApplicationId={modelId} />
       <SessionReplayTable rumApplicationId={modelId} />
     </Fragment>
   );

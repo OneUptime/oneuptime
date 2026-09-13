@@ -421,6 +421,17 @@ const REFUSAL_COPY: Record<SessionReplayRefusalReason, RefusalCopy> = {
   },
 };
 
+/*
+ * The short human label for a refusal reason ("origin not allowed"), or
+ * null for a string this build has no copy for. The health page prints it
+ * beside the reason code so the counter reads as a cause, not a slug.
+ */
+export function describeRefusalReason(reason: string): string | null {
+  return isSessionReplayRefusalReason(reason)
+    ? REFUSAL_COPY[reason].label
+    : null;
+}
+
 function action(
   label: string,
   target: RecordingHealthActionTarget,
