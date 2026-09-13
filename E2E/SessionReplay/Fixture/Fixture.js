@@ -18,6 +18,7 @@ import Documentation from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/
 import ReplayPolicy from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplaySettings";
 import ReplayAccessLog from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayAudit";
 import ReplayHealth from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayHealth";
+import ReplayDocumentation from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayDocumentation";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import Project from "Common/Models/DatabaseModels/Project";
 import ObjectID from "Common/Types/ObjectID";
@@ -765,6 +766,10 @@ createRoot(document.getElementById("root")).render(
         <Route path="session-replay-settings" element={<ReplayPolicy />} />
         <Route path="session-replay-audit" element={<ReplayAccessLog />} />
         <Route path="session-replay-health" element={<ReplayHealth />} />
+        <Route
+          path="session-replay-documentation"
+          element={<ReplayDocumentation />}
+        />
       </Route>
     </Routes>
   </BrowserRouter>,

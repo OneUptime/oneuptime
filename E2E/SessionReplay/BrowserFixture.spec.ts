@@ -12,6 +12,7 @@ const listRoute: string = `${applicationRoute}/session-replay`;
 const usersRoute: string = `${applicationRoute}/session-replay-users`;
 const healthRoute: string = `${applicationRoute}/session-replay-health`;
 const policyRoute: string = `${applicationRoute}/session-replay-settings`;
+const documentationRoute: string = `${applicationRoute}/session-replay-documentation`;
 const playerRoute: string = `${listRoute}/${"a".repeat(32)}`;
 interface FixtureRequest {
   route: string;
@@ -146,10 +147,14 @@ test("uses the shared table and groups replay navigation in its own category", a
     "Health",
     "Replay Policy",
     "Replay Access Log",
+    "Documentation",
   ]);
   await expect(
     section.getByRole("link", { name: "Replay Users" }),
   ).toHaveAttribute("href", usersRoute);
+  await expect(
+    section.getByRole("link", { name: "Documentation" }),
+  ).toHaveAttribute("href", documentationRoute);
   await expect(
     section.getByRole("link", { name: "Health", exact: true }),
   ).toHaveAttribute("href", healthRoute);
@@ -502,12 +507,11 @@ test("the first recording empty state keeps setup documentation on the session r
   await page
     .getByRole("button", { name: "Set up recording", exact: true })
     .click();
-  await expect(page).toHaveURL(
-    `${applicationRoute}/session-replay-documentation`,
-  );
+  await expect(page).toHaveURL(documentationRoute);
   await expect(
     page.getByText("Create a telemetry ingestion key", { exact: true }),
   ).toBeVisible();
+  await expect(page.getByTestId("session-replay-docs-reference")).toBeVisible();
   await expect(page.getByTestId("list-empty")).toHaveCount(0);
 });
 
