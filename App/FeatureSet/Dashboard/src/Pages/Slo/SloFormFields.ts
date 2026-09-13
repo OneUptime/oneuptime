@@ -4,9 +4,13 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import Label from "Common/Models/DatabaseModels/Label";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMonitorMode";
-import { DEFAULT_ROLLING_WINDOW_DAYS } from "Common/Utils/Slo/SloHealth";
+import {
+  DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
+  DEFAULT_ROLLING_WINDOW_DAYS,
+} from "Common/Utils/Slo/SloHealth";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import TimezoneUtil from "Common/UI/Utils/Timezone";
@@ -27,6 +31,52 @@ import TimezoneUtil from "Common/UI/Utils/Timezone";
 
 const SLO_TARGET_HELP_TEXT: string =
   "Reliability target as a percentage, e.g. 99.9. Must be greater than 0 and at most 99.999 — a 100% target leaves no error budget to track.";
+
+/*
+ * The create form used to render every SLO setting in one long modal. These
+ * steps follow the four questions a user answers: what is this SLO, what does
+ * it measure, what objective should it enforce, and how should it be grouped.
+ *
+ * Keep Monitors and Auto-Add Monitors With Labels on the same step. The first
+ * field is required only when the second is empty, and validation runs when a
+ * user leaves a step. Splitting them would prevent a label-driven SLO from
+ * advancing far enough to choose its labels.
+ *
+ * Window Type also stays beside both conditional window fields so changing
+ * the type immediately reveals the field that belongs to that choice.
+ */
+export const SLO_FORM_STEPS: Array<FormStep<ServiceLevelObjective>> = [
+  {
+    id: "basic-info",
+    title: "Basic Info",
+  },
+  {
+    id: "monitors",
+    title: "Monitors",
+  },
+  {
+    id: "objective",
+    title: "Objective",
+  },
+  {
+    id: "labels",
+    title: "Labels",
+  },
+];
+
+/*
+ * `monitors` must exist even when it is empty. Validation can then evaluate
+ * the field's conditional required predicate against monitorLabels instead of
+ * treating an absent key as unconditionally required. This is what lets an
+ * SLO be driven entirely by its auto-add label rule.
+ */
+export const SLO_CREATE_INITIAL_VALUES: FormValues<ServiceLevelObjective> = {
+  monitors: [],
+  windowType: SloWindowType.Rolling,
+  windowDays: DEFAULT_ROLLING_WINDOW_DAYS,
+  atRiskThresholdPercentage: DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
+  multiMonitorMode: SloMultiMonitorMode.AnyDown,
+};
 
 /*
  * Client-side mirrors of ServiceLevelObjectiveService.validateTargetPercentage
@@ -130,6 +180,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
         name: true,
       },
       title: "Name",
+      stepId: "basic-info",
       fieldType: FormFieldSchemaType.Text,
       required: true,
       placeholder: "API Availability",
@@ -139,6 +190,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
         description: true,
       },
       title: "Description",
+      stepId: "basic-info",
       fieldType: FormFieldSchemaType.LongText,
       required: false,
       placeholder: "99.9% availability for the public API",
@@ -148,6 +200,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
         monitors: true,
       },
       title: "Monitors",
+      stepId: "monitors",
       description:
         "Monitors whose uptime is measured by this SLO. Time when any of these monitors is down spends error budget.",
       fieldType: FormFieldSchemaType.MultiSelectDropdown,
@@ -174,6 +227,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
         monitorLabels: true,
       },
       title: "Auto-Add Monitors With Labels",
+      stepId: "monitors",
       description:
         "Keep this SLO's monitor list in step with your labels: every monitor carrying one of these labels is attached automatically, and is detached again when it stops carrying any of them. Monitors you attach by hand above are never removed.",
       fieldType: FormFieldSchemaType.MultiSelectDropdown,
@@ -190,6 +244,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
         targetPercentage: true,
       },
       title: "Target (%)",
+      stepId: "objective",
       description: SLO_TARGET_HELP_TEXT,
       fieldType: FormFieldSchemaType.Number,
       required: true,
@@ -201,6 +256,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
         windowType: true,
       },
       title: "Window Type",
+      stepId: "objective",
       description:
         "Rolling windows look back a fixed number of days and recover continuously. Calendar Month resets the whole budget on the first of each month.",
       fieldType: FormFieldSchemaType.Dropdown,
@@ -246,6 +302,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
         windowDays: true,
       },
       title: "Window (Days)",
+      stepId: "objective",
       /*
        * A free number rather than the old 7/28/30/90 dropdown: the column
        * accepts 1-366 (ServiceLevelObjectiveService.validateWindowDays), so
@@ -268,6 +325,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
         timezone: true,
       },
       title: "Timezone",
+      stepId: "objective",
       description:
         "Decides when the calendar month rolls over. Ignored for Rolling windows. Defaults to UTC.",
       fieldType: FormFieldSchemaType.Dropdown,
@@ -283,6 +341,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
         atRiskThresholdPercentage: true,
       },
       title: "At-Risk Threshold (%)",
+      stepId: "objective",
       description:
         "The SLO becomes At Risk when less than this percentage of the error budget remains. Default is 20.",
       fieldType: FormFieldSchemaType.Number,
@@ -301,6 +360,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
         multiMonitorMode: true,
       },
       title: "Multi Monitor Mode",
+      stepId: "monitors",
       description:
         "How downtime counts when several monitors are attached: time when any monitor is down, or an average across monitors.",
       fieldType: FormFieldSchemaType.Dropdown,
@@ -314,6 +374,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
         downtimeMonitorStatuses: true,
       },
       title: "Downtime Monitor Statuses",
+      stepId: "monitors",
       description:
         "Monitor statuses that count as downtime for this SLO. Leave empty to use every non-operational status.",
       fieldType: FormFieldSchemaType.MultiSelectDropdown,
@@ -330,6 +391,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
         labels: true,
       },
       title: "Labels",
+      stepId: "labels",
       description: "Organize and filter SLOs with labels.",
       fieldType: FormFieldSchemaType.MultiSelectDropdown,
       dropdownModal: {
@@ -348,6 +410,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
         isEnabled: true,
       },
       title: "Enabled",
+      stepId: "basic-info",
       description:
         "Disabled SLOs are not evaluated and do not fire burn-rate alerts.",
       fieldType: FormFieldSchemaType.Toggle,
