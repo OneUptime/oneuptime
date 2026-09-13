@@ -3,7 +3,7 @@ import path from "path";
 
 export default defineConfig({
   testDir: "./SessionReplay",
-  testMatch: "BrowserFixture.spec.ts",
+  testMatch: "*.spec.ts",
   timeout: 60000,
   expect: { timeout: 10000 },
   workers: 1,

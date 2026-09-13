@@ -44,8 +44,23 @@ const now = Date.now();
 const started = now - 7 * 60 * 1000;
 const count = empty ? 0 : Number(params.get("count") || 8);
 const requests = [];
+// Every ModelAPI.getItem, so a spec can count the policy card's fetches apart
+// from the layout's name fetch and the edit form's own read.
+const getItemRequests = [];
+const savedModels = [];
+// ?health=hold: /ingest-status waits for window.__sessionReplayFixture.releaseHealth().
+let releaseHealth = () => {};
+const healthGate =
+  params.get("health") === "hold"
+    ? new Promise((resolve) => {
+        releaseHealth = resolve;
+      })
+    : Promise.resolve();
 const fixture = {
   requests,
+  getItemRequests,
+  savedModels,
+  releaseHealth: () => releaseHealth(),
   failList: params.get("fixture") === "error",
   sessionId,
   tabId,
@@ -53,17 +68,32 @@ const fixture = {
   appId,
 };
 window.__sessionReplayFixture = fixture;
-const app = Object.assign(new RumApplication(), {
-  _id: appId,
-  name: "Storefront Web",
-  appIdentifier: "storefront-web",
-  sessionReplayEnabled: true,
+const policyValues = {
+  isSessionReplayEnabled: true,
   sessionReplayAllowedOrigins: ["https://shop.example.com"],
   sessionReplaySamplePercentage: 100,
   sessionReplayCaptureTrigger: "Always",
   sessionReplayMaskingMode: "MaskInputsOnly",
+  sessionReplayConsentMode: "NotRequired",
   sessionReplayRetentionInDays: 30,
-});
+  sessionReplayCaptureUserIdentity: true,
+  sessionReplayCaptureGeo: true,
+  sessionReplayRecordCanvas: false,
+};
+/*
+ * A fresh instance per read, as the real API returns. A shared instance lets
+ * React skip the state update when a page stores the loaded row, which hides
+ * any render loop that the row feeds.
+ */
+function makeApp() {
+  return Object.assign(new RumApplication(), {
+    _id: appId,
+    name: "Storefront Web",
+    appIdentifier: "storefront-web",
+    ...policyValues,
+  });
+}
+const app = makeApp();
 const project = Object.assign(new Project(), {
   _id: projectId,
   name: "Commerce",
@@ -75,8 +105,33 @@ PermissionUtil.getAllPermissions = () => [Permission.ProjectOwner];
 ProjectUtil.getCurrentProjectId = () => new ObjectID(projectId);
 ProjectUtil.getCurrentProject = () => project;
 ModelAPI.getCommonHeaders = () => ({ tenantid: projectId });
-ModelAPI.getItem = async (options) =>
-  options.modelType === Project ? project : app;
+ModelAPI.getItem = async (options) => {
+  getItemRequests.push({
+    modelType: options.modelType === Project ? "Project" : "RumApplication",
+    id: options.id?.toString(),
+    selectKeys: Object.keys(options.select || {}),
+  });
+  return options.modelType === Project ? project : makeApp();
+};
+ModelAPI.createOrUpdate = async (options) => {
+  const values = {};
+  for (const key of Object.keys(policyValues).concat(
+    Object.keys(options.model).filter((name) =>
+      name.startsWith("sessionReplay"),
+    ),
+  )) {
+    const value = options.model[key];
+    if (value !== undefined) values[key] = value;
+  }
+  savedModels.push({
+    formType: options.formType,
+    id: options.model._id?.toString(),
+    values: JSON.parse(JSON.stringify(values)),
+  });
+  // Later reads return what was saved, as the server would.
+  Object.assign(policyValues, values);
+  return new HTTPResponse(200, {}, {});
+};
 ModelAPI.getList = async () => ({ data: [], count: 0, skip: 0, limit: 50 });
 ModelAPI.getCount = async () => 0;
 ModelAPI.updateById = async () => app;
@@ -153,7 +208,8 @@ const records = Array.from({ length: count }, (_, index) => {
   };
 });
 const health = {
-  isProjectAllowed: true,
+  // ?project=off: the project-wide master switch is off.
+  isProjectAllowed: params.get("project") !== "off",
   isApplicationEnabled: true,
   appIdentifier: "storefront-web",
   allowedOrigins: ["https://shop.example.com"],
@@ -421,7 +477,10 @@ API.post = async ({ url, data }) => {
   requests.push({ route, data });
   if (route === "list") return new HTTPResponse(200, listResult(data), {});
   if (route === "users") return new HTTPResponse(200, usersResult(data), {});
-  if (route === "ingest-status") return new HTTPResponse(200, health, {});
+  if (route === "ingest-status") {
+    await healthGate;
+    return new HTTPResponse(200, health, {});
+  }
   if (route === "manifest") {
     const row =
       records.find((item) => item.sessionId === data.sessionId) || records[0];
