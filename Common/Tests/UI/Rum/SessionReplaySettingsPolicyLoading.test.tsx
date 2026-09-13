@@ -32,7 +32,6 @@ import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import SessionReplayMaskingMode from "../../../Types/Rum/SessionReplayMaskingMode";
 import SessionReplayConsentMode from "../../../Types/Rum/SessionReplayConsentMode";
 import SessionReplayCaptureTrigger from "../../../Types/Rum/SessionReplayCaptureTrigger";
-import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -121,35 +120,15 @@ jest.mock("../../../UI/Utils/Permission", () => {
   };
 });
 
-import * as SessionReplaySettingsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplaySettings";
+import RumApplicationSessionReplaySettings, {
+  EffectiveRecordingStatePill,
+  describeEffectiveRecordingState,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplaySettings";
 import useSessionReplayHealth, {
   SESSION_REPLAY_INGEST_STATUS_ROUTE,
   UseSessionReplayHealthResult,
   clearSessionReplayHealthStore,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/useSessionReplayHealth";
-
-/*
- * Read off the module rather than named in the import so a page without the
- * standalone pill fails the tests that use it instead of the whole file.
- */
-const settingsPage: {
-  default: React.FunctionComponent<PageComponentProps>;
-  describeEffectiveRecordingState: (
-    isApplicationEnabled: boolean | undefined,
-    diagnosis: RecordingHealthDiagnosis | null,
-  ) => { text: string; color: Color };
-  EffectiveRecordingStatePill?:
-    | React.FunctionComponent<{
-        rumApplicationId: ObjectID | string;
-        isApplicationEnabled: boolean | undefined;
-      }>
-    | undefined;
-} = SessionReplaySettingsPage;
-
-const RumApplicationSessionReplaySettings: React.FunctionComponent<PageComponentProps> =
-  settingsPage.default;
-const describeEffectiveRecordingState: typeof settingsPage.describeEffectiveRecordingState =
-  settingsPage.describeEffectiveRecordingState;
 
 /*
  * These render real components that fetch, so give the waits enough room to
@@ -441,7 +420,9 @@ describe("Replay Policy page: the policy card loads once", () => {
     expect(screen.getByTestId("privacy-summary")).toBeInTheDocument();
     expect(screen.queryByTestId("privacy-summary-loading")).toBeNull();
 
-    health.release(wireStatus());
+    await act(async (): Promise<void> => {
+      health.release(wireStatus());
+    });
   });
 
   it("health answering, and a later refresh, do not refetch the policy", async () => {
@@ -566,12 +547,6 @@ describe("Replay Policy page: the Recording pill", () => {
 
 describe("EffectiveRecordingStatePill (standalone)", () => {
   it("updates when the shared poller answers, sharing one request with another subscriber", async () => {
-    const EffectiveRecordingStatePill: NonNullable<
-      typeof settingsPage.EffectiveRecordingStatePill
-    > = settingsPage.EffectiveRecordingStatePill!;
-
-    expect(EffectiveRecordingStatePill).toBeDefined();
-
     const health: HealthControl = holdHealth();
 
     render(
