@@ -60,17 +60,17 @@ function getTabDefinitions(source: string): Array<TabDefinition> {
 
 describe("Exceptions landing navigation", () => {
   test.each([
-    ["/dashboard/project-id/exceptions", "unresolved"],
-    ["/dashboard/project-id/exceptions/unresolved", "unresolved"],
+    ["/dashboard/project-id/exceptions", "exceptions"],
+    ["/dashboard/project-id/exceptions/unresolved", "exceptions"],
     ["/dashboard/project-id/exceptions/overview", "overview"],
-    ["/dashboard/project-id/exceptions/resolved", "resolved"],
-    ["/dashboard/project-id/exceptions/archived", "archived"],
+    ["/dashboard/project-id/exceptions/resolved", "exceptions"],
+    ["/dashboard/project-id/exceptions/archived", "exceptions"],
     ["/dashboard/project-id/exceptions/documentation", "setup"],
   ])("selects the %s route's %s tab", (route: string, tab: string) => {
     expect(getActiveExceptionsTab(route)).toBe(tab);
   });
 
-  test("shows Unresolved first and the former Overview dashboard as Insights second", () => {
+  test("shows only Exceptions, Insights, and Setup Guide in the top menu", () => {
     const source: string = readSquashed(
       "Components/Exceptions/ExceptionsNavTabs.tsx",
     );
@@ -80,15 +80,26 @@ describe("Exceptions landing navigation", () => {
       "];",
     );
 
-    expect(getTabDefinitions(tabs).slice(0, 2)).toEqual([
-      { key: "unresolved", label: "Unresolved" },
+    expect(getTabDefinitions(tabs)).toEqual([
+      { key: "exceptions", label: "Exceptions" },
       { key: "overview", label: "Insights" },
+      { key: "setup", label: "Setup Guide" },
     ]);
+
+    const exceptionsTab: string = sectionBetween(
+      tabs,
+      'key: "exceptions",',
+      'key: "overview",',
+    );
+
+    expect(exceptionsTab).toContain(
+      "RouteMap[PageMap.EXCEPTIONS] as Route",
+    );
 
     const insightsTab: string = sectionBetween(
       tabs,
       'key: "overview",',
-      'key: "resolved",',
+      'key: "setup",',
     );
 
     expect(insightsTab).toContain("IconProp.ChartBar");
@@ -102,6 +113,39 @@ describe("Exceptions landing navigation", () => {
     expect(source).toContain('[PageMap.EXCEPTIONS_UNRESOLVED]: "unresolved"');
     expect(source).toContain('[PageMap.EXCEPTIONS_OVERVIEW]: "overview"');
   });
+
+  test.each([
+    [
+      "unresolved",
+      "EXCEPTIONS_UNRESOLVED",
+      "Unresolved",
+      "EXCEPTIONS_RESOLVED",
+    ],
+    ["resolved", "EXCEPTIONS_RESOLVED", "Resolved", "EXCEPTIONS_ARCHIVED"],
+    ["archived", "EXCEPTIONS_ARCHIVED", "Archived", "EXCEPTIONS_DOCUMENTATION"],
+  ])(
+    "preserves the legacy %s route behind the unified Exceptions tab",
+    (
+      status: string,
+      pageKey: string,
+      pageName: string,
+      nextPageKey: string,
+    ) => {
+      const routes: string = readSquashed("Routes/ExceptionsRoutes.tsx");
+      const route: string = sectionBetween(
+        routes,
+        `path={ExceptionsRoutePath[PageMap.${pageKey}]`,
+        `path={ExceptionsRoutePath[PageMap.${nextPageKey}]`,
+      );
+
+      expect(route).toContain(`<Exceptions${pageName}`);
+      expect(route).toContain(`RouteMap[PageMap.${pageKey}] as Route`);
+
+      const page: string = readSquashed(`Pages/Exceptions/${pageName}.tsx`);
+
+      expect(page).toContain(`<ExceptionsViewer defaultStatus="${status}" />`);
+    },
+  );
 
   test("keeps the Exceptions product active across every child route", () => {
     const source: string = readSquashed("Utils/NavigationItems.tsx");

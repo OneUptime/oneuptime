@@ -221,10 +221,10 @@ describe("Issues list default scope wiring", () => {
   });
 
   /*
-   * The badge and the list it labels must not drift apart: a tab reading
-   * "12 unresolved" over a list showing 3 is worse than no badge at all.
+   * The outstanding backlog badge must use the same class definition as the
+   * list's default Issues lens, even though status remains a separate filter.
    */
-  test("the unresolved badge count carries the same class scope as the list", () => {
+  test("the Exceptions backlog badge carries the Issues class scope", () => {
     const source: string = read("Components/Exceptions/ExceptionsNavTabs.tsx");
 
     expect(source).toContain("IncludesNone");
