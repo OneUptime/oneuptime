@@ -168,12 +168,18 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
           pollIntervalInMinutes: 5,
           includeNonAlertingDetections: false,
         }}
+        formSteps={[
+          { title: "Basic Info", id: "basic-info" },
+          { title: "Google SecOps", id: "google-secops" },
+          { title: "Polling", id: "polling" },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "basic-info",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "e.g. Production SecOps tenant",
@@ -186,6 +192,7 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
               region: true,
             },
             title: "Region",
+            stepId: "google-secops",
             description:
               "Your tenant's Google SecOps regional endpoint prefix — 'us', 'europe', and so on. It is used to build the Chronicle API base URL.",
             fieldType: FormFieldSchemaType.Text,
@@ -198,6 +205,7 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
               instanceResourceName: true,
             },
             title: "Instance Resource Name",
+            stepId: "google-secops",
             description:
               "The Chronicle instance resource name, from your SecOps SIEM Settings > Profile.",
             fieldType: FormFieldSchemaType.Text,
@@ -211,6 +219,7 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
               serviceAccountJson: true,
             },
             title: "Service Account JSON",
+            stepId: "google-secops",
             description:
               "The Google Cloud service-account key with Chronicle API read access. It is encrypted at rest and never returned by the API, so it cannot be shown back to you — use the row's Update Service Account JSON action to rotate it later.",
             fieldType: FormFieldSchemaType.JSON,
@@ -228,6 +237,7 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
               includeNonAlertingDetections: true,
             },
             title: "Alerts and detections",
+            stepId: "polling",
             description:
               "Off: Alerts only. On: Alerts and detections, including rule matches that did not generate an alert.",
             fieldType: FormFieldSchemaType.Toggle,
@@ -238,6 +248,7 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
               isEnabled: true,
             },
             title: "Enabled",
+            stepId: "basic-info",
             description:
               "Disabled connections are skipped by scheduled polling. On-demand runs remain available.",
             fieldType: FormFieldSchemaType.Toggle,
@@ -248,6 +259,7 @@ const GoogleSecOpsConnectionsPage: FunctionComponent<PageComponentProps> = (
               pollIntervalInMinutes: true,
             },
             title: "Poll Interval (Minutes)",
+            stepId: "polling",
             description:
               "How often detection alerts are fetched, in minutes. Default 5.",
             fieldType: FormFieldSchemaType.Number,
