@@ -23,10 +23,10 @@ import nodePath from "path";
  *  1. The wiring. Reaching the page at all takes six hand-written
  *     couplings (a PageMap key, a SecurityEventsRoutePath segment, an
  *     absolute RouteMap Route, a PageRoute in SecurityEventsRoutes.tsx, a
- *     nav tab, a breadcrumb) plus the Layout's ordered if-chain that
- *     decides which tab lights up. Every one of them fails SILENTLY: a
- *     renamed segment leaves the Events tab lit on the Connections page,
- *     or the breadcrumb trail empty, and nothing looks wrong on screen.
+ *     side-menu item, a breadcrumb) plus the Layout's side-menu wiring.
+ *     Every one of them fails SILENTLY: a renamed segment leaves a broken
+ *     Connections link or an empty breadcrumb trail, and nothing looks
+ *     wrong on screen until someone tries to navigate there.
  *
  *  2. The content. lastPolledAt and lastError have to stay accessible,
  *     with "Never" on Last Polled and a View Error action for failures,
@@ -66,9 +66,6 @@ let setNavigationLocation: (pathname: string) => void;
  * and the two rules fight forever over the same line.
  */
 
-/* Matches `if (path.includes("...")) { return "..."; }` in source order. */
-const TAB_RULE_PATTERN: RegExp =
-  /path\.includes\(\s*"([^"]+)"\s*\)\s*\)\s*\{\s*return\s+"([^"]+)"/g;
 /* Matches the `field: { columnName: true }` head of a form field / column. */
 const FIELD_HEAD_PATTERN: RegExp = /field:\s*\{\s*(\w+):\s*true/g;
 /* Matches `title: "..."` inside a single extracted entry. */
@@ -116,10 +113,10 @@ const connectionsPageSource: string = readDashboardSource(
   "SecurityEvents",
   "GoogleSecOpsConnections.tsx",
 );
-const navTabsSource: string = readDashboardSource(
-  "Components",
+const sideMenuSource: string = readDashboardSource(
+  "Pages",
   "SecurityEvents",
-  "SecurityEventsNavTabs.tsx",
+  "SideMenu.tsx",
 );
 const layoutSource: string = readDashboardSource(
   "Pages",
@@ -257,33 +254,6 @@ const connectionModel: GoogleSecOpsConnection = new GoogleSecOpsConnection();
 const accessControl: Dictionary<ColumnAccessControl> =
   connectionModel.getColumnAccessControlForAllColumns();
 
-interface TabRule {
-  literal: string;
-  tab: string;
-}
-
-/*
- * The Layout decides the active tab with an ordered if-chain of substring
- * matches, so the answer depends on which rule comes FIRST. Replay the
- * chain in source order rather than asserting the individual literals.
- */
-const tabRules: Array<TabRule> = Array.from(
-  layoutSource.matchAll(TAB_RULE_PATTERN),
-).map((match: RegExpMatchArray): TabRule => {
-  return { literal: match[1] as string, tab: match[2] as string };
-});
-
-function activeTabFor(path: string): string {
-  for (const rule of tabRules) {
-    if (path.includes(rule.literal)) {
-      return rule.tab;
-    }
-  }
-
-  // The chain's fall-through, asserted separately below.
-  return "events";
-}
-
 beforeAll(async () => {
   (globalThis as Record<string, unknown>)["window"] = {
     location: { pathname: "/", search: "", hash: "" },
@@ -413,51 +383,17 @@ describe("Security events connections page wiring", () => {
     );
   });
 
-  test("the page has a nav tab pointing at the connections route", () => {
-    expect(navTabsSource).toContain('key: "connections"');
-    expect(navTabsSource).toContain('label: "Connections"');
-    expect(navTabsSource).toContain(
+  test("the page is in the Integrations side-menu section", () => {
+    expect(sideMenuSource).toContain('title: "Integrations"');
+    expect(sideMenuSource).toContain('title: "Connections"');
+    expect(sideMenuSource).toContain(
       "RouteMap[PageMap.SECURITY_EVENTS_CONNECTIONS] as Route",
     );
   });
 
-  /*
-   * The tab key is a union type, so a tab whose key is not a member of it
-   * is a compile error rather than a silent failure - but the union is
-   * edited by hand in the same file, so pin the membership too.
-   */
-  test('"connections" is a member of the SecurityEventsTabKey union', () => {
-    const unionBlock: string = navTabsSource.slice(
-      navTabsSource.indexOf("export type SecurityEventsTabKey"),
-      navTabsSource.indexOf(
-        ";",
-        navTabsSource.indexOf("export type SecurityEventsTabKey"),
-      ),
-    );
-
-    expect(unionBlock).toContain('"connections"');
-  });
-
-  /*
-   * The layout highlights a tab by substring-matching the live path. A
-   * renamed route segment would leave the Connections page open with the
-   * Events tab lit, so the literal it matches has to stay a suffix of the
-   * real route.
-   */
-  test("the layout's active-tab match follows the real route", () => {
-    const route: string =
-      RouteMap[PageMap.SECURITY_EVENTS_CONNECTIONS]!.toString();
-
-    const connectionsRule: TabRule | undefined = tabRules.find(
-      (rule: TabRule) => {
-        return rule.tab === "connections";
-      },
-    );
-
-    expect(connectionsRule).toBeDefined();
-    expect(connectionsRule!.literal).toBe("/security-events/connections");
-    expect(route.endsWith(connectionsRule!.literal)).toBe(true);
-    expect(activeTabFor(route)).toBe("connections");
+  test("the layout renders the Security Events side menu", () => {
+    expect(layoutSource).toContain('import SideMenu from "./SideMenu"');
+    expect(layoutSource).toContain("sideMenu={<SideMenu />}");
   });
 
   test("the page has a breadcrumb trail", () => {
@@ -495,35 +431,6 @@ describe("Security events connections route shape", () => {
 
     // Two keys mapping to the same segment would make one page unreachable.
     expect(connectionsSegments).toEqual(["connections"]);
-  });
-
-  /*
-   * getActiveSecurityEventsTab matches substrings in a fixed order, so a
-   * future segment that CONTAINS "/security-events/connections" (say
-   * "connections/history") placed after it in the chain would render with
-   * the Connections tab lit. Replay the real chain over every real route.
-   */
-  test("the ordered if-chain cannot mis-match connections against another route", () => {
-    expect(tabRules.length).toBeGreaterThan(0);
-
-    const resolved: Dictionary<string> = {};
-
-    for (const key of Object.keys(SecurityEventsRoutePath)) {
-      resolved[key] = activeTabFor(RouteUtil.getRouteString(key));
-    }
-
-    for (const key of Object.keys(resolved)) {
-      if (key === PageMap.SECURITY_EVENTS_CONNECTIONS) {
-        expect(resolved[key]).toBe("connections");
-      } else {
-        // No other Security Events route may light the Connections tab.
-        expect(resolved[key]).not.toBe("connections");
-      }
-    }
-
-    // And the bare product route still falls through to Events.
-    expect(resolved[PageMap.SECURITY_EVENTS]).toBe("events");
-    expect(layoutSource).toContain('return "events"');
   });
 });
 
