@@ -1,7 +1,11 @@
 import React from "react";
+import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 import { act, render, screen, fireEvent } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 import OnCallOverviewScreen from "./OnCallOverviewScreen";
+import { ThemeProvider } from "../theme";
+import { darkColors, lightColors } from "../theme/colors";
+import { radius } from "../theme/tokens";
 import type { OnCallDutySummary } from "../oncall/duty";
 import type { UseMyShiftsResult } from "../hooks/useMyShifts";
 import type {
@@ -19,6 +23,17 @@ import type {
  * question before it knows - "you're not on call" rendered optimistically is
  * how somebody goes back to sleep.
  */
+
+let mockColorScheme: "light" | "dark" = "light";
+
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme;
+    },
+  };
+});
 
 const mockDuty: {
   current: {
@@ -346,8 +361,18 @@ describe("OnCallOverviewScreen", () => {
 
     await render(<OnCallOverviewScreen />);
 
+    /*
+     * The hero holds its place in a "checking" state, so the layout does not
+     * jump - but it must not say anything about duty yet.
+     */
     expect(screen.queryByText("You're not on call")).toBeNull();
-    expect(screen.queryByTestId("oncall-status-card")).toBeNull();
+    expect(screen.queryByText("OFF CALL")).toBeNull();
+    expect(screen.queryByText("ON CALL")).toBeNull();
+    expect(screen.getByTestId("oncall-status-card")).toHaveTextContent(
+      /Checking your duty status/,
+    );
+    expect(screen.getByText("CHECKING")).toBeTruthy();
+    expect(screen.queryByTestId("row-pages")).toBeNull();
   });
 
   test("offers a retry when the duty read fails", async (): Promise<void> => {
@@ -357,6 +382,29 @@ describe("OnCallOverviewScreen", () => {
 
     expect(screen.getByText("Could not load your on-call status")).toBeTruthy();
     expect(screen.getByText("Retry")).toBeTruthy();
+  });
+
+  test("a failed duty read is never shown as off call or as an empty roster", async (): Promise<void> => {
+    const refetchDuty: jest.Mock = jest.fn(async (): Promise<void> => {
+      return undefined;
+    });
+    mockDuty.current.isError = true;
+    mockDuty.current.refetch = refetchDuty;
+
+    await render(<OnCallOverviewScreen />);
+
+    expect(screen.getByTestId("oncall-status-card")).toHaveTextContent(
+      /STATUS UNKNOWN/,
+    );
+    expect(screen.queryByText("You're not on call")).toBeNull();
+    expect(screen.queryByText("OFF CALL")).toBeNull();
+    expect(
+      screen.queryByText(/No current or upcoming roster shifts/),
+    ).toBeNull();
+    expect(screen.queryByTestId("quick-action-cover")).toBeNull();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Retry" }));
+    expect(refetchDuty).toHaveBeenCalledTimes(1);
   });
 
   test("routes to the policy list, overrides and page history", async (): Promise<void> => {
@@ -723,3 +771,251 @@ describe("Overview refresh recovery", () => {
     },
   );
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * Surfaces.
+ *
+ * "Pages sent to me" used to be a full-bleed white strip that looked like it
+ * belonged to another app. It is now a row in a rounded list group like every
+ * other navigation row, and the cards keep their surface in both themes.
+ * ---------------------------------------------------------------------------
+ */
+
+describe("OnCallOverviewScreen surfaces", () => {
+  beforeEach(() => {
+    mockDuty.current = {
+      summary: emptySummary(),
+      assignmentsByProject: [],
+      schedules: [],
+      isLoading: false,
+      isError: false,
+      refetch: async (): Promise<void> => {
+        return undefined;
+      },
+    };
+    mockOverrides.current = { active: [] };
+    mockNavigate.calls = [];
+    mockMyShifts.current = emptyMyShifts();
+    mockCalendarFeed.current = { isAvailable: true, isChecking: false };
+    mockColorScheme = "light";
+  });
+
+  test("'Pages sent to me' is a named row inside a rounded list group", async (): Promise<void> => {
+    await render(<OnCallOverviewScreen />);
+
+    const row: HostElement = screen.getByRole("button", {
+      name: "Pages sent to me",
+    });
+    expect(row.props.testID).toBe("row-pages");
+    expect(row.props.accessibilityHint).toBe("Your recent response requests");
+
+    const surface: Record<string, unknown> = firstChildStyle("pages-group");
+    expect(surface.backgroundColor).toBe(lightColors.backgroundElevated);
+    expect(surface.borderRadius).toBe(radius.lg);
+    expect(surface.borderColor).toBe(lightColors.borderSubtle);
+
+    await fireEvent.press(row);
+    expect(mockNavigate.calls).toEqual([["MyOnCallPages", undefined]]);
+  });
+
+  test("the manage rows share one rounded group and keep their order", async (): Promise<void> => {
+    await render(<OnCallOverviewScreen />);
+
+    const surface: Record<string, unknown> = firstChildStyle(
+      "manage-oncall-group",
+    );
+    expect(surface.backgroundColor).toBe(lightColors.backgroundElevated);
+    expect(surface.borderRadius).toBe(radius.lg);
+
+    expect(
+      screen.getByRole("button", { name: "My on-call policies" }).props
+        .accessibilityHint,
+    ).toBe("0 active assignments");
+    expect(
+      screen.getByRole("button", { name: "Coverage & overrides" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Add shifts to my calendar" }),
+    ).toBeTruthy();
+  });
+
+  test("counts policy assignments in the policies row", async (): Promise<void> => {
+    mockDuty.current.summary = {
+      ...emptySummary(),
+      isOnCall: true,
+      standingAssignmentCount: 1,
+    };
+
+    await render(<OnCallOverviewScreen />);
+
+    expect(screen.getByText("1 active assignment")).toBeTruthy();
+  });
+
+  test("quick action tiles keep their card surface and a comfortable target", async (): Promise<void> => {
+    await render(<OnCallOverviewScreen />);
+
+    for (const testID of ["quick-action-cover", "quick-action-roster"]) {
+      const style: Record<string, unknown> = flatStyle(testID);
+      expect(style.backgroundColor).toBe(lightColors.backgroundElevated);
+      expect(style.borderRadius).toBe(radius.lg);
+      expect(style.minHeight as number).toBeGreaterThanOrEqual(48);
+    }
+
+    expect(
+      screen.getByRole("button", { name: "Cover for me. Arrange a handoff" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", {
+        name: "Who's on call. See the team roster",
+      }),
+    ).toBeTruthy();
+  });
+
+  test("the override banner is one labelled, tinted button", async (): Promise<void> => {
+    mockOverrides.current = {
+      active: [override("override-1"), override("override-2")],
+    };
+
+    await render(<OnCallOverviewScreen />);
+
+    const banner: HostElement = screen.getByRole("button", {
+      name: "2 overrides in effect. Tap to review.",
+    });
+    expect(banner.props.testID).toBe("active-override-banner");
+    expect(flatStyle("active-override-banner").backgroundColor).toBe(
+      lightColors.statusInfoBg,
+    );
+    expect(
+      screen.getByText("2 overrides are in effect right now"),
+    ).toBeTruthy();
+  });
+
+  test("an empty roster is explained on an outlined card", async (): Promise<void> => {
+    await render(<OnCallOverviewScreen />);
+
+    const style: Record<string, unknown> = flatStyle("no-shifts-card");
+    expect(style.backgroundColor).toBe(lightColors.backgroundElevated);
+    expect(style.borderRadius).toBe(radius.lg);
+    expect(screen.getByText("Nothing scheduled")).toBeTruthy();
+  });
+
+  test("standing assignments sit on a card with their count", async (): Promise<void> => {
+    mockDuty.current.summary = {
+      ...emptySummary(),
+      isOnCall: true,
+      standingAssignmentCount: 3,
+    };
+
+    await render(<OnCallOverviewScreen />);
+
+    expect(flatStyle("standing-assignments-card").borderRadius).toBe(radius.lg);
+    expect(screen.getByText("3")).toBeTruthy();
+  });
+
+  test("uses the dark palette end to end without hex-alpha colours", async (): Promise<void> => {
+    mockColorScheme = "dark";
+    mockDuty.current.summary = {
+      ...emptySummary(),
+      isOnCall: true,
+      nextHandoffAt: new Date(2026, 2, 3, 18, 0).toISOString(),
+      activeShifts: [
+        shift({ endsAt: new Date(2026, 2, 3, 18, 0).toISOString() }),
+      ],
+      standingAssignmentCount: 1,
+    };
+    mockOverrides.current = { active: [override("override-1")] };
+
+    try {
+      await render(
+        <ThemeProvider>
+          <OnCallOverviewScreen />
+        </ThemeProvider>,
+      );
+
+      expect(flatStyle("oncall-overview-scroll").backgroundColor).toBe(
+        darkColors.backgroundPrimary,
+      );
+      expect(flatStyle("oncall-status-card").backgroundColor).toBe(
+        darkColors.actionPrimary,
+      );
+      expect(flatStyle("quick-action-cover").backgroundColor).toBe(
+        darkColors.backgroundElevated,
+      );
+      expect(firstChildStyle("pages-group").backgroundColor).toBe(
+        darkColors.backgroundElevated,
+      );
+      expect(flatStyle("active-override-banner").backgroundColor).toBe(
+        darkColors.statusInfoBg,
+      );
+      expect(flatStyle("shift-card-schedule-1-active").backgroundColor).toBe(
+        darkColors.backgroundElevated,
+      );
+      for (const colour of collectColours(screen.toJSON() as JsonNode)) {
+        expect(colour).not.toMatch(/^#[0-9a-f]{8}$/i);
+        if (colour !== "transparent") {
+          expect(Object.values(lightColors)).not.toContain(colour);
+        }
+      }
+    } finally {
+      mockColorScheme = "light";
+    }
+  });
+});
+
+function flatStyle(testID: string): Record<string, unknown> {
+  return (StyleSheet.flatten(screen.getByTestId(testID).props.style) ??
+    {}) as Record<string, unknown>;
+}
+
+function firstChildStyle(testID: string): Record<string, unknown> {
+  const first: HostElement | string | undefined =
+    screen.getByTestId(testID).children[0];
+
+  if (!first || typeof first === "string") {
+    throw new Error(`${testID} has no child surface`);
+  }
+
+  return (StyleSheet.flatten(first.props.style) ?? {}) as Record<
+    string,
+    unknown
+  >;
+}
+
+type HostElement = ReturnType<typeof screen.getByTestId>;
+
+interface JsonElementLike {
+  props: { style?: StyleProp<ViewStyle> };
+  children: Array<JsonElementLike | string> | null;
+}
+
+type JsonNode = JsonElementLike | JsonElementLike[] | string | null;
+
+function collectColours(node: JsonNode): string[] {
+  if (!node || typeof node === "string") {
+    return [];
+  }
+
+  if (Array.isArray(node)) {
+    return node.flatMap((child: JsonNode) => {
+      return collectColours(child);
+    });
+  }
+
+  const style: Record<string, unknown> = (StyleSheet.flatten(
+    node.props.style,
+  ) ?? {}) as Record<string, unknown>;
+
+  return [
+    ...Object.entries(style)
+      .filter(([key, value]: [string, unknown]) => {
+        return key.toLowerCase().includes("color") && typeof value === "string";
+      })
+      .map(([, value]: [string, unknown]) => {
+        return value as string;
+      }),
+    ...(node.children ?? []).flatMap((child: JsonElementLike | string) => {
+      return collectColours(child);
+    }),
+  ];
+}

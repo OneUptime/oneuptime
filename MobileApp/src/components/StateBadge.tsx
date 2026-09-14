@@ -1,6 +1,8 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { useTheme } from "../theme";
+import { radius, spacing, typography } from "../theme/tokens";
+import { withAlpha } from "../utils/color";
 
 export type StateType =
   | "created"
@@ -28,7 +30,12 @@ export default function StateBadge({
     muted: theme.colors.stateMuted,
   };
 
-  const color: string = colorMap[state];
+  /*
+   * A state outside the five - a project's own state name passed straight
+   * through - has no colour of its own. It gets a hollow ring rather than a
+   * filled dot, so it cannot borrow the meaning of another state's colour.
+   */
+  const color: string | undefined = colorMap[state];
   const displayLabel: string = label || state;
 
   return (
@@ -36,25 +43,30 @@ export default function StateBadge({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
         alignSelf: "flex-start",
-        backgroundColor: theme.colors.backgroundTertiary,
+        gap: spacing.xs + 2,
+        paddingHorizontal: spacing.sm + 2,
+        paddingVertical: spacing.xs,
+        borderRadius: radius.pill,
+        backgroundColor: color
+          ? withAlpha(color, theme.dark ? 0.18 : 0.1)
+          : theme.colors.backgroundTertiary,
       }}
     >
       <View
         style={{
           width: 8,
           height: 8,
-          borderRadius: 9999,
-          marginRight: 6,
-          backgroundColor: color,
+          borderRadius: radius.pill,
+          backgroundColor: color ?? "transparent",
+          borderWidth: color ? 0 : 1.5,
+          borderColor: theme.colors.textTertiary,
         }}
       />
       <Text
+        numberOfLines={1}
         style={{
-          fontSize: 12,
+          ...typography.caption,
           fontWeight: "600",
           color: theme.colors.textPrimary,
         }}

@@ -1,6 +1,7 @@
 import React from "react";
 import { View, ViewStyle } from "react-native";
 import { useTheme } from "../theme";
+import { radius } from "../theme/tokens";
 
 interface GlassCardProps {
   children: React.ReactNode;
@@ -18,7 +19,7 @@ export default function GlassCard({
   return (
     <View
       style={{
-        borderRadius: 16,
+        borderRadius: radius.lg,
         overflow: "hidden",
         backgroundColor: opaque
           ? theme.colors.backgroundElevated

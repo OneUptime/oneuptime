@@ -1,8 +1,42 @@
 import React from "react";
+import { StyleSheet, type TextStyle, type ViewStyle } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 import { Ionicons } from "@expo/vector-icons";
 import EmptyState from "./EmptyState";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+import { withAlpha } from "../utils/color";
+
+let mockSystemScheme: "light" | "dark" | null = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced instead.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" | null => {
+      return mockSystemScheme;
+    },
+  };
+});
+
+function noop(): void {
+  return undefined;
+}
+
+function flatStyle(element: {
+  props: { style?: unknown };
+}): TextStyle & ViewStyle {
+  return (StyleSheet.flatten(element.props.style as ViewStyle) ??
+    {}) as TextStyle & ViewStyle;
+}
+
+/** The outermost view the empty state draws. */
+function outerContainer(): { props: { style?: unknown } } {
+  return screen.root as unknown as { props: { style?: unknown } };
+}
 
 /*
  * What a responder sees when a list has nothing in it - which, for an on-call
@@ -246,15 +280,148 @@ describe("How the empty state is put together", () => {
 
     const title: RenderedElement = screen.getByText("No incidents");
     const subtitle: RenderedElement = screen.getByText("Nothing is on fire.");
-    const titleStyle: Record<string, unknown> = title.props.style as Record<
-      string,
-      unknown
-    >;
-    const subtitleStyle: Record<string, unknown> = subtitle.props
-      .style as Record<string, unknown>;
 
-    expect(Number(titleStyle.fontSize)).toBeGreaterThan(
-      Number(subtitleStyle.fontSize),
+    /*
+     * AppText composes its style as an array (type scale, tone, then the
+     * caller's overrides), so the effective size is only visible flattened.
+     */
+    expect(Number(flatStyle(title).fontSize)).toBeGreaterThan(
+      Number(flatStyle(subtitle).fontSize),
+    );
+  });
+
+  test("the title is a heading and the subtitle is muted", async () => {
+    await render(
+      <EmptyState title="No incidents" subtitle="Nothing is on fire." />,
+    );
+
+    expect(screen.getByRole("header", { name: "No incidents" })).toBeTruthy();
+    expect(screen.getByText("No incidents")).toHaveStyle({
+      color: lightColors.textPrimary,
+      textAlign: "center",
+    });
+    expect(screen.getByText("Nothing is on fire.")).toHaveStyle({
+      color: lightColors.textSecondary,
+      textAlign: "center",
+    });
+  });
+
+  test("every line of text sets a line height at least as tall as its size", async () => {
+    /*
+     * The title overrides the scale's size; an override that forgot the line
+     * height would clip descenders on Android at larger text sizes.
+     */
+    await render(
+      <EmptyState title="No incidents" subtitle="Nothing is on fire." />,
+    );
+
+    for (const text of ["No incidents", "Nothing is on fire."]) {
+      const style: TextStyle = flatStyle(screen.getByText(text));
+      expect(style.lineHeight).toBeGreaterThanOrEqual(Number(style.fontSize));
+    }
+  });
+});
+
+describe("What each kind of empty state means", () => {
+  test("a success state is drawn in the success colour with a check", async () => {
+    await render(<EmptyState title="All clear" icon="success" />);
+
+    const glyph: RenderedElement = screen.getByText(
+      glyphFor("checkmark-circle-outline"),
+    );
+    expect(flatStyle(glyph).color).toBe(lightColors.statusSuccess);
+  });
+
+  test("an error state is drawn in the error colour with a cloud", async () => {
+    await render(<EmptyState title="Could not load" icon="error" />);
+
+    const glyph: RenderedElement = screen.getByText(
+      glyphFor("cloud-offline-outline"),
+    );
+    expect(flatStyle(glyph).color).toBe(lightColors.statusError);
+  });
+
+  test("every other state uses the accent colour", async () => {
+    await render(<EmptyState title="No incidents" icon="incidents" />);
+
+    const glyph: RenderedElement = screen.getByText(
+      glyphFor("warning-outline"),
+    );
+    expect(flatStyle(glyph).color).toBe(lightColors.actionPrimary);
+  });
+
+  test("the icon sits on a circular tile tinted with its own colour", async () => {
+    await render(<EmptyState title="All clear" icon="success" />);
+
+    const tile: RenderedElement = screen.getByText(
+      glyphFor("checkmark-circle-outline"),
+    ).parent as RenderedElement;
+    const style: ViewStyle = flatStyle(tile);
+
+    expect(style.width).toBe(52);
+    expect(style.borderRadius).toBe(26);
+    expect(style.backgroundColor).toBe(
+      withAlpha(lightColors.statusSuccess, 0.12),
+    );
+  });
+
+  test("the action is a tonal button, so it never competes with a screen's primary action", async () => {
+    await render(
+      <EmptyState title="Could not load" actionLabel="Retry" onAction={noop} />,
+    );
+
+    expect(screen.getByRole("button", { name: "Retry" })).toHaveStyle({
+      backgroundColor: lightColors.cardAccent,
+    });
+    expect(screen.getByText("Retry")).toHaveStyle({
+      color: lightColors.actionPrimary,
+    });
+  });
+});
+
+describe("How much room the empty state takes", () => {
+  test("by default it fills the space it is given", async () => {
+    await render(<EmptyState title="No incidents" />);
+
+    const style: ViewStyle = flatStyle(outerContainer());
+    expect(style.flex).toBe(1);
+    expect(style.paddingVertical).toBe(48);
+  });
+
+  test("compact keeps it tight inside a card or a short section", async () => {
+    await render(<EmptyState title="No incidents" compact />);
+
+    const style: ViewStyle = flatStyle(outerContainer());
+    expect(style.flex).toBeUndefined();
+    expect(style.paddingVertical).toBe(24);
+  });
+});
+
+describe("In dark mode", () => {
+  afterEach(() => {
+    mockSystemScheme = "light";
+  });
+
+  test("the text and icon follow the dark palette", async () => {
+    mockSystemScheme = "dark";
+    await render(
+      <ThemeProvider>
+        <EmptyState title="All clear" subtitle="Nothing to do" icon="success" />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByText("All clear")).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+    expect(screen.getByText("Nothing to do")).toHaveStyle({
+      color: darkColors.textSecondary,
+    });
+    const glyph: RenderedElement = screen.getByText(
+      glyphFor("checkmark-circle-outline"),
+    );
+    expect(flatStyle(glyph).color).toBe(darkColors.statusSuccess);
+    expect(flatStyle(glyph.parent as RenderedElement).backgroundColor).toBe(
+      withAlpha(darkColors.statusSuccess, 0.2),
     );
   });
 });

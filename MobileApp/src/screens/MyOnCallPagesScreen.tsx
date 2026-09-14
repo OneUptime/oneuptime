@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, ScrollView, RefreshControl } from "react-native";
+import { View, ScrollView, RefreshControl } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useTheme } from "../theme";
+import { spacing } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import { useRefresh } from "../hooks/useRefresh";
 import ScreenIntro from "../components/ScreenIntro";
@@ -16,6 +17,8 @@ import OnCallPageCard, {
 import SegmentedControl from "../components/SegmentedControl";
 import SkeletonCard from "../components/SkeletonCard";
 import EmptyState from "../components/EmptyState";
+import Banner from "../components/Banner";
+import Card from "../components/Card";
 import type { OnCallPageItem } from "../api/types";
 import type {
   MainTabParamList,
@@ -137,6 +140,13 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
     }
   };
 
+  const intro: React.JSX.Element = (
+    <ScreenIntro
+      title="My pages"
+      description="Your response history, all in one place."
+    />
+  );
+
   if (isLoading) {
     return (
       <View
@@ -144,8 +154,12 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
       >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
+          contentContainerStyle={{
+            padding: spacing.xl,
+            paddingBottom: bottomPadding,
+          }}
         >
+          {intro}
           <SkeletonCard lines={3} />
           <SkeletonCard lines={3} />
           <SkeletonCard lines={3} />
@@ -161,7 +175,7 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
         contentInsetAdjustmentBehavior="automatic"
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
         contentContainerStyle={{
-          padding: 20,
+          padding: spacing.xl,
           paddingBottom: bottomPadding,
           flexGrow: 1,
         }}
@@ -173,10 +187,7 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
           />
         }
       >
-        <ScreenIntro
-          title="My pages"
-          description="Your response history, all in one place."
-        />
+        {intro}
         <EmptyState
           title={isError ? "Could not load your pages" : "No pages yet"}
           subtitle={
@@ -184,7 +195,7 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
               ? "Pull to refresh or try again."
               : "On-call notifications sent to you will show up here. Pull to refresh for new pages."
           }
-          icon="alerts"
+          icon={isError ? "error" : "alerts"}
           actionLabel={isError ? "Retry" : "Refresh"}
           onAction={onRefresh}
         />
@@ -197,7 +208,10 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
       testID="my-pages-scroll"
       contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
+      contentContainerStyle={{
+        padding: spacing.xl,
+        paddingBottom: bottomPadding,
+      }}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -206,48 +220,25 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
         />
       }
     >
-      <ScreenIntro
-        title="My pages"
-        description="Your response history, all in one place."
-      />
-      <View
-        style={{
-          paddingVertical: 14,
-          paddingHorizontal: 16,
-          marginBottom: 20,
-          borderRadius: 12,
-          backgroundColor:
-            unacknowledgedCount > 0
-              ? theme.colors.severityWarningBg
-              : theme.colors.oncallActiveBg,
-        }}
-      >
-        <Text
-          style={{
-            fontSize: 16,
-            fontWeight: "700",
-            color: theme.colors.textPrimary,
-          }}
-        >
-          {unacknowledgedCount === 0
+      {intro}
+      <Banner
+        testID="pages-summary"
+        tone={unacknowledgedCount > 0 ? "warning" : "success"}
+        icon={unacknowledgedCount > 0 ? "alert-circle" : "checkmark-circle"}
+        title={
+          unacknowledgedCount === 0
             ? "All listed pages acknowledged"
-            : `${unacknowledgedCount} ${unacknowledgedCount === 1 ? "page needs" : "pages need"} a response`}
-        </Text>
-        <Text
-          style={{
-            fontSize: 14,
-            lineHeight: 21,
-            marginTop: 6,
-            color: theme.colors.textSecondary,
-          }}
-        >
-          {unacknowledgedCount === 0
+            : `${unacknowledgedCount} ${unacknowledgedCount === 1 ? "page needs" : "pages need"} a response`
+        }
+        message={
+          unacknowledgedCount === 0
             ? "You can review your notification history below."
-            : "Use the unacknowledged filter to focus on pages that have not been answered."}
-        </Text>
-      </View>
+            : "Use the unacknowledged filter to focus on pages that have not been answered."
+        }
+        style={{ marginBottom: spacing.lg }}
+      />
       <SegmentedControl<PageFilter>
-        style={{ marginHorizontal: 0, marginTop: 0 }}
+        style={{ marginHorizontal: 0, marginTop: 0, marginBottom: 0 }}
         segments={[
           { key: "all", label: `All (${pages.length})` },
           {
@@ -263,28 +254,18 @@ export default function MyOnCallPagesScreen(): React.JSX.Element {
       />
 
       <View
-        style={{ marginTop: 20, gap: 0, borderRadius: 16, overflow: "hidden" }}
+        testID="pages-list"
+        style={{ marginTop: spacing.xl, gap: spacing.md }}
       >
         {visiblePages.length === 0 ? (
-          <View
-            style={{
-              borderRadius: 16,
-              padding: 18,
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderGlass,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 14,
-                lineHeight: 20,
-                color: theme.colors.textSecondary,
-              }}
-            >
-              Every page in this list has been acknowledged.
-            </Text>
-          </View>
+          <Card testID="pages-filter-empty" variant="outlined">
+            <EmptyState
+              compact
+              icon="success"
+              title="All caught up"
+              subtitle="Every page in this list has been acknowledged."
+            />
+          </Card>
         ) : (
           visiblePages.map((page: OnCallPageItem) => {
             return (

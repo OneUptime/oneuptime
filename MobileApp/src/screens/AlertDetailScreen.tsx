@@ -1,7 +1,13 @@
 import React, { useState, useCallback } from "react";
-import { Text, ScrollView, RefreshControl, Alert } from "react-native";
+import {
+  ScrollView,
+  RefreshControl,
+  Alert,
+  type ViewStyle,
+} from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import { spacing } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import { useRefresh } from "../hooks/useRefresh";
 import QueryErrorNotice from "../components/QueryErrorNotice";
@@ -23,13 +29,19 @@ import type { AlertState } from "../api/types";
 import AddNoteModal from "../components/AddNoteModal";
 import EmptyState from "../components/EmptyState";
 import FeedTimeline from "../components/FeedTimeline";
-import SkeletonCard from "../components/SkeletonCard";
 import {
   ResponseDetailHeader,
+  ResponseDetailSkeleton,
   ResponseActions,
+  ResponseGuidance,
   ResponseInfoRow,
   ResponseSection,
+  describeResponseAge,
+  getResponseStage,
+  getResponseStageAppearance,
+  responseActionIcons,
   type ResponseAction,
+  type ResponseStage,
 } from "../components/ResponseDetailLayout";
 import NotesSection from "../components/NotesSection";
 import RootCauseCard from "../components/RootCauseCard";
@@ -151,17 +163,23 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
     [projectId, alertId, refetchNotes],
   );
 
+  /*
+   * The loading, failed and missing states share the page's gutters so the
+   * layout does not jump when the alert lands.
+   */
+  const placeholderContainerStyle: ViewStyle = {
+    padding: spacing.xl,
+    paddingBottom: bottomPadding,
+    flexGrow: 1,
+  };
+
   if (isLoading) {
     return (
       <ScrollView
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
-        contentContainerStyle={{
-          padding: 20,
-          paddingBottom: bottomPadding,
-          flexGrow: 1,
-        }}
+        contentContainerStyle={placeholderContainerStyle}
       >
-        <SkeletonCard variant="detail" />
+        <ResponseDetailSkeleton />
       </ScrollView>
     );
   }
@@ -191,16 +209,12 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
       return (
         <ScrollView
           style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
-          contentContainerStyle={{
-            padding: 20,
-            paddingBottom: bottomPadding,
-            flexGrow: 1,
-          }}
+          contentContainerStyle={placeholderContainerStyle}
         >
           <EmptyState
             title="Something went wrong"
             subtitle="This alert could not be loaded, which is not the same as it no longer existing. Try again."
-            icon="alerts"
+            icon="error"
             actionLabel="Retry"
             onAction={() => {
               return refetchAlert();
@@ -213,11 +227,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
     return (
       <ScrollView
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
-        contentContainerStyle={{
-          padding: 20,
-          paddingBottom: bottomPadding,
-          flexGrow: 1,
-        }}
+        contentContainerStyle={placeholderContainerStyle}
       >
         <EmptyState
           title="Alert not found"
@@ -258,6 +268,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
     actions.push({
       label: "Acknowledge",
       accessibilityLabel: "Acknowledge alert",
+      icon: responseActionIcons.acknowledge,
       primary: true,
       onPress: () => {
         return handleStateChange(acknowledgeState._id, acknowledgeState.name);
@@ -268,6 +279,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
     actions.push({
       label: "Resolve",
       accessibilityLabel: "Resolve alert",
+      icon: responseActionIcons.resolve,
       primary: isAcknowledged || !acknowledgeState,
       onPress: () => {
         return handleStateChange(resolveState._id, resolveState.name);
@@ -275,17 +287,30 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
     });
   }
 
+  const stage: ResponseStage = getResponseStage(isResolved, isAcknowledged);
+  const guidanceMessage: string =
+    stage === "resolved"
+      ? "This alert is resolved. Review the context and team notes below."
+      : stage === "acknowledged"
+        ? "A responder has acknowledged this alert. Resolve it once recovery is confirmed."
+        : "Acknowledge to let your team know you are responding. Resolve once recovery is confirmed.";
+
   return (
     <ScrollView
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
       testID="detail-scroll"
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
+      contentContainerStyle={{
+        padding: spacing.xl,
+        paddingBottom: bottomPadding,
+      }}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
           tintColor={theme.colors.actionPrimary}
+          colors={[theme.colors.actionPrimary]}
+          progressBackgroundColor={theme.colors.backgroundElevated}
         />
       }
     >
@@ -296,6 +321,12 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
         state={alert.currentAlertState?.name}
         stateColor={stateColor}
         severity={alert.alertSeverity?.name}
+        severityColor={
+          alert.alertSeverity?.color
+            ? rgbToHex(alert.alertSeverity.color)
+            : undefined
+        }
+        meta={describeResponseAge("Created", alert.createdAt)}
       />
       {statesError ? (
         <QueryErrorNotice
@@ -304,30 +335,24 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
           onRetry={refetchStates}
         />
       ) : null}
-      <Text
-        accessibilityLiveRegion="polite"
-        style={{
-          color: theme.colors.textSecondary,
-          fontSize: 15,
-          lineHeight: 23,
-          marginBottom: 22,
-        }}
+      <ResponseGuidance
+        {...getResponseStageAppearance(stage)}
+        message={guidanceMessage}
       >
-        {isResolved
-          ? "This alert is resolved. Review the context and team notes below."
-          : isAcknowledged
-            ? "A responder has acknowledged this alert. Resolve it once recovery is confirmed."
-            : "Acknowledge to let your team know you are responding. Resolve once recovery is confirmed."}
-      </Text>
-      {actions.length > 0 ? (
-        <ResponseActions actions={actions} busy={changingState} />
-      ) : null}
+        {actions.length > 0 ? (
+          <ResponseActions
+            actions={actions}
+            busy={changingState}
+            style={{ marginBottom: 0 }}
+          />
+        ) : null}
+      </ResponseGuidance>
       {descriptionText ? (
-        <ResponseSection title="Description">
+        <ResponseSection title="Description" iconName="document-text-outline">
           <MarkdownContent content={descriptionText} />
         </ResponseSection>
       ) : null}
-      <ResponseSection title="Details">
+      <ResponseSection title="Details" iconName="information-circle-outline">
         {alert.monitor ? (
           <ResponseInfoRow label="Monitor" value={alert.monitor.name} />
         ) : null}
@@ -336,7 +361,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
           value={formatDateTime(alert.createdAt)}
         />
       </ResponseSection>
-      <ResponseSection title="Root Cause">
+      <ResponseSection title="Root Cause" iconName="bulb-outline">
         <RootCauseCard rootCauseText={rootCauseText} />
       </ResponseSection>
       {feedError ? (
@@ -347,7 +372,7 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
         />
       ) : null}
       {feed && feed.length > 0 ? (
-        <ResponseSection title="Activity Feed">
+        <ResponseSection title="Activity Feed" iconName="pulse-outline">
           <FeedTimeline feed={feed} />
         </ResponseSection>
       ) : null}

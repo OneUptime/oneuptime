@@ -105,3 +105,23 @@ export function rgbToHex(color: ColorInput): string {
     b.toString(16).padStart(2, "0")
   );
 }
+
+/**
+ * A colour at the given opacity, as `rgba()`.
+ *
+ * Screens used to tint by appending two hex digits (`color + "10"`), which
+ * only works for six-digit hex and silently produces an invalid colour for the
+ * three-digit, named or `rgb()` values a theme or the server can hand over.
+ * Anything this cannot parse falls back to the same neutral grey `rgbToHex`
+ * uses, at the requested opacity.
+ */
+export function withAlpha(color: ColorInput, alpha: number): string {
+  const opacity: number = Number.isFinite(alpha)
+    ? Math.max(0, Math.min(1, alpha))
+    : 1;
+  const hex: string = rgbToHex(color);
+  const r: number = parseInt(hex.slice(1, 3), 16);
+  const g: number = parseInt(hex.slice(3, 5), 16);
+  const b: number = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${Number(opacity.toFixed(3))})`;
+}

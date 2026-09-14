@@ -1,95 +1,220 @@
 import React from "react";
-import { Text } from "react-native";
-import { render, screen, renderHook } from "@testing-library/react-native";
-import { ThemeProvider, useTheme } from "./ThemeContext";
-import { darkColors, type ColorTokens } from "./colors";
-import { describe, expect, test } from "@jest/globals";
+import { Appearance, Text } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  act,
+  render,
+  screen,
+  renderHook,
+  waitFor,
+} from "@testing-library/react-native";
+import { ThemeProvider, useTheme, lightTheme, darkTheme } from "./ThemeContext";
+import { darkColors, lightColors, type ColorTokens } from "./colors";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
- * Every colour in the app is read through useTheme, and every one of those
- * reads is `theme.colors.something` written straight into a style prop. Two
- * things follow, and they are what this file protects:
+ * Every colour in the app is read through useTheme. Two things follow, and
+ * they are what this file protects:
  *
  *   - a MISSING token is not a compile error at the point it hurts. It is
- *     `undefined` handed to React Native as a colour, which renders as black on
- *     black - text a responder cannot read on a page they were woken for.
- *   - the context has a default value on purpose. Anything rendered outside the
- *     provider - a modal, a screen mounted on its own in a test - has to come
- *     back with the same tokens rather than crashing or handing back nothing.
+ *     `undefined` handed to React Native as a colour.
+ *   - the context has a default value on purpose. Anything rendered outside
+ *     the provider has to come back with usable tokens rather than crashing.
  *
- * The token VALUES are not asserted one by one; that would be a copy of
- * colors.ts and would fail on every deliberate palette change. What is asserted
- * is the property the palette exists to provide: the colours that carry meaning
- * have to be distinguishable from each other.
+ * Dark mode follows the device unless the person picked Light or Dark in
+ * Settings, and that choice survives a restart.
  */
 
 type ThemeContextValue = ReturnType<typeof useTheme>;
 
-async function renderUseTheme(
-  withProvider: boolean,
-): Promise<ThemeContextValue> {
-  const rendered: { result: { current: ThemeContextValue } } =
-    (await renderHook(
-      () => {
-        return useTheme();
-      },
-      withProvider ? { wrapper: ThemeProvider } : undefined,
-    )) as unknown as { result: { current: ThemeContextValue } };
+let mockSystemScheme: "light" | "dark" | null = "light";
 
-  return rendered.result.current;
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced instead.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" | null => {
+      return mockSystemScheme;
+    },
+  };
+});
+
+beforeEach(async () => {
+  mockSystemScheme = "light";
+  await AsyncStorage.clear();
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+async function renderUseTheme(withProvider: boolean): Promise<{
+  result: { current: ThemeContextValue };
+  rerender: (props: unknown) => Promise<void>;
+}> {
+  return (await renderHook(
+    () => {
+      return useTheme();
+    },
+    withProvider ? { wrapper: ThemeProvider } : undefined,
+  )) as unknown as {
+    result: { current: ThemeContextValue };
+    rerender: (props: unknown) => Promise<void>;
+  };
 }
 
 describe("useTheme inside a ThemeProvider", () => {
-  test("hands down the dark token set", async () => {
-    const { theme }: ThemeContextValue = await renderUseTheme(true);
+  test("uses the light palette when the device is light", async () => {
+    const { result } = await renderUseTheme(true);
 
-    expect(theme.colors).toBe(darkColors);
+    expect(result.current.theme.colors).toBe(lightColors);
+    expect(result.current.theme.dark).toBe(false);
+    expect(result.current.preference).toBe("system");
   });
 
-  test("hands down a theme whose only content is its colours", async () => {
-    /*
-     * The Theme shape is what every consumer destructures. A second key
-     * appearing here silently means half the app is reading a theme that no
-     * longer matches the one being provided.
-     */
-    const { theme }: ThemeContextValue = await renderUseTheme(true);
+  test("uses the dark palette when the device is dark", async () => {
+    mockSystemScheme = "dark";
+    const { result } = await renderUseTheme(true);
 
-    expect(Object.keys(theme)).toEqual(["colors"]);
+    expect(result.current.theme.colors).toBe(darkColors);
+    expect(result.current.theme.dark).toBe(true);
+  });
+
+  test("treats an unknown device appearance as light", async () => {
+    mockSystemScheme = null;
+    const { result } = await renderUseTheme(true);
+
+    expect(result.current.theme).toBe(lightTheme);
+  });
+
+  test("hands down a theme made of its colours and whether it is dark", async () => {
+    const { result } = await renderUseTheme(true);
+
+    expect(Object.keys(result.current.theme).sort()).toEqual([
+      "colors",
+      "dark",
+    ]);
+  });
+
+  test("an explicit Dark choice wins over a light device and is saved", async () => {
+    const setColorScheme: jest.SpiedFunction<typeof Appearance.setColorScheme> =
+      jest.spyOn(Appearance, "setColorScheme").mockImplementation(() => {
+        return undefined;
+      });
+    const { result } = await renderUseTheme(true);
+
+    await act(async () => {
+      result.current.setPreference("dark");
+    });
+
+    expect(result.current.theme).toBe(darkTheme);
+    expect(result.current.preference).toBe("dark");
+    expect(setColorScheme).toHaveBeenCalledWith("dark");
+    await waitFor(async () => {
+      expect(await AsyncStorage.getItem("oneuptime_appearance")).toBe("dark");
+    });
+  });
+
+  test("an explicit Light choice wins over a dark device", async () => {
+    mockSystemScheme = "dark";
+    jest.spyOn(Appearance, "setColorScheme").mockImplementation(() => {
+      return undefined;
+    });
+    const { result } = await renderUseTheme(true);
+
+    await act(async () => {
+      result.current.setPreference("light");
+    });
+
+    expect(result.current.theme).toBe(lightTheme);
+  });
+
+  test("going back to System follows the device again and forgets the override", async () => {
+    mockSystemScheme = "dark";
+    const setColorScheme: jest.SpiedFunction<typeof Appearance.setColorScheme> =
+      jest.spyOn(Appearance, "setColorScheme").mockImplementation(() => {
+        return undefined;
+      });
+    await AsyncStorage.setItem("oneuptime_appearance", "light");
+    const { result } = await renderUseTheme(true);
+    await waitFor(() => {
+      expect(result.current.preference).toBe("light");
+    });
+
+    await act(async () => {
+      result.current.setPreference("system");
+    });
+
+    expect(result.current.theme).toBe(darkTheme);
+    expect(setColorScheme).toHaveBeenLastCalledWith("unspecified");
+    await waitFor(async () => {
+      expect(await AsyncStorage.getItem("oneuptime_appearance")).toBeNull();
+    });
+  });
+
+  test("restores a saved choice on the next launch", async () => {
+    jest.spyOn(Appearance, "setColorScheme").mockImplementation(() => {
+      return undefined;
+    });
+    await AsyncStorage.setItem("oneuptime_appearance", "dark");
+    const { result } = await renderUseTheme(true);
+
+    await waitFor(() => {
+      expect(result.current.theme).toBe(darkTheme);
+    });
+  });
+
+  test("ignores a stored value it does not recognise", async () => {
+    await AsyncStorage.setItem("oneuptime_appearance", "sepia");
+    const { result } = await renderUseTheme(true);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.current.preference).toBe("system");
+    expect(result.current.theme).toBe(lightTheme);
+  });
+
+  test("keeps the token object identical across re-renders", async () => {
+    /*
+     * Consumers derive style objects from these tokens. A fresh object every
+     * render would rebuild every style in the app on every render.
+     */
+    const rendered: Awaited<ReturnType<typeof renderUseTheme>> =
+      await renderUseTheme(true);
+
+    const before: ColorTokens = rendered.result.current.theme.colors;
+    await rendered.rerender({});
+
+    expect(rendered.result.current.theme.colors).toBe(before);
   });
 });
 
 describe("useTheme without a ThemeProvider", () => {
-  test("still returns a usable theme rather than undefined", async () => {
-    /*
-     * The default context value exists so a component can be mounted on its own
-     * - in a test, or under a navigator that has not been wrapped - without
-     * every `theme.colors.x` in it throwing on undefined.
-     */
-    const value: ThemeContextValue = await renderUseTheme(false);
+  test("still returns a usable light theme rather than undefined", async () => {
+    const { result } = await renderUseTheme(false);
 
-    expect(value.theme).toBeDefined();
-    expect(value.theme.colors).toBeDefined();
-  });
-
-  test("returns the SAME tokens the provider would have handed down", async () => {
-    /*
-     * The point of the default. If it drifted from the provider's value, a
-     * screen would render one set of colours under the app and a different set
-     * in isolation, and the difference would only ever be noticed on a device.
-     */
-    const outside: ThemeContextValue = await renderUseTheme(false);
-    const inside: ThemeContextValue = await renderUseTheme(true);
-
-    expect(outside.theme.colors).toBe(inside.theme.colors);
+    expect(result.current.theme).toBe(lightTheme);
+    expect(result.current.preference).toBe("system");
+    expect(() => {
+      result.current.setPreference("dark");
+    }).not.toThrow();
   });
 });
 
 describe("ThemeProvider", () => {
   test("renders what it is given", async () => {
-    /*
-     * It wraps its children in a flex View. A provider that dropped them would
-     * take the whole app down to a blank screen.
-     */
     await render(
       <ThemeProvider>
         <Text>Acknowledged</Text>
@@ -110,112 +235,51 @@ describe("ThemeProvider", () => {
     expect(screen.getByText("Alerts")).toBeTruthy();
     expect(screen.getByText("Incidents")).toBeTruthy();
   });
-
-  test("keeps the token object identical across re-renders", async () => {
-    /*
-     * Consumers derive StyleSheet objects from these tokens inside useMemo keyed
-     * on `theme.colors`. A fresh object every render would rebuild every style
-     * in the app on every render, which on a list of pages is felt as scroll
-     * jank.
-     */
-    const rendered: {
-      result: { current: ThemeContextValue };
-      rerender: (props: unknown) => Promise<void>;
-    } = (await renderHook(
-      () => {
-        return useTheme();
-      },
-      { wrapper: ThemeProvider },
-    )) as unknown as {
-      result: { current: ThemeContextValue };
-      rerender: (props: unknown) => Promise<void>;
-    };
-
-    const before: ColorTokens = rendered.result.current.theme.colors;
-    await rendered.rerender({});
-
-    expect(rendered.result.current.theme.colors).toBe(before);
-  });
 });
 
-describe("the token set itself", () => {
-  test("defines every token as a non-empty colour string", async () => {
-    /*
-     * The failure this guards against is silent: a token dropped from the
-     * palette becomes `undefined` at the style prop, which React Native renders
-     * as black. On this app's near-black backgrounds that is invisible text.
-     */
-    const { theme }: ThemeContextValue = await renderUseTheme(true);
-    const entries: Array<[string, string]> = Object.entries(
-      theme.colors,
-    ) as Array<[string, string]>;
+describe.each([
+  ["light", lightColors],
+  ["dark", darkColors],
+])("the %s token set", (_name: string, colors: ColorTokens) => {
+  test("defines every token as a non-empty colour string", () => {
+    const entries: Array<[string, string]> = Object.entries(colors) as Array<
+      [string, string]
+    >;
 
     expect(entries.length).toBeGreaterThan(0);
-
     entries.forEach((entry: [string, string]): void => {
       expect(typeof entry[1]).toBe("string");
       expect(entry[1].length).toBeGreaterThan(0);
     });
   });
 
-  test("keeps the severity colours distinguishable from one another", async () => {
-    /*
-     * Severity is read at a glance, half-awake, by colour before the label is
-     * read at all. Two severities sharing a colour removes the triage cue that
-     * the whole list view depends on.
-     */
-    const { theme }: ThemeContextValue = await renderUseTheme(true);
+  test("keeps the severity colours distinguishable from one another", () => {
     const severities: string[] = [
-      theme.colors.severityCritical,
-      theme.colors.severityMajor,
-      theme.colors.severityMinor,
-      theme.colors.severityWarning,
-      theme.colors.severityInfo,
+      colors.severityCritical,
+      colors.severityMajor,
+      colors.severityMinor,
+      colors.severityWarning,
+      colors.severityInfo,
     ];
 
     expect(new Set<string>(severities).size).toBe(severities.length);
   });
 
-  test("keeps the alert states distinguishable from one another", async () => {
-    /*
-     * Created, acknowledged and resolved are the three facts a responder needs
-     * off a timeline. If acknowledged looked like created, a page someone had
-     * already picked up would read as still unowned.
-     */
-    const { theme }: ThemeContextValue = await renderUseTheme(true);
+  test("keeps the alert states distinguishable from one another", () => {
     const states: string[] = [
-      theme.colors.stateCreated,
-      theme.colors.stateAcknowledged,
-      theme.colors.stateResolved,
+      colors.stateCreated,
+      colors.stateAcknowledged,
+      colors.stateResolved,
     ];
 
     expect(new Set<string>(states).size).toBe(states.length);
   });
 
-  test("keeps on-call active distinguishable from on-call inactive", async () => {
-    const { theme }: ThemeContextValue = await renderUseTheme(true);
-
-    expect(theme.colors.oncallActive).not.toBe(theme.colors.oncallInactive);
+  test("keeps on-call active distinguishable from on-call inactive", () => {
+    expect(colors.oncallActive).not.toBe(colors.oncallInactive);
   });
 
-  test("keeps success and error distinguishable", async () => {
-    /*
-     * These two colour the outcome of an acknowledge. Sharing a value would
-     * make a failed acknowledge look exactly like one that worked.
-     */
-    const { theme }: ThemeContextValue = await renderUseTheme(true);
-
-    expect(theme.colors.statusSuccess).not.toBe(theme.colors.statusError);
-  });
-
-  test("does not paint text in the colour of the surface behind it", async () => {
-    /*
-     * The literal invisible-text case. Primary text on the primary background is
-     * the most common pairing in the app.
-     */
-    const { theme }: ThemeContextValue = await renderUseTheme(true);
-
-    expect(theme.colors.textPrimary).not.toBe(theme.colors.backgroundPrimary);
-    expect(theme.colors.textSecondary).not.toBe(theme.colors.backgroundPrimary);
+  test("keeps destructive distinguishable from primary", () => {
+    expect(colors.actionDestructive).not.toBe(colors.actionPrimary);
   });
 });

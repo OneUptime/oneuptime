@@ -21,7 +21,7 @@ function AppContent(): React.JSX.Element {
         backgroundColor: theme.colors.backgroundPrimary,
       }}
     >
-      <StatusBar style="dark" />
+      <StatusBar style={theme.dark ? "light" : "dark"} />
       <RootNavigator />
       <OfflineBanner />
     </View>

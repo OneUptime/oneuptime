@@ -1,16 +1,18 @@
 import React from "react";
-import { View, Text, type ViewStyle } from "react-native";
-import { useTheme } from "../theme";
+import { View, type StyleProp, type ViewStyle } from "react-native";
+import { spacing } from "../theme/tokens";
+import AppText from "./AppText";
 
 interface ScreenIntroProps {
   title: string;
   description?: string;
   eyebrow?: string;
   action?: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   compact?: boolean;
 }
 
+/** A screen's large title with an optional short explanation beneath it. */
 export default function ScreenIntro({
   title,
   description,
@@ -19,49 +21,37 @@ export default function ScreenIntro({
   style,
   compact = false,
 }: ScreenIntroProps): React.JSX.Element {
-  const { theme } = useTheme();
   return (
     <View
-      style={[{ marginBottom: compact ? 16 : 24, gap: compact ? 6 : 8 }, style]}
+      style={[
+        {
+          marginBottom: compact ? spacing.lg : spacing.xl,
+          gap: spacing.xs,
+        },
+        style,
+      ]}
     >
       {eyebrow ? (
-        <Text
-          style={{
-            fontSize: 11,
-            fontWeight: "700",
-            letterSpacing: 1.5,
-            color: theme.colors.textTertiary,
-          }}
-        >
-          {eyebrow.toUpperCase()}
-        </Text>
+        <AppText variant="overline" tone="accent">
+          {eyebrow}
+        </AppText>
       ) : null}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Text
+      <View
+        style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}
+      >
+        <AppText
           accessibilityRole="header"
-          style={{
-            flex: 1,
-            fontSize: compact ? 28 : 34,
-            lineHeight: compact ? 35 : 42,
-            fontWeight: "800",
-            letterSpacing: -1.2,
-            color: theme.colors.textPrimary,
-          }}
+          variant={compact ? "title" : "largeTitle"}
+          style={{ flex: 1 }}
         >
           {title}
-        </Text>
+        </AppText>
         {action}
       </View>
       {description ? (
-        <Text
-          style={{
-            fontSize: 15,
-            lineHeight: 23,
-            color: theme.colors.textSecondary,
-          }}
-        >
+        <AppText variant="callout" tone="secondary">
           {description}
-        </Text>
+        </AppText>
       ) : null}
     </View>
   );

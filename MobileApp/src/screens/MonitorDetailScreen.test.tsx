@@ -1,5 +1,12 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react-native";
+import { StyleSheet, type TextStyle, type ViewStyle } from "react-native";
+import {
+  act,
+  render,
+  screen,
+  fireEvent,
+  within,
+} from "@testing-library/react-native";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 import MonitorDetailScreen from "./MonitorDetailScreen";
 import {
@@ -8,6 +15,9 @@ import {
   makeMonitor,
   makeNamedEntityWithColor,
 } from "../__tests__/testSupport";
+import { ThemeProvider } from "../theme";
+import { darkColors, lightColors } from "../theme/colors";
+import { radius, spacing } from "../theme/tokens";
 import type { FeedItem, MonitorItem } from "../api/types";
 import type {
   MonitorProbeItem,
@@ -75,6 +85,22 @@ const mockFeedQuery: { current: FakeQuery<FeedItem[]> } = {
   current: queryState<FeedItem[]>(),
 };
 
+/*
+ * The device appearance ThemeProvider follows. react-native exposes
+ * useColorScheme through a getter that cannot be spied on, so the module
+ * behind it is replaced.
+ */
+const mockColorScheme: { current: "light" | "dark" } = { current: "light" };
+
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme.current;
+    },
+  };
+});
+
 jest.mock("../hooks/useScreenPadding", () => {
   return {
     useScreenPadding: () => {
@@ -102,7 +128,9 @@ jest.mock("../hooks/useMonitorDetail", () => {
 
 type ScreenProps = React.ComponentProps<typeof MonitorDetailScreen>;
 
-async function renderScreen(): Promise<void> {
+async function renderScreen(
+  scheme: "light" | "dark" | null = null,
+): Promise<void> {
   /*
    * The screen reads nothing but route.params, so the rest of the navigation
    * props are not built out - handing it a real navigator would be a lot of
@@ -112,7 +140,24 @@ async function renderScreen(): Promise<void> {
     route: { params: { monitorId: MONITOR_ID, projectId: PROJECT_ID } },
   } as unknown as ScreenProps;
 
-  await render(<MonitorDetailScreen {...props} />);
+  if (scheme === null) {
+    await render(<MonitorDetailScreen {...props} />);
+    return;
+  }
+
+  mockColorScheme.current = scheme;
+  await render(
+    <ThemeProvider>
+      <MonitorDetailScreen {...props} />
+    </ThemeProvider>,
+  );
+}
+
+type RenderedElement = ReturnType<typeof screen.getByText>;
+
+function flatStyle(element: RenderedElement): ViewStyle & TextStyle {
+  return (StyleSheet.flatten(element.props["style"]) ?? {}) as ViewStyle &
+    TextStyle;
 }
 
 function makeTimelineEntry(
@@ -147,6 +192,7 @@ function makeWebsiteProbe(): MonitorProbeItem {
 }
 
 beforeEach(() => {
+  mockColorScheme.current = "light";
   mockMonitorQuery.current = queryState<MonitorItem>();
   mockTimelineQuery.current = queryState<MonitorStatusTimelineItem[]>();
   mockProbesQuery.current = queryState<MonitorProbeItem[]>();
@@ -638,5 +684,263 @@ describe("Monitor status guidance", () => {
     await renderScreen();
     expect(screen.getByText("api.example.com")).toBeTruthy();
     expect(screen.queryByText("Something went wrong")).toBeNull();
+  });
+});
+
+describe("The monitor summary section", () => {
+  beforeEach(() => {
+    mockMonitorQuery.current = queryState<MonitorItem>({ data: makeMonitor() });
+  });
+
+  test("the summary is its own card, not a card inside a section card", async () => {
+    mockProbesQuery.current = queryState<MonitorProbeItem[]>({
+      data: [makeWebsiteProbe()],
+    });
+
+    await renderScreen();
+
+    const section: RenderedElement = screen.getByTestId(
+      "monitor-summary-section",
+    );
+    expect(within(section).getByText("Monitor Summary")).toBeTruthy();
+    expect(within(section).getByTestId("monitor-summary-card")).toBeTruthy();
+    for (const card of screen.queryAllByTestId("response-section-card")) {
+      expect(within(card).queryByTestId("monitor-summary-card")).toBeNull();
+    }
+  });
+
+  test("measurements still loading show progress, not an empty summary", async () => {
+    mockProbesQuery.current = queryState<MonitorProbeItem[]>({
+      isLoading: true,
+    });
+
+    await renderScreen();
+
+    expect(screen.getByText("Loading monitor measurements…")).toBeTruthy();
+    expect(screen.getByTestId("monitor-summary-loading")).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+      borderRadius: radius.lg,
+    });
+    expect(screen.queryByTestId("monitor-summary-card")).toBeNull();
+    expect(screen.queryByText("No monitoring data available yet.")).toBeNull();
+  });
+
+  test("a refetch keeps the last measurements on screen while it runs", async () => {
+    mockProbesQuery.current = queryState<MonitorProbeItem[]>({
+      isLoading: true,
+      data: [makeWebsiteProbe()],
+    });
+
+    await renderScreen();
+
+    expect(screen.getByText("Loading monitor measurements…")).toBeTruthy();
+    expect(screen.getByText("200")).toBeTruthy();
+  });
+
+  test("a failed measurement read is not shown as no data, and can be retried", async () => {
+    mockProbesQuery.current = queryState<MonitorProbeItem[]>({
+      isError: true,
+    });
+
+    await renderScreen();
+
+    expect(
+      screen.getByText("Unable to load the latest monitor measurements."),
+    ).toBeTruthy();
+    expect(screen.queryByText("No monitoring data available yet.")).toBeNull();
+    expect(screen.queryByTestId("monitor-summary-card")).toBeNull();
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Retry monitor summary" }),
+    );
+
+    expect(mockProbesQuery.current.refetch).toHaveBeenCalledTimes(1);
+  });
+
+  test("failed history and activity reads each offer their own retry", async () => {
+    mockTimelineQuery.current = queryState<MonitorStatusTimelineItem[]>({
+      isError: true,
+    });
+    mockFeedQuery.current = queryState<FeedItem[]>({ isError: true });
+
+    await renderScreen();
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Retry status history" }),
+    );
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Retry activity" }),
+    );
+
+    expect(mockTimelineQuery.current.refetch).toHaveBeenCalledTimes(1);
+    expect(mockFeedQuery.current.refetch).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("Status History")).toBeNull();
+    expect(screen.queryByText("Activity Feed")).toBeNull();
+  });
+
+  test("pulling to refresh asks all four reads again", async () => {
+    await renderScreen();
+
+    await act(async () => {
+      await screen
+        .getByTestId("detail-scroll")
+        .props.refreshControl.props.onRefresh();
+    });
+
+    expect(mockMonitorQuery.current.refetch).toHaveBeenCalledTimes(1);
+    expect(mockTimelineQuery.current.refetch).toHaveBeenCalledTimes(1);
+    expect(mockProbesQuery.current.refetch).toHaveBeenCalledTimes(1);
+    expect(mockFeedQuery.current.refetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("The paused-monitoring banner", () => {
+  test("is a rounded warning surface on a disabled monitor", async () => {
+    mockMonitorQuery.current = queryState<MonitorItem>({
+      data: makeMonitor({ disableActiveMonitoring: true }),
+    });
+
+    await renderScreen();
+
+    expect(screen.getByTestId("monitor-paused-banner")).toHaveStyle({
+      backgroundColor: lightColors.statusWarningBg,
+      borderRadius: radius.lg,
+      marginBottom: spacing.xxl,
+    });
+    expect(flatStyle(screen.getByText("Monitoring is paused")).color).toBe(
+      lightColors.statusWarning,
+    );
+  });
+
+  test("is absent while checks are running", async () => {
+    mockMonitorQuery.current = queryState<MonitorItem>({ data: makeMonitor() });
+
+    await renderScreen();
+
+    expect(screen.queryByTestId("monitor-paused-banner")).toBeNull();
+  });
+});
+
+describe("The status history timeline", () => {
+  beforeEach(() => {
+    mockMonitorQuery.current = queryState<MonitorItem>({ data: makeMonitor() });
+  });
+
+  test("sits on one card with a rail between consecutive changes", async () => {
+    mockTimelineQuery.current = queryState<MonitorStatusTimelineItem[]>({
+      data: [
+        makeTimelineEntry({ _id: "t-1" }),
+        makeTimelineEntry({ _id: "t-2" }),
+        makeTimelineEntry({ _id: "t-3" }),
+      ],
+    });
+
+    await renderScreen();
+
+    expect(screen.getByTestId("monitor-status-history")).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+    });
+    expect(screen.getAllByTestId("monitor-status-history-entry")).toHaveLength(
+      3,
+    );
+    expect(screen.getAllByTestId("monitor-status-history-rail")).toHaveLength(
+      2,
+    );
+  });
+
+  test("each dot takes its status colour, haloed by a translucent tint of it", async () => {
+    mockTimelineQuery.current = queryState<MonitorStatusTimelineItem[]>({
+      data: [makeTimelineEntry()],
+    });
+
+    await renderScreen();
+
+    expect(screen.getByTestId("monitor-status-history-dot")).toHaveStyle({
+      backgroundColor: "#dc2626",
+    });
+    expect(screen.getByTestId("monitor-status-history-halo")).toHaveStyle({
+      backgroundColor: "rgba(220, 38, 38, 0.2)",
+    });
+  });
+
+  test("a change with no status uses a muted theme colour for its dot", async () => {
+    mockTimelineQuery.current = queryState<MonitorStatusTimelineItem[]>({
+      data: [makeTimelineEntry({ monitorStatus: undefined })],
+    });
+
+    await renderScreen();
+
+    expect(screen.getByTestId("monitor-status-history-dot")).toHaveStyle({
+      backgroundColor: lightColors.textTertiary,
+    });
+  });
+});
+
+describe("Monitor detail in light and dark appearance", () => {
+  test("a dark device paints the page, cards and banner from the dark palette", async () => {
+    mockMonitorQuery.current = queryState<MonitorItem>({
+      data: makeMonitor({ disableActiveMonitoring: true }),
+    });
+    mockProbesQuery.current = queryState<MonitorProbeItem[]>({
+      data: [makeWebsiteProbe()],
+    });
+    mockTimelineQuery.current = queryState<MonitorStatusTimelineItem[]>({
+      data: [makeTimelineEntry()],
+    });
+
+    await renderScreen("dark");
+
+    expect(screen.getByTestId("detail-scroll")).toHaveStyle({
+      backgroundColor: darkColors.backgroundPrimary,
+    });
+    expect(screen.getByTestId("monitor-summary-card")).toHaveStyle({
+      backgroundColor: darkColors.backgroundElevated,
+      borderColor: darkColors.borderSubtle,
+    });
+    expect(screen.getByTestId("monitor-status-history")).toHaveStyle({
+      backgroundColor: darkColors.backgroundElevated,
+    });
+    expect(screen.getByTestId("monitor-status-history-halo")).toHaveStyle({
+      backgroundColor: "rgba(220, 38, 38, 0.3)",
+    });
+    expect(screen.getByTestId("monitor-paused-banner")).toHaveStyle({
+      backgroundColor: darkColors.statusWarningBg,
+    });
+    expect(
+      flatStyle(screen.getByRole("header", { name: "api.example.com" })).color,
+    ).toBe(darkColors.textPrimary);
+    for (const card of screen.getAllByTestId("response-section-card")) {
+      expect(card).toHaveStyle({
+        backgroundColor: darkColors.backgroundElevated,
+      });
+    }
+  });
+
+  test("the loading card and failure page follow dark mode too", async () => {
+    mockMonitorQuery.current = queryState<MonitorItem>({ data: makeMonitor() });
+    mockProbesQuery.current = queryState<MonitorProbeItem[]>({
+      isLoading: true,
+    });
+
+    await renderScreen("dark");
+
+    expect(screen.getByTestId("monitor-summary-loading")).toHaveStyle({
+      backgroundColor: darkColors.backgroundElevated,
+    });
+    expect(
+      flatStyle(screen.getByText("Loading monitor measurements…")).color,
+    ).toBe(darkColors.textSecondary);
+  });
+
+  test("page gutters come from the spacing scale", async () => {
+    mockMonitorQuery.current = queryState<MonitorItem>({ data: makeMonitor() });
+
+    await renderScreen("light");
+
+    expect(
+      screen.getByTestId("detail-scroll").props.contentContainerStyle,
+    ).toMatchObject({ padding: spacing.xl, paddingBottom: 248 });
   });
 });

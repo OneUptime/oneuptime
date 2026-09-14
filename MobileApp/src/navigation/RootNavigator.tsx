@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   NavigationContainer,
+  DarkTheme,
   DefaultTheme,
   Theme,
   useNavigationContainerRef,
@@ -113,20 +114,24 @@ export default function RootNavigator(): React.JSX.Element {
     processPendingNotification();
   }, []);
 
-  const navigationTheme: Theme = {
-    ...DefaultTheme,
-    dark: false,
-    colors: {
-      ...DefaultTheme.colors,
-      primary: theme.colors.actionPrimary,
-      background: theme.colors.backgroundPrimary,
-      card: theme.colors.backgroundSecondary,
-      text: theme.colors.textPrimary,
-      border: theme.colors.borderDefault,
-      notification: theme.colors.severityCritical,
-    },
-    fonts: DefaultTheme.fonts,
-  };
+  // Memoised so the container does not re-theme every screen on each render.
+  const navigationTheme: Theme = useMemo((): Theme => {
+    const baseNavigationTheme: Theme = theme.dark ? DarkTheme : DefaultTheme;
+    return {
+      ...baseNavigationTheme,
+      dark: theme.dark,
+      colors: {
+        ...baseNavigationTheme.colors,
+        primary: theme.colors.actionPrimary,
+        background: theme.colors.backgroundPrimary,
+        card: theme.colors.backgroundSecondary,
+        text: theme.colors.textPrimary,
+        border: theme.colors.borderDefault,
+        notification: theme.colors.severityCritical,
+      },
+      fonts: baseNavigationTheme.fonts,
+    };
+  }, [theme]);
 
   if (isLoading) {
     return (

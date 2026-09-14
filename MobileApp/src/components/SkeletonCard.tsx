@@ -2,22 +2,38 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Animated,
-  DimensionValue,
   AccessibilityInfo,
+  type DimensionValue,
+  type ViewStyle,
 } from "react-native";
 import { useTheme } from "../theme";
+import { elevation, radius, spacing } from "../theme/tokens";
 
 interface SkeletonCardProps {
   lines?: number;
   variant?: "card" | "detail" | "compact";
 }
 
+/** Where the placeholders rest before the OS answers, and for reduce motion. */
+const RESTING_OPACITY: number = 0.7;
+const STEADY_OPACITY: number = 0.8;
+
+/**
+ * Loading placeholders shaped like the cards they stand in for.
+ *
+ * The surface stays solid and only the grey bars on it pulse. Fading the whole
+ * card made the canvas flicker through it, which reads as a fault in dark mode,
+ * and a card that keeps its outline also keeps the list from jumping when the
+ * real rows arrive.
+ */
 export default function SkeletonCard({
   lines = 3,
   variant = "card",
 }: SkeletonCardProps): React.JSX.Element {
   const { theme } = useTheme();
-  const opacity: Animated.Value = useRef(new Animated.Value(0.3)).current;
+  const opacity: Animated.Value = useRef(
+    new Animated.Value(RESTING_OPACITY),
+  ).current;
 
   /*
    * Three states, not two. The OS is asked asynchronously and does not answer
@@ -57,19 +73,19 @@ export default function SkeletonCard({
     }
 
     if (reduceMotion) {
-      opacity.setValue(0.5);
+      opacity.setValue(STEADY_OPACITY);
       return;
     }
 
     const animation: Animated.CompositeAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, {
-          toValue: 0.6,
+          toValue: 1,
           duration: 900,
           useNativeDriver: true,
         }),
         Animated.timing(opacity, {
-          toValue: 0.25,
+          toValue: 0.45,
           duration: 900,
           useNativeDriver: true,
         }),
@@ -83,271 +99,169 @@ export default function SkeletonCard({
     };
   }, [opacity, reduceMotion]);
 
-  const lineWidths: DimensionValue[] = ["60%", "85%", "45%", "70%"];
+  const lineWidths: DimensionValue[] = ["55%", "80%", "40%", "68%"];
+
+  const surface: ViewStyle = {
+    borderRadius: radius.lg,
+    marginBottom: spacing.md,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.borderSubtle,
+    backgroundColor: theme.colors.backgroundElevated,
+    ...elevation("card", theme.dark),
+  };
+
+  /*
+   * borderDefault stays visible on the card in both palettes; the tertiary fill
+   * all but disappears on a dark card.
+   */
+  const bar: (style: ViewStyle) => ViewStyle = (
+    style: ViewStyle,
+  ): ViewStyle => {
+    return {
+      borderRadius: radius.pill,
+      backgroundColor: theme.colors.borderDefault,
+      ...style,
+    };
+  };
 
   if (variant === "compact") {
     return (
-      <Animated.View
-        style={{
-          borderRadius: 16,
-          marginBottom: 12,
-          overflow: "hidden",
-          backgroundColor: theme.colors.backgroundElevated,
-          borderWidth: 1,
-          borderColor: theme.colors.borderGlass,
-          opacity,
-        }}
+      <View
+        style={surface}
         accessibilityLabel="Loading content"
         accessibilityRole="progressbar"
       >
-        <View
+        <Animated.View
+          testID="skeleton-pulse"
           style={{
-            height: 3,
-            backgroundColor: theme.colors.backgroundTertiary,
+            opacity,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: spacing.sm,
           }}
-        />
-        <View style={{ padding: 16 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 10,
-            }}
-          >
-            <View
-              style={{
-                height: 16,
-                width: 56,
-                borderRadius: 4,
-                backgroundColor: theme.colors.backgroundTertiary,
-              }}
-            />
-            <View
-              style={{
-                height: 12,
-                width: 32,
-                borderRadius: 4,
-                backgroundColor: theme.colors.backgroundTertiary,
-              }}
-            />
-          </View>
-          <View
-            style={{
-              height: 18,
-              borderRadius: 4,
-              width: "75%",
-              marginBottom: 12,
-              backgroundColor: theme.colors.backgroundTertiary,
-            }}
-          />
-        </View>
-      </Animated.View>
+        >
+          <View style={bar({ width: 10, height: 10 })} />
+          <View style={bar({ height: 16, flex: 1, maxWidth: "65%" })} />
+          <View style={{ flex: 1 }} />
+          <View style={bar({ height: 10, width: 36 })} />
+        </Animated.View>
+      </View>
     );
   }
 
   if (variant === "detail") {
     return (
-      <Animated.View
-        style={{ padding: 20, opacity }}
+      <View
+        style={{ padding: spacing.xl }}
         accessibilityLabel="Loading content"
         accessibilityRole="progressbar"
       >
-        <View
-          style={{
-            borderRadius: 16,
-            overflow: "hidden",
-            marginBottom: 20,
-            backgroundColor: theme.colors.backgroundElevated,
-            borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
-          }}
-        >
-          <View
-            style={{
-              height: 3,
-              backgroundColor: theme.colors.backgroundTertiary,
-            }}
-          />
-          <View style={{ padding: 20 }}>
+        <View style={{ ...surface, marginBottom: spacing.lg }}>
+          <Animated.View testID="skeleton-pulse" style={{ opacity }}>
             <View
               style={{
-                height: 16,
-                width: 64,
-                borderRadius: 4,
-                marginBottom: 12,
-                backgroundColor: theme.colors.backgroundTertiary,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.sm,
+                marginBottom: spacing.md,
               }}
-            />
-            <View
-              style={{
-                height: 28,
-                width: "80%",
-                borderRadius: 4,
-                marginBottom: 12,
-                backgroundColor: theme.colors.backgroundTertiary,
-              }}
-            />
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              <View
-                style={{
-                  height: 24,
-                  width: 80,
-                  borderRadius: 6,
-                  backgroundColor: theme.colors.backgroundTertiary,
-                }}
-              />
-              <View
-                style={{
-                  height: 24,
-                  width: 56,
-                  borderRadius: 6,
-                  backgroundColor: theme.colors.backgroundTertiary,
-                }}
-              />
+            >
+              <View style={bar({ width: 10, height: 10 })} />
+              <View style={bar({ height: 14, width: 88 })} />
             </View>
-          </View>
+            <View
+              style={bar({
+                height: 24,
+                width: "85%",
+                marginBottom: spacing.sm,
+              })}
+            />
+            <View
+              style={bar({
+                height: 24,
+                width: "55%",
+                marginBottom: spacing.lg,
+              })}
+            />
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              <View style={bar({ height: 26, width: 92 })} />
+              <View style={bar({ height: 26, width: 68 })} />
+            </View>
+          </Animated.View>
         </View>
-        <View
-          style={{
-            borderRadius: 12,
-            overflow: "hidden",
-            backgroundColor: theme.colors.backgroundElevated,
-            borderWidth: 1,
-            borderColor: theme.colors.borderGlass,
-            borderLeftWidth: 3,
-            borderLeftColor: theme.colors.backgroundTertiary,
-          }}
-        >
-          <View style={{ padding: 16 }}>
+        <View style={{ ...surface, marginBottom: 0 }}>
+          <Animated.View
+            testID="skeleton-pulse"
+            style={{ opacity, gap: spacing.md }}
+          >
             {Array.from({ length: 3 }).map((_: unknown, index: number) => {
               return (
                 <View
                   key={index}
-                  style={{ flexDirection: "row", marginBottom: 12 }}
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
                 >
-                  <View
-                    style={{
-                      height: 14,
-                      width: 80,
-                      borderRadius: 4,
-                      marginRight: 16,
-                      backgroundColor: theme.colors.backgroundTertiary,
-                    }}
-                  />
-                  <View
-                    style={{
-                      height: 14,
-                      width: 120,
-                      borderRadius: 4,
-                      backgroundColor: theme.colors.backgroundTertiary,
-                    }}
-                  />
+                  <View style={bar({ height: 14, width: 84 })} />
+                  <View style={bar({ height: 14, width: 120 })} />
                 </View>
               );
             })}
-          </View>
+          </Animated.View>
         </View>
-      </Animated.View>
+      </View>
     );
   }
 
   return (
-    <Animated.View
-      style={{
-        borderRadius: 16,
-        marginBottom: 12,
-        overflow: "hidden",
-        backgroundColor: theme.colors.backgroundElevated,
-        borderWidth: 1,
-        borderColor: theme.colors.borderGlass,
-        opacity,
-      }}
+    <View
+      style={surface}
       accessibilityLabel="Loading content"
       accessibilityRole="progressbar"
     >
-      <View
-        style={{
-          height: 3,
-          backgroundColor: theme.colors.backgroundTertiary,
-        }}
-      />
-      <View style={{ padding: 16 }}>
+      <Animated.View testID="skeleton-pulse" style={{ opacity }}>
+        {/* Status dot, state and severity, then the time on the right. */}
         <View
           style={{
             flexDirection: "row",
-            justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: 12,
+            gap: spacing.sm,
           }}
         >
-          <View
-            style={{
-              height: 14,
-              width: 56,
-              borderRadius: 4,
-              backgroundColor: theme.colors.backgroundTertiary,
-            }}
-          />
-          <View
-            style={{
-              height: 12,
-              width: 40,
-              borderRadius: 4,
-              backgroundColor: theme.colors.backgroundTertiary,
-            }}
-          />
+          <View style={bar({ width: 10, height: 10 })} />
+          <View style={bar({ height: 10, width: 64 })} />
+          <View style={bar({ height: 10, width: 44 })} />
+          <View style={{ flex: 1 }} />
+          <View style={bar({ height: 10, width: 40 })} />
         </View>
+        {/* The title. */}
         <View
-          style={{
-            height: 18,
-            borderRadius: 4,
-            width: "70%",
-            marginBottom: 12,
-            backgroundColor: theme.colors.backgroundTertiary,
-          }}
+          style={bar({
+            height: 16,
+            width: "78%",
+            marginTop: spacing.md,
+          })}
         />
-        <View
-          style={{
-            flexDirection: "row",
-            gap: 8,
-            marginBottom: 12,
-          }}
-        >
-          <View
-            style={{
-              height: 24,
-              width: 80,
-              borderRadius: 6,
-              backgroundColor: theme.colors.backgroundTertiary,
-            }}
-          />
-          <View
-            style={{
-              height: 24,
-              width: 56,
-              borderRadius: 6,
-              backgroundColor: theme.colors.backgroundTertiary,
-            }}
-          />
+        {/* Meta and context lines. */}
+        <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
+          {Array.from({ length: Math.max(lines - 1, 1) }).map(
+            (_: unknown, index: number) => {
+              return (
+                <View
+                  key={index}
+                  style={bar({
+                    height: 12,
+                    width: lineWidths[index % lineWidths.length],
+                  })}
+                />
+              );
+            },
+          )}
         </View>
-        {Array.from({ length: Math.max(lines - 1, 1) }).map(
-          (_: unknown, index: number) => {
-            return (
-              <View
-                key={index}
-                style={{
-                  height: 12,
-                  borderRadius: 4,
-                  marginBottom: 8,
-                  width: lineWidths[index % lineWidths.length],
-                  backgroundColor: theme.colors.backgroundTertiary,
-                }}
-              />
-            );
-          },
-        )}
-      </View>
-    </Animated.View>
+      </Animated.View>
+    </View>
   );
 }

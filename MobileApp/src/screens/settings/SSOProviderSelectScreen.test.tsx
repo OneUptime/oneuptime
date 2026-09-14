@@ -1,4 +1,5 @@
 import React from "react";
+import { Appearance, StyleSheet, type ViewStyle } from "react-native";
 import {
   act,
   fireEvent,
@@ -19,7 +20,24 @@ import {
 } from "../../sso/session";
 import { getServerUrl } from "../../storage/serverUrl";
 import type { SelectableSsoProvider } from "../../navigation/types";
-import { beforeEach, describe, expect, test } from "@jest/globals";
+import { ThemeProvider } from "../../theme";
+import { darkColors, lightColors } from "../../theme/colors";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+
+let mockSystemScheme: "light" | "dark" | null = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced instead (as in ThemeContext.test).
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" | null => {
+      return mockSystemScheme;
+    },
+  };
+});
 
 /*
  * The re-authentication sheet an already signed-in user reaches from
@@ -1004,5 +1022,238 @@ describe("A sheet carrying every kind at once", () => {
 
     expect(rendered.goBack).toHaveBeenCalledTimes(allExpectations.length);
     expect(screen.queryByText(ANY_ERROR_MESSAGE)).toBeNull();
+  });
+});
+
+describe("How the provider sheet looks", () => {
+  let setColorScheme: jest.SpyInstance | null = null;
+
+  beforeEach(() => {
+    mockSystemScheme = "light";
+    setColorScheme = jest
+      .spyOn(Appearance, "setColorScheme")
+      .mockImplementation(() => {
+        return undefined;
+      });
+  });
+
+  afterEach(() => {
+    setColorScheme?.mockRestore();
+  });
+
+  test("each row names its protocol", async () => {
+    await renderScreen(everyKindOfProvider);
+
+    const expected: Record<SsoProviderKind, string> = {
+      "global-sso": "SAML",
+      "global-oidc": "OIDC",
+      project: "SAML",
+      "project-oidc": "OIDC",
+    };
+
+    for (const kind of allKinds) {
+      const provider: SelectableSsoProvider = expectationByKind[kind].provider;
+      expect(
+        within(
+          screen.getByTestId(`sso-provider-protocol-${provider._id}`),
+        ).getByText(expected[kind]),
+      ).toBeTruthy();
+    }
+  });
+
+  test("the protocol pill sits inside the row the screen reader announces", async () => {
+    await renderScreen([globalOidcProvider]);
+
+    expect(
+      within(screen.getByLabelText(globalOidcProvider.name)).getByText("OIDC"),
+    ).toBeTruthy();
+  });
+
+  test("the sections are titled groups", async () => {
+    await renderScreen([globalSamlProvider, projectSamlProvider]);
+
+    expect(
+      within(screen.getByTestId("sso-provider-global")).getByRole("header", {
+        name: "Your organization",
+      }),
+    ).toBeTruthy();
+    expect(
+      within(screen.getByTestId("sso-provider-project")).getByRole("header", {
+        name: "This project",
+      }),
+    ).toBeTruthy();
+  });
+
+  test("the project card shows the project's initials without reading them out", async () => {
+    await renderScreen([globalSamlProvider]);
+
+    const card: ReturnType<typeof within> = within(
+      screen.getByTestId("sso-project-card"),
+    );
+    expect(card.getByText(PROJECT_NAME)).toBeTruthy();
+    expect(card.getByText("Select an SSO provider to sign in")).toBeTruthy();
+    const avatar: ReturnType<typeof screen.getByTestId> = screen.getByTestId(
+      "sso-project-avatar",
+      { includeHiddenElements: true },
+    );
+    expect(
+      within(avatar).getByText("EP", { includeHiddenElements: true }),
+    ).toBeTruthy();
+    expect(avatar.props.importantForAccessibility).toBe("no-hide-descendants");
+    expect(screen.queryByText("EP")).toBeNull();
+  });
+
+  test("the browser notice explains the hand-off before any row is tapped", async () => {
+    await renderScreen([globalSamlProvider]);
+
+    const notice: ReturnType<typeof screen.getByTestId> = screen.getByTestId(
+      "sso-provider-browser-notice",
+    );
+    expect(
+      within(notice).getByText(
+        "A secure browser will open for sign-in. You will return to your projects when you are done.",
+      ),
+    ).toBeTruthy();
+    expect(notice).toHaveStyle({ backgroundColor: lightColors.statusInfoBg });
+  });
+
+  test("while the browser is open the notice says where to continue and the busy row is highlighted", async () => {
+    let release: (outcome: SsoAuthSessionOutcome) => void = (): void => {
+      return undefined;
+    };
+    mockOpenSsoAuthSession.mockImplementation(
+      (): Promise<SsoAuthSessionOutcome> => {
+        return new Promise<SsoAuthSessionOutcome>(
+          (resolve: (outcome: SsoAuthSessionOutcome) => void): void => {
+            release = resolve;
+          },
+        );
+      },
+    );
+    await renderScreen([globalSamlProvider, projectSamlProvider]);
+
+    const pressInFlight: Promise<void> = pressProvider(globalSamlProvider.name);
+    await nextMacrotask();
+
+    expect(
+      within(screen.getByTestId("sso-provider-browser-notice")).getByText(
+        "Continue signing in with your provider in the browser…",
+      ),
+    ).toBeTruthy();
+    const busy: ViewStyle = StyleSheet.flatten(
+      screen.getByLabelText(globalSamlProvider.name).props.style,
+    ) as ViewStyle;
+    const waiting: ViewStyle = StyleSheet.flatten(
+      screen.getByLabelText(projectSamlProvider.name).props.style,
+    ) as ViewStyle;
+    expect(busy.backgroundColor).toBe(lightColors.backgroundTertiary);
+    expect(busy.opacity).toBe(1);
+    expect(waiting.opacity).toBeLessThan(1);
+
+    await act(async (): Promise<void> => {
+      release({ status: "cancelled" });
+      await nextMacrotask();
+    });
+    await pressInFlight;
+
+    expect(
+      within(screen.getByTestId("sso-provider-browser-notice")).queryByText(
+        "Continue signing in with your provider in the browser…",
+      ),
+    ).toBeNull();
+    expect(
+      (
+        StyleSheet.flatten(
+          screen.getByLabelText(projectSamlProvider.name).props.style,
+        ) as ViewStyle
+      ).opacity,
+    ).toBe(1);
+  });
+
+  test("an error is an alert banner", async () => {
+    mockCompleteSsoLoginFromUrl.mockResolvedValue({
+      status: "error",
+      message: "SSO login was denied by your identity provider.",
+    } as CompleteSsoLoginOutcome);
+    await renderScreen([globalSamlProvider]);
+
+    await pressProvider(globalSamlProvider.name);
+
+    await waitFor((): void => {
+      expect(screen.getByTestId("sso-provider-error")).toBeTruthy();
+    });
+    expect(
+      within(screen.getByTestId("sso-provider-error")).getByRole("alert", {
+        name: "SSO login was denied by your identity provider.",
+      }),
+    ).toHaveStyle({ color: lightColors.statusError });
+  });
+
+  test("a sheet reached with no providers explains it and offers a way back", async () => {
+    const rendered: RenderedScreen = await renderScreen([]);
+
+    const empty: ReturnType<typeof within> = within(
+      screen.getByTestId("sso-provider-empty"),
+    );
+    expect(
+      empty.getByRole("header", { name: "No providers available" }),
+    ).toBeTruthy();
+    expect(screen.queryByText("Your organization")).toBeNull();
+    expect(screen.queryByText("Available providers")).toBeNull();
+
+    await fireEvent.press(
+      empty.getByRole("button", { name: "Back to projects" }),
+    );
+    expect(rendered.goBack).toHaveBeenCalledTimes(1);
+    expect(mockOpenSsoAuthSession).not.toHaveBeenCalled();
+  });
+
+  test("the empty state is not shown when there are providers", async () => {
+    await renderScreen([globalSamlProvider]);
+
+    expect(screen.queryByTestId("sso-provider-empty")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Back to projects" }),
+    ).toBeNull();
+  });
+
+  test("dark mode paints the sheet from dark tokens", async () => {
+    mockSystemScheme = "dark";
+    const props: ScreenProps = {
+      route: {
+        key: "SSOProviderSelect-test",
+        name: "SSOProviderSelect",
+        params: {
+          projectId: PROJECT_ID,
+          projectName: PROJECT_NAME,
+          providers: [globalSamlProvider, projectOidcProvider],
+        },
+      },
+      navigation: { goBack: jest.fn() },
+    } as unknown as ScreenProps;
+    await render(
+      <ThemeProvider>
+        <SSOProviderSelectScreen {...props} />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByTestId("sso-provider-scroll")).toHaveStyle({
+      backgroundColor: darkColors.backgroundPrimary,
+    });
+    expect(screen.getByTestId("sso-project-card")).toHaveStyle({
+      backgroundColor: darkColors.backgroundElevated,
+    });
+    expect(screen.getByText(globalSamlProvider.name)).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+    expect(
+      screen.getByText(projectOidcProvider.description as string),
+    ).toHaveStyle({ color: darkColors.textSecondary });
+    expect(
+      screen.getByTestId(`sso-provider-protocol-${projectOidcProvider._id}`),
+    ).toHaveStyle({ backgroundColor: darkColors.backgroundTertiary });
+    expect(screen.getByTestId("sso-provider-browser-notice")).toHaveStyle({
+      backgroundColor: darkColors.statusInfoBg,
+    });
   });
 });

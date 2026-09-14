@@ -1,8 +1,9 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import { render, screen } from "@testing-library/react-native";
-import { describe, expect, test } from "@jest/globals";
+import { beforeEach, describe, expect, test } from "@jest/globals";
 import ProjectBadge from "./ProjectBadge";
-import { darkColors } from "../theme";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
 
 /*
  * The badge that tells a responder WHICH project a row belongs to. It only
@@ -14,9 +15,32 @@ import { darkColors } from "../theme";
 
 type RenderedElement = ReturnType<typeof screen.getByText>;
 
+/** Styles may be arrays, so they are read flattened. */
 function styleOf(element: RenderedElement): Record<string, unknown> {
-  return element.props.style as Record<string, unknown>;
+  return (StyleSheet.flatten(element.props.style) ?? {}) as Record<
+    string,
+    unknown
+  >;
 }
+
+let mockColorScheme: "light" | "dark" = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter that cannot be spied
+ * on, so the module behind it is replaced. Light unless a test says otherwise.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme;
+    },
+  };
+});
+
+beforeEach(() => {
+  mockColorScheme = "light";
+});
 
 function dotBeside(label: RenderedElement): RenderedElement {
   const row: RenderedElement = label.parent as RenderedElement;
@@ -59,7 +83,7 @@ describe("The colour of the dot", () => {
 
     expect(
       styleOf(dotBeside(screen.getByText("Acme Production"))).backgroundColor,
-    ).toBe(darkColors.actionPrimary);
+    ).toBe(lightColors.actionPrimary);
   });
 
   test("a colour from the caller replaces the default", async () => {
@@ -85,6 +109,33 @@ describe("The colour of the dot", () => {
 
     expect(
       styleOf(dotBeside(screen.getByText("Acme Production"))).backgroundColor,
-    ).toBe(darkColors.actionPrimary);
+    ).toBe(lightColors.actionPrimary);
+  });
+});
+
+describe("Layout and dark mode", () => {
+  test("a long name can shrink inside its row instead of overflowing it", async () => {
+    await render(<ProjectBadge name="Acme Production Europe West" />);
+
+    expect(screen.getByText("Acme Production Europe West")).toHaveStyle({
+      flexShrink: 1,
+      color: lightColors.textSecondary,
+    });
+  });
+
+  test("in dark mode the name and default dot use the dark palette", async () => {
+    mockColorScheme = "dark";
+
+    await render(
+      <ThemeProvider>
+        <ProjectBadge name="Acme Production" />
+      </ThemeProvider>,
+    );
+
+    const label: RenderedElement = screen.getByText("Acme Production");
+    expect(label).toHaveStyle({ color: darkColors.textSecondary });
+    expect(styleOf(dotBeside(label)).backgroundColor).toBe(
+      darkColors.actionPrimary,
+    );
   });
 });

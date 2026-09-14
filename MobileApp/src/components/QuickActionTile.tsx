@@ -1,8 +1,11 @@
 import React from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Pressable, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { elevation, radius, spacing } from "../theme/tokens";
 import { useHaptics } from "../hooks/useHaptics";
+import AppText from "./AppText";
+import IconBadge from "./IconBadge";
 
 interface QuickActionTileProps {
   label: string;
@@ -43,61 +46,46 @@ export default function QuickActionTile({
         lightImpact();
         onPress();
       }}
-      style={({ pressed }: { pressed: boolean }) => {
+      style={({ pressed }: { pressed: boolean }): ViewStyle => {
         return {
           flex: 1,
-          opacity: pressed ? 0.8 : 1,
+          minHeight: 116,
+          padding: spacing.lg,
+          gap: spacing.md,
+          justifyContent: "space-between",
+          borderRadius: radius.lg,
+          borderWidth: 1,
+          borderColor: theme.colors.borderSubtle,
+          backgroundColor: pressed
+            ? theme.colors.backgroundTertiary
+            : theme.colors.backgroundElevated,
+          transform: pressed ? [{ scale: 0.98 }] : undefined,
+          ...elevation("card", theme.dark),
         };
       }}
     >
       <View
         style={{
-          borderRadius: 14,
-          padding: 16,
-          minHeight: 100,
+          flexDirection: "row",
+          alignItems: "flex-start",
           justifyContent: "space-between",
-          backgroundColor: theme.colors.backgroundElevated,
-          borderWidth: 1,
-          borderColor: theme.colors.borderGlass,
         }}
       >
-        <View
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 8,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "transparent",
-          }}
-        >
-          <Ionicons name={iconName} size={22} color={accent} />
-        </View>
+        <IconBadge name={iconName} color={accent} size="md" />
+        <Ionicons
+          name="chevron-forward"
+          size={16}
+          color={theme.colors.textTertiary}
+        />
+      </View>
 
-        <View style={{ marginTop: 10 }}>
-          <Text
-            style={{
-              fontSize: 15,
-              lineHeight: 22,
-              fontWeight: "700",
-              color: theme.colors.textPrimary,
-            }}
-          >
-            {label}
-          </Text>
-          {sublabel ? (
-            <Text
-              style={{
-                fontSize: 14,
-                lineHeight: 20,
-                marginTop: 2,
-                color: theme.colors.textTertiary,
-              }}
-            >
-              {sublabel}
-            </Text>
-          ) : null}
-        </View>
+      <View style={{ gap: spacing.xxs }}>
+        <AppText variant="headline">{label}</AppText>
+        {sublabel ? (
+          <AppText variant="footnote" tone="secondary">
+            {sublabel}
+          </AppText>
+        ) : null}
       </View>
     </Pressable>
   );

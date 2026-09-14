@@ -1,8 +1,39 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import { render, screen } from "@testing-library/react-native";
-import { describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import RootCauseCard from "./RootCauseCard";
-import { darkColors } from "../theme";
+import { ResponseSection } from "./ResponseDetailLayout";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+import { radius } from "../theme/tokens";
+
+let mockSystemScheme: "light" | "dark" | null = "light";
+
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" | null => {
+      return mockSystemScheme;
+    },
+  };
+});
+
+beforeEach(async () => {
+  mockSystemScheme = "light";
+  await AsyncStorage.clear();
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
 /*
  * The root cause is the one part of an incident written by a person, and it
@@ -17,9 +48,11 @@ type RenderedElement = ReturnType<typeof screen.getByText>;
 
 const PLACEHOLDER: string = "No root cause documented yet.";
 
-function surfaceStyle(): Record<string, unknown> {
-  const root: RenderedElement = screen.root as RenderedElement;
-  return root.props.style as Record<string, unknown>;
+function styleOf(element: RenderedElement): Record<string, unknown> {
+  return (StyleSheet.flatten(element.props.style) ?? {}) as Record<
+    string,
+    unknown
+  >;
 }
 
 describe("A root cause that has been written", () => {
@@ -86,18 +119,71 @@ describe("A root cause nobody has written yet", () => {
       unknown
     >;
 
-    expect(style.color).toBe(darkColors.textTertiary);
+    expect(style.color).toBe(lightColors.textTertiary);
   });
 
-  test("the empty context retains spacing without nesting another card", async () => {
+  test("the empty context sits inside the section card without nesting another card", async () => {
     /*
-     * The section header above this card says "Root Cause". A card that
-     * vanished when empty would leave that heading hanging over the next
+     * The section header above this says "Root Cause", and the section draws
+     * the card. A second surface in here would be a card inside a card; a
+     * placeholder that vanished would leave that heading hanging over the next
      * section's content.
      */
-    await render(<RootCauseCard />);
+    await render(
+      <ResponseSection title="Root Cause">
+        <RootCauseCard />
+      </ResponseSection>,
+    );
 
-    expect(surfaceStyle().borderColor).toBe(darkColors.borderGlass);
-    expect(surfaceStyle().backgroundColor).toBe("transparent");
+    const empty: Record<string, unknown> = styleOf(
+      screen.getByTestId("root-cause-empty"),
+    );
+    expect(empty.backgroundColor).toBeUndefined();
+    expect(empty.borderWidth).toBeUndefined();
+    expect(empty.flexDirection).toBe("row");
+    expect(screen.getByTestId("response-section-card")).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+      borderRadius: radius.lg,
+    });
+    expect(screen.getByText(PLACEHOLDER)).toBeTruthy();
+  });
+
+  test("a written root cause draws no surface of its own either", async () => {
+    await render(<RootCauseCard rootCauseText="The disk filled up." />);
+
+    expect(
+      styleOf(screen.getByTestId("root-cause-content")).backgroundColor,
+    ).toBeUndefined();
+    expect(screen.queryByTestId("root-cause-empty")).toBeNull();
+  });
+});
+
+describe("In dark mode", () => {
+  beforeEach(() => {
+    mockSystemScheme = "dark";
+  });
+
+  test("the placeholder is muted with the dark palette's tertiary text", async () => {
+    await render(
+      <ThemeProvider>
+        <RootCauseCard />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByText(PLACEHOLDER)).toHaveStyle({
+      color: darkColors.textTertiary,
+    });
+  });
+
+  test("a written root cause is readable on the dark card", async () => {
+    await render(
+      <ThemeProvider>
+        <RootCauseCard rootCauseText="The disk filled up." />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByText("The disk filled up.")).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
   });
 });

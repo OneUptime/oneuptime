@@ -1,12 +1,30 @@
 # Mobile UI and visual testing
 
-The mobile app uses a light, paper-and-ink design: soft white surfaces, graphite
-text, cobalt actions, compact information rows and clear editorial headings.
+The mobile app uses calm, card-based surfaces on a cool grey canvas, with
+OneUptime indigo reserved for actions and status always spelled out in words.
+It follows the device's light or dark appearance, and people can override it
+under **Settings → Appearance**. The rules, tokens and shared components are in
+[DESIGN_SYSTEM.md](DESIGN_SYSTEM.md), and the
+[revamp gallery](../../.github/pr-assets/mobile-design-revamp/README.md) shows
+the light and dark screens.
+
 The five destinations are **Home, Monitors, Inbox, On-Call and Settings**. Inbox
 unifies incidents and alerts with explicit categories; grouped episodes remain
 one tap away. Home prioritizes active work, then duty status and service health.
-Detail pages lead with the resource title and response actions, followed by
-full-width sections instead of nested cards.
+Detail pages lead with the resource title and state, then a next-step card with
+the response actions, followed by titled content cards.
+
+### Native styling regression (September 2026)
+
+Styles did not load on many iOS and Android pages while the web build and every
+test looked correct. The app compiled all JSX through NativeWind's runtime even
+though it never used `className`; on native that runtime folded each
+component's `style` into an object spread, which discards `Pressable` style
+callbacks. Response rows, filter chips, settings rows, the project switcher and
+the Acknowledge/Resolve buttons therefore rendered with no background, padding
+or layout. NativeWind and Tailwind were removed, and
+`src/__tests__/nativeStyling.test.ts` compiles a probe with the real Babel
+config for both platforms so the interop runtime cannot return unnoticed.
 
 The [September 2026 polish and audit](UI_AUDIT_2026_09.md) adds prominent Home
 response tiles, shared list filters with matching totals and reset actions,
@@ -39,19 +57,21 @@ server totals, so they can exceed the matching rows in these recent lists.
 
 ## Layout rules
 
-- Use `ScreenIntro` for a page's title and short guidance, and `SearchField` for
-  searchable lists.
-- Use 20-point page gutters, 12–20-point grouped-surface corners, readable body
-  text and controls at least 48 points tall (54 for response actions).
-- Prefer divider-separated sections and compact rows to repeated boxed panels.
-  Blue identifies actions, while state labels and small markers convey status.
-  Text, action labels and semantic status tints have 4.5:1 contrast tests.
-- Use `useScreenPadding()` on scrollable pages, including the nested coverage
-  modal. It includes the 72-point navigation bar, the greater of the bottom safe
-  area or a 12-point gap, and another 40 points after the content. The minimum
-  clearance is 124 points; devices with larger safe areas receive more.
+- Build screens from the shared components listed in
+  [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md): `ScreenIntro` for the page title,
+  `Card`/`ListGroup` for grouped content, `SearchField` and `ListFilters` for
+  lists, `Banner` for inline messages and `EmptyState` for empty and failed reads.
+- Use the `spacing`, `radius` and `typography` tokens: 20-point page gutters,
+  16-point card corners, 12-point control corners and controls at least 48
+  points tall (54 for response actions).
+- Never hard-code a colour. Every token exists in the light and dark palettes,
+  and `src/theme/colors.test.ts` checks 4.5:1 contrast for text, status tints
+  and filled-control labels in both.
+- Use `useScreenPadding()` on scrollable pages, including nested sheets. It
+  includes the 72-point navigation bar, the greater of the bottom safe area or a
+  12-point gap, and another 40 points after the content.
 - Preserve room for wrapped labels and scaled text. State must be expressed in
-  text and accessibility properties as well as color.
+  text and accessibility properties as well as colour.
 - Failed or SSO-locked reads must not be presented as empty success, off-call
   duty or complete coverage. Destructive actions keep their confirmation.
 

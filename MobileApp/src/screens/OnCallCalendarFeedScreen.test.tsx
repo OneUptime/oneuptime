@@ -5,14 +5,18 @@ import {
   screen,
   fireEvent,
   waitFor,
+  within,
 } from "@testing-library/react-native";
-import { Alert, Clipboard, Linking, Platform } from "react-native";
+import { Alert, Clipboard, Linking, Platform, StyleSheet } from "react-native";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import OnCallCalendarFeedScreen from "./OnCallCalendarFeedScreen";
 import {
   ANDROID_SUBSCRIBE_HINT,
   IOS_SUBSCRIBE_HINT,
 } from "../oncall/calendarFeedLinks";
+import { ThemeProvider } from "../theme";
+import { darkColors, lightColors } from "../theme/colors";
+import { radius } from "../theme/tokens";
 import type { UseOnCallCalendarFeedResult } from "../hooks/useOnCallCalendarFeed";
 import type { OnCallCalendarFeedStatus, ProjectItem } from "../api/types";
 
@@ -43,6 +47,17 @@ const SERVER_HTTPS: string =
   "https://oneuptime.example.com/api/on-call-calendar/user/tokentokentokentokentokentokentokentoken123/shifts.ics";
 
 const NOW: number = new Date(2026, 2, 3, 12, 0, 0, 0).getTime();
+
+let mockColorScheme: "light" | "dark" = "light";
+
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme;
+    },
+  };
+});
 
 const mockProjects: { current: ProjectItem[] } = { current: PROJECTS };
 const mockFeed: { current: UseOnCallCalendarFeedResult } = {
@@ -785,3 +800,381 @@ describe("Refresh recovery", () => {
     },
   );
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * Structure per feed state.
+ *
+ * The screen used to be a column of floating helper text with "Not fetched
+ * yet" hanging under a button. Each state now has a clear shape: a status
+ * card that says what the link is doing, a private link card that keeps the
+ * URL concealed until asked, how to subscribe, how often it refreshes, and a
+ * separate place to regenerate. These tests pin which of those appear in
+ * which state, so a failure can never render the link actions and a working
+ * link can never lose its status.
+ * ---------------------------------------------------------------------------
+ */
+
+describe("OnCallCalendarFeedScreen sections per state", () => {
+  beforeEach(() => {
+    mockProjects.current = PROJECTS;
+    mockFeed.current = feedState();
+    mockFeedByProject.current = null;
+    mockFeedCalls.projectIds = [];
+    mockServerUrl.current = "https://oneuptime.example.com";
+    mockShare.mockReset();
+    mockShare.mockResolvedValue({ action: "sharedAction" });
+    setStringSpy().mockReset();
+    alertSpy = jest.spyOn(Alert, "alert").mockImplementation((): void => {
+      return undefined;
+    });
+    mockColorScheme = "light";
+  });
+
+  afterEach(() => {
+    alertSpy.mockRestore();
+    mockColorScheme = "light";
+  });
+
+  test("empty: a single generate card with how it works, and no link sections", async (): Promise<void> => {
+    mockFeed.current = feedState({
+      status: status({
+        exists: false,
+        feedId: null,
+        urls: null,
+        tokenHint: null,
+      }),
+    });
+
+    await render(<OnCallCalendarFeedScreen />);
+
+    const card: HostElement = screen.getByTestId("feed-empty-card");
+    expect(within(card).getByText("No calendar link yet")).toBeTruthy();
+    expect(within(card).getByText(/for Acme/)).toBeTruthy();
+    expect(within(card).getByTestId("generate-feed")).toBeTruthy();
+    expectCardSurface("feed-empty-card", lightColors);
+
+    const howItWorks: HostElement = screen.getByTestId("feed-how-it-works");
+    expect(within(howItWorks).getByText("1")).toBeTruthy();
+    expect(within(howItWorks).getByText("3")).toBeTruthy();
+
+    for (const absent of [
+      "feed-active",
+      "feed-status-card",
+      "feed-link-box",
+      "feed-how-to-subscribe",
+      "regenerate-feed",
+    ]) {
+      expect(screen.queryByTestId(absent)).toBeNull();
+    }
+  });
+
+  test("active: status, private link, subscribe steps, refresh cadence and manage, in that order", async (): Promise<void> => {
+    await render(<OnCallCalendarFeedScreen />);
+    await waitForLinks();
+
+    const statusCard: HostElement = screen.getByTestId("feed-status-card");
+    expect(within(statusCard).getByText("Your subscription")).toBeTruthy();
+    expect(within(statusCard).getByText("Active")).toBeTruthy();
+    expect(
+      within(statusCard).getByTestId("feed-fetch-status"),
+    ).toHaveTextContent(
+      "Last fetched 2h ago by Google Calendar · 143 fetches · link ending in …k3Qx",
+    );
+    expect(flatStyle("feed-status-pill").backgroundColor).toBe(
+      lightColors.statusSuccessBg,
+    );
+
+    const linkCard: HostElement = screen.getByTestId("feed-link-box");
+    expect(within(linkCard).getByText("Your private link")).toBeTruthy();
+    expect(within(linkCard).getByTestId("feed-link-concealed")).toBeTruthy();
+    expect(within(linkCard).queryByTestId("feed-https-url")).toBeNull();
+    expect(within(linkCard).getByTestId("feed-privacy-warning")).toBeTruthy();
+    expect(within(linkCard).getByTestId("share-feed")).toBeTruthy();
+    expect(within(linkCard).getByTestId("copy-feed")).toBeTruthy();
+    expect(
+      screen.getByTestId("feed-link-concealed").props.children,
+    ).not.toContain("token");
+
+    const howTo: HostElement = screen.getByTestId("feed-how-to-subscribe");
+    expect(within(howTo).getByText("How to subscribe")).toBeTruthy();
+    expect(
+      within(howTo).getByTestId(
+        Platform.OS === "ios" ? "ios-subscribe-hint" : "android-subscribe-hint",
+      ),
+    ).toBeTruthy();
+
+    const refreshCard: HostElement = screen.getByTestId("feed-refresh-card");
+    expect(within(refreshCard).getByTestId("feed-refresh-copy")).toBeTruthy();
+    expect(
+      within(refreshCard).getByText(/source of truth for today/),
+    ).toBeTruthy();
+
+    const manage: HostElement = screen.getByTestId("feed-manage-card");
+    expect(within(manage).getByTestId("regenerate-feed")).toBeTruthy();
+    expect(flatStyle("regenerate-feed").backgroundColor).toBe(
+      lightColors.actionDestructive,
+    );
+
+    const order: string[] = screen
+      .getAllByTestId(
+        /^feed-(status-card|link-box|how-to-subscribe|refresh-card|manage-card)$/,
+      )
+      .map((node: HostElement) => {
+        return node.props.testID as string;
+      });
+    expect(order).toEqual([
+      "feed-status-card",
+      "feed-link-box",
+      "feed-how-to-subscribe",
+      "feed-refresh-card",
+      "feed-manage-card",
+    ]);
+
+    for (const testID of [
+      "feed-status-card",
+      "feed-link-box",
+      "feed-how-to-subscribe",
+      "feed-manage-card",
+    ]) {
+      expectCardSurface(testID, lightColors);
+    }
+  });
+
+  test("a link nothing has fetched yet says it is waiting, inside the status card", async (): Promise<void> => {
+    mockFeed.current = feedState({
+      status: status({
+        lastFetchedAt: null,
+        lastFetchedClient: null,
+        fetchCount: 0,
+        rotatedAt: new Date(NOW - 60 * 60 * 1000).toISOString(),
+      }),
+    });
+
+    await render(<OnCallCalendarFeedScreen />);
+
+    const statusCard: HostElement = screen.getByTestId("feed-status-card");
+    expect(within(statusCard).getByText("Waiting for first sync")).toBeTruthy();
+    expect(within(statusCard).getByText(/Not fetched yet/)).toBeTruthy();
+    expect(screen.queryByTestId("feed-unreachable-hint")).toBeNull();
+  });
+
+  test("disabled: the status says switched off and the enable action sits under it", async (): Promise<void> => {
+    mockFeed.current = feedState({ status: status({ isEnabled: false }) });
+
+    await render(<OnCallCalendarFeedScreen />);
+    await waitForLinks();
+
+    expect(
+      within(screen.getByTestId("feed-status-card")).getByText("Switched off"),
+    ).toBeTruthy();
+    expect(flatStyle("feed-status-pill").backgroundColor).toBe(
+      lightColors.statusWarningBg,
+    );
+    const disabled: HostElement = screen.getByTestId("feed-disabled");
+    expect(within(disabled).getByText(/switched off/)).toBeTruthy();
+    expect(within(disabled).getByTestId("enable-feed")).toBeTruthy();
+    expect(screen.getByTestId("feed-link-box")).toBeTruthy();
+  });
+
+  test("needs regeneration: danger status, a regenerate action, and no link to reveal or share", async (): Promise<void> => {
+    mockFeed.current = feedState({
+      status: status({ needsRegeneration: true, urls: null }),
+    });
+
+    await render(<OnCallCalendarFeedScreen />);
+
+    expect(
+      within(screen.getByTestId("feed-status-card")).getByText(
+        "Needs regeneration",
+      ),
+    ).toBeTruthy();
+    expect(flatStyle("feed-status-pill").backgroundColor).toBe(
+      lightColors.statusErrorBg,
+    );
+    expect(screen.getByTestId("regenerate-feed-now")).toBeTruthy();
+    expect(screen.queryByTestId("feed-link-box")).toBeNull();
+    expect(screen.queryByTestId("toggle-private-link")).toBeNull();
+    expect(screen.queryByTestId("feed-how-to-subscribe")).toBeNull();
+    expect(screen.getByTestId("feed-manage-card")).toBeTruthy();
+  });
+
+  test("error: a titled failure with a retry, and none of the link sections", async (): Promise<void> => {
+    mockFeed.current = feedState({
+      status: null,
+      isError: true,
+      error: new Error("Internal server error"),
+    });
+
+    await render(<OnCallCalendarFeedScreen />);
+
+    const error: HostElement = screen.getByTestId("feed-error");
+    expect(
+      within(error).getByText("Could not load your calendar link"),
+    ).toBeTruthy();
+    expect(within(error).getByTestId("retry-feed")).toBeTruthy();
+    for (const absent of [
+      "feed-status-card",
+      "feed-link-box",
+      "feed-refresh-card",
+      "feed-manage-card",
+      "generate-feed",
+    ]) {
+      expect(screen.queryByTestId(absent)).toBeNull();
+    }
+  });
+
+  test("unsupported: explained as unavailable, with nothing to press", async (): Promise<void> => {
+    mockFeed.current = feedState({
+      status: null,
+      isError: true,
+      isUnsupported: true,
+    });
+
+    await render(<OnCallCalendarFeedScreen />);
+
+    const unsupported: HostElement = screen.getByTestId("feed-unsupported");
+    expect(
+      within(unsupported).getByText("Not available on this server"),
+    ).toBeTruthy();
+    expect(flatStyle("feed-unsupported").backgroundColor).toBe(
+      lightColors.statusWarningBg,
+    );
+    expect(screen.queryByTestId("retry-feed")).toBeNull();
+    expect(screen.queryByTestId("feed-status-card")).toBeNull();
+  });
+
+  test("SSO required: says sign-in is needed rather than failing", async (): Promise<void> => {
+    mockFeed.current = feedState({
+      status: null,
+      isError: true,
+      isSsoRequired: true,
+    });
+
+    await render(<OnCallCalendarFeedScreen />);
+
+    expect(
+      within(screen.getByTestId("feed-sso-required")).getByText(
+        "Sign-in required",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText("Could not load your calendar link")).toBeNull();
+  });
+
+  test("no projects: an empty state card and no project chip", async (): Promise<void> => {
+    mockProjects.current = [];
+
+    await render(<OnCallCalendarFeedScreen />);
+
+    expect(
+      within(screen.getByTestId("feed-no-projects")).getByText(
+        "No projects yet",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByTestId("calendar-project-name")).toBeNull();
+  });
+
+  test("revealing the link swaps the concealed placeholder for the URL inside the link field", async (): Promise<void> => {
+    await render(<OnCallCalendarFeedScreen />);
+    await waitForLinks();
+
+    const field: () => HostElement = () => {
+      return screen.getByTestId("feed-link-field");
+    };
+    expect(within(field()).getByTestId("feed-link-concealed")).toBeTruthy();
+    expect(
+      within(screen.getByTestId("toggle-private-link")).getByText("Show"),
+    ).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId("toggle-private-link"));
+
+    expect(within(field()).queryByTestId("feed-link-concealed")).toBeNull();
+    expect(within(field()).getByTestId("feed-https-url").props.children).toBe(
+      SERVER_HTTPS,
+    );
+    expect(within(field()).getByTestId("feed-https-url").props.selectable).toBe(
+      true,
+    );
+    expect(
+      within(screen.getByTestId("toggle-private-link")).getByText("Hide"),
+    ).toBeTruthy();
+    expect(flatStyle("feed-link-field").backgroundColor).toBe(
+      lightColors.backgroundTertiary,
+    );
+    expect(flatStyle("toggle-private-link").minHeight).toBeGreaterThanOrEqual(
+      48,
+    );
+
+    await fireEvent.press(screen.getByTestId("toggle-private-link"));
+    expect(within(field()).getByTestId("feed-link-concealed")).toBeTruthy();
+    expect(screen.queryByTestId("feed-https-url")).toBeNull();
+  });
+
+  test("a copied link is confirmed with a success banner", async (): Promise<void> => {
+    await render(<OnCallCalendarFeedScreen />);
+    await waitForLinks();
+
+    await fireEvent.press(screen.getByTestId("copy-feed"));
+
+    expect(flatStyle("feed-notice-success").backgroundColor).toBe(
+      lightColors.statusSuccessBg,
+    );
+  });
+
+  test("the project appears as a chip with the project name", async (): Promise<void> => {
+    await render(<OnCallCalendarFeedScreen />);
+
+    expect(screen.getByTestId("calendar-project-name")).toHaveTextContent(
+      "Project: Acme",
+    );
+  });
+
+  test("dark mode: every section uses the dark palette", async (): Promise<void> => {
+    mockColorScheme = "dark";
+
+    await render(
+      <ThemeProvider>
+        <OnCallCalendarFeedScreen />
+      </ThemeProvider>,
+    );
+    await waitForLinks();
+
+    expect(flatStyle("calendar-feed-scroll").backgroundColor).toBe(
+      darkColors.backgroundPrimary,
+    );
+    for (const testID of [
+      "feed-status-card",
+      "feed-link-box",
+      "feed-how-to-subscribe",
+      "feed-manage-card",
+    ]) {
+      expectCardSurface(testID, darkColors);
+    }
+    expect(flatStyle("feed-link-field").backgroundColor).toBe(
+      darkColors.backgroundTertiary,
+    );
+    expect(flatStyle("feed-status-pill").backgroundColor).toBe(
+      darkColors.statusSuccessBg,
+    );
+    expect(flatStyle("regenerate-feed").backgroundColor).toBe(
+      darkColors.actionDestructive,
+    );
+    expect(screen.getByText("Your private link")).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+  });
+});
+
+type HostElement = ReturnType<typeof screen.getByTestId>;
+
+function flatStyle(testID: string): Record<string, unknown> {
+  return (StyleSheet.flatten(screen.getByTestId(testID).props.style) ??
+    {}) as Record<string, unknown>;
+}
+
+function expectCardSurface(testID: string, palette: typeof lightColors): void {
+  const style: Record<string, unknown> = flatStyle(testID);
+  expect(style.backgroundColor).toBe(palette.backgroundElevated);
+  expect(style.borderRadius).toBe(radius.lg);
+  expect(style.borderColor).toBe(palette.borderSubtle);
+}

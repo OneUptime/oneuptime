@@ -1,7 +1,13 @@
 import React, { useState, useCallback } from "react";
-import { Text, ScrollView, RefreshControl, Alert } from "react-native";
+import {
+  ScrollView,
+  RefreshControl,
+  Alert,
+  type ViewStyle,
+} from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import { spacing } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import { useRefresh } from "../hooks/useRefresh";
 import QueryErrorNotice from "../components/QueryErrorNotice";
@@ -25,13 +31,19 @@ import { useQueryClient } from "@tanstack/react-query";
 import AddNoteModal from "../components/AddNoteModal";
 import EmptyState from "../components/EmptyState";
 import FeedTimeline from "../components/FeedTimeline";
-import SkeletonCard from "../components/SkeletonCard";
 import {
   ResponseDetailHeader,
+  ResponseDetailSkeleton,
   ResponseActions,
+  ResponseGuidance,
   ResponseInfoRow,
   ResponseSection,
+  describeResponseAge,
+  getResponseStage,
+  getResponseStageAppearance,
+  responseActionIcons,
   type ResponseAction,
+  type ResponseStage,
 } from "../components/ResponseDetailLayout";
 import NotesSection from "../components/NotesSection";
 import RootCauseCard from "../components/RootCauseCard";
@@ -179,17 +191,23 @@ export default function IncidentEpisodeDetailScreen({
     [projectId, episodeId, refetchNotes],
   );
 
+  /*
+   * The loading, failed and missing states share the page's gutters so the
+   * layout does not jump when the episode lands.
+   */
+  const placeholderContainerStyle: ViewStyle = {
+    padding: spacing.xl,
+    paddingBottom: bottomPadding,
+    flexGrow: 1,
+  };
+
   if (isLoading) {
     return (
       <ScrollView
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
-        contentContainerStyle={{
-          padding: 20,
-          paddingBottom: bottomPadding,
-          flexGrow: 1,
-        }}
+        contentContainerStyle={placeholderContainerStyle}
       >
-        <SkeletonCard variant="detail" />
+        <ResponseDetailSkeleton />
       </ScrollView>
     );
   }
@@ -219,16 +237,12 @@ export default function IncidentEpisodeDetailScreen({
     return (
       <ScrollView
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
-        contentContainerStyle={{
-          padding: 20,
-          paddingBottom: bottomPadding,
-          flexGrow: 1,
-        }}
+        contentContainerStyle={placeholderContainerStyle}
       >
         <EmptyState
           title="Something went wrong"
           subtitle="This incident episode could not be loaded, which is not the same as it no longer existing. Try again."
-          icon="episodes"
+          icon="error"
           actionLabel="Retry"
           onAction={() => {
             return refetchEpisode();
@@ -242,15 +256,13 @@ export default function IncidentEpisodeDetailScreen({
     return (
       <ScrollView
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
-        contentContainerStyle={{
-          padding: 20,
-          paddingBottom: bottomPadding,
-          flexGrow: 1,
-        }}
+        contentContainerStyle={placeholderContainerStyle}
       >
-        <Text style={{ fontSize: 15, color: theme.colors.textSecondary }}>
-          Episode not found.
-        </Text>
+        <EmptyState
+          title="Episode not found"
+          subtitle="This incident episode no longer exists, or it is not part of this project."
+          icon="episodes"
+        />
       </ScrollView>
     );
   }
@@ -287,6 +299,7 @@ export default function IncidentEpisodeDetailScreen({
     actions.push({
       label: "Acknowledge",
       accessibilityLabel: "Acknowledge incident episode",
+      icon: responseActionIcons.acknowledge,
       busyAccessibilityLabel:
         "Acknowledge incident episode, state change in progress",
       primary: true,
@@ -299,6 +312,7 @@ export default function IncidentEpisodeDetailScreen({
     actions.push({
       label: "Resolve",
       accessibilityLabel: "Resolve incident episode",
+      icon: responseActionIcons.resolve,
       busyAccessibilityLabel:
         "Resolve incident episode, state change in progress",
       primary: isAcknowledged || !acknowledgeState,
@@ -308,17 +322,30 @@ export default function IncidentEpisodeDetailScreen({
     });
   }
 
+  const stage: ResponseStage = getResponseStage(isResolved, isAcknowledged);
+  const guidanceMessage: string =
+    stage === "resolved"
+      ? "This incident episode is resolved. Review the context and team notes below."
+      : stage === "acknowledged"
+        ? "A responder has acknowledged this incident episode. Resolve it once recovery is confirmed."
+        : "Actions on this episode apply to its grouped incidents. Acknowledge to take responsibility, or resolve when recovery is confirmed.";
+
   return (
     <ScrollView
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
       testID="detail-scroll"
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
+      contentContainerStyle={{
+        padding: spacing.xl,
+        paddingBottom: bottomPadding,
+      }}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
           tintColor={theme.colors.actionPrimary}
+          colors={[theme.colors.actionPrimary]}
+          progressBackgroundColor={theme.colors.backgroundElevated}
         />
       }
     >
@@ -329,6 +356,16 @@ export default function IncidentEpisodeDetailScreen({
         state={episode.currentIncidentState?.name}
         stateColor={stateColor}
         severity={episode.incidentSeverity?.name}
+        severityColor={
+          episode.incidentSeverity?.color
+            ? rgbToHex(episode.incidentSeverity.color)
+            : undefined
+        }
+        meta={
+          episode.declaredAt
+            ? describeResponseAge("Declared", episode.declaredAt)
+            : describeResponseAge("Created", episode.createdAt)
+        }
       />
       {statesError ? (
         <QueryErrorNotice
@@ -337,30 +374,24 @@ export default function IncidentEpisodeDetailScreen({
           onRetry={refetchStates}
         />
       ) : null}
-      <Text
-        accessibilityLiveRegion="polite"
-        style={{
-          color: theme.colors.textSecondary,
-          fontSize: 15,
-          lineHeight: 23,
-          marginBottom: 22,
-        }}
+      <ResponseGuidance
+        {...getResponseStageAppearance(stage)}
+        message={guidanceMessage}
       >
-        {isResolved
-          ? "This incident episode is resolved. Review the context and team notes below."
-          : isAcknowledged
-            ? "A responder has acknowledged this incident episode. Resolve it once recovery is confirmed."
-            : "Actions on this episode apply to its grouped incidents. Acknowledge to take responsibility, or resolve when recovery is confirmed."}
-      </Text>
-      {actions.length > 0 ? (
-        <ResponseActions actions={actions} busy={changingState} />
-      ) : null}
+        {actions.length > 0 ? (
+          <ResponseActions
+            actions={actions}
+            busy={changingState}
+            style={{ marginBottom: 0 }}
+          />
+        ) : null}
+      </ResponseGuidance>
       {descriptionText ? (
-        <ResponseSection title="Description">
+        <ResponseSection title="Description" iconName="document-text-outline">
           <MarkdownContent content={descriptionText} />
         </ResponseSection>
       ) : null}
-      <ResponseSection title="Details">
+      <ResponseSection title="Details" iconName="information-circle-outline">
         {episode.declaredAt ? (
           <ResponseInfoRow
             label="Declared"
@@ -373,7 +404,7 @@ export default function IncidentEpisodeDetailScreen({
         />
         <ResponseInfoRow label="Incidents" value={episode.incidentCount ?? 0} />
       </ResponseSection>
-      <ResponseSection title="Root Cause">
+      <ResponseSection title="Root Cause" iconName="bulb-outline">
         <RootCauseCard rootCauseText={rootCauseText} />
       </ResponseSection>
       {feedError ? (
@@ -384,7 +415,7 @@ export default function IncidentEpisodeDetailScreen({
         />
       ) : null}
       {feed && feed.length > 0 ? (
-        <ResponseSection title="Activity Feed">
+        <ResponseSection title="Activity Feed" iconName="pulse-outline">
           <FeedTimeline feed={feed} />
         </ResponseSection>
       ) : null}

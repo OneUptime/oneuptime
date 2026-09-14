@@ -1,7 +1,38 @@
 import React from "react";
+import { StyleSheet, type TextStyle, type ViewStyle } from "react-native";
 import { render, screen } from "@testing-library/react-native";
-import { describe, expect, test, beforeEach } from "@jest/globals";
+import { SafeAreaInsetsContext } from "react-native-safe-area-context";
+import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import OfflineBanner from "./OfflineBanner";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+
+let mockSystemScheme: "light" | "dark" | null = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced instead.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" | null => {
+      return mockSystemScheme;
+    },
+  };
+});
+
+function flat(element: { props: { style?: unknown } }): ViewStyle & TextStyle {
+  return (StyleSheet.flatten(element.props.style as ViewStyle) ??
+    {}) as ViewStyle & TextStyle;
+}
+
+/** The absolutely positioned strip, found from its message. */
+function strip(): { props: { style?: unknown; pointerEvents?: string } } {
+  return screen.getByText("No internet connection").parent
+    ?.parent as unknown as {
+    props: { style?: unknown; pointerEvents?: string };
+  };
+}
 
 /*
  * App.tsx renders this banner above the whole navigator, so it is not just a
@@ -122,5 +153,93 @@ describe("The banner does not take the touches of what it covers", () => {
 
     expect(screen.getByText("No internet connection")).toBeTruthy();
     expect(screen.root?.props.style.position).toBe("absolute");
+  });
+});
+
+describe("Where the banner sits", () => {
+  beforeEach(() => {
+    mockNetworkStatus.current = {
+      isConnected: false,
+      isInternetReachable: false,
+    };
+  });
+
+  test.each([0, 20, 47, 59])(
+    "it clears a %dpt status bar or notch before its message",
+    async (top: number) => {
+      /*
+       * App.tsx lays the banner over the very top of the screen. A guessed,
+       * fixed padding either hid the message under a Dynamic Island or left a
+       * tall empty red strip on a device with no notch.
+       */
+      await render(
+        <SafeAreaInsetsContext.Provider
+          value={{ top, bottom: 0, left: 0, right: 0 }}
+        >
+          <OfflineBanner />
+        </SafeAreaInsetsContext.Provider>,
+      );
+
+      expect(flat(strip()).paddingTop).toBe(top + 8);
+      expect(strip().props.pointerEvents).toBe("none");
+    },
+  );
+
+  test("without a safe-area provider it still pads the message", async () => {
+    await render(<OfflineBanner />);
+
+    expect(flat(strip()).paddingTop).toBe(8);
+  });
+
+  test("it spans the full width above everything else", async () => {
+    await render(<OfflineBanner />);
+
+    expect(flat(strip())).toMatchObject({
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 100,
+    });
+  });
+});
+
+describe("How the banner is coloured", () => {
+  beforeEach(() => {
+    mockNetworkStatus.current = {
+      isConnected: false,
+      isInternetReachable: false,
+    };
+  });
+
+  afterEach(() => {
+    mockSystemScheme = "light";
+  });
+
+  test("an error-coloured strip with an inverse label and icon", async () => {
+    await render(<OfflineBanner />);
+
+    expect(flat(strip()).backgroundColor).toBe(lightColors.statusError);
+    expect(screen.getByText("No internet connection")).toHaveStyle({
+      color: lightColors.textInverse,
+    });
+    const icon: { props: { style?: unknown } } = screen.getByText(
+      "No internet connection",
+    ).parent?.children[0] as unknown as { props: { style?: unknown } };
+    expect(flat(icon).color).toBe(lightColors.textInverse);
+  });
+
+  test("in dark mode the strip and its label use the dark palette", async () => {
+    mockSystemScheme = "dark";
+    await render(
+      <ThemeProvider>
+        <OfflineBanner />
+      </ThemeProvider>,
+    );
+
+    expect(flat(strip()).backgroundColor).toBe(darkColors.statusError);
+    expect(screen.getByText("No internet connection")).toHaveStyle({
+      color: darkColors.textInverse,
+    });
   });
 });

@@ -1,7 +1,12 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { Pressable, ScrollView, View, type ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "../theme";
+import { useTheme, type Theme } from "../theme";
+import { elevation, radius, spacing } from "../theme/tokens";
+import getToggleAccessibilityProps from "../utils/getToggleAccessibilityProps";
+import AppText from "./AppText";
+import EmptyState from "./EmptyState";
+import IconBadge from "./IconBadge";
 import type { ProbeMonitorResponse, MonitorProbeItem } from "../api/monitors";
 
 /** Safely convert any value to a displayable string */
@@ -40,167 +45,231 @@ interface InfoRowProps {
   label: string;
   value: unknown;
   iconName: keyof typeof Ionicons.glyphMap;
-  valueColor?: string;
+  /** A failure reason reads in the error colour. */
+  tone?: "default" | "danger";
 }
 
+/*
+ * A labelled fact under the metrics. Rows are separated by a hairline above
+ * each one, which also draws the line between the metric grid and the first
+ * row, and each row is read out as a single "label: value" element.
+ */
 function InfoRow({
   label,
   value,
   iconName,
-  valueColor,
+  tone = "default",
 }: InfoRowProps): React.JSX.Element {
   const { theme } = useTheme();
   const displayValue: string = toDisplayString(value);
+  const danger: boolean = tone === "danger";
   return (
     <View
+      testID="monitor-summary-info-row"
+      accessible
+      accessibilityLabel={`${label}: ${displayValue}`}
       style={{
         flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: 10,
-        paddingHorizontal: 14,
+        alignItems: "flex-start",
+        gap: spacing.md,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.lg,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.borderSubtle,
       }}
     >
       <Ionicons
         name={iconName}
-        size={15}
-        color={theme.colors.textTertiary}
-        style={{ marginRight: 10, width: 18, textAlign: "center" }}
+        size={16}
+        color={danger ? theme.colors.statusError : theme.colors.textTertiary}
+        style={{ width: 18, textAlign: "center", marginTop: 2 }}
       />
-      <Text
-        style={{
-          fontSize: 12,
-          fontWeight: "600",
-          color: theme.colors.textTertiary,
-          width: 100,
-        }}
+      <AppText
+        variant="subhead"
+        tone="secondary"
+        style={{ width: 96, flexShrink: 0 }}
       >
         {label}
-      </Text>
-      <Text
-        style={{
-          fontSize: 13,
-          fontWeight: "500",
-          color: valueColor ?? theme.colors.textPrimary,
-          flex: 1,
-        }}
-        numberOfLines={2}
+      </AppText>
+      <AppText
+        variant="subhead"
+        weight={danger ? "600" : "500"}
+        color={danger ? theme.colors.statusError : theme.colors.textPrimary}
+        style={{ flex: 1 }}
+        numberOfLines={danger ? 4 : 2}
       >
         {displayValue}
-      </Text>
+      </AppText>
     </View>
   );
 }
 
-function MetricCard({
-  label,
-  value,
-  unit,
-  iconName,
-  accentColor,
-}: {
+interface MetricTileProps {
   label: string;
   value: string;
   unit?: string;
   iconName: keyof typeof Ionicons.glyphMap;
   accentColor: string;
-}): React.JSX.Element {
+  /** Colour for the figure itself; the icon always takes the accent. */
+  valueColor?: string;
+  /** A 0-100 reading drawn as a usage bar under the figure. */
+  percent?: number;
+}
+
+function spokenMetric(label: string, value: string, unit?: string): string {
+  if (value === "--") {
+    return `${label}: not reported`;
+  }
+  if (!unit) {
+    return `${label}: ${value}`;
+  }
+  return unit === "%" ? `${label}: ${value}%` : `${label}: ${value} ${unit}`;
+}
+
+/** One measurement: an icon, the figure with its unit, and what it measures. */
+function MetricTile({
+  label,
+  value,
+  unit,
+  iconName,
+  accentColor,
+  valueColor,
+  percent,
+}: MetricTileProps): React.JSX.Element {
   const { theme } = useTheme();
+  const barPercent: number | undefined =
+    percent === undefined || Number.isNaN(percent)
+      ? undefined
+      : Math.max(0, Math.min(100, percent));
+
   return (
     <View
+      testID="monitor-metric-tile"
+      accessible
+      accessibilityLabel={spokenMetric(label, value, unit)}
       style={{
-        flex: 1,
-        alignItems: "center",
-        paddingVertical: 12,
+        flexGrow: 1,
+        gap: spacing.xxs,
+        padding: spacing.md,
+        borderRadius: radius.md,
+        backgroundColor: theme.colors.backgroundPrimary,
       }}
     >
+      <View style={{ marginBottom: spacing.sm }}>
+        <IconBadge name={iconName} color={accentColor} size="sm" />
+      </View>
       <View
         style={{
-          width: 28,
-          height: 28,
-          borderRadius: 10,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: accentColor + "14",
-          marginBottom: 6,
+          flexDirection: "row",
+          alignItems: "baseline",
+          flexWrap: "wrap",
+          columnGap: spacing.xxs,
         }}
       >
-        <Ionicons name={iconName} size={14} color={accentColor} />
-      </View>
-      <View style={{ flexDirection: "row", alignItems: "baseline" }}>
-        <Text
-          style={{
-            fontSize: 18,
-            fontWeight: "bold",
-            color: theme.colors.textPrimary,
-            fontVariant: ["tabular-nums"],
-          }}
+        <AppText
+          variant="title3"
+          weight="700"
+          color={valueColor ?? theme.colors.textPrimary}
+          style={{ fontVariant: ["tabular-nums"] }}
         >
           {value}
-        </Text>
+        </AppText>
         {unit ? (
-          <Text
-            style={{
-              fontSize: 10,
-              fontWeight: "600",
-              color: theme.colors.textTertiary,
-              marginLeft: 2,
-            }}
-          >
+          <AppText variant="caption" tone="secondary">
             {unit}
-          </Text>
+          </AppText>
         ) : null}
       </View>
-      <Text
-        style={{
-          fontSize: 10,
-          fontWeight: "600",
-          color: theme.colors.textTertiary,
-          marginTop: 2,
-        }}
-      >
+      <AppText variant="caption" tone="secondary" numberOfLines={2}>
         {label}
-      </Text>
+      </AppText>
+      {barPercent !== undefined ? (
+        <View
+          testID="monitor-metric-bar"
+          style={{
+            height: 4,
+            marginTop: spacing.sm,
+            borderRadius: radius.pill,
+            overflow: "hidden",
+            backgroundColor: theme.colors.borderSubtle,
+          }}
+        >
+          <View
+            testID="monitor-metric-bar-fill"
+            style={{
+              width: `${barPercent}%`,
+              height: "100%",
+              borderRadius: radius.pill,
+              backgroundColor: accentColor,
+            }}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }
 
-function Divider(): React.JSX.Element {
-  const { theme } = useTheme();
+/*
+ * Metrics flow in a wrapping grid rather than one squeezed row, so a server
+ * with several volumes gets readable tiles instead of slivers. Four tiles sit
+ * two by two; anything else fills up to three to a row.
+ */
+function MetricGrid({
+  children,
+}: {
+  children: React.ReactNode;
+}): React.JSX.Element {
+  const items: React.ReactNode[] =
+    React.Children.toArray(children).filter(Boolean);
+  const columns: number =
+    items.length === 4 ? 2 : Math.max(1, Math.min(items.length, 3));
+  const basis: ViewStyle["flexBasis"] =
+    columns === 1 ? "100%" : columns === 2 ? "45%" : "30%";
+
   return (
     <View
+      testID="monitor-metric-grid"
       style={{
-        height: 1,
-        backgroundColor: theme.colors.borderSubtle,
-        marginHorizontal: 14,
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: spacing.sm,
+        padding: spacing.lg,
       }}
-    />
+    >
+      {items.map((item: React.ReactNode, index: number) => {
+        const key: React.Key =
+          React.isValidElement(item) && item.key !== null ? item.key : index;
+        return (
+          <View
+            key={key}
+            testID="monitor-metric-cell"
+            style={{ flexGrow: 1, flexBasis: basis, minWidth: 96 }}
+          >
+            {item}
+          </View>
+        );
+      })}
+    </View>
   );
 }
 
-function VerticalDivider(): React.JSX.Element {
-  const { theme } = useTheme();
-  return (
-    <View
-      style={{
-        width: 1,
-        marginVertical: 10,
-        backgroundColor: theme.colors.borderSubtle,
-      }}
-    />
-  );
-}
-
-function getStatusCodeColor(
-  code: number,
-  theme: ReturnType<typeof useTheme>["theme"],
-): string {
+function getStatusCodeColor(code: number, theme: Theme): string {
   if (code >= 200 && code < 300) {
-    return theme.colors.oncallActive;
+    return theme.colors.statusSuccess;
   }
   if (code >= 300 && code < 400) {
-    return theme.colors.severityWarning;
+    return theme.colors.statusWarning;
   }
-  return theme.colors.severityCritical;
+  return theme.colors.statusError;
+}
+
+/** High usage is the reading a responder is looking for, so it turns red. */
+function getUsageColor(
+  used: number | undefined,
+  theme: Theme,
+  normal: string,
+): string {
+  return used !== undefined && used > 80 ? theme.colors.statusError : normal;
 }
 
 function formatMs(ms: number): string {
@@ -238,89 +307,113 @@ function formatDate(dateVal?: unknown): string {
   }
 }
 
+function StatusTile({
+  response,
+}: {
+  response: ProbeMonitorResponse;
+}): React.JSX.Element {
+  const { theme } = useTheme();
+  const color: string = response.isOnline
+    ? theme.colors.statusSuccess
+    : theme.colors.statusError;
+  return (
+    <MetricTile
+      label="Status"
+      value={response.isOnline ? "Online" : "Offline"}
+      iconName={response.isOnline ? "checkmark-circle" : "close-circle"}
+      accentColor={color}
+      valueColor={color}
+    />
+  );
+}
+
+function ResponseTimeTile({ ms }: { ms: number }): React.JSX.Element {
+  const { theme } = useTheme();
+  return (
+    <MetricTile
+      label="Response Time"
+      value={formatMs(ms)}
+      unit={formatMsUnit(ms)}
+      iconName="speedometer-outline"
+      accentColor={theme.colors.actionPrimary}
+    />
+  );
+}
+
+function MonitoredAtRow({
+  response,
+  label = "Monitored At",
+}: {
+  response: ProbeMonitorResponse;
+  label?: string;
+}): React.JSX.Element | null {
+  if (!response.monitoredAt) {
+    return null;
+  }
+  return (
+    <InfoRow
+      label={label}
+      value={formatDate(response.monitoredAt)}
+      iconName="time-outline"
+    />
+  );
+}
+
+function FailureRow({
+  response,
+}: {
+  response: ProbeMonitorResponse;
+}): React.JSX.Element | null {
+  if (!response.failureCause) {
+    return null;
+  }
+  return (
+    <InfoRow
+      label="Error"
+      value={response.failureCause}
+      iconName="alert-circle-outline"
+      tone="danger"
+    />
+  );
+}
+
 function WebsiteApiSummary({
   response,
 }: {
   response: ProbeMonitorResponse;
 }): React.JSX.Element {
   const { theme } = useTheme();
-  const statusColor: string = response.responseCode
-    ? getStatusCodeColor(response.responseCode, theme)
-    : theme.colors.textTertiary;
 
   return (
     <View>
-      {/* Metrics row */}
-      <View style={{ flexDirection: "row" }}>
+      <MetricGrid>
+        <StatusTile key="status" response={response} />
         {response.responseCode !== undefined ? (
-          <MetricCard
+          <MetricTile
+            key="status-code"
             label="Status Code"
             value={response.responseCode.toString()}
-            iconName="code-outline"
-            accentColor={statusColor}
+            iconName="code-slash-outline"
+            accentColor={getStatusCodeColor(response.responseCode, theme)}
           />
         ) : null}
         {response.responseTimeInMs !== undefined ? (
-          <>
-            <VerticalDivider />
-            <MetricCard
-              label="Response Time"
-              value={formatMs(response.responseTimeInMs)}
-              unit={formatMsUnit(response.responseTimeInMs)}
-              iconName="speedometer-outline"
-              accentColor={theme.colors.actionPrimary}
-            />
-          </>
+          <ResponseTimeTile
+            key="response-time"
+            ms={response.responseTimeInMs}
+          />
         ) : null}
-        <VerticalDivider />
-        <MetricCard
-          label="Status"
-          value={response.isOnline ? "Online" : "Offline"}
-          iconName={
-            response.isOnline
-              ? "checkmark-circle-outline"
-              : "close-circle-outline"
-          }
-          accentColor={
-            response.isOnline
-              ? theme.colors.oncallActive
-              : theme.colors.severityCritical
-          }
-        />
-      </View>
+      </MetricGrid>
 
-      {/* Detail rows */}
       {response.monitorDestination ? (
-        <>
-          <Divider />
-          <InfoRow
-            label="URL"
-            value={response.monitorDestination}
-            iconName="globe-outline"
-          />
-        </>
+        <InfoRow
+          label="URL"
+          value={response.monitorDestination}
+          iconName="globe-outline"
+        />
       ) : null}
-      {response.monitoredAt ? (
-        <>
-          <Divider />
-          <InfoRow
-            label="Monitored At"
-            value={formatDate(response.monitoredAt)}
-            iconName="time-outline"
-          />
-        </>
-      ) : null}
-      {response.failureCause ? (
-        <>
-          <Divider />
-          <InfoRow
-            label="Error"
-            value={response.failureCause}
-            iconName="alert-circle-outline"
-            valueColor={theme.colors.severityCritical}
-          />
-        </>
-      ) : null}
+      <MonitoredAtRow response={response} />
+      <FailureRow response={response} />
     </View>
   );
 }
@@ -330,74 +423,32 @@ function PingSummary({
 }: {
   response: ProbeMonitorResponse;
 }): React.JSX.Element {
-  const { theme } = useTheme();
   return (
     <View>
-      <View style={{ flexDirection: "row" }}>
-        <MetricCard
-          label="Status"
-          value={response.isOnline ? "Online" : "Offline"}
-          iconName={
-            response.isOnline
-              ? "checkmark-circle-outline"
-              : "close-circle-outline"
-          }
-          accentColor={
-            response.isOnline
-              ? theme.colors.oncallActive
-              : theme.colors.severityCritical
-          }
-        />
+      <MetricGrid>
+        <StatusTile key="status" response={response} />
         {response.responseTimeInMs !== undefined ? (
-          <>
-            <VerticalDivider />
-            <MetricCard
-              label="Response Time"
-              value={formatMs(response.responseTimeInMs)}
-              unit={formatMsUnit(response.responseTimeInMs)}
-              iconName="speedometer-outline"
-              accentColor={theme.colors.actionPrimary}
-            />
-          </>
+          <ResponseTimeTile
+            key="response-time"
+            ms={response.responseTimeInMs}
+          />
         ) : null}
-      </View>
+      </MetricGrid>
 
       {response.monitorDestination ? (
-        <>
-          <Divider />
-          <InfoRow
-            label="Host"
-            value={
-              toDisplayString(response.monitorDestination) +
-              (response.monitorDestinationPort
-                ? `:${response.monitorDestinationPort}`
-                : "")
-            }
-            iconName="server-outline"
-          />
-        </>
+        <InfoRow
+          label="Host"
+          value={
+            toDisplayString(response.monitorDestination) +
+            (response.monitorDestinationPort
+              ? `:${response.monitorDestinationPort}`
+              : "")
+          }
+          iconName="server-outline"
+        />
       ) : null}
-      {response.monitoredAt ? (
-        <>
-          <Divider />
-          <InfoRow
-            label="Monitored At"
-            value={formatDate(response.monitoredAt)}
-            iconName="time-outline"
-          />
-        </>
-      ) : null}
-      {response.failureCause ? (
-        <>
-          <Divider />
-          <InfoRow
-            label="Error"
-            value={response.failureCause}
-            iconName="alert-circle-outline"
-            valueColor={theme.colors.severityCritical}
-          />
-        </>
-      ) : null}
+      <MonitoredAtRow response={response} />
+      <FailureRow response={response} />
     </View>
   );
 }
@@ -449,99 +500,80 @@ function ServerSummary({
   const disks: DiskMetric[] =
     response.basicInfrastructureMetrics?.diskMetrics ?? [];
 
+  const cpuColor: string = getUsageColor(
+    cpu,
+    theme,
+    theme.colors.actionPrimary,
+  );
+  const memColor: string = getUsageColor(mem, theme, theme.colors.accentCyan);
+
   return (
     <View>
-      <View style={{ flexDirection: "row" }}>
-        <MetricCard
+      <MetricGrid>
+        <MetricTile
+          key="cpu"
           label="CPU"
           value={cpu !== undefined ? Math.round(cpu).toString() : "--"}
           unit="%"
           iconName="hardware-chip-outline"
-          accentColor={
-            cpu !== undefined && cpu > 80
-              ? theme.colors.severityCritical
-              : theme.colors.actionPrimary
-          }
+          accentColor={cpuColor}
+          valueColor={cpu !== undefined && cpu > 80 ? cpuColor : undefined}
+          percent={cpu}
         />
-        <VerticalDivider />
-        <MetricCard
+        <MetricTile
+          key="memory"
           label="Memory"
           value={mem !== undefined ? Math.round(mem).toString() : "--"}
           unit="%"
           iconName="bar-chart-outline"
-          accentColor={
-            mem !== undefined && mem > 80
-              ? theme.colors.severityCritical
-              : theme.colors.severityWarning
-          }
+          accentColor={memColor}
+          valueColor={mem !== undefined && mem > 80 ? memColor : undefined}
+          percent={mem}
         />
         {disks.length === 0 ? (
-          <>
-            <VerticalDivider />
-            <MetricCard
-              label="Disk"
-              value="--"
-              unit="%"
-              iconName="disc-outline"
-              accentColor={theme.colors.oncallActive}
-            />
-          </>
+          <MetricTile
+            key="disk"
+            label="Disk"
+            value="--"
+            unit="%"
+            iconName="disc-outline"
+            accentColor={theme.colors.statusSuccess}
+          />
         ) : (
           disks.map((diskMetric: DiskMetric, index: number) => {
             const used: number | undefined = diskMetric.percentUsed;
+            const diskColor: string = getUsageColor(
+              used,
+              theme,
+              theme.colors.statusSuccess,
+            );
             return (
-              <React.Fragment key={diskMetric.diskPath ?? `disk-${index}`}>
-                <VerticalDivider />
-                <MetricCard
-                  label={getDiskLabel(diskMetric, index, disks.length)}
-                  value={
-                    used !== undefined ? Math.round(used).toString() : "--"
-                  }
-                  unit="%"
-                  iconName="disc-outline"
-                  accentColor={
-                    used !== undefined && used > 80
-                      ? theme.colors.severityCritical
-                      : theme.colors.oncallActive
-                  }
-                />
-              </React.Fragment>
+              <MetricTile
+                key={diskMetric.diskPath ?? `disk-${index}`}
+                label={getDiskLabel(diskMetric, index, disks.length)}
+                value={used !== undefined ? Math.round(used).toString() : "--"}
+                unit="%"
+                iconName="disc-outline"
+                accentColor={diskColor}
+                valueColor={
+                  used !== undefined && used > 80 ? diskColor : undefined
+                }
+                percent={used}
+              />
             );
           })
         )}
-      </View>
+      </MetricGrid>
 
       {response.hostname ? (
-        <>
-          <Divider />
-          <InfoRow
-            label="Hostname"
-            value={response.hostname}
-            iconName="server-outline"
-          />
-        </>
+        <InfoRow
+          label="Hostname"
+          value={response.hostname}
+          iconName="server-outline"
+        />
       ) : null}
-      {response.monitoredAt ? (
-        <>
-          <Divider />
-          <InfoRow
-            label="Last Ping"
-            value={formatDate(response.monitoredAt)}
-            iconName="time-outline"
-          />
-        </>
-      ) : null}
-      {response.failureCause ? (
-        <>
-          <Divider />
-          <InfoRow
-            label="Error"
-            value={response.failureCause}
-            iconName="alert-circle-outline"
-            valueColor={theme.colors.severityCritical}
-          />
-        </>
-      ) : null}
+      <MonitoredAtRow response={response} label="Last Ping" />
+      <FailureRow response={response} />
     </View>
   );
 }
@@ -551,58 +583,19 @@ function GenericSummary({
 }: {
   response: ProbeMonitorResponse;
 }): React.JSX.Element {
-  const { theme } = useTheme();
   return (
     <View>
-      <View style={{ flexDirection: "row" }}>
-        <MetricCard
-          label="Status"
-          value={response.isOnline ? "Online" : "Offline"}
-          iconName={
-            response.isOnline
-              ? "checkmark-circle-outline"
-              : "close-circle-outline"
-          }
-          accentColor={
-            response.isOnline
-              ? theme.colors.oncallActive
-              : theme.colors.severityCritical
-          }
-        />
+      <MetricGrid>
+        <StatusTile key="status" response={response} />
         {response.responseTimeInMs !== undefined ? (
-          <>
-            <VerticalDivider />
-            <MetricCard
-              label="Response Time"
-              value={formatMs(response.responseTimeInMs)}
-              unit={formatMsUnit(response.responseTimeInMs)}
-              iconName="speedometer-outline"
-              accentColor={theme.colors.actionPrimary}
-            />
-          </>
+          <ResponseTimeTile
+            key="response-time"
+            ms={response.responseTimeInMs}
+          />
         ) : null}
-      </View>
-      {response.monitoredAt ? (
-        <>
-          <Divider />
-          <InfoRow
-            label="Monitored At"
-            value={formatDate(response.monitoredAt)}
-            iconName="time-outline"
-          />
-        </>
-      ) : null}
-      {response.failureCause ? (
-        <>
-          <Divider />
-          <InfoRow
-            label="Error"
-            value={response.failureCause}
-            iconName="alert-circle-outline"
-            valueColor={theme.colors.severityCritical}
-          />
-        </>
-      ) : null}
+      </MetricGrid>
+      <MonitoredAtRow response={response} />
+      <FailureRow response={response} />
     </View>
   );
 }
@@ -645,58 +638,84 @@ function ProbePicker({
   }
 
   return (
-    <View style={{ paddingHorizontal: 12, paddingTop: 10, paddingBottom: 4 }}>
+    <View
+      testID="monitor-probe-picker"
+      style={{
+        paddingTop: spacing.lg,
+        gap: spacing.sm,
+      }}
+    >
+      <AppText
+        variant="overline"
+        tone="secondary"
+        style={{ paddingHorizontal: spacing.lg }}
+      >
+        Probe location
+      </AppText>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8 }}
+        contentContainerStyle={{
+          gap: spacing.sm,
+          paddingHorizontal: spacing.lg,
+        }}
       >
         {probeItems.map((probe: MonitorProbeItem, index: number) => {
           const isSelected: boolean = index === selectedIndex;
+          const name: string = getProbeName(probe, index);
           return (
-            <TouchableOpacity
+            <Pressable
               key={probe._id}
-              activeOpacity={0.7}
+              testID={`monitor-probe-${index}`}
+              accessibilityRole="button"
+              accessibilityLabel={name}
+              accessibilityHint="Shows the latest result from this probe"
+              {...getToggleAccessibilityProps(isSelected)}
+              hitSlop={4}
               onPress={() => {
                 onSelect(index);
               }}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 20,
-                backgroundColor: isSelected
-                  ? theme.colors.actionPrimary + "1A"
-                  : theme.colors.backgroundTertiary,
-                borderWidth: 1,
-                borderColor: isSelected
-                  ? theme.colors.actionPrimary + "44"
-                  : theme.colors.borderSubtle,
+              style={({ pressed }: { pressed: boolean }): ViewStyle => {
+                return {
+                  minHeight: 40,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.xs + 2,
+                  paddingHorizontal: spacing.md,
+                  borderRadius: radius.pill,
+                  borderWidth: 1,
+                  borderColor: isSelected
+                    ? theme.colors.actionPrimary
+                    : theme.colors.borderDefault,
+                  backgroundColor: isSelected
+                    ? theme.colors.cardAccent
+                    : pressed
+                      ? theme.colors.backgroundTertiary
+                      : theme.colors.backgroundElevated,
+                };
               }}
             >
               <Ionicons
-                name="radio-outline"
-                size={12}
+                name={isSelected ? "radio-button-on" : "radio-button-off"}
+                size={14}
                 color={
                   isSelected
                     ? theme.colors.actionPrimary
                     : theme.colors.textTertiary
                 }
-                style={{ marginRight: 5 }}
               />
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: isSelected ? "700" : "500",
-                  color: isSelected
+              <AppText
+                variant="subhead"
+                weight={isSelected ? "700" : "500"}
+                color={
+                  isSelected
                     ? theme.colors.actionPrimary
-                    : theme.colors.textSecondary,
-                }}
+                    : theme.colors.textPrimary
+                }
               >
-                {getProbeName(probe, index)}
-              </Text>
-            </TouchableOpacity>
+                {name}
+              </AppText>
+            </Pressable>
           );
         })}
       </ScrollView>
@@ -733,23 +752,12 @@ export default function MonitorSummaryView({
   const renderContent: () => React.JSX.Element = (): React.JSX.Element => {
     if (!latestResponse) {
       return (
-        <View style={{ padding: 20, alignItems: "center" }}>
-          <Ionicons
-            name="analytics-outline"
-            size={24}
-            color={theme.colors.textTertiary}
-            style={{ marginBottom: 8 }}
-          />
-          <Text
-            style={{
-              fontSize: 13,
-              color: theme.colors.textSecondary,
-              textAlign: "center",
-            }}
-          >
-            No monitoring data available yet.
-          </Text>
-        </View>
+        <EmptyState
+          compact
+          icon="monitors"
+          title="No monitoring data available yet."
+          subtitle="Measurements appear here after a probe checks this monitor."
+        />
       );
     }
 
@@ -773,12 +781,13 @@ export default function MonitorSummaryView({
 
   return (
     <View
+      testID="monitor-summary-card"
       style={{
-        borderRadius: 16,
-        overflow: "hidden",
+        borderRadius: radius.lg,
         backgroundColor: theme.colors.backgroundElevated,
         borderWidth: 1,
-        borderColor: theme.colors.borderGlass,
+        borderColor: theme.colors.borderSubtle,
+        ...elevation("card", theme.dark),
       }}
     >
       {hasMultipleProbes ? (

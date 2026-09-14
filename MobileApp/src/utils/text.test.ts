@@ -1,4 +1,4 @@
-import { toPlainText } from "./text";
+import { getInitials, toPlainText } from "./text";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -181,5 +181,43 @@ describe("toPlainText on anything else", () => {
     circular["self"] = circular;
 
     expect(typeof toPlainText([circular, "api"])).toBe("string");
+  });
+});
+
+describe("getInitials", () => {
+  /*
+   * One helper now draws every avatar: note authors, the signed-in account,
+   * projects in the switcher and on the SSO screens. They used to carry five
+   * near-identical copies that had already started to disagree.
+   */
+  test.each([
+    ["Ada Lovelace", "AL"],
+    ["grace hopper", "GH"],
+    ["Grace", "G"],
+    ["  Margaret   Heafield  Hamilton ", "MH"],
+    ["ada@example.com", "A"],
+    ["jordan.lee@example.com", "JL"],
+    ["first+last@example.com", "FL"],
+    ["(Ops) Bot", "OB"],
+    ["Aurora Production", "AP"],
+    ["atlas-staging", "AS"],
+    ["Łukasz Żak", "ŁŻ"],
+    ["42 Services", "4S"],
+    ["", ""],
+    ["   ", ""],
+    ["!!! ???", ""],
+  ])("%j becomes %j", (source: string, initials: string) => {
+    expect(getInitials(source)).toBe(initials);
+  });
+
+  test("treats a missing name as nothing to show", () => {
+    expect(getInitials(undefined)).toBe("");
+    expect(getInitials(null)).toBe("");
+  });
+
+  test("never returns more than two characters, even for emoji and long names", () => {
+    for (const source of ["One Two Three Four", "😀 Party Team", "Zoë Ωmega"]) {
+      expect(Array.from(getInitials(source)).length).toBeLessThanOrEqual(2);
+    }
   });
 });

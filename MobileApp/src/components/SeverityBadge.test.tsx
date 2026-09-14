@@ -1,8 +1,10 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import { render, screen } from "@testing-library/react-native";
-import { describe, expect, test } from "@jest/globals";
+import { beforeEach, describe, expect, test } from "@jest/globals";
 import SeverityBadge, { type SeverityLevel } from "./SeverityBadge";
-import { darkColors } from "../theme";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+import { radius } from "../theme/tokens";
 
 /*
  * The badge is a one-word answer to "how bad is this", so the two things worth
@@ -20,18 +22,41 @@ import { darkColors } from "../theme";
 
 type RenderedElement = ReturnType<typeof screen.getByText>;
 
+/** Styles may be arrays, so they are read flattened. */
 function styleOf(element: RenderedElement): Record<string, unknown> {
-  return element.props.style as Record<string, unknown>;
+  return (StyleSheet.flatten(element.props.style) ?? {}) as Record<
+    string,
+    unknown
+  >;
 }
+
+let mockColorScheme: "light" | "dark" = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter that cannot be spied
+ * on, so the module behind it is replaced. Light unless a test says otherwise.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme;
+    },
+  };
+});
+
+beforeEach(() => {
+  mockColorScheme = "light";
+});
 
 describe("A recognised severity is painted in that severity's colours", () => {
   test("a critical badge uses the critical text and background tokens", async () => {
     await render(<SeverityBadge severity="critical" />);
 
     const label: RenderedElement = screen.getByText("CRITICAL");
-    expect(styleOf(label).color).toBe(darkColors.severityCritical);
+    expect(styleOf(label).color).toBe(lightColors.severityCritical);
     expect(styleOf(label.parent as RenderedElement).backgroundColor).toBe(
-      darkColors.severityCriticalBg,
+      lightColors.severityCriticalBg,
     );
   });
 
@@ -39,9 +64,9 @@ describe("A recognised severity is painted in that severity's colours", () => {
     await render(<SeverityBadge severity="info" />);
 
     const label: RenderedElement = screen.getByText("INFO");
-    expect(styleOf(label).color).toBe(darkColors.severityInfo);
+    expect(styleOf(label).color).toBe(lightColors.severityInfo);
     expect(styleOf(label.parent as RenderedElement).backgroundColor).toBe(
-      darkColors.severityInfoBg,
+      lightColors.severityInfoBg,
     );
   });
 
@@ -98,9 +123,9 @@ describe("A severity outside the five it knows", () => {
     await render(<SeverityBadge severity={unknownSeverity} />);
 
     const label: RenderedElement = screen.getByText("CATASTROPHIC");
-    expect(styleOf(label).color).toBe(darkColors.textSecondary);
+    expect(styleOf(label).color).toBe(lightColors.textSecondary);
     expect(styleOf(label.parent as RenderedElement).backgroundColor).toBe(
-      darkColors.backgroundTertiary,
+      lightColors.backgroundTertiary,
     );
   });
 
@@ -110,5 +135,50 @@ describe("A severity outside the five it knows", () => {
     );
 
     expect(screen.getByText("UNCLASSIFIED")).toBeTruthy();
+  });
+});
+
+describe("The pill", () => {
+  test("is a rounded pill that holds its label to one line", async () => {
+    await render(<SeverityBadge severity="major" />);
+
+    const label: RenderedElement = screen.getByText("MAJOR");
+    expect(label.props.numberOfLines).toBe(1);
+    expect(label.parent as RenderedElement).toHaveStyle({
+      borderRadius: radius.pill,
+      backgroundColor: lightColors.severityMajorBg,
+    });
+  });
+
+  test("in dark mode each severity uses its dark text and tint pair", async () => {
+    mockColorScheme = "dark";
+
+    await render(
+      <ThemeProvider>
+        <SeverityBadge severity="critical" />
+      </ThemeProvider>,
+    );
+
+    const label: RenderedElement = screen.getByText("CRITICAL");
+    expect(label).toHaveStyle({ color: darkColors.severityCritical });
+    expect(label.parent as RenderedElement).toHaveStyle({
+      backgroundColor: darkColors.severityCriticalBg,
+    });
+  });
+
+  test("in dark mode an unknown severity is painted with the dark neutrals", async () => {
+    mockColorScheme = "dark";
+
+    await render(
+      <ThemeProvider>
+        <SeverityBadge severity={"catastrophic" as SeverityLevel} />
+      </ThemeProvider>,
+    );
+
+    const label: RenderedElement = screen.getByText("CATASTROPHIC");
+    expect(label).toHaveStyle({ color: darkColors.textSecondary });
+    expect(label.parent as RenderedElement).toHaveStyle({
+      backgroundColor: darkColors.backgroundTertiary,
+    });
   });
 });

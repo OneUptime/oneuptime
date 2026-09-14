@@ -1,4 +1,5 @@
 import React from "react";
+import { StyleSheet, type ViewStyle } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   act,
@@ -16,6 +17,8 @@ import {
   hasServerUrl,
   setServerUrl,
 } from "../../storage/serverUrl";
+import { ThemeProvider } from "../../theme";
+import { darkColors, lightColors } from "../../theme/colors";
 
 /*
  * The first screen a self-hoster ever sees, and the only one that decides
@@ -55,6 +58,21 @@ const mockValidateServerUrl: MockedFunction<ValidateServerUrl> =
 const mockSetNeedsServerUrl: MockedFunction<SetNeedsServerUrl> =
   jest.fn<SetNeedsServerUrl>();
 const mockNavigate: MockedFunction<Navigate> = jest.fn<Navigate>();
+
+let mockSystemScheme: "light" | "dark" = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced for the dark-mode tests below.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockSystemScheme;
+    },
+  };
+});
 
 jest.mock("../../api/auth", () => {
   return {
@@ -148,6 +166,7 @@ beforeEach(async (): Promise<void> => {
    * probe left resolving false - or left hanging - by an earlier test would
    * otherwise decide this one.
    */
+  mockSystemScheme = "light";
   mockValidateServerUrl.mockReset();
   mockSetNeedsServerUrl.mockReset();
   mockNavigate.mockReset();
@@ -573,6 +592,85 @@ describe("What the screen does not do to the url", () => {
     await waitFor(async (): Promise<void> => {
       expect(await getServerUrl()).toBe("http://status.internal.example");
     });
+  });
+});
+
+function fieldStyle(): ViewStyle {
+  return StyleSheet.flatten(
+    screen.getByTestId("server-url-field").props.style,
+  ) as ViewStyle;
+}
+
+describe("How the address field looks", () => {
+  test("a labelled, branded form with the shared field shape", async () => {
+    await render(<ServerUrlScreen />);
+
+    expect(screen.getByTestId("auth-brand")).toBeTruthy();
+    expect(
+      screen.getByRole("header", { name: "Connect your workspace" }),
+    ).toBeTruthy();
+    expect(screen.getByText("Server URL")).toBeTruthy();
+    expect(fieldStyle()).toMatchObject({
+      minHeight: 52,
+      borderRadius: 12,
+      borderColor: lightColors.borderDefault,
+    });
+    const input: ReturnType<typeof screen.getByTestId> = urlField();
+    expect(input.props.keyboardType).toBe("url");
+    expect(input.props.keyboardAppearance).toBe("light");
+    expect(input.props.placeholderTextColor).toBe(lightColors.textTertiary);
+  });
+
+  test("focus rings the field in the action colour", async () => {
+    await render(<ServerUrlScreen />);
+
+    await fireEvent(urlField(), "focus");
+
+    expect(fieldStyle()).toMatchObject({
+      borderColor: lightColors.actionPrimary,
+      borderWidth: 2,
+    });
+  });
+
+  test("a failed connection outlines the field and announces one alert beneath it", async () => {
+    mockValidateServerUrl.mockResolvedValue(false);
+    await render(<ServerUrlScreen />);
+
+    await connectWith("https://typo.internal.example");
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("alert")).toHaveLength(1);
+    });
+    expect(fieldStyle().borderColor).toBe(lightColors.statusError);
+
+    await typeUrl(SELF_HOSTED_URL);
+
+    expect(fieldStyle().borderColor).toBe(lightColors.borderDefault);
+  });
+
+  test("the self-hosting tip is quiet context rather than an alert", async () => {
+    await render(<ServerUrlScreen />);
+
+    expect(screen.getByText(/Self-hosting\?/i)).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  test("dark mode uses dark tokens and the dark keyboard", async () => {
+    mockSystemScheme = "dark";
+    await render(
+      <ThemeProvider>
+        <ServerUrlScreen />
+      </ThemeProvider>,
+    );
+
+    expect(urlField().props.keyboardAppearance).toBe("dark");
+    expect(fieldStyle()).toMatchObject({
+      backgroundColor: darkColors.backgroundElevated,
+      borderColor: darkColors.borderDefault,
+    });
+    expect(
+      StyleSheet.flatten(connectButton().props.style).backgroundColor,
+    ).toBe(darkColors.actionPrimary);
   });
 });
 

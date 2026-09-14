@@ -5,8 +5,9 @@ import {
   screen,
   fireEvent,
   waitFor,
+  within,
 } from "@testing-library/react-native";
-import { Alert } from "react-native";
+import { Alert, StyleSheet } from "react-native";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import WhoIsOnCallScreen, {
   buildTeamCalendarShareMessage,
@@ -14,6 +15,8 @@ import WhoIsOnCallScreen, {
   matchesRosterSearch,
 } from "./WhoIsOnCallScreen";
 import * as calendarApi from "../api/onCallCalendar";
+import { lightColors } from "../theme/colors";
+import { radius } from "../theme/tokens";
 import type {
   OnCallCalendarFeedStatus,
   ProjectOnCallScheduleItem,
@@ -618,3 +621,123 @@ describe("Refresh recovery", () => {
     },
   );
 });
+
+describe("WhoIsOnCallScreen layout", () => {
+  beforeEach(() => {
+    mockSchedules.current = {
+      schedules: [],
+      isLoading: false,
+      isError: false,
+      refetch: async (): Promise<void> => {
+        return undefined;
+      },
+    };
+    mockUserId.current = "user-me";
+    mockCalendarFeed.current = { isAvailable: true, isChecking: false };
+  });
+
+  test("a coverage gap turns the summary banner to warning", async (): Promise<void> => {
+    mockSchedules.current.schedules = [
+      entry("covered", "Primary", { _id: "user-2", name: "Priya Rao" }),
+      entry("gap", "Weekend", null),
+    ];
+
+    await render(<WhoIsOnCallScreen />);
+
+    const summary: HostElement = screen.getByTestId("coverage-summary");
+    expect(within(summary).getByText("1 of 2 schedules covered")).toBeTruthy();
+    expect(
+      within(summary).getByText(/nobody on call appear first/),
+    ).toBeTruthy();
+    expect(flatStyle("coverage-summary").backgroundColor).toBe(
+      lightColors.statusWarningBg,
+    );
+  });
+
+  test("full coverage turns the summary banner to success", async (): Promise<void> => {
+    mockSchedules.current.schedules = [
+      entry("covered", "Primary", { _id: "user-2", name: "Priya Rao" }),
+    ];
+
+    await render(<WhoIsOnCallScreen />);
+
+    expect(
+      within(screen.getByTestId("coverage-summary")).getByText(
+        "Every schedule has someone on call right now.",
+      ),
+    ).toBeTruthy();
+    expect(flatStyle("coverage-summary").backgroundColor).toBe(
+      lightColors.statusSuccessBg,
+    );
+  });
+
+  test("each section counts its schedules and lays roster cards out as separate cards", async (): Promise<void> => {
+    mockSchedules.current.schedules = [
+      entry("a", "Alpha", { _id: "user-2", name: "Priya Rao" }),
+      entry("b", "Bravo", { _id: "user-3", name: "Sam Patel" }),
+      entry("gap", "Weekend", null),
+    ];
+
+    await render(<WhoIsOnCallScreen />);
+
+    const covered: HostElement = screen.getByTestId("section-covered");
+    expect(
+      within(covered).getByRole("header", { name: "On call now" }),
+    ).toBeTruthy();
+    expect(within(covered).getByText("2")).toBeTruthy();
+    const uncovered: HostElement = screen.getByTestId("section-uncovered");
+    expect(within(uncovered).getByText("1")).toBeTruthy();
+
+    for (const testID of [
+      "roster-card-a",
+      "roster-card-b",
+      "roster-card-gap",
+    ]) {
+      const style: Record<string, unknown> = flatStyle(testID);
+      expect(style.backgroundColor).toBe(lightColors.backgroundElevated);
+      expect(style.borderRadius).toBe(radius.lg);
+    }
+    expect(
+      within(screen.getByTestId("roster-card-gap")).getByText("Nobody on call"),
+    ).toBeTruthy();
+    expect(
+      within(screen.getByTestId("roster-card-a")).getByText("Priya Rao"),
+    ).toBeTruthy();
+  });
+
+  test("an empty filter result is a card, not loose text", async (): Promise<void> => {
+    mockSchedules.current.schedules = [
+      entry("covered", "Primary", { _id: "user-2", name: "Priya Rao" }),
+    ];
+
+    await render(<WhoIsOnCallScreen />);
+    await fireEvent.changeText(screen.getByTestId("roster-search"), "zzzz");
+
+    const empty: HostElement = screen.getByTestId("roster-filter-empty");
+    expect(within(empty).getByText("No matches")).toBeTruthy();
+    expect(
+      within(empty).getByText("No schedules match that search."),
+    ).toBeTruthy();
+    expect(flatStyle("roster-filter-empty").borderRadius).toBe(radius.lg);
+  });
+
+  test("a failed roster read is never shown as a covered team", async (): Promise<void> => {
+    mockSchedules.current.isError = true;
+    mockSchedules.current.schedules = [
+      entry("covered", "Primary", { _id: "user-2", name: "Priya Rao" }),
+    ];
+
+    await render(<WhoIsOnCallScreen />);
+
+    expect(screen.getByText("Could not load the on-call roster")).toBeTruthy();
+    expect(screen.queryByTestId("coverage-summary")).toBeNull();
+    expect(screen.queryByText(/schedules covered/)).toBeNull();
+  });
+});
+
+type HostElement = ReturnType<typeof screen.getByTestId>;
+
+function flatStyle(testID: string): Record<string, unknown> {
+  return (StyleSheet.flatten(screen.getByTestId(testID).props.style) ??
+    {}) as Record<string, unknown>;
+}

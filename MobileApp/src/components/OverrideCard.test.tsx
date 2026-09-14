@@ -1,8 +1,23 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import { describe, expect, test, jest as jestGlobal } from "@jest/globals";
 import OverrideCard from "./OverrideCard";
+import { ThemeProvider } from "../theme";
+import { darkColors, lightColors } from "../theme/colors";
+import { radius } from "../theme/tokens";
 import type { OnCallOverrideItem } from "../api/types";
+
+let mockColorScheme: "light" | "dark" = "light";
+
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme;
+    },
+  };
+});
 
 /*
  * The direction of an override is the fact that matters, and it is the fact a
@@ -243,3 +258,164 @@ describe("OverrideCard cancelling", () => {
     expect(onCancel).not.toHaveBeenCalled();
   });
 });
+
+type OverrideState = "active" | "upcoming" | "past";
+type OverridePillToken =
+  | "statusSuccessBg"
+  | "statusInfoBg"
+  | "backgroundTertiary";
+
+const OVERRIDE_STATE_CASES: Array<[OverrideState, string, OverridePillToken]> =
+  [
+    ["active", "In effect", "statusSuccessBg"],
+    ["upcoming", "Scheduled", "statusInfoBg"],
+    ["past", "Ended", "backgroundTertiary"],
+  ];
+
+describe("OverrideCard presentation", () => {
+  test.each(OVERRIDE_STATE_CASES)(
+    "a %s override leads with a '%s' status pill",
+    async (
+      state: OverrideState,
+      label: string,
+      token: OverridePillToken,
+    ): Promise<void> => {
+      await render(
+        <OverrideCard
+          override={override()}
+          state={state}
+          currentUserId={ME}
+          now={NOW}
+        />,
+      );
+
+      expect(screen.getByText(label)).toBeTruthy();
+      expect(flatStyle("override-status-override-1").backgroundColor).toBe(
+        lightColors[token],
+      );
+    },
+  );
+
+  test("live overrides sit on an elevated card; ended ones are outlined", async (): Promise<void> => {
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      <OverrideCard
+        override={override()}
+        state="active"
+        currentUserId={ME}
+        now={NOW}
+      />,
+    );
+    const live: Record<string, unknown> = flatStyle("override-card-override-1");
+    expect(live.backgroundColor).toBe(lightColors.backgroundElevated);
+    expect(live.borderRadius).toBe(radius.lg);
+    expect(live.boxShadow).toBeTruthy();
+
+    await view.rerender(
+      <OverrideCard
+        override={override()}
+        state="past"
+        currentUserId={ME}
+        now={NOW}
+      />,
+    );
+    const ended: Record<string, unknown> = flatStyle(
+      "override-card-override-1",
+    );
+    expect(ended.backgroundColor).toBe(lightColors.backgroundElevated);
+    expect(ended.borderRadius).toBe(radius.lg);
+    expect(ended.boxShadow).toBeUndefined();
+    expect(screen.getByText("Your pages go to Priya")).toHaveStyle({
+      color: lightColors.textSecondary,
+    });
+  });
+});
+
+describe("OverrideCard cancel flow", () => {
+  test("the cancel control is labelled, destructive and names the arrangement", async (): Promise<void> => {
+    const onCancel: jest.Mock = jest.fn();
+    const item: OnCallOverrideItem = override({
+      onCallDutyPolicy: { _id: "policy-1", name: "Database" },
+    });
+
+    await render(
+      <OverrideCard
+        override={item}
+        state="upcoming"
+        currentUserId={ME}
+        now={NOW}
+        onCancel={onCancel}
+      />,
+    );
+
+    expect(screen.getByText("Cancel override")).toHaveStyle({
+      color: lightColors.actionDestructive,
+    });
+    const control: HostElement = screen.getByRole("button", {
+      name: "Cancel override: Your pages go to Priya",
+    });
+    expect(control.props.accessibilityState).toEqual({
+      disabled: false,
+      busy: false,
+    });
+
+    await fireEvent.press(control);
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(onCancel.mock.calls[0]?.[0]).toBe(item);
+  });
+
+  test("while cancelling, the label gives way to progress", async (): Promise<void> => {
+    await render(
+      <OverrideCard
+        override={override()}
+        state="active"
+        currentUserId={ME}
+        now={NOW}
+        onCancel={jest.fn()}
+        isCancelling
+      />,
+    );
+
+    expect(screen.queryByText("Cancel override")).toBeNull();
+    expect(flatStyle("override-cancel-override-1").opacity).toBe(0.5);
+  });
+
+  test("dark mode uses the dark status and destructive tokens", async (): Promise<void> => {
+    mockColorScheme = "dark";
+    try {
+      await render(
+        <ThemeProvider>
+          <OverrideCard
+            override={override()}
+            state="active"
+            currentUserId={ME}
+            now={NOW}
+            onCancel={jest.fn()}
+          />
+        </ThemeProvider>,
+      );
+
+      expect(flatStyle("override-card-override-1").backgroundColor).toBe(
+        darkColors.backgroundElevated,
+      );
+      expect(flatStyle("override-status-override-1").backgroundColor).toBe(
+        darkColors.statusSuccessBg,
+      );
+      expect(screen.getByText("Cancel override")).toHaveStyle({
+        color: darkColors.actionDestructive,
+      });
+      expect(screen.getByText("Your pages go to Priya")).toHaveStyle({
+        color: darkColors.textPrimary,
+      });
+    } finally {
+      mockColorScheme = "light";
+    }
+  });
+});
+
+type HostElement = ReturnType<typeof screen.getByTestId>;
+
+function flatStyle(testID: string): Record<string, unknown> {
+  return (StyleSheet.flatten(screen.getByTestId(testID).props.style) ??
+    {}) as Record<string, unknown>;
+}

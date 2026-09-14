@@ -17,6 +17,8 @@ import {
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { InboxStackParamList } from "../navigation/types";
 import { useTheme } from "../theme";
+import { radius, spacing, typography } from "../theme/tokens";
+import { withAlpha } from "../utils/color";
 import ScreenIntro from "../components/ScreenIntro";
 import IncidentsScreen from "./IncidentsScreen";
 import AlertsScreen from "./AlertsScreen";
@@ -31,11 +33,22 @@ interface InboxCategory {
   key: InboxView;
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
+  selectedIcon: keyof typeof Ionicons.glyphMap;
 }
 
 const categories: Array<InboxCategory> = [
-  { key: "incidents", label: "Incidents", icon: "warning-outline" },
-  { key: "alerts", label: "Alerts", icon: "notifications-outline" },
+  {
+    key: "incidents",
+    label: "Incidents",
+    icon: "warning-outline",
+    selectedIcon: "warning",
+  },
+  {
+    key: "alerts",
+    label: "Alerts",
+    icon: "notifications-outline",
+    selectedIcon: "notifications",
+  },
 ];
 
 /** Incidents and alerts are adjacent views, not competing top-level destinations. */
@@ -72,19 +85,30 @@ export default function InboxScreen(): React.JSX.Element {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}>
-      <View style={{ paddingHorizontal: 20, paddingTop: 20 }}>
+      <View style={{ paddingHorizontal: spacing.xl, paddingTop: spacing.xl }}>
         <ScreenIntro title="Inbox" compact />
+        {/*
+         * The category switch is the page's own navigation, so it reads as
+         * tabs: a hairline the width of the page with a rounded indicator
+         * under the selected label. The incidents/episodes switch inside each
+         * list is a filled segmented track, which keeps the two levels from
+         * looking like one control stacked twice.
+         */}
         <View
           accessibilityRole="tablist"
           accessibilityLabel="Inbox categories"
           style={{
             flexDirection: "row",
+            gap: spacing.xs,
             borderBottomWidth: 1,
-            borderBottomColor: theme.colors.borderDefault,
+            borderBottomColor: theme.colors.borderSubtle,
           }}
         >
           {categories.map((category: InboxCategory): React.JSX.Element => {
             const selected: boolean = category.key === selectedView;
+            const contentColor: string = selected
+              ? theme.colors.actionPrimary
+              : theme.colors.textSecondary;
             return (
               <Pressable
                 key={category.key}
@@ -105,41 +129,51 @@ export default function InboxScreen(): React.JSX.Element {
                 style={({ pressed }: PressableStateCallbackType): ViewStyle => {
                   return {
                     flex: 1,
-                    minHeight: 52,
+                    minHeight: 48,
                     flexDirection: "row",
-                    gap: 8,
+                    gap: spacing.sm,
                     alignItems: "center",
                     justifyContent: "center",
-                    borderBottomWidth: 3,
-                    borderBottomColor: selected
-                      ? theme.colors.actionPrimary
-                      : "transparent",
+                    borderTopLeftRadius: radius.md,
+                    borderTopRightRadius: radius.md,
                     backgroundColor: pressed
-                      ? theme.colors.iconBackground
+                      ? withAlpha(
+                          theme.colors.actionPrimary,
+                          theme.dark ? 0.16 : 0.08,
+                        )
                       : "transparent",
                   };
                 }}
               >
                 <Ionicons
-                  name={category.icon}
+                  name={selected ? category.selectedIcon : category.icon}
                   size={18}
-                  color={
-                    selected
-                      ? theme.colors.actionPrimary
-                      : theme.colors.textSecondary
-                  }
+                  color={contentColor}
                 />
                 <Text
                   style={{
-                    fontSize: 15,
-                    fontWeight: selected ? "700" : "500",
-                    color: selected
-                      ? theme.colors.actionPrimary
-                      : theme.colors.textSecondary,
+                    ...typography.callout,
+                    fontWeight: selected ? "700" : "600",
+                    color: contentColor,
                   }}
                 >
                   {category.label}
                 </Text>
+                <View
+                  testID={`inbox-category-${category.key}-indicator`}
+                  style={{
+                    position: "absolute",
+                    left: spacing.lg,
+                    right: spacing.lg,
+                    bottom: -1,
+                    height: 3,
+                    borderTopLeftRadius: 3,
+                    borderTopRightRadius: 3,
+                    backgroundColor: selected
+                      ? theme.colors.actionPrimary
+                      : "transparent",
+                  }}
+                />
               </Pressable>
             );
           })}

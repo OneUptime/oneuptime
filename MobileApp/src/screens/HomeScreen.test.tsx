@@ -1,15 +1,20 @@
 import React from "react";
+import { StyleSheet, type ViewStyle, type TextStyle } from "react-native";
 import {
   render,
   screen,
   waitFor,
   fireEvent,
+  within,
 } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 import HomeScreen from "./HomeScreen";
 import { useAllProjectCounts } from "../hooks/useAllProjectCounts";
 import { useOnCallDuty } from "../hooks/useOnCallDuty";
 import { makeProject } from "../__tests__/testSupport";
+import { ThemeProvider } from "../theme";
+import { darkColors, lightColors } from "../theme/colors";
+import { radius, spacing } from "../theme/tokens";
 import type { ProjectItem } from "../api/types";
 import type { OnCallDutySummary } from "../oncall/duty";
 
@@ -58,6 +63,27 @@ const mockProjects: { current: ProjectItem[] } = { current: [] };
 const mockNavigate: jest.Mock = jest.fn();
 
 const mockProjectLoadError: { current: Error | null } = { current: null };
+const mockRefreshProjects: jest.Mock = jest.fn(async () => {
+  return undefined;
+});
+const mockLightImpact: jest.Mock = jest.fn();
+
+/*
+ * The device appearance. ThemeProvider reads it through useColorScheme, which
+ * react-native exposes through a getter that cannot be spied on, so the
+ * module behind it is replaced. Screens rendered without a provider fall back
+ * to the light palette regardless.
+ */
+const mockColorScheme: { current: "light" | "dark" } = { current: "light" };
+
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme.current;
+    },
+  };
+});
 
 jest.mock("../hooks/useAllProjectCounts", () => {
   return {
@@ -90,9 +116,7 @@ jest.mock("../hooks/useProject", () => {
         projectList: mockProjects.current,
         isLoadingProjects: false,
         projectLoadError: mockProjectLoadError.current,
-        refreshProjects: async (): Promise<void> => {
-          return undefined;
-        },
+        refreshProjects: mockRefreshProjects,
       };
     },
   };
@@ -104,7 +128,7 @@ jest.mock("../hooks/useHaptics", () => {
       return {
         successFeedback: jest.fn(),
         errorFeedback: jest.fn(),
-        lightImpact: jest.fn(),
+        lightImpact: mockLightImpact,
         mediumImpact: jest.fn(),
         selectionFeedback: jest.fn(),
       };
@@ -620,5 +644,474 @@ describe("An empty project list says which kind of empty it is", () => {
     expect(screen.queryByText("No Projects Found")).toBeNull();
     expect(screen.queryByText(/Contact your administrator/i)).toBeNull();
     expect(screen.getByText(/not the same as you having none/i)).toBeTruthy();
+  });
+
+  test("Retry asks for the project list again", async () => {
+    mockProjectLoadError.current = new Error("Network request failed");
+
+    await render(<HomeScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Retry" }));
+
+    expect(mockRefreshProjects).toHaveBeenCalledTimes(1);
+  });
+});
+
+type RenderedElement = ReturnType<typeof screen.getByText>;
+
+function flatStyle(element: RenderedElement): ViewStyle & TextStyle {
+  return (StyleSheet.flatten(element.props["style"]) ?? {}) as ViewStyle &
+    TextStyle;
+}
+
+/*
+ * The surface a ListGroup draws its rows on. The group's own testID sits on
+ * an unstyled column that also holds the optional title and footer; the
+ * rounded card is its first rendered child when there is no title.
+ */
+function groupSurface(testID: string): RenderedElement {
+  const group: RenderedElement = screen.getByTestId(testID);
+  const surface: unknown = group.children[0];
+  if (!surface || typeof surface === "string") {
+    throw new Error(`${testID} rendered no surface`);
+  }
+  return surface as RenderedElement;
+}
+
+async function renderInTheme(scheme: "light" | "dark"): Promise<void> {
+  mockColorScheme.current = scheme;
+  await render(
+    <ThemeProvider>
+      <HomeScreen />
+    </ThemeProvider>,
+  );
+}
+
+describe("The Needs attention tiles", () => {
+  beforeEach(() => {
+    mockProjects.current = [makeProject()];
+    mockProjectLoadError.current = null;
+    mockCounts.current = countsWith();
+    mockOnCall.current = onCallOnDuty();
+    mockColorScheme.current = "light";
+  });
+
+  test("each tile leads with its count and says whether it needs a response", async () => {
+    mockCounts.current = countsWith({ incidentCount: 3, alertCount: 0 });
+
+    await render(<HomeScreen />);
+
+    const incidents: RenderedElement = screen.getByTestId(
+      "home-tile-incidents",
+    );
+    const alerts: RenderedElement = screen.getByTestId("home-tile-alerts");
+
+    expect(within(incidents).getByText("3")).toBeTruthy();
+    expect(within(incidents).getByText("Active Incidents")).toBeTruthy();
+    expect(within(incidents).getByText("Needs response")).toBeTruthy();
+    expect(within(alerts).getByText("0")).toBeTruthy();
+    expect(within(alerts).getByText("All clear")).toBeTruthy();
+  });
+
+  test("a count that needs a response is drawn in its accent, a zero stays neutral", async () => {
+    mockCounts.current = countsWith({ incidentCount: 2, alertCount: 0 });
+
+    await render(<HomeScreen />);
+
+    expect(
+      flatStyle(screen.getByTestId("home-tile-incidents-count")).color,
+    ).toBe(lightColors.severityCritical);
+    expect(flatStyle(screen.getByTestId("home-tile-alerts-count")).color).toBe(
+      lightColors.textPrimary,
+    );
+    expect(
+      flatStyle(screen.getByTestId("home-tile-incidents-status-dot"))
+        .backgroundColor,
+    ).toBe(lightColors.severityCritical);
+    expect(
+      flatStyle(screen.getByTestId("home-tile-alerts-status-dot"))
+        .backgroundColor,
+    ).toBe(lightColors.statusSuccess);
+  });
+
+  test("while counts load, tiles say they are checking rather than all clear", async () => {
+    mockCounts.current = countsWith({ isLoading: true });
+
+    await render(<HomeScreen />);
+
+    expect(screen.getAllByText("Checking…")).toHaveLength(2);
+    expect(screen.queryByText("All clear")).toBeNull();
+    expect(
+      within(screen.getByTestId("home-tile-incidents")).getByText("--"),
+    ).toBeTruthy();
+    expect(
+      within(screen.getByTestId("home-tile-alerts")).getByText("--"),
+    ).toBeTruthy();
+  });
+
+  test("a failed count read is explained, and Retry counts asks again", async () => {
+    const refetch: jest.Mock = jest.fn(async () => {
+      return undefined;
+    });
+    mockCounts.current = countsWith({
+      isError: true,
+      refetch: refetch as unknown as () => Promise<void>,
+    });
+
+    await render(<HomeScreen />);
+
+    expect(
+      screen.getByText(
+        "Counts are unavailable. Open a list or retry to check the latest status.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByRole("alert")).toBeTruthy();
+    expect(screen.getAllByText("Unavailable")).toHaveLength(2);
+    expect(screen.queryByText("All clear")).toBeNull();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Retry counts" }));
+
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  test("settled counts show no failure notice", async () => {
+    await render(<HomeScreen />);
+
+    expect(screen.queryByRole("button", { name: "Retry counts" })).toBeNull();
+    expect(screen.queryByText(/Counts are unavailable/)).toBeNull();
+  });
+
+  test("a tile press is felt before it navigates", async () => {
+    await render(<HomeScreen />);
+
+    await fireEvent.press(screen.getByTestId("home-tile-alerts"));
+
+    expect(mockLightImpact).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith("Inbox", {
+      screen: "InboxList",
+      params: {
+        initialView: "alerts",
+        initialSegment: "alerts",
+        initialFilter: "active",
+      },
+    });
+  });
+
+  test("tiles and their counts keep their card surface and tabular digits", async () => {
+    mockCounts.current = countsWith({ incidentCount: 7 });
+
+    await render(<HomeScreen />);
+
+    const tile: RenderedElement = screen.getByRole("button", {
+      name: "7 Active Incidents. Tap to view.",
+    });
+    expect(tile).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+    });
+    expect(
+      flatStyle(screen.getByTestId("home-tile-incidents-count")).fontVariant,
+    ).toEqual(["tabular-nums"]);
+    expect(
+      flatStyle(screen.getByTestId("home-row-all-monitors-count")).fontVariant,
+    ).toEqual(["tabular-nums"]);
+  });
+});
+
+describe("The on-call card", () => {
+  beforeEach(() => {
+    mockProjects.current = [makeProject()];
+    mockProjectLoadError.current = null;
+    mockCounts.current = countsWith();
+    mockOnCall.current = onCallWith();
+    mockColorScheme.current = "light";
+  });
+
+  test("opens the On-Call tab", async () => {
+    await render(<HomeScreen />);
+
+    await fireEvent.press(screen.getByTestId("home-oncall-card"));
+
+    expect(mockLightImpact).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith("OnCall");
+  });
+
+  test("on duty is a success pill with a dot", async () => {
+    mockOnCall.current = onCallOnDuty();
+
+    await render(<HomeScreen />);
+
+    expect(screen.getByTestId("home-oncall-status")).toHaveStyle({
+      backgroundColor: lightColors.statusSuccessBg,
+    });
+    expect(screen.getByTestId("home-oncall-status-dot")).toHaveStyle({
+      backgroundColor: lightColors.oncallActive,
+    });
+  });
+
+  test("off duty is a neutral pill without a dot", async () => {
+    await render(<HomeScreen />);
+
+    expect(screen.getByTestId("home-oncall-status")).toHaveStyle({
+      backgroundColor: lightColors.backgroundTertiary,
+    });
+    expect(screen.queryByTestId("home-oncall-status-dot")).toBeNull();
+  });
+
+  test("a failed duty check is a warning, never a success", async () => {
+    mockOnCall.current = onCallWith({ isError: true });
+
+    await render(<HomeScreen />);
+
+    expect(screen.getByTestId("home-oncall-status")).toHaveStyle({
+      backgroundColor: lightColors.statusWarningBg,
+    });
+    expect(screen.queryByTestId("home-oncall-status-dot")).toBeNull();
+  });
+
+  test("the card is a rounded surface, not a bare strip", async () => {
+    await render(<HomeScreen />);
+
+    expect(screen.getByTestId("home-oncall-card")).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+      borderRadius: radius.lg,
+    });
+  });
+});
+
+describe("Service health and grouped event rows", () => {
+  beforeEach(() => {
+    mockProjects.current = [makeProject()];
+    mockProjectLoadError.current = null;
+    mockOnCall.current = onCallOnDuty();
+    mockColorScheme.current = "light";
+    mockCounts.current = countsWith({
+      monitorCount: 9,
+      inoperationalMonitorCount: 2,
+      disabledMonitorCount: 1,
+      incidentEpisodeCount: 4,
+      alertEpisodeCount: 5,
+    });
+  });
+
+  test.each([
+    ["home-row-monitor-issues", "Monitor issues", "2"],
+    ["home-row-all-monitors", "All monitors", "9"],
+    ["home-row-disabled-monitors", "Disabled monitors", "1"],
+    ["home-row-incident-episodes", "Incident Episodes", "4"],
+    ["home-row-alert-episodes", "Alert Episodes", "5"],
+  ])(
+    "%s shows its label beside its count",
+    async (testID: string, label: string, count: string) => {
+      await render(<HomeScreen />);
+
+      const row: RenderedElement = screen.getByTestId(testID);
+      expect(within(row).getByText(label)).toBeTruthy();
+      expect(within(row).getByText(count)).toBeTruthy();
+    },
+  );
+
+  test("monitor issues are highlighted only when there are some", async () => {
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      <HomeScreen />,
+    );
+
+    expect(
+      flatStyle(screen.getByTestId("home-row-monitor-issues-count")).color,
+    ).toBe(lightColors.statusError);
+    expect(
+      flatStyle(screen.getByTestId("home-row-all-monitors-count")).color,
+    ).toBe(lightColors.textPrimary);
+
+    mockCounts.current = countsWith({ inoperationalMonitorCount: 0 });
+    await view.rerender(<HomeScreen />);
+
+    expect(
+      flatStyle(screen.getByTestId("home-row-monitor-issues-count")).color,
+    ).toBe(lightColors.textPrimary);
+  });
+
+  test("unknown counts in rows are muted placeholders", async () => {
+    mockCounts.current = countsWith({ isLoading: true });
+
+    await render(<HomeScreen />);
+
+    const count: RenderedElement = screen.getByTestId(
+      "home-row-monitor-issues-count",
+    );
+    expect(count.props.children).toBe("--");
+    expect(flatStyle(count).color).toBe(lightColors.textTertiary);
+  });
+
+  test("rows sit on rounded grouped surfaces", async () => {
+    await render(<HomeScreen />);
+
+    for (const group of ["home-service-health", "home-grouped-events"]) {
+      expect(groupSurface(group)).toHaveStyle({
+        backgroundColor: lightColors.backgroundElevated,
+        borderRadius: radius.lg,
+      });
+    }
+    expect(
+      screen.getByText("Episodes bring related incidents or alerts together."),
+    ).toBeTruthy();
+  });
+
+  test("a row press is felt before it navigates", async () => {
+    await render(<HomeScreen />);
+
+    await fireEvent.press(screen.getByTestId("home-row-alert-episodes"));
+
+    expect(mockLightImpact).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith("Inbox", {
+      screen: "InboxList",
+      params: {
+        initialView: "alerts",
+        initialSegment: "episodes",
+        initialFilter: "active",
+      },
+    });
+  });
+});
+
+describe("The SSO banner", () => {
+  beforeEach(() => {
+    mockProjectLoadError.current = null;
+    mockCounts.current = countsWith();
+    mockOnCall.current = onCallOnDuty();
+    mockColorScheme.current = "light";
+  });
+
+  test("names every project that still needs single sign-on", async () => {
+    mockProjects.current = [
+      makeProject({ _id: "p1", name: "Payments", requireSsoForLogin: true }),
+      makeProject({ _id: "p2", name: "Search", requireSsoForLogin: true }),
+      makeProject({ _id: "p3", name: "Open", requireSsoForLogin: false }),
+    ];
+
+    await render(<HomeScreen />);
+
+    const banner: RenderedElement =
+      await screen.findByTestId("home-sso-banner");
+    expect(
+      within(banner).getByText("SSO Authentication Required"),
+    ).toBeTruthy();
+    expect(
+      within(banner).getByText(
+        "Sign in with SSO to see activity from Payments, Search.",
+      ),
+    ).toBeTruthy();
+    expect(banner).toHaveStyle({
+      backgroundColor: lightColors.statusWarningBg,
+      borderRadius: radius.lg,
+    });
+  });
+
+  test("is absent when no project needs it", async () => {
+    mockProjects.current = [makeProject()];
+
+    await render(<HomeScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Overview")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("home-sso-banner")).toBeNull();
+  });
+});
+
+describe("Home in light and dark appearance", () => {
+  beforeEach(() => {
+    mockProjects.current = [makeProject()];
+    mockProjectLoadError.current = null;
+    mockOnCall.current = onCallOnDuty();
+    mockCounts.current = countsWith({ incidentCount: 1 });
+  });
+
+  test("a dark device paints the canvas, cards and text from the dark palette", async () => {
+    await renderInTheme("dark");
+
+    expect(screen.getByTestId("home-scroll")).toHaveStyle({
+      backgroundColor: darkColors.backgroundPrimary,
+    });
+    for (const card of [
+      "home-tile-incidents",
+      "home-tile-alerts",
+      "home-oncall-card",
+    ]) {
+      expect(screen.getByTestId(card)).toHaveStyle({
+        backgroundColor: darkColors.backgroundElevated,
+        borderRadius: radius.lg,
+      });
+    }
+    for (const group of ["home-service-health", "home-grouped-events"]) {
+      expect(groupSurface(group)).toHaveStyle({
+        backgroundColor: darkColors.backgroundElevated,
+        borderColor: darkColors.borderSubtle,
+      });
+    }
+    expect(flatStyle(screen.getByText("Overview")).color).toBe(
+      darkColors.textPrimary,
+    );
+    expect(flatStyle(screen.getByText("Active Alerts")).color).toBe(
+      darkColors.textPrimary,
+    );
+    expect(
+      flatStyle(screen.getByTestId("home-tile-incidents-count")).color,
+    ).toBe(darkColors.severityCritical);
+    expect(screen.getByTestId("home-oncall-status")).toHaveStyle({
+      backgroundColor: darkColors.statusSuccessBg,
+    });
+  });
+
+  test("an active tile's border is a translucent tint of its accent, not a light hex", async () => {
+    await renderInTheme("dark");
+
+    const border: unknown = flatStyle(
+      screen.getByTestId("home-tile-incidents"),
+    ).borderColor;
+    expect(border).toMatch(/^rgba\(255, 138, 128, 0\.5\)$/);
+    expect(flatStyle(screen.getByTestId("home-tile-alerts")).borderColor).toBe(
+      darkColors.borderSubtle,
+    );
+  });
+
+  test("a light device inside the same provider keeps the light palette", async () => {
+    await renderInTheme("light");
+
+    expect(screen.getByTestId("home-scroll")).toHaveStyle({
+      backgroundColor: lightColors.backgroundPrimary,
+    });
+    expect(screen.getByTestId("home-tile-alerts")).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+    });
+    expect(flatStyle(screen.getByText("Active Alerts")).color).toBe(
+      lightColors.textPrimary,
+    );
+  });
+
+  test("the failure notice and the SSO banner follow dark mode too", async () => {
+    mockCounts.current = countsWith({ isError: true });
+    mockProjects.current = [makeProject({ requireSsoForLogin: true })];
+
+    await renderInTheme("dark");
+
+    expect(await screen.findByTestId("home-sso-banner")).toHaveStyle({
+      backgroundColor: darkColors.statusWarningBg,
+    });
+    expect(
+      flatStyle(
+        screen.getByText(
+          "Counts are unavailable. Open a list or retry to check the latest status.",
+        ),
+      ).color,
+    ).toBe(darkColors.textPrimary);
+  });
+
+  test("screen gutters and section rhythm come from the spacing scale", async () => {
+    await renderInTheme("dark");
+
+    expect(
+      screen.getByTestId("home-scroll").props.contentContainerStyle,
+    ).toMatchObject({ padding: spacing.xl, gap: spacing.xxl });
   });
 });

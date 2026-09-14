@@ -1,10 +1,19 @@
 import React from "react";
-import { View, Text, Pressable, ActivityIndicator } from "react-native";
+import {
+  View,
+  Pressable,
+  ActivityIndicator,
+  type ViewStyle,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { radius, spacing, touchTarget } from "../theme/tokens";
 import { formatShiftWindow, formatTimeUntil } from "../utils/duration";
 import { displayNameForUser } from "./RosterScheduleCard";
 import type { OnCallOverrideItem } from "../api/types";
+import AppText from "./AppText";
+import Card from "./Card";
+import StatusPill, { getToneColors, type StatusTone } from "./StatusPill";
 
 interface OverrideCardProps {
   override: OnCallOverrideItem;
@@ -25,12 +34,9 @@ export default function OverrideCard({
   isCancelling = false,
 }: OverrideCardProps): React.JSX.Element {
   const { theme } = useTheme();
-  const accent: string =
-    state === "active"
-      ? theme.colors.oncallActive
-      : state === "upcoming"
-        ? theme.colors.severityInfo
-        : theme.colors.textTertiary;
+  const { colors } = theme;
+  const tone: StatusTone =
+    state === "active" ? "success" : state === "upcoming" ? "info" : "neutral";
   const label: string =
     state === "active"
       ? "In effect"
@@ -57,92 +63,48 @@ export default function OverrideCard({
   );
   const endsIn: string | null =
     state === "active" ? formatTimeUntil(override.endsAt, now) : null;
+  const canCancel: boolean = Boolean(onCancel) && state !== "past";
 
   return (
-    <View
+    <Card
       testID={`override-card-${override._id}`}
-      style={{
-        borderRadius: 18,
-        padding: 18,
-        backgroundColor: theme.colors.backgroundElevated,
-        gap: 11,
-      }}
+      variant={state === "past" ? "outlined" : "elevated"}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
-        <View
-          style={{
-            width: 7,
-            height: 7,
-            borderRadius: 4,
-            backgroundColor: accent,
-          }}
-        />
-        <Text
-          style={{
-            fontSize: 13,
-            lineHeight: 20,
-            fontWeight: "600",
-            color: accent,
-          }}
-        >
-          {label}
-        </Text>
-      </View>
-      <Text
-        style={{
-          fontSize: 17,
-          fontWeight: "600",
-          lineHeight: 24,
-          letterSpacing: -0.2,
-          color: theme.colors.textPrimary,
-        }}
+      <StatusPill
+        testID={`override-status-${override._id}`}
+        label={label}
+        tone={tone}
+        size="sm"
+        dotColor={getToneColors(theme, tone).text}
+      />
+      <AppText
+        variant="headline"
+        color={state === "past" ? colors.textSecondary : colors.textPrimary}
+        style={{ fontSize: 17, lineHeight: 23, marginTop: spacing.sm + 2 }}
       >
         {sentence}
-      </Text>
-      {window ? (
-        <View
-          style={{ flexDirection: "row", alignItems: "flex-start", gap: 7 }}
-        >
-          <Ionicons
-            name="time-outline"
-            size={15}
-            color={theme.colors.textSecondary}
-            style={{ marginTop: 3 }}
-          />
-          <Text
-            style={{
-              flex: 1,
-              fontSize: 14,
-              lineHeight: 21,
-              color: theme.colors.textSecondary,
-            }}
-          >
+      </AppText>
+      <View style={{ marginTop: spacing.sm, gap: spacing.xs }}>
+        {window ? (
+          <MetaLine iconName="time-outline">
             {window}
             {endsIn ? ` · ends ${endsIn}` : ""}
-          </Text>
-        </View>
-      ) : null}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 12,
-          borderTopWidth: 1,
-          borderTopColor: theme.colors.borderSubtle,
-          paddingTop: 10,
-        }}
-      >
-        <Text
+          </MetaLine>
+        ) : null}
+        <MetaLine iconName="git-branch-outline">
+          {override.onCallDutyPolicy?.name || "All on-call policies"}
+        </MetaLine>
+      </View>
+      {canCancel && onCancel ? (
+        <View
           style={{
-            flex: 1,
-            fontSize: 14,
-            lineHeight: 21,
-            color: theme.colors.textSecondary,
+            marginTop: spacing.md,
+            paddingTop: spacing.xs,
+            borderTopWidth: 1,
+            borderTopColor: colors.borderSubtle,
+            alignItems: "flex-end",
           }}
         >
-          {override.onCallDutyPolicy?.name || "All on-call policies"}
-        </Text>
-        {onCancel && state !== "past" ? (
           <Pressable
             testID={`override-cancel-${override._id}`}
             accessibilityRole="button"
@@ -154,17 +116,19 @@ export default function OverrideCard({
             onPress={(): void => {
               onCancel(override);
             }}
-            style={({ pressed }: { pressed: boolean }) => {
+            style={({ pressed }: { pressed: boolean }): ViewStyle => {
               return {
-                minHeight: 48,
+                minHeight: touchTarget,
                 minWidth: 76,
-                paddingHorizontal: 12,
-                borderRadius: 12,
+                marginTop: spacing.xs,
+                marginRight: -spacing.sm,
+                paddingHorizontal: spacing.md,
+                borderRadius: radius.md,
+                flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: pressed
-                  ? theme.colors.statusErrorBg
-                  : theme.colors.backgroundPrimary,
+                gap: spacing.xs + 2,
+                backgroundColor: pressed ? colors.statusErrorBg : "transparent",
                 opacity: isCancelling ? 0.5 : 1,
               };
             }}
@@ -172,22 +136,56 @@ export default function OverrideCard({
             {isCancelling ? (
               <ActivityIndicator
                 size="small"
-                color={theme.colors.actionDestructive}
+                color={colors.actionDestructive}
               />
             ) : (
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: theme.colors.actionDestructive,
-                }}
-              >
-                Cancel
-              </Text>
+              <>
+                <Ionicons
+                  name="close-circle-outline"
+                  size={18}
+                  color={colors.actionDestructive}
+                />
+                <AppText
+                  variant="subhead"
+                  weight="600"
+                  color={colors.actionDestructive}
+                >
+                  Cancel override
+                </AppText>
+              </>
             )}
           </Pressable>
-        ) : null}
-      </View>
+        </View>
+      ) : null}
+    </Card>
+  );
+}
+
+function MetaLine({
+  iconName,
+  children,
+}: {
+  iconName: keyof typeof Ionicons.glyphMap;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  const { theme } = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: spacing.xs + 2,
+      }}
+    >
+      <Ionicons
+        name={iconName}
+        size={15}
+        color={theme.colors.textTertiary}
+        style={{ marginTop: 3 }}
+      />
+      <AppText variant="subhead" tone="secondary" style={{ flex: 1 }}>
+        {children}
+      </AppText>
     </View>
   );
 }

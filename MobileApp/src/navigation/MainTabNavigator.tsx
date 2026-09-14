@@ -42,13 +42,13 @@ function TabIcon({
       style={{
         alignItems: "center",
         justifyContent: "center",
-        width: 44,
-        height: 30,
-        borderRadius: 10,
-        backgroundColor: focused ? accentColor + "10" : "transparent",
+        width: 52,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: focused ? accentColor : "transparent",
       }}
     >
-      <Ionicons name={focused ? focusedName : name} size={22} color={color} />
+      <Ionicons name={focused ? focusedName : name} size={21} color={color} />
     </View>
   );
 }
@@ -65,10 +65,9 @@ export default function MainTabNavigator(): React.JSX.Element {
           headerTitle: () => {
             return <ProjectSwitcher />;
           },
+          headerTitleAlign: "left",
           headerStyle: {
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderBottomWidth: 1,
-            borderBottomColor: theme.colors.borderSubtle,
+            backgroundColor: theme.colors.backgroundPrimary,
           },
           headerShadowVisible: false,
           headerTintColor: theme.colors.textPrimary,
@@ -77,6 +76,7 @@ export default function MainTabNavigator(): React.JSX.Element {
             fontSize: 18,
             letterSpacing: -0.4,
           },
+          sceneStyle: { backgroundColor: theme.colors.backgroundPrimary },
           tabBarStyle: {
             position: "absolute",
             left: 0,
@@ -84,14 +84,14 @@ export default function MainTabNavigator(): React.JSX.Element {
             bottom: 0,
             backgroundColor: theme.colors.backgroundSecondary,
             borderTopWidth: 1,
-            borderTopColor: theme.colors.borderDefault,
+            borderTopColor: theme.colors.borderSubtle,
             height: layout.tabBarHeight + (insets?.bottom ?? 0),
             paddingBottom: 8 + (insets?.bottom ?? 0),
-            paddingTop: 8,
+            paddingTop: 6,
             elevation: 0,
           },
           tabBarActiveTintColor: theme.colors.actionPrimary,
-          tabBarInactiveTintColor: theme.colors.textTertiary,
+          tabBarInactiveTintColor: theme.colors.textSecondary,
           tabBarShowLabel: true,
           tabBarLabelPosition: "below-icon",
           tabBarHideOnKeyboard: true,
@@ -105,15 +105,15 @@ export default function MainTabNavigator(): React.JSX.Element {
           },
           tabBarLabelStyle: {
             fontSize: 11,
+            lineHeight: 15,
             fontWeight: "600",
-            marginTop: 1,
+            marginTop: 3,
             letterSpacing: 0,
           },
           tabBarItemStyle: {
-            borderRadius: 14,
             marginHorizontal: 0,
             minHeight: 48,
-            paddingVertical: 2,
+            paddingVertical: 0,
           },
         }}
       >
@@ -139,7 +139,7 @@ export default function MainTabNavigator(): React.JSX.Element {
                   focusedName="home"
                   color={color}
                   focused={focused}
-                  accentColor={theme.colors.actionPrimary}
+                  accentColor={theme.colors.cardAccent}
                 />
               );
             },
@@ -164,7 +164,7 @@ export default function MainTabNavigator(): React.JSX.Element {
                   focusedName="pulse"
                   color={color}
                   focused={focused}
-                  accentColor={theme.colors.actionPrimary}
+                  accentColor={theme.colors.cardAccent}
                 />
               );
             },
@@ -189,7 +189,7 @@ export default function MainTabNavigator(): React.JSX.Element {
                   focusedName="file-tray"
                   color={color}
                   focused={focused}
-                  accentColor={theme.colors.actionPrimary}
+                  accentColor={theme.colors.cardAccent}
                 />
               );
             },
@@ -215,7 +215,7 @@ export default function MainTabNavigator(): React.JSX.Element {
                   focusedName="call"
                   color={color}
                   focused={focused}
-                  accentColor={theme.colors.actionPrimary}
+                  accentColor={theme.colors.cardAccent}
                 />
               );
             },
@@ -234,7 +234,7 @@ export default function MainTabNavigator(): React.JSX.Element {
                   focusedName="settings"
                   color={props.color}
                   focused={props.focused}
-                  accentColor={theme.colors.actionPrimary}
+                  accentColor={theme.colors.cardAccent}
                 />
               );
             },

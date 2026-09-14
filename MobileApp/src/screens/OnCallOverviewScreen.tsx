@@ -1,15 +1,9 @@
 import React from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  RefreshControl,
-  Pressable,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View, ScrollView, RefreshControl } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
+import { spacing } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 import { useRefresh } from "../hooks/useRefresh";
 import ScreenIntro from "../components/ScreenIntro";
@@ -25,7 +19,11 @@ import MyShiftCard from "../components/MyShiftCard";
 import QuickActionTile from "../components/QuickActionTile";
 import SectionHeader from "../components/SectionHeader";
 import SkeletonCard from "../components/SkeletonCard";
-import EmptyState from "../components/EmptyState";
+import AppText from "../components/AppText";
+import Banner from "../components/Banner";
+import Card from "../components/Card";
+import IconBadge from "../components/IconBadge";
+import { ListGroup, ListItem } from "../components/ListGroup";
 import {
   buildCoverParams,
   groupShiftsByDay,
@@ -38,6 +36,9 @@ type OnCallNavProp = NativeStackNavigationProp<
   OnCallStackParamList,
   "OnCallOverview"
 >;
+
+const SCREEN_TITLE: string = "On call";
+const SCREEN_DESCRIPTION: string = "Your duty, coverage and upcoming shifts.";
 
 /*
  * The on-call tab.
@@ -94,22 +95,39 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
     ]);
   });
 
+  const contentContainerStyle: {
+    padding: number;
+    paddingBottom: number;
+    gap: number;
+  } = {
+    padding: spacing.xl,
+    paddingBottom: bottomPadding,
+    gap: spacing.lg,
+  };
+
   if (duty.isLoading) {
+    /*
+     * The hero is shown in its "checking" state rather than skipped, so the
+     * layout does not jump - and it says nothing about duty until it knows.
+     */
     return (
       <View
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
+          contentContainerStyle={contentContainerStyle}
         >
           <ScreenIntro
-            title="On call"
-            description="Your duty, coverage and upcoming shifts."
+            title={SCREEN_TITLE}
+            description={SCREEN_DESCRIPTION}
+            style={{ marginBottom: spacing.xs }}
           />
-          <SkeletonCard lines={4} />
-          <SkeletonCard lines={2} />
-          <SkeletonCard lines={3} />
+          <OnCallStatusCard summary={duty.summary} now={now} isLoading />
+          <View>
+            <SkeletonCard lines={2} />
+            <SkeletonCard lines={3} />
+          </View>
         </ScrollView>
       </View>
     );
@@ -121,11 +139,7 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
         testID="oncall-overview-scroll"
         contentInsetAdjustmentBehavior="automatic"
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
-        contentContainerStyle={{
-          padding: 20,
-          paddingBottom: bottomPadding,
-          flexGrow: 1,
-        }}
+        contentContainerStyle={{ ...contentContainerStyle, flexGrow: 1 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -135,15 +149,15 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
         }
       >
         <ScreenIntro
-          title="On call"
-          description="Your duty, coverage and upcoming shifts."
+          title={SCREEN_TITLE}
+          description={SCREEN_DESCRIPTION}
+          style={{ marginBottom: spacing.xs }}
         />
-        <EmptyState
-          title="Could not load your on-call status"
-          subtitle="Pull to refresh or try again."
-          icon="alerts"
-          actionLabel="Retry"
-          onAction={onRefresh}
+        <OnCallStatusCard
+          summary={duty.summary}
+          now={now}
+          isError
+          onRetry={onRefresh}
         />
       </ScrollView>
     );
@@ -153,13 +167,18 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
     ...duty.summary.activeShifts,
     ...duty.summary.upcomingShifts,
   ];
+  const shiftCount: number = useServerShifts
+    ? myShifts.shifts.length
+    : allShifts.length;
+  const policyAssignmentCount: number =
+    duty.summary.standingAssignmentCount + duty.summary.scheduleAssignmentCount;
 
   return (
     <ScrollView
       testID="oncall-overview-scroll"
       contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: theme.colors.backgroundPrimary }}
-      contentContainerStyle={{ padding: 20, paddingBottom: bottomPadding }}
+      contentContainerStyle={contentContainerStyle}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -169,18 +188,39 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
       }
     >
       <ScreenIntro
-        title="On call"
-        description="Your team, your shifts, your peace of mind."
+        title={SCREEN_TITLE}
+        description={SCREEN_DESCRIPTION}
+        style={{ marginBottom: spacing.xs }}
       />
       <OnCallStatusCard summary={duty.summary} now={now} />
 
-      <View style={{ flexDirection: "row", gap: 12, marginTop: 16 }}>
+      {activeOverrideCount > 0 ? (
+        <Banner
+          testID="active-override-banner"
+          tone="info"
+          icon="swap-horizontal"
+          accessibilityLabel={`${activeOverrideCount} override${
+            activeOverrideCount === 1 ? "" : "s"
+          } in effect. Tap to review.`}
+          message={
+            activeOverrideCount === 1
+              ? "1 override is in effect right now"
+              : `${activeOverrideCount} overrides are in effect right now`
+          }
+          onPress={() => {
+            lightImpact();
+            navigation.navigate("OnCallOverrides");
+          }}
+        />
+      ) : null}
+
+      <View style={{ flexDirection: "row", gap: spacing.md }}>
         <QuickActionTile
           testID="quick-action-cover"
           label="Cover for me"
           sublabel="Arrange a handoff"
           iconName="swap-horizontal-outline"
-          accentColor={theme.colors.severityInfo}
+          accentColor={theme.colors.actionPrimary}
           onPress={() => {
             navigation.navigate("CreateOnCallOverride");
           }}
@@ -197,92 +237,44 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
         />
       </View>
 
-      <View style={{ marginTop: 12 }}>
-        <NavigationRow
+      <ListGroup testID="pages-group">
+        <ListItem
           testID="row-pages"
-          iconName="notifications-outline"
+          icon="notifications-outline"
           title="Pages sent to me"
           subtitle="Your recent response requests"
           onPress={() => {
+            lightImpact();
             navigation.navigate("MyOnCallPages");
           }}
         />
-      </View>
+      </ListGroup>
 
-      {activeOverrideCount > 0 ? (
-        <Pressable
-          testID="active-override-banner"
-          accessibilityRole="button"
-          accessibilityLabel={`${activeOverrideCount} override${
-            activeOverrideCount === 1 ? "" : "s"
-          } in effect. Tap to review.`}
-          onPress={() => {
-            lightImpact();
-            navigation.navigate("OnCallOverrides");
-          }}
-          style={{ marginTop: 16 }}
-        >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              padding: 14,
-              borderRadius: 16,
-              backgroundColor: theme.colors.severityInfoBg,
-              borderWidth: 1,
-              borderColor: theme.colors.severityInfo + "33",
-            }}
-          >
-            <Ionicons
-              name="swap-horizontal"
-              size={16}
-              color={theme.colors.severityInfo}
-            />
-            <Text
-              style={{
-                flex: 1,
-                fontSize: 13,
-                fontWeight: "600",
-                marginLeft: 10,
-                color: theme.colors.severityInfo,
-              }}
-              numberOfLines={2}
-            >
-              {activeOverrideCount === 1
-                ? "1 override is in effect right now"
-                : `${activeOverrideCount} overrides are in effect right now`}
-            </Text>
-            <Ionicons
-              name="chevron-forward"
-              size={14}
-              color={theme.colors.severityInfo}
-            />
-          </View>
-        </Pressable>
-      ) : null}
-
-      <View style={{ marginTop: 28 }}>
-        <SectionHeader title="Your shifts" iconName="calendar-outline" />
+      <View style={{ marginTop: spacing.md }}>
+        <SectionHeader
+          title="Your shifts"
+          iconName="calendar-outline"
+          count={shiftCount > 0 ? shiftCount : undefined}
+        />
 
         {useServerShifts ? (
-          <View testID="my-shifts-list" style={{ gap: 12 }}>
+          <View testID="my-shifts-list" style={{ gap: spacing.lg }}>
             {shiftGroups.map((group: ShiftDayGroup) => {
               return (
-                <View key={group.key} testID={`shift-day-${group.key}`}>
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: "600",
-                      letterSpacing: 0.6,
-                      textTransform: "uppercase",
-                      marginBottom: 8,
-                      marginLeft: 4,
-                      color: theme.colors.textTertiary,
-                    }}
+                <View
+                  key={group.key}
+                  testID={`shift-day-${group.key}`}
+                  style={{ gap: spacing.sm }}
+                >
+                  <AppText
+                    variant="overline"
+                    tone="secondary"
+                    accessibilityRole="header"
+                    style={{ marginLeft: spacing.xs }}
                   >
                     {group.label}
-                  </Text>
-                  <View style={{ gap: 12 }}>
+                  </AppText>
+                  <View style={{ gap: spacing.md }}>
                     {group.shifts.map((shift: MyOnCallShift) => {
                       return (
                         <MyShiftCard
@@ -299,42 +291,37 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
             })}
 
             {myShifts.truncated ? (
-              <Text
+              <Banner
                 testID="my-shifts-truncated"
-                style={{
-                  fontSize: 12,
-                  marginLeft: 4,
-                  color: theme.colors.textTertiary,
-                }}
-              >
-                The server could not expand every schedule; some shifts may be
-                missing from this list.
-              </Text>
+                tone="warning"
+                message="The server could not expand every schedule; some shifts may be missing from this list."
+              />
             ) : null}
           </View>
         ) : allShifts.length === 0 ? (
-          <View
-            style={{
-              borderRadius: 16,
-              padding: 18,
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderGlass,
-            }}
-          >
-            <Text
+          <Card testID="no-shifts-card" variant="outlined">
+            <View
               style={{
-                fontSize: 14,
-                lineHeight: 20,
-                color: theme.colors.textSecondary,
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: spacing.md,
               }}
             >
-              No current or upcoming roster shifts. Standing assignments, if
-              any, are shown below.
-            </Text>
-          </View>
+              <IconBadge
+                name="calendar-clear-outline"
+                color={theme.colors.textSecondary}
+              />
+              <View style={{ flex: 1, gap: spacing.xxs }}>
+                <AppText variant="headline">Nothing scheduled</AppText>
+                <AppText variant="subhead" tone="secondary">
+                  No current or upcoming roster shifts. Standing assignments, if
+                  any, are shown below.
+                </AppText>
+              </View>
+            </View>
+          </Card>
         ) : (
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: spacing.md }}>
             {allShifts.map((shift: OnCallShift) => {
               return (
                 <ShiftCard
@@ -349,172 +336,73 @@ export default function OnCallOverviewScreen(): React.JSX.Element {
       </View>
 
       {duty.summary.standingAssignmentCount > 0 ? (
-        <View style={{ marginTop: 28 }}>
+        <View style={{ marginTop: spacing.md }}>
           <SectionHeader
             title="Standing assignments"
             iconName="person-outline"
+            count={duty.summary.standingAssignmentCount}
           />
-          <View
-            style={{
-              borderRadius: 16,
-              padding: 18,
-              backgroundColor: theme.colors.backgroundElevated,
-              borderWidth: 1,
-              borderColor: theme.colors.borderGlass,
-            }}
-          >
-            <Text
+          <Card testID="standing-assignments-card">
+            <View
               style={{
-                fontSize: 14,
-                lineHeight: 20,
-                color: theme.colors.textSecondary,
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: spacing.md,
               }}
             >
-              {duty.summary.standingAssignmentCount === 1
-                ? "1 escalation rule pages you directly, with no shift window. You are reachable through it at any time."
-                : `${duty.summary.standingAssignmentCount} escalation rules page you directly, with no shift window. You are reachable through them at any time.`}
-            </Text>
-          </View>
+              <IconBadge
+                name="git-branch-outline"
+                color={theme.colors.actionPrimary}
+              />
+              <AppText variant="subhead" tone="secondary" style={{ flex: 1 }}>
+                {duty.summary.standingAssignmentCount === 1
+                  ? "1 escalation rule pages you directly, with no shift window. You are reachable through it at any time."
+                  : `${duty.summary.standingAssignmentCount} escalation rules page you directly, with no shift window. You are reachable through them at any time.`}
+              </AppText>
+            </View>
+          </Card>
         </View>
       ) : null}
 
-      <View style={{ marginTop: 28, gap: 0 }}>
+      <View style={{ marginTop: spacing.md }}>
         <SectionHeader title="Manage on-call" iconName="options-outline" />
-
-        <NavigationRow
-          testID="row-policies"
-          iconName="git-branch-outline"
-          title="My on-call policies"
-          subtitle={`${
-            duty.summary.standingAssignmentCount +
-            duty.summary.scheduleAssignmentCount
-          } active ${
-            duty.summary.standingAssignmentCount +
-              duty.summary.scheduleAssignmentCount ===
-            1
-              ? "assignment"
-              : "assignments"
-          }`}
-          onPress={() => {
-            navigation.navigate("OnCallList");
-          }}
-        />
-
-        <NavigationRow
-          testID="row-overrides"
-          iconName="swap-horizontal-outline"
-          title="Coverage & overrides"
-          subtitle="Review active, scheduled and past cover"
-          onPress={() => {
-            navigation.navigate("OnCallOverrides");
-          }}
-        />
-
-        {calendarFeed.isAvailable ? (
-          <NavigationRow
-            testID="row-calendar"
-            iconName="calendar-outline"
-            title="Add shifts to my calendar"
-            subtitle="Subscribe from Google, Outlook or Apple Calendar"
+        <ListGroup testID="manage-oncall-group">
+          <ListItem
+            testID="row-policies"
+            icon="git-branch-outline"
+            title="My on-call policies"
+            subtitle={`${policyAssignmentCount} active ${
+              policyAssignmentCount === 1 ? "assignment" : "assignments"
+            }`}
             onPress={() => {
-              navigation.navigate("OnCallCalendarFeed");
+              lightImpact();
+              navigation.navigate("OnCallList");
             }}
           />
-        ) : null}
+          <ListItem
+            testID="row-overrides"
+            icon="swap-horizontal-outline"
+            title="Coverage & overrides"
+            subtitle="Review active, scheduled and past cover"
+            onPress={() => {
+              lightImpact();
+              navigation.navigate("OnCallOverrides");
+            }}
+          />
+          {calendarFeed.isAvailable ? (
+            <ListItem
+              testID="row-calendar"
+              icon="calendar-outline"
+              title="Add shifts to my calendar"
+              subtitle="Subscribe from Google, Outlook or Apple Calendar"
+              onPress={() => {
+                lightImpact();
+                navigation.navigate("OnCallCalendarFeed");
+              }}
+            />
+          ) : null}
+        </ListGroup>
       </View>
     </ScrollView>
-  );
-}
-
-function NavigationRow({
-  iconName,
-  title,
-  subtitle,
-  onPress,
-  testID,
-}: {
-  iconName: keyof typeof Ionicons.glyphMap;
-  title: string;
-  subtitle: string;
-  onPress: () => void;
-  testID?: string;
-}): React.JSX.Element {
-  const { theme } = useTheme();
-  const { lightImpact } = useHaptics();
-
-  return (
-    <Pressable
-      testID={testID}
-      accessibilityRole="button"
-      accessibilityLabel={`${title}. ${subtitle}`}
-      onPress={() => {
-        lightImpact();
-        onPress();
-      }}
-      style={({ pressed }: { pressed: boolean }) => {
-        return { opacity: pressed ? 0.8 : 1 };
-      }}
-    >
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingVertical: 16,
-          paddingHorizontal: 14,
-          minHeight: 80,
-          borderRadius: 0,
-          backgroundColor: theme.colors.backgroundElevated,
-          borderBottomWidth: 1,
-          borderBottomColor: theme.colors.borderSubtle,
-        }}
-      >
-        <View
-          style={{
-            width: 30,
-            height: 30,
-            borderRadius: 0,
-            alignItems: "center",
-            justifyContent: "center",
-            marginRight: 12,
-            backgroundColor: "transparent",
-          }}
-        >
-          <Ionicons
-            name={iconName}
-            size={21}
-            color={theme.colors.textSecondary}
-          />
-        </View>
-
-        <View style={{ flex: 1 }}>
-          <Text
-            style={{
-              fontSize: 16,
-              fontWeight: "600",
-              color: theme.colors.textPrimary,
-            }}
-            numberOfLines={2}
-          >
-            {title}
-          </Text>
-          <Text
-            style={{
-              fontSize: 14,
-              lineHeight: 20,
-              marginTop: 4,
-              color: theme.colors.textTertiary,
-            }}
-          >
-            {subtitle}
-          </Text>
-        </View>
-
-        <Ionicons
-          name="chevron-forward"
-          size={14}
-          color={theme.colors.textTertiary}
-        />
-      </View>
-    </Pressable>
   );
 }

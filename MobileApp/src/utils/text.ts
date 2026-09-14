@@ -45,3 +45,29 @@ export function toPlainText(value: unknown): string {
     return String(value);
   }
 }
+
+/**
+ * Up to two letters for an avatar: the first letters of the first and last
+ * words. "Ada Lovelace" is "AL", "(Ops) Team" is "OT", and an email address
+ * uses its local part, so "jordan.lee@example.com" is "JL". Returns an empty
+ * string when nothing usable is left, which avatars show as an icon instead.
+ */
+export function getInitials(source: string | null | undefined): string {
+  const words: Array<string> = (source ?? "")
+    .replace(/@.*$/, "")
+    .split(/[\s._+-]+/)
+    .map((word: string): string => {
+      // Leading punctuation such as "(Ops)" is not part of anybody's initial.
+      return word.replace(/^[^0-9A-Za-z\u00C0-\uFFFF]+/, "");
+    })
+    .filter((word: string): boolean => {
+      return word.length > 0;
+    });
+  if (words.length === 0) {
+    return "";
+  }
+  const first: string = Array.from(words[0]!)[0] ?? "";
+  const last: string =
+    words.length > 1 ? Array.from(words[words.length - 1]!)[0] ?? "" : "";
+  return `${first}${last}`.toUpperCase();
+}

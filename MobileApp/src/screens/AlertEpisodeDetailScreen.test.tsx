@@ -5,6 +5,7 @@ import {
   screen,
   fireEvent,
   waitFor,
+  within,
 } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import { QueryClient } from "@tanstack/react-query";
@@ -285,7 +286,7 @@ describe("While the episode is still loading", () => {
 
     await renderScreen(createSeedableClient());
 
-    expect(screen.queryByText("Episode not found.")).toBeNull();
+    expect(screen.queryByText("Episode not found")).toBeNull();
     expect(screen.queryByText("Something went wrong")).toBeNull();
   });
 });
@@ -308,7 +309,7 @@ describe("When the episode could not be fetched", () => {
     await renderScreen(createSeedableClient());
 
     expect(screen.getByText("Something went wrong")).toBeTruthy();
-    expect(screen.queryByText("Episode not found.")).toBeNull();
+    expect(screen.queryByText("Episode not found")).toBeNull();
   });
 
   test("the responder is told the difference in words, not just in tone", async () => {
@@ -370,7 +371,12 @@ describe("When the episode genuinely no longer exists", () => {
 
     await renderScreen(createSeedableClient());
 
-    expect(screen.getByText("Episode not found.")).toBeTruthy();
+    expect(screen.getByText("Episode not found")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "This alert episode no longer exists, or it is not part of this project.",
+      ),
+    ).toBeTruthy();
     expect(screen.queryByText("Something went wrong")).toBeNull();
     expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
   });
@@ -396,7 +402,7 @@ describe("When the episode genuinely no longer exists", () => {
 
     expect(screen.getByText("Something went wrong")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
-    expect(screen.queryByText("Episode not found.")).toBeNull();
+    expect(screen.queryByText("Episode not found")).toBeNull();
   });
 });
 
@@ -861,5 +867,101 @@ describe("Episode response guidance", () => {
       screen.getByTestId("detail-scroll").props.contentContainerStyle
         .paddingBottom,
     ).toBe(248);
+  });
+});
+
+describe("Episode guidance for each response stage", () => {
+  test("an open episode asks for a responder and explains the grouped scope", async () => {
+    await renderScreen(createSeedableClient());
+
+    const guidance: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("response-guidance");
+    expect(within(guidance).getByText("Needs a responder")).toBeTruthy();
+    expect(
+      within(guidance).getByText(/apply to its grouped alerts/),
+    ).toBeTruthy();
+    expect(
+      within(guidance).getByRole("button", {
+        name: "Acknowledge alert episode",
+      }),
+    ).toBeTruthy();
+    expect(
+      within(guidance).getByRole("button", { name: "Resolve alert episode" }),
+    ).toBeTruthy();
+  });
+
+  test("an acknowledged episode is in progress and only offers Resolve", async () => {
+    mockEpisodeQuery.current = episodeStateWith({
+      data: makeAlertEpisode({
+        currentAlertState: {
+          _id: acknowledgedState._id,
+          name: acknowledgedState.name,
+          color: acknowledgedState.color,
+        },
+      }),
+    });
+
+    await renderScreen(createSeedableClient());
+
+    const guidance: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("response-guidance");
+    expect(within(guidance).getByText("Response in progress")).toBeTruthy();
+    expect(
+      within(guidance).getByText(
+        "A responder has acknowledged this alert episode. Resolve it once recovery is confirmed.",
+      ),
+    ).toBeTruthy();
+    expect(within(guidance).getAllByRole("button")).toHaveLength(1);
+  });
+
+  test("a resolved episode says the response is complete, with nothing to press", async () => {
+    mockEpisodeQuery.current = episodeStateWith({
+      data: makeAlertEpisode({
+        currentAlertState: {
+          _id: resolvedState._id,
+          name: resolvedState.name,
+          color: resolvedState.color,
+        },
+      }),
+    });
+
+    await renderScreen(createSeedableClient());
+
+    const guidance: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("response-guidance");
+    expect(within(guidance).getByText("Response complete")).toBeTruthy();
+    expect(
+      within(guidance).getByText(
+        "This alert episode is resolved. Review the context and team notes below.",
+      ),
+    ).toBeTruthy();
+    expect(within(guidance).queryAllByRole("button")).toHaveLength(0);
+  });
+
+  test("loading shows the detail skeleton rather than a bare spinner", async () => {
+    mockEpisodeQuery.current = episodeStateWith({
+      data: undefined,
+      isLoading: true,
+    });
+
+    await renderScreen(createSeedableClient());
+
+    expect(screen.getByTestId("response-detail-skeleton")).toBeTruthy();
+    expect(screen.getByLabelText("Loading content")).toBeTruthy();
+  });
+
+  test("a failed load uses the error illustration and keeps Retry", async () => {
+    mockEpisodeQuery.current = episodeStateWith({
+      data: undefined,
+      isError: true,
+      error: new Error("Network request failed"),
+    });
+
+    await renderScreen(createSeedableClient());
+
+    expect(
+      screen.getByRole("header", { name: "Something went wrong" }),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
   });
 });

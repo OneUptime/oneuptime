@@ -1,4 +1,5 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import {
   act,
   fireEvent,
@@ -9,6 +10,8 @@ import {
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import type { MockedFunction } from "jest-mock";
 import BiometricLockScreen from "./BiometricLockScreen";
+import { ThemeProvider } from "../theme";
+import { darkColors, lightColors } from "../theme/colors";
 
 /*
  * The screen standing between a responder and a page they have already been
@@ -59,6 +62,23 @@ type RenderedScreen = Awaited<ReturnType<typeof render>>;
 
 const mockAuthenticateAsync: MockedFunction<AuthenticateAsync> =
   jest.fn<AuthenticateAsync>();
+
+/*
+ * The lock screen is the one most often seen in the dark, so it is also
+ * rendered inside the real ThemeProvider with the system appearance stood in
+ * for. Outside a provider the context falls back to the light palette, which
+ * is what every other test in this file sees.
+ */
+let mockSystemScheme: "light" | "dark" = "dark";
+
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockSystemScheme;
+    },
+  };
+});
 
 jest.mock("expo-local-authentication", () => {
   return {
@@ -140,7 +160,7 @@ describe("What the locked screen says", () => {
      */
     await renderLockScreen(jest.fn(), FACE_ID);
 
-    expect(screen.getByText("Use face id to unlock")).toBeTruthy();
+    expect(screen.getByText("Use Face ID to unlock")).toBeTruthy();
   });
 
   test("Fingerprint reaches the instruction", async () => {
@@ -157,7 +177,34 @@ describe("What the locked screen says", () => {
      */
     await renderLockScreen(jest.fn(), FINGERPRINT);
 
-    expect(screen.queryByText("Use face id to unlock")).toBeNull();
+    expect(screen.queryByText("Use Face ID to unlock")).toBeNull();
+  });
+
+  test("a generic biometric type reads as an ordinary word", async () => {
+    /*
+     * Product names keep their capitals ("Face ID"); the generic fallback the
+     * hook reports when it cannot tell which sensor exists does not.
+     */
+    await renderLockScreen(jest.fn(), "Biometrics");
+
+    expect(screen.getByText("Use biometrics to unlock")).toBeTruthy();
+  });
+
+  test("the lock is centred around one large unlock action", async () => {
+    await renderLockScreen(jest.fn());
+
+    expect(screen.getByTestId("auth-brand")).toBeTruthy();
+    expect(screen.getByTestId("auth-icon")).toBeTruthy();
+    expect(
+      screen.getByRole("header", { name: "Unlock your workspace" }),
+    ).toBeTruthy();
+    const unlock: ReturnType<typeof screen.getByRole> = screen.getByRole(
+      "button",
+      { name: "Unlock" },
+    );
+    expect(
+      StyleSheet.flatten(unlock.props.style).minHeight,
+    ).toBeGreaterThanOrEqual(56);
   });
 
   test("an Unlock button is offered as a button to a screen reader", async () => {
@@ -381,5 +428,125 @@ describe("An authentication that does not succeed", () => {
 
     expect(mockAuthenticateAsync).toHaveBeenCalledTimes(2);
     expect(onSuccess).not.toHaveBeenCalled();
+  });
+});
+
+describe("Retry guidance after a refused unlock", () => {
+  test("is announced politely rather than as an alarm", async () => {
+    /*
+     * A responder who dismissed the sheet did nothing wrong. The guidance is
+     * a live region, so it is read out, but it is not an alert.
+     */
+    mockAuthenticateAsync.mockResolvedValue(CANCELLED);
+
+    await renderLockScreen(jest.fn());
+    await settleAuthentication();
+
+    const notice: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("biometric-notice");
+    expect(notice.props.accessibilityLiveRegion).toBe("polite");
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByText(/Your app is still locked/)).toBeTruthy();
+  });
+
+  test("clears when the next attempt starts and returns if it fails too", async () => {
+    let finish: ((value: AuthenticationResult) => void) | undefined;
+    mockAuthenticateAsync.mockResolvedValueOnce(CANCELLED);
+    mockAuthenticateAsync.mockImplementationOnce(() => {
+      return new Promise((resolve: (value: AuthenticationResult) => void) => {
+        finish = resolve;
+      });
+    });
+
+    await renderLockScreen(jest.fn());
+    await settleAuthentication();
+    expect(screen.getByTestId("biometric-notice")).toBeTruthy();
+
+    fireEvent.press(screen.getByRole("button", { name: "Unlock" }));
+    await waitFor(() => {
+      expect(screen.queryByTestId("biometric-notice")).toBeNull();
+    });
+    expect(
+      screen.getByRole("button", { name: "Unlock" }).props.accessibilityState
+        .busy,
+    ).toBe(true);
+
+    await act(() => {
+      finish?.(FAILED);
+    });
+
+    expect(screen.getByTestId("biometric-notice")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Unlock" }).props.accessibilityState
+        .disabled,
+    ).toBe(false);
+  });
+});
+
+describe("The lock screen in dark mode", () => {
+  beforeEach(() => {
+    mockSystemScheme = "dark";
+  });
+
+  async function renderInTheme(): Promise<void> {
+    await render(
+      <ThemeProvider>
+        <BiometricLockScreen onSuccess={jest.fn()} biometricType={FACE_ID} />
+      </ThemeProvider>,
+    );
+  }
+
+  test("paints the dark canvas and a wordmark that stays readable on it", async () => {
+    mockAuthenticateAsync.mockResolvedValue(CANCELLED);
+
+    await renderInTheme();
+    await settleAuthentication();
+
+    expect(
+      StyleSheet.flatten(screen.getByTestId("auth-keyboard").props.style)
+        .backgroundColor,
+    ).toBe(darkColors.backgroundPrimary);
+    const wordmark: { props: { xml: string } } = screen.getByTestId(
+      "auth-brand",
+    ).children[0] as unknown as { props: { xml: string } };
+    expect(wordmark.props.xml).toContain(`fill="${darkColors.textPrimary}"`);
+    expect(wordmark.props.xml).not.toContain(
+      `fill="${lightColors.textPrimary}"`,
+    );
+  });
+
+  test("uses the dark warning tint and dark button label for the retry state", async () => {
+    mockAuthenticateAsync.mockResolvedValue(CANCELLED);
+
+    await renderInTheme();
+    await settleAuthentication();
+
+    expect(
+      StyleSheet.flatten(screen.getByTestId("biometric-notice").props.style)
+        .backgroundColor,
+    ).toBe(darkColors.statusWarningBg);
+    const unlock: ReturnType<typeof screen.getByRole> = screen.getByRole(
+      "button",
+      { name: "Unlock" },
+    );
+    expect(StyleSheet.flatten(unlock.props.style).backgroundColor).toBe(
+      darkColors.actionPrimary,
+    );
+    expect(screen.getByText("Unlock")).toHaveStyle({
+      color: darkColors.textInverse,
+    });
+  });
+
+  test("follows the device back to the light palette", async () => {
+    mockSystemScheme = "light";
+    mockAuthenticateAsync.mockResolvedValue(CANCELLED);
+
+    await renderInTheme();
+    await settleAuthentication();
+
+    expect(
+      StyleSheet.flatten(screen.getByTestId("auth-keyboard").props.style)
+        .backgroundColor,
+    ).toBe(lightColors.backgroundPrimary);
   });
 });

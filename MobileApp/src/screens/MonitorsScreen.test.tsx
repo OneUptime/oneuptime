@@ -1,4 +1,5 @@
 import React from "react";
+import { StyleSheet, type TextStyle, type ViewStyle } from "react-native";
 import {
   fireEvent,
   render,
@@ -12,6 +13,9 @@ import {
   makeMonitor,
   makeNamedEntityWithColor,
 } from "../__tests__/testSupport";
+import { ThemeProvider } from "../theme";
+import { darkColors, lightColors } from "../theme/colors";
+import { radius, spacing } from "../theme/tokens";
 import type { MonitorItem, ProjectMonitorItem } from "../api/types";
 
 /*
@@ -63,6 +67,22 @@ const mockRoute: {
 } = { params: undefined };
 
 const mockLightImpact: jest.Mock = jest.fn();
+
+/*
+ * The device appearance ThemeProvider follows. react-native exposes
+ * useColorScheme through a getter that cannot be spied on, so the module
+ * behind it is replaced.
+ */
+const mockColorScheme: { current: "light" | "dark" } = { current: "light" };
+
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" => {
+      return mockColorScheme.current;
+    },
+  };
+});
 
 jest.mock("../hooks/useAllProjectMonitors", () => {
   return {
@@ -298,7 +318,56 @@ function refreshControl(): RenderedElement {
 beforeEach(() => {
   mockRoute.params = undefined;
   mockMonitors.current = stateWith();
+  mockColorScheme.current = "light";
 });
+
+function flatStyle(element: RenderedElement): ViewStyle & TextStyle {
+  return (StyleSheet.flatten(element.props["style"]) ?? {}) as ViewStyle &
+    TextStyle;
+}
+
+async function renderInTheme(scheme: "light" | "dark"): Promise<void> {
+  mockColorScheme.current = scheme;
+  await render(
+    <ThemeProvider>
+      <MonitorsScreen />
+    </ThemeProvider>,
+  );
+}
+
+/** A fleet with one monitor in every group the screen draws. */
+function mixedFleet(): ProjectMonitorItem[] {
+  return [
+    wrap(healthyMonitor("healthy-1", "api.example.com")),
+    wrap(offlineMonitor("offline-1", "db.example.com")),
+    wrap(offlineMonitor("offline-2", "queue.example.com")),
+    wrap(
+      makeMonitor({
+        _id: "disabled-1",
+        name: "cache.example.com",
+        disableActiveMonitoring: true,
+      }),
+    ),
+    wrap(
+      makeMonitor({
+        _id: "unknown-1",
+        name: "new.example.com",
+        currentMonitorStatus: undefined,
+      }),
+    ),
+  ];
+}
+
+/*
+ * One monitor per group. SectionList renders its first ten cells up front and
+ * counts a header and a footer cell for every section, so four sections only
+ * all reach the first render when they are this small.
+ */
+function oneOfEach(): ProjectMonitorItem[] {
+  return mixedFleet().filter((wrapped: ProjectMonitorItem) => {
+    return wrapped.item._id !== "offline-2";
+  });
+}
 
 describe("While the fleet is still being fetched", () => {
   beforeEach(() => {
@@ -1152,4 +1221,268 @@ test("a failed refresh does not present cached health totals as current", async 
   expect(screen.queryByTestId("monitor-summary-Healthy")).toBeNull();
   expect(screen.queryByText("1 result")).toBeNull();
   expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+});
+
+describe("The fleet summary tiles", () => {
+  beforeEach(() => {
+    mockMonitors.current = stateWith({ items: mixedFleet() });
+  });
+
+  test("each tile is announced as one figure with its label", async () => {
+    await render(<MonitorsScreen />);
+
+    expect(screen.getByLabelText("Healthy: 1")).toBeTruthy();
+    expect(screen.getByLabelText("Has issues: 2")).toBeTruthy();
+    expect(screen.getByLabelText("Disabled: 1")).toBeTruthy();
+  });
+
+  test("tiles are rounded card surfaces", async () => {
+    await render(<MonitorsScreen />);
+
+    for (const label of ["Healthy", "Has issues", "Disabled"]) {
+      expect(screen.getByTestId(`monitor-summary-${label}`)).toHaveStyle({
+        backgroundColor: lightColors.backgroundElevated,
+        borderColor: lightColors.borderSubtle,
+        borderRadius: radius.lg,
+        padding: spacing.md,
+      });
+    }
+  });
+
+  test("an issue count is drawn in the error colour, and a zero is not", async () => {
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      <MonitorsScreen />,
+    );
+
+    const issues: RenderedElement = within(
+      screen.getByTestId("monitor-summary-Has issues"),
+    ).getByText("2");
+    expect(flatStyle(issues).color).toBe(lightColors.statusError);
+    expect(flatStyle(issues).fontVariant).toEqual(["tabular-nums"]);
+    expect(
+      flatStyle(
+        within(screen.getByTestId("monitor-summary-Healthy")).getByText("1"),
+      ).color,
+    ).toBe(lightColors.textPrimary);
+
+    mockMonitors.current = stateWith({
+      items: [wrap(healthyMonitor("healthy-1", "api.example.com"))],
+    });
+    await view.rerender(<MonitorsScreen />);
+
+    expect(
+      flatStyle(
+        within(screen.getByTestId("monitor-summary-Has issues")).getByText("0"),
+      ).color,
+    ).toBe(lightColors.textPrimary);
+  });
+
+  test("the summary is not a second set of filter buttons", async () => {
+    await render(<MonitorsScreen />);
+
+    expect(screen.getAllByRole("button", { name: "Healthy" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Has issues" })).toHaveLength(
+      1,
+    );
+  });
+
+  test("the summary is not shown while the first load is still running", async () => {
+    mockMonitors.current = stateWith({ isLoading: true, items: mixedFleet() });
+
+    await render(<MonitorsScreen />);
+
+    expect(screen.queryByTestId("monitor-summary")).toBeNull();
+  });
+});
+
+describe("Section headers", () => {
+  beforeEach(() => {
+    mockMonitors.current = stateWith({ items: oneOfEach() });
+  });
+
+  test("groups appear as issues, unknown, disabled, then healthy", async () => {
+    await render(<MonitorsScreen />);
+
+    const sectionTitles: string[] = [
+      "Issues",
+      "Status unknown",
+      "Disabled monitors",
+      "Healthy",
+    ];
+    const headers: string[] = screen
+      .getAllByRole("header")
+      .map((header: RenderedElement): string => {
+        return String(header.props["children"]);
+      })
+      .filter((title: string) => {
+        return sectionTitles.includes(title);
+      });
+
+    expect(headers).toEqual(sectionTitles);
+  });
+
+  test.each([
+    ["issues", "1", "statusErrorBg", "statusError"],
+    ["unknown", "1", "statusWarningBg", "statusWarning"],
+    ["disabled", "1", "backgroundTertiary", "textSecondary"],
+    ["operational", "1", "statusSuccessBg", "statusSuccess"],
+  ] as Array<
+    [string, string, keyof typeof lightColors, keyof typeof lightColors]
+  >)(
+    "the %s count sits in a pill toned for that group",
+    async (
+      kind: string,
+      count: string,
+      background: keyof typeof lightColors,
+      text: keyof typeof lightColors,
+    ) => {
+      await render(<MonitorsScreen />);
+
+      const pill: RenderedElement = screen.getByTestId(
+        `monitor-section-${kind}-count`,
+      );
+      expect(pill).toHaveStyle({
+        backgroundColor: lightColors[background],
+        borderRadius: radius.pill,
+      });
+      expect(flatStyle(within(pill).getByText(count)).color).toBe(
+        lightColors[text],
+      );
+    },
+  );
+
+  test("trouble keeps a full-strength title while settled groups step back", async () => {
+    await render(<MonitorsScreen />);
+
+    expect(
+      flatStyle(screen.getByRole("header", { name: "Issues" })).color,
+    ).toBe(lightColors.textPrimary);
+    expect(
+      flatStyle(screen.getByRole("header", { name: "Healthy" })).color,
+    ).toBe(lightColors.textSecondary);
+  });
+});
+
+describe("Helper notes under the controls", () => {
+  test("the issues note appears with the issues filter and leaves with it", async () => {
+    mockMonitors.current = stateWith({ items: mixedFleet() });
+
+    await render(<MonitorsScreen />);
+
+    expect(screen.queryByTestId("monitor-issues-note")).toBeNull();
+    await fireEvent.press(screen.getByRole("button", { name: "Has issues" }));
+    expect(screen.getByTestId("monitor-issues-note")).toBeTruthy();
+    await fireEvent.press(screen.getByRole("button", { name: "All monitors" }));
+    expect(screen.queryByTestId("monitor-issues-note")).toBeNull();
+  });
+
+  test("the search cap note is secondary text, not a warning", async () => {
+    mockMonitors.current = stateWith({ items: offlineFleet(100) });
+
+    await render(<MonitorsScreen />);
+
+    expect(
+      flatStyle(screen.getByText("Search covers the 100 most recent monitors."))
+        .color,
+    ).toBe(lightColors.textSecondary);
+  });
+});
+
+describe("A failed fleet read", () => {
+  test("can be pulled to refresh, as its copy promises", async () => {
+    const refetch: jest.Mock = jest.fn(async () => {
+      return undefined;
+    });
+    mockMonitors.current = stateWith({
+      isError: true,
+      refetch: refetch as unknown as () => Promise<void>,
+    });
+
+    await render(<MonitorsScreen />);
+    await fireEvent(refreshControl(), "refresh");
+
+    await waitFor(() => {
+      expect(refetch).toHaveBeenCalledTimes(1);
+      expect(mockLightImpact).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByText("Something went wrong")).toBeTruthy();
+  });
+
+  test.each([
+    ["monitor-list-loading", { isLoading: true }],
+    ["monitor-list-error", { isError: true }],
+    ["monitor-list", {}],
+  ] as Array<[string, Partial<MonitorsState>]>)(
+    "%s keeps the screen gutters and bottom clearance",
+    async (testID: string, state: Partial<MonitorsState>) => {
+      mockMonitors.current = stateWith(state);
+
+      await render(<MonitorsScreen />);
+
+      expect(
+        screen.getByTestId(testID).props.contentContainerStyle,
+      ).toMatchObject({ padding: spacing.xl, paddingBottom: 248 });
+    },
+  );
+});
+
+describe("Monitors in light and dark appearance", () => {
+  beforeEach(() => {
+    mockMonitors.current = stateWith({ items: mixedFleet() });
+  });
+
+  test("a dark device draws tiles, headers and rows from the dark palette", async () => {
+    await renderInTheme("dark");
+
+    expect(screen.getByTestId("monitor-summary-Healthy")).toHaveStyle({
+      backgroundColor: darkColors.backgroundElevated,
+      borderColor: darkColors.borderSubtle,
+    });
+    expect(
+      flatStyle(
+        within(screen.getByTestId("monitor-summary-Has issues")).getByText("2"),
+      ).color,
+    ).toBe(darkColors.statusError);
+    expect(screen.getByTestId("monitor-section-issues")).toHaveStyle({
+      backgroundColor: darkColors.backgroundPrimary,
+    });
+    expect(screen.getByTestId("monitor-section-issues-count")).toHaveStyle({
+      backgroundColor: darkColors.statusErrorBg,
+    });
+    expect(
+      flatStyle(screen.getByRole("header", { name: "Monitors" })).color,
+    ).toBe(darkColors.textPrimary);
+    expect(
+      screen.getByRole("button", {
+        name: "Monitor db.example.com. Status: Offline.",
+      }),
+    ).toHaveStyle({
+      backgroundColor: darkColors.backgroundElevated,
+      borderRadius: radius.lg,
+    });
+  });
+
+  test("the selected filter chip uses an inverse label on its fill", async () => {
+    await renderInTheme("dark");
+
+    const chip: RenderedElement = screen.getByRole("button", {
+      name: "All monitors",
+    });
+    expect(chip).toHaveStyle({ backgroundColor: darkColors.actionPrimary });
+    expect(flatStyle(within(chip).getByText("All")).color).toBe(
+      darkColors.textInverse,
+    );
+  });
+
+  test("a light device inside the same provider keeps the light palette", async () => {
+    mockMonitors.current = stateWith({ items: oneOfEach() });
+    await renderInTheme("light");
+
+    expect(screen.getByTestId("monitor-summary-Disabled")).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+    });
+    expect(screen.getByTestId("monitor-section-operational-count")).toHaveStyle(
+      { backgroundColor: lightColors.statusSuccessBg },
+    );
+  });
 });

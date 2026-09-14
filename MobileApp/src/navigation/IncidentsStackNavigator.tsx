@@ -1,8 +1,7 @@
 import React from "react";
-import ProjectSwitcher from "../components/ProjectSwitcher";
 import { Platform } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { useTheme } from "../theme";
+import { useStackScreenOptions } from "./useStackScreenOptions";
 import IncidentsScreen from "../screens/IncidentsScreen";
 import IncidentDetailScreen from "../screens/IncidentDetailScreen";
 import IncidentEpisodeDetailScreen from "../screens/IncidentEpisodeDetailScreen";
@@ -13,34 +12,11 @@ const Stack: ReturnType<
 > = createNativeStackNavigator<IncidentsStackParamList>();
 
 export default function IncidentsStackNavigator(): React.JSX.Element {
-  const { theme } = useTheme();
+  const screenOptions: ReturnType<typeof useStackScreenOptions> =
+    useStackScreenOptions();
 
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerTitle: () => {
-          return <ProjectSwitcher />;
-        },
-        headerStyle: {
-          backgroundColor: theme.colors.backgroundPrimary,
-        },
-        headerTintColor: theme.colors.actionPrimary,
-        headerTitleStyle: {
-          fontSize: 17,
-          fontWeight: "600",
-          color: theme.colors.textPrimary,
-        },
-        headerShadowVisible: false,
-        ...(Platform.OS === "ios"
-          ? {
-              headerLargeTitle: false,
-              headerLargeStyle: {
-                backgroundColor: theme.colors.backgroundPrimary,
-              },
-            }
-          : {}),
-      }}
-    >
+    <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen
         name="IncidentsList"
         component={IncidentsScreen}

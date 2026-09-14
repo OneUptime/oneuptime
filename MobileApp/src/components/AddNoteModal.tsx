@@ -8,10 +8,13 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { elevation, radius, spacing, typography } from "../theme/tokens";
 import GradientButton from "./GradientButton";
+import IconBadge from "./IconBadge";
 import { useScreenPadding } from "../hooks/useScreenPadding";
 
 interface AddNoteModalProps {
@@ -30,6 +33,7 @@ export default function AddNoteModal({
   const { theme } = useTheme();
   const paddingBottom: number = useScreenPadding({ tabBar: false });
   const [noteText, setNoteText] = useState("");
+  const [focused, setFocused] = useState(false);
 
   /*
    * The draft outlives the submit, and is dropped only once the note is
@@ -55,6 +59,8 @@ export default function AddNoteModal({
     }
   }, [visible]);
 
+  const canSubmit: boolean = noteText.trim().length > 0 && !isSubmitting;
+
   const handleSubmit: () => void = (): void => {
     const trimmed: string = noteText.trim();
     if (trimmed && !isSubmitting) {
@@ -70,6 +76,17 @@ export default function AddNoteModal({
     onClose();
   };
 
+  /*
+   * Tapping the dimmed screen behind the sheet dismisses it only while the box
+   * is empty. A stray tap above the keyboard must not throw away a note that is
+   * half written; Cancel is still there for that.
+   */
+  const handleBackdropPress: () => void = (): void => {
+    if (!noteText.trim()) {
+      handleClose();
+    }
+  };
+
   return (
     <Modal
       visible={visible}
@@ -78,162 +95,192 @@ export default function AddNoteModal({
       onRequestClose={handleClose}
     >
       <KeyboardAvoidingView
+        testID="add-note-backdrop"
         style={{
           flex: 1,
           justifyContent: "flex-end",
-          backgroundColor: "rgba(0,0,0,0.5)",
+          backgroundColor: theme.colors.overlay,
         }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
+        <Pressable
+          testID="add-note-dismiss-area"
+          accessible={false}
+          importantForAccessibility="no"
+          onPress={handleBackdropPress}
+          style={StyleSheet.absoluteFill}
+        />
+        <View
+          testID="add-note-sheet"
           style={{
-            maxHeight: "90%",
-            flexGrow: 0,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            backgroundColor: theme.colors.backgroundElevated,
-          }}
-          contentContainerStyle={{
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            padding: 20,
-            paddingBottom,
-            backgroundColor: theme.colors.backgroundElevated,
-            borderWidth: 1,
+            maxHeight: "92%",
+            borderTopLeftRadius: radius.xl,
+            borderTopRightRadius: radius.xl,
+            backgroundColor: theme.colors.backgroundSecondary,
+            borderWidth: theme.dark ? 1 : 0,
             borderBottomWidth: 0,
-            borderColor: theme.colors.borderGlass,
+            borderColor: theme.colors.borderSubtle,
+            ...elevation("overlay", theme.dark),
           }}
         >
-          <View
-            style={{ alignItems: "center", paddingTop: 4, paddingBottom: 20 }}
-          >
-            <View
-              style={{
-                width: 36,
-                height: 4,
-                borderRadius: 9999,
-                backgroundColor: theme.colors.borderDefault,
-              }}
-            />
-          </View>
-
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginBottom: 20,
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            bounces={false}
+            style={{ flexGrow: 0 }}
+            contentContainerStyle={{
+              paddingHorizontal: spacing.xl,
+              paddingTop: spacing.sm,
+              paddingBottom: Math.max(paddingBottom, spacing.xl),
             }}
           >
             <View
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
                 alignItems: "center",
-                justifyContent: "center",
-                marginRight: 12,
-                backgroundColor: theme.colors.iconBackground,
+                paddingBottom: spacing.lg,
+              }}
+            >
+              <View
+                testID="add-note-grabber"
+                style={{
+                  width: 36,
+                  height: 5,
+                  borderRadius: radius.pill,
+                  backgroundColor: theme.colors.borderDefault,
+                }}
+              />
+            </View>
+
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.md,
+                marginBottom: spacing.lg,
+              }}
+            >
+              <IconBadge
+                name="create-outline"
+                color={theme.colors.actionPrimary}
+              />
+              <View style={{ flex: 1, gap: spacing.xxs }}>
+                <Text
+                  accessibilityRole="header"
+                  style={{
+                    ...typography.title3,
+                    color: theme.colors.textPrimary,
+                  }}
+                >
+                  Add Note
+                </Text>
+                <Text
+                  style={{
+                    ...typography.footnote,
+                    color: theme.colors.textSecondary,
+                  }}
+                >
+                  Share an update with your team. Markdown is supported.
+                </Text>
+              </View>
+            </View>
+
+            <TextInput
+              testID="add-note-input"
+              accessibilityLabel="Note"
+              style={{
+                /*
+                 * Size only: a lineHeight on a multiline iOS TextInput pushes
+                 * the caret off the text it belongs to.
+                 */
+                fontSize: typography.body.fontSize,
+                minHeight: 148,
+                maxHeight: 280,
+                borderRadius: radius.md,
+                /*
+                 * The focus ring is one point thicker, so the padding gives
+                 * that point back and the text does not shift as it appears.
+                 */
+                paddingHorizontal: spacing.lg - (focused ? 1 : 0),
+                paddingVertical: spacing.md - (focused ? 1 : 0),
+                backgroundColor: theme.colors.backgroundPrimary,
+                borderWidth: focused ? 2 : 1,
+                borderColor: focused
+                  ? theme.colors.actionPrimary
+                  : theme.colors.borderDefault,
+                color: theme.colors.textPrimary,
+                opacity: isSubmitting ? 0.6 : 1,
+              }}
+              placeholder="Write a note..."
+              placeholderTextColor={theme.colors.textTertiary}
+              selectionColor={theme.colors.actionPrimary}
+              cursorColor={theme.colors.actionPrimary}
+              keyboardAppearance={theme.dark ? "dark" : "light"}
+              value={noteText}
+              onChangeText={setNoteText}
+              onFocus={() => {
+                setFocused(true);
+              }}
+              onBlur={() => {
+                setFocused(false);
+              }}
+              multiline
+              scrollEnabled
+              textAlignVertical="top"
+              editable={!isSubmitting}
+            />
+
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.sm,
+                marginTop: spacing.sm,
+                paddingHorizontal: spacing.xxs,
               }}
             >
               <Ionicons
-                name="chatbubble-outline"
-                size={16}
-                color={theme.colors.actionPrimary}
+                name="lock-closed-outline"
+                size={13}
+                color={theme.colors.textTertiary}
               />
-            </View>
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: "bold",
-                color: theme.colors.textPrimary,
-                letterSpacing: -0.3,
-              }}
-            >
-              Add Note
-            </Text>
-          </View>
-
-          <Text
-            style={{
-              fontSize: 14,
-              lineHeight: 22,
-              color: theme.colors.textSecondary,
-              marginBottom: 16,
-            }}
-          >
-            Share an update with your team. Markdown is supported.
-          </Text>
-          <TextInput
-            accessibilityLabel="Note"
-            style={{
-              minHeight: 120,
-              borderRadius: 12,
-              padding: 16,
-              fontSize: 15,
-              backgroundColor: theme.colors.backgroundSecondary,
-              borderWidth: 1,
-              borderColor: theme.colors.borderDefault,
-              color: theme.colors.textPrimary,
-            }}
-            placeholder="Write a note..."
-            placeholderTextColor={theme.colors.textTertiary}
-            value={noteText}
-            onChangeText={setNoteText}
-            multiline
-            textAlignVertical="top"
-            editable={!isSubmitting}
-          />
-
-          <View
-            style={{
-              flexDirection: "row",
-              gap: 12,
-              marginTop: 20,
-              alignItems: "center",
-            }}
-          >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Cancel"
-              accessibilityState={{ disabled: isSubmitting }}
-              style={({ pressed }: { pressed: boolean }) => {
-                return {
-                  flex: 1,
-                  minHeight: 52,
-                  paddingVertical: 14,
-                  paddingHorizontal: 16,
-                  borderRadius: 12,
-                  alignItems: "center" as const,
-                  justifyContent: "center" as const,
-                  borderWidth: 1,
-                  borderColor: theme.colors.borderDefault,
-                  opacity: pressed ? 0.7 : 1,
-                };
-              }}
-              onPress={handleClose}
-              disabled={isSubmitting}
-            >
               <Text
                 style={{
-                  fontSize: 15,
-                  fontWeight: "600",
-                  color: theme.colors.textSecondary,
+                  ...typography.caption,
+                  flex: 1,
+                  fontWeight: "400",
+                  color: theme.colors.textTertiary,
                 }}
               >
-                Cancel
+                Internal notes are never shown on status pages.
               </Text>
-            </Pressable>
+            </View>
 
-            <GradientButton
-              label="Submit"
-              onPress={handleSubmit}
-              loading={isSubmitting}
-              disabled={!noteText.trim() || isSubmitting}
-              style={{ flex: 1 }}
-            />
-          </View>
-        </ScrollView>
+            <View
+              style={{
+                flexDirection: "row",
+                gap: spacing.md,
+                marginTop: spacing.xl,
+              }}
+            >
+              <GradientButton
+                testID="add-note-cancel"
+                label="Cancel"
+                variant="secondary"
+                onPress={handleClose}
+                disabled={isSubmitting}
+                style={{ flex: 1, minHeight: 52 }}
+              />
+              <GradientButton
+                testID="add-note-submit"
+                label="Submit"
+                icon="send"
+                onPress={handleSubmit}
+                loading={isSubmitting}
+                disabled={!canSubmit}
+                style={{ flex: 1, minHeight: 52 }}
+              />
+            </View>
+          </ScrollView>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );

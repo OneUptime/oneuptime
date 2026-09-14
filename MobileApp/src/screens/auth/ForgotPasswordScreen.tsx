@@ -1,12 +1,16 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "../../theme";
+import { View } from "react-native";
+import { spacing } from "../../theme";
 import { requestPasswordReset } from "../../api/auth";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { AuthStackParamList } from "../../navigation/types";
-import AuthLayout from "../../components/AuthLayout";
+import AuthLayout, {
+  AuthLink,
+  AuthTextField,
+  authPrimaryButtonStyle,
+} from "../../components/AuthLayout";
+import AppText from "../../components/AppText";
 import GradientButton from "../../components/GradientButton";
 import { getFriendlyErrorMessage } from "../../utils/error";
 
@@ -36,7 +40,6 @@ type ForgotPasswordNavigationProp = NativeStackNavigationProp<
 >;
 
 export default function ForgotPasswordScreen(): React.JSX.Element {
-  const { theme } = useTheme();
   const navigation: ForgotPasswordNavigationProp =
     useNavigation<ForgotPasswordNavigationProp>();
 
@@ -67,154 +70,79 @@ export default function ForgotPasswordScreen(): React.JSX.Element {
     }
   };
 
+  const backToSignIn: () => void = (): void => {
+    navigation.navigate("Login");
+  };
+
   return (
     <AuthLayout
       title={isSent ? "Check your email" : "Reset your password"}
       eyebrow="ACCOUNT RECOVERY"
+      icon={isSent ? "mail-open-outline" : "key-outline"}
+      iconTone={isSent ? "success" : "accent"}
       compact
     >
-      <View style={{ marginBottom: 24 }}>
-        {isSent ? (
-          <Ionicons
-            name="mail-open-outline"
-            size={40}
-            color={theme.colors.statusSuccess}
-            style={{ marginBottom: 16 }}
-          />
-        ) : null}
-        <Text
-          testID="forgot-password-subtitle"
-          accessibilityLiveRegion="polite"
-          style={{
-            fontSize: 16,
-            lineHeight: 24,
-            color: theme.colors.textSecondary,
-          }}
-        >
-          {isSent
-            ? "If that address has an account, we have emailed a link for resetting the password. Open it on a device with a browser to finish."
-            : "Enter your email address and we will send you a link to reset your password."}
-        </Text>
-      </View>
+      <AppText
+        testID="forgot-password-subtitle"
+        accessibilityLiveRegion="polite"
+        variant="body"
+        tone="secondary"
+        style={{ marginBottom: spacing.xxl }}
+      >
+        {isSent
+          ? "If that address has an account, we have emailed a link for resetting the password. Open it on a device with a browser to finish."
+          : "Enter your email address and we will send you a link to reset your password."}
+      </AppText>
 
       {!isSent ? (
-        <View
-          style={{
-            paddingVertical: 8,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "600",
-              marginBottom: 8,
-              color: theme.colors.textSecondary,
+        <View style={{ gap: spacing.xl }}>
+          <AuthTextField
+            testID="forgot-password-email-input"
+            containerTestID="forgot-password-email-field"
+            label="Email"
+            icon="mail-outline"
+            accessibilityLabel="Email"
+            editable={!isLoading}
+            errorMessage={error}
+            value={email}
+            onChangeText={(text: string) => {
+              setEmail(text);
+              setError(null);
             }}
-          >
-            Email
-          </Text>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              minHeight: 56,
-              borderRadius: 12,
-              paddingHorizontal: 14,
-              backgroundColor: theme.colors.backgroundSecondary,
-              borderWidth: 1.5,
-              borderColor: theme.colors.borderDefault,
-            }}
-          >
-            <Ionicons
-              name="mail-outline"
-              size={18}
-              color={theme.colors.textTertiary}
-              style={{ marginRight: 10 }}
-            />
-            <TextInput
-              testID="forgot-password-email-input"
-              accessibilityLabel="Email"
-              editable={!isLoading}
-              style={{
-                flex: 1,
-                minWidth: 0,
-                fontSize: 16,
-                color: theme.colors.textPrimary,
-              }}
-              value={email}
-              onChangeText={(text: string) => {
-                setEmail(text);
-                setError(null);
-              }}
-              placeholder="you@example.com"
-              placeholderTextColor={theme.colors.textTertiary}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-              textContentType="emailAddress"
-              returnKeyType="go"
-              onSubmitEditing={submit}
-            />
-          </View>
+            placeholder="you@example.com"
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+            textContentType="emailAddress"
+            returnKeyType="go"
+            onSubmitEditing={submit}
+          />
 
-          {error ? (
-            <View
-              accessible
-              accessibilityRole="alert"
-              accessibilityLiveRegion="polite"
-              style={{
-                flexDirection: "row",
-                alignItems: "flex-start",
-                marginTop: 12,
-              }}
-            >
-              <Ionicons
-                name="alert-circle"
-                size={14}
-                color={theme.colors.statusError}
-                style={{ marginRight: 6, marginTop: 2 }}
-              />
-              <Text
-                style={{
-                  fontSize: 14,
-                  flex: 1,
-                  color: theme.colors.statusError,
-                }}
-              >
-                {error}
-              </Text>
-            </View>
-          ) : null}
+          <GradientButton
+            label="Send Reset Link"
+            testID="send-reset-link"
+            onPress={submit}
+            loading={isLoading}
+            disabled={isLoading}
+            style={authPrimaryButtonStyle}
+          />
 
-          <View style={{ marginTop: 24 }}>
-            <GradientButton
-              label="Send Reset Link"
-              testID="send-reset-link"
-              onPress={submit}
-              loading={isLoading}
-              disabled={isLoading}
-            />
-          </View>
+          <AuthLink
+            label="Back to sign in"
+            testID="back-to-sign-in"
+            icon="arrow-back"
+            onPress={backToSignIn}
+          />
         </View>
-      ) : null}
-
-      <TouchableOpacity
-        accessibilityRole="button"
-        testID="back-to-sign-in"
-        onPress={() => {
-          navigation.navigate("Login");
-        }}
-        style={{
-          marginTop: 16,
-          minHeight: 48,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Text style={{ fontSize: 14, color: theme.colors.actionPrimary }}>
-          Back to sign in
-        </Text>
-      </TouchableOpacity>
+      ) : (
+        <GradientButton
+          label="Back to sign in"
+          testID="back-to-sign-in"
+          icon="arrow-back"
+          onPress={backToSignIn}
+          style={authPrimaryButtonStyle}
+        />
+      )}
     </AuthLayout>
   );
 }

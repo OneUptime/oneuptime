@@ -1,8 +1,28 @@
 import React, { useState } from "react";
 import { render, screen, fireEvent } from "@testing-library/react-native";
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 import SegmentedControl from "./SegmentedControl";
-import { darkColors } from "../theme";
+import { ThemeProvider, darkColors, lightColors } from "../theme";
+import { elevation, radius, typography } from "../theme/tokens";
+
+let mockSystemScheme: "light" | "dark" | null = "light";
+
+/*
+ * react-native exposes useColorScheme through a getter, which cannot be spied
+ * on, so the module behind it is replaced instead.
+ */
+jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
+  return {
+    __esModule: true,
+    default: (): "light" | "dark" | null => {
+      return mockSystemScheme;
+    },
+  };
+});
+
+afterEach(() => {
+  mockSystemScheme = "light";
+});
 
 /*
  * The two-way switch at the top of the alert and incident lists. It is the
@@ -84,7 +104,7 @@ describe("What the control shows", () => {
 
     expect(
       (chosen.props.style as { backgroundColor: string }).backgroundColor,
-    ).toBe(darkColors.backgroundElevated);
+    ).toBe(lightColors.backgroundElevated);
     expect(
       (other.props.style as { backgroundColor: string }).backgroundColor,
     ).toBe("transparent");
@@ -244,5 +264,173 @@ describe("Choosing a segment", () => {
     await fireEvent.press(screen.getByText("Episodes"));
 
     expect(onSelect).toHaveBeenCalledTimes(2);
+  });
+});
+
+/**
+ * The track the tabs sit in. It carries accessibilityRole "tablist" but is
+ * deliberately NOT an accessibility element itself - it has to stay a
+ * container so VoiceOver and TalkBack can reach the tabs inside it - and
+ * getByRole only matches accessibility elements, so it is found by its role
+ * prop and checked to be the tabs' parent.
+ */
+function tablist(): ReturnType<typeof screen.getByRole> {
+  const lists: Array<ReturnType<typeof screen.getByRole>> =
+    screen.container.queryAll((node: ReturnType<typeof screen.getByRole>) => {
+      return node.props.accessibilityRole === "tablist";
+    });
+  expect(lists).toHaveLength(1);
+  for (const tab of screen.getAllByRole("tab")) {
+    expect(tab.parent).toBe(lists[0]);
+  }
+  return lists[0];
+}
+
+describe("How the control is drawn", () => {
+  test("the segments sit in one tablist on a muted track", async () => {
+    await render(
+      <SegmentedControl
+        segments={SEGMENTS}
+        selected="alerts"
+        onSelect={noop}
+      />,
+    );
+
+    expect(tablist()).toHaveStyle({
+      backgroundColor: lightColors.backgroundTertiary,
+      borderRadius: radius.md,
+      flexDirection: "row",
+    });
+    expect(tablist().children).toHaveLength(2);
+  });
+
+  test("the chosen segment is raised with the card shadow; the other is flat", async () => {
+    await render(
+      <SegmentedControl
+        segments={SEGMENTS}
+        selected="alerts"
+        onSelect={noop}
+      />,
+    );
+
+    expect(screen.getByRole("tab", { name: "Alerts" })).toHaveStyle({
+      boxShadow: elevation("card", false).boxShadow,
+    });
+    expect(
+      screen.getByRole("tab", { name: "Episodes" }).props.style.boxShadow,
+    ).toBeUndefined();
+  });
+
+  test("the chosen label is bold primary text; the other is secondary", async () => {
+    await render(
+      <SegmentedControl
+        segments={SEGMENTS}
+        selected="alerts"
+        onSelect={noop}
+      />,
+    );
+
+    expect(screen.getByText("Alerts")).toHaveStyle({
+      color: lightColors.textPrimary,
+      fontWeight: "700",
+      fontSize: typography.subhead.fontSize,
+      lineHeight: typography.subhead.lineHeight,
+    });
+    expect(screen.getByText("Episodes")).toHaveStyle({
+      color: lightColors.textSecondary,
+      fontWeight: "500",
+    });
+  });
+
+  test("every segment is at least a 44pt target and shares the width", async () => {
+    await render(
+      <SegmentedControl
+        segments={SEGMENTS}
+        selected="alerts"
+        onSelect={noop}
+      />,
+    );
+
+    for (const tab of screen.getAllByRole("tab")) {
+      expect(tab).toHaveStyle({ flex: 1 });
+      expect(Number(tab.props.style.minHeight)).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+  test("the fill follows the selection when it moves", async () => {
+    await render(<StatefulSegmentedControl />);
+
+    await fireEvent.press(screen.getByRole("tab", { name: "Episodes" }));
+
+    expect(screen.getByRole("tab", { name: "Episodes" })).toHaveStyle({
+      backgroundColor: lightColors.backgroundElevated,
+    });
+    expect(screen.getByRole("tab", { name: "Alerts" })).toHaveStyle({
+      backgroundColor: "transparent",
+    });
+  });
+
+  test("a caller's style adjusts the track without losing it", async () => {
+    await render(
+      <SegmentedControl
+        segments={SEGMENTS}
+        selected="alerts"
+        onSelect={noop}
+        style={{ marginHorizontal: 0 }}
+      />,
+    );
+
+    expect(tablist()).toHaveStyle({
+      marginHorizontal: 0,
+      backgroundColor: lightColors.backgroundTertiary,
+    });
+  });
+
+  test("three or more segments all render as tabs", async () => {
+    await render(
+      <SegmentedControl
+        segments={[
+          { key: "a", label: "Day" },
+          { key: "b", label: "Week" },
+          { key: "c", label: "Month" },
+        ]}
+        selected="b"
+        onSelect={noop}
+      />,
+    );
+
+    expect(screen.getAllByRole("tab")).toHaveLength(3);
+    expect(
+      screen.getByRole("tab", { name: "Week", selected: true }),
+    ).toBeTruthy();
+  });
+});
+
+describe("In dark mode", () => {
+  test("the track, fill, labels and shadow use the dark palette", async () => {
+    mockSystemScheme = "dark";
+    await render(
+      <ThemeProvider>
+        <SegmentedControl
+          segments={SEGMENTS}
+          selected="alerts"
+          onSelect={noop}
+        />
+      </ThemeProvider>,
+    );
+
+    expect(tablist()).toHaveStyle({
+      backgroundColor: darkColors.backgroundTertiary,
+    });
+    expect(screen.getByRole("tab", { name: "Alerts" })).toHaveStyle({
+      backgroundColor: darkColors.backgroundElevated,
+      boxShadow: elevation("card", true).boxShadow,
+    });
+    expect(screen.getByText("Alerts")).toHaveStyle({
+      color: darkColors.textPrimary,
+    });
+    expect(screen.getByText("Episodes")).toHaveStyle({
+      color: darkColors.textSecondary,
+    });
   });
 });
