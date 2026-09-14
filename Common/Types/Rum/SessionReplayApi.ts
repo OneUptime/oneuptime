@@ -2,6 +2,7 @@ import {
   SessionReplayChunkManifestEntry,
   SessionReplayGap,
 } from "./SessionReplay";
+import ServiceType from "../Telemetry/ServiceType";
 
 /*
  * Wire contract between the Dashboard and the session-replay read routes
@@ -555,6 +556,11 @@ export interface SessionReplayForExceptionRequestDto {
    * matching an identically fingerprinted exception from another service.
    */
   primaryEntityId?: string;
+  /*
+   * New callers send this with primaryEntityId. The server accepts an ID-only
+   * rolling-compatibility request through a conservative scoped-unknown path.
+   */
+  primaryEntityType?: ServiceType;
   /* ISO-8601 bounds; without them the server defaults to a 30-day window. */
   startTime?: string;
   endTime?: string;

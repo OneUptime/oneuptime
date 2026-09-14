@@ -12,6 +12,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
+import ServiceType from "../../Types/Telemetry/ServiceType";
 import TelemetryAttributeService from "../Services/TelemetryAttributeService";
 import TelemetrySourceMapService from "../Services/TelemetrySourceMapService";
 import SourceMapResolver, {
@@ -6058,6 +6059,29 @@ router.post(
 
       const primaryEntityId: ObjectID | undefined =
         readOptionalObjectIdFromBody(body, "primaryEntityId");
+      const rawPrimaryEntityType: unknown = body["primaryEntityType"];
+      let primaryEntityType: ServiceType | undefined = undefined;
+
+      if (
+        rawPrimaryEntityType !== undefined &&
+        rawPrimaryEntityType !== null &&
+        rawPrimaryEntityType !== ""
+      ) {
+        if (
+          typeof rawPrimaryEntityType !== "string" ||
+          !Object.values(ServiceType).includes(
+            rawPrimaryEntityType as ServiceType,
+          )
+        ) {
+          throw new BadDataException("primaryEntityType is not valid");
+        }
+
+        primaryEntityType = rawPrimaryEntityType as ServiceType;
+      }
+
+      if (primaryEntityId === undefined && primaryEntityType !== undefined) {
+        throw new BadDataException("primaryEntityId is required with its type");
+      }
 
       /*
        * An exception is not scoped to a RUM application, so there is no
@@ -6120,6 +6144,7 @@ router.post(
           projectId: projectId,
           exceptionFingerprint: fingerprint,
           ...(primaryEntityId !== undefined && { primaryEntityId }),
+          ...(primaryEntityType !== undefined && { primaryEntityType }),
           accessibleRumApplicationIds: accessibleApplications.applicationIds,
           ...(startTime !== undefined && { startTime }),
           ...(endTime !== undefined && { endTime }),

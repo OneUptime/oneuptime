@@ -1,4 +1,8 @@
 import { BASE_URL } from "../../Config";
+import {
+  deleteExceptionOccurrenceFixture,
+  insertExceptionOccurrenceFixture,
+} from "./Helpers/ExceptionOccurrenceFixture";
 import { JSONish, createItem, requestJson } from "./Helpers/MonitorAlerting";
 import {
   gotoProjectPage,
@@ -176,7 +180,9 @@ const assertPageSpecificContent: (
     await expect(ctx.page.getByText(SPAN_NAME, { exact: true })).toBeVisible({
       timeout: 30000,
     });
-    await expect(ctx.page.getByText(RELEASE, { exact: true })).toBeVisible();
+    await expect(
+      ctx.page.getByTestId("table-content").getByText(RELEASE, { exact: true }),
+    ).toBeVisible();
     return;
   }
 
@@ -299,16 +305,8 @@ test.describe("Exception detail pages", () => {
 
     const occurredAt: Date = new Date();
     const firstSeenAt: Date = new Date(occurredAt.getTime() - 90_000);
-    const retentionDate: Date = new Date(
-      occurredAt.getTime() + 7 * 24 * 60 * 60 * 1000,
-    );
 
-    /*
-     * Seed through the same authenticated APIs the dashboard uses. The
-     * Postgres record supplies group/triage state; the ClickHouse record is a
-     * real occurrence that exercises the Stack Trace, Occurrences and Context
-     * pages instead of merely mounting their empty states.
-     */
+    /* The authenticated API supplies the Postgres group and triage state. */
     const exception: JSONish = await createItem({
       page: ctx.page,
       projectId: ctx.projectId,
@@ -333,41 +331,36 @@ test.describe("Exception detail pages", () => {
     });
     ctx.exceptionId = idFromCreatedItem(exception, "exception group fixture");
 
-    const occurrence: JSONish = await createItem({
-      page: ctx.page,
+    /*
+     * ExceptionItemV3.retentionDate is required by ClickHouse's TTL but is
+     * deliberately not writable through the public model API. Insert this one
+     * real occurrence with the local fixture helper so Stack Trace,
+     * Occurrences and Context exercise persisted analytics data without
+     * weakening production permissions.
+     */
+    ctx.occurrenceId = await insertExceptionOccurrenceFixture({
       projectId: ctx.projectId,
-      path: "/api/exceptions",
-      item: {
-        projectId: ctx.projectId,
-        primaryEntityId: ctx.serviceId,
-        primaryEntityType: "OpenTelemetry",
-        time: occurredAt.toISOString(),
-        timeUnixNano: occurredAt.getTime() * 1_000_000,
-        exceptionType: EXCEPTION_TYPE,
-        stackTrace: EXCEPTION_STACK_TRACE,
-        message: EXCEPTION_MESSAGE,
-        spanStatusCode: 2,
-        escaped: true,
-        traceId: TRACE_ID,
-        spanId: SPAN_ID,
-        sessionId: "",
-        fingerprint: EXCEPTION_FINGERPRINT,
-        spanName: SPAN_NAME,
-        release: RELEASE,
-        environment: ENVIRONMENT,
-        attributes: {
-          "checkout.stage": "reserve-inventory",
-          "exception.fixture": "exception-detail-pages",
-        },
-        attributeKeys: ["checkout.stage", "exception.fixture"],
-        entityKeys: [`service:${ctx.serviceId}`],
-        retentionDate: retentionDate.toISOString(),
+      primaryEntityId: ctx.serviceId,
+      primaryEntityType: "OpenTelemetry",
+      time: occurredAt,
+      exceptionType: EXCEPTION_TYPE,
+      stackTrace: EXCEPTION_STACK_TRACE,
+      message: EXCEPTION_MESSAGE,
+      spanStatusCode: 2,
+      escaped: true,
+      traceId: TRACE_ID,
+      spanId: SPAN_ID,
+      sessionId: "",
+      fingerprint: EXCEPTION_FINGERPRINT,
+      spanName: SPAN_NAME,
+      release: RELEASE,
+      environment: ENVIRONMENT,
+      attributes: {
+        "checkout.stage": "reserve-inventory",
+        "exception.fixture": "exception-detail-pages",
       },
+      entityKeys: [`service:${ctx.serviceId}`],
     });
-    ctx.occurrenceId = idFromCreatedItem(
-      occurrence,
-      "exception occurrence fixture",
-    );
 
     /* Prove both stores accepted the fixture before exercising the UI. */
     await expect
@@ -435,7 +428,12 @@ test.describe("Exception detail pages", () => {
       ).toBe(true);
     };
 
-    await deleteFixture("/api/exceptions", ctx.occurrenceId);
+    if (ctx.occurrenceId && ctx.projectId) {
+      await deleteExceptionOccurrenceFixture({
+        projectId: ctx.projectId,
+        occurrenceId: ctx.occurrenceId,
+      });
+    }
     await deleteFixture("/api/telemetry-exception", ctx.exceptionId);
 
     if (ctx.projectId) {

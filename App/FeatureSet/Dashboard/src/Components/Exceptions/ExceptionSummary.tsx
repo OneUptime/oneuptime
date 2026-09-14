@@ -2,7 +2,16 @@ import TelemetryException from "Common/Models/DatabaseModels/TelemetryException"
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useId, useState } from "react";
+
+export const EXCEPTION_MESSAGE_CLAMP_CHARACTER_COUNT: number = 240;
+
+const STAT_BORDER_CLASS_NAMES: Array<string> = [
+  "",
+  "border-t border-gray-200 sm:border-l sm:border-t-0",
+  "border-t border-gray-200 xl:border-l xl:border-t-0",
+  "border-t border-gray-200 sm:border-l xl:border-t-0",
+];
 
 export interface ExceptionSummaryStatus {
   label: string;
@@ -54,6 +63,12 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
   const status: ExceptionSummaryStatus = getExceptionSummaryStatus(
     props.exception,
   );
+  const messageId: string = useId();
+  const [isMessageExpanded, setIsMessageExpanded] = useState<boolean>(false);
+  const message: string =
+    props.exception.message || "No exception message was recorded.";
+  const isMessageClampable: boolean =
+    message.length > EXCEPTION_MESSAGE_CLAMP_CHARACTER_COUNT;
 
   const formatDate: (date: Date | undefined) => string = (
     date: Date | undefined,
@@ -68,7 +83,9 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
   const statItems: Array<{ label: string; value: string }> = [
     {
       label: "Occurrences",
-      value: new Intl.NumberFormat().format(props.exception.occuranceCount || 0),
+      value: new Intl.NumberFormat().format(
+        props.exception.occuranceCount || 0,
+      ),
     },
     {
       label: "First seen",
@@ -123,18 +140,48 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
             <h2 className="mt-2 break-words text-base font-semibold leading-6 text-gray-900">
               {props.exception.exceptionType || "Application exception"}
             </h2>
-            <p className="mt-1 break-words font-mono text-sm leading-6 text-gray-600">
-              {props.exception.message || "No exception message was recorded."}
+            <p
+              className={`mt-1 break-words font-mono text-sm leading-6 text-gray-600 ${
+                isMessageClampable && !isMessageExpanded ? "line-clamp-3" : ""
+              }`}
+              id={messageId}
+              data-testid="exception-summary-message"
+            >
+              {message}
             </p>
+            {isMessageClampable && (
+              <button
+                type="button"
+                aria-controls={messageId}
+                aria-expanded={isMessageExpanded}
+                aria-label={
+                  isMessageExpanded
+                    ? "Collapse exception message"
+                    : "Expand exception message"
+                }
+                className="mt-1 text-xs font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                onClick={() => {
+                  setIsMessageExpanded(!isMessageExpanded);
+                }}
+              >
+                {isMessageExpanded ? "Show less" : "Show more"}
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      <dl className="grid grid-cols-1 divide-y divide-gray-200 border-t border-gray-200 bg-gray-50/60 sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
+      <dl className="grid grid-cols-1 border-t border-gray-200 bg-gray-50/60 sm:grid-cols-2 xl:grid-cols-4">
         {statItems.map(
-          (item: { label: string; value: string }): ReactElement => {
+          (
+            item: { label: string; value: string },
+            index: number,
+          ): ReactElement => {
             return (
-              <div className="px-5 py-3" key={item.label}>
+              <div
+                className={`px-5 py-3 ${STAT_BORDER_CLASS_NAMES[index]}`}
+                key={item.label}
+              >
                 <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
                   {item.label}
                 </dt>

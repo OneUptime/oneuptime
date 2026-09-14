@@ -456,7 +456,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   const [telemetryException, setTelemetryException] = React.useState<
     TelemetryException | undefined
   >(undefined);
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string | undefined>(undefined);
   const [isArchiveLoading, setIsArchiveLoading] =
     React.useState<boolean>(false);
@@ -683,9 +683,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
 
           // Fetch span events only for the Context page's breadcrumb timeline.
           const instance: ExceptionInstance = instanceResult.data[0]!;
-          if (
-            dataPlan.loadTraceBreadcrumbs && instance.traceId
-          ) {
+          if (dataPlan.loadTraceBreadcrumbs && instance.traceId) {
             try {
               const spanResult: ListResult<Span> =
                 await AnalyticsModelAPI.getList<Span>({
@@ -879,10 +877,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   // Poll for AI agent task status updates every 5 seconds while EITHER task is active
   useEffect(() => {
     // Terminal tasks (Completed / Error) never change again — don't poll them.
-    if (
-      !dataPlan.loadAIAssistance ||
-      !hasAnyActiveAITask
-    ) {
+    if (!dataPlan.loadAIAssistance || !hasAnyActiveAITask) {
       return;
     }
 
@@ -1336,6 +1331,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             <ReplayCard
               fingerprint={telemetryException.fingerprint}
               primaryEntityId={telemetryException.primaryEntityId}
+              primaryEntityType={telemetryException.primaryEntityType}
               /*
                * The occurrence's own session and id let the card pin the
                * search to that recording and link into the moment of error.
@@ -1381,8 +1377,8 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
               <p className="text-sm text-gray-600">
                 A session replay can still appear above when a matching
                 recording is available. New context will appear when another
-                occurrence includes a trace, application session, or
-                correlated logs.
+                occurrence includes a trace, application session, or correlated
+                logs.
               </p>
             </Card>
           )}

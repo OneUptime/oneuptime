@@ -77,9 +77,12 @@ describe("exception detail data ownership", () => {
     ],
   ];
 
-  test.each(plans)("gives %s only its required data", (section, expected) => {
-    expect(getExceptionDetailDataPlan(section)).toEqual(expected);
-  });
+  test.each(plans)(
+    "gives %s only its required data",
+    (section: ExceptionDetailSection, expected: ExceptionDetailDataPlan) => {
+      expect(getExceptionDetailDataPlan(section)).toEqual(expected);
+    },
+  );
 });
 
 describe("exception occurrence query scope", () => {

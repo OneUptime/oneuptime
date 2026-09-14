@@ -15,6 +15,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import ServiceType from "Common/Types/Telemetry/ServiceType";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -94,6 +95,8 @@ export interface ReplayCardProps {
    * unique, so exception pages should provide this whenever it is known.
    */
   primaryEntityId?: ObjectID | undefined;
+  /* Disambiguates which entity table primaryEntityId belongs to when known. */
+  primaryEntityType?: ServiceType | undefined;
   /* Absolute time of the occurrence, used to position playback. */
   errorTimeUnixMs?: number | undefined;
   className?: string | undefined;
@@ -168,6 +171,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
     sessionId,
     fingerprint,
     primaryEntityId,
+    primaryEntityType,
     errorTimeUnixMs,
   } = props;
   /*
@@ -208,6 +212,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
               ...(primaryEntityIdString
                 ? { primaryEntityId: primaryEntityIdString }
                 : {}),
+              ...(primaryEntityType ? { primaryEntityType } : {}),
               /*
                * Pins the search to the occurrence's own session, and lets
                * the server derive a partition window from the moment
@@ -290,6 +295,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
       sessionId,
       fingerprint,
       primaryEntityIdString,
+      primaryEntityType,
       errorTimeUnixMs,
     ],
   );
@@ -506,7 +512,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
 
                       return (
                         <li
-                          key={row.summary.sessionId}
+                          key={`${row.rumApplicationId}:${row.summary.sessionId}`}
                           className="flex items-center justify-between gap-3 py-1.5 text-xs text-gray-600"
                           data-testid="replay-card-session-row"
                         >

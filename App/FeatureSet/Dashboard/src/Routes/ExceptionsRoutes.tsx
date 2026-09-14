@@ -2,10 +2,7 @@ import ComponentProps from "../Pages/PageComponentProps";
 import ExceptionsLayout from "../Pages/Exceptions/Layout";
 import ExceptionViewLayout from "../Pages/Exceptions/View/Layout";
 import PageMap from "../Utils/PageMap";
-import RouteMap, {
-  ExceptionsRoutePath,
-  RouteUtil,
-} from "../Utils/RouteMap";
+import RouteMap, { ExceptionsRoutePath, RouteUtil } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
@@ -107,9 +104,7 @@ const ExceptionsRoutes: FunctionComponent<ComponentProps> = (
           element={
             <ExceptionView
               {...props}
-              pageRoute={
-                RouteMap[PageMap.EXCEPTIONS_VIEW_STACK_TRACE] as Route
-              }
+              pageRoute={RouteMap[PageMap.EXCEPTIONS_VIEW_STACK_TRACE] as Route}
               section={ExceptionDetailSection.StackTrace}
             />
           }
@@ -121,17 +116,13 @@ const ExceptionsRoutes: FunctionComponent<ComponentProps> = (
           element={
             <ExceptionView
               {...props}
-              pageRoute={
-                RouteMap[PageMap.EXCEPTIONS_VIEW_OCCURRENCES] as Route
-              }
+              pageRoute={RouteMap[PageMap.EXCEPTIONS_VIEW_OCCURRENCES] as Route}
               section={ExceptionDetailSection.Occurrences}
             />
           }
         />
         <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.EXCEPTIONS_VIEW_CONTEXT,
-          )}
+          path={RouteUtil.getLastPathForKey(PageMap.EXCEPTIONS_VIEW_CONTEXT)}
           element={
             <ExceptionView
               {...props}
@@ -155,9 +146,7 @@ const ExceptionsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.EXCEPTIONS_VIEW_SETTINGS,
-          )}
+          path={RouteUtil.getLastPathForKey(PageMap.EXCEPTIONS_VIEW_SETTINGS)}
           element={
             <ExceptionView
               {...props}

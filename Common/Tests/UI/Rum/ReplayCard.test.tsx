@@ -7,6 +7,7 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import ServiceType from "../../../Types/Telemetry/ServiceType";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -170,7 +171,10 @@ describe("ReplayCard request", () => {
       .mockResolvedValueOnce(okResponse([]))
       .mockResolvedValueOnce(okResponse([sessionRow()]));
 
-    renderCard({ primaryEntityId: new ObjectID(PRIMARY_ENTITY_ID) });
+    renderCard({
+      primaryEntityId: new ObjectID(PRIMARY_ENTITY_ID),
+      primaryEntityType: ServiceType.OpenTelemetry,
+    });
 
     await screen.findByTestId("replay-card");
 
@@ -183,6 +187,7 @@ describe("ReplayCard request", () => {
 
       expect(request.data["fingerprint"]).toBe(FINGERPRINT);
       expect(request.data["primaryEntityId"]).toBe(PRIMARY_ENTITY_ID);
+      expect(request.data["primaryEntityType"]).toBe(ServiceType.OpenTelemetry);
     }
 
     expect(

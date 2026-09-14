@@ -9,9 +9,9 @@ export interface ComponentProps extends PageComponentProps {
   section?: ExceptionDetailSection | undefined;
 }
 
-const ExceptionViewPage: FunctionComponent<
-  ComponentProps
-> = (props: ComponentProps): ReactElement => {
+const ExceptionViewPage: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const { id } = useParams();
 
   return (

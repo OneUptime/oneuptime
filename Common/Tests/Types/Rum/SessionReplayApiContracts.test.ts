@@ -8,6 +8,7 @@ import {
   SESSION_REPLAY_SORT_BY_VALUES,
   SessionReplayChunksRequestDto,
   SessionReplayExceptionSessionDto,
+  SessionReplayForExceptionRequestDto,
   SessionReplayForExceptionResponseDto,
   SessionReplayHeartbeatResponseDto,
   SessionReplayListFiltersDto,
@@ -38,6 +39,7 @@ import {
   readDtoStringMap,
   readDtoUnixMs,
 } from "../../../Types/Rum/SessionReplayApi";
+import ServiceType from "../../../Types/Telemetry/ServiceType";
 import {
   SESSION_REPLAY_VISITOR_ID_PATTERN,
   SessionReplayChunkManifestEntry,
@@ -255,6 +257,17 @@ describe("SessionReplayApi DTOs - today's wire shapes satisfy them", () => {
   it("/for-exception and /heartbeat responses parse", () => {
     expect(legacyForExceptionResponse.sessions[0]?.isFinalized).toBe(true);
     expect(legacyHeartbeat.secondsWatched).toBe(30);
+  });
+
+  it("a scoped /for-exception request carries both entity identifiers", () => {
+    const request: SessionReplayForExceptionRequestDto = {
+      fingerprint: "fp-1",
+      primaryEntityId: "service-1",
+      primaryEntityType: ServiceType.OpenTelemetry,
+    };
+
+    expect(request.primaryEntityId).toBe("service-1");
+    expect(request.primaryEntityType).toBe(ServiceType.OpenTelemetry);
   });
 
   it("the additive list and manifest fields are all optional and carry the documented types", () => {

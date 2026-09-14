@@ -112,7 +112,9 @@ describe("exception detail page wiring", () => {
   });
 
   test("mounts the six pages beneath one exception layout", () => {
-    const routes: string = dense(readSource("Routes", "ExceptionsRoutes.tsx"));
+    const routes: string = dense(
+      readSource("Routes", "ExceptionsRoutes.tsx"),
+    ).replace(/,\)/g, ")");
 
     expect(routes).toContain(
       'path={ExceptionsRoutePath[PageMap.EXCEPTIONS_VIEW]||""}element={<ExceptionViewLayout{...props}/>}',
@@ -126,7 +128,7 @@ describe("exception detail page wiring", () => {
 
     for (const page of DETAIL_PAGES.slice(1)) {
       expect(routes).toContain(
-        `path={RouteUtil.getLastPathForKey(PageMap.${page.key},)}element={<ExceptionView{...props}pageRoute={RouteMap[PageMap.${page.key}]asRoute}section={ExceptionDetailSection.${page.section}}/>}`,
+        `path={RouteUtil.getLastPathForKey(PageMap.${page.key})}element={<ExceptionView{...props}pageRoute={RouteMap[PageMap.${page.key}]asRoute}section={ExceptionDetailSection.${page.section}}/>}`,
       );
     }
   });
@@ -141,7 +143,7 @@ describe("exception detail page wiring", () => {
       const denseTitle: string = page.title.replace(/\s+/g, "");
 
       expect(sideMenu.split(destination)).toHaveLength(2);
-      expect(sideMenu).toContain(`title:\"${denseTitle}\",to:${destination}`);
+      expect(sideMenu).toContain(`title:"${denseTitle}",to:${destination}`);
     },
   );
 
@@ -155,6 +157,26 @@ describe("exception detail page wiring", () => {
     expect(sideMenu).toContain('<SideMenuSectiontitle="Manage">');
   });
 
+  test("starts every newly mounted section in its loading state", () => {
+    const exceptionExplorer: string = dense(
+      readSource("Components", "Exceptions", "ExceptionExplorer.tsx"),
+    );
+
+    expect(exceptionExplorer).toContain(
+      "const[isLoading,setIsLoading]=React.useState<boolean>(true);",
+    );
+  });
+
+  test("passes the complete exception entity scope to replay correlation", () => {
+    const exceptionExplorer: string = dense(
+      readSource("Components", "Exceptions", "ExceptionExplorer.tsx"),
+    );
+
+    expect(exceptionExplorer).toContain(
+      "<ReplayCardfingerprint={telemetryException.fingerprint}primaryEntityId={telemetryException.primaryEntityId}primaryEntityType={telemetryException.primaryEntityType}",
+    );
+  });
+
   test.each(DETAIL_PAGES)(
     "$title has a breadcrumb trail under the exception",
     (page: DetailPage) => {
@@ -164,7 +186,7 @@ describe("exception detail page wiring", () => {
       const denseTitle: string = page.title.replace(/\s+/g, "");
 
       expect(breadcrumbs).toContain(
-        `BuildBreadcrumbLinksByTitles(PageMap.${page.key},[\"Project\",\"Exceptions\",\"Exception\",\"${denseTitle}\",])`,
+        `BuildBreadcrumbLinksByTitles(PageMap.${page.key},["Project","Exceptions","Exception","${denseTitle}",])`,
       );
     },
   );

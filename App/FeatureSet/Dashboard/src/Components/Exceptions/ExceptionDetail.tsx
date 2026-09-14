@@ -166,7 +166,9 @@ const ExceptionDetail: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title={"Exception Metadata"}
-      description={"Technical details used to identify and group this exception."}
+      description={
+        "Technical details used to identify and group this exception."
+      }
     >
       <div>
         <Detail<ComponentProps> item={props} fields={fields} />

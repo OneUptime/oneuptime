@@ -102,9 +102,7 @@ describe("Exceptions landing navigation", () => {
       'key: "overview",',
     );
 
-    expect(exceptionsTab).toContain(
-      "RouteMap[PageMap.EXCEPTIONS] as Route",
-    );
+    expect(exceptionsTab).toContain("RouteMap[PageMap.EXCEPTIONS] as Route");
 
     const insightsTab: string = sectionBetween(
       tabs,
