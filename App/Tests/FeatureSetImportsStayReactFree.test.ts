@@ -101,7 +101,12 @@ function readImportsFromSource(
       ts.isCallExpression(node) &&
       (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
         (ts.isIdentifier(node.expression) &&
-          node.expression.text === "require"))
+          node.expression.text === "require") ||
+        (ts.isPropertyAccessExpression(node.expression) &&
+          ts.isIdentifier(node.expression.expression) &&
+          node.expression.expression.text === "jest" &&
+          (node.expression.name.text === "requireActual" ||
+            node.expression.name.text === "requireMock")))
     ) {
       const moduleSpecifier: ts.Expression | undefined = node.arguments[0];
 
@@ -230,6 +235,8 @@ describe("App tests never reach a React module", () => {
         'type Imported = import("./actual-import-type").Imported;',
         'const required = require("./actual-require");',
         "const requiredTemplate = require(`./actual-template-require`);",
+        'const actual = jest.requireActual("./actual-jest-require-actual");',
+        "const mocked = jest.requireMock(`./actual-jest-require-mock`);",
         'const assertion = `from "./string-literal"`;',
         '// import "./line-comment";',
         '/* export { value } from "./block-comment"; */',
@@ -244,6 +251,8 @@ describe("App tests never reach a React module", () => {
       "./actual-import-type",
       "./actual-require",
       "./actual-template-require",
+      "./actual-jest-require-actual",
+      "./actual-jest-require-mock",
     ]);
   });
 
