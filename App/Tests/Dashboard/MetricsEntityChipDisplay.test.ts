@@ -31,6 +31,13 @@ import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import Service from "Common/Models/DatabaseModels/Service";
+import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
+import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import {
+  RESOURCE_FACET_CATALOG,
+  RESOURCE_FACET_CATALOG_KEYS,
+  ResourceFacetDefinition,
+} from "Common/Types/Telemetry/ResourceFacetCatalog";
 import {
   METRICS_POLYMORPHIC_ENTITY_FACET_KEYS,
   METRICS_TYPED_ENTITY_FACET_KEYS,
@@ -69,6 +76,8 @@ const HOST_ID: string = "55555555-5555-4555-8555-555555555555";
 const CLUSTER_ID: string = "66666666-6666-4666-8666-666666666666";
 const DOCKER_HOST_ID: string = "77777777-7777-4777-8777-777777777777";
 const PODMAN_HOST_ID: string = "88888888-8888-4888-8888-888888888888";
+const PROXMOX_CLUSTER_ID: string = "aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa";
+const IOT_FLEET_ID: string = "bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb";
 
 const SERVICE_FACET_CONFIG: FacetConfig = {
   key: "primaryEntityId",
@@ -126,17 +135,49 @@ describe("entity facet key registry", () => {
   });
 
   test("each resource-id key maps to its own table", () => {
+    /*
+     * Spelled out rather than rebuilt from the catalog, so a catalog edit
+     * that re-points a key at the wrong table fails here. IoT fleet
+     * telemetry is stamped IoTDevice, and a RUM application RealUserMonitor.
+     */
     expect(METRICS_TYPED_ENTITY_FACET_KEYS).toEqual({
       hostId: ServiceType.Host,
       dockerHostId: ServiceType.DockerHost,
       podmanHostId: ServiceType.PodmanHost,
       kubernetesClusterId: ServiceType.KubernetesCluster,
+      dockerSwarmClusterId: ServiceType.DockerSwarmCluster,
+      proxmoxClusterId: ServiceType.ProxmoxCluster,
+      vmwareVCenterId: ServiceType.VMwareVCenter,
+      cephClusterId: ServiceType.CephCluster,
+      serverlessFunctionId: ServiceType.ServerlessFunction,
+      cloudResourceId: ServiceType.CloudResource,
+      rumApplicationId: ServiceType.RealUserMonitor,
+      iotFleetId: ServiceType.IoTDevice,
     });
     expect(getMetricsTypedEntityFacetType("hostId")).toBe(ServiceType.Host);
     expect(getMetricsTypedEntityFacetType("primaryEntityId")).toBeUndefined();
     // Object.prototype members are not facet keys.
     expect(getMetricsTypedEntityFacetType("toString")).toBeUndefined();
     expect(getMetricsTypedEntityFacetType("constructor")).toBeUndefined();
+  });
+
+  test("REGRESSION: every resource facet another explorer offers is a typed key here", () => {
+    /*
+     * A Traces / Logs / Exceptions link can now carry a Proxmox, vCenter,
+     * Ceph, Swarm, Serverless, Cloud, RUM or IoT chip; untyped, it would read
+     * "proxmoxClusterId: <uuid>" in the Metrics chip bar.
+     */
+    expect(Object.keys(METRICS_TYPED_ENTITY_FACET_KEYS)).toEqual([
+      ...RESOURCE_FACET_CATALOG_KEYS,
+    ]);
+    for (const definition of RESOURCE_FACET_CATALOG) {
+      expect(getMetricsTypedEntityFacetType(definition.facetKey)).toBe(
+        definition.serviceType,
+      );
+      expect(isMetricsPolymorphicEntityFacetKey(definition.facetKey)).toBe(
+        false,
+      );
+    }
   });
 
   test("isMetricsEntityFacetKey covers both groups and nothing else", () => {
@@ -147,6 +188,14 @@ describe("entity facet key registry", () => {
       "dockerHostId",
       "podmanHostId",
       "kubernetesClusterId",
+      "dockerSwarmClusterId",
+      "proxmoxClusterId",
+      "vmwareVCenterId",
+      "cephClusterId",
+      "serverlessFunctionId",
+      "cloudResourceId",
+      "rumApplicationId",
+      "iotFleetId",
     ]) {
       expect(isMetricsEntityFacetKey(key)).toBe(true);
     }
@@ -586,6 +635,63 @@ describe("resolveMetricsChipDisplay — resource id chips", () => {
   );
 });
 
+describe("resolveMetricsChipDisplay — every catalog resource type", () => {
+  const RESOURCE_ID: string = "99999999-9999-4999-8999-999999999999";
+
+  test.each(
+    RESOURCE_FACET_CATALOG.map(
+      (
+        definition: ResourceFacetDefinition,
+      ): [string, ResourceFacetDefinition] => {
+        return [definition.facetKey, definition];
+      },
+    ),
+  )(
+    "%s reads its catalog label, is hinted to its table, and is never applied to the list",
+    (facetKey: string, definition: ResourceFacetDefinition) => {
+      const chip: ActiveFilter = restoredChip(facetKey, RESOURCE_ID);
+
+      const lookup: MetricsEntityLookup = collectMetricsEntityLookup({
+        scopeIds: undefined,
+        scopeEntityType: undefined,
+        filters: [chip],
+      });
+      expect(lookup).toEqual({
+        ids: [RESOURCE_ID],
+        typeHints: { [RESOURCE_ID]: definition.serviceType },
+      });
+
+      const unresolved: ActiveFilter = resolveMetricsChipDisplay({
+        chip,
+        facetConfigs: [],
+        nameMap: {},
+      });
+      expect(unresolved.displayKey).toBe(definition.label);
+      expect(unresolved.displayValue).toBe(RESOURCE_ID);
+
+      const resolved: ActiveFilter = resolveMetricsChipDisplay({
+        chip,
+        facetConfigs: [],
+        nameMap: entity(
+          RESOURCE_ID,
+          "friendly-name",
+          definition.serviceType,
+          definition.label,
+        ),
+      });
+      expect(resolved).toEqual({
+        facetKey,
+        value: RESOURCE_ID,
+        displayKey: definition.label,
+        displayValue: "friendly-name",
+      });
+
+      // Metrics has no filter path for it: labelled, never applied.
+      expect(getMetricsAppliedEntityFilterIds([chip])).toEqual([]);
+    },
+  );
+});
+
 describe("resolveMetricsChipDisplay — other chips are unchanged", () => {
   test("an attribute chip shows the typed value, not its grammar escaping", () => {
     const escaped: ActiveFilter = resolveMetricsChipDisplay({
@@ -932,6 +1038,11 @@ describe("chips resolved through TelemetryEntityNameResolver", () => {
         },
       ],
     ],
+    [
+      ProxmoxCluster,
+      [{ id: new ObjectID(PROXMOX_CLUSTER_ID), name: "pve-prod" }],
+    ],
+    [IoTFleet, [{ id: new ObjectID(IOT_FLEET_ID), name: "warehouse-sensors" }]],
   ];
 
   beforeEach(() => {
@@ -1040,6 +1151,51 @@ describe("chips resolved through TelemetryEntityNameResolver", () => {
       ["Host", "web-1"],
       ["Kubernetes Cluster", "prod-eks"],
       ["Service", "Unknown Service"],
+    ]);
+  });
+
+  test("chips for the newly offered resource types go straight to their own tables", async () => {
+    const activeFilters: Array<ActiveFilter> = [
+      restoredChip("proxmoxClusterId", PROXMOX_CLUSTER_ID),
+      restoredChip("iotFleetId", IOT_FLEET_ID),
+    ];
+    const lookup: MetricsEntityLookup = collectMetricsEntityLookup({
+      scopeIds: undefined,
+      scopeEntityType: undefined,
+      filters: activeFilters,
+    });
+    const nameMap: TelemetryEntityNameMap =
+      await TelemetryEntityNameResolver.resolve({
+        ids: lookup.ids,
+        projectId: PROJECT_ID,
+        typeHints: lookup.typeHints,
+      });
+
+    // Hinted: no Service probe, no fall-through across every table.
+    const queried: Array<unknown> = getListMock.mock.calls.map(
+      (call: Array<unknown>): unknown => {
+        return (call[0] as { modelType: unknown }).modelType;
+      },
+    );
+    expect(queried).toHaveLength(2);
+    expect(queried).toEqual(expect.arrayContaining([ProxmoxCluster, IoTFleet]));
+
+    const chips: Array<ActiveFilter> = buildMetricsActiveFilterChips({
+      scopeIds: undefined,
+      scopeEntityType: undefined,
+      attributeFilters: undefined,
+      activeFilters,
+      facetConfigs: [],
+      nameMap,
+    });
+
+    expect(
+      chips.map((chip: ActiveFilter): [string, string] => {
+        return [chip.displayKey, chip.displayValue];
+      }),
+    ).toEqual([
+      ["Proxmox Cluster", "pve-prod"],
+      ["IoT Fleet", "warehouse-sensors"],
     ]);
   });
 
@@ -1179,6 +1335,10 @@ describe("getMetricsAppliedEntityFilterIds (the metric list's entity filter)", (
         getMetricsAppliedEntityFilterIds([restoredChip(key, HOST_ID)]),
       ).toEqual([]);
     }
+    // The shared resource list is the whole catalog, not the original four.
+    expect([...RESOURCE_ENTITY_FACET_KEYS]).toEqual(
+      expect.arrayContaining([...RESOURCE_FACET_CATALOG_KEYS]),
+    );
   });
 
   test("the Viewer applies the same service ids the Metrics Insights tab applies", () => {

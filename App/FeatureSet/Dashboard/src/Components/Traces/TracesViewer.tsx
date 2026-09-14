@@ -45,6 +45,8 @@ import {
   collectServiceFacetSelections,
   isResourceFacetKey,
 } from "Common/Types/Telemetry/ResourceEntityFacet";
+import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";
+import { buildResourceFacetConfigs } from "Common/UI/Components/TelemetryViewer/ResourceFacetConfigs";
 import ProjectUtil from "Common/UI/Utils/Project";
 import API from "Common/UI/Utils/API/API";
 import URL from "Common/Types/API/URL";
@@ -971,12 +973,13 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     }
 
     /*
-     * Host / docker host / podman host / Kubernetes cluster selections do
-     * NOT read out of `primaryEntityId`: a span that carries a
-     * `service.name` is primary-keyed on its Service and only records the
-     * host / cluster in `entityKeys`. They ride `resourceFilters` so the
-     * server can resolve each id to the resource's entity key, one AND
-     * group per facet. See ResourceEntityFilter.
+     * Selections on the other resource facets (hosts, clusters, vCenters,
+     * serverless functions, … — see ResourceFacetCatalog) do NOT read out
+     * of `primaryEntityId`: a span that carries a `service.name` is
+     * primary-keyed on its Service and only records the host / cluster in
+     * `entityKeys`. They ride `resourceFilters` so the server can resolve
+     * each id to the resource's entity key, one AND group per facet. See
+     * ResourceEntityFilter.
      */
     const resourceFilters: ResourceEntityFacetSelections =
       collectResourceEntityFacetSelections(Object.entries(facetGroups));
@@ -1626,7 +1629,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
     /*
      * Mirror the list query: the Services facet narrows `serviceIds`, while
-     * host / docker / podman / Kubernetes selections travel under
+     * every other resource facet's selections travel under
      * `resourceFilters` so the server matches them through the resource's
      * entity key instead of against a column that only holds Service ids.
      */
@@ -1821,10 +1824,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       ...aggregationRequest,
       facetKeys: [
         "primaryEntityId",
-        "hostId",
-        "dockerHostId",
-        "podmanHostId",
-        "kubernetesClusterId",
+        /*
+         * Every resource type in the catalog. The server answers each with
+         * the project's full list from Postgres, so a type the project has
+         * none of comes back empty and the sidebar folds it away.
+         */
+        ...RESOURCE_FACET_CATALOG_KEYS,
         "statusCode",
         "kind",
         // Backs the "Span Type" facet (root vs non-root counts).
@@ -2028,42 +2033,31 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     };
 
     return [
+      // Never folded away while empty — only the resource type facets below are.
       {
         key: "primaryEntityId",
         title: "Service",
+        icon: IconProp.SquareStack,
         valueDisplayMap: serviceNameMap,
         valueColorMap: serviceColorMap,
         priority: 1,
         serverSearchable: true,
       },
-      {
-        key: "hostId",
-        title: "Host",
-        valueDisplayMap: hostNameMap,
-        priority: 2,
-        serverSearchable: true,
-      },
-      {
-        key: "dockerHostId",
-        title: "Docker Host",
-        valueDisplayMap: dockerHostNameMap,
-        priority: 3,
-        serverSearchable: true,
-      },
-      {
-        key: "podmanHostId",
-        title: "Podman Host",
-        valueDisplayMap: podmanHostNameMap,
-        priority: 4,
-        serverSearchable: true,
-      },
-      {
-        key: "kubernetesClusterId",
-        title: "Kubernetes Cluster",
-        valueDisplayMap: clusterNameMap,
-        priority: 5,
-        serverSearchable: true,
-      },
+      /*
+       * One facet per catalog resource type (Host … IoT Fleet), at 2.00 –
+       * 2.11 so they stay grouped under Service and above Status. Each folds
+       * away while empty. Types without a preloaded list are named by the
+       * server's facet displayName.
+       */
+      ...buildResourceFacetConfigs({
+        basePriority: 2,
+        valueDisplayMaps: {
+          hostId: hostNameMap,
+          dockerHostId: dockerHostNameMap,
+          podmanHostId: podmanHostNameMap,
+          kubernetesClusterId: clusterNameMap,
+        },
+      }),
       {
         key: "statusCode",
         title: "Status",

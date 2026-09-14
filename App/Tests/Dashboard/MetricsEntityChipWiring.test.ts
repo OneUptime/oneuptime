@@ -125,6 +125,22 @@ describe("MetricsViewer resolves chip names through the generic entity resolver"
   });
 });
 
+describe("MetricsViewer offers no resource facets it cannot apply", () => {
+  test("the facets request asks for Services only", () => {
+    expect(METRICS_VIEWER).toContain('facetKeys: ["primaryEntityId"],');
+    expect(METRICS_VIEWER).not.toContain("RESOURCE_FACET_CATALOG_KEYS");
+    expect(METRICS_VIEWER).not.toContain("buildResourceFacetConfigs");
+  });
+
+  test("the one Service facet carries the same icon as the other explorers", () => {
+    expect(METRICS_VIEWER).toContain(
+      'key: "primaryEntityId", title: "Service", icon: IconProp.SquareStack, valueDisplayMap: serviceNameMap, valueColorMap: serviceColorMap, priority: 1, serverSearchable: true, },',
+    );
+    expect(METRICS_VIEWER).not.toContain('key: "hostId"');
+    expect(METRICS_VIEWER).not.toContain("hideWhenEmpty");
+  });
+});
+
 describe("MetricsViewer filtering still uses ids", () => {
   test("the metric list query is built from the chip value, not its display", () => {
     /*

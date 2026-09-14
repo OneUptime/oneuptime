@@ -59,6 +59,7 @@ import {
   SavedViewFilterTuple,
 } from "Common/Utils/Telemetry/SavedViewFilters";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import IconProp from "Common/Types/Icon/IconProp";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import {
@@ -1185,10 +1186,19 @@ const MetricsViewer: FunctionComponent<Props> = (
         }
       }
     }
+    /*
+     * Service only. Unlike Logs / Traces / Exceptions, the metric list has no
+     * filter path for the other resource types (hosts, clusters, …): it is a
+     * Postgres MetricType list narrowed by its Service relation, and OTLP
+     * metrics are primary-keyed on their Service anyway (see
+     * getMetricsAppliedEntityFilterIds). Offering a Host facet here would
+     * show a selection the list cannot apply.
+     */
     return [
       {
         key: "primaryEntityId",
         title: "Service",
+        icon: IconProp.SquareStack,
         valueDisplayMap: serviceNameMap,
         valueColorMap: serviceColorMap,
         priority: 1,

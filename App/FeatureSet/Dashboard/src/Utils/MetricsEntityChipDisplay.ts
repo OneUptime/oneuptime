@@ -1,5 +1,6 @@
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import { RESOURCE_FACET_CATALOG } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import { describeSearchValue } from "Common/Types/Telemetry/TelemetrySearchQuery";
 import {
   ActiveFilter,
@@ -39,13 +40,25 @@ export const METRICS_POLYMORPHIC_ENTITY_FACET_KEYS: Array<string> = [
  * saved view written by another explorer. Their table is known from the key,
  * so they get a friendly key and a targeted name lookup instead of showing
  * "hostId: 1f0c…".
+ *
+ * Every resource type in ResourceFacetCatalog (hostId → Host, …,
+ * iotFleetId → IoTDevice, the type IoT fleet telemetry is stamped with):
+ * the Logs / Traces / Exceptions sidebars offer all of them, so a link from
+ * any of those explorers can carry any of them here.
  */
-export const METRICS_TYPED_ENTITY_FACET_KEYS: Record<string, ServiceType> = {
-  hostId: ServiceType.Host,
-  dockerHostId: ServiceType.DockerHost,
-  podmanHostId: ServiceType.PodmanHost,
-  kubernetesClusterId: ServiceType.KubernetesCluster,
+const buildTypedEntityFacetTypes: () => Record<
+  string,
+  ServiceType
+> = (): Record<string, ServiceType> => {
+  const types: Record<string, ServiceType> = {};
+  for (const definition of RESOURCE_FACET_CATALOG) {
+    types[definition.facetKey] = definition.serviceType;
+  }
+  return types;
 };
+
+export const METRICS_TYPED_ENTITY_FACET_KEYS: Record<string, ServiceType> =
+  buildTypedEntityFacetTypes();
 
 export const isMetricsPolymorphicEntityFacetKey: (
   facetKey: string,
@@ -152,7 +165,7 @@ export const collectMetricsEntityLookup: (data: {
  * it. Sharing isMetricsPolymorphicEntityFacetKey with the chip rules keeps
  * "labelled as a filter" and "applied as a filter" from drifting apart.
  *
- * The typed resource keys (hostId / dockerHostId / …) are deliberately NOT
+ * The typed resource keys (hostId / dockerHostId / … / iotFleetId) are deliberately NOT
  * collected, matching the Metrics Insights tab (supportsResourceEntityFacets
  * is false for Metrics). A host or cluster selection needs the entity-key
  * treatment Logs / Traces give it (OTLP metrics are primary-keyed on their
@@ -318,8 +331,8 @@ export const buildMetricsIncludedFacetChip: (data: {
  *   everything else — RUM applications, hosts, clusters, Unknown Service.
  *   `scopeEntityType` is set only for the page's locked scope chips: the
  *   page knows what it is scoped to, so the key is right before any lookup.
- * - hostId / dockerHostId / podmanHostId / kubernetesClusterId chips get a
- *   friendly key and a resolved name.
+ * - Typed resource chips (every ResourceFacetCatalog key: hostId … iotFleetId)
+ *   get a friendly key and a resolved name.
  * - Everything else is unchanged: facet title and value display map.
  */
 export const resolveMetricsChipDisplay: (data: {

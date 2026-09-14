@@ -8,6 +8,11 @@ import Service from "../../../Models/DatabaseModels/Service";
 import Color from "../../../Types/Color";
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  RESOURCE_FACET_CATALOG,
+  RESOURCE_FACET_CATALOG_KEYS,
+  ResourceFacetDefinition,
+} from "../../../Types/Telemetry/ResourceFacetCatalog";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import {
   ANALYTICS_DIMENSION_LABELS,
@@ -39,6 +44,7 @@ import {
 import { ActiveFilter } from "../../../UI/Components/LogsViewer/types";
 import {
   DEFAULT_TELEMETRY_ENTITY_LABEL,
+  TELEMETRY_ENTITY_RESOLUTION_ORDER,
   TELEMETRY_ENTITY_TYPES,
   TelemetryEntityNameMap,
 } from "../../../UI/Utils/Telemetry/TelemetryEntityNames";
@@ -219,8 +225,66 @@ describe("LOGS_RESOURCE_FACET_ENTITY_TYPES", () => {
       dockerHostId: ServiceType.DockerHost,
       podmanHostId: ServiceType.PodmanHost,
       kubernetesClusterId: ServiceType.KubernetesCluster,
+      dockerSwarmClusterId: ServiceType.DockerSwarmCluster,
+      proxmoxClusterId: ServiceType.ProxmoxCluster,
+      vmwareVCenterId: ServiceType.VMwareVCenter,
+      cephClusterId: ServiceType.CephCluster,
+      serverlessFunctionId: ServiceType.ServerlessFunction,
+      cloudResourceId: ServiceType.CloudResource,
+      rumApplicationId: ServiceType.RealUserMonitor,
+      iotFleetId: ServiceType.IoTDevice,
     });
   });
+
+  test("covers exactly the resource facet catalog, in catalog order", () => {
+    /*
+     * Order matters: findLoadedLogsResourceEntity probes the preloaded maps
+     * in this order, so the four preloaded types must stay first.
+     */
+    expect(Object.keys(LOGS_RESOURCE_FACET_ENTITY_TYPES)).toEqual([
+      ...RESOURCE_FACET_CATALOG_KEYS,
+    ]);
+    expect(Object.keys(LOGS_RESOURCE_FACET_ENTITY_TYPES).slice(0, 4)).toEqual([
+      "hostId",
+      "dockerHostId",
+      "podmanHostId",
+      "kubernetesClusterId",
+    ]);
+  });
+
+  test("Service facets are polymorphic and carry no table hint", () => {
+    expect(LOGS_RESOURCE_FACET_ENTITY_TYPES["primaryEntityId"]).toBeUndefined();
+    expect(LOGS_RESOURCE_FACET_ENTITY_TYPES["serviceId"]).toBeUndefined();
+  });
+
+  test.each(
+    RESOURCE_FACET_CATALOG.map(
+      (
+        definition: ResourceFacetDefinition,
+      ): [string, ResourceFacetDefinition] => {
+        return [definition.facetKey, definition];
+      },
+    ),
+  )(
+    "%s names a table the generic resolver can read, labelled like the catalog",
+    (facetKey: string, definition: ResourceFacetDefinition) => {
+      const entityType: ServiceType | undefined =
+        LOGS_RESOURCE_FACET_ENTITY_TYPES[facetKey];
+      expect(entityType).toBe(definition.serviceType);
+      expect(TELEMETRY_ENTITY_TYPES[entityType!]).toBeDefined();
+      expect(TELEMETRY_ENTITY_TYPES[entityType!].modelType).toBeDefined();
+      expect(
+        TELEMETRY_ENTITY_TYPES[entityType!].nameFields.length,
+      ).toBeGreaterThan(0);
+      expect(TELEMETRY_ENTITY_TYPES[entityType!].label).toBe(definition.label);
+      // An unhinted id of this type is still probed eventually.
+      expect(TELEMETRY_ENTITY_RESOLUTION_ORDER).toContain(entityType);
+      // The chip key the explorer gives this facet reads back as its table.
+      expect(getTelemetryEntityTypeForChipKey(definition.label)).toBe(
+        entityType,
+      );
+    },
+  );
 });
 
 describe("getTelemetryEntityTypeForChipKey", () => {
@@ -1383,5 +1447,323 @@ describe("analytics helpers", () => {
       ),
     ).toBe("checkout-web / Error");
     expect(getAnalyticsSeriesLabel({}, NAME_MAP)).toBe("");
+  });
+});
+
+/*
+ * The viewer preloads Host / Docker host / Podman host / Kubernetes cluster
+ * maps only. Every other catalog resource type (Proxmox, vCenter, Ceph,
+ * Docker Swarm, serverless, cloud, RUM, IoT) is on screen now as a facet and
+ * a chip, so its ids must fall through to the generic resolver — hinted
+ * straight to their own table — and come back as names, never raw UUIDs.
+ */
+describe("catalog resource types the viewer does not preload", () => {
+  const maps: LogsEntityLookupMaps = makeMaps();
+
+  const PRELOADED_KEYS: Array<string> = [
+    "hostId",
+    "dockerHostId",
+    "podmanHostId",
+    "kubernetesClusterId",
+  ];
+
+  const unpreloaded: Array<ResourceFacetDefinition> =
+    RESOURCE_FACET_CATALOG.filter(
+      (definition: ResourceFacetDefinition): boolean => {
+        return !PRELOADED_KEYS.includes(definition.facetKey);
+      },
+    );
+
+  // One distinct id and resolver answer per type.
+  const idFor: (index: number) => string = (index: number): string => {
+    return `abcdef${String(index).padStart(2, "0")}-0000-4000-8000-000000000001`;
+  };
+
+  const resolvedNameMap: TelemetryEntityNameMap = {};
+  unpreloaded.forEach((definition: ResourceFacetDefinition, index: number) => {
+    resolvedNameMap[idFor(index)] = {
+      id: idFor(index),
+      name: `${definition.facetKey}-name`,
+      entityType: definition.serviceType,
+      typeLabel: TELEMETRY_ENTITY_TYPES[definition.serviceType].label,
+    };
+  });
+
+  const cases: Array<[string, ResourceFacetDefinition, string]> =
+    unpreloaded.map(
+      (
+        definition: ResourceFacetDefinition,
+        index: number,
+      ): [string, ResourceFacetDefinition, string] => {
+        return [definition.facetKey, definition, idFor(index)];
+      },
+    );
+
+  test("are exactly the eight new catalog types", () => {
+    expect(
+      unpreloaded.map((definition: ResourceFacetDefinition): string => {
+        return definition.facetKey;
+      }),
+    ).toEqual([
+      "dockerSwarmClusterId",
+      "proxmoxClusterId",
+      "vmwareVCenterId",
+      "cephClusterId",
+      "serverlessFunctionId",
+      "cloudResourceId",
+      "rumApplicationId",
+      "iotFleetId",
+    ]);
+  });
+
+  test.each(cases)(
+    "%s has no preloaded name, even for an id a preloaded map holds",
+    (facetKey: string, _definition: ResourceFacetDefinition, id: string) => {
+      expect(getLoadedLogsEntityName(facetKey, id, maps)).toBeUndefined();
+      // HOST_ID is in hostMap, but a Proxmox chip is not a host chip.
+      expect(getLoadedLogsEntityName(facetKey, HOST_ID, maps)).toBeUndefined();
+    },
+  );
+
+  test.each(cases)(
+    "a %s chip is named by the resolver and keeps its facet label as key",
+    (facetKey: string, definition: ResourceFacetDefinition, id: string) => {
+      const incoming: ActiveFilter = chip(facetKey, id, definition.label);
+      const result: ActiveFilter = enrichLogsActiveFilter(
+        incoming,
+        maps,
+        resolvedNameMap,
+      );
+
+      expect(result.displayKey).toBe(definition.label);
+      expect(result.displayValue).toBe(`${facetKey}-name`);
+      // Display only: the filter still carries the id under its own key.
+      expect(result.value).toBe(id);
+      expect(result.facetKey).toBe(facetKey);
+    },
+  );
+
+  test.each(cases)(
+    "an unresolved %s chip is left exactly as it came in",
+    (facetKey: string, definition: ResourceFacetDefinition, id: string) => {
+      const incoming: ActiveFilter = chip(facetKey, id, definition.label);
+
+      expect(enrichLogsActiveFilter(incoming, maps, {})).toBe(incoming);
+      expect(enrichLogsActiveFilter(incoming, maps, undefined)).toBe(incoming);
+    },
+  );
+
+  test.each(cases)(
+    "a parent-named %s chip is not overwritten by the resolver",
+    (facetKey: string, definition: ResourceFacetDefinition, id: string) => {
+      const incoming: ActiveFilter = chip(
+        facetKey,
+        id,
+        definition.label,
+        "named by the page",
+      );
+
+      expect(enrichLogsActiveFilter(incoming, maps, resolvedNameMap)).toBe(
+        incoming,
+      );
+      expect(
+        collectLogsEntityIdsToResolve({ filters: [incoming], maps }).ids,
+      ).toEqual([]);
+    },
+  );
+
+  test.each(cases)(
+    "an unnamed %s chip is requested from its own table",
+    (facetKey: string, definition: ResourceFacetDefinition, id: string) => {
+      const request: LogsEntityResolutionRequest =
+        collectLogsEntityIdsToResolve({
+          filters: [chip(facetKey, id, definition.label)],
+          maps,
+        });
+
+      expect(request).toEqual({
+        ids: [id],
+        typeHints: { [id]: definition.serviceType },
+      });
+    },
+  );
+
+  test.each(cases)(
+    "the %s facet's own table wins over a misleading chip key",
+    (facetKey: string, definition: ResourceFacetDefinition, id: string) => {
+      const request: LogsEntityResolutionRequest =
+        collectLogsEntityIdsToResolve({
+          filters: [chip(facetKey, id, "Service")],
+          maps,
+        });
+
+      expect(request.typeHints).toEqual({ [id]: definition.serviceType });
+    },
+  );
+
+  test.each(cases)(
+    "sidebar %s rows the server did not name are requested, hinted to their table",
+    (facetKey: string, definition: ResourceFacetDefinition, id: string) => {
+      const request: LogsEntityResolutionRequest =
+        collectLogsEntityIdsToResolve({
+          facetData: {
+            [facetKey]: [
+              { value: id, count: 0 },
+              { value: MISSING_ID, count: 3, displayName: "named-by-server" },
+              { value: "not-a-uuid", count: 1 },
+            ],
+          },
+          maps,
+        });
+
+      expect(request).toEqual({
+        ids: [id],
+        typeHints: { [id]: definition.serviceType },
+      });
+    },
+  );
+
+  test("an id that echoes itself as displayName is still requested", () => {
+    const id: string = idFor(0);
+    const request: LogsEntityResolutionRequest = collectLogsEntityIdsToResolve({
+      facetData: {
+        proxmoxClusterId: [{ value: id, count: 2, displayName: id }],
+      },
+      maps,
+    });
+
+    expect(request.typeHints).toEqual({ [id]: ServiceType.ProxmoxCluster });
+  });
+
+  test("one request covers every new facet at once, each id hinted to its own table", () => {
+    const facetData: Record<
+      string,
+      Array<{ value: string; count: number }>
+    > = {};
+    const expectedHints: Record<string, ServiceType> = {};
+
+    for (const [facetKey, definition, id] of cases) {
+      facetData[facetKey] = [{ value: id, count: 1 }];
+      expectedHints[id] = definition.serviceType;
+    }
+
+    const request: LogsEntityResolutionRequest = collectLogsEntityIdsToResolve({
+      facetData,
+      maps,
+    });
+
+    expect(request.ids).toEqual(
+      cases
+        .map((entry: [string, ResourceFacetDefinition, string]): string => {
+          return entry[2];
+        })
+        .sort(),
+    );
+    expect(request.typeHints).toEqual(expectedHints);
+  });
+
+  test("an IoT fleet id is hinted IoTDevice — the type fleet telemetry is stamped with", () => {
+    const id: string = idFor(7);
+    expect(
+      collectLogsEntityIdsToResolve({
+        filters: [chip("iotFleetId", id, "IoT Fleet")],
+        maps,
+      }).typeHints,
+    ).toEqual({ [id]: ServiceType.IoTDevice });
+    expect(TELEMETRY_ENTITY_TYPES[ServiceType.IoTDevice].label).toBe(
+      "IoT Fleet",
+    );
+  });
+
+  test("the preloaded four still skip the resolver when their maps name them", () => {
+    const request: LogsEntityResolutionRequest = collectLogsEntityIdsToResolve({
+      filters: [
+        chip("hostId", HOST_ID, "Host"),
+        chip("dockerHostId", DOCKER_HOST_ID, "Docker Host"),
+        chip("podmanHostId", PODMAN_HOST_ID, "Podman Host"),
+        chip("kubernetesClusterId", CLUSTER_ID, "Kubernetes Cluster"),
+      ],
+      facetData: {
+        hostId: [{ value: HOST_ID, count: 1 }],
+        kubernetesClusterId: [{ value: CLUSTER_ID, count: 1 }],
+      },
+      maps,
+    });
+
+    expect(request).toEqual({ ids: [], typeHints: {} });
+  });
+
+  test("findLoadedLogsResourceEntity still probes the preloaded maps first, in catalog order", () => {
+    const sharedId: string = HOST_ID;
+    const cluster: KubernetesCluster = new KubernetesCluster();
+    cluster.id = new ObjectID(sharedId);
+    cluster.name = "cluster-with-host-id";
+
+    const found: LoadedLogsResourceEntity | undefined =
+      findLoadedLogsResourceEntity(sharedId, {
+        hostMap: { [sharedId]: makeHost(sharedId, "host-first") },
+        kubernetesClusterMap: { [sharedId]: cluster },
+      });
+
+    expect(found).toEqual({
+      name: "host-first",
+      entityType: ServiceType.Host,
+      typeLabel: "Host",
+    });
+    // A new-type id is never "found" locally; it goes to the resolver.
+    expect(findLoadedLogsResourceEntity(idFor(0), maps)).toBeUndefined();
+  });
+
+  test.each(cases)(
+    "analytics rows grouped by %s are requested with their table hint",
+    (facetKey: string, definition: ResourceFacetDefinition, id: string) => {
+      expect(isAnalyticsEntityDimension(facetKey)).toBe(true);
+
+      const grouped: LogsEntityResolutionRequest = collectAnalyticsEntityIds({
+        groupByFields: [facetKey],
+        groupedRows: [{ groupValues: { [facetKey]: id } }],
+      });
+      expect(grouped).toEqual({
+        ids: [id],
+        typeHints: { [id]: definition.serviceType },
+      });
+
+      const topList: LogsEntityResolutionRequest = collectAnalyticsEntityIds({
+        groupByFields: [facetKey],
+        topListItems: [{ value: id }],
+      });
+      expect(topList.typeHints).toEqual({ [id]: definition.serviceType });
+
+      expect(getAnalyticsGroupValueLabel(facetKey, id, resolvedNameMap)).toBe(
+        `${facetKey}-name`,
+      );
+    },
+  );
+});
+
+describe("ANALYTICS_DIMENSION_LABELS for resource facets", () => {
+  test("keeps the non-resource labels", () => {
+    expect(ANALYTICS_DIMENSION_LABELS).toMatchObject({
+      severityText: "Severity",
+      primaryEntityId: "Service",
+      serviceId: "Service",
+      traceId: "Trace ID",
+      spanId: "Span ID",
+    });
+  });
+
+  test.each(
+    RESOURCE_FACET_CATALOG.map(
+      (definition: ResourceFacetDefinition): [string, string] => {
+        return [definition.facetKey, definition.label];
+      },
+    ),
+  )("%s reads %p", (facetKey: string, label: string) => {
+    expect(ANALYTICS_DIMENSION_LABELS[facetKey]).toBe(label);
+    // A typed resource dimension keeps its own label, whatever resolved.
+    expect(getAnalyticsDimensionLabel(facetKey, [RUM_ID], NAME_MAP)).toBe(
+      label,
+    );
+    expect(getAnalyticsDimensionLabel(facetKey, [], undefined)).toBe(label);
   });
 });
