@@ -305,7 +305,7 @@ describe("getReplayPanelWidthClassName", () => {
       );
     }
 
-    expect(REPLAY_PANEL_DEFAULT_WIDTH_CLASS).toBe("w-[38rem]");
+    expect(REPLAY_PANEL_DEFAULT_WIDTH_CLASS).toBe("w-[38rem] max-w-[95vw]");
     expect(REPLAY_PANEL_WIDE_WIDTH_CLASS).not.toBe(
       REPLAY_PANEL_DEFAULT_WIDTH_CLASS,
     );
