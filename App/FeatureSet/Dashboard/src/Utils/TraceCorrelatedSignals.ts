@@ -11,7 +11,7 @@ import { JSONObject } from "Common/Types/JSON";
 /*
  * Pure helpers behind the trace <-> other-signal correlation surfaces
  * (Trace Explorer's correlated-signals strip, the span list panel's Logs /
- * Exceptions tabs, SpanViewer's Profile tab, and the traces toolbar's
+ * Exceptions tabs, the trace span panel's Profile tab, and the traces toolbar's
  * cross-signal pivots). Everything here is renderer-free so the App jest
  * suite can exercise it in plain Node.
  */

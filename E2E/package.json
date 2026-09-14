@@ -25,7 +25,8 @@
     "test-slo-burn-rate-ui": "playwright test --config playwright.slo-burn-rate.config.ts",
     "test-google-secops-form-steps-ui": "playwright test --config playwright.google-secops-form-steps.config.ts",
     "test-incoming-call-policies-ui": "playwright test --config playwright.incoming-call-policies.config.ts",
-    "test-exception-detail-ui": "playwright test --config playwright.exception-detail-ui.config.ts"
+    "test-exception-detail-ui": "playwright test --config playwright.exception-detail-ui.config.ts",
+    "test-trace-detail-ui": "playwright test --config playwright.trace-detail-ui.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

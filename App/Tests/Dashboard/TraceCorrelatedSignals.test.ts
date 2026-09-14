@@ -32,7 +32,7 @@ import {
 /*
  * These helpers are the logic behind the trace <-> other-signal surfaces:
  * the Trace Explorer's correlated-signals strip (Metrics / Profile tabs),
- * the span list panel's Logs / Exceptions tabs, SpanViewer's presence-gated
+ * the span list panel's Logs / Exceptions tabs, the trace span panel's presence-gated
  * Profile tab, and the traces toolbar's Logs / Metrics pivots. Each one is
  * exercised on its happy path, its empty/absent inputs, and the malformed
  * data a network payload can always contain.
