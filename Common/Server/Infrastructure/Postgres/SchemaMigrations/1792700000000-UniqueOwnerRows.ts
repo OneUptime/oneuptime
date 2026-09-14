@@ -1013,6 +1013,36 @@ export class UniqueOwnerRows1792700000000 implements MigrationInterface {
             FROM ranked r
             WHERE t._id = r._id AND r.rn > 1;
         `);
+    await queryRunner.query(`
+            WITH ranked AS (
+              SELECT _id,
+                     ROW_NUMBER() OVER (
+                       PARTITION BY "vmwareVCenterId", "teamId", "projectId"
+                       ORDER BY "createdAt" ASC, _id ASC
+                     ) AS rn
+              FROM "VMwareVCenterOwnerTeam"
+              WHERE "deletedAt" IS NULL
+            )
+            UPDATE "VMwareVCenterOwnerTeam" t
+            SET "deletedAt" = CURRENT_TIMESTAMP
+            FROM ranked r
+            WHERE t._id = r._id AND r.rn > 1;
+        `);
+    await queryRunner.query(`
+            WITH ranked AS (
+              SELECT _id,
+                     ROW_NUMBER() OVER (
+                       PARTITION BY "vmwareVCenterId", "userId", "projectId"
+                       ORDER BY "createdAt" ASC, _id ASC
+                     ) AS rn
+              FROM "VMwareVCenterOwnerUser"
+              WHERE "deletedAt" IS NULL
+            )
+            UPDATE "VMwareVCenterOwnerUser" t
+            SET "deletedAt" = CURRENT_TIMESTAMP
+            FROM ranked r
+            WHERE t._id = r._id AND r.rn > 1;
+        `);
 
     await queryRunner.query(
       `DROP INDEX "public"."IDX_4490b10d3394a9be5f27f8fc3b"`,
@@ -1302,6 +1332,18 @@ export class UniqueOwnerRows1792700000000 implements MigrationInterface {
     await queryRunner.query(
       `CREATE UNIQUE INDEX "IDX_21d5ee2d81bdeba6a3bb8497f4" ON "DashboardOwnerUser" ("dashboardId", "userId", "projectId") WHERE "deletedAt" IS NULL`,
     );
+    /*
+     * The vCenter owner tables arrived after the rest of this migration was
+     * generated (AddVMwareTables1792000000000) and shipped without the plain
+     * composite index every other owner table had, so there is nothing to
+     * drop here -- only the partial unique to add, on the same terms.
+     */
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_c17fa9b78ec20a8e154ff47505" ON "VMwareVCenterOwnerTeam" ("vmwareVCenterId", "teamId", "projectId") WHERE "deletedAt" IS NULL`,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_73ebb42e85b92705a726bb6a63" ON "VMwareVCenterOwnerUser" ("vmwareVCenterId", "userId", "projectId") WHERE "deletedAt" IS NULL`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -1319,6 +1361,12 @@ export class UniqueOwnerRows1792700000000 implements MigrationInterface {
      * the lookups the original index served. Each column list below was
      * corrected against the live pre-migration schema.
      */
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_73ebb42e85b92705a726bb6a63"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_c17fa9b78ec20a8e154ff47505"`,
+    );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_21d5ee2d81bdeba6a3bb8497f4"`,
     );

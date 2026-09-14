@@ -135,7 +135,7 @@ describe("UniqueOwnerRows migration", () => {
     });
 
     // One repair per owner table.
-    expect(repairs.length).toBe(66);
+    expect(repairs.length).toBe(68);
 
     for (const sql of repairs) {
       // Ranked over live rows only: pre-existing ghosts stay untouched.
@@ -164,8 +164,8 @@ describe("UniqueOwnerRows migration", () => {
       }
     }
 
-    // 33 resources x (team, user).
-    expect(indexedTables.size).toBe(66);
+    // 34 resources x (team, user).
+    expect(indexedTables.size).toBe(68);
   });
 
   it("restores each plain index in down() with the entity's column order", async () => {
