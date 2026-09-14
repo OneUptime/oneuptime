@@ -221,7 +221,9 @@ const ExceptionSettings: FunctionComponent<ComponentProps> = (
                         props.pendingActionId !== row.action.id)
                     }
                     tooltip={
-                      updateGate.isAllowed ? undefined : updateGate.disabledReason
+                      updateGate.isAllowed
+                        ? undefined
+                        : updateGate.disabledReason
                     }
                     onClick={() => {
                       props.onAction(row.action);
@@ -240,7 +242,9 @@ const ExceptionSettings: FunctionComponent<ComponentProps> = (
           modelId={props.telemetryExceptionId}
           onDeleteSuccess={() => {
             Navigation.navigate(
-              RouteUtil.populateRouteParams(RouteMap[PageMap.EXCEPTIONS] as Route),
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.EXCEPTIONS] as Route,
+              ),
             );
           }}
         />

@@ -331,9 +331,7 @@ export function buildExceptionTrendRows(
 
   const bucketMs: number =
     Number(request["bucketSizeInMinutes"] || 0) * MINUTE_MS;
-  const startMs: number = new Date(
-    request["startTime"] as string,
-  ).getTime();
+  const startMs: number = new Date(request["startTime"] as string).getTime();
   const endMs: number = new Date(request["endTime"] as string).getTime();
 
   if (

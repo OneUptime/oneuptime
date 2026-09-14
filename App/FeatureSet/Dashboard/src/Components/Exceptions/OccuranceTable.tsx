@@ -273,12 +273,11 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
                       }
                       titleClassName="font-mono text-[13px] text-gray-900"
                     />
-                    {exceptionInstance.spanName &&
-                      exceptionInstance.spanId && (
-                        <div className="ml-5 mt-0.5 font-mono text-xs text-gray-400">
-                          {exceptionInstance.spanId.toString()}
-                        </div>
-                      )}
+                    {exceptionInstance.spanName && exceptionInstance.spanId && (
+                      <div className="ml-5 mt-0.5 font-mono text-xs text-gray-400">
+                        {exceptionInstance.spanId.toString()}
+                      </div>
+                    )}
                   </div>
                 );
               },

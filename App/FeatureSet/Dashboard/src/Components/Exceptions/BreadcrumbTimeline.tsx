@@ -262,7 +262,8 @@ const TimelineRow: FunctionComponent<TimelineRowProps> = (
     secondaryParts.push(eventName);
   }
 
-  if (group.detail) {
+  // The event name and the detail can be the same text; show it once.
+  if (group.detail && !secondaryParts.includes(group.detail)) {
     secondaryParts.push(group.detail);
   }
 
@@ -281,27 +282,9 @@ const TimelineRow: FunctionComponent<TimelineRowProps> = (
       )}
 
       <div
-        className={`relative flex items-start gap-3 px-4 py-2.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 md:px-5 ${
+        className={`relative flex items-start gap-3 px-4 py-2.5 transition-colors md:px-5 ${
           isException ? "bg-red-50/70" : isClickable ? "hover:bg-gray-50" : ""
-        } ${isClickable ? "cursor-pointer" : ""}`}
-        {...(isClickable
-          ? {
-              role: "button",
-              tabIndex: 0,
-              "aria-expanded": props.isExpanded,
-              onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
-                if (event.target !== event.currentTarget) {
-                  return;
-                }
-
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  props.onToggle();
-                }
-              },
-              onClick: props.onToggle,
-            }
-          : {})}
+        }`}
       >
         <span
           className={`relative z-10 mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full ring-4 ${style.nodeClassName}`}
@@ -311,77 +294,104 @@ const TimelineRow: FunctionComponent<TimelineRowProps> = (
         </span>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-start gap-3">
-            <p
-              className={`min-w-0 flex-1 truncate font-mono text-[13px] leading-6 ${
-                isException ? "font-semibold text-red-800" : "text-gray-900"
-              }`}
-              title={group.summary}
-              data-testid="breadcrumb-summary"
-            >
-              {group.summary}
-            </p>
-            <span
-              className={`flex-shrink-0 whitespace-nowrap font-mono text-xs leading-6 tabular-nums ${
-                isException ? "font-medium text-red-600" : "text-gray-500"
-              }`}
-              title={OneUptimeDate.getDateAsLocalFormattedString(
-                group.firstTime,
-              )}
-              data-testid="breadcrumb-time"
-            >
-              {formatTime(group.firstTime)}
-              {group.count > 1 &&
-                group.firstTime.getTime() !== group.lastTime.getTime() && (
-                  <span className="text-gray-400">
-                    {" → "}
-                    {formatTime(group.lastTime)}
-                  </span>
-                )}
-            </span>
-            {isClickable ? (
-              <Icon
-                icon={
-                  props.isExpanded ? IconProp.ChevronDown : IconProp.ChevronRight
+          {/*
+           * Only the summary is the toggle. The expanded details sit beside
+           * it, not inside it, so their values and copy buttons stay separate
+           * controls rather than being flattened into the button's name.
+           */}
+          <div
+            className={`-mx-1 rounded-md px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+              isClickable ? "cursor-pointer" : ""
+            }`}
+            {...(isClickable
+              ? {
+                  role: "button",
+                  tabIndex: 0,
+                  "aria-expanded": props.isExpanded,
+                  onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
+                    if (event.target !== event.currentTarget) {
+                      return;
+                    }
+
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      props.onToggle();
+                    }
+                  },
+                  onClick: props.onToggle,
                 }
-                className="mt-1 h-4 w-4 flex-shrink-0 text-gray-400"
-              />
-            ) : (
-              <span className="w-4 flex-shrink-0" />
-            )}
-          </div>
-          <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 text-xs">
-            <span
-              className={`font-semibold uppercase tracking-wide ${style.labelClassName}`}
-              data-testid="breadcrumb-category"
-            >
-              {BREADCRUMB_CATEGORY_LABELS[group.category]}
-            </span>
-            {group.count > 1 && (
-              <span
-                className="rounded-full bg-gray-100 px-1.5 font-semibold tabular-nums text-gray-600"
-                data-testid="breadcrumb-count"
+              : {})}
+          >
+            <div className="flex items-start gap-3">
+              <p
+                className={`min-w-0 flex-1 truncate font-mono text-[13px] leading-6 ${
+                  isException ? "font-semibold text-red-800" : "text-gray-900"
+                }`}
+                title={group.summary}
+                data-testid="breadcrumb-summary"
               >
-                ×{group.count}
+                {group.summary}
+              </p>
+              <span
+                className={`flex-shrink-0 whitespace-nowrap font-mono text-xs leading-6 tabular-nums ${
+                  isException ? "font-medium text-red-600" : "text-gray-500"
+                }`}
+                title={OneUptimeDate.getDateAsLocalFormattedString(
+                  group.firstTime,
+                )}
+                data-testid="breadcrumb-time"
+              >
+                {formatTime(group.firstTime)}
+                {group.count > 1 &&
+                  group.firstTime.getTime() !== group.lastTime.getTime() && (
+                    <span className="text-gray-400">
+                      {" → "}
+                      {formatTime(group.lastTime)}
+                    </span>
+                  )}
               </span>
-            )}
-            {secondaryParts.map((part: string) => {
-              return (
-                <span key={part} className="min-w-0 truncate text-gray-500">
-                  {part}
+              {isClickable ? (
+                <Icon
+                  icon={
+                    props.isExpanded
+                      ? IconProp.ChevronDown
+                      : IconProp.ChevronRight
+                  }
+                  className="mt-1 h-4 w-4 flex-shrink-0 text-gray-400"
+                />
+              ) : (
+                <span className="w-4 flex-shrink-0" />
+              )}
+            </div>
+            <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 text-xs">
+              <span
+                className={`font-semibold uppercase tracking-wide ${style.labelClassName}`}
+                data-testid="breadcrumb-category"
+              >
+                {BREADCRUMB_CATEGORY_LABELS[group.category]}
+              </span>
+              {group.count > 1 && (
+                <span
+                  className="rounded-full bg-gray-100 px-1.5 font-semibold tabular-nums text-gray-600"
+                  data-testid="breadcrumb-count"
+                >
+                  ×{group.count}
                 </span>
-              );
-            })}
+              )}
+              {secondaryParts.map((part: string) => {
+                return (
+                  <span key={part} className="min-w-0 truncate text-gray-500">
+                    {part}
+                  </span>
+                );
+              })}
+            </div>
           </div>
 
           {props.isExpanded && (
             <div
-              className="mt-3 cursor-auto space-y-3 pb-1"
+              className="mt-3 space-y-3 pb-1"
               data-testid="breadcrumb-detail"
-              onClick={(event: React.MouseEvent) => {
-                // Selecting or copying a value must not fold the row.
-                event.stopPropagation();
-              }}
             >
               <AttributeList attributes={attributes} />
 

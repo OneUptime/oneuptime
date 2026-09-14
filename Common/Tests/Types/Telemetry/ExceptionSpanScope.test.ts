@@ -47,23 +47,27 @@ describe("parseExceptionSpanScope", () => {
     ["a blank fingerprint", { fingerprint: "   " }],
     [
       "an oversized fingerprint",
-      { fingerprint: "a".repeat(EXCEPTION_SPAN_SCOPE_MAX_FINGERPRINT_LENGTH + 1) },
+      {
+        fingerprint: "a".repeat(
+          EXCEPTION_SPAN_SCOPE_MAX_FINGERPRINT_LENGTH + 1,
+        ),
+      },
     ],
     [
       "a service id that is not a UUID",
       { fingerprint: FINGERPRINT, primaryEntityId: "' OR 1=1 --" },
     ],
-    [
-      "a numeric service id",
-      { fingerprint: FINGERPRINT, primaryEntityId: 7 },
-    ],
+    ["a numeric service id", { fingerprint: FINGERPRINT, primaryEntityId: 7 }],
   ])("rejects %s", (_name: string, value: unknown) => {
     expect(parseExceptionSpanScope(value)).toBeNull();
   });
 
   test("treats an empty or null service id as absent", () => {
     expect(
-      parseExceptionSpanScope({ fingerprint: FINGERPRINT, primaryEntityId: "" }),
+      parseExceptionSpanScope({
+        fingerprint: FINGERPRINT,
+        primaryEntityId: "",
+      }),
     ).toEqual({ fingerprint: FINGERPRINT });
     expect(
       parseExceptionSpanScope({

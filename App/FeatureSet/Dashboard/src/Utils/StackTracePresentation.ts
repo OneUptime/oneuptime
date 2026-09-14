@@ -34,6 +34,34 @@ export type StackTraceDisplayItem =
   | StackTraceFrameItem
   | StackTraceLibraryGroupItem;
 
+const PYTHON_TRACEBACK_HEADER_PATTERN: RegExp =
+  /^\s*Traceback \(most recent call last\):\s*$/m;
+
+/*
+ * Python prints a traceback entry point first ("most recent call last") and
+ * the parser stores its frames in that order, while V8, Java, .NET, Go and
+ * Ruby print the crash point first.
+ */
+export function isOutermostFirstStackTrace(
+  stackTrace: string | undefined,
+): boolean {
+  return PYTHON_TRACEBACK_HEADER_PATTERN.test(stackTrace || "");
+}
+
+/*
+ * Everything else in the viewer reads frames innermost first (index 0 is
+ * where the exception was raised), so an outermost-first trace is turned
+ * around before it is used.
+ */
+export function orderFramesInnermostFirst<T>(
+  frames: ReadonlyArray<T>,
+  stackTrace: string | undefined,
+): Array<T> {
+  return isOutermostFirstStackTrace(stackTrace)
+    ? [...frames].reverse()
+    : [...frames];
+}
+
 // The topmost frame in application code: the most likely crash point.
 export function getTopAppFrameIndex(
   frames: ReadonlyArray<ResolvedStackFrame>,
@@ -228,7 +256,9 @@ const GO_MODULE_PATTERN: RegExp = /[/\\]pkg[/\\]mod[/\\](.+?)@v[\d.]+/;
  * "express" instead of just "Library". The innermost node_modules wins, so a
  * dependency's own dependency is named rather than its parent.
  */
-export function getFramePackageName(fileName: string | undefined): string | null {
+export function getFramePackageName(
+  fileName: string | undefined,
+): string | null {
   const path: string = (fileName || "").trim();
 
   if (!path) {
@@ -252,7 +282,9 @@ export function getFramePackageName(fileName: string | undefined): string | null
     return innermostPackage;
   }
 
-  const sitePackages: RegExpMatchArray | null = path.match(SITE_PACKAGES_PATTERN);
+  const sitePackages: RegExpMatchArray | null = path.match(
+    SITE_PACKAGES_PATTERN,
+  );
 
   if (sitePackages) {
     return sitePackages[1]!.replace(/\.py$/, "");
@@ -267,12 +299,54 @@ export function getFramePackageName(fileName: string | undefined): string | null
   return null;
 }
 
+// "ValueError: bad sku", "requests.exceptions.HTTPError", "KeyboardInterrupt"
+const PYTHON_EXCEPTION_LINE_PATTERN: RegExp = /^[A-Za-z_][\w.]*(?::.*)?$/;
+
+function isPythonExceptionLine(line: string): boolean {
+  return (
+    !/^\s/.test(line) &&
+    !PYTHON_TRACEBACK_HEADER_PATTERN.test(line) &&
+    PYTHON_EXCEPTION_LINE_PATTERN.test(line.trimEnd())
+  );
+}
+
 /*
- * The "Type: message" line a trace starts with, for the frames view — which
- * otherwise shows where it happened but not what happened.
+ * The "Type: message" line of a trace, for the frames view — which otherwise
+ * shows where it happened but not what happened. Most runtimes print it
+ * first; Python prints it last, after the frames, below a fixed
+ * "Traceback (most recent call last):" header.
  */
-export function getStackTraceHeadline(stackTrace: string | undefined): string | null {
-  for (const line of (stackTrace || "").split("\n")) {
+export function getStackTraceHeadline(
+  stackTrace: string | undefined,
+): string | null {
+  const lines: Array<string> = (stackTrace || "")
+    .split("\n")
+    .map((line: string) => {
+      return line.replace(/\r$/, "");
+    });
+
+  if (isOutermostFirstStackTrace(stackTrace)) {
+    for (let index: number = lines.length - 1; index >= 0; index--) {
+      const line: string = lines[index]!;
+
+      if (!line.trim()) {
+        continue;
+      }
+
+      // Frames and their source lines are indented: the message is below them.
+      if (/^\s/.test(line)) {
+        return null;
+      }
+
+      if (isPythonExceptionLine(line)) {
+        return line.trim();
+      }
+    }
+
+    return null;
+  }
+
+  for (const line of lines) {
     const trimmed: string = line.trim();
 
     if (!trimmed) {
@@ -291,27 +365,34 @@ export interface RawStackTraceLine {
   lineNumber: number;
   kind: RawStackTraceLineKind;
   text: string;
-  // For frame lines: the leading whitespace, the function and the location.
-  indent: string;
+  /*
+   * For frame lines, the text cut into pieces that join back into it exactly:
+   * prefix + functionName + separator + location + suffix === text.
+   */
+  prefix: string;
   functionName: string;
+  separator: string;
   location: string;
+  suffix: string;
 }
 
-const AT_FRAME_PATTERN: RegExp = /^(\s*)at\s+(.*)$/;
-const CALL_WITH_LOCATION_PATTERN: RegExp = /^(.*?)\s*\(([^()]*)\)$/;
+const AT_FRAME_PATTERN: RegExp = /^(\s*at\s+)(.*)$/;
+const CALL_WITH_LOCATION_PATTERN: RegExp = /^(.*?)(\s*\()([^()]*)(\))$/;
 const LOCATION_ONLY_PATTERN: RegExp = /(?:^|[/\\])[^\s]*:\d+(?::\d+)?$/;
 const CAUSED_BY_PATTERN: RegExp = /^\s*(Caused by|Suppressed):/;
 
 /*
- * Split a raw stack trace into lines the viewer can colour: the exception
- * message (first line, and every "Caused by:" line), "at" frames split into
- * function and location (V8, Java and .NET all use that shape), and
- * everything else verbatim (Python, Go, Ruby traces).
+ * Split a raw stack trace into lines the viewer can colour without changing
+ * a character: the exception message (the first line and every "Caused by:"
+ * line, or for Python the exception lines after the frames), "at" frames cut
+ * into function and location (V8, Java and .NET all use that shape), and
+ * everything else as is (Python, Go, Ruby frames).
  */
 export function parseRawStackTraceLines(
   stackTrace: string | undefined,
 ): Array<RawStackTraceLine> {
   const lines: Array<string> = (stackTrace || "").split("\n");
+  const isPython: boolean = isOutermostFirstStackTrace(stackTrace);
 
   return lines.map((rawLine: string, index: number): RawStackTraceLine => {
     const text: string = rawLine.replace(/\r$/, "");
@@ -319,16 +400,26 @@ export function parseRawStackTraceLines(
       lineNumber: index + 1,
       kind: "other",
       text,
-      indent: "",
+      prefix: "",
       functionName: "",
+      separator: "",
       location: "",
+      suffix: "",
     };
+
+    if (isPython) {
+      return text.trim() && isPythonExceptionLine(text)
+        ? { ...base, kind: "message" }
+        : base;
+    }
 
     const atMatch: RegExpMatchArray | null = text.match(AT_FRAME_PATTERN);
 
     if (atMatch) {
-      const rest: string = (atMatch[2] || "").trim();
-      const callMatch: RegExpMatchArray | null = rest.match(
+      const rest: string = atMatch[2] || "";
+      const call: string = rest.trimEnd();
+      const trailing: string = rest.slice(call.length);
+      const callMatch: RegExpMatchArray | null = call.match(
         CALL_WITH_LOCATION_PATTERN,
       );
 
@@ -336,30 +427,37 @@ export function parseRawStackTraceLines(
         return {
           ...base,
           kind: "frame",
-          indent: atMatch[1] || "",
+          prefix: atMatch[1] || "",
           functionName: callMatch[1],
-          location: callMatch[2] || "",
+          separator: callMatch[2] || "",
+          location: callMatch[3] || "",
+          suffix: (callMatch[4] || "") + trailing,
         };
       }
 
-      if (LOCATION_ONLY_PATTERN.test(rest)) {
+      if (LOCATION_ONLY_PATTERN.test(call)) {
         return {
           ...base,
           kind: "frame",
-          indent: atMatch[1] || "",
-          location: rest,
+          prefix: atMatch[1] || "",
+          location: call,
+          suffix: trailing,
         };
       }
 
       return {
         ...base,
         kind: "frame",
-        indent: atMatch[1] || "",
-        functionName: rest,
+        prefix: atMatch[1] || "",
+        functionName: call,
+        suffix: trailing,
       };
     }
 
-    if ((index === 0 && text.trim().length > 0) || CAUSED_BY_PATTERN.test(text)) {
+    if (
+      (index === 0 && text.trim().length > 0) ||
+      CAUSED_BY_PATTERN.test(text)
+    ) {
       return { ...base, kind: "message" };
     }
 

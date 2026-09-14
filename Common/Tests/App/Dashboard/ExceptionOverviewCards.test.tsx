@@ -161,7 +161,9 @@ describe("ExceptionOccurrenceTrend", () => {
 
     const firstWindowMs: number =
       new Date(postMock.mock.calls[1]![0].data["endTime"] as string).getTime() -
-      new Date(postMock.mock.calls[1]![0].data["startTime"] as string).getTime();
+      new Date(
+        postMock.mock.calls[1]![0].data["startTime"] as string,
+      ).getTime();
     expect(firstWindowMs).toBe(7 * 24 * 60 * MINUTE);
     expect(screen.getByTestId("exception-trend-window-7d")).toHaveAttribute(
       "aria-checked",
@@ -174,9 +176,9 @@ describe("ExceptionOccurrenceTrend", () => {
 
     render(<ExceptionOccurrenceTrend fingerprint={FINGERPRINT} />);
 
-    expect(await screen.findByTestId("exception-trend-empty")).toHaveTextContent(
-      "No occurrences in the last 24 hours",
-    );
+    expect(
+      await screen.findByTestId("exception-trend-empty"),
+    ).toHaveTextContent("No occurrences in the last 24 hours");
   });
 
   test("a failed request shows an inline error instead of the chart", async () => {
@@ -186,9 +188,9 @@ describe("ExceptionOccurrenceTrend", () => {
 
     render(<ExceptionOccurrenceTrend fingerprint={FINGERPRINT} />);
 
-    expect(await screen.findByTestId("exception-trend-error")).toHaveTextContent(
-      "ClickHouse is down",
-    );
+    expect(
+      await screen.findByTestId("exception-trend-error"),
+    ).toHaveTextContent("ClickHouse is down");
   });
 
   test("without a fingerprint it never queries an unscoped histogram", async () => {
@@ -262,10 +264,9 @@ describe("ExceptionLatestOccurrence", () => {
     expect(
       screen.getByTestId("exception-latest-occurrence-session"),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "View stack trace" })).toHaveAttribute(
-      "href",
-      "/stack-trace",
-    );
+    expect(
+      screen.getByRole("link", { name: "View stack trace" }),
+    ).toHaveAttribute("href", "/stack-trace");
   });
 
   test("says when an occurrence carried no trace and was handled", () => {
@@ -333,15 +334,15 @@ describe("ExceptionDetail", () => {
     expect(screen.getByTestId("exception-detail-service")).toHaveTextContent(
       "checkout-api",
     );
-    expect(
-      screen.getByTestId("exception-detail-active-for"),
-    ).toHaveTextContent("6 days");
-    expect(
-      screen.getByTestId("exception-detail-first-seen"),
-    ).toHaveTextContent("Introduced in checkout-api@2026.09.08");
-    expect(
-      screen.getByTestId("exception-detail-last-seen"),
-    ).toHaveTextContent("Latest release checkout-api@2026.09.14");
+    expect(screen.getByTestId("exception-detail-active-for")).toHaveTextContent(
+      "6 days",
+    );
+    expect(screen.getByTestId("exception-detail-first-seen")).toHaveTextContent(
+      "Introduced in checkout-api@2026.09.08",
+    );
+    expect(screen.getByTestId("exception-detail-last-seen")).toHaveTextContent(
+      "Latest release checkout-api@2026.09.14",
+    );
     expect(
       screen.getByTestId("exception-detail-fingerprint"),
     ).toHaveTextContent(FINGERPRINT);

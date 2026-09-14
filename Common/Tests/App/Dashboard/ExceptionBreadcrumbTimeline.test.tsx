@@ -84,9 +84,9 @@ describe("BreadcrumbTimeline", () => {
       "inventory.version_mismatch warning",
       "Could not reserve stock",
     ]);
-    expect(within(rows()[2]!).getByTestId("breadcrumb-count")).toHaveTextContent(
-      "×2",
-    );
+    expect(
+      within(rows()[2]!).getByTestId("breadcrumb-count"),
+    ).toHaveTextContent("×2");
     expect(rows()[4]).toHaveAttribute("data-category", "EXCEPTION");
   });
 
@@ -127,9 +127,9 @@ describe("BreadcrumbTimeline", () => {
     expect(
       screen.queryByTestId("breadcrumb-time-format"),
     ).not.toBeInTheDocument();
-    expect(
-      within(rows()[0]!).getByTestId("breadcrumb-time"),
-    ).toHaveTextContent("11:55:59.120");
+    expect(within(rows()[0]!).getByTestId("breadcrumb-time")).toHaveTextContent(
+      "11:55:59.120",
+    );
     expect(screen.getByText("6 events")).toBeInTheDocument();
   });
 
@@ -180,6 +180,14 @@ describe("BreadcrumbTimeline", () => {
     fireEvent.click(attributes);
     expect(toggle).toHaveAttribute("aria-expanded", "true");
 
+    /*
+     * The details are not inside the toggle, so their copy buttons are
+     * separate controls and not part of the toggle's accessible name.
+     */
+    expect(toggle).not.toContainElement(attributes);
+    expect(within(toggle).queryAllByRole("button")).toHaveLength(0);
+    expect(within(attributes).getAllByRole("button").length).toBeGreaterThan(0);
+
     fireEvent.click(toggle);
     expect(
       within(exceptionRow).queryByTestId("breadcrumb-detail"),
@@ -208,6 +216,28 @@ describe("BreadcrumbTimeline", () => {
 
     fireEvent.keyDown(toggle, { key: " " });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("shows the event name once when it is also the detail", () => {
+    render(
+      <BreadcrumbTimeline
+        events={[
+          event("InventoryReservationError", 0, {
+            "exception.type": "InventoryReservationError",
+            "exception.message": "Could not reserve stock",
+          }),
+        ]}
+        exceptionTime={EXCEPTION_TIME}
+      />,
+    );
+
+    const row: HTMLElement = rows()[0]!;
+    expect(
+      within(row).getAllByText("InventoryReservationError", { exact: true }),
+    ).toHaveLength(1);
+    expect(within(row).getByTestId("breadcrumb-summary")).toHaveTextContent(
+      "Could not reserve stock",
+    );
   });
 
   test("an event with no attributes is not clickable", () => {

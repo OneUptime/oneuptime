@@ -107,7 +107,7 @@ afterEach(() => {
 });
 
 describe("ExceptionOccurrences", () => {
-  function exceptionWith(values: Partial<TelemetryException>): TelemetryException {
+  function exceptionWith(values: Record<string, unknown>): TelemetryException {
     const exception: TelemetryException = new TelemetryException();
     Object.assign(exception, {
       exceptionType: "InventoryReservationError",
@@ -149,7 +149,9 @@ describe("ExceptionOccurrences", () => {
   test("an older exception opens on a window that still contains it", () => {
     render(
       <ExceptionOccurrences
-        exception={exceptionWith({ lastSeenAt: new Date(Date.now() - 3 * DAY) })}
+        exception={exceptionWith({
+          lastSeenAt: new Date(Date.now() - 3 * DAY),
+        })}
         fingerprint={FINGERPRINT}
       />,
     );
@@ -251,9 +253,11 @@ describe("ExceptionLogs", () => {
     expect(props).not.toHaveProperty("serviceIds");
     expect(props["showFilters"]).toBe(true);
 
-    const pinned: InBetween<Date> = (props["logQuery"] as {
-      time: InBetween<Date>;
-    }).time;
+    const pinned: InBetween<Date> = (
+      props["logQuery"] as {
+        time: InBetween<Date>;
+      }
+    ).time;
     expect(pinned.startValue.getTime()).toBe(occurredAt.getTime() - 5 * MINUTE);
     expect(pinned.endValue.getTime()).toBe(occurredAt.getTime() + 5 * MINUTE);
 
@@ -288,19 +292,73 @@ describe("ExceptionLogs", () => {
     );
   });
 
-  test("uses the service scope alone when the occurrence has no trace", () => {
-    render(
-      <ExceptionLogs isLoading={false} instance={occurrence({ traceId: "" })} />,
+  test("a re-render hands the viewer the same scope objects, so it keeps its window and page", () => {
+    const instance: ExceptionInstance = occurrence({});
+    const { rerender } = render(
+      <ExceptionLogs
+        isLoading={false}
+        instance={instance}
+        primaryEntityType={ServiceType.OpenTelemetry}
+      />,
+    );
+    const first: Props = lastProps(logsViewerProps);
+
+    // The parent re-renders (a header triage click) with the same occurrence…
+    rerender(
+      <ExceptionLogs
+        isLoading={false}
+        instance={instance}
+        primaryEntityType={ServiceType.OpenTelemetry}
+      />,
+    );
+    // …and again after reloading it into a fresh but identical object.
+    rerender(
+      <ExceptionLogs
+        isLoading={false}
+        instance={occurrence({})}
+        primaryEntityType={ServiceType.OpenTelemetry}
+      />,
     );
 
-    expect(screen.queryByTestId("exception-logs-scope")).not.toBeInTheDocument();
+    const last: Props = lastProps(logsViewerProps);
+    expect(logsViewerProps.mock.calls.length).toBeGreaterThan(1);
+    expect(last["traceIds"]).toBe(first["traceIds"]);
+    expect(last["logQuery"]).toBe(first["logQuery"]);
+
+    fireEvent.click(screen.getByTestId("exception-logs-scope-service"));
+    const service: Props = lastProps(logsViewerProps);
+    rerender(
+      <ExceptionLogs
+        isLoading={false}
+        instance={instance}
+        primaryEntityType={ServiceType.OpenTelemetry}
+      />,
+    );
+    expect(lastProps(logsViewerProps)["serviceIds"]).toBe(
+      service["serviceIds"],
+    );
+  });
+
+  test("uses the service scope alone when the occurrence has no trace", () => {
+    render(
+      <ExceptionLogs
+        isLoading={false}
+        instance={occurrence({ traceId: "" })}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId("exception-logs-scope"),
+    ).not.toBeInTheDocument();
     expect(lastProps(logsViewerProps)["id"]).toBe("exception-logs-service");
   });
 
   test("waits for the occurrence before mounting a viewer", () => {
     render(<ExceptionLogs isLoading={true} instance={undefined} />);
 
-    expect(screen.getByText("Finding the latest occurrence…")).toBeInTheDocument();
+    expect(
+      screen.getByText("Finding the latest occurrence…"),
+    ).toBeInTheDocument();
     expect(logsViewerProps).not.toHaveBeenCalled();
   });
 

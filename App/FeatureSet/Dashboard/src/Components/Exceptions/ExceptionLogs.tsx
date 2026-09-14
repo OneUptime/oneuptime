@@ -51,6 +51,40 @@ const ExceptionLogs: FunctionComponent<ComponentProps> = (
     });
   }, [props.instance]);
 
+  const scope: ExceptionLogsViewerScope | null =
+    getDefaultExceptionLogsViewerScope(scopes, selectedScopeKey);
+
+  /*
+   * The log viewer re-applies its scope, resets to page 1 and refetches
+   * whenever these props change identity, so they are built once per scope
+   * rather than on every render (a header triage click re-renders the page).
+   */
+  const scopeTraceId: string | undefined = scope?.traceId || undefined;
+  const scopeServiceId: string | undefined = scope?.serviceId || undefined;
+  const scopeStartTime: number | undefined = scope?.window?.startTime.getTime();
+  const scopeEndTime: number | undefined = scope?.window?.endTime.getTime();
+
+  const traceIds: Array<string> | undefined = useMemo(() => {
+    return scopeTraceId ? [scopeTraceId] : undefined;
+  }, [scopeTraceId]);
+
+  const serviceIds: Array<ObjectID> | undefined = useMemo(() => {
+    return scopeServiceId ? [new ObjectID(scopeServiceId)] : undefined;
+  }, [scopeServiceId]);
+
+  const logQuery: Query<Log> | undefined = useMemo(() => {
+    if (scopeStartTime === undefined || scopeEndTime === undefined) {
+      return undefined;
+    }
+
+    return {
+      time: new InBetween<Date>(
+        new Date(scopeStartTime),
+        new Date(scopeEndTime),
+      ),
+    } as Query<Log>;
+  }, [scopeStartTime, scopeEndTime]);
+
   if (props.isLoading && !props.instance) {
     return (
       <Card title="Logs" description="Finding the latest occurrence…">
@@ -60,9 +94,6 @@ const ExceptionLogs: FunctionComponent<ComponentProps> = (
       </Card>
     );
   }
-
-  const scope: ExceptionLogsViewerScope | null =
-    getDefaultExceptionLogsViewerScope(scopes, selectedScopeKey);
 
   if (!scope) {
     return (
@@ -131,25 +162,16 @@ const ExceptionLogs: FunctionComponent<ComponentProps> = (
         // A different scope is a different view: remount rather than merge.
         key={scope.key}
         id={`exception-logs-${scope.key}`}
-        {...(scope.traceId ? { traceIds: [scope.traceId] } : {})}
-        {...(scope.serviceId
+        {...(traceIds ? { traceIds } : {})}
+        {...(serviceIds
           ? {
-              serviceIds: [new ObjectID(scope.serviceId)],
+              serviceIds,
               ...(props.primaryEntityType
                 ? { scopeEntityType: props.primaryEntityType }
                 : {}),
             }
           : {})}
-        {...(scope.window
-          ? {
-              logQuery: {
-                time: new InBetween<Date>(
-                  scope.window.startTime,
-                  scope.window.endTime,
-                ),
-              } as Query<Log>,
-            }
-          : {})}
+        {...(logQuery ? { logQuery } : {})}
         showFilters={true}
         limit={50}
         noLogsMessage={

@@ -90,9 +90,11 @@ describe("AI task presentation", () => {
     ]);
   });
 
-  test.each(EXCEPTION_AI_TASK_TYPES.map((type: ExceptionAITaskType) => {
-    return [type];
-  }))("%s has complete, distinct wording", (type: ExceptionAITaskType) => {
+  test.each(
+    EXCEPTION_AI_TASK_TYPES.map((type: ExceptionAITaskType) => {
+      return [type];
+    }),
+  )("%s has complete, distinct wording", (type: ExceptionAITaskType) => {
     const presentation: (typeof AI_TASK_PRESENTATION)[ExceptionAITaskType] =
       AI_TASK_PRESENTATION[type];
 
@@ -246,9 +248,9 @@ describe("parseAIFixReadinessResponse", () => {
       ready: false,
       checks: [],
     });
-    expect(
-      parseAIFixReadinessResponse({ ready: true, checks: "bad" }),
-    ).toEqual({ ready: true, checks: [] });
+    expect(parseAIFixReadinessResponse({ ready: true, checks: "bad" })).toEqual(
+      { ready: true, checks: [] },
+    );
     expect(
       parseAIFixReadinessResponse({ ready: true, checks: [null, 3] }).checks,
     ).toEqual([]);

@@ -47,7 +47,10 @@ interface RecordedUpdate {
 interface FixtureState {
   apiRequests: Array<RecordedApiRequest>;
   analyticsListRequests: Array<RecordedListRequest>;
-  getItemRequests: Array<{ modelName: string; select: Record<string, unknown> }>;
+  getItemRequests: Array<{
+    modelName: string;
+    select: Record<string, unknown>;
+  }>;
   updates: Array<RecordedUpdate>;
   deletes: Array<{ modelName: string; id: string }>;
   createdTasks: Array<Record<string, unknown>>;
@@ -190,12 +193,18 @@ test.describe("header", () => {
     expect(exceptionRead?.select).not.toHaveProperty("stackTrace");
   });
 
-  test("a long message is clamped until expanded", async ({ page }: { page: Page }) => {
+  test("a long message is clamped until expanded", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, "", "exception=long");
 
     const message: Locator = page.getByTestId("exception-summary-message");
     await expect(message).toHaveClass(/line-clamp-3/);
-    await page.getByRole("button", { name: "Expand exception message" }).click();
+    await page
+      .getByRole("button", { name: "Expand exception message" })
+      .click();
     await expect(message).not.toHaveClass(/line-clamp-3/);
   });
 
@@ -380,7 +389,11 @@ test.describe("navigation", () => {
     await expect(toggle).toContainText("Resolve / AI Assistance");
   });
 
-  test("no page scrolls sideways on a phone", async ({ page }: { page: Page }) => {
+  test("no page scrolls sideways on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await page.setViewportSize({ width: 390, height: 844 });
 
     for (const detailPage of DETAIL_PAGES.filter((candidate: DetailPage) => {
@@ -405,7 +418,9 @@ test.describe("overview", () => {
 
     await expect(trend.getByTestId("exception-trend-chart")).toBeVisible();
     await expect(trend).toContainText(/occurrences in the last 24 hours/);
-    await expect(trend.locator(".recharts-bar-rectangle").first()).toBeVisible();
+    await expect(
+      trend.locator(".recharts-bar-rectangle").first(),
+    ).toBeVisible();
 
     await trend.getByTestId("exception-trend-window-30d").click();
     await expect(trend).toContainText(/occurrences in the last 30 days/);
@@ -428,7 +443,11 @@ test.describe("overview", () => {
     await screenshot(page, "overview");
   });
 
-  test("an empty or failed trend degrades inline", async ({ page }: { page: Page }) => {
+  test("an empty or failed trend degrades inline", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, "", "histogram=empty");
     await expect(page.getByTestId("exception-trend-empty")).toContainText(
       "No occurrences in the last 24 hours",
@@ -448,9 +467,9 @@ test.describe("overview", () => {
   }) => {
     await open(page, "");
 
-    await expect(page.getByTestId("exception-detail-fingerprint")).toContainText(
-      FINGERPRINT,
-    );
+    await expect(
+      page.getByTestId("exception-detail-fingerprint"),
+    ).toContainText(FINGERPRINT);
     await expect(page.getByTestId("exception-detail-active-for")).toContainText(
       "6 days",
     );
@@ -478,7 +497,9 @@ test.describe("stack trace", () => {
     await open(page, "/stack-trace");
     const stack: Locator = card(page, "Stack Trace");
 
-    await expect(stack).toContainText("10 frames · 3 in your code · 3 source mapped");
+    await expect(stack).toContainText(
+      "10 frames · 3 in your code · 3 source mapped",
+    );
     await expect(page.getByTestId("stack-trace-headline")).toContainText(
       `${EXCEPTION_TYPE}: Could not reserve 3 units`,
     );
@@ -486,13 +507,19 @@ test.describe("stack trace", () => {
       "Most likely crash point: InventoryService.reserveInventory",
     );
 
-    const crashFrame: Locator = page.locator("[data-testid='stack-frame'][data-frame-index='0']");
+    const crashFrame: Locator = page.locator(
+      "[data-testid='stack-frame'][data-frame-index='0']",
+    );
     await expect(crashFrame.getByRole("button").first()).toHaveAttribute(
       "aria-expanded",
       "true",
     );
-    await expect(crashFrame.getByTestId("stack-frame-badge-crash")).toBeVisible();
-    await expect(crashFrame.getByTestId("stack-frame-badge-mapped")).toBeVisible();
+    await expect(
+      crashFrame.getByTestId("stack-frame-badge-crash"),
+    ).toBeVisible();
+    await expect(
+      crashFrame.getByTestId("stack-frame-badge-mapped"),
+    ).toBeVisible();
     await expect(
       crashFrame.locator("tr[data-highlighted='true']"),
     ).toContainText("throw new InventoryReservationError");
@@ -523,7 +550,9 @@ test.describe("stack trace", () => {
       "5 library frames hidden in .../express/lib/router",
     );
     await expect(
-      page.locator("[data-frame-index='3'] [data-testid='stack-frame-badge-origin']"),
+      page.locator(
+        "[data-frame-index='3'] [data-testid='stack-frame-badge-origin']",
+      ),
     ).toHaveText("node");
 
     await page.getByTestId("stack-trace-view-app").click();
@@ -542,7 +571,11 @@ test.describe("stack trace", () => {
     await expect(page.getByTestId("stack-frame-detail")).toHaveCount(0);
   });
 
-  test("the raw tab shows every line and can wrap them", async ({ page }: { page: Page }) => {
+  test("the raw tab shows every line and can wrap them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, "/stack-trace");
 
     await page.getByTestId("stack-trace-tab-raw").click();
@@ -560,14 +593,22 @@ test.describe("stack trace", () => {
   }) => {
     await open(page, "/stack-trace", "frames=unmapped");
 
-    await expect(card(page, "Stack Trace")).toContainText("10 frames · 3 in your code");
+    await expect(card(page, "Stack Trace")).toContainText(
+      "10 frames · 3 in your code",
+    );
     await expect(page.getByTestId("stack-frame-badge-mapped")).toHaveCount(0);
     await expect(
-      page.locator("[data-frame-index='0'] [data-testid='stack-frame-function']"),
+      page.locator(
+        "[data-frame-index='0'] [data-testid='stack-frame-function']",
+      ),
     ).toHaveText("reserveInventory");
   });
 
-  test("without parsed frames the raw trace is the page", async ({ page }: { page: Page }) => {
+  test("without parsed frames the raw trace is the page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, "/stack-trace", "frames=raw");
 
     await expect(page.getByTestId("raw-stack-trace")).toBeVisible();
@@ -597,6 +638,10 @@ test.describe("occurrences", () => {
       timeout: 30000,
     });
     await expect(page.getByText("Showing 1-24 of 24")).toBeVisible();
+    // Neither explorer can narrow to one exception, so no pivot promises to.
+    await expect(
+      page.getByRole("button", { name: "View logs for this scope" }),
+    ).toBeHidden();
 
     const state: FixtureState = await fixture(page);
     const spanList: RecordedListRequest | undefined =
@@ -651,7 +696,9 @@ test.describe("occurrences", () => {
       "checkout-api@2026.09.14",
     );
     await expect(table.getByText("Unhandled").first()).toBeVisible();
-    await expect(page.getByText("Showing 1-10 of 24 occurrences")).toBeVisible();
+    await expect(
+      page.getByText("Showing 1-10 of 24 occurrences"),
+    ).toBeVisible();
   });
 });
 
@@ -669,7 +716,9 @@ test.describe("context", () => {
     await expect(
       card(page, "Latest Occurrence").getByRole("link", { name: "View logs" }),
     ).toHaveAttribute("href", `${BASE}/logs`);
-    await expect(page.getByRole("button", { name: "Show Logs" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Show Logs" })).toHaveCount(
+      0,
+    );
 
     const breadcrumbs: Locator = card(page, "Breadcrumbs");
     await expect(breadcrumbs).toContainText(
@@ -678,7 +727,9 @@ test.describe("context", () => {
     const rows: Locator = breadcrumbs.getByTestId("breadcrumb-row");
     await expect(rows).toHaveCount(7);
     await expect(rows.last()).toHaveAttribute("data-category", "EXCEPTION");
-    await expect(rows.first().getByTestId("breadcrumb-time")).toHaveText("-880 ms");
+    await expect(rows.first().getByTestId("breadcrumb-time")).toHaveText(
+      "-880 ms",
+    );
 
     await breadcrumbs.getByTestId("breadcrumb-filter-DB").click();
     await expect(rows).toHaveCount(1);
@@ -692,9 +743,9 @@ test.describe("context", () => {
     );
 
     await rows.nth(5).getByRole("button").first().click();
-    await expect(rows.nth(5).getByTestId("breadcrumb-attributes")).toContainText(
-      "http.status_code",
-    );
+    await expect(
+      rows.nth(5).getByTestId("breadcrumb-attributes"),
+    ).toContainText("http.status_code");
 
     const spanRead: RecordedListRequest | undefined = (
       await fixture(page)
@@ -730,12 +781,13 @@ test.describe("logs", () => {
     await expect(
       page.getByRole("heading", { name: /Logs around the latest occurrence/ }),
     ).toBeVisible();
-    await expect(page.getByTestId("exception-logs-scope-trace")).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
     await expect(
-      page.getByText("stock version changed for SKU-4821 (expected 41, got 42)"),
+      page.getByTestId("exception-logs-scope-trace"),
+    ).toHaveAttribute("aria-checked", "true");
+    await expect(
+      page.getByText(
+        "stock version changed for SKU-4821 (expected 41, got 42)",
+      ),
     ).toBeVisible({ timeout: 30000 });
 
     const traceLogRead: RecordedListRequest | undefined = (
@@ -751,9 +803,9 @@ test.describe("logs", () => {
     await screenshot(page, "logs");
 
     await page.getByTestId("exception-logs-scope-service").click();
-    await expect(page.getByTestId("exception-logs-scope-description")).toContainText(
-      "Everything this service logged",
-    );
+    await expect(
+      page.getByTestId("exception-logs-scope-description"),
+    ).toContainText("Everything this service logged");
     await expect(
       page.getByText("Loaded cart for customer cus_12 (3 items)"),
     ).toBeVisible({ timeout: 30000 });
@@ -778,12 +830,16 @@ test.describe("logs", () => {
     await open(page, "/logs", "occurrence=no-trace");
 
     await expect(page.getByTestId("exception-logs-scope")).toHaveCount(0);
-    await expect(page.getByTestId("exception-logs-scope-description")).toContainText(
-      "Everything this service logged",
-    );
+    await expect(
+      page.getByTestId("exception-logs-scope-description"),
+    ).toContainText("Everything this service logged");
   });
 
-  test("with no occurrence there is nothing to correlate", async ({ page }: { page: Page }) => {
+  test("with no occurrence there is nothing to correlate", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, "/logs", "occurrence=none");
 
     await expect(page.getByTestId("exception-logs-empty")).toBeVisible();
@@ -791,7 +847,11 @@ test.describe("logs", () => {
 });
 
 test.describe("AI assistance", () => {
-  test("starts a task after confirmation and opens it", async ({ page }: { page: Page }) => {
+  test("starts a task after confirmation and opens it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, "/ai-assistance");
 
     await expect(page.getByTestId("exception-ai-ready")).toBeVisible();
@@ -827,9 +887,9 @@ test.describe("AI assistance", () => {
     await expect(
       page.getByRole("heading", { name: "Set up AI for this exception" }),
     ).toBeVisible();
-    await expect(page.getByTestId("exception-ai-readiness-progress")).toHaveText(
-      "1 of 3 ready",
-    );
+    await expect(
+      page.getByTestId("exception-ai-readiness-progress"),
+    ).toHaveText("1 of 3 ready");
     await expect(
       page
         .getByTestId("exception-ai-readiness-repositoryConnected")
@@ -844,7 +904,11 @@ test.describe("AI assistance", () => {
     await screenshot(page, "ai-assistance-setup");
   });
 
-  test("each task card reflects its latest run", async ({ page }: { page: Page }) => {
+  test("each task card reflects its latest run", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, "/ai-assistance", "ai=mixed");
 
     const fix: Locator = page.getByTestId("exception-ai-task-FixException");
@@ -855,26 +919,36 @@ test.describe("AI assistance", () => {
       "exception-ai-task-ImproveExceptionHandling",
     );
 
-    await expect(fix.getByTestId("exception-ai-task-status")).toHaveText("Completed");
-    await expect(fix.getByTestId("exception-ai-task-start")).toHaveText("Fix Again");
+    await expect(fix.getByTestId("exception-ai-task-status")).toHaveText(
+      "Completed",
+    );
+    await expect(fix.getByTestId("exception-ai-task-start")).toHaveText(
+      "Fix Again",
+    );
     await expect(regression.getByTestId("exception-ai-task-status")).toHaveText(
       "Queued",
     );
-    await expect(regression.getByTestId("exception-ai-task-start")).toHaveCount(0);
+    await expect(regression.getByTestId("exception-ai-task-start")).toHaveCount(
+      0,
+    );
     await expect(handling.getByTestId("exception-ai-task-status")).toHaveText(
       "Failed",
     );
     await expect(handling.getByTestId("exception-ai-task-start")).toHaveText(
       "Retry Error Handling",
     );
-    await expect(handling.getByTestId("exception-ai-task-message")).toContainText(
-      "The agent stopped responding after 20 minutes.",
-    );
+    await expect(
+      handling.getByTestId("exception-ai-task-message"),
+    ).toContainText("The agent stopped responding after 20 minutes.");
 
     await screenshot(page, "ai-assistance-mixed");
   });
 
-  test("a refused start is explained inline", async ({ page }: { page: Page }) => {
+  test("a refused start is explained inline", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, "/ai-assistance", "fail=create-task");
 
     await page
@@ -890,7 +964,11 @@ test.describe("AI assistance", () => {
     await expect(page).toHaveURL(new RegExp(`${BASE}/ai-assistance`));
   });
 
-  test("a resolved exception pauses AI tasks", async ({ page }: { page: Page }) => {
+  test("a resolved exception pauses AI tasks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, "/ai-assistance", "status=resolved&ai=completed");
 
     await expect(page.getByText("AI assistance is paused")).toBeVisible();
@@ -918,9 +996,9 @@ test.describe("settings", () => {
     await expect(
       page.getByTestId("exception-settings-resolution-history"),
     ).toHaveText("Resolved 2 hours ago by Priya Raman");
-    await expect(page.getByTestId("exception-settings-archive-history")).toHaveText(
-      "Archived 1 day ago by Priya Raman",
-    );
+    await expect(
+      page.getByTestId("exception-settings-archive-history"),
+    ).toHaveText("Archived 1 day ago by Priya Raman");
 
     await screenshot(page, "settings");
 
@@ -933,9 +1011,9 @@ test.describe("settings", () => {
     );
 
     await page.getByTestId("exception-settings-unarchive").click();
-    await expect(page.getByTestId("exception-settings-archive-state")).toHaveText(
-      "Not archived",
-    );
+    await expect(
+      page.getByTestId("exception-settings-archive-state"),
+    ).toHaveText("Not archived");
     await expect(page.getByTestId("exception-summary-status")).toHaveText(
       "Unresolved",
     );

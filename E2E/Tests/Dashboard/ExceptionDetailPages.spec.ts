@@ -213,10 +213,9 @@ const assertPageSpecificContent: (
         name: /Logs around the latest occurrence/,
       }),
     ).toBeVisible({ timeout: 30000 });
-    await expect(ctx.page.getByTestId("exception-logs-scope-trace")).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
+    await expect(
+      ctx.page.getByTestId("exception-logs-scope-trace"),
+    ).toHaveAttribute("aria-checked", "true");
     return;
   }
 

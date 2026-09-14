@@ -59,7 +59,10 @@ interface TrendTooltipProps {
   windowKey: ExceptionTrendWindowKey;
 }
 
-function formatTick(timeMs: number, windowKey: ExceptionTrendWindowKey): string {
+function formatTick(
+  timeMs: number,
+  windowKey: ExceptionTrendWindowKey,
+): string {
   const date: Date = new Date(timeMs);
 
   if (windowKey === ExceptionTrendWindowKey.Day) {
@@ -247,7 +250,10 @@ const ExceptionOccurrenceTrend: FunctionComponent<ComponentProps> = (
           className="flex h-44 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-200 text-center"
           data-testid="exception-trend-empty"
         >
-          <Icon icon={IconProp.CheckCircle} className="h-5 w-5 text-emerald-500" />
+          <Icon
+            icon={IconProp.CheckCircle}
+            className="h-5 w-5 text-emerald-500"
+          />
           <p className="text-sm font-medium text-gray-700">
             No occurrences in the {trendWindow.description}
           </p>

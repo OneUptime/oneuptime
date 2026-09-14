@@ -92,14 +92,14 @@ describe("StatementGenerator exceptionScope synthetic key", () => {
     });
   };
 
-  test("compiles to a (traceId, spanId) IN subquery pinned to the project", () => {
+  test("compiles to a (traceId, spanId) GLOBAL IN subquery pinned to the project", () => {
     const statement: Statement = where({
       exceptionScope: { fingerprint: FINGERPRINT },
       projectId: new ObjectID(PROJECT_ID),
     });
 
     expect(statement.query).toContain(
-      "AND ({p0:Identifier}, {p1:Identifier}) IN (SELECT traceId, spanId FROM {p2:Identifier} WHERE projectId = {p3:String} AND fingerprint = {p4:String})",
+      "AND ({p0:Identifier}, {p1:Identifier}) GLOBAL IN (SELECT traceId, spanId FROM {p2:Identifier} WHERE projectId = {p3:String} AND fingerprint = {p4:String})",
     );
     expect(subqueryParams(statement).slice(0, 5)).toEqual([
       "traceId",
@@ -108,6 +108,16 @@ describe("StatementGenerator exceptionScope synthetic key", () => {
       PROJECT_ID,
       FINGERPRINT,
     ]);
+  });
+
+  test("never emits a plain IN, which multi-shard clusters reject", () => {
+    const statement: Statement = where({
+      exceptionScope: { fingerprint: FINGERPRINT, primaryEntityId: SERVICE_ID },
+      projectId: PROJECT_ID,
+    });
+
+    expect(statement.query).toMatch(/\) GLOBAL IN \(SELECT/);
+    expect(statement.query).not.toMatch(/\) IN \(SELECT/);
   });
 
   test("adds the exception's service when the scope names one", () => {
@@ -145,7 +155,7 @@ describe("StatementGenerator exceptionScope synthetic key", () => {
     expect(query.startsWith("AND {p0:Identifier} = {p1:String} AND (")).toBe(
       true,
     );
-    expect(query).toContain(") IN (SELECT traceId, spanId FROM");
+    expect(query).toContain(") GLOBAL IN (SELECT traceId, spanId FROM");
     expect(query).toMatch(/AND \{p\d+:Identifier\} = \{p\d+:String\}$/);
   });
 
@@ -208,7 +218,7 @@ describe("StatementGenerator exceptionScope synthetic key", () => {
     );
 
     expect(statement.query).toContain(
-      "({p2_t:Identifier}.{p2_c:Identifier}, {p3_t:Identifier}.{p3_c:Identifier}) IN (SELECT traceId, spanId FROM",
+      "({p2_t:Identifier}.{p2_c:Identifier}, {p3_t:Identifier}.{p3_c:Identifier}) GLOBAL IN (SELECT traceId, spanId FROM",
     );
   });
 });

@@ -110,9 +110,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     ExceptionTriageActionId | undefined
   >(undefined);
   // Resolve/archive failures render inline — never a page takeover.
-  const [actionError, setActionError] = useState<string | undefined>(
-    undefined,
-  );
+  const [actionError, setActionError] = useState<string | undefined>(undefined);
   const [latestInstance, setLatestInstance] = useState<
     ExceptionInstance | undefined
   >(undefined);
@@ -126,8 +124,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   const [resolvedFrames, setResolvedFrames] = useState<
     Array<ResolvedStackFrame> | undefined
   >(undefined);
-  const [skippedSourceMapCount, setSkippedSourceMapCount] =
-    useState<number>(0);
+  const [skippedSourceMapCount, setSkippedSourceMapCount] = useState<number>(0);
   const [breadcrumbEvents, setBreadcrumbEvents] = useState<
     Array<BreadcrumbEvent>
   >([]);
@@ -137,66 +134,65 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
    * source maps uploaded for its (service, release). Best-effort: any
    * failure just leaves the minified frames on screen.
    */
-  const resolveStackFrames: (instance: ExceptionInstance) => Promise<void> =
-    async (instance: ExceptionInstance): Promise<void> => {
-      setResolvedFrames(undefined);
+  const resolveStackFrames: (
+    instance: ExceptionInstance,
+  ) => Promise<void> = async (instance: ExceptionInstance): Promise<void> => {
+    setResolvedFrames(undefined);
 
-      try {
-        if (
-          !instance.parsedFrames ||
-          !instance.release ||
-          !instance.primaryEntityId
-        ) {
-          return;
-        }
-
-        const frames: Array<MinifiedStackFrame> = parseFramesJson(
-          instance.parsedFrames,
-        );
-
-        if (frames.length === 0) {
-          return;
-        }
-
-        const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.post({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              "/telemetry/exceptions/resolve-stack-trace",
-            ),
-            data: {
-              serviceId: instance.primaryEntityId.toString(),
-              serviceVersion: instance.release,
-              frames: frames as unknown as JSONArray,
-            },
-            headers: ModelAPI.getCommonHeaders(),
-          });
-
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
-
-        const responseFrames: unknown = (response.data as JSONObject)[
-          "frames"
-        ];
-
-        if (Array.isArray(responseFrames)) {
-          setResolvedFrames(
-            responseFrames as unknown as Array<ResolvedStackFrame>,
-          );
-        }
-
-        const skipped: unknown = (response.data as JSONObject)[
-          "sourceMapsSkippedForSize"
-        ];
-        setSkippedSourceMapCount(
-          typeof skipped === "number" && skipped > 0 ? skipped : 0,
-        );
-      } catch {
-        // Best-effort — the minified stack trace still renders.
-        setResolvedFrames(undefined);
-        setSkippedSourceMapCount(0);
+    try {
+      if (
+        !instance.parsedFrames ||
+        !instance.release ||
+        !instance.primaryEntityId
+      ) {
+        return;
       }
-    };
+
+      const frames: Array<MinifiedStackFrame> = parseFramesJson(
+        instance.parsedFrames,
+      );
+
+      if (frames.length === 0) {
+        return;
+      }
+
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.post({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            "/telemetry/exceptions/resolve-stack-trace",
+          ),
+          data: {
+            serviceId: instance.primaryEntityId.toString(),
+            serviceVersion: instance.release,
+            frames: frames as unknown as JSONArray,
+          },
+          headers: ModelAPI.getCommonHeaders(),
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      const responseFrames: unknown = (response.data as JSONObject)["frames"];
+
+      if (Array.isArray(responseFrames)) {
+        setResolvedFrames(
+          responseFrames as unknown as Array<ResolvedStackFrame>,
+        );
+      }
+
+      const skipped: unknown = (response.data as JSONObject)[
+        "sourceMapsSkippedForSize"
+      ];
+      setSkippedSourceMapCount(
+        typeof skipped === "number" && skipped > 0 ? skipped : 0,
+      );
+    } catch {
+      // Best-effort — the minified stack trace still renders.
+      setResolvedFrames(undefined);
+      setSkippedSourceMapCount(0);
+    }
+  };
 
   const loadTraceBreadcrumbs: (traceId: string) => Promise<void> = async (
     traceId: string,
@@ -495,9 +491,14 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           role="alert"
           data-testid="exception-triage-error"
         >
-          <Icon icon={IconProp.Alert} className="mt-0.5 h-4 w-4 flex-shrink-0" />
+          <Icon
+            icon={IconProp.Alert}
+            className="mt-0.5 h-4 w-4 flex-shrink-0"
+          />
           <p className="min-w-0 flex-1">
-            <span className="font-medium">Could not update this exception.</span>{" "}
+            <span className="font-medium">
+              Could not update this exception.
+            </span>{" "}
             {actionError}
           </p>
           <button

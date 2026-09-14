@@ -179,10 +179,20 @@ describe("exception detail page wiring", () => {
     );
 
     const expectations: Array<[string, Array<string>]> = [
-      ["Overview", ["<ExceptionOccurrenceTrend", "<ExceptionDetail", "<ExceptionLatestOccurrence"]],
+      [
+        "Overview",
+        [
+          "<ExceptionOccurrenceTrend",
+          "<ExceptionDetail",
+          "<ExceptionLatestOccurrence",
+        ],
+      ],
       ["StackTrace", ["<StackFrameViewer"]],
       ["Occurrences", ["<ExceptionOccurrences"]],
-      ["Context", ["<ExceptionLatestOccurrence", "<ReplayCard", "<BreadcrumbTimeline"]],
+      [
+        "Context",
+        ["<ExceptionLatestOccurrence", "<ReplayCard", "<BreadcrumbTimeline"],
+      ],
       ["Logs", ["<ExceptionLogs"]],
       ["AIAssistance", ["<ExceptionAIAssistance"]],
       ["Settings", ["<ExceptionSettings"]],

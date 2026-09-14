@@ -9,6 +9,8 @@ import {
   formatFrameLocation,
   getFramePackageName,
   getStackTraceHeadline,
+  isOutermostFirstStackTrace,
+  orderFramesInnermostFirst,
   getTopAppFrameIndex,
   getVisibleFrameIndexes,
   orderStackTraceDisplayItems,
@@ -38,11 +40,19 @@ function frame(
  * a run.
  */
 const FRAMES: Array<ResolvedStackFrame> = [
-  frame("processTicksAndRejections", "node:internal/process/task_queues", false),
+  frame(
+    "processTicksAndRejections",
+    "node:internal/process/task_queues",
+    false,
+  ),
   frame("reserveInventory", "/app/dist/services/inventory.js", true),
   frame("Layer.handle", "/app/node_modules/express/lib/router/layer.js", false),
   frame("next", "/app/node_modules/express/lib/router/route.js", false),
-  frame("Route.dispatch", "/app/node_modules/express/lib/router/route.js", false),
+  frame(
+    "Route.dispatch",
+    "/app/node_modules/express/lib/router/route.js",
+    false,
+  ),
   frame("handleCheckout", "/app/dist/routes/checkout.js", true),
   frame("", "/app/node_modules/express/lib/router/index.js", false),
 ];
@@ -63,9 +73,7 @@ describe("getTopAppFrameIndex", () => {
   });
 
   test("is -1 when every frame is library code", () => {
-    expect(
-      getTopAppFrameIndex([frame("a", "/lib/a.js", false)]),
-    ).toBe(-1);
+    expect(getTopAppFrameIndex([frame("a", "/lib/a.js", false)])).toBe(-1);
     expect(getTopAppFrameIndex([])).toBe(-1);
   });
 });
@@ -254,6 +262,106 @@ describe("getStackTraceHeadline", () => {
     expect(getStackTraceHeadline("")).toBeNull();
     expect(getStackTraceHeadline(undefined)).toBeNull();
   });
+
+  test("reads a Python traceback's exception line from the bottom", () => {
+    expect(
+      getStackTraceHeadline(
+        [
+          "Traceback (most recent call last):",
+          '  File "/srv/app/checkout.py", line 41, in submit',
+          "    reserve(order)",
+          "ValueError: bad sku 'SKU-4821'",
+          "",
+        ].join("\n"),
+      ),
+    ).toBe("ValueError: bad sku 'SKU-4821'");
+  });
+
+  test("names the last exception of a chained Python traceback", () => {
+    expect(
+      getStackTraceHeadline(
+        [
+          "Traceback (most recent call last):",
+          '  File "app.py", line 3, in <module>',
+          "KeyError: 'sku'",
+          "",
+          "The above exception was the direct cause of the following exception:",
+          "",
+          "Traceback (most recent call last):",
+          '  File "app.py", line 5, in <module>',
+          "inventory.errors.ReservationError: stock changed",
+        ].join("\r\n"),
+      ),
+    ).toBe("inventory.errors.ReservationError: stock changed");
+  });
+
+  test("skips notes printed after a Python exception line", () => {
+    expect(
+      getStackTraceHeadline(
+        [
+          "Traceback (most recent call last):",
+          '  File "app.py", line 3, in <module>',
+          "TimeoutError",
+          "while reserving SKU-4821 (attempt 3 of 3)",
+        ].join("\n"),
+      ),
+    ).toBe("TimeoutError");
+  });
+
+  test("has no Python headline when the traceback was cut before the message", () => {
+    expect(
+      getStackTraceHeadline(
+        [
+          "Traceback (most recent call last):",
+          '  File "app.py", line 3, in <module>',
+          "    reserve(sku)",
+        ].join("\n"),
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("isOutermostFirstStackTrace / orderFramesInnermostFirst", () => {
+  const PYTHON_TRACE: string = [
+    "Traceback (most recent call last):",
+    '  File "/srv/app/main.py", line 9, in <module>',
+    '  File "/srv/app/checkout.py", line 41, in submit',
+    "ValueError: bad sku",
+  ].join("\n");
+
+  test("recognises Python tracebacks only", () => {
+    expect(isOutermostFirstStackTrace(PYTHON_TRACE)).toBe(true);
+    expect(
+      isOutermostFirstStackTrace("Error: boom\n    at run (/app/run.js:1:2)"),
+    ).toBe(false);
+    expect(
+      isOutermostFirstStackTrace(
+        "java.lang.Error: Traceback (most recent call last): in a message",
+      ),
+    ).toBe(false);
+    expect(isOutermostFirstStackTrace("")).toBe(false);
+    expect(isOutermostFirstStackTrace(undefined)).toBe(false);
+  });
+
+  test("turns Python frames around so the crash point comes first", () => {
+    const frames: Array<string> = ["main", "submit"];
+
+    expect(orderFramesInnermostFirst(frames, PYTHON_TRACE)).toEqual([
+      "submit",
+      "main",
+    ]);
+    // The input is left alone.
+    expect(frames).toEqual(["main", "submit"]);
+  });
+
+  test("keeps innermost-first traces as they are", () => {
+    expect(
+      orderFramesInnermostFirst(
+        ["run", "main"],
+        "Error: boom\n    at run (/app/run.js:1:2)",
+      ),
+    ).toEqual(["run", "main"]);
+  });
 });
 
 describe("shortenFramePath", () => {
@@ -339,9 +447,11 @@ describe("parseRawStackTraceLines", () => {
     ]);
     expect(lines[0]!.lineNumber).toBe(1);
     expect(lines[1]).toMatchObject({
-      indent: "    ",
+      prefix: "    at ",
       functionName: "reserveInventory",
+      separator: " (",
       location: "/app/dist/services/inventory.js:212:17",
+      suffix: ")",
     });
     expect(lines[2]).toMatchObject({
       functionName: "",
@@ -376,28 +486,80 @@ describe("parseRawStackTraceLines", () => {
       "other",
     ]);
     expect(lines[1]).toMatchObject({
-      indent: "\t",
+      prefix: "\tat ",
       functionName: "com.shop.Inventory.reserve",
+      separator: "(",
       location: "Inventory.java:87",
+      suffix: ")",
     });
   });
 
-  test("keeps Python traces verbatim after the first line", () => {
+  test("marks the exception lines after a Python traceback's frames, not its header", () => {
     const lines: Array<RawStackTraceLine> = parseRawStackTraceLines(
       [
         "Traceback (most recent call last):",
         '  File "app.py", line 3, in <module>',
+        "    reserve(sku)",
+        "KeyError: 'sku'",
+        "",
+        "During handling of the above exception, another exception occurred:",
+        "",
+        "Traceback (most recent call last):",
+        '  File "app.py", line 5, in <module>',
         "ValueError: bad sku",
       ].join("\n"),
     );
 
-    expect(kinds(lines)).toEqual(["message", "other", "other"]);
+    expect(kinds(lines)).toEqual([
+      "other",
+      "other",
+      "other",
+      "message",
+      "other",
+      "other",
+      "other",
+      "other",
+      "other",
+      "message",
+    ]);
     expect(lines[1]!.text).toBe('  File "app.py", line 3, in <module>');
+  });
+
+  test("frame pieces join back into the exact line", () => {
+    const trace: string = [
+      "Error: boom",
+      "    at reserveInventory (/app/dist/services/inventory.js:212:17)",
+      "\tat com.shop.Inventory.reserve(Inventory.java:87)",
+      "   at Shop.Checkout.Run() in C:\\src\\Checkout.cs:line 42",
+      "    at   spaced   (/app/run.js:1:2)   ",
+      "    at /app/node_modules/express/lib/router/index.js:284:15  ",
+      "    at <anonymous> ",
+    ].join("\n");
+
+    for (const line of parseRawStackTraceLines(trace)) {
+      expect(
+        line.prefix +
+          line.functionName +
+          line.separator +
+          line.location +
+          line.suffix,
+      ).toBe(line.kind === "frame" ? line.text : "");
+    }
+
+    const spaced: RawStackTraceLine = parseRawStackTraceLines(trace)[4]!;
+    expect(spaced).toMatchObject({
+      prefix: "    at   ",
+      functionName: "spaced",
+      separator: "   (",
+      location: "/app/run.js:1:2",
+      suffix: ")   ",
+    });
   });
 
   test("a frame with neither a call nor a location keeps its text as the function", () => {
     expect(parseRawStackTraceLines("x\n    at <anonymous>")[1]).toMatchObject({
       kind: "frame",
+      prefix: "    at ",
       functionName: "<anonymous>",
       location: "",
     });
@@ -420,9 +582,11 @@ describe("parseRawStackTraceLines", () => {
         lineNumber: 1,
         kind: "other",
         text: "",
-        indent: "",
+        prefix: "",
         functionName: "",
+        separator: "",
         location: "",
+        suffix: "",
       },
     ]);
   });

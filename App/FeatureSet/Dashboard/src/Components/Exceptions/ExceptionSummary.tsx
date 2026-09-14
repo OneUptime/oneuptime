@@ -165,10 +165,13 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
       : undefined;
   };
 
-  const getReleaseDetail: (release: string | undefined) => string | undefined =
-    (release: string | undefined): string | undefined => {
-      return release ? `in ${release}` : undefined;
-    };
+  const getReleaseDetail: (
+    release: string | undefined,
+  ) => string | undefined = (
+    release: string | undefined,
+  ): string | undefined => {
+    return release ? `in ${release}` : undefined;
+  };
 
   const statItems: Array<SummaryStat> = [
     {
@@ -178,8 +181,7 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
     },
     {
       label: "First seen",
-      value:
-        formatRelativeTime(props.exception.firstSeenAt) || "Not recorded",
+      value: formatRelativeTime(props.exception.firstSeenAt) || "Not recorded",
       detail: getReleaseDetail(props.exception.firstSeenInRelease),
       title: getAbsoluteTime(props.exception.firstSeenAt),
     },

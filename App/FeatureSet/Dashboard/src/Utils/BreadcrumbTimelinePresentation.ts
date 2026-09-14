@@ -1,3 +1,4 @@
+import OneUptimeDate from "Common/Types/Date";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 
 /*
@@ -158,9 +159,7 @@ export function getBreadcrumbSummary(event: BreadcrumbEventInput): string {
       "http.response.status_code",
     ]);
 
-    return truncate(
-      `${method} ${url}${status ? ` → ${status}` : ""}`.trim(),
-    );
+    return truncate(`${method} ${url}${status ? ` → ${status}` : ""}`.trim());
   }
 
   const statement: string = readString(attributes, [
@@ -195,7 +194,9 @@ export function getBreadcrumbSummary(event: BreadcrumbEventInput): string {
 }
 
 // A short qualifier under the summary: the exception type or a failed status.
-export function getBreadcrumbDetail(event: BreadcrumbEventInput): string | null {
+export function getBreadcrumbDetail(
+  event: BreadcrumbEventInput,
+): string | null {
   const attributes: JSONObject = event.attributes || {};
   const exceptionType: string = readString(attributes, ["exception.type"]);
 
@@ -255,15 +256,16 @@ export function formatBreadcrumbOffset(
     : `${sign}${minutes} m ${seconds} s`;
 }
 
-function pad(value: number, length: number = 2): string {
-  return String(value).padStart(length, "0");
-}
-
-// Local wall-clock time with milliseconds, e.g. "14:03:07.412".
+/*
+ * Wall-clock time with milliseconds, e.g. "14:03:07.412", in the timezone the
+ * user picked in User Settings (the browser's zone when they have not), so it
+ * agrees with the full timestamp in the row's tooltip.
+ */
 export function formatBreadcrumbClockTime(eventTime: Date): string {
-  return `${pad(eventTime.getHours())}:${pad(eventTime.getMinutes())}:${pad(
-    eventTime.getSeconds(),
-  )}.${pad(eventTime.getMilliseconds(), 3)}`;
+  return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+    date: eventTime,
+    format: "HH:mm:ss.SSS",
+  });
 }
 
 // "0.9 s", "12 s", "3 m 20 s" — the span of time the breadcrumbs cover.
@@ -356,7 +358,11 @@ export function groupBreadcrumbEvents<TEvent extends BreadcrumbEventInput>(
     const category: BreadcrumbCategory = categorizeBreadcrumb(event);
     const summary: string = getBreadcrumbSummary(event);
 
-    if (current && current.category === category && current.summary === summary) {
+    if (
+      current &&
+      current.category === category &&
+      current.summary === summary
+    ) {
       current.events.push(event);
       current.lastTime = event.time;
       current.count += 1;
@@ -406,7 +412,10 @@ export function describeBreadcrumbWindow(args: {
     return `${count} event${count === 1 ? "" : "s"}`;
   };
 
-  if (args.filteredCount !== undefined && args.filteredCount !== args.shownCount) {
+  if (
+    args.filteredCount !== undefined &&
+    args.filteredCount !== args.shownCount
+  ) {
     return `${args.filteredCount} of ${plural(args.shownCount)} match the filters`;
   }
 

@@ -59,7 +59,7 @@ describe("TraceAggregationService exceptionScope", () => {
     });
 
     expect(normalized(statement)).toContain(
-      "AND (traceId, spanId) IN (SELECT traceId, spanId FROM",
+      "AND (traceId, spanId) GLOBAL IN (SELECT traceId, spanId FROM",
     );
     expect(params(statement)).toEqual(
       expect.arrayContaining([
@@ -98,7 +98,7 @@ describe("TraceAggregationService exceptionScope", () => {
     ).buildFacetStatement(facetRequest);
 
     expect(normalized(statement)).toContain(
-      "AND (traceId, spanId) IN (SELECT traceId, spanId FROM",
+      "AND (traceId, spanId) GLOBAL IN (SELECT traceId, spanId FROM",
     );
     expect(params(statement)).toContain(FINGERPRINT);
   });

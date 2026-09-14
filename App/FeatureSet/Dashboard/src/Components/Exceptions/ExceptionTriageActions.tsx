@@ -59,7 +59,9 @@ const ExceptionTriageActions: FunctionComponent<ComponentProps> = (
             icon={ACTION_ICONS[action.id]}
             buttonSize={ButtonSize.Small}
             buttonStyle={
-              isPrimary ? ButtonStyleType.SUCCESS_OUTLINE : ButtonStyleType.NORMAL
+              isPrimary
+                ? ButtonStyleType.SUCCESS_OUTLINE
+                : ButtonStyleType.NORMAL
             }
             dataTestId={`exception-triage-${action.id}`}
             isLoading={props.pendingActionId === action.id}
@@ -68,7 +70,9 @@ const ExceptionTriageActions: FunctionComponent<ComponentProps> = (
               (Boolean(props.pendingActionId) &&
                 props.pendingActionId !== action.id)
             }
-            tooltip={updateGate.isAllowed ? undefined : updateGate.disabledReason}
+            tooltip={
+              updateGate.isAllowed ? undefined : updateGate.disabledReason
+            }
             onClick={() => {
               props.onAction(action);
             }}

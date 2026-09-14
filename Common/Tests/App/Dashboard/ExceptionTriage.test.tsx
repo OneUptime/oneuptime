@@ -119,9 +119,11 @@ describe("ExceptionTriageActions", () => {
     fireEvent.click(screen.getByTestId("exception-triage-resolve"));
     fireEvent.click(screen.getByTestId("exception-triage-archive"));
 
-    expect(onAction.mock.calls.map((call: [ExceptionTriageAction]) => {
-      return call[0];
-    })).toEqual([
+    expect(
+      onAction.mock.calls.map((call: [ExceptionTriageAction]) => {
+        return call[0];
+      }),
+    ).toEqual([
       {
         id: "resolve",
         label: "Resolve",
@@ -166,7 +168,9 @@ describe("ExceptionTriageActions", () => {
 });
 
 describe("ExceptionSettings", () => {
-  function exceptionWith(values: Partial<TelemetryException>): TelemetryException {
+  function exceptionWith(
+    values: Partial<TelemetryException>,
+  ): TelemetryException {
     const exception: TelemetryException = new TelemetryException();
     Object.assign(exception, values);
     return exception;
@@ -237,12 +241,12 @@ describe("ExceptionSettings", () => {
       screen.getByTestId("exception-settings-archive-history"),
     ).toHaveTextContent("Archived 1 day ago");
 
-    expect(screen.getByTestId("exception-settings-unresolve")).toHaveTextContent(
-      "Mark as Unresolved",
-    );
-    expect(screen.getByTestId("exception-settings-unarchive")).toHaveTextContent(
-      "Unarchive",
-    );
+    expect(
+      screen.getByTestId("exception-settings-unresolve"),
+    ).toHaveTextContent("Mark as Unresolved");
+    expect(
+      screen.getByTestId("exception-settings-unarchive"),
+    ).toHaveTextContent("Unarchive");
 
     fireEvent.click(screen.getByTestId("exception-settings-unresolve"));
     expect(onAction.mock.calls[0]![0]).toMatchObject({

@@ -698,12 +698,18 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       /*
        * "exceptionScope" is a synthetic query key (not a column) that narrows
        * spans to the ones an exception group's occurrences were raised in:
-       *   (traceId, spanId) IN (SELECT traceId, spanId FROM <occurrences>
+       *   (traceId, spanId) GLOBAL IN (SELECT traceId, spanId FROM <occurrences>
        *     WHERE projectId = ... AND fingerprint = ... [AND primaryEntityId = ...])
        * The subquery is pinned to the query's own projectId. Without one — or
        * with a malformed scope — the predicate matches nothing rather than
        * silently widening back to every span. Ignored for models without
        * traceId / spanId columns.
+       *
+       * GLOBAL IN, not plain IN: both tables are Distributed, and multi-shard
+       * ClickHouse rejects a plain IN subquery over a Distributed table inside
+       * a query on another one (Code 288). It would also be wrong shard-locally,
+       * because spans shard by traceId and occurrences by fingerprint, so the
+       * occurrence set has to be computed once, globally.
        */
       if (key === EXCEPTION_SPAN_SCOPE_QUERY_KEY) {
         const traceIdColumn: AnalyticsTableColumn | null =
@@ -715,8 +721,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           continue;
         }
 
-        const scope: ExceptionSpanScope | null =
-          parseExceptionSpanScope(value);
+        const scope: ExceptionSpanScope | null = parseExceptionSpanScope(value);
         const projectIdValue: unknown = (query as Record<string, unknown>)[
           "projectId"
         ];
@@ -740,7 +745,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
         const exceptionScopeStatement: Statement = SQL`AND (${columnRef(
           traceIdColumn.key,
-        )}, ${columnRef(spanIdColumn.key)}) IN (SELECT traceId, spanId FROM ${
+        )}, ${columnRef(spanIdColumn.key)}) GLOBAL IN (SELECT traceId, spanId FROM ${
           AnalyticsTableName.ExceptionInstance
         } WHERE projectId = ${{
           value: new ObjectID(projectId),

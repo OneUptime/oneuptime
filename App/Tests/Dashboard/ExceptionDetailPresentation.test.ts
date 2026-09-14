@@ -155,12 +155,15 @@ describe("occurrence trend windows", () => {
     expect(DEFAULT_EXCEPTION_TREND_WINDOW).toBe(ExceptionTrendWindowKey.Day);
   });
 
-  test.each(EXCEPTION_TREND_WINDOWS.map((window: ExceptionTrendWindow) => {
-    return [window.label, window];
-  }))(
+  test.each(
+    EXCEPTION_TREND_WINDOWS.map((window: ExceptionTrendWindow) => {
+      return [window.label, window];
+    }),
+  )(
     "the %s window keeps the bar count readable",
     (_label: string, window: ExceptionTrendWindow) => {
-      const bars: number = window.durationMs / (window.bucketSizeInMinutes * MINUTE);
+      const bars: number =
+        window.durationMs / (window.bucketSizeInMinutes * MINUTE);
 
       expect(bars).toBeGreaterThanOrEqual(30);
       expect(bars).toBeLessThanOrEqual(48);
@@ -337,7 +340,9 @@ describe("buildExceptionTrendRows", () => {
 
     expect(
       rows.find((row: ExceptionTrendRow) => {
-        return new Date(row.timeMs).toISOString() === "2026-09-14T11:00:00.000Z";
+        return (
+          new Date(row.timeMs).toISOString() === "2026-09-14T11:00:00.000Z"
+        );
       })?.handled,
     ).toBe(3);
   });

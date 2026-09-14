@@ -144,7 +144,10 @@ const ExceptionLatestOccurrence: FunctionComponent<ComponentProps> = (
             className="inline-flex max-w-full items-center gap-1 font-mono text-[13px] text-indigo-600 hover:text-indigo-500 hover:underline"
           >
             <span className="truncate">{traceId}</span>
-            <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5 flex-shrink-0" />
+            <Icon
+              icon={IconProp.ExternalLink}
+              className="h-3.5 w-3.5 flex-shrink-0"
+            />
           </AppLink>
         ) : (
           <span className="text-gray-400">No trace was attached</span>

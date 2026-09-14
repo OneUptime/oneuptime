@@ -173,7 +173,9 @@ describe("StackFrameViewer", () => {
 
     expect(frameNumbers()).toEqual(["0", "1", "2"]);
     const group: HTMLElement = screen.getByTestId("stack-frame-group");
-    expect(group).toHaveTextContent("3 library frames hidden in .../express/lib/router");
+    expect(group).toHaveTextContent(
+      "3 library frames hidden in .../express/lib/router",
+    );
 
     fireEvent.click(within(group).getByRole("button"));
 
@@ -231,7 +233,9 @@ describe("StackFrameViewer", () => {
     fireEvent.click(screen.getByTestId("stack-trace-view-all"));
 
     const origins: Array<string> = frameRows().map((row: HTMLElement) => {
-      return within(row).getByTestId("stack-frame-badge-origin").textContent || "";
+      return (
+        within(row).getByTestId("stack-frame-badge-origin").textContent || ""
+      );
     });
 
     expect(origins).toEqual([
@@ -259,9 +263,8 @@ describe("StackFrameViewer", () => {
       within(crashRow).getByTestId("stack-frame-badge-mapped"),
     ).toBeInTheDocument();
 
-    const detail: HTMLElement = within(crashRow).getByTestId(
-      "stack-frame-detail",
-    );
+    const detail: HTMLElement =
+      within(crashRow).getByTestId("stack-frame-detail");
     expect(detail).toHaveTextContent("src/services/inventory.ts:187:13");
     expect(detail).toHaveTextContent("/app/dist/services/inventory.js:212:17");
 
@@ -288,8 +291,12 @@ describe("StackFrameViewer", () => {
 
     const raw: HTMLElement = screen.getByTestId("raw-stack-trace");
     expect(raw.querySelectorAll("tr")).toHaveLength(7);
-    expect(raw).toHaveTextContent("InventoryReservationError: Could not reserve");
-    expect(raw).toHaveTextContent("/app/node_modules/express/lib/router/route.js:119:3");
+    expect(raw).toHaveTextContent(
+      "InventoryReservationError: Could not reserve",
+    );
+    expect(raw).toHaveTextContent(
+      "/app/node_modules/express/lib/router/route.js:119:3",
+    );
     expect(raw).toHaveAttribute("data-wrap", "false");
 
     fireEvent.click(screen.getByTestId("stack-trace-wrap"));
@@ -324,6 +331,103 @@ describe("StackFrameViewer", () => {
     );
     expect(screen.queryByTestId("stack-trace-view")).not.toBeInTheDocument();
     expect(screen.queryAllByTestId("stack-frame-detail")).toHaveLength(0);
+  });
+
+  test("an all-library trace shows every frame, and Expand all opens them", () => {
+    renderViewer({
+      parsedFrames: JSON.stringify(
+        FRAMES.map((frame: MinifiedStackFrame) => {
+          return { ...frame, inApp: false };
+        }),
+      ),
+    });
+
+    // Nothing is folded away behind a view switch that is not on screen.
+    expect(screen.queryByTestId("stack-frame-group")).not.toBeInTheDocument();
+    expect(frameNumbers()).toEqual(["0", "1", "2", "3", "4", "5"]);
+
+    fireEvent.click(screen.getByTestId("stack-trace-expand-all"));
+
+    expect(screen.getAllByTestId("stack-frame-detail")).toHaveLength(6);
+    expect(screen.getByTestId("stack-trace-expand-all")).toHaveTextContent(
+      "Collapse all",
+    );
+  });
+
+  test("a Python traceback opens on the innermost frame and names its exception", () => {
+    const pythonTrace: string = [
+      "Traceback (most recent call last):",
+      '  File "/srv/app/main.py", line 9, in <module>',
+      "    checkout.submit(order)",
+      '  File "/usr/lib/python3.12/site-packages/retry/api.py", line 33, in wrapper',
+      "    return f(*args)",
+      '  File "/srv/app/checkout.py", line 41, in submit',
+      "    reserve(order)",
+      "ValueError: bad sku 'SKU-4821'",
+    ].join("\n");
+
+    // The parser stores Python frames in printed order: entry point first.
+    renderViewer({
+      stackTrace: pythonTrace,
+      parsedFrames: JSON.stringify([
+        {
+          functionName: "<module>",
+          fileName: "/srv/app/main.py",
+          lineNumber: 9,
+          inApp: true,
+        },
+        {
+          functionName: "wrapper",
+          fileName: "/usr/lib/python3.12/site-packages/retry/api.py",
+          lineNumber: 33,
+          inApp: false,
+        },
+        {
+          functionName: "submit",
+          fileName: "/srv/app/checkout.py",
+          lineNumber: 41,
+          inApp: true,
+        },
+      ]),
+    });
+
+    expect(screen.getByTestId("stack-trace-headline")).toHaveTextContent(
+      "ValueError: bad sku 'SKU-4821'",
+    );
+    expect(screen.getByTestId("stack-trace-crash-point")).toHaveTextContent(
+      "Most likely crash point: submit in .../srv/app/checkout.py:41",
+    );
+
+    const functions: Array<string> = frameRows().map((row: HTMLElement) => {
+      return within(row).getByTestId("stack-frame-function").textContent || "";
+    });
+    expect(functions).toEqual(["submit", "wrapper", "<module>"]);
+    expect(toggleOf(0)).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(screen.getByTestId("stack-trace-order-oldest"));
+    expect(
+      frameRows().map((row: HTMLElement) => {
+        return within(row).getByTestId("stack-frame-function").textContent;
+      }),
+    ).toEqual(["<module>", "wrapper", "submit"]);
+  });
+
+  test("the raw tab shows every line exactly as recorded", () => {
+    const javaTrace: string = [
+      "java.lang.IllegalStateException: stock changed",
+      "\tat com.shop.Inventory.reserve(Inventory.java:87)",
+      "    at   spaced   (/app/run.js:1:2)",
+    ].join("\n");
+
+    renderViewer({ stackTrace: javaTrace, parsedFrames: "not json" });
+
+    const cells: Array<string> = Array.from(
+      screen.getByTestId("raw-stack-trace").querySelectorAll("tr"),
+    ).map((row: HTMLTableRowElement) => {
+      return row.querySelectorAll("td")[1]!.textContent || "";
+    });
+
+    expect(cells).toEqual(javaTrace.split("\n"));
   });
 
   test("copies the raw trace", () => {

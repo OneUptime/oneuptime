@@ -148,7 +148,9 @@ describe("ExceptionSummary", () => {
       screen.getByText("Payment provider did not respond in time"),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /(expand|collapse) exception message/i }),
+      screen.queryByRole("button", {
+        name: /(expand|collapse) exception message/i,
+      }),
     ).not.toBeInTheDocument();
     expect(
       screen.getByTestId("exception-summary-environment"),
@@ -262,22 +264,23 @@ describe("ExceptionSummary", () => {
   test.each([
     ["unclassified", "unknown"],
     ["an unrecognised value", "flaky"],
-  ])("hides the error class badge when it is %s", (_name: string, value: string) => {
-    renderSummary({ exception: exceptionWith({ errorClass: value }) });
+  ])(
+    "hides the error class badge when it is %s",
+    (_name: string, value: string) => {
+      renderSummary({ exception: exceptionWith({ errorClass: value }) });
 
-    expect(
-      screen.queryByTestId("exception-summary-error-class"),
-    ).not.toBeInTheDocument();
-  });
+      expect(
+        screen.queryByTestId("exception-summary-error-class"),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   test("offers a copy button for a recorded message", () => {
     renderSummary({
       exception: exceptionWith({ message: "Inventory reservation failed" }),
     });
 
-    expect(
-      screen.getByTitle("Copy exception message"),
-    ).toBeInTheDocument();
+    expect(screen.getByTitle("Copy exception message")).toBeInTheDocument();
   });
 
   test("renders the triage actions it is given and nothing when it is not", () => {

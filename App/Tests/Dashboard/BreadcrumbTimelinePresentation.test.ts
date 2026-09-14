@@ -1,5 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
+import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
+import Timezone from "Common/Types/Timezone";
 import {
   BREADCRUMB_CATEGORY_LABELS,
   BREADCRUMB_CATEGORY_ORDER,
@@ -169,7 +171,9 @@ describe("getBreadcrumbSummary", () => {
 describe("getBreadcrumbDetail", () => {
   test("names the exception type", () => {
     expect(
-      getBreadcrumbDetail(event("exception", { "exception.type": "TypeError" })),
+      getBreadcrumbDetail(
+        event("exception", { "exception.type": "TypeError" }),
+      ),
     ).toBe("TypeError");
   });
 
@@ -178,7 +182,9 @@ describe("getBreadcrumbDetail", () => {
       getBreadcrumbDetail(event("http", { "http.status_code": 503 })),
     ).toBe("HTTP 503");
     expect(
-      getBreadcrumbDetail(event("http", { "http.response.status_code": "404" })),
+      getBreadcrumbDetail(
+        event("http", { "http.response.status_code": "404" }),
+      ),
     ).toBe("HTTP 404");
     expect(
       getBreadcrumbDetail(event("http", { "http.status_code": 200 })),
@@ -198,14 +204,17 @@ describe("formatBreadcrumbOffset", () => {
     [-12500, "-12 s"],
     [-60000, "-1 m"],
     [-125000, "-2 m 5 s"],
-  ])("%d ms from the exception reads %s", (offset: number, expected: string) => {
-    expect(
-      formatBreadcrumbOffset(
-        new Date(EXCEPTION_TIME.getTime() + offset),
-        EXCEPTION_TIME,
-      ),
-    ).toBe(expected);
-  });
+  ])(
+    "%d ms from the exception reads %s",
+    (offset: number, expected: string) => {
+      expect(
+        formatBreadcrumbOffset(
+          new Date(EXCEPTION_TIME.getTime() + offset),
+          EXCEPTION_TIME,
+        ),
+      ).toBe(expected);
+    },
+  );
 
   test("has nothing to say without an exception time", () => {
     expect(formatBreadcrumbOffset(EXCEPTION_TIME, undefined)).toBeNull();
@@ -217,6 +226,20 @@ describe("formatBreadcrumbClockTime and formatBreadcrumbSpan", () => {
     expect(formatBreadcrumbClockTime(new Date(2026, 8, 14, 9, 3, 7, 41))).toBe(
       "09:03:07.041",
     );
+  });
+
+  test("reads the clock in the timezone the user picked, not the browser's", () => {
+    const instant: Date = new Date("2026-09-14T11:56:00.412Z");
+
+    try {
+      OneUptimeDate.setUserTimezone(Timezone.AsiaKolkata);
+      expect(formatBreadcrumbClockTime(instant)).toBe("17:26:00.412");
+
+      OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+      expect(formatBreadcrumbClockTime(instant)).toBe("07:56:00.412");
+    } finally {
+      OneUptimeDate.setUserTimezone(null);
+    }
   });
 
   test.each([

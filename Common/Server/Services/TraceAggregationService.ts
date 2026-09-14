@@ -1023,7 +1023,9 @@ export class TraceAggregationService {
   /*
    * The spans behind one exception group's occurrences. The subquery is
    * pinned to the request's project; without a project the filter matches
-   * nothing rather than widening to every span.
+   * nothing rather than widening to every span. GLOBAL IN because both tables
+   * are Distributed and shard on different keys: a plain IN is rejected on
+   * multi-shard clusters (Code 288) and would be wrong shard-locally.
    */
   public static appendExceptionScopeFilter(
     statement: Statement,
@@ -1042,7 +1044,7 @@ export class TraceAggregationService {
     }
 
     statement.append(
-      SQL` AND (traceId, spanId) IN (SELECT traceId, spanId FROM ${AnalyticsTableName.ExceptionInstance} WHERE projectId = ${{
+      SQL` AND (traceId, spanId) GLOBAL IN (SELECT traceId, spanId FROM ${AnalyticsTableName.ExceptionInstance} WHERE projectId = ${{
         type: TableColumnType.ObjectID,
         value: request.projectId,
       }} AND fingerprint = ${{

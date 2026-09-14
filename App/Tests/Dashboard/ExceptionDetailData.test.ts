@@ -76,9 +76,11 @@ describe("exception detail data ownership", () => {
 
   test("covers every section", () => {
     expect(
-      plans.map(([section]: [ExceptionDetailSection, ExceptionDetailDataPlan]) => {
-        return section;
-      }),
+      plans.map(
+        ([section]: [ExceptionDetailSection, ExceptionDetailDataPlan]) => {
+          return section;
+        },
+      ),
     ).toEqual(Object.values(ExceptionDetailSection));
   });
 

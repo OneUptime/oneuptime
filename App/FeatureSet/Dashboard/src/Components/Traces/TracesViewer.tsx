@@ -1195,7 +1195,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       (query as Record<string, unknown>)["entityScope"] = props.entityScope;
     }
 
-    // Compiled by StatementGenerator to a (traceId, spanId) IN subquery.
+    // Compiled by StatementGenerator to a (traceId, spanId) GLOBAL IN subquery.
     if (props.exceptionScope) {
       (query as Record<string, unknown>)[EXCEPTION_SPAN_SCOPE_QUERY_KEY] =
         props.exceptionScope;
@@ -2929,10 +2929,13 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
            * they would open the logs / metrics explorer project-wide under a
            * button that promises "scoped like this view". The snapshot card
            * already offers correctly-scoped Logs and Metrics tabs of its own.
+           * Hidden for an exception scope for the same reason: neither
+           * explorer can narrow to one exception's spans, and the exception
+           * page has its own Logs page.
            */}
           <div
             className={`items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5 shadow-sm ${
-              props.spanQuery ? "hidden" : "inline-flex"
+              props.spanQuery || props.exceptionScope ? "hidden" : "inline-flex"
             }`}
             aria-label="Related telemetry signals"
           >

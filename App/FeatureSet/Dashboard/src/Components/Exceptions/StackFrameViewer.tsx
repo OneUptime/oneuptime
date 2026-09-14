@@ -30,6 +30,7 @@ import {
   getStackTraceHeadline,
   getTopAppFrameIndex,
   getVisibleFrameIndexes,
+  orderFramesInnermostFirst,
   orderStackTraceDisplayItems,
   parseRawStackTraceLines,
   shortenFramePath,
@@ -488,19 +489,13 @@ const RawStackTrace: FunctionComponent<RawStackTraceProps> = ({
                     )}
                     {line.kind === "frame" && (
                       <>
-                        <span className="text-gray-500">{line.indent}at </span>
+                        <span className="text-gray-500">{line.prefix}</span>
                         <span className="text-gray-100">
                           {line.functionName}
                         </span>
-                        {line.location && (
-                          <span className="text-gray-400">
-                            {line.functionName ? " (" : ""}
-                            <span className="text-sky-300">
-                              {line.location}
-                            </span>
-                            {line.functionName ? ")" : ""}
-                          </span>
-                        )}
+                        <span className="text-gray-400">{line.separator}</span>
+                        <span className="text-sky-300">{line.location}</span>
+                        <span className="text-gray-400">{line.suffix}</span>
                       </>
                     )}
                     {line.kind === "other" && (
@@ -558,9 +553,9 @@ const StackFrameViewer: FunctionComponent<ComponentProps> = (
    * point is open by default. Several frames can be open at once, which is
    * how a caller and its callee get compared.
    */
-  const [expandedFrames, setExpandedFrames] = useState<
-    Set<number> | undefined
-  >(undefined);
+  const [expandedFrames, setExpandedFrames] = useState<Set<number> | undefined>(
+    undefined,
+  );
   const [viewMode, setViewMode] = useState<StackTraceViewMode>(
     StackTraceViewMode.Smart,
   );
@@ -573,13 +568,19 @@ const StackFrameViewer: FunctionComponent<ComponentProps> = (
     new Set(),
   );
 
-  // Parse frames and overlay the source-map resolution result, if any
+  /*
+   * Parse frames, overlay the source-map resolution result if any, and put
+   * the crash point first whatever order the runtime printed them in.
+   */
   const frames: Array<ResolvedStackFrame> = useMemo(() => {
-    return applyResolvedFrames(
-      parseFramesJson(props.parsedFrames),
-      props.resolvedFrames,
+    return orderFramesInnermostFirst(
+      applyResolvedFrames(
+        parseFramesJson(props.parsedFrames),
+        props.resolvedFrames,
+      ),
+      props.stackTrace,
     );
-  }, [props.parsedFrames, props.resolvedFrames]);
+  }, [props.parsedFrames, props.resolvedFrames, props.stackTrace]);
 
   const appFrameCount: number = useMemo((): number => {
     return frames.filter((frame: ResolvedStackFrame) => {
@@ -588,6 +589,16 @@ const StackFrameViewer: FunctionComponent<ComponentProps> = (
   }, [frames]);
 
   const libFrameCount: number = frames.length - appFrameCount;
+
+  /*
+   * The view switch only exists when there is both app and library code to
+   * choose between. Otherwise every frame is shown, so a trace made entirely
+   * of library frames is not folded away out of reach.
+   */
+  const canChooseViewMode: boolean = appFrameCount > 0 && libFrameCount > 0;
+  const effectiveViewMode: StackTraceViewMode = canChooseViewMode
+    ? viewMode
+    : StackTraceViewMode.All;
 
   const resolvedFrameCount: number = useMemo((): number => {
     return countResolvedFrames(frames);
@@ -601,12 +612,12 @@ const StackFrameViewer: FunctionComponent<ComponentProps> = (
     return orderStackTraceDisplayItems(
       buildStackTraceDisplayItems({
         frames,
-        viewMode,
+        viewMode: effectiveViewMode,
         expandedLibGroups,
       }),
       frameOrder,
     );
-  }, [frames, viewMode, expandedLibGroups, frameOrder]);
+  }, [frames, effectiveViewMode, expandedLibGroups, frameOrder]);
 
   const headline: string | null = useMemo(() => {
     return getStackTraceHeadline(props.stackTrace);
@@ -697,7 +708,7 @@ const StackFrameViewer: FunctionComponent<ComponentProps> = (
 
           {activeTab === "frames" && (
             <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-              {appFrameCount > 0 && libFrameCount > 0 && (
+              {canChooseViewMode && (
                 <ExceptionSegmentedControl<StackTraceViewMode>
                   label="Frames to show"
                   testId="stack-trace-view"
@@ -781,7 +792,10 @@ const StackFrameViewer: FunctionComponent<ComponentProps> = (
             className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 ring-1 ring-inset ring-amber-600/20"
             data-testid="stack-trace-source-maps-skipped"
           >
-            <Icon icon={IconProp.Alert} className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+            <Icon
+              icon={IconProp.Alert}
+              className="mt-0.5 h-3.5 w-3.5 flex-shrink-0"
+            />
             <span>
               {props.skippedSourceMapCount} source map
               {props.skippedSourceMapCount === 1 ? " was" : "s were"} too large

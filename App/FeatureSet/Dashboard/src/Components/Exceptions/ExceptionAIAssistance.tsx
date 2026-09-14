@@ -102,29 +102,30 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
    */
   const [taskError, setTaskError] = useState<string | undefined>(undefined);
 
-  const fetchTasks: () => Promise<void> = useCallback(async (): Promise<void> => {
-    try {
-      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.get({
-          url: URL.fromString(APP_API_URL.toString()).addRoute(
-            `/telemetry-exception/get-ai-agent-task/${exceptionId}`,
-          ),
-          headers: ModelAPI.getCommonHeaders(),
-        });
+  const fetchTasks: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      try {
+        const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+          await API.get({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              `/telemetry-exception/get-ai-agent-task/${exceptionId}`,
+            ),
+            headers: ModelAPI.getCommonHeaders(),
+          });
 
-      if (response instanceof HTTPErrorResponse) {
-        throw response;
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        setTasks(parseAIAgentTasksResponse(response.data));
+      } catch {
+        // Quiet: without task data the cards simply offer to start a task.
+        setTasks([]);
       }
 
-      setTasks(parseAIAgentTasksResponse(response.data));
-    } catch {
-      // Quiet: without task data the cards simply offer to start a task.
-      setTasks([]);
-    }
-
-    setHasLoadedTasks(true);
-    setIsTasksLoading(false);
-  }, [exceptionId]);
+      setHasLoadedTasks(true);
+      setIsTasksLoading(false);
+    }, [exceptionId]);
 
   const fetchReadiness: () => Promise<void> =
     useCallback(async (): Promise<void> => {
@@ -154,15 +155,22 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
     }, [exceptionId]);
 
   useEffect(() => {
-    // Readiness only matters while the exception is unresolved.
-    if (!props.isResolved) {
-      void fetchReadiness();
-    } else {
-      setHasLoadedReadiness(true);
-    }
-
     void fetchTasks();
   }, [exceptionId]);
+
+  /*
+   * Readiness only matters while the exception is unresolved. It is keyed on
+   * isResolved too: the header can reopen the exception while this page is
+   * open, and the checklist has to appear then, not on the next visit.
+   */
+  useEffect(() => {
+    if (props.isResolved) {
+      setHasLoadedReadiness(true);
+      return;
+    }
+
+    void fetchReadiness();
+  }, [exceptionId, props.isResolved]);
 
   const hasActiveTask: boolean = tasks.some(isAITaskActive);
 
@@ -269,7 +277,10 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
           data-testid="exception-ai-ready"
         >
           <div className="flex items-center gap-2 text-sm font-medium text-emerald-900">
-            <Icon icon={IconProp.CheckCircle} className="h-5 w-5 text-emerald-600" />
+            <Icon
+              icon={IconProp.CheckCircle}
+              className="h-5 w-5 text-emerald-600"
+            />
             AI is ready to work on this exception
           </div>
           <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-emerald-800 sm:ml-auto">
@@ -331,7 +342,9 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
                     data-ok={check.ok ? "true" : "false"}
                   >
                     <Icon
-                      icon={check.ok ? IconProp.CheckCircle : IconProp.CircleClose}
+                      icon={
+                        check.ok ? IconProp.CheckCircle : IconProp.CircleClose
+                      }
                       className={`mt-0.5 h-5 w-5 flex-shrink-0 ${
                         check.ok ? "text-emerald-500" : "text-red-500"
                       }`}
@@ -392,7 +405,10 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
       >
         <div className="flex flex-col gap-4 md:flex-row md:items-start">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50">
-            <Icon icon={presentation.icon} className="h-5 w-5 text-indigo-600" />
+            <Icon
+              icon={presentation.icon}
+              className="h-5 w-5 text-indigo-600"
+            />
           </div>
 
           <div className="min-w-0 flex-1">

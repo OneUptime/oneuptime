@@ -144,7 +144,12 @@ function task(
 
 const READY_CHECKS: Array<JSONObject> = [
   { id: "llmProvider", ok: true, title: "LLM provider", detail: "" },
-  { id: "repositoryConnected", ok: true, title: "GitHub repository", detail: "" },
+  {
+    id: "repositoryConnected",
+    ok: true,
+    title: "GitHub repository",
+    detail: "",
+  },
   { id: "agentAvailable", ok: true, title: "AI agent online", detail: "" },
 ];
 
@@ -224,8 +229,16 @@ describe("ExceptionAIAssistance", () => {
 
     for (const [taskType, title, action] of [
       ["FixException", "Fix this exception with AI", "Fix with AI"],
-      ["WriteRegressionTest", "Generate Regression Test", "Generate Regression Test"],
-      ["ImproveExceptionHandling", "Improve Error Handling", "Improve Error Handling"],
+      [
+        "WriteRegressionTest",
+        "Generate Regression Test",
+        "Generate Regression Test",
+      ],
+      [
+        "ImproveExceptionHandling",
+        "Improve Error Handling",
+        "Improve Error Handling",
+      ],
     ] as Array<[string, string, string]>) {
       const taskCard: HTMLElement = card(taskType);
 
@@ -253,7 +266,9 @@ describe("ExceptionAIAssistance", () => {
     await renderAssistance();
 
     fireEvent.click(
-      within(card("WriteRegressionTest")).getByTestId("exception-ai-task-start"),
+      within(card("WriteRegressionTest")).getByTestId(
+        "exception-ai-task-start",
+      ),
     );
 
     expect(
@@ -365,7 +380,9 @@ describe("ExceptionAIAssistance", () => {
       "Connect a repository through the GitHub App.",
     );
     expect(
-      within(repository).getByRole("link", { name: "Connect a Code Repository" }),
+      within(repository).getByRole("link", {
+        name: "Connect a Code Repository",
+      }),
     ).toBeInTheDocument();
     expect(
       within(
@@ -373,9 +390,9 @@ describe("ExceptionAIAssistance", () => {
       ).getByRole("link", { name: "Set up a Runner" }),
     ).toBeInTheDocument();
     expect(
-      within(screen.getByTestId("exception-ai-readiness-llmProvider")).queryByRole(
-        "link",
-      ),
+      within(
+        screen.getByTestId("exception-ai-readiness-llmProvider"),
+      ).queryByRole("link"),
     ).not.toBeInTheDocument();
 
     for (const taskType of [
@@ -507,12 +524,67 @@ describe("ExceptionAIAssistance", () => {
     expect(readinessCalls).toBe(0);
   });
 
+  test("reopening from the header while the page is open loads the checklist", async () => {
+    state.ready = false;
+    state.checks = [
+      { id: "llmProvider", ok: true, title: "LLM provider", detail: "" },
+      {
+        id: "agentAvailable",
+        ok: false,
+        title: "AI agent online",
+        detail: "No agent is available for this project.",
+      },
+    ];
+
+    const view: (isResolved: boolean) => React.ReactElement = (
+      isResolved: boolean,
+    ): React.ReactElement => {
+      return (
+        <MemoryRouter>
+          <ExceptionAIAssistance
+            telemetryExceptionId={new ObjectID(EXCEPTION_ID)}
+            isResolved={isResolved}
+            isArchived={false}
+          />
+        </MemoryRouter>
+      );
+    };
+
+    const { rerender } = render(view(true));
+    await screen.findByTestId("exception-ai-assistance");
+
+    expect(
+      screen.queryByRole("heading", { name: "Set up AI for this exception" }),
+    ).not.toBeInTheDocument();
+
+    rerender(view(false));
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Set up AI for this exception",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      getMock.mock.calls.filter((call: [RequestArgs]) => {
+        return call[0].url.toString().includes("/ai-fix-readiness/");
+      }),
+    ).toHaveLength(1);
+    // Tasks are not re-read just because the status changed.
+    expect(
+      getMock.mock.calls.filter((call: [RequestArgs]) => {
+        return call[0].url.toString().includes("/get-ai-agent-task/");
+      }),
+    ).toHaveLength(1);
+  });
+
   test("an archived exception is paused too", async () => {
     await renderAssistance({ isArchived: true });
 
     expect(screen.getByText("AI assistance is paused")).toBeInTheDocument();
     expect(
-      within(card("WriteRegressionTest")).getByTestId("exception-ai-task-start"),
+      within(card("WriteRegressionTest")).getByTestId(
+        "exception-ai-task-start",
+      ),
     ).toBeDisabled();
   });
 

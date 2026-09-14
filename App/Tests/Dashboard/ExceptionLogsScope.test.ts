@@ -109,14 +109,12 @@ describe("getExceptionLogsViewerScopes", () => {
 });
 
 describe("getDefaultExceptionLogsViewerScope", () => {
-  const scopes: Array<ExceptionLogsViewerScope> = getExceptionLogsViewerScopes(
-    {
-      traceId: TRACE_ID,
-      primaryEntityId: SERVICE_ID,
-      time: OCCURRED_AT,
-      now: NOW,
-    },
-  );
+  const scopes: Array<ExceptionLogsViewerScope> = getExceptionLogsViewerScopes({
+    traceId: TRACE_ID,
+    primaryEntityId: SERVICE_ID,
+    time: OCCURRED_AT,
+    now: NOW,
+  });
 
   test("uses the first scope unless another one was picked", () => {
     expect(getDefaultExceptionLogsViewerScope(scopes)?.key).toBe(
@@ -160,10 +158,7 @@ describe("getExceptionSpansDefaultTimeRange", () => {
     "an exception last seen %s opens on %s",
     (_name: string, ageMs: number, expected: TimeRange) => {
       expect(
-        getExceptionSpansDefaultTimeRange(
-          new Date(NOW.getTime() - ageMs),
-          NOW,
-        ),
+        getExceptionSpansDefaultTimeRange(new Date(NOW.getTime() - ageMs), NOW),
       ).toBe(expected);
     },
   );
