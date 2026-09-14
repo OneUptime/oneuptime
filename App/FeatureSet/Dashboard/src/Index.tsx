@@ -60,7 +60,15 @@ i18nReady
   .then((): void => {
     root.render(
       <ErrorBoundary>
-        <BrowserRouter>
+        {/*
+         * Product route bundles are lazy. React Router v7 otherwise wraps the
+         * location update in a transition, which keeps the previous product
+         * painted while a cold bundle suspends instead of revealing App's
+         * PageLoader fallback. Product navigation should acknowledge the click
+         * immediately, so keep router updates synchronous and let the nearest
+         * Suspense boundary show its loading state.
+         */}
+        <BrowserRouter useTransitions={false}>
           <App />
         </BrowserRouter>
       </ErrorBoundary>,
