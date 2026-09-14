@@ -6,6 +6,10 @@ import {
 } from "Common/UI/Components/TelemetryViewer/types";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import {
+  RESOURCE_FACET_CATALOG,
+  getResourceFacetDefinition,
+} from "Common/Types/Telemetry/ResourceFacetCatalog";
+import {
   DEFAULT_TELEMETRY_ENTITY_LABEL,
   ResolvedTelemetryEntity,
   TelemetryEntityNameMap,
@@ -42,18 +46,29 @@ export const EXCEPTION_ENTITY_ID_FACET_KEYS: ReadonlyArray<string> = [
 ];
 
 /*
- * Facet keys whose value is an id of ONE known table. Their chip key stays
- * the facet title ("Host"); the resolver is only a fallback for the name when
- * the viewer's own capped list does not cover the id.
+ * Facet keys whose value is an id of ONE known table — every resource type
+ * in ResourceFacetCatalog (hostId → Host, …, iotFleetId → IoTDevice, the
+ * type IoT fleet telemetry is stamped with). Their chip key stays the facet
+ * title ("Host"); the resolver is only a fallback for the name when neither
+ * the viewer's own capped list nor the server facet names the id.
+ *
+ * Derived from the catalog so a resource type the sidebar offers can never
+ * miss its name lookup here.
  */
+const buildTypedResourceFacetTypes: () => Record<
+  string,
+  ServiceType
+> = (): Record<string, ServiceType> => {
+  const types: Record<string, ServiceType> = {};
+  for (const definition of RESOURCE_FACET_CATALOG) {
+    types[definition.facetKey] = definition.serviceType;
+  }
+  return types;
+};
+
 export const EXCEPTION_TYPED_RESOURCE_FACET_TYPES: Readonly<
   Record<string, ServiceType>
-> = {
-  hostId: ServiceType.Host,
-  dockerHostId: ServiceType.DockerHost,
-  podmanHostId: ServiceType.PodmanHost,
-  kubernetesClusterId: ServiceType.KubernetesCluster,
-};
+> = buildTypedResourceFacetTypes();
 
 export interface ExceptionEntityChipRef {
   facetKey: string;
@@ -296,8 +311,10 @@ const getCarriedDisplayValue: (chip: ActiveFilter) => string | undefined = (
  * - value: the loaded Service name, then the server facet name, then the name
  *   the chip was created with, then the resolver's name, then the id.
  *
- * Typed resource chips (hostId / …) keep their facet title and only gain the
- * resolver as a last name source. Everything else is unchanged.
+ * Typed resource chips (hostId / … / iotFleetId) keep their facet title —
+ * or, without a config, the catalog label ("Proxmox Cluster") rather than
+ * the raw key — and only gain the resolver as a last name source.
+ * Everything else is unchanged.
  */
 export const resolveExceptionChipDisplay: (data: {
   chip: ActiveFilter;
@@ -362,7 +379,11 @@ export const resolveExceptionChipDisplay: (data: {
   if (isTypedResourceFacetKey(chip.facetKey)) {
     return {
       ...chip,
-      displayKey: data.config?.title || chip.displayKey || chip.facetKey,
+      displayKey:
+        data.config?.title ||
+        getResourceFacetDefinition(chip.facetKey)?.label ||
+        chip.displayKey ||
+        chip.facetKey,
       displayValue,
     };
   }

@@ -34,10 +34,11 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  *   TraceAggregationService.RESOURCE_FACET_KEYS.has(key)
  *     && ResourceFacetResolver.isResourceFacet(key)
  *
- * - `proxmoxClusterId` / `vmwareVCenterId` / `cephClusterId` are resource
- *   dimensions in the aggregation service but have NO branch in
- *   ResourceFacetResolver.resolveOne (it returns [] for them). They must not
- *   cost a resolve round-trip, and their ids stay raw.
+ * - Every resource dimension in the aggregation service is a
+ *   ResourceFacetCatalog type, and the resolver now lists every catalog type
+ *   from Postgres — so `proxmoxClusterId` / `vmwareVCenterId` /
+ *   `cephClusterId` / `dockerSwarmClusterId` / `iotFleetId`, which used to
+ *   stay raw because the resolver had no lookup for them, resolve too.
  * - `primaryEntityId` / `serviceId` are resolvable by the resolver but are
  *   deliberately not resource dimensions here — the traces explorer resolves
  *   that service split client-side, so the server leaves them alone.
@@ -54,6 +55,8 @@ const hostId: string = ObjectID.generate().toString();
 const proxmoxClusterId: string = ObjectID.generate().toString();
 const vmwareVCenterId: string = ObjectID.generate().toString();
 const cephClusterId: string = ObjectID.generate().toString();
+const dockerSwarmClusterId: string = ObjectID.generate().toString();
+const iotFleetId: string = ObjectID.generate().toString();
 const serviceEntityId: string = ObjectID.generate().toString();
 /*
  * Every resource dimension reads out of the SAME primaryEntityId column, so
@@ -607,13 +610,12 @@ describe("TraceAggregationService.getAnalyticsTable (resource display names)", (
     expect(secondCounts).toEqual({ [sharedEntityId]: 1 });
   });
 
-  test("proxmoxClusterId / cephClusterId are resource dimensions the resolver cannot resolve — no round-trip, ids stay raw", async () => {
+  test("proxmoxClusterId / cephClusterId now resolve to display names (the resolver lists every catalog type)", async () => {
     /*
-     * Both keys live in TraceAggregationService.RESOURCE_FACET_KEYS but have
-     * no branch in ResourceFacetResolver.resolveOne (it returns [] for them),
-     * so asking would burn a Postgres round-trip and still leave the cell raw.
-     * applyResourceDisplayValues takes the INTERSECTION of the two sets, so
-     * the resolver must not be touched at all.
+     * Both keys used to have no ResourceFacetResolver lookup, so the
+     * intersection in applyResourceDisplayValues excluded them and the cells
+     * stayed raw ObjectIDs. The resolver now lists every ResourceFacetCatalog
+     * type, so both are resolved — in the same single batched call.
      */
     stubQuery({
       main: [
@@ -626,9 +628,11 @@ describe("TraceAggregationService.getAnalyticsTable (resource display names)", (
     });
     const resolveSpy: jest.SpyInstance = stubResolver({
       proxmoxClusterId: [
-        { value: proxmoxClusterId, count: 1, displayName: "NOPE" },
+        { value: proxmoxClusterId, count: 1, displayName: "pve-lab" },
       ],
-      cephClusterId: [{ value: cephClusterId, count: 1, displayName: "NOPE" }],
+      cephClusterId: [
+        { value: cephClusterId, count: 1, displayName: "ceph-prod" },
+      ],
     });
 
     const rows: Array<TraceAnalyticsTableRow> =
@@ -640,16 +644,20 @@ describe("TraceAggregationService.getAnalyticsTable (resource display names)", (
       );
 
     expect(rows).toHaveLength(1);
-    expect(valuesFor(rows, "proxmoxClusterId")).toEqual([proxmoxClusterId]);
-    expect(valuesFor(rows, "cephClusterId")).toEqual([cephClusterId]);
-    expect(resolveSpy).not.toHaveBeenCalled();
+    expect(valuesFor(rows, "proxmoxClusterId")).toEqual(["pve-lab"]);
+    expect(valuesFor(rows, "cephClusterId")).toEqual(["ceph-prod"]);
+    expect(resolveSpy).toHaveBeenCalledTimes(1);
+    expect(
+      specsPassedTo(resolveSpy).map((spec: ResourceFacetSpec): string => {
+        return spec.facetKey;
+      }),
+    ).toEqual(["proxmoxClusterId", "cephClusterId"]);
   });
 
-  test("vmwareVCenterId is a resource dimension the resolver cannot resolve — no round-trip, id stays raw", async () => {
+  test("vmwareVCenterId now resolves to a display name too", async () => {
     /*
-     * Same contract as the Proxmox / Ceph keys above (the group-by cap is two
-     * dimensions, hence the separate case): vmwareVCenterId is in
-     * RESOURCE_FACET_KEYS but has no ResourceFacetResolver branch.
+     * Same change as the Proxmox / Ceph keys above (the group-by cap is two
+     * dimensions, hence the separate case).
      */
     stubQuery({
       main: [
@@ -662,9 +670,11 @@ describe("TraceAggregationService.getAnalyticsTable (resource display names)", (
     });
     const resolveSpy: jest.SpyInstance = stubResolver({
       vmwareVCenterId: [
-        { value: vmwareVCenterId, count: 1, displayName: "NOPE" },
+        { value: vmwareVCenterId, count: 1, displayName: "vc-eu-1" },
       ],
-      cephClusterId: [{ value: cephClusterId, count: 1, displayName: "NOPE" }],
+      cephClusterId: [
+        { value: cephClusterId, count: 1, displayName: "ceph-prod" },
+      ],
     });
 
     const rows: Array<TraceAnalyticsTableRow> =
@@ -676,9 +686,60 @@ describe("TraceAggregationService.getAnalyticsTable (resource display names)", (
       );
 
     expect(rows).toHaveLength(1);
-    expect(valuesFor(rows, "vmwareVCenterId")).toEqual([vmwareVCenterId]);
-    expect(valuesFor(rows, "cephClusterId")).toEqual([cephClusterId]);
-    expect(resolveSpy).not.toHaveBeenCalled();
+    expect(valuesFor(rows, "vmwareVCenterId")).toEqual(["vc-eu-1"]);
+    expect(valuesFor(rows, "cephClusterId")).toEqual(["ceph-prod"]);
+    expect(resolveSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("dockerSwarmClusterId / iotFleetId are resource dimensions now — read from primaryEntityId and resolved", async () => {
+    /*
+     * These two used to be treated as ATTRIBUTE keys (aliased
+     * `attr_<index>_<key>` and read from the attributes map, which never
+     * holds them). As catalog resource types they select
+     * toString(primaryEntityId) under their own key and resolve like the
+     * rest.
+     */
+    const querySpy: jest.SpyInstance = stubQuery({
+      main: [
+        {
+          dockerSwarmClusterId: dockerSwarmClusterId,
+          iotFleetId: iotFleetId,
+          cnt: "6",
+        },
+      ],
+    });
+    const resolveSpy: jest.SpyInstance = stubResolver({
+      dockerSwarmClusterId: [
+        { value: dockerSwarmClusterId, count: 1, displayName: "swarm-a" },
+      ],
+      iotFleetId: [{ value: iotFleetId, count: 1, displayName: "sensors" }],
+    });
+
+    const rows: Array<TraceAnalyticsTableRow> =
+      await TraceAggregationService.getAnalyticsTable(
+        analyticsRequest({
+          chartType: "table",
+          groupBy: ["dockerSwarmClusterId", "iotFleetId"],
+        }),
+      );
+
+    expect(rows).toHaveLength(1);
+    expect(valuesFor(rows, "dockerSwarmClusterId")).toEqual(["swarm-a"]);
+    expect(valuesFor(rows, "iotFleetId")).toEqual(["sensors"]);
+    expect(resolveSpy).toHaveBeenCalledTimes(1);
+
+    const statement: Statement = querySpy.mock.calls[0]![0] as Statement;
+    expect(statement.query).toContain(
+      "toString(primaryEntityId) AS dockerSwarmClusterId",
+    );
+    expect(statement.query).toContain(
+      "toString(primaryEntityId) AS iotFleetId",
+    );
+    expect(statement.query).not.toContain("attr_0_dockerSwarmClusterId");
+    const params: Array<unknown> = Object.values(statement.query_params);
+    expect(params).toContain("DockerSwarmCluster");
+    // IoT fleet telemetry is stamped with the IoTDevice type (fleet id).
+    expect(params).toContain("IoTDevice");
   });
 
   test("primaryEntityId / serviceId are resolvable but are NOT resource dimensions here — left alone", async () => {

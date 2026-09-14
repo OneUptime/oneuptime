@@ -14,6 +14,7 @@ import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import { getResourceFacetServiceTypeMap } from "../../Types/Telemetry/ResourceFacetCatalog";
 
 export interface HistogramBucket {
   time: string;
@@ -68,23 +69,13 @@ export class ExceptionAggregationService {
   ]);
   /*
    * Virtual facet keys — same scheme as TraceAggregationService /
-   * LogAggregationService. The `primaryEntityId` slot is reused for host /
-   * docker host / k8s cluster ids, disambiguated by the `primaryEntityType`
-   * discriminator column on each ExceptionInstance row.
+   * LogAggregationService. The `primaryEntityId` slot is reused for every
+   * non-Service resource id (host / docker host / k8s cluster / ... — one
+   * entry per ResourceFacetCatalog type), disambiguated by the
+   * `primaryEntityType` discriminator column on each ExceptionInstance row.
    */
   private static readonly RESOURCE_FACET_KEYS: Map<string, ServiceType> =
-    new Map([
-      ["hostId", ServiceType.Host],
-      ["dockerHostId", ServiceType.DockerHost],
-      ["podmanHostId", ServiceType.PodmanHost],
-      ["kubernetesClusterId", ServiceType.KubernetesCluster],
-      ["proxmoxClusterId", ServiceType.ProxmoxCluster],
-      ["vmwareVCenterId", ServiceType.VMwareVCenter],
-      ["cephClusterId", ServiceType.CephCluster],
-      ["serverlessFunctionId", ServiceType.ServerlessFunction],
-      ["cloudResourceId", ServiceType.CloudResource],
-      ["rumApplicationId", ServiceType.RealUserMonitor],
-    ]);
+    getResourceFacetServiceTypeMap();
   private static readonly ATTRIBUTE_KEY_PATTERN: RegExp = /^[a-zA-Z0-9._:/-]+$/;
   private static readonly MAX_FACET_KEY_LENGTH: number = 256;
 
@@ -224,7 +215,7 @@ export class ExceptionAggregationService {
       /*
        * Virtual facet — group primaryEntityId values whose row carries the
        * matching ServiceType discriminator (Host / DockerHost /
-       * KubernetesCluster).
+       * KubernetesCluster / ... — see ResourceFacetCatalog).
        */
       statement.append(
         SQL`SELECT toString(primaryEntityId) AS val, count() AS cnt FROM ${ExceptionAggregationService.TABLE_NAME}`,

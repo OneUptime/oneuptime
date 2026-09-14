@@ -16,6 +16,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import logger from "../Utils/Logger";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import { getResourceFacetServiceTypeMap } from "../../Types/Telemetry/ResourceFacetCatalog";
 import {
   appendResourceScopeFilters,
   ResourceEntityScope,
@@ -59,8 +60,9 @@ export interface TraceFilters {
   serviceIds?: Array<ObjectID> | undefined;
   entityKeys?: Array<string> | undefined;
   /*
-   * Resource-facet selections (Kubernetes cluster / host / docker host /
-   * podman host) already resolved to their entity keys. One scope per
+   * Resource-facet selections (host / Kubernetes cluster / Proxmox
+   * cluster / ... — any ResourceFacetCatalog type) already resolved to
+   * their entity keys and resource attributes. One scope per
    * facet: the branches inside a scope OR (a span proves membership either
    * by being primary-keyed on the resource or by carrying its entity key),
    * and the scopes AND with each other so two facets intersect. See
@@ -234,22 +236,13 @@ export class TraceAggregationService {
   ]);
   /*
    * Virtual facet keys — same scheme as LogAggregationService. The
-   * `primaryEntityId` slot is reused for host / docker host / k8s cluster
-   * ids, disambiguated by the `primaryEntityType` discriminator.
+   * `primaryEntityId` slot is reused for every non-Service resource id
+   * (host / docker host / k8s cluster / ... — one entry per
+   * ResourceFacetCatalog type), disambiguated by the `primaryEntityType`
+   * discriminator.
    */
   private static readonly RESOURCE_FACET_KEYS: Map<string, ServiceType> =
-    new Map([
-      ["hostId", ServiceType.Host],
-      ["dockerHostId", ServiceType.DockerHost],
-      ["podmanHostId", ServiceType.PodmanHost],
-      ["kubernetesClusterId", ServiceType.KubernetesCluster],
-      ["proxmoxClusterId", ServiceType.ProxmoxCluster],
-      ["vmwareVCenterId", ServiceType.VMwareVCenter],
-      ["cephClusterId", ServiceType.CephCluster],
-      ["serverlessFunctionId", ServiceType.ServerlessFunction],
-      ["cloudResourceId", ServiceType.CloudResource],
-      ["rumApplicationId", ServiceType.RealUserMonitor],
-    ]);
+    getResourceFacetServiceTypeMap();
   private static readonly ATTRIBUTE_KEY_PATTERN: RegExp = /^[a-zA-Z0-9._:/-]+$/;
   private static readonly MAX_FACET_KEY_LENGTH: number = 256;
   /*
@@ -558,8 +551,8 @@ export class TraceAggregationService {
    *
    * primaryEntityId is intentionally NOT disambiguated by primaryEntityType
    * here. Resource IDs are globally unique, so a single primaryEntityId ->
-   * count map correctly serves the service / host / docker host / k8s cluster
-   * facets once merged against each Postgres source-of-truth list (a host id
+   * count map correctly serves the service facet and every resource facet
+   * once merged against each Postgres source-of-truth list (a host id
    * never collides with a service id, so an unrelated entry is simply never
    * looked up). Omitting the primaryEntityType predicate keeps the query
    * projection-eligible.
@@ -1396,18 +1389,19 @@ export class TraceAggregationService {
     /*
      * Both memberships are required, and the two sets genuinely differ:
      *
-     * - `proxmoxClusterId` / `vmwareVCenterId` / `cephClusterId` are
-     *   resource dimensions here but have no branch in
-     *   ResourceFacetResolver.resolveOne, which returns [] for them. Asking
-     *   anyway would cost a round-trip and still leave the cell raw.
+     * - Every resource dimension here is a ResourceFacetCatalog type, and
+     *   the resolver lists every catalog type from Postgres, so all of them
+     *   (Proxmox / vCenter / Ceph / Docker Swarm / IoT fleet included) come
+     *   back with display names.
      * - `primaryEntityId` / `serviceId` are resolvable but are NOT resource
      *   dimensions here — they select the OpenTelemetry-service slot, and
      *   the traces explorer already resolves that split client-side
      *   (TracesAnalyticsView's serviceNameMap). Renaming their values
      *   server-side would change an existing surface for no gain.
      *
-     * Taking the intersection means a key becomes resolvable here the
-     * moment the resolver learns it, with no second list to update.
+     * Taking the intersection keeps a dimension this service learns before
+     * the resolver does from costing a round-trip that could only leave
+     * the cell raw.
      */
     const resourceKeys: Array<string> = groupByKeys.filter(
       (key: string): boolean => {
@@ -1885,9 +1879,10 @@ export class TraceAggregationService {
 
       if (key === "primaryEntityId") {
         /*
-         * Same restriction as the Service facet: keep host/docker/k8s
-         * entity ids out of the "Service" dimension (they reuse the
-         * primaryEntityId slot, disambiguated by primaryEntityType).
+         * Same restriction as the Service facet: keep resource entity ids
+         * (host / docker / k8s / ...) out of the "Service" dimension (they
+         * reuse the primaryEntityId slot, disambiguated by
+         * primaryEntityType).
          */
         statement.append(
           SQL` AND (primaryEntityType = '' OR primaryEntityType = ${{

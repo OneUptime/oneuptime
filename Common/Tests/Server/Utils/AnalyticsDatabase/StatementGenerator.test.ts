@@ -1306,6 +1306,71 @@ describe("StatementGenerator", () => {
         expect(statement.query).toBe("AND {p0:Identifier} = {p1:String}");
       });
 
+      /*
+       * Serverless functions and IoT fleets have a resource attribute but no
+       * signal entity key, so their scope arrives with `entityKeys: []`. That
+       * must drop the membership branch — an empty `hasAny(entityKeys, [])`
+       * is always false and would only add noise to the OR.
+       */
+      test("an attribute-only scope (no entity keys) compiles to id OR attribute, with no hasAny", () => {
+        const statement: Statement = resourceGenerator.toWhereStatement({
+          resourceEntityScopes: [
+            {
+              entityIds: [CLUSTER_ID],
+              entityKeys: [],
+              attributeKey: "resource.iot.fleet.name",
+              attributeValues: ["warehouse-sensors"],
+            },
+          ],
+        } as any);
+
+        expect(statement.query).toBe(
+          "AND ({p0:Identifier} IN {p1:Array(String)} OR {p2:Identifier}[{p3:String}] IN {p4:Array(String)})",
+        );
+        expect(statement.query).not.toContain("hasAny");
+        expect(statement.query_params).toStrictEqual({
+          p0: "primaryEntityId",
+          p1: [CLUSTER_ID],
+          p2: "attributes",
+          p3: "resource.iot.fleet.name",
+          p4: ["warehouse-sensors"],
+        });
+      });
+
+      test("an attribute-only scope with no ids compiles to the attribute branch alone", () => {
+        const statement: Statement = resourceGenerator.toWhereStatement({
+          resourceEntityScopes: [
+            {
+              entityIds: [],
+              entityKeys: [],
+              attributeKey: "resource.faas.name",
+              attributeValues: ["checkout-handler"],
+            },
+          ],
+        } as any);
+
+        expect(statement.query).toBe(
+          "AND ({p0:Identifier}[{p1:String}] IN {p2:Array(String)})",
+        );
+      });
+
+      test("an attribute key without values adds no attribute branch", () => {
+        const statement: Statement = resourceGenerator.toWhereStatement({
+          resourceEntityScopes: [
+            {
+              entityIds: [CLUSTER_ID],
+              entityKeys: [],
+              attributeKey: "resource.faas.name",
+              attributeValues: [],
+            },
+          ],
+        } as any);
+
+        expect(statement.query).toBe(
+          "AND ({p0:Identifier} IN {p1:Array(String)})",
+        );
+      });
+
       test("a non-array value carries no predicate", () => {
         const statement: Statement = resourceGenerator.toWhereStatement({
           resourceEntityScopes: { entityIds: [CLUSTER_ID] },

@@ -1,6 +1,7 @@
 import { JSONObject } from "Common/Types/JSON";
 import DashboardTraceTableComponent from "Common/Types/Dashboard/DashboardComponents/DashboardTraceTableComponent";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import { getResourceFacetLabelMap } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import {
   TraceAttributeFilters,
   computeBucketSizeInMinutes,
@@ -109,21 +110,19 @@ export function buildTraceTableRequest(
  * constrains the query to that resource type server-side. Their VALUES are
  * resolved to display names by TraceAggregationService; only the column
  * header is named here.
+ *
+ * Every resource type in ResourceFacetCatalog is named with its facet label
+ * ("vCenter", "Docker Swarm Cluster", "IoT Fleet"), so a template grouping by
+ * any of them never shows the raw key as its header.
  */
 const DIMENSION_LABELS: Record<string, string> = {
   name: "Span Name",
   statusCode: "Status Code",
   kind: "Span Kind",
   primaryEntityId: "Service",
+  ...getResourceFacetLabelMap(),
+  // Keeps the shorter header existing dashboards already show.
   rumApplicationId: "Application",
-  hostId: "Host",
-  dockerHostId: "Docker Host",
-  podmanHostId: "Podman Host",
-  kubernetesClusterId: "Kubernetes Cluster",
-  proxmoxClusterId: "Proxmox Cluster",
-  cephClusterId: "Ceph Cluster",
-  serverlessFunctionId: "Serverless Function",
-  cloudResourceId: "Cloud Resource",
 };
 
 export function dimensionLabel(key: string): string {
