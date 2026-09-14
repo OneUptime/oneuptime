@@ -5,6 +5,7 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import { GOOGLE_SECOPS_SUPPORTED_REGIONS } from "Common/Types/SecurityEvent/GoogleSecOpsRegion";
 import fs from "fs/promises";
 import path from "path";
 
@@ -132,7 +133,9 @@ test("the real create modal enforces and renders all three form steps", async ({
     "aria-checked",
     "true",
   );
-  await expect(modal.getByLabel("Region", { exact: true })).toHaveCount(0);
+  await expect(
+    modal.getByRole("combobox", { name: "Region", exact: true }),
+  ).toHaveCount(0);
   await expect(modal.getByLabel("Poll Interval (Minutes)")).toHaveCount(0);
   await modal
     .getByLabel("Name", { exact: true })
@@ -144,7 +147,14 @@ test("the real create modal enforces and renders all three form steps", async ({
   // Step 2 isolates the Google endpoint and credential fields.
   await expectActiveStep(page, "Google SecOps");
   await expect(modal.getByLabel("Name", { exact: true })).toHaveCount(0);
-  await expect(modal.getByLabel("Region", { exact: true })).toBeVisible();
+  const region: Locator = modal.getByRole("combobox", {
+    name: "Region",
+    exact: true,
+  });
+  await expect(region).toBeVisible();
+  await expect(
+    modal.getByText("Select a region", { exact: true }),
+  ).toBeVisible();
   await expect(
     modal.getByLabel("Instance Resource Name", { exact: true }),
   ).toBeVisible();
@@ -152,8 +162,25 @@ test("the real create modal enforces and renders all three form steps", async ({
     modal.getByText("Service Account JSON", { exact: true }),
   ).toBeVisible();
   await expect(
-    modal.getByRole("switch", { name: /^Alerts and detections/ }),
+    modal.getByRole("checkbox", { name: "Alerts", exact: true }),
   ).toHaveCount(0);
+  await expect(
+    modal.getByRole("checkbox", { name: "Detections", exact: true }),
+  ).toHaveCount(0);
+
+  // The dropdown exposes only the regions accepted by server validation.
+  await region.click();
+  const regionListbox: Locator = page.getByRole("listbox");
+  await expect(regionListbox).toBeVisible();
+  const regionOptions: Locator = regionListbox.getByRole("option");
+  await expect(regionOptions).toHaveCount(
+    GOOGLE_SECOPS_SUPPORTED_REGIONS.length,
+  );
+  expect(await regionOptions.allInnerTexts()).toEqual(
+    GOOGLE_SECOPS_SUPPORTED_REGIONS,
+  );
+  await screenshot(page, "google-secops-form-step-region-options-synthetic");
+  await page.keyboard.press("Escape");
 
   // Polling is still inactive, and required Google fields block Next.
   await modal.getByText("Polling", { exact: true }).click();
@@ -170,7 +197,10 @@ test("the real create modal enforces and renders all three form steps", async ({
     modal.getByText("Service Account JSON is required.", { exact: true }),
   ).toBeVisible();
 
-  await modal.getByLabel("Region", { exact: true }).fill("us");
+  await region.click();
+  await expect(regionListbox).toBeVisible();
+  await regionListbox.getByRole("option", { name: "us", exact: true }).click();
+  await expect(modal.getByText("us", { exact: true })).toBeVisible();
   await modal
     .getByLabel("Instance Resource Name", { exact: true })
     .fill("projects/synthetic/locations/us/instances/e2e-fixture");
@@ -179,17 +209,48 @@ test("the real create modal enforces and renders all three form steps", async ({
   await screenshot(page, "google-secops-form-step-google-secops-synthetic");
   await next.click();
 
-  // Step 3 contains only polling controls and preserves both production defaults.
+  // Step 3 contains only polling controls and preserves all production defaults.
   await expectActiveStep(page, "Polling");
   await expect(modal.getByLabel("Name", { exact: true })).toHaveCount(0);
-  await expect(modal.getByLabel("Region", { exact: true })).toHaveCount(0);
+  await expect(
+    modal.getByRole("combobox", { name: "Region", exact: true }),
+  ).toHaveCount(0);
   await expect(
     modal.getByText("Service Account JSON", { exact: true }),
   ).toHaveCount(0);
+
+  const importScope: Locator = modal.getByRole("group", {
+    name: "Data to import",
+  });
+  await expect(importScope).toBeVisible();
   await expect(
-    modal.getByRole("switch", { name: /^Alerts and detections/ }),
-  ).toHaveAttribute("aria-checked", "false");
+    modal.getByText(
+      "Alerts are always imported because Google's API always returns them. Select Detections to also import rule matches that did not generate an alert.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+
+  const alerts: Locator = importScope.getByRole("checkbox", {
+    name: "Alerts",
+    exact: true,
+  });
+  const detections: Locator = importScope.getByRole("checkbox", {
+    name: "Detections",
+    exact: true,
+  });
+  await expect(alerts).toBeChecked();
+  await expect(alerts).toBeDisabled();
+  await expect(detections).not.toBeChecked();
+  await expect(detections).toBeEnabled();
   await expect(modal.getByLabel("Poll Interval (Minutes)")).toHaveValue("5");
+
+  // Detections is optional while Alerts remains fixed on.
+  await detections.check();
+  await expect(detections).toBeChecked();
+  await expect(alerts).toBeChecked();
+  await expect(alerts).toBeDisabled();
+  await detections.uncheck();
+  await expect(detections).not.toBeChecked();
 
   const create: Locator = modal.getByRole("button", {
     name: "Create Google SecOps Connection",
