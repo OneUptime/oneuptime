@@ -36,11 +36,20 @@ import { ConnectorTransport } from "../Types";
  *  - GetFindings: POST /findings with a JSON body of Filters, MaxResults
  *    (1..100), NextToken and SortCriteria [{Field, SortOrder}]; the
  *    response is { Findings: [...], NextToken? }. Errors are
- *    AccessDeniedException / InvalidAccessException (403),
- *    InvalidInputException (400), LimitExceededException (429),
- *    InternalException (500). When cross-Region aggregation is enabled,
- *    a call in the home Region also returns findings from linked Regions.
+ *    InvalidAccessException (401 in the GetFindings reference),
+ *    AccessDeniedException (403, a common error), InvalidInputException
+ *    (400), LimitExceededException (429) and InternalException (500).
+ *    When cross-Region aggregation is enabled, a call in the home Region
+ *    also returns findings from linked Regions.
  *    https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_GetFindings.html
+ *  - CreatedAt is set by the finding PROVIDER ("when the security findings
+ *    provider created the potential security issue"), not by Security
+ *    Hub; ProcessedAt is when Security Hub received it. Delivery lags
+ *    CreatedAt (GuardDuty and AWS Config: usually within five minutes;
+ *    EventBridge retries a failed delivery for up to 24 hours), which is
+ *    why the catalog gives this provider a 30 minute cursor overlap.
+ *    https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_AwsSecurityFinding.html
+ *    https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-internal-providers.html
  *  - DateFilter: { Start, End } timestamps, ISO 8601 with a Z suffix and
  *    up to nine fractional digits (Date.toISOString() qualifies).
  *    https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_DateFilter.html
@@ -118,6 +127,131 @@ const SIGNATURE_ERROR_CODES: Array<string> = [
   "MissingAuthenticationToken",
   "InvalidAccessKeyId",
 ];
+
+/*
+ * The only codes that mean AWS accepted the signature and Security Hub
+ * then refused the call: the IAM policy does not allow GetFindings, or
+ * Security Hub is not enabled for the account in the Region.
+ */
+const AUTHORIZATION_ERROR_CODES: Array<string> = [
+  "AccessDeniedException",
+  "InvalidAccessException",
+];
+
+/*
+ * REST-JSON services send the error code in the x-amzn-errortype header,
+ * and the production transport (DataSourceHttpFetch) keeps only the
+ * status and the body of a non-2xx answer. A signature rejection's body
+ * is often just {"message": "..."}, so without this table a wrong secret
+ * arrives as a code-less 403 and was once reported as valid credentials
+ * with an IAM remediation. Each entry is AWS's own wording for that code,
+ * checked in order (the expired-token wording before the invalid-token
+ * one, which shares its prefix).
+ */
+const MESSAGE_ERROR_CODES: Array<{ pattern: RegExp; code: string }> = [
+  {
+    pattern: /security token included in the request is expired/i,
+    code: "ExpiredTokenException",
+  },
+  {
+    pattern: /security token included in the request is invalid/i,
+    code: "UnrecognizedClientException",
+  },
+  {
+    pattern: /signature we calculated does not match/i,
+    code: "InvalidSignatureException",
+  },
+  {
+    pattern: /signature expired|signature not yet current/i,
+    code: "InvalidSignatureException",
+  },
+  {
+    pattern:
+      /difference between the request time and the current time is too large/i,
+    code: "RequestTimeTooSkewed",
+  },
+  {
+    pattern: /missing authentication token/i,
+    code: "MissingAuthenticationTokenException",
+  },
+  {
+    pattern: /authorization header requires|credential should be scoped to/i,
+    code: "IncompleteSignatureException",
+  },
+  { pattern: /is not authorized to perform/i, code: "AccessDeniedException" },
+  {
+    pattern: /is not subscribed to AWS Security Hub/i,
+    code: "InvalidAccessException",
+  },
+];
+
+// A signature rejected for its time rather than its key: the host clock.
+const CLOCK_MESSAGE_REGEX: RegExp =
+  /signature expired|signature not yet current|request time and the current time is too large/i;
+
+/*
+ * Which side refused a failed request. "authentication": AWS rejected the
+ * signature, key, token or clock. "authorization": the signature was
+ * verified and Security Hub refused the call. "other": anything else,
+ * including a 403 that names no code, which cannot be attributed to
+ * either side and so is never reported as valid credentials.
+ */
+export type AwsSecurityHubFailureKind =
+  | "authentication"
+  | "authorization"
+  | "other";
+
+/*
+ * Authorization only when the recovered code says Security Hub itself
+ * refused a verified request. A code-less 403 stays "other": a wrong
+ * secret behind a header-dropping transport looks exactly like that, and
+ * calling it a permission problem sends the customer to IAM while the
+ * credential is what is wrong. Declared before the error class and the
+ * client because both use it.
+ */
+function classifyAwsSecurityHubFailure(
+  status: number,
+  code: string,
+): AwsSecurityHubFailureKind {
+  if (SIGNATURE_ERROR_CODES.includes(code)) {
+    return "authentication";
+  }
+
+  if (AUTHORIZATION_ERROR_CODES.includes(code)) {
+    return "authorization";
+  }
+
+  if (status === 401) {
+    return "authentication";
+  }
+
+  return "other";
+}
+
+/*
+ * Thrown for every failure that carries an HTTP status, so the connector
+ * decides authentication versus permission from the recovered code
+ * instead of from hint wording in the message.
+ */
+export class AwsSecurityHubHttpError extends APIException {
+  public statusCode: number;
+  public errorCode: string;
+  public failureKind: AwsSecurityHubFailureKind;
+
+  public constructor(data: {
+    message: string;
+    statusCode: number;
+    errorCode: string;
+  }) {
+    super(data.message);
+    this.statusCode = data.statusCode;
+    this.errorCode = data.errorCode;
+    this.failureKind = classifyAwsSecurityHubFailure(
+      data.statusCode,
+      data.errorCode,
+    );
+  }
+}
 
 export interface AwsSecurityHubClientOptions {
   region: string;
@@ -276,8 +410,13 @@ export default class AwsSecurityHubClient {
    * for why): a GuardDuty finding is created when GuardDuty evaluates the
    * activity, which can be well after FirstObservedAt, and a control
    * finding is created when the control first evaluates the resource.
-   * DateFilter bounds are inclusive; the poller's one-minute overlap and
-   * the dedupe by finding Id make a boundary finding harmless.
+   * CreatedAt is the provider's timestamp, so a finding can become
+   * readable here minutes after it; the catalog's 30 minute cursor overlap
+   * re-reads that span on every poll and the dedupe by finding Id drops
+   * what was already imported. DateFilter bounds are inclusive, which the
+   * same dedupe makes harmless. The ascending sort is what lets the
+   * connector report the CreatedAt of the last finding it read as a
+   * resume point when a bound stops it.
    */
   public static buildFindingsBody(data: {
     startTime: Date;
@@ -654,14 +793,19 @@ export default class AwsSecurityHubClient {
       return;
     }
 
-    throw new APIException(
-      `AWS Security Hub ${stepLabel} failed (HTTP ${response.statusCode}): ${this.scrub(
+    const code: string = AwsSecurityHubClient.errorCode(response);
+
+    throw new AwsSecurityHubHttpError({
+      message: `AWS Security Hub ${stepLabel} failed (HTTP ${response.statusCode}): ${this.scrub(
         AwsSecurityHubClient.describeBody(response),
       )}${AwsSecurityHubClient.hintForFailure(
         response.statusCode,
-        AwsSecurityHubClient.errorCode(response),
+        code,
+        response.bodyText || "",
       )}`,
-    );
+      statusCode: response.statusCode,
+      errorCode: code,
+    });
   }
 
   /*
@@ -791,9 +935,13 @@ export default class AwsSecurityHubClient {
    * the x-amzn-errortype header (sometimes suffixed with ":http://..."),
    * and in the body as "__type" (sometimes namespace-qualified, e.g.
    * "com.amazon.coral.service#UnrecognizedClientException") or "Code".
+   * When neither is present — the production transport drops headers —
+   * the code is recovered from AWS's own message wording (see
+   * MESSAGE_ERROR_CODES), so a signature rejection is still named.
    */
   public static errorCode(response: {
     bodyJson: unknown;
+    bodyText?: string | undefined;
     headers?: Dictionary<string> | undefined;
   }): string {
     const fromHeader: string = String(
@@ -812,53 +960,123 @@ export default class AwsSecurityHubClient {
     const raw: string = fromHeader || fromBody;
     const withoutUri: string = raw.split(":")[0] || "";
     const hashIndex: number = withoutUri.lastIndexOf("#");
+    const declared: string =
+      hashIndex === -1
+        ? withoutUri.trim()
+        : withoutUri.substring(hashIndex + 1).trim();
 
-    return hashIndex === -1
-      ? withoutUri.trim()
-      : withoutUri.substring(hashIndex + 1).trim();
+    if (declared) {
+      return declared;
+    }
+
+    return AwsSecurityHubClient.errorCodeFromMessage(
+      AwsSecurityHubClient.messageText(response),
+    );
+  }
+
+  // The code AWS's wording stands for, or "" when the text names none.
+  public static errorCodeFromMessage(text: string): string {
+    for (const entry of MESSAGE_ERROR_CODES) {
+      if (entry.pattern.test(text)) {
+        return entry.code;
+      }
+    }
+
+    return "";
+  }
+
+  // The body's message field when it has one, else the raw body text.
+  private static messageText(response: {
+    bodyJson: unknown;
+    bodyText?: string | undefined;
+  }): string {
+    const body: JSONObject | null =
+      response.bodyJson &&
+      typeof response.bodyJson === "object" &&
+      !Array.isArray(response.bodyJson)
+        ? (response.bodyJson as JSONObject)
+        : null;
+    const fromBody: unknown = body
+      ? body["message"] || body["Message"]
+      : undefined;
+
+    if (typeof fromBody === "string" && fromBody.trim()) {
+      return fromBody;
+    }
+
+    return response.bodyText || "";
   }
 
   public static isSignatureErrorCode(code: string): boolean {
     return SIGNATURE_ERROR_CODES.includes(code);
   }
 
+  // See classifyAwsSecurityHubFailure.
+  public static classifyFailure(
+    status: number,
+    code: string,
+  ): AwsSecurityHubFailureKind {
+    return classifyAwsSecurityHubFailure(status, code);
+  }
+
   /*
    * What the status most likely means, in the operator's terms. The hint
-   * never repeats the body.
+   * never repeats the body; `bodyText` only tells a clock rejection apart
+   * from a key rejection that shares its error code.
    */
-  public static hintForFailure(status: number, code: string): string {
-    const hint: string = AwsSecurityHubClient.hintText(status, code);
+  public static hintForFailure(
+    status: number,
+    code: string,
+    bodyText: string = "",
+  ): string {
+    const hint: string = AwsSecurityHubClient.hintText(status, code, bodyText);
 
     return hint ? ` — ${hint}` : "";
   }
 
-  private static hintText(status: number, code: string): string {
+  private static hintText(
+    status: number,
+    code: string,
+    bodyText: string,
+  ): string {
     if (AwsSecurityHubClient.isSignatureErrorCode(code)) {
       if (
         code === "UnrecognizedClientException" ||
         code === "InvalidClientTokenId" ||
         code === "InvalidAccessKeyId"
       ) {
-        return "AWS does not recognize the Access key ID (or the session token it belongs to). Check the id, and for temporary credentials paste the matching session token.";
+        return "AWS does not recognize the Access key ID (or the session token sent with it). Check the id; for temporary credentials paste the matching session token, and for a long-lived AKIA key leave the session token empty.";
       }
 
       if (code === "ExpiredTokenException" || code === "ExpiredToken") {
         return "The temporary credentials have expired. Issue new credentials with STS and update the connection, or use a long-lived access key.";
       }
 
-      if (code === "RequestExpired" || code === "RequestTimeTooSkewed") {
+      /*
+       * "Signature expired" arrives as InvalidSignatureException, the
+       * same code as a wrong secret; only the wording says the clock.
+       */
+      if (
+        code === "RequestExpired" ||
+        code === "RequestTimeTooSkewed" ||
+        CLOCK_MESSAGE_REGEX.test(bodyText)
+      ) {
         return "AWS rejected the request time; the OneUptime server clock is more than 5 minutes off. Fix NTP on the app and worker hosts.";
       }
 
       return "AWS rejected the request signature. The Secret access key does not match the Access key ID (or the session token is missing for an ASIA... key). Create a new access key and update the connection.";
     }
 
-    if (status === 403 || code === "AccessDeniedException") {
-      if (code === "InvalidAccessException") {
-        return "Security Hub is not enabled for this account in this Region, or the account is not a Security Hub administrator here. Enable Security Hub in the Region, or point the connection at the administrator account's home Region.";
-      }
+    if (code === "InvalidAccessException") {
+      return "Security Hub is not enabled for this account in this Region, or the account is not a Security Hub administrator here. Enable Security Hub in the Region, or point the connection at the administrator account's home Region.";
+    }
 
-      return "The credentials are valid but the IAM identity is not allowed to call securityhub:GetFindings. Attach a policy that allows securityhub:GetFindings (for example the AWSSecurityHubReadOnlyAccess managed policy) to the user or role.";
+    if (code === "AccessDeniedException") {
+      return "AWS verified the signature, but the IAM identity is not allowed to call securityhub:GetFindings. Attach a policy that allows securityhub:GetFindings (for example the AWSSecurityHubReadOnlyAccess managed policy) to the user or role.";
+    }
+
+    if (status === 403) {
+      return "AWS refused the request without naming an error code, so it is not known whether the credentials or the IAM policy were rejected. Check the Access key ID, the Secret access key and the Session token first (empty for an AKIA key, required for an ASIA key), then that the identity is allowed securityhub:GetFindings.";
     }
 
     if (status === 401) {

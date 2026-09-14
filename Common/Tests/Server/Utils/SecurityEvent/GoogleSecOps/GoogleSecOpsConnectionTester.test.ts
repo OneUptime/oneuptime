@@ -412,12 +412,18 @@ describe("GoogleSecOpsConnectionTester", () => {
       "detections-available",
     );
     expect(availability.status).toBe("warn");
-    expect(availability.message).toMatch(
-      /Nothing is available under the saved scope \(Alerts only\)/,
+    /*
+     * Vocabulary (F6): the form shows a Data to import group with a
+     * Detections checkbox, not an "Alerts and detections" scope, so the
+     * guidance names the control that ships.
+     */
+    expect(availability.message).toBe(
+      "Nothing is available with the saved Data to import (Alerts only) in the last 7 days, but 3 rule detections and 0 alerts-view records exist with Alerts and Detections selected.",
     );
     expect(availability.remediation).toBe(
-      "Your rules create detections but alerting is not enabled on them; switch the scope to Alerts and detections or enable alerting in Google SecOps.",
+      "Your rules create detections but alerting is not enabled on them. Edit the connection and select Detections under Data to import, or enable alerting on the rules in Google SecOps.",
     );
+    expect(JSON.stringify(report)).not.toMatch(/switch the scope/i);
     expect(report.counts).toMatchObject({
       scope: "alerts-only",
       ruleDetectionsCreatedLast7d: "0",
@@ -429,6 +435,27 @@ describe("GoogleSecOpsConnectionTester", () => {
     expect(report.status).toBe("warn");
     expect(report.summary).toMatch(/Detections available to import/);
     expect(recordedRuns[0]!.status).toBe("success");
+  });
+
+  test("a connection that already imports Detections names that selection in its counts message", async () => {
+    const fake: FakeClient = makeClient({
+      alertsAndDetections: { alerts24h: 2, alerts7d: 4 },
+    });
+
+    const report: SecurityConnectorTestReport =
+      await GoogleSecOpsConnectionTester.test({
+        connection: savedConnection({ includeNonAlertingDetections: true }),
+        clientOverride: fake.client,
+        platformOverride: HEALTHY_PLATFORM,
+        now: NOW,
+      });
+
+    expect(checkKeyed(report, "detections-available")).toMatchObject({
+      status: "pass",
+      message: expect.stringMatching(
+        /^With the saved Data to import \(Alerts and Detections selected\): /,
+      ),
+    });
   });
 
   test("nothing under either scope says so and stays a warning", async () => {
@@ -653,6 +680,32 @@ describe("GoogleSecOpsConnectionTester", () => {
       status: "fail",
       message: expect.stringContaining("no worker has picked it up"),
     });
+  });
+
+  /*
+   * Review finding edit-form-test-ignores-edited-settings: the API overlays
+   * the edit form's unsaved values onto the stored row and asks for no run
+   * row, because a row would describe settings the connection does not
+   * have. The saved connection's schedule is still reported.
+   */
+  test("a saved connection tested with unsaved edits records no run row", async () => {
+    const fake: FakeClient = makeClient({
+      alertsOnly: { alerts24h: 1, alerts7d: 1 },
+    });
+
+    const report: SecurityConnectorTestReport =
+      await GoogleSecOpsConnectionTester.test({
+        connection: savedConnection(),
+        clientOverride: fake.client,
+        platformOverride: HEALTHY_PLATFORM,
+        now: NOW,
+        recordRun: false,
+      });
+
+    expect(report.status).toBe("pass");
+    expect(keysOf(report)).toContain("connection-schedule");
+    expect(GoogleSecOpsConnectionRunService.create).not.toHaveBeenCalled();
+    expect(recordedRuns).toHaveLength(0);
   });
 
   test("unsaved settings get no schedule check and write nothing", async () => {

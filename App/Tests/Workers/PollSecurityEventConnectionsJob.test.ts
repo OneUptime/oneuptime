@@ -278,16 +278,30 @@ describe("PollSecurityEventConnections - registration", () => {
     expect(typeof jobFunction).toBe("function");
   });
 
-  test("the scheduler id the platform health check looks for is this job name with ':' sanitized", () => {
+  test("the platform health check looks for this exact job name", () => {
     /*
-     * ConnectorPlatformHealth reports "Poll scheduler: not registered" when
-     * neither "SecurityEvents-PollSecurityEventConnections" nor the Google
-     * id is among the queue's job schedulers. Queue.sanitizeJobId turns the
-     * ":" into "-", so the job name here and the id there must agree.
+     * ConnectorPlatformHealth reports "Poll scheduler: not registered" unless
+     * a job scheduler on the Worker queue carries one of its names. BullMQ
+     * stores the RAW job name on the scheduler (the ":" is only sanitized in
+     * job ids), so the name registered here must be in that list verbatim.
      */
-    expect(JOB_NAME.replace(/:/g, "-")).toBe(
-      "SecurityEvents-PollSecurityEventConnections",
+    // Read as text: importing the module would load the mocked Queue early.
+    const healthSource: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../Common/Server/Utils/SecurityEvent/Connectors/ConnectorPlatformHealth.ts",
+      ),
+      "utf8",
     );
+    const namesBlock: string = healthSource.slice(
+      healthSource.indexOf("CONNECTOR_SCHEDULER_JOB_NAMES"),
+      healthSource.indexOf(
+        "];",
+        healthSource.indexOf("CONNECTOR_SCHEDULER_JOB_NAMES"),
+      ),
+    );
+
+    expect(namesBlock).toContain(`"${JOB_NAME}"`);
   });
 
   test("schedules the job once, on EVERY_MINUTE, under that same name", () => {

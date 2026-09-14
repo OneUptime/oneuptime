@@ -48,15 +48,15 @@ Open the Log Analytics workspace in the Azure portal. Its **Overview** page list
 
 Open **Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), select **Add connection**, choose **Microsoft Sentinel**, and fill in the form:
 
-| Field                     | Where to find it                                                                                            | Required |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------- | -------- |
-| **Directory (tenant) ID** | App registration → Overview. The tenant GUID (a verified tenant domain such as `contoso.onmicrosoft.com` also works). | Yes |
-| **Application (client) ID** | App registration → Overview. A GUID.                                                                       | Yes      |
-| **Subscription ID**       | Workspace → Overview. A GUID.                                                                               | Yes      |
-| **Resource group**        | Workspace → Overview. 1–90 letters, digits, underscores, hyphens, periods or parentheses; not ending in a period. | Yes |
-| **Workspace name**        | Workspace → Overview. Letters, digits and hyphens, starting and ending with a letter or digit.               | Yes      |
-| **Cloud**                 | **Azure public cloud** (`login.microsoftonline.com` / `management.azure.com`) or **Azure Government (US)** (`login.microsoftonline.us` / `management.usgovcloudapi.net`). | Yes |
-| **Client secret**         | App registration → Certificates & secrets. The secret **Value**. Write-only: encrypted at rest, never returned by the API, never shown back on the page. Use **Update credentials** on the connection to rotate it. | Yes |
+| Field                       | Where to find it                                                                                                                                                                                                    | Required |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| **Directory (tenant) ID**   | App registration → Overview. The tenant GUID (a verified tenant domain such as `contoso.onmicrosoft.com` also works).                                                                                               | Yes      |
+| **Application (client) ID** | App registration → Overview. A GUID.                                                                                                                                                                                | Yes      |
+| **Subscription ID**         | Workspace → Overview. A GUID.                                                                                                                                                                                       | Yes      |
+| **Resource group**          | Workspace → Overview. 1–90 letters, digits, underscores, hyphens, periods or parentheses; not ending in a period.                                                                                                   | Yes      |
+| **Workspace name**          | Workspace → Overview. Letters, digits and hyphens, starting and ending with a letter or digit.                                                                                                                      | Yes      |
+| **Cloud**                   | **Azure public cloud** (`login.microsoftonline.com` / `management.azure.com`) or **Azure Government (US)** (`login.microsoftonline.us` / `management.usgovcloudapi.net`).                                           | Yes      |
+| **Client secret**           | App registration → Certificates & secrets. The secret **Value**. Write-only: encrypted at rest, never returned by the API, never shown back on the page. Use **Update credentials** on the connection to rotate it. | Yes      |
 
 The polling step of the form asks for a **Name**, an optional **Description**, whether the connection is **Enabled**, and the **Poll interval (minutes)** — a whole number from `1` to `1440`, default `5`.
 
@@ -66,19 +66,19 @@ Select **Test these settings** before saving. The test runs against your setting
 
 Each Sentinel incident becomes one **Incident Finding** event (OCSF class `2005`, category `Findings`, activity `Create`) attributed to the `Microsoft Sentinel` telemetry service:
 
-| OCSF column                  | Sentinel incident field                                                                     |
-| ---------------------------- | ------------------------------------------------------------------------------------------- |
-| `time`                       | `properties.createdTimeUtc` (when Sentinel created the incident)                             |
-| `eventUid` (dedupe key)      | `name` — the incident GUID                                                                  |
-| `message`, `ruleName`        | `properties.title`                                                                          |
-| `ruleId`                     | The rule GUID at the end of the first `properties.relatedAnalyticRuleIds` entry             |
-| `severityName` / `severityId`| `properties.severity`: High → `High` (4), Medium → `Medium` (3), Low → `Low` (2), Informational → `Informational` (1) |
-| `statusName`                 | `properties.status`: `New`, `Active` or `Closed`                                            |
-| `mitreTactics`               | `properties.additionalData.tactics`, mapped to ATT&CK ids (`Persistence` → `TA0003`)        |
-| `principalUser`              | `properties.owner.userPrincipalName`, or `properties.owner.email`                           |
-| `targetResource`             | `properties.incidentUrl` (deep link into the Azure portal)                                  |
-| `observables`                | Owner UPN, email and object id, plus every label name                                       |
-| `attributes`                 | The complete incident, flattened to dot-notation keys (`properties.classification`, `properties.additionalData.alertsCount`, `properties.firstActivityTimeUtc`, ...) |
+| OCSF column                   | Sentinel incident field                                                                                                                                              |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `time`                        | `properties.createdTimeUtc` (when Sentinel created the incident)                                                                                                     |
+| `eventUid` (dedupe key)       | `name` — the incident GUID                                                                                                                                           |
+| `message`, `ruleName`         | `properties.title`                                                                                                                                                   |
+| `ruleId`                      | The rule GUID at the end of the first `properties.relatedAnalyticRuleIds` entry                                                                                      |
+| `severityName` / `severityId` | `properties.severity`: High → `High` (4), Medium → `Medium` (3), Low → `Low` (2), Informational → `Informational` (1)                                                |
+| `statusName`                  | `properties.status`: `New`, `Active` or `Closed`                                                                                                                     |
+| `mitreTactics`                | `properties.additionalData.tactics`, mapped to ATT&CK ids (`Persistence` → `TA0003`)                                                                                 |
+| `principalUser`               | `properties.owner.userPrincipalName`, or `properties.owner.email`                                                                                                    |
+| `targetResource`              | `properties.incidentUrl` (deep link into the Azure portal)                                                                                                           |
+| `observables`                 | Owner UPN, email and object id, plus every label name                                                                                                                |
+| `attributes`                  | The complete incident, flattened to dot-notation keys (`properties.classification`, `properties.additionalData.alertsCount`, `properties.firstActivityTimeUtc`, ...) |
 
 Closed incidents created inside the polled window are imported too; filter on `statusName` in the Security Events explorer if you only want open ones.
 
@@ -98,9 +98,27 @@ Creation time is the poll basis on purpose. A scheduled analytics rule that runs
 
 - The **first poll looks back 24 hours**, so a new connection shows its recent incidents immediately instead of an empty window.
 - Every later poll resumes from the saved cursor with a **1 minute overlap**, so an incident created on a window boundary is never skipped.
-- Each poll covers at most 24 hours; a connection with an older cursor catches up in consecutive 24-hour windows.
-- A poll reads at most 20 pages (1,000 incidents) per run. If it stops early, the run is **Partial**, the cursor is held, and the next poll continues from the same window.
+- Each poll reads up to 24 hours past the cursor; a connection with an older cursor catches up in consecutive windows.
 - Incidents are **deduplicated by the incident GUID** (`name`) within the project, so the overlap, retries and historical imports never store the same incident twice.
+
+### When a window holds more than one poll can read
+
+A poll reads at most 20 pages of 50 incidents (1,000 incidents) per run. When that limit stops a run before the window is read, the run is reported as **Partial** with a warning such as:
+
+```text
+Stopped after 20 incidents requests (the per-run request limit) before reading the whole window. Incidents are read oldest first; every incident created before 2026-09-14T08:12:44.000Z was read.
+```
+
+Because incidents are read oldest first, OneUptime moves the cursor to the creation time of the last incident read, and the next poll carries on from there with the same window length. A busy workspace catches up about 1,000 incidents per poll instead of re-reading the same ones. The overlap re-reads the incidents that share that last creation time, and dedupe drops the copies.
+
+If a run cannot get past the saved cursor at all, OneUptime shortens the window instead of re-reading the same one:
+
+- The next poll reads a window **half as long from the same starting point**, and keeps halving down to one minute until a window reads completely. The run's warning says so: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
+- After a window reads completely, the next one is **twice as long again**, back up to 24 hours.
+- If even a one minute window holds more than one poll can read, polling **moves past that minute** so newer incidents keep arriving. The run stays **Partial** and **Last Error** reads `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Run **Import history** on that minute to recover the incidents it skipped.
+- A run that fails outright (an error from Microsoft Entra or Azure Resource Manager) leaves the cursor and the window length unchanged, and the next poll retries the same window. A request that **timed out** keeps the cursor but halves the next window, since a window too heavy to answer in time would otherwise time out on every retry.
+
+Shortening the **Poll interval** does not change any of this: the interval only decides how often a poll starts, not where its window begins.
 
 Use **Diagnostics** on a connection to see recent runs, preview a time range without importing, import history (up to 7 days per import), and copy a report for support. Credentials are never included.
 
@@ -112,8 +130,8 @@ Use **Diagnostics** on a connection to see recent runs, preview a time range wit
 2. **Authenticate with Microsoft Entra** — a client-credentials token for Azure Resource Manager is issued with your client secret.
 3. **Read incidents** — one incident created in the last 24 hours is requested with `$top=1`. This proves the Microsoft Sentinel Reader assignment and the workspace path.
 4. **Incidents available to import** — how many incidents were created in the last 24 hours and the last 7 days (one 50-incident page each; `50+` means there are more). A quiet workspace produces a warning, not a failure.
-5. **Worker consumers**, **Scheduler** and **Storage** — whether OneUptime's own Worker queue has a consumer, the poll scheduler is registered, and the security event store answers. A connection that tests green here but never polls is almost always a worker deployment problem: set `DISABLE_QUEUE_WORKERS=false` on the app container or enable the worker deployment (Helm `worker.enabled: true`).
-6. **Connection schedule** (saved connections only) — whether polling is enabled, when it last ran, and whether a queued run is stuck.
+5. **Background workers**, **Poll scheduler** and **Security event storage** — whether a process is consuming OneUptime's Worker queue, whether the minute-cadence poll job is registered, and whether the security event store answers. A connection that tests green on its provider checks but never polls is almost always a worker deployment problem: set `DISABLE_QUEUE_WORKERS=false` on the app container or enable the worker deployment (Helm `worker.enabled: true`).
+6. **Scheduled polling** (saved connections only) — whether polling is enabled, whether a queued run is stuck waiting for a worker, and whether the connection is being polled on schedule.
 
 Each failed check carries remediation text. Tests never move the cursor or write events.
 
@@ -138,7 +156,10 @@ The connection's **Last Error** stores the complete error message with credentia
   - `HTTP 5xx` — ARM reported a server-side problem; the next poll retries.
 - **`Microsoft Sentinel incidents list returned ...`** — ARM answered `200` but the body was not a readable incidents page: not JSON, not an object with a `value` array, or a `nextLink` that is unusable or points at a host other than Azure Resource Manager (the connector refuses to send the token anywhere else). Reported rather than treated as an empty window, because advancing the cursor past an unreadable page would lose incidents.
 - **`Microsoft Sentinel incidents list failed:`** (no HTTP status) or **`... timed out after ... seconds with no response`** — the incidents request never got an answer. Check outbound HTTPS from the OneUptime worker to `management.azure.com` (or `management.usgovcloudapi.net`).
-- **Last Polled is `Never` and Last Error is empty** — polling has never run. On self-hosted deployments the usual cause is `DISABLE_QUEUE_WORKERS=true` on the app container with no separate worker deployment draining the queues. Run **Test connection**: its **Worker consumers** and **Scheduler** checks name the cause.
+- **Last Polled is `Never` and Last Error is empty** — polling has never run. On self-hosted deployments the usual cause is `DISABLE_QUEUE_WORKERS=true` on the app container with no separate worker deployment draining the queues. Run **Test connection**: its **Background workers** and **Poll scheduler** checks name the cause.
+- **A run is `Partial` with `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`** — the window held more than the 1,000 incidents one run can read. Nothing is lost: the cursor moves to the last incident read and the next poll continues from there (see [When a window holds more than one poll can read](#when-a-window-holds-more-than-one-poll-can-read)). A connection that stays `Partial` for many polls in a row is catching up on a backlog; **Last Polled** and **Last Event Imported** keep moving while it does.
+- **`Microsoft Sentinel returned incidents out of creation-time order, so this run cannot name a point to resume from.`** — the incidents API ignored the oldest-first order the connector asked for, so the run cannot safely move the cursor to its last incident. The next poll shortens the window instead, as described above. If it recurs, report it to OneUptime support with the run's report.
+- **Last Error reads `More records were created in the one minute from ... than one poll can read`** — a single minute held more incidents than one poll can read, so polling moved past it. Run **Import this time range** in **Diagnostics** on that minute to recover what one run can read; an import has the same per-run limit as a poll.
 - **Everything passes but nothing is imported** — check **Incidents available to import** in the test report. `0` in the last 7 days means the workspace's analytics rules have not opened incidents; that is not a connector fault. Confirm rules are enabled and set to create incidents (Microsoft Sentinel → Analytics → rule → Incident settings).
 
 ## Azure Government

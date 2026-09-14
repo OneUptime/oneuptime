@@ -59,10 +59,53 @@ export async function runConnectionTestRequest(data: {
   return report as unknown as SecurityConnectorTestReport;
 }
 
+/*
+ * A short fingerprint of the settings a test is built from, for
+ * InlineConnectionTest's settingsKey. Hashed rather than kept verbatim so
+ * the pasted credentials in the body are not copied into component state;
+ * two FNV-1a passes with different seeds keep accidental collisions out of
+ * reach for form-sized input. A builder that throws (no provider chosen, no
+ * key pasted) gets a key from its message, so fixing that input also
+ * changes the key.
+ */
+export function connectionTestSettingsKey(build: () => JSONObject): string {
+  let text: string;
+
+  try {
+    text = `body:${JSON.stringify(build())}`;
+  } catch (err) {
+    text = `error:${err instanceof Error ? err.message : String(err)}`;
+  }
+
+  const hash: (seed: number) => string = (seed: number): string => {
+    let value: number = seed >>> 0;
+
+    for (let index: number = 0; index < text.length; index++) {
+      value ^= text.charCodeAt(index);
+      value = Math.imul(value, 0x01000193) >>> 0;
+    }
+
+    return value.toString(16).padStart(8, "0");
+  };
+
+  return `${hash(0x811c9dc5)}${hash(0x9747b28c)}`;
+}
+
+export const INLINE_TEST_SETTINGS_CHANGED_MESSAGE: string =
+  "The settings changed after the last test. Test again to check the values the form holds now.";
+
 export interface InlineConnectionTestProps {
   providerTitle: string;
   // Runs the test with whatever the form currently holds.
   runTest: () => Promise<SecurityConnectorTestReport>;
+  /*
+   * Fingerprint of the values runTest would send now (see
+   * connectionTestSettingsKey). The last report or error is shown only
+   * while the form still holds the values it was built from, so a green
+   * report for a key the user has since replaced is never left on screen
+   * next to the new value. Omit it to keep the report until the next run.
+   */
+  settingsKey?: string | undefined;
   buttonTitle?: string | undefined;
   description?: string | undefined;
   /*
@@ -85,11 +128,19 @@ export const InlineConnectionTest: FunctionComponent<
   );
   const [error, setError] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState<boolean>(false);
+  // settingsKey captured when the shown report or error was requested.
+  const [testedSettingsKey, setTestedSettingsKey] = useState<
+    string | undefined
+  >(undefined);
   const mounted: React.MutableRefObject<boolean> = useRef<boolean>(true);
   const runTestRef: React.MutableRefObject<
     () => Promise<SecurityConnectorTestReport>
   > = useRef(props.runTest);
   runTestRef.current = props.runTest;
+  const settingsKeyRef: React.MutableRefObject<string | undefined> = useRef<
+    string | undefined
+  >(props.settingsKey);
+  settingsKeyRef.current = props.settingsKey;
 
   useEffect(() => {
     mounted.current = true;
@@ -100,7 +151,13 @@ export const InlineConnectionTest: FunctionComponent<
 
   const run: () => Promise<void> = async (): Promise<void> => {
     setIsRunning(true);
+    /*
+     * A new run replaces the last outcome outright: a failed re-run must
+     * not leave the previous green checklist next to its error.
+     */
+    setReport(null);
     setError(null);
+    setTestedSettingsKey(settingsKeyRef.current);
 
     try {
       const result: SecurityConnectorTestReport = await runTestRef.current();
@@ -118,6 +175,11 @@ export const InlineConnectionTest: FunctionComponent<
       }
     }
   };
+
+  const settingsChanged: boolean =
+    props.settingsKey !== undefined &&
+    (report !== null || error !== null) &&
+    testedSettingsKey !== props.settingsKey;
 
   return (
     <div
@@ -146,8 +208,15 @@ export const InlineConnectionTest: FunctionComponent<
           {CONNECTION_TEST_PROGRESS_MESSAGE}
         </p>
       )}
-      {error && !isRunning && <ErrorMessage message={error} />}
-      {report && !isRunning && (
+      {settingsChanged && !isRunning && (
+        <p role="status" className="text-sm text-gray-600">
+          {INLINE_TEST_SETTINGS_CHANGED_MESSAGE}
+        </p>
+      )}
+      {error && !isRunning && !settingsChanged && (
+        <ErrorMessage message={error} />
+      )}
+      {report && !isRunning && !settingsChanged && (
         <ConnectorTestReportView
           report={report}
           providerTitle={props.providerTitle}
@@ -192,6 +261,11 @@ const ConnectionTestModal: FunctionComponent<ComponentProps> = (
   const run: () => Promise<void> = async (): Promise<void> => {
     const sequence: number = ++requestSequence.current;
     setIsRunning(true);
+    /*
+     * Clear the previous outcome when a run starts, so a failed "Run again"
+     * shows only its error and never the earlier checklist beside it.
+     */
+    setReport(null);
     setError(null);
 
     try {

@@ -211,6 +211,11 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
       return;
     }
     setIsTesting(true);
+    /*
+     * A new test replaces the last outcome: a failed re-run must not leave
+     * the previous checklist on screen next to its error.
+     */
+    setTestReport(null);
     setTestError(null);
     try {
       const report: SecurityConnectorTestReport =

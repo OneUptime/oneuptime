@@ -1,4 +1,5 @@
 import SecurityEventConnection from "../../../../../Models/DatabaseModels/SecurityEventConnection";
+import { ConnectorSchedulerEntry } from "../../../../../Server/Utils/SecurityEvent/Connectors/ConnectorPlatformHealth";
 import SecurityEventConnectionRun from "../../../../../Models/DatabaseModels/SecurityEventConnectionRun";
 import Queue from "../../../../../Server/Infrastructure/Queue";
 import SecurityEventConnectionRunService from "../../../../../Server/Services/SecurityEventConnectionRunService";
@@ -456,9 +457,17 @@ describe("SecurityEventConnectionTester.test - platform checks", () => {
       getWorkersCount: (): Promise<number> => {
         return Promise.resolve(1);
       },
-      getJobSchedulers: (): Promise<Array<{ id: string }>> => {
+      /*
+       * The shape BullMQ really returns for a RunCron registration: the raw
+       * job name and an md5 repeat key, no `id` (review finding
+       * scheduler-check-always-fails).
+       */
+      getJobSchedulers: (): Promise<Array<ConnectorSchedulerEntry>> => {
         return Promise.resolve([
-          { id: "SecurityEvents-PollSecurityEventConnections" },
+          {
+            key: "6d2f1b0c3a9e4d7f8b1c2a3e4f5d6c7b",
+            name: "SecurityEvents:PollSecurityEventConnections",
+          },
         ]);
       },
       getWaitingCount: (): Promise<number> => {

@@ -32,7 +32,12 @@ import { ConnectorTransport } from "../Types";
  *    `fields`, `query`, `runtime_mappings`, `size`, `sort` and
  *    `track_total_hits`. Neither `search_after` nor `from` is part of the
  *    contract, so this client exposes range + size only and leaves paging
- *    to the connector, which advances the @timestamp lower bound.
+ *    to the connector, which advances the @timestamp lower bound. `query`
+ *    is free-form query DSL, so alerts already read at that lower bound
+ *    are left out with a `bool` whose `must_not` is an `ids` query
+ *    (https://www.elastic.co/docs/reference/query-languages/query-dsl/query-dsl-ids-query);
+ *    that is what lets the connector page through more alerts sharing
+ *    one @timestamp than a page holds.
  *
  * Auth is `Authorization: ApiKey <base64 id:api_key>` (the `encoded` value
  * of a created key). Kibana requires `kbn-xsrf` on every non-GET request;
@@ -99,6 +104,11 @@ export interface SearchAlertsRequest {
    * count sets this; a listing page does not pay for it.
    */
   trackTotalHits?: boolean | undefined;
+  /*
+   * `_id`s to leave out of the result: the alerts already read at the
+   * lower bound, so a page is never spent re-reading them.
+   */
+  excludeIds?: Array<string> | undefined;
 }
 
 /*
@@ -108,6 +118,17 @@ export interface SearchAlertsRequest {
  * which is where the transport's response-size cap starts to matter.
  */
 export const ELASTIC_SECURITY_MAX_PAGE_SIZE: number = 1000;
+
+/*
+ * Upper bound on the JSON size of the excluded `_id` list in one request.
+ * Kibana refuses a request body above server.maxPayload, 1,048,576 bytes
+ * by default
+ * (https://www.elastic.co/docs/reference/kibana/configuration-reference/general-settings);
+ * half of that leaves room for the rest of the body and for a proxy with
+ * a lower limit. Detection alert ids are 64-character hashes, so this is
+ * about 7,800 alerts sharing one @timestamp.
+ */
+export const ELASTIC_SECURITY_MAX_EXCLUDED_ID_BYTES: number = 512 * 1024;
 
 export const ELASTIC_STATUS_STEP: string = "Elastic Security status request";
 export const ELASTIC_SEARCH_STEP: string = "Elastic Security alerts search";
@@ -234,22 +255,42 @@ export default class ElasticSecurityClient {
       Math.min(ELASTIC_SECURITY_MAX_PAGE_SIZE, Math.trunc(request.size)),
     );
 
-    const body: JSONObject = {
-      query: {
-        range: {
-          "@timestamp": {
-            gte: ElasticSecurityClient.toIso(request.startTime),
-            lt: ElasticSecurityClient.toIso(request.endTime),
-          },
+    const range: JSONObject = {
+      range: {
+        "@timestamp": {
+          gte: ElasticSecurityClient.toIso(request.startTime),
+          lt: ElasticSecurityClient.toIso(request.endTime),
         },
       },
+    };
+    const excludeIds: Array<string> = (request.excludeIds || []).filter(
+      (id: string): boolean => {
+        return id.length > 0;
+      },
+    );
+
+    /*
+     * The plain range stays the query whenever nothing is excluded, so
+     * the common request is exactly the documented shape.
+     */
+    const body: JSONObject = {
+      query:
+        excludeIds.length > 0
+          ? {
+              bool: {
+                filter: [range],
+                must_not: [{ ids: { values: excludeIds } }],
+              },
+            }
+          : range,
       size: size,
     };
 
     /*
      * Sorting on _id is not allowed in Elasticsearch 8 (fielddata on _id
      * is disabled), so @timestamp alone orders the page; the connector
-     * breaks ties by remembering ids across pages.
+     * breaks ties by excluding the ids it has already read at the lower
+     * bound and by remembering ids across pages.
      */
     if (size > 0) {
       body["sort"] = [{ "@timestamp": "asc" }];

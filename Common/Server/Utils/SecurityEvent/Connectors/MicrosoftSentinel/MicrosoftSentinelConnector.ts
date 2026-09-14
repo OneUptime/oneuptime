@@ -7,6 +7,10 @@ import {
   SecurityConnectorSample,
 } from "../../../../../Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import MicrosoftSentinelNormalizer from "../../../../../Utils/SecurityEvent/Connectors/MicrosoftSentinelNormalizer";
+import {
+  parseEventTime,
+  readValue,
+} from "../../../../../Utils/SecurityEvent/NormalizerHelpers";
 import DataSourceHttpFetch, {
   DataSourceHttpRequest,
 } from "../../../DataSource/HttpFetch";
@@ -43,6 +47,23 @@ import MicrosoftSentinelClient, {
 
 const PROVIDER_TITLE: string = "Microsoft Sentinel";
 const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
+
+/*
+ * One incident as it was read, in the order the incidents API returned it:
+ * enough to work out where the next poll can resume.
+ */
+interface ReadIncident {
+  // properties.createdTimeUtc, or null when absent or unparseable.
+  createdAt: Date | null;
+  // True when the normalizer threw for this incident.
+  failed: boolean;
+}
+
+interface ResumePoint {
+  resumeAfter: Date | undefined;
+  // True when the API returned incidents out of creation-time order.
+  outOfOrder: boolean;
+}
 
 interface ResolvedSettings {
   tenantId: string;
@@ -438,6 +459,15 @@ export default class MicrosoftSentinelConnector
    * ---------------------------------------------------------------------
    */
 
+  /*
+   * Read every incident created in the window, oldest first, within the
+   * request and record budgets. When a budget stops the read, the result
+   * is complete=false with resumeAfter set to the creation time of the
+   * last incident read: the list is sorted by createdTimeUtc ascending, so
+   * everything created before that point has been read, and the poller
+   * moves its cursor there instead of re-reading the same first pages
+   * forever (review finding connector-bound-hit-permanent-stall).
+   */
   public async fetchEvents(
     settings: SecurityConnectorSettings,
     window: ConnectorFetchWindow,
@@ -463,6 +493,8 @@ export default class MicrosoftSentinelConnector
     const maxEvents: number = Math.max(1, Math.floor(options.maxEvents));
     const sampleLimit: number = Math.max(0, Math.floor(options.sampleLimit));
 
+    const readIncidents: Array<ReadIncident> = [];
+    let boundWarning: string | null = null;
     let nextLink: string | null = null;
     let pageIndex: number = 0;
 
@@ -473,10 +505,7 @@ export default class MicrosoftSentinelConnector
      */
     while (true) {
       if (result.requestCount >= maxRequests) {
-        result.complete = false;
-        result.warnings.push(
-          `Stopped after ${result.requestCount} incidents requests (the per-run request limit). The window is not fully read; the poll cursor is held so the next poll continues from the same window.`,
-        );
+        boundWarning = `Stopped after ${result.requestCount} incidents requests (the per-run request limit) before reading the whole window.`;
         break;
       }
 
@@ -501,6 +530,14 @@ export default class MicrosoftSentinelConnector
       for (const raw of incidents) {
         result.fetchedCount++;
 
+        const readIncident: ReadIncident = {
+          createdAt: parseEventTime(
+            readValue(raw, "properties.createdTimeUtc"),
+          ),
+          failed: false,
+        };
+        readIncidents.push(readIncident);
+
         if (!MicrosoftSentinelNormalizer.isRecognized(raw)) {
           result.rejectedCount++;
           continue;
@@ -518,6 +555,7 @@ export default class MicrosoftSentinelConnector
           }
         } catch {
           result.failedCount++;
+          readIncident.failed = true;
         }
       }
 
@@ -525,10 +563,7 @@ export default class MicrosoftSentinelConnector
         eventBoundHit ||
         (page.nextLink && result.fetchedCount >= maxEvents)
       ) {
-        result.complete = false;
-        result.warnings.push(
-          `Stopped after ${result.fetchedCount} incidents (the per-run record limit). The window is not fully read; the poll cursor is held so the next poll continues from the same window.`,
-        );
+        boundWarning = `Stopped after ${result.fetchedCount} incidents (the per-run record limit) before reading the whole window.`;
         break;
       }
 
@@ -539,7 +574,88 @@ export default class MicrosoftSentinelConnector
       nextLink = page.nextLink;
     }
 
+    if (boundWarning === null) {
+      return result;
+    }
+
+    result.complete = false;
+
+    const resume: ResumePoint = MicrosoftSentinelConnector.findResumePoint(
+      readIncidents,
+      window,
+    );
+    result.resumeAfter = resume.resumeAfter;
+
+    result.warnings.push(
+      resume.resumeAfter
+        ? `${boundWarning} Incidents are read oldest first; every incident created before ${resume.resumeAfter.toISOString()} was read.`
+        : boundWarning,
+    );
+
+    if (resume.outOfOrder) {
+      result.warnings.push(
+        "Microsoft Sentinel returned incidents out of creation-time order, so this run cannot name a point to resume from.",
+      );
+    }
+
     return result;
+  }
+
+  /*
+   * Where the next poll can resume after a bounded read: the creation time
+   * of the last incident read. Two cases name no point, so the poller
+   * narrows its window instead of skipping anything:
+   *  - an incident created earlier than one before it means the API did
+   *    not honour $orderby, and "everything before the last one was read"
+   *    no longer holds;
+   *  - an incident that failed normalization is never resumed past, since
+   *    the poller retries normalization failures; the point stops at that
+   *    incident's creation time (or is absent when it has none).
+   * Creation times outside the window are ignored: the $filter excludes
+   * them, so such a value cannot say anything about this window.
+   */
+  private static findResumePoint(
+    readIncidents: Array<ReadIncident>,
+    window: ConnectorFetchWindow,
+  ): ResumePoint {
+    const inWindow: (value: Date | null) => Date | null = (
+      value: Date | null,
+    ): Date | null => {
+      if (
+        value &&
+        value.getTime() >= window.startTime.getTime() &&
+        value.getTime() < window.endTime.getTime()
+      ) {
+        return value;
+      }
+
+      return null;
+    };
+
+    let latest: Date | null = null;
+
+    for (const readIncident of readIncidents) {
+      const createdAt: Date | null = inWindow(readIncident.createdAt);
+
+      if (createdAt && latest && createdAt.getTime() < latest.getTime()) {
+        return { resumeAfter: undefined, outOfOrder: true };
+      }
+
+      if (createdAt) {
+        latest = createdAt;
+      }
+    }
+
+    for (const readIncident of readIncidents) {
+      if (readIncident.failed) {
+        return {
+          resumeAfter: inWindow(readIncident.createdAt) || undefined,
+          outOfOrder: false,
+        };
+      }
+    }
+
+    return { resumeAfter: latest || undefined, outOfOrder: false };
   }
 
   private static toSample(

@@ -11,6 +11,7 @@ import {
   getSecurityEventConnectorDefinition,
 } from "../../../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import ElasticSecurityNormalizer from "../../../../../Utils/SecurityEvent/Connectors/ElasticSecurityNormalizer";
+import { parseEventTime } from "../../../../../Utils/SecurityEvent/NormalizerHelpers";
 import DataSourceHttpFetch, {
   DataSourceHttpRequest,
   DataSourceHttpResponse,
@@ -29,6 +30,7 @@ import {
   readSettingString,
 } from "../Types";
 import ElasticSecurityClient, {
+  ELASTIC_SECURITY_MAX_EXCLUDED_ID_BYTES,
   ELASTIC_SECURITY_MAX_PAGE_SIZE,
   ElasticAlertCount,
   ElasticAlertHit,
@@ -49,11 +51,19 @@ import ElasticSecurityClient, {
  * Paging: the documented signals search body accepts size and sort but
  * neither search_after nor from (see ElasticSecurityClient), so cursor
  * paging is done by advancing the range's lower bound to the last hit's
- * @timestamp. `gte` re-reads alerts sharing that exact timestamp — common,
- * since one rule execution stamps every alert it writes with the same
- * time — and they are dropped by id. If a full page carries a single
- * timestamp the window cannot be advanced honestly, and the fetch reports
- * itself incomplete instead of looping.
+ * @timestamp. `gte` would re-read alerts sharing that exact timestamp —
+ * common, since one rule execution stamps every alert it writes with the
+ * same time — so the next request excludes the ids already read at that
+ * instant. Each page is then the oldest alerts not yet read: every alert
+ * created before the page's last timestamp has been read, a tie group
+ * larger than a page is read page by page instead of being cut off at the
+ * first one, and nothing is re-read (ids are still remembered, in case a
+ * proxy or an older Kibana ignores the exclusion).
+ *
+ * When a bound stops the fetch, resumeAfter is the @timestamp of the last
+ * alert read, so the poller moves its cursor there instead of re-reading
+ * the same oldest alerts on every poll (review finding
+ * bound-hit-window-never-advances).
  *
  * Settings come from the catalog's keys: config.kibanaUrl, config.space
  * and secrets.apiKey.
@@ -475,10 +485,10 @@ export default class ElasticSecurityConnector
   }
 
   /*
-   * Read every alert created in the window, page by page, within the
-   * request and event budgets. A budget hit returns complete=false with a
-   * warning so the poller holds its cursor and the next poll re-reads the
-   * same window; nothing is silently dropped.
+   * Read every alert created in the window, page by page and oldest
+   * first, within the request and event budgets. A budget hit returns
+   * complete=false with a warning and the resume point; nothing is
+   * silently dropped.
    */
   public async fetchEvents(
     settings: SecurityConnectorSettings,
@@ -510,12 +520,32 @@ export default class ElasticSecurityConnector
     const endIso: string = window.endTime.toISOString();
     const seenIds: Set<string> = new Set<string>();
     let lowerBound: string = window.startTime.toISOString();
+    /*
+     * Ids of the alerts already read whose @timestamp is the lower bound.
+     * Every alert read earlier is older than the lower bound (pages are
+     * ascending and the bound only moves forward), so these are the only
+     * read alerts the next `gte` request could return again.
+     */
+    let tieIds: Array<string> = [];
+    // The newest @timestamp read; pages are ascending, so also the last.
+    let lastReadTime: Date | undefined = undefined;
 
     for (;;) {
       if (result.requestCount >= options.maxRequests) {
         result.complete = false;
         result.warnings.push(
-          `Stopped after ${options.maxRequests} requests with alerts still unread from ${lowerBound}. The poll cursor is held so the next poll continues from the same window.`,
+          `Stopped after ${options.maxRequests} requests with alerts still unread from ${lowerBound}.`,
+        );
+        break;
+      }
+
+      if (
+        Buffer.byteLength(JSON.stringify(tieIds), "utf8") >
+        ELASTIC_SECURITY_MAX_EXCLUDED_ID_BYTES
+      ) {
+        result.complete = false;
+        result.warnings.push(
+          `${tieIds.length} alerts read so far share the creation time ${lowerBound}, more than one search request can exclude, so the rest of the alerts created at that instant were not read.`,
         );
         break;
       }
@@ -524,6 +554,7 @@ export default class ElasticSecurityConnector
         startTime: lowerBound,
         endTime: endIso,
         size: pageSize,
+        excludeIds: tieIds,
       });
       result.requestCount += 1;
 
@@ -538,7 +569,10 @@ export default class ElasticSecurityConnector
          */
         const key: string = hit.id || JSON.stringify(hit.source);
 
-        // Ties re-read from the previous page's last timestamp.
+        /*
+         * Normally excluded by the query; kept so a Kibana or proxy that
+         * drops the exclusion re-reads nothing twice.
+         */
         if (seenIds.has(key)) {
           continue;
         }
@@ -551,13 +585,23 @@ export default class ElasticSecurityConnector
         seenIds.add(key);
         newInPage += 1;
         result.fetchedCount += 1;
+
+        const hitTime: Date | null = parseEventTime(hit.timestamp);
+
+        if (
+          hitTime &&
+          (!lastReadTime || hitTime.getTime() > lastReadTime.getTime())
+        ) {
+          lastReadTime = hitTime;
+        }
+
         this.collect(hit, result, options.sampleLimit);
       }
 
       if (reachedEventBound) {
         result.complete = false;
         result.warnings.push(
-          `Stopped after collecting ${options.maxEvents} alerts; the window holds more. The poll cursor is held so the next poll continues from the same window.`,
+          `Stopped after collecting ${options.maxEvents} alerts; the window holds more.`,
         );
         break;
       }
@@ -570,46 +614,77 @@ export default class ElasticSecurityConnector
       const lastHit: ElasticAlertHit | undefined =
         page.hits[page.hits.length - 1];
       const lastTimestamp: string = lastHit?.timestamp || "";
-      const firstTimestamp: string = page.hits[0]?.timestamp || "";
 
       if (!lastTimestamp) {
         result.complete = false;
         result.warnings.push(
-          "A full page of alerts ended with a document that has no @timestamp, so the window cannot be paged further. The poll cursor is held.",
+          "A full page of alerts ended with a document that has no @timestamp, so the window cannot be paged further.",
         );
         break;
       }
 
       /*
-       * A full page with nothing new means the lower bound is not moving
-       * the result set; advancing it again would re-read the same page
-       * forever. Report it rather than loop.
+       * A full page with nothing new means the source ignored the
+       * exclusion and the lower bound is not moving the result set;
+       * another request would return the same page. Report it rather
+       * than loop.
        */
       if (newInPage === 0) {
         result.complete = false;
         result.warnings.push(
-          `A full page of alerts from ${lowerBound} contained only alerts already read, so the window cannot be paged further. The poll cursor is held.`,
+          `A full page of alerts from ${lowerBound} contained only alerts already read, so the window cannot be paged further.`,
         );
         break;
       }
+
+      const idsAtLastTimestamp: Array<string> = page.hits
+        .filter((hit: ElasticAlertHit): boolean => {
+          return (
+            Boolean(hit.id) &&
+            ElasticSecurityConnector.sameInstant(hit.timestamp, lastTimestamp)
+          );
+        })
+        .map((hit: ElasticAlertHit): string => {
+          return hit.id;
+        });
 
       /*
-       * Every hit on a full page shares one @timestamp: the lower bound
-       * cannot advance without skipping alerts we have not seen. Report it
-       * rather than loop on the same page.
+       * A page that did not get past the lower bound (all of it shares
+       * that instant) adds to the ids already excluded there; a page that
+       * moved the bound starts a new list, because nothing read before it
+       * carries the new timestamp.
        */
-      if (lastTimestamp === firstTimestamp) {
-        result.complete = false;
-        result.warnings.push(
-          `More than ${pageSize} alerts share the creation time ${lastTimestamp}, which is more than one page can hold; alerts beyond the first ${pageSize} at that instant were not read. The poll cursor is held.`,
-        );
-        break;
-      }
-
+      tieIds = ElasticSecurityConnector.sameInstant(lastTimestamp, lowerBound)
+        ? Array.from(new Set<string>([...tieIds, ...idsAtLastTimestamp]))
+        : Array.from(new Set<string>(idsAtLastTimestamp));
       lowerBound = lastTimestamp;
     }
 
+    /*
+     * Every alert created strictly before lastReadTime inside the window
+     * has been read, which is exactly what the poller needs to move on.
+     */
+    if (!result.complete && lastReadTime) {
+      result.resumeAfter = lastReadTime;
+    }
+
     return result;
+  }
+
+  /*
+   * Two @timestamp values name the same instant. Compared as times so
+   * "…412Z" and "…412+00:00" group together; the raw strings are compared
+   * only when one does not parse.
+   */
+  private static sameInstant(left: string, right: string): boolean {
+    const leftTime: Date | null = parseEventTime(left);
+    const rightTime: Date | null = parseEventTime(right);
+
+    if (leftTime && rightTime) {
+      return leftTime.getTime() === rightTime.getTime();
+    }
+
+    return left === right;
   }
 
   private collect(

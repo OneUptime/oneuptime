@@ -1,6 +1,5 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
-import { JSONObject } from "Common/Types/JSON";
 import {
   SecurityConnectorCheck,
   SecurityConnectorCheckStatus,
@@ -12,14 +11,15 @@ import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import {
   ConnectorCheckGroup,
+  ConnectorCountRow,
   connectionTimeTitle,
   connectorCheckGroup,
   connectorCheckGroupTitle,
   connectorCheckStatusLabels,
-  connectorCountLabel,
+  connectorCountRows,
   connectorProviderTitle,
+  connectorTestReportCounts,
   formatConnectionDate,
-  formatConnectorCountValue,
 } from "./SecurityEventConnectionDiagnosticsUtil";
 
 export interface ComponentProps {
@@ -223,8 +223,14 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
     grouped[connectorCheckGroup(check)].push(check);
   }
 
-  const counts: JSONObject = report.counts || {};
-  const countKeys: Array<string> = Object.keys(counts);
+  /*
+   * Flattened so a nested count (Google SecOps' otherScope) reads as
+   * labelled rows instead of "[object Object]", and taken from the
+   * detections-available check when the tester did not fill report.counts.
+   */
+  const countRows: Array<ConnectorCountRow> = connectorCountRows(
+    connectorTestReportCounts(report),
+  );
   const samples: Array<SecurityConnectorSample> = report.samples || [];
 
   /*
@@ -315,7 +321,7 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
         );
       })}
 
-      {countKeys.length > 0 && (
+      {countRows.length > 0 && (
         <section
           aria-label="Availability counts"
           className="rounded-md border border-gray-200 p-4"
@@ -336,17 +342,21 @@ const ConnectorTestReportView: FunctionComponent<ComponentProps> = (
                 </tr>
               </thead>
               <tbody>
-                {countKeys.map((key: string): ReactElement => {
+                {countRows.map((row: ConnectorCountRow): ReactElement => {
                   return (
-                    <tr key={key} className="border-b border-gray-100">
+                    <tr
+                      key={row.key}
+                      data-count-key={row.key}
+                      className="border-b border-gray-100"
+                    >
                       <th
                         scope="row"
                         className="py-2 pr-4 font-normal text-gray-700"
                       >
-                        {connectorCountLabel(key)}
+                        {row.label}
                       </th>
                       <td className="py-2 font-medium text-gray-900">
-                        {formatConnectorCountValue(counts[key])}
+                        {row.value}
                       </td>
                     </tr>
                   );

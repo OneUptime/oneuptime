@@ -218,10 +218,20 @@ describe("GoogleSecOpsPoller.pollConnection", () => {
 
     await GoogleSecOpsPoller.pollConnection(connection, client);
 
+    /*
+     * Review finding alerts-view-budget-pins-cursor-forever (F1): the
+     * catch-up chunk is now measured from the cursor rather than from the
+     * overlapped window start, so a narrowed chunk no longer than the
+     * overlap still reads past the cursor. A full chunk therefore reads 24
+     * hours of new time plus the one minute overlap.
+     */
     const windowMinutes: number =
       (calls[0]!.endTime.getTime() - calls[0]!.startTime.getTime()) /
       (60 * 1000);
-    expect(Math.round(windowMinutes)).toBe(24 * 60);
+    expect(Math.round(windowMinutes)).toBe(24 * 60 + 1);
+    expect(calls[0]!.endTime.getTime()).toBe(
+      new Date(connection.cursor).getTime() + 24 * 60 * 60 * 1000,
+    );
   });
 
   test("an unparseable alert is skipped without failing the batch", async () => {

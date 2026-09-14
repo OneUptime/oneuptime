@@ -47,9 +47,14 @@ import SplunkClient, {
  * Connectors/Types.ts).
  *
  * Splunk's export is a single streamed response, not a paged listing, so
- * "pagination" here is the row cap: the client asks for the event budget
- * plus one, and a hit budget returns complete=false so the poller holds
- * its cursor and re-reads the same window next time.
+ * "pagination" here is the row cap: the client sorts the window by
+ * `_time` ascending and asks for the event budget plus one. A hit budget
+ * returns complete=false with resumeAfter set to the `_time` of the last
+ * row read, so the poller moves its cursor there instead of re-reading
+ * the same oldest rows forever (review finding
+ * bound-hit-window-never-advances). Without the sort, the export's
+ * newest-first order would keep the newest rows and the older ones would
+ * never be reachable at all.
  *
  * Settings come from the catalog's keys: config.url, config.searchString,
  * config.username, secrets.apiToken and secrets.password.
@@ -264,10 +269,16 @@ export default class SplunkConnector implements SecurityEventConnector {
     startedAtMs = Date.now();
 
     try {
+      /*
+       * Any row proves the search runs; sorting a whole day on the search
+       * head just to pick which one would make the test slow on a busy
+       * index.
+       */
       const probe: SplunkExportResult = await client.exportSearch({
         startTime: dayAgo,
         endTime: now,
         maxResults: 1,
+        oldestFirst: false,
       });
       checks.push(
         makeCheck({
@@ -426,9 +437,8 @@ export default class SplunkConnector implements SecurityEventConnector {
 
   /*
    * Read every record created in the window within the request and
-   * event budgets. A budget hit returns complete=false with a warning so
-   * the poller holds its cursor and the next poll re-reads the same
-   * window; nothing is silently dropped.
+   * event budgets, oldest first. A budget hit returns complete=false with
+   * a warning and the resume point; nothing is silently dropped.
    */
   public async fetchEvents(
     settings: SecurityConnectorSettings,
@@ -458,7 +468,7 @@ export default class SplunkConnector implements SecurityEventConnector {
         complete: false,
         requestCount: 0,
         warnings: [
-          "The request budget for this run is zero, so the window was not read. The poll cursor is held.",
+          "The request budget for this run is zero, so the window was not read.",
         ],
         samples: [],
       };
@@ -468,12 +478,19 @@ export default class SplunkConnector implements SecurityEventConnector {
       startTime: window.startTime,
       endTime: window.endTime,
       maxResults: options.maxEvents,
+      // A capped read must keep the oldest rows, or it can never resume.
+      oldestFirst: true,
     });
+
+    let resumeAfter: Date | undefined = undefined;
 
     if (exported.truncated) {
       complete = false;
+      resumeAfter = SplunkConnector.lastReadTime(exported.results, window);
       warnings.push(
-        `Stopped after collecting ${exported.results.length} records; the window holds more. The poll cursor is held so the next poll continues from the same window.`,
+        resumeAfter
+          ? `Stopped after collecting ${exported.results.length} records; the window holds more. Records are read oldest first, and the last one read was created at ${resumeAfter.toISOString()}, where the next poll can resume.`
+          : `Stopped after collecting ${exported.results.length} records; the window holds more, and no record read carried a _time to resume from.`,
       );
     }
 
@@ -522,7 +539,36 @@ export default class SplunkConnector implements SecurityEventConnector {
       requestCount: client.getRequestCount(),
       warnings,
       samples,
+      resumeAfter,
     };
+  }
+
+  /*
+   * The `_time` of the last row read. The export is sorted ascending, so
+   * every row created strictly before it inside the window has been read.
+   * Rows are scanned from the end because sort places a row without a
+   * readable `_time` last; a time past the window end means the rows are
+   * not ordered the way the resume point assumes, so none is reported and
+   * the poller narrows the window instead of trusting it.
+   */
+  private static lastReadTime(
+    rows: Array<JSONObject>,
+    window: ConnectorFetchWindow,
+  ): Date | undefined {
+    for (let index: number = rows.length - 1; index >= 0; index--) {
+      const row: JSONObject | undefined = rows[index];
+      const time: Date | null = row
+        ? parseEventTime(row["_time"] as JSONValue)
+        : null;
+
+      if (!time) {
+        continue;
+      }
+
+      return time.getTime() > window.endTime.getTime() ? undefined : time;
+    }
+
+    return undefined;
   }
 
   /*

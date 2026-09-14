@@ -27,9 +27,11 @@ import NormalizedSecurityEvent from "../../../../../../Types/SecurityEvent/Norma
  * The connector is what the poller and the tester call. These tests pin
  * the settings contract (catalog keys), the three-check test report and
  * its remediation per failure mode, and the creation-time fetch: its
- * request shape, pagination, the request and record budgets that hold
- * the cursor, sample building, and that every outbound request leaves
- * through the injected transport with the caller's timeout. No network.
+ * request shape, pagination, the request and record budgets that stop a
+ * read without a resume point (Graph lists alerts newest first, so the
+ * poller narrows instead), sample building, and that every outbound
+ * request leaves through the injected transport with the caller's
+ * timeout. No network.
  */
 
 const TENANT_ID: string = "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c";
@@ -790,6 +792,7 @@ describe("MicrosoftDefenderXdrConnector", () => {
       );
 
       expect(result.complete).toBe(true);
+      expect(result.resumeAfter).toBeUndefined();
       expect(result.fetchedCount).toBe(2);
       expect(result.events).toHaveLength(2);
       expect(result.rejectedCount).toBe(0);
@@ -909,6 +912,7 @@ describe("MicrosoftDefenderXdrConnector", () => {
       );
 
       expect(result.complete).toBe(true);
+      expect(result.resumeAfter).toBeUndefined();
       expect(result.fetchedCount).toBe(3);
       expect(result.requestCount).toBe(3);
       expect(result.warnings).toEqual([]);
@@ -920,13 +924,30 @@ describe("MicrosoftDefenderXdrConnector", () => {
       ).toEqual(["p1-0", "p1-1", "p2-0"]);
     });
 
-    test("stops at the request budget with complete=false and a warning, keeping what it read", async () => {
+    /*
+     * Review finding connector-bound-hit-permanent-stall: the warning used to
+     * promise "the poll cursor is held so the next poll continues from the
+     * same window", which re-read the same newest 2,000 alerts forever.
+     * Graph's List alerts_v2 reference documents no $orderby and lists the
+     * most recent alerts first, so a bounded read covers no "everything
+     * created before X" prefix: the connector must NOT set resumeAfter (a
+     * resume point would skip the older alerts it never reached), and the
+     * poller narrows the next window instead.
+     */
+    test("stops at the request budget with complete=false, no resume point, and a warning explaining why", async () => {
       const nextLink: string =
         "https://graph.microsoft.com/v1.0/security/alerts_v2?$skiptoken=more";
       const harness: Harness = buildHarness({
         alerts: [
           (): DataSourceHttpResponse => {
-            return ok({ value: alerts(2, "p1"), "@odata.nextLink": nextLink });
+            // Newest first, as Graph documents: the second alert is older.
+            return ok({
+              value: [
+                alert("p1-0", { createdDateTime: "2026-09-13T09:00:00Z" }),
+                alert("p1-1", { createdDateTime: "2026-09-13T08:00:00Z" }),
+              ],
+              "@odata.nextLink": nextLink,
+            });
           },
           (): DataSourceHttpResponse => {
             return ok({ value: alerts(2, "p2"), "@odata.nextLink": nextLink });
@@ -944,13 +965,20 @@ describe("MicrosoftDefenderXdrConnector", () => {
       );
 
       expect(result.complete).toBe(false);
+      expect(result.resumeAfter).toBeUndefined();
       expect(result.fetchedCount).toBe(4);
       expect(result.events).toHaveLength(4);
       expect(alertsRequests(harness.requests)).toHaveLength(2);
       expect(result.requestCount).toBe(3);
-      expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0]).toContain("request limit");
-      expect(result.warnings[0]).toContain("cursor is held");
+      expect(result.warnings).toEqual([
+        "Stopped after 2 alerts requests (the per-run request limit) before reading the whole window. Microsoft Graph lists alerts newest first and documents no way to sort them oldest first, so this run cannot name a point to resume from.",
+      ]);
+      expect(result.warnings[0]).not.toContain("cursor is held");
+
+      // No request asks Graph for an order it does not document.
+      for (const request of alertsRequests(harness.requests)) {
+        expect(new URL(request.url).searchParams.has("$orderby")).toBe(false);
+      }
     });
 
     test("stops at the record budget mid-page with complete=false and never reads the next page", async () => {
@@ -973,11 +1001,15 @@ describe("MicrosoftDefenderXdrConnector", () => {
       );
 
       expect(result.complete).toBe(false);
+      // Graph's order is not ascending, so a record bound names no resume point either.
+      expect(result.resumeAfter).toBeUndefined();
       expect(result.fetchedCount).toBe(3);
       expect(result.events).toHaveLength(3);
       expect(alertsRequests(harness.requests)).toHaveLength(1);
       expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0]).toContain("record limit");
+      expect(result.warnings[0]).toBe(
+        "Stopped after 3 alerts (the per-run record limit) before reading the whole window. Microsoft Graph lists alerts newest first and documents no way to sort them oldest first, so this run cannot name a point to resume from.",
+      );
     });
 
     test("treats a page that exactly fills the record budget with more pages pending as incomplete", async () => {
@@ -1000,6 +1032,7 @@ describe("MicrosoftDefenderXdrConnector", () => {
       );
 
       expect(result.complete).toBe(false);
+      expect(result.resumeAfter).toBeUndefined();
       expect(result.fetchedCount).toBe(2);
       expect(alertsRequests(harness.requests)).toHaveLength(1);
     });
@@ -1020,6 +1053,7 @@ describe("MicrosoftDefenderXdrConnector", () => {
       );
 
       expect(result.complete).toBe(true);
+      expect(result.resumeAfter).toBeUndefined();
       expect(result.warnings).toEqual([]);
     });
 

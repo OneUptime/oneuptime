@@ -376,6 +376,22 @@ test("reads run status after locking and scopes credential read to recorded proj
     }),
   );
 });
+test("loads the previous poll result with the connection, which carries the next catch-up chunk", async () => {
+  /*
+   * Review finding alerts-view-budget-pins-cursor-forever (F1): a poll's
+   * window length comes from lastPollResult.nextChunkMinutes, so the row
+   * handed to the poller must include it alongside the cursor.
+   */
+  await GoogleSecOpsRunExecutor.executeRun(RUN);
+  expect(GoogleSecOpsConnectionService.findOneBy).toHaveBeenCalledWith(
+    expect.objectContaining({
+      select: expect.objectContaining({
+        cursor: true,
+        lastPollResult: true,
+      }),
+    }),
+  );
+});
 test.each(["success", "empty", "partial", "failed"])(
   "does not repeat a terminal %s run",
   async (status: string) => {

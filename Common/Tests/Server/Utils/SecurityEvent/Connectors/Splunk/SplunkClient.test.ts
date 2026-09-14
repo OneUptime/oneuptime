@@ -429,7 +429,15 @@ describe("SplunkClient", () => {
         "output_mode",
         "search",
       ]);
-      expect(body["search"]).toBe("search index=notable | fields * | head 3");
+      /*
+       * Review finding bound-hit-window-never-advances: the export streams
+       * newest first, so a bare `head` kept the newest rows of an
+       * overflowing window. The window is sorted ascending with no sort
+       * limit before the cap, so a capped read keeps the oldest rows.
+       */
+      expect(body["search"]).toBe(
+        "search index=notable | fields * | sort 0 _time | head 3",
+      );
       expect(body["output_mode"]).toBe("json");
       // Floor the inclusive start, ceil the exclusive end: widen, never lose.
       expect(body["earliest_time"]).toBe(
@@ -456,7 +464,7 @@ describe("SplunkClient", () => {
       const body: Dictionary<string> = harness.requests[0]!
         .body as Dictionary<string>;
       expect(body["search"]).toBe(
-        `search index=notable | fields * | head ${SPLUNK_MAX_EXPORT_ROWS + 1}`,
+        `search index=notable | fields * | sort 0 _time | head ${SPLUNK_MAX_EXPORT_ROWS + 1}`,
       );
     });
 
@@ -479,7 +487,28 @@ describe("SplunkClient", () => {
       });
 
       expect((harness.requests[0]!.body as Dictionary<string>)["search"]).toBe(
-        'search index=notable rule_name="Threat - *" | fields * | head 6',
+        'search index=notable rule_name="Threat - *" | fields * | sort 0 _time | head 6',
+      );
+    });
+
+    test("leaves the sort out only when the caller does not need the oldest rows", async () => {
+      const harness: Harness = buildHarness({
+        exports: [
+          (): DataSourceHttpResponse => {
+            return ndjson([]);
+          },
+        ],
+      });
+
+      await harness.client.exportSearch({
+        startTime: START,
+        endTime: END,
+        maxResults: 1,
+        oldestFirst: false,
+      });
+
+      expect((harness.requests[0]!.body as Dictionary<string>)["search"]).toBe(
+        "search index=notable | fields * | head 2",
       );
     });
   });

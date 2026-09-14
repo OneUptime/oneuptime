@@ -1047,6 +1047,8 @@ describe("OktaConnector", () => {
       );
 
       expect(result.complete).toBe(true);
+      // A complete read names no resume point; the poller uses the window end.
+      expect(result.resumeAfter).toBeUndefined();
       expect(result.warnings).toEqual([]);
       expect(result.requestCount).toBe(1);
       expect(result.fetchedCount).toBe(3);
@@ -1124,6 +1126,7 @@ describe("OktaConnector", () => {
       );
 
       expect(result.complete).toBe(true);
+      expect(result.resumeAfter).toBeUndefined();
       expect(result.requestCount).toBe(3);
       expect(result.fetchedCount).toBe(3);
       expect(
@@ -1182,7 +1185,14 @@ describe("OktaConnector", () => {
       expect(param(harness.requests[0]!, "limit")).toBe("1000");
     });
 
-    test("stops at the request bound, marks the fetch incomplete and warns so the cursor is held", async () => {
+    /*
+     * Review finding bound-hit-window-never-advances: the bound tests used
+     * to assert "cursor is held", and the held cursor re-read the same
+     * oldest events on every poll so nothing newer was ever imported.
+     * Bounded requests are ordered by `published`, so a bound now reports
+     * the `published` time of the last event read as the resume point.
+     */
+    test("stops at the request bound, marks the fetch incomplete and reports the last published time read as the resume point", async () => {
       const harness: Harness = buildHarness({
         responders: [
           (): DataSourceHttpResponse => {
@@ -1203,10 +1213,11 @@ describe("OktaConnector", () => {
       expect(result.complete).toBe(false);
       expect(result.requestCount).toBe(2);
       expect(result.events).toHaveLength(2);
-      expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0]).toContain("Stopped after 2 requests");
-      expect(result.warnings[0]).toContain(START.toISOString());
-      expect(result.warnings[0]).toContain("cursor is held");
+      expect(result.resumeAfter).toEqual(new Date("2026-09-12T11:15:00.123Z"));
+      expect(result.warnings).toEqual([
+        `Stopped after 2 requests with events still unread in the window ${START.toISOString()} to ${END.toISOString()}. The last event read was published at 2026-09-12T11:15:00.123Z.`,
+      ]);
+      expect(result.warnings[0]).not.toContain("cursor is held");
       expect(harness.requests).toHaveLength(2);
     });
 
@@ -1220,13 +1231,15 @@ describe("OktaConnector", () => {
       );
 
       expect(result.complete).toBe(false);
+      // Nothing was read, so there is no progress to report.
+      expect(result.resumeAfter).toBeUndefined();
       expect(result.requestCount).toBe(0);
       expect(result.events).toEqual([]);
       expect(result.warnings[0]).toContain("Stopped after 0 requests");
       expect(harness.requests).toHaveLength(0);
     });
 
-    test("stops at the event bound, marks the fetch incomplete and warns so the cursor is held", async () => {
+    test("stops at the event bound, marks the fetch incomplete and resumes after the last event kept", async () => {
       const harness: Harness = buildHarness({
         responders: [
           (): DataSourceHttpResponse => {
@@ -1249,11 +1262,90 @@ describe("OktaConnector", () => {
       expect(result.fetchedCount).toBe(2);
       expect(result.requestCount).toBe(1);
       expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0]).toContain("Stopped after collecting 2 events");
-      expect(result.warnings[0]).toContain("cursor is held");
+      expect(result.warnings[0]).toBe(
+        "Stopped after collecting 2 events; the window holds more. The last event read was published at 2026-09-12T11:15:00.123Z.",
+      );
+      // C3 (published 12:15) was not collected, so it is not the resume point.
+      expect(result.resumeAfter).toEqual(new Date("2026-09-12T11:15:00.123Z"));
       expect(param(harness.requests[0]!, "limit")).toBe("2");
       // The next link was not followed once the bound was hit.
       expect(harness.requests).toHaveLength(1);
+    });
+
+    test("finds the event bound on the next page and resumes after the last event of the page before it", async () => {
+      const harness: Harness = buildHarness({
+        responders: [
+          (): DataSourceHttpResponse => {
+            return page([logEvent("A1", 0), logEvent("B2", 1)], nextLink("p1"));
+          },
+          (): DataSourceHttpResponse => {
+            // B2 is re-sent across the page boundary and must not count.
+            return page([logEvent("B2", 1), logEvent("C3", 2)], nextLink("p2"));
+          },
+        ],
+      });
+
+      const result: ConnectorFetchResult = await harness.connector.fetchEvents(
+        settings(),
+        { startTime: START, endTime: END },
+        fetchOptions({ maxEvents: 2 }),
+      );
+
+      expect(result.complete).toBe(false);
+      expect(result.fetchedCount).toBe(2);
+      expect(result.requestCount).toBe(2);
+      expect(result.resumeAfter).toEqual(new Date("2026-09-12T11:15:00.123Z"));
+    });
+
+    test("counts rejected records toward the resume point and ignores a missing or unparseable published time", async () => {
+      const harness: Harness = buildHarness({
+        responders: [
+          (): DataSourceHttpResponse => {
+            return page(
+              [
+                logEvent("A1", 0),
+                // Not an event the normalizer recognizes, but it was read.
+                { uuid: "no-type", published: "2026-09-12T12:30:00.000Z" },
+                logEvent("B2", 3, { published: "yesterday-ish" }),
+                logEvent("C3", 4, { published: null }),
+              ],
+              nextLink("p1"),
+            );
+          },
+        ],
+      });
+
+      const result: ConnectorFetchResult = await harness.connector.fetchEvents(
+        settings(),
+        { startTime: START, endTime: END },
+        fetchOptions({ maxRequests: 1 }),
+      );
+
+      expect(result.complete).toBe(false);
+      expect(result.fetchedCount).toBe(4);
+      expect(result.resumeAfter).toEqual(new Date("2026-09-12T12:30:00.000Z"));
+    });
+
+    test("reports no resume point when no event read carried a readable published time", async () => {
+      const harness: Harness = buildHarness({
+        responders: [
+          (): DataSourceHttpResponse => {
+            return page([logEvent("A1", 0, { published: "" })], nextLink("p1"));
+          },
+        ],
+      });
+
+      const result: ConnectorFetchResult = await harness.connector.fetchEvents(
+        settings(),
+        { startTime: START, endTime: END },
+        fetchOptions({ maxRequests: 1 }),
+      );
+
+      expect(result.complete).toBe(false);
+      expect(result.resumeAfter).toBeUndefined();
+      expect(result.warnings[result.warnings.length - 1]).toContain(
+        "No event read carried a readable published time, so no resume point is reported.",
+      );
     });
 
     test("counts records the normalizer does not recognize as rejected", async () => {

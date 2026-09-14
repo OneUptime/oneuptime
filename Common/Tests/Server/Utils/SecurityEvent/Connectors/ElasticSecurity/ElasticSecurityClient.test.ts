@@ -419,6 +419,62 @@ describe("ElasticSecurityClient", () => {
       });
     });
 
+    test("leaves alerts already read out with a must_not ids clause beside the range, and drops empty ids", async () => {
+      const harness: Harness = buildHarness({
+        search: [
+          (): DataSourceHttpResponse => {
+            return ok(searchBody([]));
+          },
+          (): DataSourceHttpResponse => {
+            return ok(searchBody([]));
+          },
+        ],
+      });
+
+      await harness.client.searchAlerts({
+        startTime: "2026-09-12T10:05:03.412Z",
+        endTime: END,
+        size: 1000,
+        excludeIds: ["a1", "", "a2"],
+      });
+
+      // An empty list is the same as no list: the documented plain range.
+      await harness.client.searchAlerts({
+        startTime: START,
+        endTime: END,
+        size: 1000,
+        excludeIds: [],
+      });
+
+      const excluding: JSONObject = parseBody(harness.requests[0]!);
+      expect(Object.keys(excluding).sort()).toEqual(["query", "size", "sort"]);
+      expect(excluding["query"]).toEqual({
+        bool: {
+          filter: [
+            {
+              range: {
+                "@timestamp": {
+                  gte: "2026-09-12T10:05:03.412Z",
+                  lt: END.toISOString(),
+                },
+              },
+            },
+          ],
+          must_not: [{ ids: { values: ["a1", "a2"] } }],
+        },
+      });
+      expect(excluding["sort"]).toEqual([{ "@timestamp": "asc" }]);
+
+      expect(parseBody(harness.requests[1]!)["query"]).toEqual({
+        range: {
+          "@timestamp": {
+            gte: START.toISOString(),
+            lt: END.toISOString(),
+          },
+        },
+      });
+    });
+
     test("sends size 0 with track_total_hits and no sort for a count", async () => {
       const harness: Harness = buildHarness({
         search: [

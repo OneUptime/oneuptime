@@ -19,7 +19,9 @@ import {
 import React from "react";
 import ConnectionTestModal, {
   CONNECTION_TEST_PROGRESS_MESSAGE,
+  INLINE_TEST_SETTINGS_CHANGED_MESSAGE,
   InlineConnectionTest,
+  connectionTestSettingsKey,
   runConnectionTestRequest,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/ConnectionTestModal";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -231,6 +233,40 @@ describe("ConnectionTestModal", () => {
     ).not.toBeInTheDocument();
   });
 
+  /*
+   * stale-report-after-failed-rerun: the report used to survive a failed
+   * re-run, so the error sat next to a green "All checks passed".
+   */
+  test("a failed Run again replaces the previous checklist with the error", async (): Promise<void> => {
+    const runTest: ReturnType<
+      typeof jest.fn<() => Promise<SecurityConnectorTestReport>>
+    > = jest
+      .fn<() => Promise<SecurityConnectorTestReport>>()
+      .mockResolvedValueOnce(report())
+      .mockRejectedValueOnce(
+        new HTTPErrorResponse(504, { message: "The request timed out." }, {}),
+      );
+
+    render(
+      <ConnectionTestModal
+        title="Test connection"
+        runTest={runTest}
+        onClose={(): void => {}}
+      />,
+    );
+
+    expect(await screen.findByText("All checks passed")).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Run again" }));
+
+    expect(await screen.findByText("The request timed out.")).toBeVisible();
+    expect(runTest).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText("All checks passed")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("region", { name: "Connection test report" }),
+    ).not.toBeInTheDocument();
+  });
+
   test("Close calls onClose and a late result after unmount is ignored", async (): Promise<void> => {
     const pending: ReturnType<typeof deferred> = deferred();
     const onClose: ReturnType<typeof jest.fn<() => void>> =
@@ -295,6 +331,113 @@ describe("InlineConnectionTest", () => {
     });
   });
 
+  test("a failed re-run clears the previous inline report", async (): Promise<void> => {
+    const runTest: ReturnType<
+      typeof jest.fn<() => Promise<SecurityConnectorTestReport>>
+    > = jest
+      .fn<() => Promise<SecurityConnectorTestReport>>()
+      .mockResolvedValueOnce(report())
+      .mockRejectedValueOnce(new Error("Kibana did not answer."));
+
+    render(
+      <InlineConnectionTest
+        providerTitle="Elastic Security"
+        runTest={runTest}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Test these settings" }),
+    );
+    expect(await screen.findByText("All checks passed")).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Run again" }));
+
+    expect(await screen.findByText("Kibana did not answer.")).toBeVisible();
+    expect(screen.queryByText("All checks passed")).not.toBeInTheDocument();
+  });
+
+  test("the report is hidden once the settings it was built from change", async (): Promise<void> => {
+    const runTest: ReturnType<
+      typeof jest.fn<() => Promise<SecurityConnectorTestReport>>
+    > = jest
+      .fn<() => Promise<SecurityConnectorTestReport>>()
+      .mockResolvedValue(report());
+
+    const view: ReturnType<typeof render> = render(
+      <InlineConnectionTest
+        providerTitle="Elastic Security"
+        runTest={runTest}
+        settingsKey="key-a"
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Test these settings" }),
+    );
+    expect(await screen.findByText("All checks passed")).toBeVisible();
+    expect(
+      screen.queryByText(INLINE_TEST_SETTINGS_CHANGED_MESSAGE),
+    ).not.toBeInTheDocument();
+
+    // The user pastes a different key: the green report for key A goes.
+    view.rerender(
+      <InlineConnectionTest
+        providerTitle="Elastic Security"
+        runTest={runTest}
+        settingsKey="key-b"
+      />,
+    );
+    expect(screen.queryByText("All checks passed")).not.toBeInTheDocument();
+    expect(
+      screen.getByText(INLINE_TEST_SETTINGS_CHANGED_MESSAGE),
+    ).toBeVisible();
+
+    // Testing again shows the report for the values the form holds now.
+    fireEvent.click(
+      screen.getByRole("button", { name: "Test these settings" }),
+    );
+    expect(await screen.findByText("All checks passed")).toBeVisible();
+    expect(runTest).toHaveBeenCalledTimes(2);
+    expect(
+      screen.queryByText(INLINE_TEST_SETTINGS_CHANGED_MESSAGE),
+    ).not.toBeInTheDocument();
+  });
+
+  test("an error from earlier settings is hidden once they change", async (): Promise<void> => {
+    const runTest: ReturnType<
+      typeof jest.fn<() => Promise<SecurityConnectorTestReport>>
+    > = jest
+      .fn<() => Promise<SecurityConnectorTestReport>>()
+      .mockRejectedValue(new Error("orgUrl must be an https URL."));
+
+    const view: ReturnType<typeof render> = render(
+      <InlineConnectionTest
+        providerTitle="Okta System Log"
+        runTest={runTest}
+        settingsKey="http"
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Test these settings" }),
+    );
+    expect(
+      await screen.findByText("orgUrl must be an https URL."),
+    ).toBeVisible();
+
+    view.rerender(
+      <InlineConnectionTest
+        providerTitle="Okta System Log"
+        runTest={runTest}
+        settingsKey="https"
+      />,
+    );
+    expect(
+      screen.queryByText("orgUrl must be an https URL."),
+    ).not.toBeInTheDocument();
+  });
+
   test("a disabled reason locks the button and says why", (): void => {
     const runTest: ReturnType<
       typeof jest.fn<() => Promise<SecurityConnectorTestReport>>
@@ -336,6 +479,53 @@ describe("InlineConnectionTest", () => {
     expect(
       await screen.findByText("Paste the Service Account JSON to test."),
     ).toBeVisible();
+  });
+});
+
+describe("connectionTestSettingsKey", () => {
+  test("is stable for the same body, changes with any value, and never carries the value", (): void => {
+    const secret: string = "sk-synthetic-never-in-a-key";
+    const first: string = connectionTestSettingsKey((): JSONObject => {
+      return { provider: "okta", secrets: { apiToken: secret } };
+    });
+
+    expect(first).toMatch(/^[0-9a-f]{16}$/);
+    expect(first).not.toContain(secret);
+    expect(
+      connectionTestSettingsKey((): JSONObject => {
+        return { provider: "okta", secrets: { apiToken: secret } };
+      }),
+    ).toBe(first);
+    expect(
+      connectionTestSettingsKey((): JSONObject => {
+        return { provider: "okta", secrets: { apiToken: `${secret}2` } };
+      }),
+    ).not.toBe(first);
+    // A removal (null) is a different setting from a blank (absent) value.
+    expect(
+      connectionTestSettingsKey((): JSONObject => {
+        return { provider: "okta", secrets: { apiToken: null } };
+      }),
+    ).not.toBe(
+      connectionTestSettingsKey((): JSONObject => {
+        return { provider: "okta", secrets: {} };
+      }),
+    );
+  });
+
+  test("a builder that throws gets a key from its message", (): void => {
+    const missingProvider: string = connectionTestSettingsKey(
+      (): JSONObject => {
+        throw new Error("Choose a provider before saving.");
+      },
+    );
+
+    expect(missingProvider).toMatch(/^[0-9a-f]{16}$/);
+    expect(
+      connectionTestSettingsKey((): JSONObject => {
+        throw new Error("Paste the Service Account JSON to test.");
+      }),
+    ).not.toBe(missingProvider);
   });
 });
 

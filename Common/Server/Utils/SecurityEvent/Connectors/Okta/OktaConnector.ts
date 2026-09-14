@@ -39,12 +39,20 @@ import OktaClient, {
 /*
  * Okta System Log connector.
  *
- * Polls log events by their `published` time — the time Okta wrote the
- * event to the System Log, which for this source is the event itself —
- * using the bounded form of GET /api/v1/logs (`since` and `until` both
- * set, `sortOrder=ASCENDING`) and following the Link rel="next" header
- * page by page until the last page (which carries no next link) or an
- * empty page; see OktaClient.
+ * Polls log events by their `published` time using the bounded form of
+ * GET /api/v1/logs (`since` and `until` both set, `sortOrder=ASCENDING`)
+ * and follows the Link rel="next" header page by page until the last page
+ * (which carries no next link) or an empty page; see OktaClient.
+ *
+ * Okta documents two things about bounded requests that shape this file
+ * and the catalog. Results are "guaranteed to be in order according to
+ * the published field", so when a bound stops a fetch every event
+ * published before the last one read has been read, and fetchEvents
+ * reports that `published` time as resumeAfter. And "Not all events for
+ * the specified time range may be present. Some events may be delayed."
+ * A delayed event lands behind a forward cursor, so the catalog gives
+ * Okta a 15 minute cursor overlap: each poll re-reads the 15 minutes
+ * before its cursor and the uuid dedupe drops what was already imported.
  *
  * Settings come from the catalog's keys: config.orgUrl, config.filter
  * (optional; the default filter selects the security-relevant event
@@ -482,8 +490,9 @@ export default class OktaConnector implements SecurityEventConnector {
   /*
    * Read every event published in the window, page by page, within the
    * request and event budgets. A budget hit returns complete=false with a
-   * warning so the poller holds its cursor and the next poll re-reads the
-   * same window; nothing is silently dropped.
+   * warning and resumeAfter set to the `published` time of the last event
+   * read, so the poller moves on from there instead of re-reading the
+   * same oldest events forever.
    */
   public async fetchEvents(
     settings: SecurityConnectorSettings,
@@ -515,12 +524,19 @@ export default class OktaConnector implements SecurityEventConnector {
     const endIso: string = window.endTime.toISOString();
     const seenIds: Set<string> = new Set<string>();
     let nextUrl: string | null = null;
+    /*
+     * `published` of the last event read. Bounded requests are ordered by
+     * `published`, so this is also the latest one read. Events the
+     * normalizer rejects still count: this measures how far the read got.
+     */
+    let lastPublished: Date | undefined = undefined;
 
     for (;;) {
       if (result.requestCount >= options.maxRequests) {
         result.complete = false;
+        result.resumeAfter = lastPublished;
         result.warnings.push(
-          `Stopped after ${options.maxRequests} requests with events still unread in the window ${startIso} to ${endIso}. The poll cursor is held so the next poll continues from the same window.`,
+          `Stopped after ${options.maxRequests} requests with events still unread in the window ${startIso} to ${endIso}. ${OktaConnector.progressSentence(lastPublished)}`,
         );
         break;
       }
@@ -557,13 +573,21 @@ export default class OktaConnector implements SecurityEventConnector {
 
         seenIds.add(key);
         result.fetchedCount += 1;
+
+        const published: Date | undefined = OktaConnector.readPublished(event);
+
+        if (published) {
+          lastPublished = published;
+        }
+
         this.collect(event, result, options.sampleLimit);
       }
 
       if (reachedEventBound) {
         result.complete = false;
+        result.resumeAfter = lastPublished;
         result.warnings.push(
-          `Stopped after collecting ${options.maxEvents} events; the window holds more. The poll cursor is held so the next poll continues from the same window.`,
+          `Stopped after collecting ${options.maxEvents} events; the window holds more. ${OktaConnector.progressSentence(lastPublished)}`,
         );
         break;
       }
@@ -641,6 +665,32 @@ export default class OktaConnector implements SecurityEventConnector {
     } catch {
       return "unreadable record";
     }
+  }
+
+  /*
+   * An event's `published` time as a Date, or undefined when it is
+   * missing or unparseable (such an event does not move the resume point).
+   */
+  private static readPublished(event: JSONObject): Date | undefined {
+    const value: string = OktaConnector.readText(event["published"]).trim();
+
+    if (!value) {
+      return undefined;
+    }
+
+    const parsed: Date = new Date(value);
+
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+  }
+
+  /*
+   * How far a stopped read got, in the warning the run records. The
+   * poller decides what the next poll does with it and says so itself.
+   */
+  private static progressSentence(lastPublished: Date | undefined): string {
+    return lastPublished
+      ? `The last event read was published at ${lastPublished.toISOString()}.`
+      : "No event read carried a readable published time, so no resume point is reported.";
   }
 
   private static readText(value: unknown): string {

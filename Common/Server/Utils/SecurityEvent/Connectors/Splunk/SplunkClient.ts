@@ -41,6 +41,15 @@ import { ConnectorTransport } from "../Types";
  *    ignored
  *    (https://community.splunk.com/t5/Getting-Data-In/REST-API-JSON-output-only-with-quot-result-quot-field-without/td-p/482318).
  *
+ *    An event search streams newest first, so a plain `| head N` keeps
+ *    the NEWEST rows of a window that holds more than N and the older
+ *    ones can never be reached. A window read therefore sorts first:
+ *    `sort 0 _time` ("If 0 is specified, all results are returned";
+ *    without a count sort stops at 10,000) orders the window ascending,
+ *    the default direction, so `head` keeps the OLDEST rows and the
+ *    connector can report where the next read resumes
+ *    (https://help.splunk.com/en/splunk-enterprise/search/spl-search-reference/10.0/search-commands/sort).
+ *
  *  - Authentication: `Authorization: Bearer <token>` for a Splunk
  *    authentication token
  *    (https://help.splunk.com/en/splunk-enterprise/administer/manage-users-and-security/10.4/authenticate-into-the-splunk-platform-with-tokens/use-authentication-tokens),
@@ -85,6 +94,20 @@ export interface SplunkClientOptions {
   searchString: string;
   transport: ConnectorTransport;
   requestTimeoutInMs: number;
+}
+
+export interface SplunkExportRequest {
+  startTime: Date;
+  endTime: Date;
+  maxResults: number;
+  /*
+   * Sort the window by `_time` ascending before the row cap, so a capped
+   * read keeps the oldest rows. Defaults to true because a window read
+   * that keeps the newest rows can never make progress; only a probe
+   * that does not care which row comes back turns it off, to avoid
+   * sorting a whole day on the search head for one row.
+   */
+  oldestFirst?: boolean | undefined;
 }
 
 export interface SplunkCurrentContext {
@@ -234,9 +257,10 @@ export default class SplunkClient {
   /*
    * The SPL sent for a window read: the tenant's selector, every field
    * (the export of a plain `search` otherwise omits fields the search
-   * did not reference), and a hard row cap so the body is bounded.
+   * did not reference), an ascending `_time` sort when the read must
+   * keep the oldest rows, and a hard row cap so the body is bounded.
    */
-  public buildExportSearch(maxRows: number): string {
+  public buildExportSearch(maxRows: number, oldestFirst: boolean): string {
     /*
      * The row cap may be the ceiling plus the one probe row exportSearch
      * adds to observe "there was more"; anything beyond that is refused.
@@ -246,7 +270,13 @@ export default class SplunkClient {
         ? 1
         : Math.min(Math.floor(maxRows), SPLUNK_MAX_EXPORT_ROWS + 1);
 
-    return `search ${this.searchString} | fields * | head ${rows}`;
+    /*
+     * `sort 0`, not `sort`: without a count sort returns at most 10,000
+     * rows, which would silently cap the read below the probe row.
+     */
+    const order: string = oldestFirst ? " | sort 0 _time" : "";
+
+    return `search ${this.searchString} | fields *${order} | head ${rows}`;
   }
 
   public buildCountSearch(): string {
@@ -338,21 +368,21 @@ export default class SplunkClient {
   }
 
   /*
-   * Rows the search returns in [startTime, endTime), at most maxResults.
-   * One extra row is requested so "there was more" is observed rather
-   * than inferred from a full page.
+   * Rows the search returns in [startTime, endTime), at most maxResults,
+   * oldest first unless the caller opts out. One extra row is requested
+   * so "there was more" is observed rather than inferred from a full
+   * page.
    */
-  public async exportSearch(data: {
-    startTime: Date;
-    endTime: Date;
-    maxResults: number;
-  }): Promise<SplunkExportResult> {
+  public async exportSearch(
+    data: SplunkExportRequest,
+  ): Promise<SplunkExportResult> {
     const cap: number = SplunkClient.clampRows(data.maxResults);
     const probe: number = Math.min(cap + 1, SPLUNK_MAX_EXPORT_ROWS + 1);
+    const oldestFirst: boolean = data.oldestFirst !== false;
 
     const { rows, apiVersion } = await this.runExport(
       "search export",
-      this.buildExportSearch(probe),
+      this.buildExportSearch(probe, oldestFirst),
       data.startTime,
       data.endTime,
     );
@@ -671,7 +701,7 @@ export default class SplunkClient {
         "Splunk reported a server-side error (a search head under load, or a search that hit a limit). The next poll retries the same window.";
     } else if (status === 400) {
       hint =
-        "Splunk rejected the search. Check the Search setting for a syntax error; the connector only adds the time range, `| fields *` and `| head`.";
+        "Splunk rejected the search. Check the Search setting for a syntax error; the connector only adds the time range, `| fields *`, `| sort 0 _time` and `| head`.";
     }
 
     return hint ? ` — ${hint}` : "";

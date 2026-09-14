@@ -25,9 +25,15 @@ import { ConnectorTransport } from "../Types";
  *
  *  - `since` / `until` are ISO 8601 bounds on the events' `published`
  *    time. A request with both is a "bounded request": results are
- *    ordered by `published`, the page count is finite, and the last page
- *    carries no `next` link. That is the creation-time basis the poller
- *    needs — `published` is when Okta wrote the event.
+ *    filtered and ordered by `published`, the page count is finite, and
+ *    the last page carries no `next` link. The guide also warns that for
+ *    a bounded request "Not all events for the specified time range may
+ *    be present. Some events may be delayed." The poller therefore starts
+ *    each Okta window 15 minutes before its cursor (the catalog's
+ *    cursorOverlapInMinutes) and the connector's uuid dedupe drops what
+ *    the overlap re-reads. A polling request (no `until`) returns every
+ *    event but in persistence order, out of order by `published`, with an
+ *    endless next link, so it cannot report a resume point per window.
  *  - `limit` is 0..1000 (default 100). `sortOrder` is ASCENDING or
  *    DESCENDING. `filter` is a SCIM-style expression (eq, ne, co, sw, ew,
  *    pr, gt, ge, lt, le with and/or); an invalid one answers HTTP 400.

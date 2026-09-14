@@ -67,6 +67,10 @@ const SENTINEL: SecurityEventConnectorDefinition =
   getSecurityEventConnectorDefinition(
     SecurityEventConnectorProvider.MicrosoftSentinel,
   )!;
+const AWS: SecurityEventConnectorDefinition =
+  getSecurityEventConnectorDefinition(
+    SecurityEventConnectorProvider.AwsSecurityHub,
+  )!;
 const SECRET_VALUE: string = "okta-api-token-3f2e1d";
 const ROTATED_SECRET: string = "okta-api-token-rotated-9a8b";
 
@@ -450,6 +454,93 @@ describe("SecurityEventConnectionService.validateFields", () => {
     }).toThrow(
       `Credentials contains an unknown setting "password" for ${OKTA.title}.`,
     );
+  });
+});
+
+describe("SecurityEventConnectionService.mergeSecrets", () => {
+  /*
+   * The one rule both a save and the /test overlay apply (review finding
+   * optional-secret-cannot-be-cleared): a value replaces, "" or undefined
+   * keeps, null removes.
+   */
+  const STORED: JSONObject = {
+    secretAccessKey: SECRET_VALUE,
+    sessionToken: "session-1",
+  };
+
+  test("a value replaces the stored key and untouched keys stay", () => {
+    expect(
+      SecurityEventConnectionServiceType.mergeSecrets({
+        definition: AWS,
+        stored: STORED,
+        provided: { secretAccessKey: ROTATED_SECRET },
+      }),
+    ).toEqual({ secretAccessKey: ROTATED_SECRET, sessionToken: "session-1" });
+  });
+
+  test.each(["", undefined])("%j keeps the stored value", (blank: unknown) => {
+    expect(
+      SecurityEventConnectionServiceType.mergeSecrets({
+        definition: AWS,
+        stored: STORED,
+        provided: { sessionToken: blank as never },
+      }),
+    ).toEqual(STORED);
+  });
+
+  test("null removes the stored key", () => {
+    const merged: JSONObject = SecurityEventConnectionServiceType.mergeSecrets({
+      definition: AWS,
+      stored: STORED,
+      provided: { sessionToken: null },
+    });
+
+    expect(merged).toEqual({ secretAccessKey: SECRET_VALUE });
+    expect(merged).not.toHaveProperty("sessionToken");
+  });
+
+  test("null for a known credential that is not stored is a harmless no-op", () => {
+    expect(
+      SecurityEventConnectionServiceType.mergeSecrets({
+        definition: AWS,
+        stored: { secretAccessKey: SECRET_VALUE },
+        provided: { sessionToken: null },
+      }),
+    ).toEqual({ secretAccessKey: SECRET_VALUE });
+  });
+
+  test("never mutates the stored object it was given", () => {
+    const stored: JSONObject = { ...STORED };
+
+    SecurityEventConnectionServiceType.mergeSecrets({
+      definition: AWS,
+      stored,
+      provided: { sessionToken: null, secretAccessKey: ROTATED_SECRET },
+    });
+
+    expect(stored).toEqual(STORED);
+  });
+
+  test("null naming a key that is neither a credential nor stored is refused as a typo", () => {
+    expect(() => {
+      SecurityEventConnectionServiceType.mergeSecrets({
+        definition: AWS,
+        stored: STORED,
+        provided: { sesionToken: null },
+      });
+    }).toThrow(
+      `Credentials contains an unknown setting "sesionToken" for ${AWS.title}.`,
+    );
+  });
+
+  test("null may remove a stored key the catalog no longer knows, so the row can be repaired", () => {
+    expect(
+      SecurityEventConnectionServiceType.mergeSecrets({
+        definition: OKTA,
+        stored: { apiToken: SECRET_VALUE, retiredKey: "old" },
+        provided: { retiredKey: null },
+      }),
+    ).toEqual({ apiToken: SECRET_VALUE });
   });
 });
 
@@ -859,7 +950,11 @@ describe("SecurityEventConnectionService.onBeforeUpdate", () => {
     ]);
   });
 
-  test.each(["", null, undefined])(
+  /*
+   * null used to be listed here too. It now removes the stored key (review
+   * finding optional-secret-cannot-be-cleared); see the tests below.
+   */
+  test.each(["", undefined])(
     "a secret submitted as %j keeps the stored value (edit forms cannot echo secrets back)",
     async (blank: unknown) => {
       const result: OnUpdate<SecurityEventConnection> =
@@ -938,6 +1033,85 @@ describe("SecurityEventConnectionService.onBeforeUpdate", () => {
         updateBy({ secrets: { apiToken: ROTATED_SECRET } }),
       ),
     ).rejects.toThrow("The connection no longer exists.");
+  });
+
+  test("a null optional secret removes the stored key, from what is validated and from what is stored", async () => {
+    /*
+     * The AWS case from review finding optional-secret-cannot-be-cleared:
+     * temporary STS credentials replaced by a long-lived key. A session
+     * token left stored would be sent with the new key and every call
+     * would be rejected.
+     */
+    findOneById.mockResolvedValue(
+      storedConnection({
+        provider: SecurityEventConnectorProvider.AwsSecurityHub,
+        config: { region: "us-east-1", accessKeyId: "ASIA1" },
+        secrets: JSON.stringify({
+          secretAccessKey: SECRET_VALUE,
+          sessionToken: "session-1",
+        }),
+      }) as never,
+    );
+
+    const result: OnUpdate<SecurityEventConnection> =
+      await service.onBeforeUpdate(
+        updateBy({
+          config: { region: "us-east-1", accessKeyId: "AKIA2" },
+          secrets: { secretAccessKey: ROTATED_SECRET, sessionToken: null },
+        }),
+      );
+
+    const stored: JSONObject = result.updateBy.data as unknown as JSONObject;
+    expect(JSON.parse(stored["secrets"] as string)).toEqual({
+      secretAccessKey: ROTATED_SECRET,
+    });
+    expect(connectorValidateCalls).toEqual([
+      {
+        provider: SecurityEventConnectorProvider.AwsSecurityHub,
+        config: { region: "us-east-1", accessKeyId: "AKIA2" },
+        secrets: { secretAccessKey: ROTATED_SECRET },
+        alertingOnly: true,
+      },
+    ]);
+  });
+
+  test("a null secret sent as a JSON string removes the key too, and blank siblings keep theirs", async () => {
+    // The Splunk case: a revoked token cleared in favour of username and password.
+    findOneById.mockResolvedValue(
+      storedConnection({
+        provider: SecurityEventConnectorProvider.SplunkEnterpriseSecurity,
+        config: { url: "https://splunk.example.com:8089", username: "svc" },
+        secrets: JSON.stringify({ apiToken: SECRET_VALUE, password: "old" }),
+      }) as never,
+    );
+
+    const result: OnUpdate<SecurityEventConnection> =
+      await service.onBeforeUpdate(
+        updateBy({
+          secrets: JSON.stringify({ apiToken: null, password: "" }),
+        }),
+      );
+
+    const stored: JSONObject = result.updateBy.data as unknown as JSONObject;
+    expect(JSON.parse(stored["secrets"] as string)).toEqual({
+      password: "old",
+    });
+  });
+
+  test("clearing a required secret with null is rejected with the field title and nothing reaches the provider", async () => {
+    await expect(
+      service.onBeforeUpdate(updateBy({ secrets: { apiToken: null } })),
+    ).rejects.toThrow(`API token is required for ${OKTA.title}.`);
+    expect(connectorValidateCalls).toHaveLength(0);
+  });
+
+  test("a null for an unknown credential key is refused instead of silently keeping the stored credential", async () => {
+    await expect(
+      service.onBeforeUpdate(updateBy({ secrets: { apiTokn: null } })),
+    ).rejects.toThrow(
+      `Credentials contains an unknown setting "apiTokn" for ${OKTA.title}.`,
+    );
+    expect(connectorValidateCalls).toHaveLength(0);
   });
 
   test("the merged secrets must still satisfy the catalog", async () => {

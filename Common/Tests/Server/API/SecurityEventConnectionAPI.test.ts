@@ -514,7 +514,12 @@ describe("POST /security-event-connection/test - saved connection", () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  test.each([null, undefined])(
+  /*
+   * null used to be listed here too. It now removes the stored key, the
+   * same rule a save applies (review finding
+   * optional-secret-cannot-be-cleared); see the tests below.
+   */
+  test.each(["", undefined])(
     "a %j secret value keeps the stored one too",
     async (value: unknown) => {
       req.body = {
@@ -528,6 +533,102 @@ describe("POST /security-event-connection/test - saved connection", () => {
       expect(call.secrets).toEqual({ apiToken: STORED_SECRET });
     },
   );
+
+  test("a null optional secret is removed from the overlay, so the test runs without the stale credential", async () => {
+    const awsSettings: SecurityConnectorSettings = {
+      provider: SecurityEventConnectorProvider.AwsSecurityHub,
+      config: { region: "us-east-1", accessKeyId: "ASIA1" },
+      secrets: { secretAccessKey: STORED_SECRET, sessionToken: "session-1" },
+      alertingOnly: true,
+    };
+    loaded.provider = SecurityEventConnectorProvider.AwsSecurityHub;
+    (
+      SecurityEventConnectionService.getConnectorSettings as jest.Mock
+    ).mockResolvedValue(awsSettings);
+    (
+      SecurityEventConnectionServiceType.validateSettings as jest.Mock
+    ).mockImplementation(
+      async (data: {
+        provider: unknown;
+        config: JSONObject;
+        secrets: JSONObject;
+        alertingOnly: boolean;
+      }): Promise<SecurityConnectorSettings> => {
+        return {
+          provider: SecurityEventConnectorProvider.AwsSecurityHub,
+          config: data.config,
+          secrets: data.secrets,
+          alertingOnly: data.alertingOnly,
+        };
+      },
+    );
+    req.body = {
+      connectionId: CONNECTION.toString(),
+      config: { region: "us-east-1", accessKeyId: "AKIA2" },
+      secrets: { secretAccessKey: NEW_SECRET, sessionToken: null },
+    };
+
+    await testHandler(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(
+      SecurityEventConnectionServiceType.validateSettings,
+    ).toHaveBeenCalledWith({
+      provider: SecurityEventConnectorProvider.AwsSecurityHub,
+      config: { region: "us-east-1", accessKeyId: "AKIA2" },
+      secrets: { secretAccessKey: NEW_SECRET },
+      alertingOnly: true,
+      requireRequiredSecrets: true,
+    });
+    expect(SecurityEventConnectionTester.test).toHaveBeenCalledWith({
+      settings: expect.objectContaining({
+        secrets: { secretAccessKey: NEW_SECRET },
+      }),
+      connection: loaded,
+    });
+    expect(SecurityEventConnectionService.updateOneById).not.toHaveBeenCalled();
+  });
+
+  test("clearing a required secret in the overlay is a 400 naming the field, and nothing is tested", async () => {
+    // The real validation, so the message is the one a save would return.
+    (
+      SecurityEventConnectionServiceType.validateSettings as jest.Mock
+    ).mockRestore();
+    req.body = {
+      connectionId: CONNECTION.toString(),
+      secrets: { apiToken: null },
+    };
+
+    await testHandler(req, res, next);
+
+    expect(next).toHaveBeenCalledWith(expect.any(BadDataException));
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "API token is required for Okta System Log.",
+      }),
+    );
+    expect(SecurityEventConnectionTester.test).not.toHaveBeenCalled();
+  });
+
+  test("a null for a key that is neither a credential nor stored is a 400, not a silent no-op", async () => {
+    req.body = {
+      connectionId: CONNECTION.toString(),
+      secrets: { apiTokn: null },
+    };
+
+    await testHandler(req, res, next);
+
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message:
+          'Credentials contains an unknown setting "apiTokn" for Okta System Log.',
+      }),
+    );
+    expect(
+      SecurityEventConnectionServiceType.validateSettings,
+    ).not.toHaveBeenCalled();
+    expect(SecurityEventConnectionTester.test).not.toHaveBeenCalled();
+  });
 
   test.each([
     Permission.SecurityMember,

@@ -2,8 +2,10 @@ import { describe, expect, test } from "@jest/globals";
 import AwsSecurityHubClient, {
   AWS_SECURITY_HUB_DEFAULT_PAGE_SIZE,
   AWS_SECURITY_HUB_MAX_PAGE_SIZE,
+  AwsSecurityHubFailureKind,
   AwsSecurityHubFindingCount,
   AwsSecurityHubFindingsPage,
+  AwsSecurityHubHttpError,
   AwsSigV4SignResult,
 } from "../../../../../../Server/Utils/SecurityEvent/Connectors/AwsSecurityHub/AwsSecurityHubClient";
 import {
@@ -723,10 +725,17 @@ describe("AwsSecurityHubClient", () => {
           "The security token included in the request is expired",
           "temporary credentials have expired",
         ],
+        /*
+         * This case used to expect the wrong-secret hint. "Signature
+         * expired" shares InvalidSignatureException with a wrong secret but
+         * means the host clock is off (review finding
+         * aws-signature-errors-reported-as-iam-permission), so the hint now
+         * points at NTP.
+         */
         [
           "InvalidSignatureException",
           "Signature expired: 20260913T100507Z is now earlier than 20260913T101000Z (20260913T101500Z - 5 min.)",
-          "Secret access key does not match",
+          "Fix NTP",
         ],
       ];
 
@@ -748,6 +757,194 @@ describe("AwsSecurityHubClient", () => {
         );
         expect(error.message).toContain(code);
         expect(error.message).toContain(hint);
+        expect(error).toBeInstanceOf(AwsSecurityHubHttpError);
+        expect((error as AwsSecurityHubHttpError).failureKind).toBe(
+          "authentication",
+        );
+      }
+    });
+
+    /*
+     * Review finding aws-signature-errors-reported-as-iam-permission: the
+     * production transport throws "Data source responded with HTTP <n>:
+     * <body>" and drops x-amzn-errortype, and a signature rejection's body
+     * is only {"message": ...}. The code is recovered from AWS's wording,
+     * so these are authentication failures with the key or clock hint,
+     * never "the credentials are valid" with IAM guidance.
+     */
+    test.each<
+      [string, number, string, string, AwsSecurityHubFailureKind, string]
+    >([
+      [
+        "a wrong secret",
+        403,
+        "The request signature we calculated does not match the signature you provided. Check your AWS Secret Access Key and signing method.",
+        "InvalidSignatureException",
+        "authentication",
+        "Secret access key does not match",
+      ],
+      [
+        "an unknown key or stray session token",
+        403,
+        "The security token included in the request is invalid.",
+        "UnrecognizedClientException",
+        "authentication",
+        "does not recognize the Access key ID",
+      ],
+      [
+        "an expired session token",
+        403,
+        "The security token included in the request is expired",
+        "ExpiredTokenException",
+        "authentication",
+        "temporary credentials have expired",
+      ],
+      [
+        "an expired signature",
+        403,
+        "Signature expired: 20260913T100507Z is now earlier than 20260913T101000Z (20260913T101500Z - 5 min.)",
+        "InvalidSignatureException",
+        "authentication",
+        "Fix NTP",
+      ],
+      [
+        "an IAM denial",
+        403,
+        "User: arn:aws:iam::193043430472:user/oneuptime is not authorized to perform: securityhub:GetFindings",
+        "AccessDeniedException",
+        "authorization",
+        "AWSSecurityHubReadOnlyAccess",
+      ],
+      [
+        "a 403 that names nothing",
+        403,
+        "Forbidden",
+        "",
+        "other",
+        "without naming an error code",
+      ],
+    ])(
+      "classifies %s behind the production transport",
+      async (
+        _label: string,
+        httpStatus: number,
+        awsMessage: string,
+        expectedCode: string,
+        expectedKind: AwsSecurityHubFailureKind,
+        hint: string,
+      ) => {
+        const harness: Harness = buildHarness({
+          responders: [
+            (): Promise<DataSourceHttpResponse> => {
+              throw new BadDataException(
+                `Data source responded with HTTP ${httpStatus}: ${JSON.stringify(
+                  {
+                    message: awsMessage,
+                  },
+                )}`,
+              );
+            },
+          ],
+        });
+
+        const error: APIException = await expectRejection(
+          harness.client.getFindings({ startTime: START, endTime: END }),
+        );
+
+        expect(error).toBeInstanceOf(AwsSecurityHubHttpError);
+
+        const httpError: AwsSecurityHubHttpError =
+          error as AwsSecurityHubHttpError;
+        expect(httpError.statusCode).toBe(httpStatus);
+        expect(httpError.errorCode).toBe(expectedCode);
+        expect(httpError.failureKind).toBe(expectedKind);
+        expect(error.message).toMatch(
+          new RegExp(
+            `^AWS Security Hub findings request failed \\(HTTP ${httpStatus}\\): `,
+          ),
+        );
+        expect(error.message).toContain(hint);
+
+        if (expectedKind !== "authorization") {
+          expect(error.message).not.toContain("verified the signature");
+          expect(error.message).not.toContain("AWSSecurityHubReadOnlyAccess");
+        }
+      },
+    );
+
+    test("classifies InvalidAccessException as authorization at the 401 the API reference documents", async () => {
+      const harness: Harness = buildHarness({
+        responders: [
+          (): Promise<DataSourceHttpResponse> => {
+            throw new BadDataException(
+              `Data source responded with HTTP 401: ${JSON.stringify({
+                Code: "InvalidAccessException",
+                Message:
+                  "Account 193043430472 is not subscribed to AWS Security Hub",
+              })}`,
+            );
+          },
+        ],
+      });
+
+      const error: APIException = await expectRejection(
+        harness.client.getFindings({ startTime: START, endTime: END }),
+      );
+
+      expect((error as AwsSecurityHubHttpError).errorCode).toBe(
+        "InvalidAccessException",
+      );
+      expect((error as AwsSecurityHubHttpError).failureKind).toBe(
+        "authorization",
+      );
+      expect(error.message).toContain("Security Hub is not enabled");
+      expect(error.message).not.toContain("AWS refused the credentials");
+    });
+
+    test("a declared code wins over the message wording, and wording is only a fallback", () => {
+      expect(
+        AwsSecurityHubClient.errorCode({
+          bodyJson: {
+            __type: "AccessDeniedException",
+            message: "The security token included in the request is invalid.",
+          },
+        }),
+      ).toBe("AccessDeniedException");
+      expect(
+        AwsSecurityHubClient.errorCode({
+          bodyJson: undefined,
+          bodyText:
+            "<html>The request signature we calculated does not match</html>",
+        }),
+      ).toBe("InvalidSignatureException");
+      expect(
+        AwsSecurityHubClient.errorCodeFromMessage(
+          "The security token included in the request is expired",
+        ),
+      ).toBe("ExpiredTokenException");
+      expect(
+        AwsSecurityHubClient.errorCodeFromMessage("Service Unavailable"),
+      ).toBe("");
+    });
+
+    test("only AccessDeniedException and InvalidAccessException are authorization failures", () => {
+      const cases: Array<[number, string, AwsSecurityHubFailureKind]> = [
+        [403, "AccessDeniedException", "authorization"],
+        [401, "InvalidAccessException", "authorization"],
+        [403, "InvalidAccessException", "authorization"],
+        [403, "InvalidSignatureException", "authentication"],
+        [403, "UnrecognizedClientException", "authentication"],
+        [400, "IncompleteSignatureException", "authentication"],
+        [401, "", "authentication"],
+        [403, "", "other"],
+        [429, "LimitExceededException", "other"],
+        [500, "InternalException", "other"],
+      ];
+
+      for (const [httpStatus, code, kind] of cases) {
+        expect(AwsSecurityHubClient.classifyFailure(httpStatus, code)).toBe(
+          kind,
+        );
       }
     });
 

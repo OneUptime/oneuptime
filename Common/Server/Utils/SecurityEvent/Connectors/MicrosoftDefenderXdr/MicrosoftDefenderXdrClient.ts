@@ -27,10 +27,12 @@ import { ConnectorTransport } from "../Types";
  *    (https://learn.microsoft.com/en-us/graph/api/security-list-alerts_v2).
  *    The reference documents `$count`, `$filter`, `$skip`, `$top` and
  *    `@odata.nextLink` for paging, and names createdDateTime among the
- *    filterable properties. It does NOT document `$orderby`, so this
- *    client never sends one: the poller reads the whole window across
- *    pages and holds its cursor when a bound stops it, so record order
- *    within the window is irrelevant to correctness.
+ *    filterable properties. It does NOT document `$orderby` (checked
+ *    2026-09-14), and says "The most recent alerts are displayed at the
+ *    top of the list", so this client never sends one. Because pages are
+ *    not in ascending creation order, the connector never reports a
+ *    resume point when a bound stops a read; the poller narrows the
+ *    window from the same start until it can be read completely.
  *
  * Every request goes through the injected ConnectorTransport (the
  * SSRF-guarded DataSourceHttpFetch in production). Errors are thrown as

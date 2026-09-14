@@ -10,17 +10,18 @@ import SecurityEventService from "../../../../../Server/Services/SecurityEventSe
 import logger from "../../../../../Server/Utils/Logger";
 import ConnectorErrorMessage from "../../../../../Server/Utils/SecurityEvent/ConnectorErrorMessage";
 import SecurityEventConnectionPoller, {
+  DEFAULT_CURSOR_OVERLAP_IN_MINUTES,
   DEFAULT_INITIAL_LOOKBACK_IN_MINUTES,
+  MAX_CHUNK_MINUTES,
   MAX_DIAGNOSTIC_SAMPLES,
   MAX_EVENTS_PER_RUN,
   MAX_FETCH_REQUESTS,
-  MAX_LOOKBACK_IN_MINUTES,
   MAX_RANGE_MS,
+  MIN_CHUNK_MINUTES,
   POLL_REQUEST_TIMEOUT_IN_MS,
   PollerOverrides,
   RecordedConnectionPollFailure,
   SECURITY_EVENT_SOURCE_LOCK_NAMESPACE,
-  WINDOW_OVERLAP_IN_MINUTES,
 } from "../../../../../Server/Utils/SecurityEvent/Connectors/SecurityEventConnectionPoller";
 import SecurityEventConnectorRegistry from "../../../../../Server/Utils/SecurityEvent/Connectors/SecurityEventConnectorRegistry";
 import {
@@ -33,6 +34,7 @@ import {
 } from "../../../../../Server/Utils/SecurityEvent/Connectors/Types";
 import SecurityEventDedupe from "../../../../../Server/Utils/SecurityEvent/SecurityEventDedupe";
 import ThreatIntelEnricher from "../../../../../Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelEnricher";
+import OneUptimeDate from "../../../../../Types/Date";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -41,7 +43,9 @@ import {
   SecurityEventConnectionRunOptions,
   SecurityEventConnectionRunResult,
 } from "../../../../../Types/SecurityEvent/Connectors/SecurityEventConnectionDiagnostics";
-import SecurityEventConnectorProvider from "../../../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+import SecurityEventConnectorProvider, {
+  AllSecurityEventConnectorProviders,
+} from "../../../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import {
   SecurityEventConnectorDefinition,
   getSecurityEventConnectorDefinition,
@@ -97,6 +101,11 @@ const DEFINITION: SecurityEventConnectorDefinition =
   getSecurityEventConnectorDefinition(PROVIDER)!;
 const SECRET_VALUE: string = "ssws-token-9f8e7d6c5b4a";
 const MINUTE_MS: number = 60 * 1000;
+/*
+ * Okta's catalog overlap (15 minutes) is deliberately not the default, so
+ * the window tests below prove the poller uses the provider's own value.
+ */
+const OVERLAP_MINUTES: number = DEFINITION.cursorOverlapInMinutes;
 
 const SETTINGS: SecurityConnectorSettings = {
   provider: PROVIDER,
@@ -362,11 +371,13 @@ afterEach(() => {
 });
 
 describe("SecurityEventConnectionPoller constants", () => {
-  test("the first window is a full day and catch-up chunks are a day with a minute of overlap", () => {
+  test("the first window is a full day and the adaptive chunk runs from one minute to a day", () => {
     expect(DEFAULT_INITIAL_LOOKBACK_IN_MINUTES).toBe(24 * 60);
-    expect(MAX_LOOKBACK_IN_MINUTES).toBe(24 * 60);
-    expect(WINDOW_OVERLAP_IN_MINUTES).toBe(1);
+    expect(MAX_CHUNK_MINUTES).toBe(24 * 60);
+    expect(MIN_CHUNK_MINUTES).toBe(1);
+    expect(DEFAULT_CURSOR_OVERLAP_IN_MINUTES).toBe(1);
     expect(MAX_RANGE_MS).toBe(7 * 24 * 60 * 60 * 1000);
+    expect(OVERLAP_MINUTES).not.toBe(DEFAULT_CURSOR_OVERLAP_IN_MINUTES);
   });
 
   test("every fetch is bounded in requests, records and time", () => {
@@ -396,9 +407,14 @@ describe("SecurityEventConnectionPoller.getWindow", () => {
     );
     expect(window.hasUsableCursor).toBe(false);
     expect(window.warnings).toEqual([]);
+    expect(window.progressFrom?.toISOString()).toBe(
+      window.startTime.toISOString(),
+    );
+    expect(window.chunkMinutes).toBe(MAX_CHUNK_MINUTES);
+    expect(window.overlapInMinutes).toBe(OVERLAP_MINUTES);
   });
 
-  test("a cursor poll starts one minute before the cursor and ends now", () => {
+  test("a cursor poll starts the provider's overlap before the cursor and ends now", () => {
     const cursor: Date = new Date(NOW.getTime() - 5 * MINUTE_MS);
     const window: ReturnType<typeof SecurityEventConnectionPoller.getWindow> =
       SecurityEventConnectionPoller.getWindow(
@@ -408,16 +424,22 @@ describe("SecurityEventConnectionPoller.getWindow", () => {
       );
 
     expect(window.startTime.toISOString()).toBe(
-      new Date(
-        cursor.getTime() - WINDOW_OVERLAP_IN_MINUTES * MINUTE_MS,
-      ).toISOString(),
+      new Date(cursor.getTime() - OVERLAP_MINUTES * MINUTE_MS).toISOString(),
     );
     expect(window.endTime.toISOString()).toBe(NOW.toISOString());
     expect(window.hasUsableCursor).toBe(true);
     expect(window.warnings).toEqual([]);
+    // The chunk counts only the new ground past the cursor, not the overlap.
+    expect(window.progressFrom?.toISOString()).toBe(cursor.toISOString());
+    expect(window.chunkMinutes).toBe(5);
   });
 
-  test("a stale cursor is caught up in 24 hour chunks with a warning", () => {
+  test("a stale cursor is caught up in 24 hour chunks past the cursor with a warning", () => {
+    /*
+     * Review finding F1 correction: the chunk is measured from the cursor,
+     * so a catch-up window is a day plus the overlap long (it used to be
+     * exactly a day from the window start).
+     */
     const cursor: Date = new Date(NOW.getTime() - 7 * 24 * 60 * MINUTE_MS);
     const window: ReturnType<typeof SecurityEventConnectionPoller.getWindow> =
       SecurityEventConnectionPoller.getWindow(
@@ -428,21 +450,22 @@ describe("SecurityEventConnectionPoller.getWindow", () => {
 
     expect(window.hasUsableCursor).toBe(true);
     expect(window.endTime.getTime() - window.startTime.getTime()).toBe(
-      MAX_LOOKBACK_IN_MINUTES * MINUTE_MS,
+      (MAX_CHUNK_MINUTES + OVERLAP_MINUTES) * MINUTE_MS,
+    );
+    expect(window.endTime.toISOString()).toBe(
+      new Date(cursor.getTime() + MAX_CHUNK_MINUTES * MINUTE_MS).toISOString(),
     );
     expect(window.endTime.getTime()).toBeLessThan(NOW.getTime());
-    expect(window.warnings).toHaveLength(1);
-    expect(window.warnings[0]).toContain("Catching up");
+    expect(window.chunkMinutes).toBe(MAX_CHUNK_MINUTES);
+    expect(window.warnings).toEqual([
+      "Catching up from the saved cursor in 24 hour windows. Later records will be fetched by subsequent polls.",
+    ]);
   });
 
   test("a cursor exactly one chunk behind is not chunked", () => {
-    /*
-     * The chunk end is start + 24h where start is cursor - 1 minute, so a
-     * cursor 24h - 1min old lands the chunk end exactly on now.
-     */
+    // Review finding F1 correction: the chunk end is cursor + 24h, so a cursor exactly a day old lands it on now.
     const cursor: Date = new Date(
-      NOW.getTime() -
-        (MAX_LOOKBACK_IN_MINUTES - WINDOW_OVERLAP_IN_MINUTES) * MINUTE_MS,
+      NOW.getTime() - MAX_CHUNK_MINUTES * MINUTE_MS,
     );
     const window: ReturnType<typeof SecurityEventConnectionPoller.getWindow> =
       SecurityEventConnectionPoller.getWindow(
@@ -453,6 +476,97 @@ describe("SecurityEventConnectionPoller.getWindow", () => {
 
     expect(window.endTime.toISOString()).toBe(NOW.toISOString());
     expect(window.warnings).toEqual([]);
+    expect(window.chunkMinutes).toBe(MAX_CHUNK_MINUTES);
+  });
+
+  test("the chunk comes from the previous poll's nextChunkMinutes and is measured from the cursor", () => {
+    const cursor: Date = new Date(NOW.getTime() - 3 * 24 * 60 * MINUTE_MS);
+    const window: ReturnType<typeof SecurityEventConnectionPoller.getWindow> =
+      SecurityEventConnectionPoller.getWindow(
+        makeConnection({
+          cursor: cursor.toISOString(),
+          lastPollResult: { nextChunkMinutes: 90 },
+        }),
+        { type: "poll" },
+        NOW,
+      );
+
+    expect(window.startTime.toISOString()).toBe(
+      new Date(cursor.getTime() - OVERLAP_MINUTES * MINUTE_MS).toISOString(),
+    );
+    expect(window.endTime.toISOString()).toBe(
+      new Date(cursor.getTime() + 90 * MINUTE_MS).toISOString(),
+    );
+    expect(window.chunkMinutes).toBe(90);
+    expect(window.warnings).toEqual([
+      "Catching up from the saved cursor in 90 minute windows. Later records will be fetched by subsequent polls.",
+    ]);
+  });
+
+  test("a chunk no longer than the overlap still ends after the cursor, so the cursor can always move forward", () => {
+    /*
+     * Review finding F1 correction: measured from the window start, a one
+     * minute chunk with a 15 minute overlap would end 14 minutes BEFORE the
+     * cursor, and neither a complete read nor a forced advance could move
+     * the cursor forward again.
+     */
+    const cursor: Date = new Date(NOW.getTime() - 3 * 24 * 60 * MINUTE_MS);
+    const window: ReturnType<typeof SecurityEventConnectionPoller.getWindow> =
+      SecurityEventConnectionPoller.getWindow(
+        makeConnection({
+          cursor: cursor.toISOString(),
+          lastPollResult: { nextChunkMinutes: MIN_CHUNK_MINUTES },
+        }),
+        { type: "poll" },
+        NOW,
+      );
+
+    expect(OVERLAP_MINUTES).toBeGreaterThan(MIN_CHUNK_MINUTES);
+    expect(window.endTime.getTime()).toBe(
+      cursor.getTime() + MIN_CHUNK_MINUTES * MINUTE_MS,
+    );
+    expect(window.endTime.getTime()).toBeGreaterThan(cursor.getTime());
+    expect(window.chunkMinutes).toBe(MIN_CHUNK_MINUTES);
+  });
+
+  test("a chunk longer than the time since the cursor ends now and records the minutes used, rounded up", () => {
+    const cursor: Date = new Date(NOW.getTime() - 4.5 * MINUTE_MS);
+    const window: ReturnType<typeof SecurityEventConnectionPoller.getWindow> =
+      SecurityEventConnectionPoller.getWindow(
+        makeConnection({
+          cursor: cursor.toISOString(),
+          lastPollResult: { nextChunkMinutes: 720 },
+        }),
+        { type: "poll" },
+        NOW,
+      );
+
+    expect(window.endTime.toISOString()).toBe(NOW.toISOString());
+    expect(window.chunkMinutes).toBe(5);
+    expect(window.warnings).toEqual([]);
+  });
+
+  test("without a usable cursor a narrowed chunk is measured from the start of the default window", () => {
+    const window: ReturnType<typeof SecurityEventConnectionPoller.getWindow> =
+      SecurityEventConnectionPoller.getWindow(
+        makeConnection({
+          cursor: "yesterday-ish",
+          lastPollResult: { nextChunkMinutes: 30 },
+        }),
+        { type: "poll" },
+        NOW,
+      );
+
+    const expectedStart: number =
+      NOW.getTime() - DEFAULT_INITIAL_LOOKBACK_IN_MINUTES * MINUTE_MS;
+    expect(window.hasUsableCursor).toBe(false);
+    expect(window.startTime.getTime()).toBe(expectedStart);
+    expect(window.endTime.getTime()).toBe(expectedStart + 30 * MINUTE_MS);
+    expect(window.chunkMinutes).toBe(30);
+    expect(window.warnings).toEqual([
+      "The saved cursor is unreadable; polling the default 24 hour window.",
+      "Catching up from the start of the default 24 hour window in 30 minute windows. Later records will be fetched by subsequent polls.",
+    ]);
   });
 
   test("an unreadable cursor falls back to the default window with a warning", () => {
@@ -504,6 +618,8 @@ describe("SecurityEventConnectionPoller.getWindow", () => {
       24 * 60 * MINUTE_MS,
     );
     expect(window.warnings).toEqual([]);
+    // Only scheduled polls carry a chunk.
+    expect(window.chunkMinutes).toBeUndefined();
   });
 
   test.each(["preview", "backfill"])(
@@ -527,6 +643,9 @@ describe("SecurityEventConnectionPoller.getWindow", () => {
       expect(window.startTime.toISOString()).toBe(startTime);
       expect(window.endTime.toISOString()).toBe(endTime);
       expect(window.hasUsableCursor).toBe(false);
+      // The user's range is never cut into chunks.
+      expect(window.chunkMinutes).toBeUndefined();
+      expect(window.warnings).toEqual([]);
     },
   );
 
@@ -603,6 +722,62 @@ describe("SecurityEventConnectionPoller.getWindow", () => {
       }
     },
   );
+
+  test.each<[string, JSONObject | null | undefined, number]>([
+    ["no previous poll", undefined, MAX_CHUNK_MINUTES],
+    ["a null result", null, MAX_CHUNK_MINUTES],
+    ["a result without the field", { status: "success" }, MAX_CHUNK_MINUTES],
+    ["the minimum", { nextChunkMinutes: MIN_CHUNK_MINUTES }, MIN_CHUNK_MINUTES],
+    ["a narrowed chunk", { nextChunkMinutes: 90 }, 90],
+    ["the maximum", { nextChunkMinutes: MAX_CHUNK_MINUTES }, MAX_CHUNK_MINUTES],
+    ["zero", { nextChunkMinutes: 0 }, MAX_CHUNK_MINUTES],
+    ["a negative value", { nextChunkMinutes: -5 }, MAX_CHUNK_MINUTES],
+    [
+      "more than a day",
+      { nextChunkMinutes: MAX_CHUNK_MINUTES + 1 },
+      MAX_CHUNK_MINUTES,
+    ],
+    ["a fraction", { nextChunkMinutes: 2.5 }, MAX_CHUNK_MINUTES],
+    ["a string", { nextChunkMinutes: "90" }, MAX_CHUNK_MINUTES],
+    ["NaN", { nextChunkMinutes: Number.NaN }, MAX_CHUNK_MINUTES],
+    [
+      "infinity",
+      { nextChunkMinutes: Number.POSITIVE_INFINITY },
+      MAX_CHUNK_MINUTES,
+    ],
+  ])(
+    "the chunk limit read from %s",
+    (
+      _label: string,
+      lastPollResult: JSONObject | null | undefined,
+      expected: number,
+    ) => {
+      expect(
+        SecurityEventConnectionPoller.getChunkLimitInMinutes(lastPollResult),
+      ).toBe(expected);
+    },
+  );
+
+  test("every catalog provider's own overlap is used, and an unknown provider gets the default", () => {
+    for (const provider of AllSecurityEventConnectorProviders) {
+      expect({
+        provider,
+        overlap:
+          SecurityEventConnectionPoller.getCursorOverlapInMinutes(provider),
+      }).toEqual({
+        provider,
+        overlap:
+          getSecurityEventConnectorDefinition(provider)!.cursorOverlapInMinutes,
+      });
+    }
+
+    expect(
+      SecurityEventConnectionPoller.getCursorOverlapInMinutes("not-a-provider"),
+    ).toBe(DEFAULT_CURSOR_OVERLAP_IN_MINUTES);
+    expect(
+      SecurityEventConnectionPoller.getCursorOverlapInMinutes(undefined),
+    ).toBe(DEFAULT_CURSOR_OVERLAP_IN_MINUTES);
+  });
 
   test("a range of exactly seven days is accepted", () => {
     expect(() => {
@@ -812,7 +987,15 @@ describe("SecurityEventConnectionPoller.executeConnection - source lock", () => 
     expect(SecurityEventConnectionService.findOneById).toHaveBeenCalledWith(
       expect.objectContaining({
         id: CONNECTION_ID,
-        select: expect.objectContaining({ secrets: true, cursor: true }),
+        /*
+         * Review finding F1: the adaptive chunk lives in lastPollResult, so
+         * the in-lock reload must select it or every poll restarts at a day.
+         */
+        select: expect.objectContaining({
+          secrets: true,
+          cursor: true,
+          lastPollResult: true,
+        }),
         props: { isRoot: true },
       }),
     );
@@ -906,6 +1089,11 @@ describe("SecurityEventConnectionPoller.executeConnection - poll", () => {
       new Date(result.completedAt),
     );
     expect(written.data["lastPollResult"]).toBe(result);
+    // A complete first poll read its whole day, so the next chunk stays a day.
+    expect(result.chunkMinutes).toBe(MAX_CHUNK_MINUTES);
+    expect(result.nextChunkMinutes).toBe(MAX_CHUNK_MINUTES);
+    expect(result.forcedAdvance).toBeUndefined();
+    expect(result.overlapFloor).toBeUndefined();
   });
 
   test("fetch is asked for the poll window with every bound and the poll timeout", async () => {
@@ -923,9 +1111,7 @@ describe("SecurityEventConnectionPoller.executeConnection - poll", () => {
     const call: FakeConnector["fetchCalls"][number] = fake.fetchCalls[0]!;
     expect(call.settings).toBe(SETTINGS);
     expect(call.window.startTime.toISOString()).toBe(
-      new Date(
-        cursor.getTime() - WINDOW_OVERLAP_IN_MINUTES * MINUTE_MS,
-      ).toISOString(),
+      new Date(cursor.getTime() - OVERLAP_MINUTES * MINUTE_MS).toISOString(),
     );
     expect(call.window.endTime.getTime()).toBeGreaterThan(cursor.getTime());
     expect(call.options).toEqual({
@@ -962,8 +1148,9 @@ describe("SecurityEventConnectionPoller.executeConnection - poll", () => {
     expect(written.data["lastError"]).toBeNull();
   });
 
-  test("an incomplete fetch holds the cursor, records the warnings and is 'partial'", async () => {
-    const cursor: Date = new Date(Date.now() - 5 * MINUTE_MS);
+  test("an incomplete fetch that cannot resume holds the cursor, halves the next chunk, records the warnings and is 'partial'", async () => {
+    // Review finding F1: holding alone re-read the same window forever; the next window must be narrower.
+    const cursor: Date = new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS);
     const fake: FakeConnector = makeFakeConnector({
       fetch: makeFetchResult([makeEvent("evt-1")], {
         complete: false,
@@ -974,7 +1161,10 @@ describe("SecurityEventConnectionPoller.executeConnection - poll", () => {
 
     const result: SecurityEventConnectionRunResult =
       await SecurityEventConnectionPoller.executeConnection(
-        makeConnection({ cursor: cursor.toISOString() }),
+        makeConnection({
+          cursor: cursor.toISOString(),
+          lastPollResult: { nextChunkMinutes: 90 },
+        }),
         { type: "poll" },
         overridesFor(fake),
       );
@@ -982,11 +1172,16 @@ describe("SecurityEventConnectionPoller.executeConnection - poll", () => {
     expect(result.status).toBe("partial");
     expect(result.complete).toBe(false);
     expect(result.ingestedCount).toBe(1);
-    expect(result.warnings).toContain(
+    expect(result.chunkMinutes).toBe(90);
+    expect(result.nextChunkMinutes).toBe(45);
+    expect(result.forcedAdvance).toBeUndefined();
+    expect(result.warnings).toEqual([
+      "Catching up from the saved cursor in 90 minute windows. Later records will be fetched by subsequent polls.",
       "Stopped after 20 requests; the window was not fully read.",
-    );
+      "This window holds more records than one poll can read; the next poll reads a 45 minute window from the same starting point.",
+    ]);
     expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining("the window was not fully read"),
+      expect.stringContaining("the next poll reads a 45 minute window"),
     );
 
     const written: ConnectionUpdateCall = updateCall();
@@ -994,31 +1189,37 @@ describe("SecurityEventConnectionPoller.executeConnection - poll", () => {
     expect("cursor" in written.data).toBe(false);
     expect(written.data["lastSuccessfulPollAt"]).toBeUndefined();
     expect(written.data["lastEventIngestedAt"]).toBeInstanceOf(Date);
-    expect(written.data["lastError"]).toContain(
-      "the window was not fully read",
-    );
+    expect(written.data["lastError"]).toBe(result.warnings.join(" "));
     expect(written.data["lastPolledAt"]).toBeInstanceOf(Date);
+    expect(
+      (written.data["lastPollResult"] as JSONObject)["nextChunkMinutes"],
+    ).toBe(45);
   });
 
-  test("an incomplete fetch with no warning text still explains why the cursor held", async () => {
+  test("an incomplete fetch with no warning text still explains what the next poll does", async () => {
+    // Review finding F1: the old fallback promised a retry of "the same window", which is what pinned polling.
     const fake: FakeConnector = makeFakeConnector({
       fetch: makeFetchResult([], { complete: false }),
     });
 
-    await SecurityEventConnectionPoller.executeConnection(
-      makeConnection({
-        cursor: new Date(Date.now() - 5 * MINUTE_MS).toISOString(),
-      }),
-      { type: "poll" },
-      overridesFor(fake),
-    );
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection({
+          cursor: new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS).toISOString(),
+          lastPollResult: { nextChunkMinutes: 10 },
+        }),
+        { type: "poll" },
+        overridesFor(fake),
+      );
 
+    expect(result.nextChunkMinutes).toBe(5);
     expect(updateCall().data["lastError"]).toBe(
-      "Poll incomplete; retrying the same window.",
+      "Catching up from the saved cursor in 10 minute windows. Later records will be fetched by subsequent polls. This window holds more records than one poll can read; the next poll reads a 5 minute window from the same starting point.",
     );
   });
 
-  test("an incomplete first poll anchors the cursor one minute into the window instead of re-reading a day forever", async () => {
+  test("an incomplete first poll anchors the cursor one overlap into the window and halves the day", async () => {
+    // Review finding F1: the anchor makes the next window start at the same instant, and the halved chunk makes it shorter.
     const fake: FakeConnector = makeFakeConnector({
       fetch: makeFetchResult([makeEvent("evt-1")], { complete: false }),
     });
@@ -1031,18 +1232,376 @@ describe("SecurityEventConnectionPoller.executeConnection - poll", () => {
       );
 
     expect(result.status).toBe("partial");
+    expect(result.chunkMinutes).toBe(MAX_CHUNK_MINUTES);
+    expect(result.nextChunkMinutes).toBe(MAX_CHUNK_MINUTES / 2);
     const written: ConnectionUpdateCall = updateCall();
-    expect(written.data["cursor"]).toBe(
-      new Date(
-        new Date(result.windowStart).getTime() +
-          WINDOW_OVERLAP_IN_MINUTES * MINUTE_MS,
-      ).toISOString(),
+    const anchor: string = new Date(
+      new Date(result.windowStart).getTime() + OVERLAP_MINUTES * MINUTE_MS,
+    ).toISOString();
+    expect(written.data["cursor"]).toBe(anchor);
+    expect(written.data["lastSuccessfulPollAt"]).toBeUndefined();
+
+    // The next poll starts where this one did and reads half a day past the anchor.
+    const next: ReturnType<typeof SecurityEventConnectionPoller.getWindow> =
+      SecurityEventConnectionPoller.getWindow(
+        makeConnection({
+          cursor: anchor,
+          lastPollResult: JSON.parse(JSON.stringify(result)) as JSONObject,
+        }),
+        { type: "poll" },
+        new Date(new Date(result.windowEnd).getTime() + 5 * MINUTE_MS),
+      );
+    expect(next.startTime.toISOString()).toBe(result.windowStart);
+    expect(next.endTime.getTime()).toBe(
+      new Date(anchor).getTime() + (MAX_CHUNK_MINUTES / 2) * MINUTE_MS,
+    );
+  });
+
+  test("a complete poll doubles the chunk it used, capped at a day", async () => {
+    const cursor: Date = new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS);
+
+    for (const [used, expected] of [
+      [45, 90],
+      [720, MAX_CHUNK_MINUTES],
+      [MAX_CHUNK_MINUTES, MAX_CHUNK_MINUTES],
+    ] as Array<[number, number]>) {
+      const fake: FakeConnector = makeFakeConnector({});
+      const result: SecurityEventConnectionRunResult =
+        await SecurityEventConnectionPoller.executeConnection(
+          makeConnection({
+            cursor: cursor.toISOString(),
+            lastPollResult: { nextChunkMinutes: used },
+          }),
+          { type: "poll" },
+          overridesFor(fake),
+        );
+
+      expect({ used, chunk: result.chunkMinutes }).toEqual({
+        used,
+        chunk: used,
+      });
+      expect({ used, next: result.nextChunkMinutes }).toEqual({
+        used,
+        next: expected,
+      });
+      expect(result.windowEnd).toBe(
+        new Date(cursor.getTime() + used * MINUTE_MS).toISOString(),
+      );
+    }
+  });
+
+  test("a poll that stops on a bound after real progress resumes from resumeAfter and keeps the chunk", async () => {
+    const cursor: Date = new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS);
+    const resumeAfter: Date = new Date(cursor.getTime() + 20 * MINUTE_MS);
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([makeEvent("evt-1", resumeAfter)], {
+        complete: false,
+        resumeAfter,
+      }),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection({
+          cursor: cursor.toISOString(),
+          lastPollResult: { nextChunkMinutes: 60 },
+        }),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(result.status).toBe("partial");
+    expect(result.chunkMinutes).toBe(60);
+    expect(result.nextChunkMinutes).toBe(60);
+    expect(result.forcedAdvance).toBeUndefined();
+    expect(result.warnings).toContain(
+      `This poll stopped before the end of its window after reading records created up to ${resumeAfter.toISOString()}; the next poll resumes from there.`,
+    );
+    const written: ConnectionUpdateCall = updateCall();
+    expect(written.data["cursor"]).toBe(resumeAfter.toISOString());
+    expect(written.data["lastSuccessfulPollAt"]).toBeUndefined();
+    expect(written.data["lastError"]).toContain(resumeAfter.toISOString());
+  });
+
+  test.each<[string, (cursor: Date, windowEnd: Date) => Date]>([
+    [
+      "inside the overlap",
+      (cursor: Date): Date => {
+        return new Date(cursor.getTime() - 5 * MINUTE_MS);
+      },
+    ],
+    [
+      "exactly on the previous cursor",
+      (cursor: Date): Date => {
+        return cursor;
+      },
+    ],
+    [
+      "after the window end",
+      (_cursor: Date, windowEnd: Date): Date => {
+        return new Date(windowEnd.getTime() + MINUTE_MS);
+      },
+    ],
+    [
+      "that is not a valid date",
+      (): Date => {
+        return new Date("not a date");
+      },
+    ],
+  ])(
+    "a resumeAfter %s is not progress: the cursor holds and the chunk halves",
+    async (_label: string, pick: (cursor: Date, windowEnd: Date) => Date) => {
+      const cursor: Date = new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS);
+      const windowEnd: Date = new Date(cursor.getTime() + 60 * MINUTE_MS);
+      const fake: FakeConnector = makeFakeConnector({
+        fetch: makeFetchResult([], {
+          complete: false,
+          resumeAfter: pick(cursor, windowEnd),
+        }),
+      });
+
+      const result: SecurityEventConnectionRunResult =
+        await SecurityEventConnectionPoller.executeConnection(
+          makeConnection({
+            cursor: cursor.toISOString(),
+            lastPollResult: { nextChunkMinutes: 60 },
+          }),
+          { type: "poll" },
+          overridesFor(fake),
+        );
+
+      expect(result.windowEnd).toBe(windowEnd.toISOString());
+      expect(result.nextChunkMinutes).toBe(30);
+      expect("cursor" in updateCall().data).toBe(false);
+    },
+  );
+
+  test("a one-minute window that still cannot be read is skipped past with a loud lastError and an overlap floor", async () => {
+    const cursor: Date = new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS);
+    const windowEnd: Date = new Date(cursor.getTime() + MINUTE_MS);
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([makeEvent("evt-1", cursor)], {
+        complete: false,
+        warnings: ["Stopped after 20 requests; the window was not fully read."],
+      }),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection({
+          cursor: cursor.toISOString(),
+          lastPollResult: { nextChunkMinutes: MIN_CHUNK_MINUTES },
+        }),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    const forcedMessage: string = `More records were created in the one minute from ${cursor.toISOString()} to ${windowEnd.toISOString()} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`;
+    expect(result.status).toBe("partial");
+    expect(result.complete).toBe(false);
+    expect(result.forcedAdvance).toBe(true);
+    expect(result.chunkMinutes).toBe(MIN_CHUNK_MINUTES);
+    expect(result.nextChunkMinutes).toBe(MIN_CHUNK_MINUTES);
+    expect(result.overlapFloor).toBe(windowEnd.toISOString());
+    expect(result.warnings[0]).toBe(forcedMessage);
+
+    const written: ConnectionUpdateCall = updateCall();
+    expect(written.data["cursor"]).toBe(windowEnd.toISOString());
+    expect(String(written.data["lastError"]).startsWith(forcedMessage)).toBe(
+      true,
     );
     expect(written.data["lastSuccessfulPollAt"]).toBeUndefined();
   });
 
-  test("a failed fetch records a redacted error, a failure check named after the phase, and holds a usable cursor", async () => {
+  test("a window after a forced advance starts at the overlap floor until the overlap no longer reaches it", () => {
+    const floor: Date = new Date("2026-09-10T08:00:00.000Z");
+    const now: Date = new Date("2026-09-10T12:00:00.000Z");
+    const windowFor: (
+      cursor: Date,
+      overlapFloor: string | undefined,
+    ) => ReturnType<typeof SecurityEventConnectionPoller.getWindow> = (
+      cursor: Date,
+      overlapFloor: string | undefined,
+    ): ReturnType<typeof SecurityEventConnectionPoller.getWindow> => {
+      return SecurityEventConnectionPoller.getWindow(
+        makeConnection({
+          cursor: cursor.toISOString(),
+          lastPollResult: {
+            nextChunkMinutes: 2,
+            ...(overlapFloor ? { overlapFloor } : {}),
+          },
+        }),
+        { type: "poll" },
+        now,
+      );
+    };
+
+    // Right after the forced advance the cursor is the floor: no overlap at all.
+    const atFloor: ReturnType<typeof SecurityEventConnectionPoller.getWindow> =
+      windowFor(floor, floor.toISOString());
+    expect(atFloor.startTime.toISOString()).toBe(floor.toISOString());
+    expect(atFloor.overlapFloor?.toISOString()).toBe(floor.toISOString());
+
+    // Part of the overlap past the floor is still re-read.
+    const inside: ReturnType<typeof SecurityEventConnectionPoller.getWindow> =
+      windowFor(new Date(floor.getTime() + 5 * MINUTE_MS), floor.toISOString());
+    expect(inside.startTime.toISOString()).toBe(floor.toISOString());
+    expect(inside.overlapFloor?.toISOString()).toBe(floor.toISOString());
+
+    // Once cursor - overlap reaches the floor it no longer clamps and is dropped.
+    const reached: ReturnType<typeof SecurityEventConnectionPoller.getWindow> =
+      windowFor(
+        new Date(floor.getTime() + OVERLAP_MINUTES * MINUTE_MS),
+        floor.toISOString(),
+      );
+    expect(reached.startTime.toISOString()).toBe(floor.toISOString());
+    expect(reached.overlapFloor).toBeUndefined();
+
+    // A floor later than the cursor, or unreadable, is ignored.
+    for (const bad of [
+      new Date(floor.getTime() + 60 * MINUTE_MS).toISOString(),
+      "not a date",
+    ]) {
+      const ignored: ReturnType<
+        typeof SecurityEventConnectionPoller.getWindow
+      > = windowFor(floor, bad);
+      expect(ignored.startTime.toISOString()).toBe(
+        new Date(floor.getTime() - OVERLAP_MINUTES * MINUTE_MS).toISOString(),
+      );
+      expect(ignored.overlapFloor).toBeUndefined();
+    }
+  });
+
+  test("a poll clamped by the overlap floor resumes past the cursor even though the window starts later, and floors the next poll at the resume point", async () => {
+    const cursor: Date = new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS);
+    const floor: Date = new Date(cursor.getTime() - 5 * MINUTE_MS);
+    const resumeAfter: Date = new Date(cursor.getTime() + 2 * MINUTE_MS);
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([], { complete: false, resumeAfter }),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection({
+          cursor: cursor.toISOString(),
+          lastPollResult: {
+            nextChunkMinutes: 10,
+            overlapFloor: floor.toISOString(),
+          },
+        }),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(fake.fetchCalls[0]!.window.startTime.toISOString()).toBe(
+      floor.toISOString(),
+    );
+    /*
+     * A resume floors the next poll at the resume point itself: during a
+     * backlog the overlap would only re-read what this poll just read.
+     */
+    expect(result.overlapFloor).toBe(resumeAfter.toISOString());
+    /*
+     * resumeAfter is 2 minutes past the cursor but earlier than window
+     * start + overlap (10 minutes past it): it is still real progress.
+     */
+    expect(updateCall().data["cursor"]).toBe(resumeAfter.toISOString());
+    // A resumed poll keeps the chunk it was given, not the stretch it read.
+    expect(result.nextChunkMinutes).toBe(10);
+  });
+
+  test("a caught-up complete poll never shrinks the chunk it was given", async () => {
+    // Given a full day but only 5 minutes of new ground up to now.
     const cursor: Date = new Date(Date.now() - 5 * MINUTE_MS);
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([], { complete: true }),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection({
+          cursor: cursor.toISOString(),
+          lastPollResult: { nextChunkMinutes: 1440 },
+        }),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(result.chunkMinutes).toBeLessThanOrEqual(6);
+    expect(result.nextChunkMinutes).toBe(1440);
+  });
+
+  test("a complete poll after narrowing doubles back from the stretch it read", async () => {
+    const cursor: Date = new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS);
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([], { complete: true }),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection({
+          cursor: cursor.toISOString(),
+          lastPollResult: { nextChunkMinutes: 90 },
+        }),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(result.chunkMinutes).toBe(90);
+    expect(result.nextChunkMinutes).toBe(180);
+  });
+
+  test("a caught-up failed poll keeps the chunk it was given", async () => {
+    const cursor: Date = new Date(Date.now() - 5 * MINUTE_MS);
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: new Error("Okta System Log events request failed (HTTP 500)"),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection({
+          cursor: cursor.toISOString(),
+          lastPollResult: { nextChunkMinutes: 1440 },
+        }),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(result.status).toBe("failed");
+    expect(result.nextChunkMinutes).toBe(1440);
+  });
+
+  test("a request that timed out on a wide window narrows the next one instead of retrying it forever", async () => {
+    const cursor: Date = new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS);
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: new Error(
+        "Splunk Enterprise Security search did not complete: timeout of 60000ms exceeded",
+      ),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection({
+          cursor: cursor.toISOString(),
+          lastPollResult: { nextChunkMinutes: 1440 },
+        }),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(result.status).toBe("failed");
+    expect(result.nextChunkMinutes).toBe(720);
+    expect(
+      result.warnings.some((warning: string): boolean => {
+        return warning.includes("did not answer in time");
+      }),
+    ).toBe(true);
+    // The cursor is held: nothing in the window was read.
+    expect(updateCall().data["cursor"]).toBeUndefined();
+  });
+
+  test("a failed fetch records a redacted error, a failure check named after the phase, and holds a usable cursor and its chunk", async () => {
+    const cursor: Date = new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS);
     const fake: FakeConnector = makeFakeConnector({
       fetch: new Error(
         `Okta system log read failed (HTTP 401): client_secret=${SECRET_VALUE} rejected`,
@@ -1061,6 +1620,11 @@ describe("SecurityEventConnectionPoller.executeConnection - poll", () => {
     expect(result.error).toContain("Okta system log read failed (HTTP 401)");
     expect(result.error).not.toContain(SECRET_VALUE);
     expect(result.error).toContain("[REDACTED]");
+
+    // Review finding F1: a failure is not a volume signal, so the chunk is unchanged.
+    expect(result.chunkMinutes).toBe(MAX_CHUNK_MINUTES);
+    expect(result.nextChunkMinutes).toBe(MAX_CHUNK_MINUTES);
+    expect(result.forcedAdvance).toBeUndefined();
 
     const failure: SecurityConnectorCheck = findCheck(result, "failure");
     expect(failure.status).toBe("fail");
@@ -1093,10 +1657,36 @@ describe("SecurityEventConnectionPoller.executeConnection - poll", () => {
     expect(result.status).toBe("failed");
     expect(updateCall().data["cursor"]).toBe(
       new Date(
-        new Date(result.windowStart).getTime() +
-          WINDOW_OVERLAP_IN_MINUTES * MINUTE_MS,
+        new Date(result.windowStart).getTime() + OVERLAP_MINUTES * MINUTE_MS,
       ).toISOString(),
     );
+  });
+
+  test("a failed poll keeps a narrowed chunk and carries the overlap floor unchanged", async () => {
+    const cursor: Date = new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS);
+    const floor: Date = new Date(cursor.getTime() - MINUTE_MS);
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: new Error("Okta system log read failed (HTTP 503): unavailable"),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection({
+          cursor: cursor.toISOString(),
+          lastPollResult: {
+            nextChunkMinutes: 22,
+            overlapFloor: floor.toISOString(),
+          },
+        }),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(result.status).toBe("failed");
+    expect(result.chunkMinutes).toBe(22);
+    expect(result.nextChunkMinutes).toBe(22);
+    expect(result.overlapFloor).toBe(floor.toISOString());
+    expect("cursor" in updateCall().data).toBe(false);
   });
 
   test("an unreadable saved cursor is replaced by an anchored one after a failed poll", async () => {
@@ -1178,19 +1768,28 @@ describe("SecurityEventConnectionPoller.executeConnection - poll", () => {
     expect(written.data["lastError"]).toBeNull();
   });
 
-  test("normalization failures hold the cursor for retry and fail the read check", async () => {
-    const cursor: Date = new Date(Date.now() - 5 * MINUTE_MS);
+  test("normalization failures hold the cursor for retry, narrow the next window and fail the read check", async () => {
+    /*
+     * Review finding F1: holding alone would pin polling behind a record
+     * that never normalizes; the window now narrows around it instead.
+     */
+    const cursor: Date = new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS);
     const fake: FakeConnector = makeFakeConnector({
       fetch: makeFetchResult([makeEvent("evt-1")], {
         fetchedCount: 3,
         failedCount: 2,
         requestCount: 2,
+        // A complete fetch has nothing to resume from, even if a connector says so.
+        resumeAfter: new Date(cursor.getTime() + 30 * MINUTE_MS),
       }),
     });
 
     const result: SecurityEventConnectionRunResult =
       await SecurityEventConnectionPoller.executeConnection(
-        makeConnection({ cursor: cursor.toISOString() }),
+        makeConnection({
+          cursor: cursor.toISOString(),
+          lastPollResult: { nextChunkMinutes: 60 },
+        }),
         { type: "poll" },
         overridesFor(fake),
       );
@@ -1200,8 +1799,12 @@ describe("SecurityEventConnectionPoller.executeConnection - poll", () => {
     expect(result.failedCount).toBe(2);
     // The recognizable record is still imported; only the cursor holds.
     expect(result.ingestedCount).toBe(1);
+    expect(result.nextChunkMinutes).toBe(30);
     expect(result.warnings).toContain(
-      "2 records could not be normalized. The poll cursor is held for retry.",
+      "2 records could not be normalized and were not imported.",
+    );
+    expect(result.warnings).toContain(
+      "Some records in this window could not be normalized; the next poll reads a 30 minute window from the same starting point to retry them.",
     );
 
     const read: SecurityConnectorCheck = findCheck(result, "read");
@@ -1214,6 +1817,34 @@ describe("SecurityEventConnectionPoller.executeConnection - poll", () => {
     expect("cursor" in written.data).toBe(false);
     expect(written.data["lastSuccessfulPollAt"]).toBeUndefined();
     expect(written.data["lastError"]).toContain("could not be normalized");
+  });
+
+  test("a one-minute window whose records still fail to normalize is skipped past, naming the failures", async () => {
+    const cursor: Date = new Date(Date.now() - 3 * 24 * 60 * MINUTE_MS);
+    const windowEnd: Date = new Date(cursor.getTime() + MINUTE_MS);
+    const fake: FakeConnector = makeFakeConnector({
+      fetch: makeFetchResult([], { fetchedCount: 4, failedCount: 4 }),
+    });
+
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection({
+          cursor: cursor.toISOString(),
+          lastPollResult: { nextChunkMinutes: MIN_CHUNK_MINUTES },
+        }),
+        { type: "poll" },
+        overridesFor(fake),
+      );
+
+    expect(result.forcedAdvance).toBe(true);
+    expect(result.warnings[0]).toBe(
+      `4 records created in the one minute from ${cursor.toISOString()} to ${windowEnd.toISOString()} could not be normalized. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to retry them.`,
+    );
+    const written: ConnectionUpdateCall = updateCall();
+    expect(written.data["cursor"]).toBe(windowEnd.toISOString());
+    expect(String(written.data["lastError"])).toContain(
+      "could not be normalized. Polling moved past this minute",
+    );
   });
 
   test("diagnostic samples are capped and warnings from the connector are kept", async () => {
@@ -1498,6 +2129,9 @@ describe("SecurityEventConnectionPoller.executeConnection - test, preview and ba
     expect(SecurityEventDedupe.findExistingEventUids).not.toHaveBeenCalled();
     expect(SecurityEventService.insertJsonRows).not.toHaveBeenCalled();
     expect(SecurityEventConnectionService.updateOneById).not.toHaveBeenCalled();
+    // The adaptive chunk belongs to scheduled polls only.
+    expect(result.chunkMinutes).toBeUndefined();
+    expect(result.nextChunkMinutes).toBeUndefined();
   });
 
   test("an empty preview is 'empty'", async () => {
@@ -1542,7 +2176,10 @@ describe("SecurityEventConnectionPoller.executeConnection - test, preview and ba
       1,
     );
     const written: ConnectionUpdateCall = updateCall();
+    // Neither the cursor nor lastPollResult (which carries the chunk) is touched.
     expect(Object.keys(written.data)).toEqual(["lastEventIngestedAt"]);
+    expect(result.chunkMinutes).toBeUndefined();
+    expect(result.nextChunkMinutes).toBeUndefined();
     expect(written.data["lastEventIngestedAt"]).toEqual(
       new Date(result.completedAt),
     );
@@ -1770,5 +2407,635 @@ describe("SecurityEventConnectionPoller.pollAllDueConnections", () => {
     await SecurityEventConnectionPoller.pollAllDueConnections();
 
     expect(SecurityEventConnectionService.updateOneById).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Review finding F1, end to end: many scheduled polls in a row against a
+ * fake source that holds more records than one run can read. The fake
+ * honours maxRequests and maxEvents with a fixed page size, filters on
+ * creation time with an inclusive start and exclusive end, and either
+ * reads in ascending creation order and reports resumeAfter (Okta, AWS,
+ * Sentinel, Falcon, Elastic, Splunk) or returns newest first and cannot
+ * resume. Each poll feeds the next one the cursor and lastPollResult it
+ * wrote, the clock moves five minutes per poll, and storage dedupes by id,
+ * exactly as the real connection row and ClickHouse would.
+ */
+const SIMULATED_PAGE_SIZE: number = 25;
+const SIMULATED_RUN_CAPACITY: number = SIMULATED_PAGE_SIZE * MAX_FETCH_REQUESTS;
+const SIMULATED_POLL_INTERVAL_IN_MINUTES: number = 5;
+
+interface SourceRecord {
+  uid: string;
+  createdAt: Date;
+}
+
+interface SimulatedSource {
+  records: Array<SourceRecord>;
+  order: "ascending" | "newestFirst";
+  failNext?: Error | undefined;
+  fetchWindows: Array<ConnectorFetchWindow>;
+}
+
+interface SimulationState {
+  now: Date;
+  cursor: string | undefined;
+  lastPollResult: JSONObject | undefined;
+  lastError: string | null | undefined;
+  imported: Set<string>;
+  insertedCount: number;
+}
+
+interface SimulatedPoll {
+  index: number;
+  cursorBefore: string | undefined;
+  result: SecurityEventConnectionRunResult;
+  written: JSONObject;
+}
+
+function makeSimulatedConnector(
+  source: SimulatedSource,
+  provider: SecurityEventConnectorProvider,
+): SecurityEventConnector {
+  return {
+    provider,
+    validateSettings: (): void => {
+      return;
+    },
+    testConnection: (): Promise<Array<SecurityConnectorCheck>> => {
+      return Promise.resolve([]);
+    },
+    fetchEvents: (
+      _settings: SecurityConnectorSettings,
+      window: ConnectorFetchWindow,
+      options: ConnectorFetchOptions,
+    ): Promise<ConnectorFetchResult> => {
+      source.fetchWindows.push(window);
+
+      if (source.failNext) {
+        const failure: Error = source.failNext;
+        source.failNext = undefined;
+        return Promise.reject(failure);
+      }
+
+      const matching: Array<SourceRecord> = source.records
+        .filter((record: SourceRecord): boolean => {
+          return (
+            record.createdAt >= window.startTime &&
+            record.createdAt < window.endTime
+          );
+        })
+        .sort((left: SourceRecord, right: SourceRecord): number => {
+          return (
+            left.createdAt.getTime() - right.createdAt.getTime() ||
+            left.uid.localeCompare(right.uid)
+          );
+        });
+
+      if (source.order === "newestFirst") {
+        matching.reverse();
+      }
+
+      const read: Array<SourceRecord> = [];
+      let requestCount: number = 0;
+
+      while (
+        requestCount < options.maxRequests &&
+        read.length < matching.length &&
+        read.length < options.maxEvents
+      ) {
+        requestCount++;
+        read.push(
+          ...matching.slice(
+            read.length,
+            Math.min(read.length + SIMULATED_PAGE_SIZE, options.maxEvents),
+          ),
+        );
+      }
+
+      const complete: boolean = read.length === matching.length;
+      const last: SourceRecord | undefined = read[read.length - 1];
+
+      return Promise.resolve(
+        makeFetchResult(
+          read.map((record: SourceRecord): NormalizedSecurityEvent => {
+            return makeEvent(record.uid, record.createdAt);
+          }),
+          {
+            complete,
+            requestCount: Math.max(1, requestCount),
+            warnings: complete
+              ? []
+              : [
+                  `Stopped after ${requestCount} requests; the window was not fully read.`,
+                ],
+            samples: [],
+            resumeAfter:
+              !complete && source.order === "ascending" && last
+                ? last.createdAt
+                : undefined,
+          },
+        ),
+      );
+    },
+  };
+}
+
+function startSimulation(
+  now: Date,
+  cursor: string | undefined = undefined,
+): SimulationState {
+  const state: SimulationState = {
+    now,
+    cursor,
+    lastPollResult: undefined,
+    lastError: undefined,
+    imported: new Set(),
+    insertedCount: 0,
+  };
+
+  getJestSpyOn(OneUptimeDate, "getCurrentDate").mockImplementation((): Date => {
+    return new Date(state.now.getTime());
+  });
+  getJestSpyOn(SecurityEventDedupe, "findExistingEventUids").mockImplementation(
+    ((query: { ids: Array<string> }): Promise<Set<string>> => {
+      return Promise.resolve(
+        new Set(
+          query.ids.filter((id: string): boolean => {
+            return state.imported.has(id);
+          }),
+        ),
+      );
+    }) as never,
+  );
+  getJestSpyOn(SecurityEventService, "insertJsonRows").mockImplementation(((
+    rows: Array<JSONObject>,
+  ): Promise<void> => {
+    for (const row of rows) {
+      state.imported.add(row["eventUid"] as string);
+    }
+    state.insertedCount += rows.length;
+    return Promise.resolve();
+  }) as never);
+
+  return state;
+}
+
+async function runScheduledPolls(data: {
+  state: SimulationState;
+  source: SimulatedSource;
+  provider: SecurityEventConnectorProvider;
+  maxPolls: number;
+  beforePoll?: ((index: number) => void) | undefined;
+  until: (poll: SimulatedPoll) => boolean;
+}): Promise<Array<SimulatedPoll>> {
+  const connector: SecurityEventConnector = makeSimulatedConnector(
+    data.source,
+    data.provider,
+  );
+  const updateSpy: jest.Mock =
+    SecurityEventConnectionService.updateOneById as unknown as jest.Mock;
+  const polls: Array<SimulatedPoll> = [];
+
+  for (let index: number = 0; index < data.maxPolls; index++) {
+    data.beforePoll?.(index);
+
+    const cursorBefore: string | undefined = data.state.cursor;
+    const callsBefore: number = updateSpy.mock.calls.length;
+    const result: SecurityEventConnectionRunResult =
+      await SecurityEventConnectionPoller.executeConnection(
+        makeConnection({
+          provider: data.provider,
+          // exactOptionalPropertyTypes: only set what the row actually holds.
+          ...(data.state.cursor !== undefined
+            ? { cursor: data.state.cursor }
+            : {}),
+          ...(data.state.lastPollResult !== undefined
+            ? { lastPollResult: data.state.lastPollResult }
+            : {}),
+        }),
+        { type: "poll" },
+        {
+          connector,
+          settings: { ...SETTINGS, provider: data.provider },
+        },
+      );
+
+    expect(updateSpy.mock.calls.length).toBe(callsBefore + 1);
+    const written: JSONObject = (
+      updateSpy.mock.calls[callsBefore]![0] as ConnectionUpdateCall
+    ).data;
+
+    const writtenCursor: unknown = written["cursor"];
+
+    if (typeof writtenCursor === "string") {
+      // The F1 invariant: a cursor written after a cursor is strictly later.
+      if (cursorBefore !== undefined) {
+        expect({
+          poll: index,
+          advanced: Date.parse(writtenCursor) > Date.parse(cursorBefore),
+        }).toEqual({ poll: index, advanced: true });
+      }
+      data.state.cursor = writtenCursor;
+    }
+
+    // A jsonb round trip, as the next reload would return it.
+    data.state.lastPollResult = JSON.parse(
+      JSON.stringify(written["lastPollResult"]),
+    ) as JSONObject;
+    data.state.lastError = written["lastError"] as string | null;
+
+    const poll: SimulatedPoll = { index, cursorBefore, result, written };
+    polls.push(poll);
+    data.state.now = new Date(
+      data.state.now.getTime() + SIMULATED_POLL_INTERVAL_IN_MINUTES * MINUTE_MS,
+    );
+
+    if (data.until(poll)) {
+      break;
+    }
+  }
+
+  return polls;
+}
+
+// The most scheduled polls in a row that left the cursor where it was.
+function longestCursorHold(polls: Array<SimulatedPoll>): number {
+  let longest: number = 0;
+  let current: number = 0;
+
+  for (const poll of polls) {
+    current = typeof poll.written["cursor"] === "string" ? 0 : current + 1;
+    longest = Math.max(longest, current);
+  }
+
+  return longest;
+}
+
+function allImported(
+  state: SimulationState,
+  records: Array<SourceRecord>,
+): boolean {
+  return records.every((record: SourceRecord): boolean => {
+    return state.imported.has(record.uid);
+  });
+}
+
+function minutesAfter(time: Date, minutes: number): Date {
+  return new Date(time.getTime() + minutes * MINUTE_MS);
+}
+
+// log2(MAX / MIN) halvings, then the forced advance.
+const MAX_POLLS_WITHOUT_CURSOR_MOVE: number =
+  Math.ceil(Math.log2(MAX_CHUNK_MINUTES / MIN_CHUNK_MINUTES)) + 1;
+
+describe("SecurityEventConnectionPoller - scheduled polls against a source larger than one run (review finding F1)", () => {
+  const NOW: Date = new Date("2026-09-14T12:00:00.000Z");
+
+  test("an ascending source that reports resumeAfter imports every record, including ones created while it catches up", async () => {
+    const state: SimulationState = startSimulation(NOW);
+    const source: SimulatedSource = {
+      records: [],
+      order: "ascending",
+      fetchWindows: [],
+    };
+    const backlogStart: Date = minutesAfter(NOW, -20 * 60);
+
+    // Eight hours of backlog, five records a minute: almost five runs' worth.
+    for (let index: number = 0; index < 2400; index++) {
+      source.records.push({
+        uid: `backlog-${index}`,
+        createdAt: new Date(backlogStart.getTime() + index * 12 * 1000),
+      });
+    }
+    expect(source.records.length).toBeGreaterThan(4 * SIMULATED_RUN_CAPACITY);
+
+    const polls: Array<SimulatedPoll> = await runScheduledPolls({
+      state,
+      source,
+      provider: PROVIDER,
+      maxPolls: 20,
+      beforePoll: (index: number): void => {
+        if (index === 0) {
+          return;
+        }
+
+        // Ten records created since the previous poll.
+        for (let arrival: number = 0; arrival < 10; arrival++) {
+          source.records.push({
+            uid: `arrival-${index}-${arrival}`,
+            createdAt: new Date(
+              state.now.getTime() -
+                SIMULATED_POLL_INTERVAL_IN_MINUTES * MINUTE_MS +
+                arrival * 30 * 1000,
+            ),
+          });
+        }
+      },
+      until: (poll: SimulatedPoll): boolean => {
+        return poll.result.complete && allImported(state, source.records);
+      },
+    });
+
+    expect(polls.length).toBeLessThanOrEqual(8);
+    expect(polls[polls.length - 1]!.result.status).toBe("success");
+    expect(state.imported.size).toBe(source.records.length);
+    // The overlap re-reads are deduplicated: every record is written once.
+    expect(state.insertedCount).toBe(source.records.length);
+
+    // Every poll before the last resumed, so the cursor moved every time.
+    for (const poll of polls.slice(0, -1)) {
+      expect({
+        poll: poll.index,
+        status: poll.result.status,
+        cursor: poll.written["cursor"],
+        nextChunkMinutes: poll.result.nextChunkMinutes,
+      }).toEqual({
+        poll: poll.index,
+        status: "partial",
+        cursor: expect.any(String),
+        // A resumed poll keeps the chunk it was given (a full day here).
+        nextChunkMinutes: 1440,
+      });
+      expect(
+        poll.result.warnings.some((warning: string): boolean => {
+          return warning.includes("the next poll resumes from there");
+        }),
+      ).toBe(true);
+    }
+
+    expect(longestCursorHold(polls)).toBe(0);
+    expect(
+      polls.some((poll: SimulatedPoll): boolean => {
+        return poll.result.forcedAdvance === true;
+      }),
+    ).toBe(false);
+    expect(state.lastError).toBeNull();
+  });
+
+  test("a source that cannot resume narrows by halves around a burst, moves past it, then doubles back to a day", async () => {
+    const provider: SecurityEventConnectorProvider =
+      SecurityEventConnectorProvider.MicrosoftDefenderXdr;
+    // The chunk arithmetic below assumes a one minute overlap.
+    expect(
+      getSecurityEventConnectorDefinition(provider)!.cursorOverlapInMinutes,
+    ).toBe(1);
+    const cursor: Date = new Date("2026-09-11T12:00:00.000Z");
+    const state: SimulationState = startSimulation(NOW, cursor.toISOString());
+    const source: SimulatedSource = {
+      records: [
+        { uid: "early", createdAt: minutesAfter(cursor, 10) },
+        { uid: "late", createdAt: minutesAfter(cursor, 300) },
+      ],
+      order: "newestFirst",
+      fetchWindows: [],
+    };
+
+    // 600 records in ten minutes: more than one run, less than one run per five minutes.
+    for (let index: number = 0; index < 600; index++) {
+      source.records.push({
+        uid: `burst-${index}`,
+        createdAt: new Date(minutesAfter(cursor, 90).getTime() + index * 1000),
+      });
+    }
+    expect(source.records.length).toBeGreaterThan(SIMULATED_RUN_CAPACITY);
+
+    const polls: Array<SimulatedPoll> = await runScheduledPolls({
+      state,
+      source,
+      provider,
+      maxPolls: 20,
+      until: (): boolean => {
+        return false;
+      },
+    });
+
+    expect(
+      polls.map((poll: SimulatedPoll): number | undefined => {
+        return poll.result.chunkMinutes;
+      }),
+    ).toEqual([
+      1440, 720, 360, 180, 90, 180, 90, 45, 22, 11, 5, 10, 20, 40, 80, 160, 320,
+      640, 1280, 1440,
+    ]);
+    expect(
+      polls.map((poll: SimulatedPoll): number | undefined => {
+        return poll.result.nextChunkMinutes;
+      }),
+    ).toEqual([
+      720, 360, 180, 90, 180, 90, 45, 22, 11, 5, 10, 20, 40, 80, 160, 320, 640,
+      1280, 1440, 1440,
+    ]);
+    expect(
+      polls.map((poll: SimulatedPoll): string => {
+        return poll.result.status;
+      }),
+    ).toEqual([
+      "partial",
+      "partial",
+      "partial",
+      "partial",
+      "success",
+      "partial",
+      "partial",
+      "partial",
+      "partial",
+      "partial",
+      "success",
+      "success",
+      "empty",
+      "empty",
+      "empty",
+      "success",
+      "empty",
+      "empty",
+      "empty",
+      "empty",
+    ]);
+    expect(polls[0]!.result.warnings).toContain(
+      "This window holds more records than one poll can read; the next poll reads a 720 minute window from the same starting point.",
+    );
+    // The first narrowed window reads from the same start, half as far.
+    expect(source.fetchWindows[1]!.startTime.toISOString()).toBe(
+      source.fetchWindows[0]!.startTime.toISOString(),
+    );
+    expect(source.fetchWindows[1]!.endTime.toISOString()).toBe(
+      minutesAfter(cursor, 720).toISOString(),
+    );
+
+    expect(longestCursorHold(polls)).toBeLessThanOrEqual(
+      MAX_POLLS_WITHOUT_CURSOR_MOVE,
+    );
+    expect(
+      polls.some((poll: SimulatedPoll): boolean => {
+        return poll.result.forcedAdvance === true;
+      }),
+    ).toBe(false);
+    expect(allImported(state, source.records)).toBe(true);
+    expect(state.insertedCount).toBe(source.records.length);
+    expect(state.lastError).toBeNull();
+  });
+
+  test.each<["ascending" | "newestFirst", number]>([
+    // Identical timestamps: an ascending reader cannot resume inside the burst.
+    ["ascending", 0],
+    ["newestFirst", 50],
+  ])(
+    "a one-minute burst larger than one run (%s source, 30 minute overlap) forces exactly one advance, then newer records import",
+    async (order: "ascending" | "newestFirst", spacingInMs: number) => {
+      const provider: SecurityEventConnectorProvider =
+        SecurityEventConnectorProvider.AwsSecurityHub;
+      expect(
+        getSecurityEventConnectorDefinition(provider)!.cursorOverlapInMinutes,
+      ).toBe(30);
+      const cursor: Date = new Date("2026-09-11T12:00:00.000Z");
+      const burstMinute: Date = minutesAfter(cursor, 60);
+      const state: SimulationState = startSimulation(NOW, cursor.toISOString());
+      const source: SimulatedSource = {
+        records: [],
+        order,
+        fetchWindows: [],
+      };
+
+      for (let index: number = 0; index < 700; index++) {
+        source.records.push({
+          uid: `burst-${index}`,
+          createdAt: new Date(burstMinute.getTime() + index * spacingInMs),
+        });
+      }
+
+      /*
+       * Records created right after the burst minute sit inside the next
+       * polls' 30 minute overlap: without the overlap floor every one of
+       * those polls would overflow on the burst again and skip them.
+       */
+      const after: Array<SourceRecord> = [];
+      for (let minute: number = 61; minute < 91; minute++) {
+        after.push({
+          uid: `after-${minute}`,
+          createdAt: minutesAfter(cursor, minute),
+        });
+      }
+      for (let minute: number = 120; minute < 170; minute++) {
+        after.push({
+          uid: `later-${minute}`,
+          createdAt: minutesAfter(cursor, minute),
+        });
+      }
+      source.records.push(...after);
+
+      const polls: Array<SimulatedPoll> = await runScheduledPolls({
+        state,
+        source,
+        provider,
+        maxPolls: 40,
+        until: (poll: SimulatedPoll): boolean => {
+          // A newest-first reader imports the later records early, so also wait for the cursor to pass them.
+          return (
+            poll.result.complete &&
+            allImported(state, after) &&
+            Date.parse(state.cursor || "") >=
+              minutesAfter(cursor, 170).getTime()
+          );
+        },
+      });
+
+      const forced: Array<SimulatedPoll> = polls.filter(
+        (poll: SimulatedPoll): boolean => {
+          return poll.result.forcedAdvance === true;
+        },
+      );
+      expect(forced).toHaveLength(1);
+
+      const forcedPoll: SimulatedPoll = forced[0]!;
+      const floor: Date = minutesAfter(burstMinute, 1);
+      const forcedMessage: string = `More records were created in the one minute from ${burstMinute.toISOString()} to ${floor.toISOString()} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`;
+      expect(forcedPoll.cursorBefore).toBe(burstMinute.toISOString());
+      expect(forcedPoll.result.chunkMinutes).toBe(MIN_CHUNK_MINUTES);
+      expect(forcedPoll.written["cursor"]).toBe(floor.toISOString());
+      expect(forcedPoll.result.overlapFloor).toBe(floor.toISOString());
+      expect(
+        String(forcedPoll.written["lastError"]).startsWith(forcedMessage),
+      ).toBe(true);
+
+      // No window after the forced advance reaches back over the burst minute.
+      for (const window of source.fetchWindows.slice(forcedPoll.index + 1)) {
+        expect(window.startTime.getTime()).toBeGreaterThanOrEqual(
+          floor.getTime(),
+        );
+      }
+
+      // The next poll reads its minute and the chunk starts doubling again.
+      const nextPoll: SimulatedPoll = polls[forcedPoll.index + 1]!;
+      expect(nextPoll.result.complete).toBe(true);
+      expect(nextPoll.result.nextChunkMinutes).toBe(2 * MIN_CHUNK_MINUTES);
+
+      // The floor is dropped once cursor - overlap no longer reaches it.
+      const lastPoll: SimulatedPoll = polls[polls.length - 1]!;
+      expect(lastPoll.result.overlapFloor).toBeUndefined();
+
+      expect(longestCursorHold(polls)).toBeLessThanOrEqual(
+        MAX_POLLS_WITHOUT_CURSOR_MOVE,
+      );
+      expect(allImported(state, after)).toBe(true);
+      expect(lastPoll.result.complete).toBe(true);
+      expect(state.lastError).toBeNull();
+    },
+  );
+
+  test("a failed poll in the middle of narrowing leaves the chunk and the cursor exactly where they were", async () => {
+    const provider: SecurityEventConnectorProvider =
+      SecurityEventConnectorProvider.MicrosoftDefenderXdr;
+    const cursor: Date = new Date("2026-09-11T12:00:00.000Z");
+    const state: SimulationState = startSimulation(NOW, cursor.toISOString());
+    const source: SimulatedSource = {
+      records: [],
+      order: "newestFirst",
+      fetchWindows: [],
+    };
+
+    for (let index: number = 0; index < 600; index++) {
+      source.records.push({
+        uid: `burst-${index}`,
+        createdAt: new Date(minutesAfter(cursor, 90).getTime() + index * 1000),
+      });
+    }
+
+    const polls: Array<SimulatedPoll> = await runScheduledPolls({
+      state,
+      source,
+      provider,
+      maxPolls: 8,
+      beforePoll: (index: number): void => {
+        if (index === 2) {
+          source.failNext = new Error(
+            "Microsoft Graph request failed (HTTP 503): service unavailable",
+          );
+        }
+      },
+      until: (): boolean => {
+        return false;
+      },
+    });
+
+    const failed: SimulatedPoll = polls[2]!;
+    expect(failed.result.status).toBe("failed");
+    expect(failed.result.chunkMinutes).toBe(360);
+    expect(failed.result.nextChunkMinutes).toBe(360);
+    expect("cursor" in failed.written).toBe(false);
+    expect(failed.written["lastError"]).toContain("HTTP 503");
+
+    // The same sequence as without the failure, with the failed poll repeated.
+    expect(
+      polls.map((poll: SimulatedPoll): number | undefined => {
+        return poll.result.chunkMinutes;
+      }),
+    ).toEqual([1440, 720, 360, 360, 180, 90, 180, 90]);
+    expect(source.fetchWindows[3]!.startTime.toISOString()).toBe(
+      source.fetchWindows[2]!.startTime.toISOString(),
+    );
+    expect(source.fetchWindows[3]!.endTime.toISOString()).toBe(
+      source.fetchWindows[2]!.endTime.toISOString(),
+    );
   });
 });

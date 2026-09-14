@@ -1,15 +1,18 @@
 import Queue from "../../../../../Server/Infrastructure/Queue";
 import ConnectorPlatformHealth, {
   CONNECTOR_OVERDUE_GRACE_IN_MS,
-  CONNECTOR_SCHEDULER_JOB_IDS,
+  CONNECTOR_SCHEDULER_JOB_NAMES,
   ConnectorScheduleFacts,
+  ConnectorSchedulerEntry,
 } from "../../../../../Server/Utils/SecurityEvent/Connectors/ConnectorPlatformHealth";
 import {
   ConnectorPlatformStatus,
   SecurityConnectorCheck,
 } from "../../../../../Types/SecurityEvent/Connectors/ConnectorDiagnostics";
+import { JSONObject } from "../../../../../Types/JSON";
 import { getJestSpyOn } from "../../../../Spy";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { createHash } from "crypto";
 
 /*
  * The platform checks are the half of "Test connection" that looks at
@@ -20,9 +23,19 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * test. The check text is pinned because the docs quote it.
  */
 
+/*
+ * One entry of BullMQ's getJobSchedulers() as BullMQ really returns it.
+ * Deliberately has no `id`: the old fake handed back
+ * { id: "SecurityEvents-PollSecurityEventConnections" }, a shape BullMQ
+ * never produces, which is how a scheduler check that failed on every
+ * healthy install passed here (review finding
+ * scheduler-check-always-fails).
+ */
 interface FakeScheduler {
-  id?: string | undefined;
+  key: string;
+  name: string;
   next?: number | undefined;
+  pattern?: string | undefined;
 }
 
 interface FakeQueue {
@@ -33,7 +46,7 @@ interface FakeQueue {
         start?: number,
         end?: number,
         asc?: boolean,
-      ) => Promise<Array<FakeScheduler>>)
+      ) => Promise<Array<FakeScheduler | undefined>>)
     | undefined;
   getWaitingCount: () => Promise<number>;
   getFailedCount: () => Promise<number>;
@@ -41,19 +54,118 @@ interface FakeQueue {
 
 const NOW: Date = new Date("2026-09-10T12:00:00.000Z");
 const NEXT_TICK_MS: number = Date.parse("2026-09-10T12:01:00.000Z");
+const GENERIC_POLL_JOB: string = "SecurityEvents:PollSecurityEventConnections";
+const GOOGLE_POLL_JOB: string = "SecurityEvents:PollGoogleSecOpsConnections";
+const EVERY_MINUTE: string = "* * * * *";
+
+/*
+ * The concatenated repeat key BullMQ 5.76.2 builds for
+ * queue.add(name, data, { jobId, repeat: { pattern, jobId } }), which is
+ * what RunCron -> Queue.addJob sends: getRepeatConcatOptions in
+ * bullmq/dist/cjs/classes/repeat.js joins name, jobId, endDate, tz and
+ * pattern with ":". Queue.addJob passes the job name with ":" replaced by
+ * "-" as the jobId.
+ */
+function legacyRepeatKey(jobName: string): string {
+  return `${jobName}:${jobName.replace(/:/g, "-")}:::${EVERY_MINUTE}`;
+}
+
+/*
+ * What getJobSchedulers() returns for that registration. updateRepeatableJob
+ * stores it under md5(legacyRepeatKey); addRepeatableJob-2.lua writes only
+ * `name` and `pattern` into repeat:<md5>; JobScheduler.transformSchedulerData
+ * turns that hash into { key, name, next, pattern }.
+ */
+function bullmqRepeatable(jobName: string, next?: number): FakeScheduler {
+  return {
+    key: createHash("md5").update(legacyRepeatKey(jobName)).digest("hex"),
+    name: jobName,
+    ...(next !== undefined ? { next } : {}),
+    pattern: EVERY_MINUTE,
+  };
+}
+
+/*
+ * The two BullMQ internals that decide what getJobSchedulers() lists for a
+ * RunCron registration: Repeat.updateRepeatableJob, which picks the stored
+ * key and metadata, and JobScheduler.transformSchedulerData, which turns
+ * that metadata back into a listing entry.
+ */
+interface BullmqRepeatInternals {
+  getNextMillis: (millis: number, opts: JSONObject) => number | undefined;
+  Repeat: {
+    prototype: {
+      hash: (value: string) => string;
+      updateRepeatableJob: (
+        name: string,
+        data: JSONObject,
+        opts: JSONObject,
+        flags: { override: boolean },
+      ) => Promise<unknown>;
+    };
+  };
+  JobScheduler: {
+    prototype: {
+      transformSchedulerData: (
+        key: string,
+        jobData: Record<string, string>,
+        next: number,
+      ) => unknown;
+    };
+  };
+}
+
+/*
+ * Loaded from BullMQ's CommonJS build because the "bullmq" import is mapped
+ * to a stub in this suite. This test environment resolves msgpackr, which
+ * BullMQ's script runner instantiates at load time, to its ES module build
+ * that Jest cannot parse; nothing exercised here packs anything, so a no-op
+ * packer stands in for it.
+ */
+function loadBullmqRepeatInternals(): BullmqRepeatInternals {
+  const loaded: Array<BullmqRepeatInternals> = [];
+
+  jest.isolateModules((): void => {
+    jest.doMock("msgpackr", (): object => {
+      return {
+        Packr: class {
+          public pack(): Buffer {
+            return Buffer.alloc(0);
+          }
+        },
+      };
+    });
+    const repeat: Pick<BullmqRepeatInternals, "getNextMillis" | "Repeat"> =
+      jest.requireActual<
+        Pick<BullmqRepeatInternals, "getNextMillis" | "Repeat">
+      >("bullmq/dist/cjs/classes/repeat");
+    const jobScheduler: Pick<BullmqRepeatInternals, "JobScheduler"> =
+      jest.requireActual<Pick<BullmqRepeatInternals, "JobScheduler">>(
+        "bullmq/dist/cjs/classes/job-scheduler",
+      );
+    loaded.push({
+      getNextMillis: repeat.getNextMillis,
+      Repeat: repeat.Repeat,
+      JobScheduler: jobScheduler.JobScheduler,
+    });
+  });
+
+  if (!loaded[0]) {
+    throw new Error("BullMQ's repeat internals did not load.");
+  }
+
+  return loaded[0];
+}
 
 function makeQueue(overrides: Partial<FakeQueue> = {}): FakeQueue {
   return {
     getWorkersCount: (): Promise<number> => {
       return Promise.resolve(2);
     },
-    getJobSchedulers: (): Promise<Array<FakeScheduler>> => {
+    getJobSchedulers: (): Promise<Array<FakeScheduler | undefined>> => {
       return Promise.resolve([
-        { id: "Unrelated-Job", next: NEXT_TICK_MS - 30_000 },
-        {
-          id: "SecurityEvents-PollSecurityEventConnections",
-          next: NEXT_TICK_MS,
-        },
+        bullmqRepeatable("Unrelated:Job", NEXT_TICK_MS - 30_000),
+        bullmqRepeatable(GENERIC_POLL_JOB, NEXT_TICK_MS),
       ]);
     },
     getWaitingCount: (): Promise<number> => {
@@ -134,13 +246,13 @@ describe("ConnectorPlatformHealth.getPlatformStatus", () => {
         start?: number,
         end?: number,
         asc?: boolean,
-      ) => Promise<Array<FakeScheduler>>
+      ) => Promise<Array<FakeScheduler | undefined>>
     > = jest.fn(
       (
         _start?: number,
         _end?: number,
         _asc?: boolean,
-      ): Promise<Array<FakeScheduler>> => {
+      ): Promise<Array<FakeScheduler | undefined>> => {
         return Promise.resolve([]);
       },
     );
@@ -153,21 +265,220 @@ describe("ConnectorPlatformHealth.getPlatformStatus", () => {
     expect(getJobSchedulers).toHaveBeenCalledWith(0, 1000, true);
   });
 
-  test("either connector family's scheduler counts as registered", () => {
-    expect(CONNECTOR_SCHEDULER_JOB_IDS).toEqual([
-      "SecurityEvents-PollGoogleSecOpsConnections",
-      "SecurityEvents-PollSecurityEventConnections",
+  test("either connector family's scheduler counts as registered, by its raw job name", () => {
+    /*
+     * The raw RunCron names, colon included: BullMQ reports `name` as
+     * passed to queue.add, never the sanitized jobId.
+     */
+    expect(CONNECTOR_SCHEDULER_JOB_NAMES).toEqual([
+      GOOGLE_POLL_JOB,
+      GENERIC_POLL_JOB,
     ]);
+  });
+
+  test("a healthy registration, in the exact shape BullMQ returns, passes the scheduler check", async () => {
+    const entry: FakeScheduler = bullmqRepeatable(
+      GENERIC_POLL_JOB,
+      NEXT_TICK_MS,
+    );
+
+    // Pin the shape itself, so a fake with an invented `id` cannot creep back.
+    expect(entry).toEqual({
+      key: expect.stringMatching(/^[0-9a-f]{32}$/),
+      name: "SecurityEvents:PollSecurityEventConnections",
+      next: NEXT_TICK_MS,
+      pattern: "* * * * *",
+    });
+    expect(entry).not.toHaveProperty("id");
+
+    const status: ConnectorPlatformStatus =
+      await ConnectorPlatformHealth.getPlatformStatus({
+        queueOverride: makeQueue({
+          getJobSchedulers: (): Promise<Array<FakeScheduler | undefined>> => {
+            return Promise.resolve([entry]);
+          },
+        }),
+        storageProbeOverride: storageUp,
+      });
+
+    expect(status.schedulerRegistered).toBe(true);
+    expect(status.schedulerNextRunAt).toBe(
+      new Date(NEXT_TICK_MS).toISOString(),
+    );
+
+    const check: SecurityConnectorCheck = findCheck(
+      ConnectorPlatformHealth.toPlatformChecks(status),
+      "scheduler",
+    );
+
+    expect(check.status).toBe("pass");
+    expect(check.message).toBe(
+      `Registered; next tick at ${new Date(NEXT_TICK_MS).toISOString()}.`,
+    );
+  });
+
+  test("the fixture is what the installed BullMQ stores and lists for a RunCron registration", async () => {
+    /*
+     * Drives BullMQ's own code with the exact options Queue.addJob sends for
+     * RunCron's scheduleAt, then lists the stored metadata back through
+     * BullMQ's own transform. A BullMQ upgrade that changes the listing
+     * shape fails here instead of silently failing the scheduler check.
+     */
+    const bullmq: BullmqRepeatInternals = loadBullmqRepeatInternals();
+    const storedCalls: Array<{ key: string; opts: JSONObject }> = [];
+    const repeatContext: object = {
+      repeatStrategy: bullmq.getNextMillis,
+      repeatKeyHashAlgorithm: "md5",
+      hash: bullmq.Repeat.prototype.hash,
+      scripts: {
+        addRepeatableJob: (
+          customKey: string,
+          _nextMillis: number,
+          opts: JSONObject,
+        ): Promise<string> => {
+          storedCalls.push({ key: customKey, opts });
+          return Promise.resolve(customKey);
+        },
+      },
+      createNextJob: (): Promise<undefined> => {
+        return Promise.resolve(undefined);
+      },
+    };
+    const jobId: string = GENERIC_POLL_JOB.replace(/:/g, "-");
+
+    await bullmq.Repeat.prototype.updateRepeatableJob.call(
+      repeatContext,
+      GENERIC_POLL_JOB,
+      {},
+      { jobId, repeat: { pattern: EVERY_MINUTE, jobId } },
+      { override: true },
+    );
+
+    expect(storedCalls).toHaveLength(1);
+
+    /*
+     * addRepeatableJob-2.lua: HMSET repeat:<key> with `name` plus only the
+     * options that are set (msgpack turns the undefined ones into nil).
+     */
+    const metadata: Record<string, string> = {};
+
+    for (const [field, value] of Object.entries(storedCalls[0]!.opts)) {
+      if (value !== undefined && value !== null) {
+        metadata[field] = String(value);
+      }
+    }
+
+    const listed: unknown =
+      bullmq.JobScheduler.prototype.transformSchedulerData.call(
+        bullmq.JobScheduler.prototype,
+        storedCalls[0]!.key,
+        metadata,
+        NEXT_TICK_MS,
+      );
+
+    expect(listed).toEqual(bullmqRepeatable(GENERIC_POLL_JOB, NEXT_TICK_MS));
+    expect(listed).not.toHaveProperty("id");
+    expect(
+      ConnectorPlatformHealth.isConnectorScheduler(
+        listed as ConnectorSchedulerEntry,
+      ),
+    ).toBe(true);
+  });
+
+  test("an entry that only carries the sanitized id is not a registration BullMQ can report", async () => {
+    /*
+     * The shape the old code matched on. BullMQ never fills `id` for a
+     * RunCron registration, so accepting it would only make a fabricated
+     * fixture pass again.
+     */
+    const status: ConnectorPlatformStatus =
+      await ConnectorPlatformHealth.getPlatformStatus({
+        queueOverride: makeQueue({
+          getJobSchedulers: (): Promise<Array<FakeScheduler | undefined>> => {
+            return Promise.resolve([
+              {
+                id: "SecurityEvents-PollSecurityEventConnections",
+                next: NEXT_TICK_MS,
+              } as unknown as FakeScheduler,
+            ]);
+          },
+        }),
+        storageProbeOverride: storageUp,
+      });
+
+    expect(status.schedulerRegistered).toBe(false);
+  });
+
+  test("a repeatable still kept under its concatenated key with no metadata hash is recognised by the key", async () => {
+    /*
+     * BullMQ rebuilds such an entry by splitting the key on ":", which
+     * reports the name as "SecurityEvents" and the rest of the job name
+     * as the id (JobScheduler.keyToData).
+     */
+    const key: string = legacyRepeatKey(GENERIC_POLL_JOB);
+    const status: ConnectorPlatformStatus =
+      await ConnectorPlatformHealth.getPlatformStatus({
+        queueOverride: makeQueue({
+          getJobSchedulers: (): Promise<Array<FakeScheduler | undefined>> => {
+            return Promise.resolve([
+              {
+                key,
+                name: "SecurityEvents",
+                id: "PollSecurityEventConnections",
+                endDate: null,
+                tz: null,
+                pattern: `:${EVERY_MINUTE}`,
+                next: NEXT_TICK_MS,
+              } as unknown as FakeScheduler,
+            ]);
+          },
+        }),
+        storageProbeOverride: storageUp,
+      });
+
+    expect(status.schedulerRegistered).toBe(true);
+    expect(status.schedulerNextRunAt).toBe(
+      new Date(NEXT_TICK_MS).toISOString(),
+    );
+  });
+
+  test("an undefined entry (a repeat key whose metadata is gone) is skipped, not a probe failure", async () => {
+    const status: ConnectorPlatformStatus =
+      await ConnectorPlatformHealth.getPlatformStatus({
+        queueOverride: makeQueue({
+          getJobSchedulers: (): Promise<Array<FakeScheduler | undefined>> => {
+            return Promise.resolve([
+              undefined,
+              bullmqRepeatable(GOOGLE_POLL_JOB, NEXT_TICK_MS),
+            ]);
+          },
+        }),
+        storageProbeOverride: storageUp,
+      });
+
+    expect(status.schedulerRegistered).toBe(true);
+  });
+
+  test("a job whose name only starts with a poll job name is not the poll scheduler", () => {
+    const lookalike: ConnectorSchedulerEntry = bullmqRepeatable(
+      `${GENERIC_POLL_JOB}Extra`,
+    );
+
+    expect(ConnectorPlatformHealth.isConnectorScheduler(lookalike)).toBe(false);
+    expect(
+      ConnectorPlatformHealth.isConnectorScheduler({
+        key: legacyRepeatKey(`${GENERIC_POLL_JOB}Extra`),
+        name: "SecurityEvents",
+      }),
+    ).toBe(false);
   });
 
   test("the Google scheduler alone marks the scheduler registered", async () => {
     const status: ConnectorPlatformStatus =
       await ConnectorPlatformHealth.getPlatformStatus({
         queueOverride: makeQueue({
-          getJobSchedulers: (): Promise<Array<FakeScheduler>> => {
-            return Promise.resolve([
-              { id: "SecurityEvents-PollGoogleSecOpsConnections" },
-            ]);
+          getJobSchedulers: (): Promise<Array<FakeScheduler | undefined>> => {
+            return Promise.resolve([bullmqRepeatable(GOOGLE_POLL_JOB)]);
           },
         }),
         storageProbeOverride: storageUp,
@@ -182,16 +493,10 @@ describe("ConnectorPlatformHealth.getPlatformStatus", () => {
     const status: ConnectorPlatformStatus =
       await ConnectorPlatformHealth.getPlatformStatus({
         queueOverride: makeQueue({
-          getJobSchedulers: (): Promise<Array<FakeScheduler>> => {
+          getJobSchedulers: (): Promise<Array<FakeScheduler | undefined>> => {
             return Promise.resolve([
-              {
-                id: "SecurityEvents-PollSecurityEventConnections",
-                next: NEXT_TICK_MS + 5_000,
-              },
-              {
-                id: "SecurityEvents-PollGoogleSecOpsConnections",
-                next: NEXT_TICK_MS,
-              },
+              bullmqRepeatable(GENERIC_POLL_JOB, NEXT_TICK_MS + 5_000),
+              bullmqRepeatable(GOOGLE_POLL_JOB, NEXT_TICK_MS),
             ]);
           },
         }),
@@ -207,9 +512,9 @@ describe("ConnectorPlatformHealth.getPlatformStatus", () => {
     const status: ConnectorPlatformStatus =
       await ConnectorPlatformHealth.getPlatformStatus({
         queueOverride: makeQueue({
-          getJobSchedulers: (): Promise<Array<FakeScheduler>> => {
+          getJobSchedulers: (): Promise<Array<FakeScheduler | undefined>> => {
             return Promise.resolve([
-              { id: "Unrelated-Job", next: NEXT_TICK_MS },
+              bullmqRepeatable("Unrelated:Job", NEXT_TICK_MS),
             ]);
           },
         }),

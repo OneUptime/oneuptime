@@ -138,6 +138,28 @@ function guardDutyFinding(suffix: string): JSONObject {
   };
 }
 
+// A GuardDuty finding created at a chosen moment, for resume-point tests.
+function findingCreatedAt(suffix: string, createdAt: string): JSONObject {
+  return { ...guardDutyFinding(suffix), CreatedAt: createdAt };
+}
+
+function withoutCreatedAt(finding: JSONObject): JSONObject {
+  const copy: JSONObject = { ...finding };
+  delete copy["CreatedAt"];
+  return copy;
+}
+
+/*
+ * What DataSourceHttpFetch throws for a non-2xx answer in production: the
+ * status and a body excerpt, with every response header (including
+ * x-amzn-errortype) dropped.
+ */
+function productionHttpError(code: number, body: string): BadDataException {
+  return new BadDataException(
+    `Data source responded with HTTP ${code}: ${body.substring(0, 500)}`,
+  );
+}
+
 // A Security Hub control finding: Compliance present, so class 2003.
 function controlFinding(): JSONObject {
   return {
@@ -459,6 +481,65 @@ describe("AwsSecurityHubConnector", () => {
       }).toThrow(
         "Session token is required for a temporary access key (an Access key ID starting with ASIA).",
       );
+    });
+
+    /*
+     * Review finding optional-secret-cannot-be-cleared: a connection moved
+     * from temporary credentials to a long-lived key keeps its old session
+     * token unless someone clears it, and AWS then rejects every request
+     * as an invalid security token. The rejection names both fields.
+     */
+    test("refuses a long-lived AKIA key combined with a session token, naming both fields", () => {
+      const connector: AwsSecurityHubConnector = new AwsSecurityHubConnector();
+      let message: string = "";
+
+      try {
+        connector.validateSettings(
+          settings({
+            secrets: {
+              secretAccessKey: SECRET_ACCESS_KEY,
+              sessionToken: SESSION_TOKEN,
+            },
+          }),
+        );
+      } catch (error) {
+        expect(error).toBeInstanceOf(BadDataException);
+        message = (error as Error).message;
+      }
+
+      expect(message).toBe(
+        "Session token must be empty for a long-lived access key (an Access key ID starting with AKIA). Remove the stored Session token, or enter the temporary Access key ID (starting with ASIA) that the token was issued with.",
+      );
+      expect(message).toContain(
+        definition.secretFields.find((field: { key: string }): boolean => {
+          return field.key === "sessionToken";
+        })!.title,
+      );
+      expect(message).toContain(
+        definition.configFields.find((field: { key: string }): boolean => {
+          return field.key === "accessKeyId";
+        })!.title,
+      );
+      expect(message).not.toContain(SESSION_TOKEN);
+    });
+
+    test("accepts a long-lived key whose cleared session token arrives as null or blank", () => {
+      const connector: AwsSecurityHubConnector = new AwsSecurityHubConnector();
+
+      const clearedValues: Array<string | null> = [null, "", "   "];
+
+      for (const cleared of clearedValues) {
+        expect(() => {
+          return connector.validateSettings(
+            settings({
+              secrets: {
+                secretAccessKey: SECRET_ACCESS_KEY,
+                sessionToken: cleared,
+              },
+            }),
+          );
+        }).not.toThrow();
+      }
     });
   });
 
@@ -1017,6 +1098,188 @@ describe("AwsSecurityHubConnector", () => {
       );
     });
 
+    test("fails before contacting AWS for a long-lived key saved with a session token", async () => {
+      const harness: Harness = buildHarness();
+
+      const checks: Array<SecurityConnectorCheck> =
+        await harness.connector.testConnection(
+          settings({
+            secrets: {
+              secretAccessKey: SECRET_ACCESS_KEY,
+              sessionToken: SESSION_TOKEN,
+            },
+          }),
+          { requestTimeoutInMs: 1000 },
+        );
+
+      expect(statuses(checks)).toEqual([
+        "authentication:fail",
+        "read-permission:skip",
+        "detections-available:skip",
+      ]);
+      expect(checks[0]!.message).toContain("Session token must be empty");
+      expect(JSON.stringify(checks)).not.toContain(SESSION_TOKEN);
+      expect(harness.requests).toHaveLength(0);
+    });
+
+    /*
+     * Review finding aws-signature-errors-reported-as-iam-permission. The
+     * production transport keeps only the status and body of a failed
+     * answer, so AWS's x-amzn-errortype header never arrives and a
+     * signature rejection's body is just {"message": ...}. Those used to
+     * pass authentication ("the access key and secret are valid") and fail
+     * read-permission with IAM guidance. They are authentication failures.
+     */
+    describe("with the production transport's header-less HTTP errors", () => {
+      function probeFailsWith(code: number, body: JSONObject): Harness {
+        return buildHarness([
+          (): DataSourceHttpResponse => {
+            throw productionHttpError(code, JSON.stringify(body));
+          },
+        ]);
+      }
+
+      test.each<[string, string]>([
+        [
+          "a wrong secret",
+          "The request signature we calculated does not match the signature you provided. Check your AWS Secret Access Key and signing method. Consult the service documentation for details.",
+        ],
+        [
+          "an unknown access key or a stray session token",
+          "The security token included in the request is invalid.",
+        ],
+      ])(
+        "fails authentication for %s and never calls the credentials valid",
+        async (_label: string, awsMessage: string) => {
+          const harness: Harness = probeFailsWith(403, { message: awsMessage });
+
+          const checks: Array<SecurityConnectorCheck> =
+            await harness.connector.testConnection(settings(), {
+              requestTimeoutInMs: 1000,
+            });
+
+          expect(statuses(checks)).toEqual([
+            "authentication:fail",
+            "read-permission:skip",
+            "detections-available:skip",
+          ]);
+
+          const authentication: SecurityConnectorCheck = checks[0]!;
+          expect(authentication.message).toMatch(
+            /^AWS Security Hub findings request failed \(HTTP 403\): /,
+          );
+          expect(authentication.message).toContain(awsMessage);
+          expect(authentication.message).not.toContain("credentials are valid");
+          expect(authentication.message).not.toContain(
+            "securityhub:GetFindings",
+          );
+          expect(authentication.remediation).toContain("Security credentials");
+          expect(authentication.remediation).not.toContain(
+            "AWSSecurityHubReadOnlyAccess",
+          );
+          expect(JSON.stringify(checks)).not.toContain(
+            "verified the request signature",
+          );
+          expect(checks[1]!.message).toContain("authentication failed");
+        },
+      );
+
+      test("fails authentication with the clock remediation for an expired signature", async () => {
+        const harness: Harness = probeFailsWith(403, {
+          message:
+            "Signature expired: 20260913T100507Z is now earlier than 20260913T101000Z (20260913T101500Z - 5 min.)",
+        });
+
+        const checks: Array<SecurityConnectorCheck> =
+          await harness.connector.testConnection(settings(), {
+            requestTimeoutInMs: 1000,
+          });
+
+        expect(statuses(checks)[0]).toBe("authentication:fail");
+        expect(checks[0]!.message).toContain("Fix NTP");
+        expect(checks[0]!.remediation).toContain("NTP");
+      });
+
+      test("fails authentication with the STS remediation for an expired session token", async () => {
+        const harness: Harness = probeFailsWith(403, {
+          message: "The security token included in the request is expired",
+        });
+
+        const checks: Array<SecurityConnectorCheck> =
+          await harness.connector.testConnection(temporarySettings(), {
+            requestTimeoutInMs: 1000,
+          });
+
+        expect(statuses(checks)[0]).toBe("authentication:fail");
+        expect(checks[0]!.remediation).toContain("STS");
+        expect(JSON.stringify(checks)).not.toContain(SESSION_TOKEN);
+      });
+
+      test("fails authentication on a 403 that names no error code, pointing at the credentials and then IAM", async () => {
+        const harness: Harness = probeFailsWith(403, {
+          message: "Forbidden",
+        });
+
+        const checks: Array<SecurityConnectorCheck> =
+          await harness.connector.testConnection(settings(), {
+            requestTimeoutInMs: 1000,
+          });
+
+        expect(statuses(checks)).toEqual([
+          "authentication:fail",
+          "read-permission:skip",
+          "detections-available:skip",
+        ]);
+        expect(checks[0]!.message).toContain("without naming an error code");
+        expect(checks[0]!.message).not.toContain("credentials are valid");
+        expect(checks[0]!.remediation).toContain("without an error code");
+        expect(checks[0]!.remediation).toContain("Secret access key");
+        expect(checks[0]!.remediation).toContain("securityhub:GetFindings");
+      });
+
+      test("still passes authentication and fails read-permission when AWS's wording names an IAM denial", async () => {
+        const harness: Harness = probeFailsWith(403, {
+          Message:
+            "User: arn:aws:iam::123456789012:user/oneuptime is not authorized to perform: securityhub:GetFindings on resource: arn:aws:securityhub:us-east-1:123456789012:hub/default",
+        });
+
+        const checks: Array<SecurityConnectorCheck> =
+          await harness.connector.testConnection(settings(), {
+            requestTimeoutInMs: 1000,
+          });
+
+        expect(statuses(checks)).toEqual([
+          "authentication:pass",
+          "read-permission:fail",
+          "detections-available:skip",
+        ]);
+        expect(checkByKey(checks, "read-permission").remediation).toContain(
+          "AWSSecurityHubReadOnlyAccess",
+        );
+      });
+
+      test("passes authentication and fails read-permission on InvalidAccessException, which the API reference lists as HTTP 401", async () => {
+        const harness: Harness = probeFailsWith(401, {
+          Code: "InvalidAccessException",
+          Message: "Account 123456789012 is not subscribed to AWS Security Hub",
+        });
+
+        const checks: Array<SecurityConnectorCheck> =
+          await harness.connector.testConnection(settings(), {
+            requestTimeoutInMs: 1000,
+          });
+
+        expect(statuses(checks)).toEqual([
+          "authentication:pass",
+          "read-permission:fail",
+          "detections-available:skip",
+        ]);
+        expect(checkByKey(checks, "read-permission").remediation).toContain(
+          "Enable Security Hub in this Region",
+        );
+      });
+    });
+
     test("signs and sends the session token on every request for temporary credentials, and never prints it", async () => {
       const harness: Harness = buildHarness([
         (): DataSourceHttpResponse => {
@@ -1075,6 +1338,8 @@ describe("AwsSecurityHubConnector", () => {
       );
 
       expect(result.complete).toBe(true);
+      // A complete read names no resume point; the poller uses the window end.
+      expect(result.resumeAfter).toBeUndefined();
       expect(result.warnings).toEqual([]);
       expect(result.requestCount).toBe(1);
       expect(result.fetchedCount).toBe(3);
@@ -1164,6 +1429,7 @@ describe("AwsSecurityHubConnector", () => {
       );
 
       expect(result.complete).toBe(true);
+      expect(result.resumeAfter).toBeUndefined();
       expect(result.requestCount).toBe(3);
       expect(result.fetchedCount).toBe(5);
       expect(result.events).toHaveLength(5);
@@ -1196,16 +1462,32 @@ describe("AwsSecurityHubConnector", () => {
       }
     });
 
-    test("stops at the request bound, marks the fetch incomplete and warns so the cursor is held", async () => {
+    /*
+     * Review finding bound-hit-window-never-advances: these used to assert
+     * "cursor is held", and the held cursor re-read the same oldest
+     * findings on every poll so nothing newer was ever imported. A bound
+     * now reports the CreatedAt of the last finding read (GetFindings is
+     * sorted by CreatedAt ascending) so the poller can move past it.
+     */
+    test("stops at the request bound, marks the fetch incomplete and reports the last CreatedAt read as the resume point", async () => {
       const harness: Harness = buildHarness([
         (): DataSourceHttpResponse => {
-          return page([guardDutyFinding("p1a")], "tok-1");
+          return page(
+            [
+              findingCreatedAt("p1a", "2026-09-12T10:05:00.000Z"),
+              findingCreatedAt("p1b", "2026-09-12T10:06:30.250Z"),
+            ],
+            "tok-1",
+          );
         },
         (): DataSourceHttpResponse => {
-          return page([guardDutyFinding("p2a")], "tok-2");
+          return page(
+            [findingCreatedAt("p2a", "2026-09-12T11:40:12.345678901Z")],
+            "tok-2",
+          );
         },
         (): DataSourceHttpResponse => {
-          return page([guardDutyFinding("p3a")]);
+          return page([findingCreatedAt("p3a", "2026-09-12T12:00:00.000Z")]);
         },
       ]);
 
@@ -1217,22 +1499,23 @@ describe("AwsSecurityHubConnector", () => {
 
       expect(result.complete).toBe(false);
       expect(result.requestCount).toBe(2);
-      expect(result.events).toHaveLength(2);
-      expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0]).toContain(
-        "Stopped after 2 findings requests (the per-run request limit)",
-      );
-      expect(result.warnings[0]).toContain("cursor is held");
+      expect(result.events).toHaveLength(3);
+      // Nine fractional digits truncate to milliseconds: never later than the finding.
+      expect(result.resumeAfter).toEqual(new Date("2026-09-12T11:40:12.345Z"));
+      expect(result.warnings).toEqual([
+        "Stopped after 2 findings requests (the per-run request limit) before the window was fully read. The last finding read was created at 2026-09-12T11:40:12.345Z.",
+      ]);
+      expect(result.warnings[0]).not.toContain("cursor is held");
       expect(harness.requests).toHaveLength(2);
     });
 
-    test("stops at the event bound inside a page, marks the fetch incomplete and warns", async () => {
+    test("stops at the event bound inside a page and resumes after the last finding kept, not the one dropped", async () => {
       const harness: Harness = buildHarness([
         (): DataSourceHttpResponse => {
           return page([
-            guardDutyFinding("a"),
-            guardDutyFinding("b"),
-            guardDutyFinding("c"),
+            findingCreatedAt("a", "2026-09-12T10:01:00.000Z"),
+            findingCreatedAt("b", "2026-09-12T10:02:00.000Z"),
+            findingCreatedAt("c", "2026-09-12T10:03:00.000Z"),
           ]);
         },
       ]);
@@ -1246,18 +1529,23 @@ describe("AwsSecurityHubConnector", () => {
       expect(result.complete).toBe(false);
       expect(result.events).toHaveLength(2);
       expect(result.fetchedCount).toBe(2);
-      expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0]).toContain(
-        "Stopped after 2 findings (the per-run record limit)",
-      );
-      expect(result.warnings[0]).toContain("cursor is held");
+      expect(result.resumeAfter).toEqual(new Date("2026-09-12T10:02:00.000Z"));
+      expect(result.warnings).toEqual([
+        "Stopped after 2 findings (the per-run record limit) before the window was fully read. The last finding read was created at 2026-09-12T10:02:00.000Z.",
+      ]);
       expect(harness.requests).toHaveLength(1);
     });
 
     test("does not request the next page once the event bound is reached exactly at a page end", async () => {
       const harness: Harness = buildHarness([
         (): DataSourceHttpResponse => {
-          return page([guardDutyFinding("a"), guardDutyFinding("b")], "tok-1");
+          return page(
+            [
+              findingCreatedAt("a", "2026-09-12T10:01:00.000Z"),
+              findingCreatedAt("b", "2026-09-12T10:04:00.000Z"),
+            ],
+            "tok-1",
+          );
         },
       ]);
 
@@ -1270,7 +1558,59 @@ describe("AwsSecurityHubConnector", () => {
       expect(result.complete).toBe(false);
       expect(result.events).toHaveLength(2);
       expect(result.warnings[0]).toContain("per-run record limit");
+      expect(result.resumeAfter).toEqual(new Date("2026-09-12T10:04:00.000Z"));
       expect(harness.requests).toHaveLength(1);
+    });
+
+    test("counts a finding the normalizer rejects toward the resume point and skips a missing or unparseable CreatedAt", async () => {
+      const harness: Harness = buildHarness([
+        (): DataSourceHttpResponse => {
+          return page(
+            [
+              findingCreatedAt("a", "2026-09-12T10:01:00.000Z"),
+              // Not a finding the normalizer recognizes (no Id), but it was read.
+              {
+                Message: "not a finding",
+                CreatedAt: "2026-09-12T10:07:00.000Z",
+              },
+              findingCreatedAt("bad-date", "not a timestamp"),
+              withoutCreatedAt(guardDutyFinding("no-created-at")),
+            ],
+            "tok-1",
+          );
+        },
+      ]);
+
+      const result: ConnectorFetchResult = await harness.connector.fetchEvents(
+        settings(),
+        { startTime: START, endTime: END },
+        fetchOptions({ maxRequests: 1 }),
+      );
+
+      expect(result.complete).toBe(false);
+      expect(result.fetchedCount).toBe(4);
+      expect(result.rejectedCount).toBe(1);
+      expect(result.resumeAfter).toEqual(new Date("2026-09-12T10:07:00.000Z"));
+    });
+
+    test("reports no resume point when no finding was read before the bound", async () => {
+      const harness: Harness = buildHarness([
+        (): DataSourceHttpResponse => {
+          return page([], "tok-1");
+        },
+      ]);
+
+      const result: ConnectorFetchResult = await harness.connector.fetchEvents(
+        settings(),
+        { startTime: START, endTime: END },
+        fetchOptions({ maxRequests: 1 }),
+      );
+
+      expect(result.complete).toBe(false);
+      expect(result.resumeAfter).toBeUndefined();
+      expect(result.warnings).toEqual([
+        "Stopped after 1 findings requests (the per-run request limit) before the window was fully read. No finding read carried a readable CreatedAt, so no resume point is reported.",
+      ]);
     });
 
     test("counts findings the normalizer does not recognize as rejected and ones that throw as failed", async () => {
@@ -1306,6 +1646,7 @@ describe("AwsSecurityHubConnector", () => {
           );
 
         expect(result.complete).toBe(true);
+        expect(result.resumeAfter).toBeUndefined();
         expect(result.fetchedCount).toBe(4);
         expect(result.rejectedCount).toBe(2);
         expect(result.failedCount).toBe(1);
@@ -1484,6 +1825,19 @@ describe("AwsSecurityHubConnector", () => {
           fetchOptions(),
         ),
       ).rejects.toThrow(/^Session token is required/);
+
+      await expect(
+        harness.connector.fetchEvents(
+          settings({
+            secrets: {
+              secretAccessKey: SECRET_ACCESS_KEY,
+              sessionToken: SESSION_TOKEN,
+            },
+          }),
+          { startTime: START, endTime: END },
+          fetchOptions(),
+        ),
+      ).rejects.toThrow(/^Session token must be empty/);
 
       await expect(
         harness.connector.fetchEvents(

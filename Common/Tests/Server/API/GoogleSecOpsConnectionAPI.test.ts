@@ -341,8 +341,14 @@ describe("POST /google-secops-connection/test", () => {
           props: { isRoot: true },
         }),
       );
+      /*
+       * A connection tested exactly as stored is recorded in its run
+       * history; recordRun is passed explicitly since the overlay below
+       * (edit-form-test-ignores-edited-settings) can turn it off.
+       */
       expect(GoogleSecOpsConnectionTester.test).toHaveBeenCalledWith({
         connection: loaded,
+        recordRun: true,
       });
       expect(Response.sendJsonObjectResponse).toHaveBeenCalledWith(
         req,
@@ -392,6 +398,148 @@ describe("POST /google-secops-connection/test", () => {
       expect(GoogleSecOpsConnectionTester.test).not.toHaveBeenCalled();
     },
   );
+
+  /*
+   * Review finding edit-form-test-ignores-edited-settings. The edit form
+   * cannot read the stored key back, so "Test before saving" sends the
+   * connection id plus the region, instance and Detections selection on
+   * screen. Those used to be ignored and the stored settings tested.
+   */
+  describe("a saved connection tested with the edit form's unsaved settings", () => {
+    const STORED_KEY: string = '{"client_email":"stored","private_key":"k"}';
+
+    function storedConnection(): GoogleSecOpsConnection {
+      const loaded: GoogleSecOpsConnection = new GoogleSecOpsConnection();
+      loaded.id = CONNECTION;
+      loaded.projectId = PROJECT;
+      loaded.region = "us";
+      loaded.instanceResourceName = "projects/p/locations/us/instances/old";
+      loaded.serviceAccountJson = STORED_KEY;
+      loaded.includeNonAlertingDetections = false;
+      return loaded;
+    }
+
+    function testedCall(): {
+      connection: GoogleSecOpsConnection;
+      recordRun: boolean;
+    } {
+      return (GoogleSecOpsConnectionTester.test as jest.Mock).mock
+        .calls[0]![0] as {
+        connection: GoogleSecOpsConnection;
+        recordRun: boolean;
+      };
+    }
+
+    beforeEach(() => {
+      (
+        GoogleSecOpsConnectionService.findOneById as jest.Mock
+      ).mockResolvedValue(storedConnection());
+    });
+
+    test("tests the edited values with the stored key and records no run row", async () => {
+      req.body = {
+        connectionId: CONNECTION.toString(),
+        region: "europe",
+        instanceResourceName: " projects/p/locations/eu/instances/new ",
+        includeNonAlertingDetections: true,
+        // Never honoured on this path: the stored key is always used.
+        serviceAccountJson: '{"client_email":"pasted","private_key":"x"}',
+      };
+
+      await testHandler(req, res, next);
+
+      expect(next).not.toHaveBeenCalled();
+      const call: { connection: GoogleSecOpsConnection; recordRun: boolean } =
+        testedCall();
+      expect(call.connection.id).toEqual(CONNECTION);
+      expect(call.connection.region).toBe("europe");
+      expect(call.connection.instanceResourceName).toBe(
+        "projects/p/locations/eu/instances/new",
+      );
+      expect(call.connection.includeNonAlertingDetections).toBe(true);
+      expect(call.connection.serviceAccountJson).toBe(STORED_KEY);
+      expect(call.recordRun).toBe(false);
+      expect(GoogleSecOpsConnectionService.create).not.toHaveBeenCalled();
+      expect(
+        GoogleSecOpsConnectionService.updateOneById,
+      ).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      ["region", { region: "europe" }],
+      [
+        "instance resource name",
+        { instanceResourceName: "projects/p/locations/us/instances/new" },
+      ],
+      ["Detections selection", { includeNonAlertingDetections: true }],
+    ])(
+      "a changed %s alone is enough to skip the run row",
+      async (_label: string, edit: Record<string, unknown>) => {
+        req.body = { connectionId: CONNECTION.toString(), ...edit };
+
+        await testHandler(req, res, next);
+
+        expect(next).not.toHaveBeenCalled();
+        expect(testedCall().recordRun).toBe(false);
+      },
+    );
+
+    test("values equal to the stored settings test what is saved and are recorded", async () => {
+      req.body = {
+        connectionId: CONNECTION.toString(),
+        region: "us",
+        instanceResourceName: "projects/p/locations/us/instances/old",
+        includeNonAlertingDetections: false,
+      };
+
+      await testHandler(req, res, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(testedCall().recordRun).toBe(true);
+      expect(testedCall().connection.instanceResourceName).toBe(
+        "projects/p/locations/us/instances/old",
+      );
+    });
+
+    test("null values keep the stored settings", async () => {
+      req.body = {
+        connectionId: CONNECTION.toString(),
+        region: null,
+        instanceResourceName: null,
+        includeNonAlertingDetections: null,
+      };
+
+      await testHandler(req, res, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(testedCall().connection.region).toBe("us");
+      expect(testedCall().recordRun).toBe(true);
+    });
+
+    test.each([
+      [{ region: "us-central1" }, "Region must be"],
+      [{ region: "" }, "Region must be"],
+      [
+        { instanceResourceName: "nope" },
+        "Instance resource name must look like",
+      ],
+      [{ includeNonAlertingDetections: "yes" }, "must be true or false"],
+    ])(
+      "rejects an invalid edit %j with the save-time rule",
+      async (edit: Record<string, unknown>, expectedMessage: string) => {
+        req.body = { connectionId: CONNECTION.toString(), ...edit };
+
+        await testHandler(req, res, next);
+
+        expect(next).toHaveBeenCalledWith(
+          expect.objectContaining({
+            message: expect.stringContaining(expectedMessage),
+          }),
+        );
+        expect(GoogleSecOpsConnectionTester.test).not.toHaveBeenCalled();
+      },
+    );
+  });
 
   test("rejects a malformed connection ID before any lookup", async () => {
     req.body = { connectionId: "not-a-uuid" };

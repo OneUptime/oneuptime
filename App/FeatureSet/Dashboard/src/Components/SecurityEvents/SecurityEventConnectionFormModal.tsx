@@ -32,6 +32,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
   InlineConnectionTest,
+  connectionTestSettingsKey,
   runConnectionTestRequest,
 } from "./ConnectionTestModal";
 import {
@@ -59,6 +60,17 @@ export function secretFieldName(provider: string, key: string): string {
   return `${provider}__secret__${key}`;
 }
 
+/*
+ * The "Remove the stored {title}" toggle an OPTIONAL secret gets on edit. A
+ * blank password input has to keep meaning "unchanged" (stored secrets are
+ * never read back, so the input always starts empty), which leaves no way
+ * to delete a value; switching AWS from temporary to long-lived keys, or
+ * Splunk from a token to a username and password, needs exactly that.
+ */
+export function removeSecretFieldName(provider: string, key: string): string {
+  return `${provider}__removeSecret__${key}`;
+}
+
 export const TEST_SETTINGS_FIELD_NAME: string = "testTheseSettings";
 
 export interface SecurityEventConnectionFormSubmission {
@@ -66,7 +78,11 @@ export interface SecurityEventConnectionFormSubmission {
   name: string;
   description: string | undefined;
   config: JSONObject;
-  // Only the secret fields the user actually filled in.
+  /*
+   * Only the secret fields the user acted on: the typed value, or null for
+   * an optional secret whose Remove toggle is on (the API deletes a key
+   * sent as null and keeps any key that is absent or "").
+   */
   secrets: JSONObject;
   isEnabled: boolean;
   pollIntervalInMinutes: number;
@@ -147,6 +163,19 @@ export function readSecurityEventConnectionForm(
   const secrets: JSONObject = {};
 
   for (const field of definition.secretFields) {
+    /*
+     * Removal wins over anything typed in the input: the toggle is the
+     * explicit instruction. A required secret can never be removed, so a
+     * stray toggle value for one is ignored rather than sent.
+     */
+    if (
+      !field.required &&
+      values[removeSecretFieldName(provider, field.key)] === true
+    ) {
+      secrets[field.key] = null;
+      continue;
+    }
+
     const value: string = readString(
       values[secretFieldName(provider, field.key)] as JSONValue | undefined,
     );
@@ -173,9 +202,29 @@ export function readSecurityEventConnectionForm(
 }
 
 /*
+ * A new connection has nothing stored to remove; the create form never
+ * shows the Remove toggles, and this keeps a null out of a create body even
+ * if one were set.
+ */
+function withoutRemovedSecrets(secrets: JSONObject): JSONObject {
+  const kept: JSONObject = {};
+
+  for (const key of Object.keys(secrets)) {
+    const value: JSONValue | undefined = secrets[key];
+
+    if (value !== null && value !== undefined) {
+      kept[key] = value;
+    }
+  }
+
+  return kept;
+}
+
+/*
  * The body for POST /security-event-connection/test. Unsaved settings on
  * create; on edit the connection id plus the edits, so blank secrets keep
- * the stored values (the API overlays non-empty keys only).
+ * the stored values and a secret sent as null is tested as removed (the API
+ * overlays secrets with the same rule the save uses).
  */
 export function securityEventConnectionTestBody(data: {
   values: JSONObject;
@@ -202,7 +251,7 @@ export function securityEventConnectionTestBody(data: {
   return {
     provider: submission.provider,
     config: submission.config,
-    secrets: submission.secrets,
+    secrets: withoutRemovedSecrets(submission.secrets),
     alertingOnly: submission.alertingOnly,
   };
 }
@@ -222,7 +271,10 @@ export function securityEventConnectionUpdatePayload(
     isEnabled: submission.isEnabled,
     pollIntervalInMinutes: submission.pollIntervalInMinutes,
     alertingOnly: submission.alertingOnly,
-    // A blank credential step means "keep what is stored".
+    /*
+     * A blank credential step means "keep what is stored"; a removal (null)
+     * is a change, so it is sent like a typed value.
+     */
     ...(Object.keys(submission.secrets).length > 0
       ? { secrets: JSON.stringify(submission.secrets) }
       : {}),
@@ -294,12 +346,25 @@ const InlineSettingsTest: FunctionComponent<InlineSettingsTestProps> = (
   const definition: SecurityEventConnectorDefinition | undefined =
     getSecurityEventConnectorDefinition(provider);
 
+  /*
+   * The report is only shown while the form still holds the values it was
+   * tested with; editing a key after a green result hides that result.
+   */
+  const settingsKey: string = connectionTestSettingsKey((): JSONObject => {
+    return securityEventConnectionTestBody({
+      values: props.values,
+      connection: props.connection,
+      credentialsOnly: props.credentialsOnly,
+    });
+  });
+
   return (
     <InlineConnectionTest
       providerTitle={definition?.title || "the provider"}
       disabledReason={
         definition ? undefined : "Choose a provider before testing."
       }
+      settingsKey={settingsKey}
       runTest={(): Promise<SecurityConnectorTestReport> => {
         return runConnectionTestRequest({
           route: SECURITY_EVENT_CONNECTION_TEST_ROUTE,
@@ -461,6 +526,26 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
               }
             : {}),
         });
+
+        /*
+         * Only an optional secret can be removed: deleting a required one
+         * would leave a connection the server refuses to save. The password
+         * input above stays visible (hiding it would also hide the section
+         * heading it carries) and is ignored while the toggle is on.
+         */
+        if (isEditing && !field.required) {
+          fields.push({
+            field: {
+              [removeSecretFieldName(definition.provider, field.key)]: true,
+            },
+            title: `Remove the stored ${field.title}`,
+            description: `On: the stored ${field.title} is deleted when you save, for example after switching to a different sign-in method. Anything typed in ${field.title} is ignored while this is on.`,
+            stepId: CREDENTIALS_STEP_ID,
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            showIf: isSelected(definition),
+          });
+        }
       },
     );
   }
@@ -594,8 +679,14 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
       ? `Edit connection: ${props.connection?.name || ""}`
       : "Add connection";
 
+  const hasOptionalSecret: boolean = Boolean(
+    lockedDefinition?.secretFields.some((field: ConnectorField): boolean => {
+      return !field.required;
+    }),
+  );
+
   const description: string = credentialsOnly
-    ? `Replace the stored ${lockedDefinition?.title || ""} credentials. Blank fields keep their stored value.`
+    ? `Replace the stored ${lockedDefinition?.title || ""} credentials. Blank fields keep their stored value.${hasOptionalSecret ? " Turn on a Remove toggle to delete an optional one." : ""}`
     : isEditing
       ? `${lockedDefinition?.title || "Provider"} connection. The provider cannot be changed after creation; add a new connection to import from another product.`
       : "Import security events from a SIEM, EDR, cloud security or identity product. Test before saving.";
@@ -633,7 +724,7 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
               Object.keys(submission.secrets).length === 0
             ) {
               throw new Error(
-                "Enter at least one credential to update, or close this dialog to keep the stored values.",
+                "Enter at least one credential to update or remove, or close this dialog to keep the stored values.",
               );
             }
 
@@ -655,7 +746,9 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
             }
             model.provider = submission.provider;
             model.config = submission.config;
-            model.secrets = JSON.stringify(submission.secrets);
+            model.secrets = JSON.stringify(
+              withoutRemovedSecrets(submission.secrets),
+            );
             model.isEnabled = submission.isEnabled;
             model.pollIntervalInMinutes = submission.pollIntervalInMinutes;
             model.alertingOnly = submission.alertingOnly;

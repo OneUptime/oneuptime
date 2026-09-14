@@ -25,9 +25,11 @@ export interface GoogleSecOpsDetectionSample {
 
 /*
  * "warn" is a step that completed but left something for the reader: an
- * optional source (curated rules) the tenant cannot read, or returned
- * objects that were counted and discarded. It never holds the cursor;
- * "failed" does.
+ * optional source (curated rules) the tenant cannot read, returned objects
+ * that were counted and discarded, or a pass a request or time budget
+ * stopped. A budget-stopped pass leaves the poll partial, so the next
+ * scheduled window is narrowed; the other warnings do not affect the
+ * cursor. "failed" is a step that threw, and the cursor is held.
  */
 export interface GoogleSecOpsDiagnosticCheck {
   name: string;
@@ -91,4 +93,19 @@ export interface GoogleSecOpsRunResult {
   eventTimeStart?: string | undefined;
   eventTimeEnd?: string | undefined;
   error?: string | undefined;
+  /*
+   * Adaptive catch-up, scheduled polls only. chunkMinutes is the minutes of
+   * creation time this poll read past the saved cursor (from the window
+   * start when there was no usable cursor); the overlap before the cursor is
+   * not counted. nextChunkMinutes is the chunk the next scheduled poll is
+   * given. A poll that could not read its window halves it (or, when the
+   * source reads in ascending creation order, resumes from the last record
+   * read); a complete poll never shrinks it and doubles it back towards the
+   * 24 hour maximum; a failed poll keeps it. forcedAdvance records a one
+   * minute window that still could not be read completely and was skipped
+   * past so polling keeps moving.
+   */
+  chunkMinutes?: number | undefined;
+  nextChunkMinutes?: number | undefined;
+  forcedAdvance?: boolean | undefined;
 }

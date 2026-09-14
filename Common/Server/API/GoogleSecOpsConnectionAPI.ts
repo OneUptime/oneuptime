@@ -80,12 +80,18 @@ export default class GoogleSecOpsConnectionAPI extends BaseAPI<
      * Synchronous connection test, run in this process rather than through
      * the Worker queue so it can report "no worker is consuming the queue"
      * instead of sitting in "queued". Body is either
-     *   { connectionId } — a saved connection (credentials read with root
-     *     props here, never returned), or
+     *   { connectionId, region?, instanceResourceName?,
+     *     includeNonAlertingDetections? } — a saved connection (credentials
+     *     read with root props here, never returned). The optional settings
+     *     are the edit form's unsaved values: they replace the stored ones
+     *     for this test only, while the stored key is always used, because
+     *     the key can never be read back into the form. Or
      *   { region, instanceResourceName, serviceAccountJson,
      *     includeNonAlertingDetections } — settings that were never saved,
      *     so the create form can test before storing anything.
-     * Nothing is persisted except a run-history row for a saved connection.
+     * Nothing is persisted except a run-history row for a saved connection
+     * tested exactly as stored: a row describing settings that were never
+     * saved would misstate that connection's history.
      */
     this.router.post(
       `${basePath}/test`,
@@ -106,6 +112,7 @@ export default class GoogleSecOpsConnectionAPI extends BaseAPI<
 
           const connectionIdValue: JSONValue | undefined = body["connectionId"];
           let connection: GoogleSecOpsConnection;
+          let recordRun: boolean = false;
 
           if (connectionIdValue !== undefined && connectionIdValue !== null) {
             const connectionId: string = String(connectionIdValue);
@@ -151,7 +158,14 @@ export default class GoogleSecOpsConnectionAPI extends BaseAPI<
               throw new BadDataException("The connection no longer exists.");
             }
 
+            const overlaid: boolean =
+              GoogleSecOpsConnectionAPI.overlayEditedSettings({
+                connection: loaded,
+                body,
+              });
+
             connection = loaded;
+            recordRun = !overlaid;
           } else {
             const region: string = GoogleSecOpsConnectionAPI.readString(
               body["region"],
@@ -199,7 +213,7 @@ export default class GoogleSecOpsConnectionAPI extends BaseAPI<
           }
 
           const report: SecurityConnectorTestReport =
-            await GoogleSecOpsConnectionTester.test({ connection });
+            await GoogleSecOpsConnectionTester.test({ connection, recordRun });
 
           return Response.sendJsonObjectResponse(
             req,
@@ -220,6 +234,80 @@ export default class GoogleSecOpsConnectionAPI extends BaseAPI<
       errorMessage:
         "Project owners, project administrators, and security administrators can run connection diagnostics.",
     });
+  }
+
+  /*
+   * Applies the edit form's unsaved region, instance resource name and
+   * Detections selection to a loaded connection, validated with the same
+   * rules create and update apply (review finding
+   * edit-form-test-ignores-edited-settings: the stored values used to be
+   * tested and the edits silently ignored). Absent or null values keep the
+   * stored setting; the stored key is never replaced here.
+   *
+   * Returns true when any value differs from the stored one. A value equal
+   * to the stored one tests exactly what is saved, so it is not an overlay
+   * and the run can still be recorded against the connection.
+   */
+  private static overlayEditedSettings(data: {
+    connection: GoogleSecOpsConnection;
+    body: JSONObject;
+  }): boolean {
+    const regionValue: JSONValue | undefined = data.body["region"];
+    const instanceValue: JSONValue | undefined =
+      data.body["instanceResourceName"];
+    const includeValue: JSONValue | undefined =
+      data.body["includeNonAlertingDetections"];
+
+    const region: string | undefined =
+      regionValue === undefined || regionValue === null
+        ? undefined
+        : GoogleSecOpsConnectionAPI.readString(regionValue);
+    const instanceResourceName: string | undefined =
+      instanceValue === undefined || instanceValue === null
+        ? undefined
+        : GoogleSecOpsConnectionAPI.readString(instanceValue);
+    const includeNonAlertingDetections: boolean | undefined =
+      includeValue === undefined || includeValue === null
+        ? undefined
+        : (includeValue as boolean);
+
+    /*
+     * An empty region or instance is validated rather than ignored: the
+     * person cleared the field, and testing the stored value instead is the
+     * defect this overlay exists to remove.
+     */
+    GoogleSecOpsConnectionServiceType.validateSettings({
+      region,
+      instanceResourceName,
+      includeNonAlertingDetections,
+    });
+
+    let overlaid: boolean = false;
+
+    if (region !== undefined && region !== data.connection.region) {
+      data.connection.region = region;
+      overlaid = true;
+    }
+
+    if (
+      instanceResourceName !== undefined &&
+      instanceResourceName !== data.connection.instanceResourceName
+    ) {
+      data.connection.instanceResourceName = instanceResourceName;
+      overlaid = true;
+    }
+
+    if (
+      includeNonAlertingDetections !== undefined &&
+      includeNonAlertingDetections !==
+        (data.connection.includeNonAlertingDetections === true)
+    ) {
+      data.connection.includeNonAlertingDetections =
+        includeNonAlertingDetections;
+      overlaid = true;
+    }
+
+    return overlaid;
   }
 
   private static readString(value: JSONValue | undefined): string {

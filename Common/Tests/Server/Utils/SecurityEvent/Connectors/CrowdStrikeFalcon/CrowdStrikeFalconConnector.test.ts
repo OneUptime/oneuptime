@@ -29,8 +29,9 @@ import OcsfSeverity from "../../../../../../Types/SecurityEvent/OcsfSeverity";
  * The connector as the framework depends on it: settings are read by the
  * catalog's keys, the three test checks carry the keys the report UI
  * groups on, fetchEvents pages by created_timestamp and stops — with
- * complete=false and a warning — at every bound, and nothing secret can
- * appear in a check message. The transport is the injected seam; nothing
+ * complete=false, a warning and the created_timestamp of the last alert
+ * read as resumeAfter — at every bound, and nothing secret can appear in
+ * a check message. The transport is the injected seam; nothing
  * here touches the network.
  */
 
@@ -180,6 +181,43 @@ function entitiesFor(ids: Array<string>): DataSourceHttpResponse {
     }),
     errors: [],
   });
+}
+
+/*
+ * A created_timestamp one second after START per index, so ids listed in
+ * index order are in the ascending creation order the query asks for.
+ */
+function createdAtFor(index: number): string {
+  return new Date(START.getTime() + index * 1000).toISOString();
+}
+
+function datedEntitiesFor(
+  ids: Array<string>,
+  indexOf: (id: string) => number,
+): DataSourceHttpResponse {
+  return ok({
+    meta: { query_time: 0.02 },
+    resources: ids.map((id: string): JSONObject => {
+      return alert(id, { created_timestamp: createdAtFor(indexOf(id)) });
+    }),
+    errors: [],
+  });
+}
+
+function compositeIdIndex(id: string): number {
+  const match: RegExpMatchArray | null = id.match(/:(\d{12})-5761-42627600/);
+
+  if (!match) {
+    throw new Error(`Unexpected composite id ${id}`);
+  }
+
+  return Number(match[1]);
+}
+
+function entityRequestIds(request: DataSourceHttpRequest): Array<string> {
+  return (JSON.parse(request.body as string) as JSONObject)[
+    "composite_ids"
+  ] as Array<string>;
 }
 
 /*
@@ -730,6 +768,7 @@ describe("CrowdStrikeFalconConnector", () => {
       );
 
       expect(result.complete).toBe(true);
+      expect(result.resumeAfter).toBeUndefined();
       expect(result.warnings).toEqual([]);
       expect(result.fetchedCount).toBe(2);
       expect(result.rejectedCount).toBe(0);
@@ -861,6 +900,7 @@ describe("CrowdStrikeFalconConnector", () => {
       );
 
       expect(result.complete).toBe(true);
+      expect(result.resumeAfter).toBeUndefined();
       expect(result.warnings).toEqual([]);
       expect(result.fetchedCount).toBe(1005);
       expect(result.events).toHaveLength(1005);
@@ -979,7 +1019,15 @@ describe("CrowdStrikeFalconConnector", () => {
       expect(secondEntityBody["composite_ids"]).toEqual([compositeId(1000)]);
     });
 
-    test("stops at the request bound with complete=false and a warning", async () => {
+    /*
+     * Review finding connector-bound-hit-permanent-stall: every bound used to
+     * return complete=false with nothing to resume from and a warning
+     * promising "the poll cursor is held so the next poll continues from the
+     * same window", so a CID with more than 9,000 alerts in a window re-read
+     * the same first 9,000 forever. Each bound now reports the
+     * created_timestamp of the last alert read as resumeAfter.
+     */
+    test("stops at the request bound with complete=false, resumeAfter at the last alert read, and a warning naming it", async () => {
       /*
        * Each page carries its own ids: the connector drops ids it has
        * already seen, so a repeated fixture would skip the entity fetch
@@ -1013,6 +1061,20 @@ describe("CrowdStrikeFalconConnector", () => {
             return idsPage(pageOfIds(2), 5000);
           },
         ],
+        entities: [
+          (request: DataSourceHttpRequest): DataSourceHttpResponse => {
+            return datedEntitiesFor(
+              entityRequestIds(request),
+              compositeIdIndex,
+            );
+          },
+          (request: DataSourceHttpRequest): DataSourceHttpResponse => {
+            return datedEntitiesFor(
+              entityRequestIds(request),
+              compositeIdIndex,
+            );
+          },
+        ],
       });
 
       // token + (query + fetch) * 2 = 5; a third page would need 7.
@@ -1022,19 +1084,84 @@ describe("CrowdStrikeFalconConnector", () => {
         fetchOptions({ maxRequests: 6 }),
       );
 
+      const lastRead: string = createdAtFor(
+        2 * CROWDSTRIKE_ALERTS_PAGE_SIZE - 1,
+      );
+
       expect(result.complete).toBe(false);
       expect(result.requestCount).toBe(5);
       expect(result.fetchedCount).toBe(2 * CROWDSTRIKE_ALERTS_PAGE_SIZE);
+      expect(result.resumeAfter).toEqual(new Date(lastRead));
       expect(result.warnings).toEqual([
-        "Stopped after 5 requests before reading the whole window. The poll cursor is held so the next poll continues from the same window.",
+        `Stopped after 5 requests before reading the whole window. Alerts are read oldest first; every alert created before ${lastRead} was read.`,
       ]);
     });
 
-    test("stops at the event bound mid-page with complete=false, fetching only the ids that fit", async () => {
+    test("stops at the request bound the poller really uses (20) after 9 pages, with resumeAfter so the next poll moves on", async () => {
+      const queries: Array<Responder> = [];
+
+      for (let page: number = 0; page < 10; page++) {
+        queries.push((): DataSourceHttpResponse => {
+          return idsPage(
+            Array.from(
+              { length: CROWDSTRIKE_ALERTS_PAGE_SIZE },
+              (_: unknown, index: number): string => {
+                return compositeId(page * CROWDSTRIKE_ALERTS_PAGE_SIZE + index);
+              },
+            ),
+            12000,
+          );
+        });
+      }
+
+      const entities: Array<Responder> = [];
+
+      for (let page: number = 0; page < 10; page++) {
+        entities.push(
+          (request: DataSourceHttpRequest): DataSourceHttpResponse => {
+            return datedEntitiesFor(
+              entityRequestIds(request),
+              compositeIdIndex,
+            );
+          },
+        );
+      }
+
+      const harness: Harness = buildHarness({ queries, entities });
+
+      const result: ConnectorFetchResult = await harness.connector.fetchEvents(
+        settings(),
+        { startTime: START, endTime: END },
+        fetchOptions({ maxRequests: 20, maxEvents: 10000 }),
+      );
+
+      const lastRead: string = createdAtFor(
+        9 * CROWDSTRIKE_ALERTS_PAGE_SIZE - 1,
+      );
+
+      expect(queryRequests(harness)).toHaveLength(9);
+      expect(result.requestCount).toBe(19);
+      expect(result.fetchedCount).toBe(9 * CROWDSTRIKE_ALERTS_PAGE_SIZE);
+      expect(result.complete).toBe(false);
+      expect(result.resumeAfter).toEqual(new Date(lastRead));
+      expect(result.warnings).toEqual([
+        `Stopped after 19 requests before reading the whole window. Alerts are read oldest first; every alert created before ${lastRead} was read.`,
+      ]);
+    });
+
+    test("stops at the event bound mid-page with complete=false, fetching only the ids that fit and resuming after the last one", async () => {
       const harness: Harness = buildHarness({
         queries: [
           (): DataSourceHttpResponse => {
             return idsPage([compositeId(1), compositeId(2), compositeId(3)], 3);
+          },
+        ],
+        entities: [
+          (request: DataSourceHttpRequest): DataSourceHttpResponse => {
+            return datedEntitiesFor(
+              entityRequestIds(request),
+              compositeIdIndex,
+            );
           },
         ],
       });
@@ -1048,8 +1175,9 @@ describe("CrowdStrikeFalconConnector", () => {
       expect(result.complete).toBe(false);
       expect(result.fetchedCount).toBe(2);
       expect(result.events).toHaveLength(2);
+      expect(result.resumeAfter).toEqual(new Date(createdAtFor(2)));
       expect(result.warnings).toEqual([
-        "Stopped after collecting 2 alerts; the window holds more. The poll cursor is held so the next poll continues from the same window.",
+        `Stopped after collecting 2 alerts; the window holds more. Alerts are read oldest first; every alert created before ${createdAtFor(2)} was read.`,
       ]);
       expect(JSON.parse(harness.requests[2]!.body as string)).toEqual({
         composite_ids: [compositeId(1), compositeId(2)],
@@ -1073,6 +1201,14 @@ describe("CrowdStrikeFalconConnector", () => {
             return idsPage(fullPage, 3000);
           },
         ],
+        entities: [
+          (request: DataSourceHttpRequest): DataSourceHttpResponse => {
+            return datedEntitiesFor(
+              entityRequestIds(request),
+              compositeIdIndex,
+            );
+          },
+        ],
       });
 
       const result: ConnectorFetchResult = await harness.connector.fetchEvents(
@@ -1083,6 +1219,9 @@ describe("CrowdStrikeFalconConnector", () => {
 
       expect(result.complete).toBe(false);
       expect(result.fetchedCount).toBe(CROWDSTRIKE_ALERTS_PAGE_SIZE);
+      expect(result.resumeAfter).toEqual(
+        new Date(createdAtFor(CROWDSTRIKE_ALERTS_PAGE_SIZE - 1)),
+      );
       expect(result.warnings).toHaveLength(1);
       expect(result.warnings[0]).toContain(
         `Stopped after collecting ${CROWDSTRIKE_ALERTS_PAGE_SIZE} alerts`,
@@ -1090,33 +1229,42 @@ describe("CrowdStrikeFalconConnector", () => {
       expect(queryRequests(harness)).toHaveLength(1);
     });
 
-    test("warns and holds the cursor at Falcon's 10,000 offset ceiling", async () => {
-      const fullPage: Array<string> = [];
-
-      for (
-        let index: number = 0;
-        index < CROWDSTRIKE_ALERTS_PAGE_SIZE;
-        index++
-      ) {
-        fullPage.push(compositeId(index));
-      }
-
+    /*
+     * Review findings connector-bound-hit-permanent-stall and
+     * crowdstrike-docs-quote-unreachable-warning: the ceiling warning used
+     * to hold the cursor and advise shortening the poll interval, which
+     * could not unpin a held window. The ceiling now resumes like every
+     * other bound, and the next poll queries from offset 0 past it.
+     */
+    test("stops at Falcon's 10,000 offset ceiling with complete=false and resumeAfter so the next poll queries past it", async () => {
       const pages: number =
         CROWDSTRIKE_ALERTS_OFFSET_CEILING / CROWDSTRIKE_ALERTS_PAGE_SIZE;
       const queries: Array<Responder> = [];
+      const entities: Array<Responder> = [];
 
       for (let page: number = 0; page < pages; page++) {
         queries.push((): DataSourceHttpResponse => {
           return idsPage(
-            fullPage.map((id: string): string => {
-              return `${id}-p${page}`;
-            }),
+            Array.from(
+              { length: CROWDSTRIKE_ALERTS_PAGE_SIZE },
+              (_: unknown, index: number): string => {
+                return compositeId(page * CROWDSTRIKE_ALERTS_PAGE_SIZE + index);
+              },
+            ),
             CROWDSTRIKE_ALERTS_OFFSET_CEILING + 500,
           );
         });
+        entities.push(
+          (request: DataSourceHttpRequest): DataSourceHttpResponse => {
+            return datedEntitiesFor(
+              entityRequestIds(request),
+              compositeIdIndex,
+            );
+          },
+        );
       }
 
-      const harness: Harness = buildHarness({ queries });
+      const harness: Harness = buildHarness({ queries, entities });
 
       const result: ConnectorFetchResult = await harness.connector.fetchEvents(
         settings(),
@@ -1124,13 +1272,130 @@ describe("CrowdStrikeFalconConnector", () => {
         fetchOptions({ maxRequests: 100, maxEvents: 100000 }),
       );
 
+      const lastRead: string = createdAtFor(
+        CROWDSTRIKE_ALERTS_OFFSET_CEILING - 1,
+      );
+
       expect(result.complete).toBe(false);
       expect(result.fetchedCount).toBe(CROWDSTRIKE_ALERTS_OFFSET_CEILING);
       expect(queryRequests(harness)).toHaveLength(pages);
-      expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0]).toContain(
-        `cannot page past ${CROWDSTRIKE_ALERTS_OFFSET_CEILING} results`,
+      expect(result.resumeAfter).toEqual(new Date(lastRead));
+      expect(result.warnings).toEqual([
+        `Falcon's alerts query cannot page past ${CROWDSTRIKE_ALERTS_OFFSET_CEILING} results and this window holds more. Alerts are read oldest first; every alert created before ${lastRead} was read.`,
+      ]);
+      expect(result.warnings[0]).not.toContain("Poll interval");
+      expect(result.warnings[0]).not.toContain("cursor is held");
+    });
+
+    test("puts entities back in the ids query's order before naming the resume point", async () => {
+      const harness: Harness = buildHarness({
+        queries: [
+          (): DataSourceHttpResponse => {
+            return idsPage([compositeId(1), compositeId(2), compositeId(3)], 9);
+          },
+        ],
+        entities: [
+          (request: DataSourceHttpRequest): DataSourceHttpResponse => {
+            /*
+             * Falcon may answer the entity fetch in any order. Read in
+             * response order these would look out of order and name no
+             * resume point at all.
+             */
+            return datedEntitiesFor(
+              [...entityRequestIds(request)].reverse(),
+              compositeIdIndex,
+            );
+          },
+        ],
+      });
+
+      const result: ConnectorFetchResult = await harness.connector.fetchEvents(
+        settings(),
+        { startTime: START, endTime: END },
+        fetchOptions({ maxEvents: 2 }),
       );
+
+      expect(result.complete).toBe(false);
+      expect(result.resumeAfter).toEqual(new Date(createdAtFor(2)));
+      expect(result.warnings).toHaveLength(1);
+      expect(
+        result.events.map((event: { eventUid: string }): string => {
+          return event.eventUid;
+        }),
+      ).toEqual([compositeId(1), compositeId(2)]);
+    });
+
+    test("names no resume point, and says why, when the ids query did not honour ascending creation order", async () => {
+      const harness: Harness = buildHarness({
+        queries: [
+          (): DataSourceHttpResponse => {
+            return idsPage([compositeId(5), compositeId(2), compositeId(7)], 9);
+          },
+        ],
+        entities: [
+          (request: DataSourceHttpRequest): DataSourceHttpResponse => {
+            return datedEntitiesFor(
+              entityRequestIds(request),
+              compositeIdIndex,
+            );
+          },
+        ],
+      });
+
+      const result: ConnectorFetchResult = await harness.connector.fetchEvents(
+        settings(),
+        { startTime: START, endTime: END },
+        fetchOptions({ maxEvents: 2 }),
+      );
+
+      expect(result.complete).toBe(false);
+      expect(result.resumeAfter).toBeUndefined();
+      expect(result.warnings).toEqual([
+        "Stopped after collecting 2 alerts; the window holds more.",
+        "Falcon returned alerts out of created_timestamp order, so this run cannot name a point to resume from.",
+      ]);
+    });
+
+    test("never resumes past an alert that failed normalization, so the poller can retry it", async () => {
+      const harness: Harness = buildHarness({
+        queries: [
+          (): DataSourceHttpResponse => {
+            return idsPage(
+              [compositeId(1), compositeId(2), compositeId(3), compositeId(4)],
+              9,
+            );
+          },
+        ],
+        entities: [
+          (request: DataSourceHttpRequest): DataSourceHttpResponse => {
+            const response: DataSourceHttpResponse = datedEntitiesFor(
+              entityRequestIds(request),
+              compositeIdIndex,
+            );
+            const resources: Array<JSONObject> = (
+              response.bodyJson as JSONObject
+            )["resources"] as Array<JSONObject>;
+            // A getter that throws makes the normalizer fail on this alert only.
+            Object.defineProperty(resources[1]!, "display_name", {
+              enumerable: true,
+              get: (): string => {
+                throw new Error("boom");
+              },
+            });
+            return response;
+          },
+        ],
+      });
+
+      const result: ConnectorFetchResult = await harness.connector.fetchEvents(
+        settings(),
+        { startTime: START, endTime: END },
+        fetchOptions({ maxEvents: 3 }),
+      );
+
+      expect(result.complete).toBe(false);
+      expect(result.failedCount).toBe(1);
+      expect(result.resumeAfter).toEqual(new Date(createdAtFor(2)));
     });
 
     test("counts unrecognized entity objects as rejected without failing the fetch", async () => {

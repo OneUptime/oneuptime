@@ -12,7 +12,11 @@ import {
   getSecurityEventConnectorDefinition,
 } from "../../../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import CrowdStrikeFalconNormalizer from "../../../../../Utils/SecurityEvent/Connectors/CrowdStrikeFalconNormalizer";
-import { readString } from "../../../../../Utils/SecurityEvent/NormalizerHelpers";
+import {
+  parseEventTime,
+  readString,
+  readValue,
+} from "../../../../../Utils/SecurityEvent/NormalizerHelpers";
 import DataSourceHttpFetch, {
   DataSourceHttpRequest,
   DataSourceHttpResponse,
@@ -58,6 +62,12 @@ import CrowdStrikeFalconClient, {
  * and secrets.clientSecret.
  */
 
+interface ResumePoint {
+  resumeAfter: Date | undefined;
+  // True when the alerts read were not in created_timestamp order.
+  outOfOrder: boolean;
+}
+
 interface ParsedSettings {
   clientId: string;
   clientSecret: string;
@@ -78,6 +88,14 @@ const CHECK_NAME_AUTHENTICATION: string =
   "Authenticate with CrowdStrike Falcon";
 const CHECK_NAME_READ: string = "Read alerts from the Falcon Alerts API";
 const CHECK_NAME_AVAILABLE: string = "Alerts available to import";
+
+/*
+ * The production transport drops response headers on error statuses, so
+ * the X-RateLimit-RetryAfter value is only in the message when a transport
+ * kept it; the advice must not depend on it being there.
+ */
+const RATE_LIMIT_REMEDIATION: string =
+  "Falcon is rate limiting this API client. Wait a few minutes (at least the X-RateLimit-RetryAfter period when the message names one) and test again; scheduled polls retry automatically.";
 
 export default class CrowdStrikeFalconConnector
   implements SecurityEventConnector
@@ -404,7 +422,7 @@ export default class CrowdStrikeFalconConnector
     }
 
     if (message.includes("(HTTP 429)")) {
-      return "Falcon is rate limiting this API client. Wait for the X-RateLimit-RetryAfter period and test again; scheduled polls retry automatically.";
+      return RATE_LIMIT_REMEDIATION;
     }
 
     if (message.includes("could not be completed")) {
@@ -427,7 +445,7 @@ export default class CrowdStrikeFalconConnector
     }
 
     if (message.includes("(HTTP 429)")) {
-      return "Falcon is rate limiting this API client. Wait for the X-RateLimit-RetryAfter period and test again; scheduled polls retry automatically.";
+      return RATE_LIMIT_REMEDIATION;
     }
 
     if (message.includes("(HTTP 400)")) {
@@ -442,10 +460,15 @@ export default class CrowdStrikeFalconConnector
   }
 
   /*
-   * Read every alert created in the window, page by page, within the
-   * request and event budgets. A budget hit returns complete=false with a
-   * warning so the poller holds its cursor and the next poll re-reads the
-   * same window; nothing is silently dropped.
+   * Read every alert created in the window, oldest first, page by page,
+   * within the request and event budgets and Falcon's 10,000 offset
+   * ceiling. When any of the three stops the read, the result is
+   * complete=false with resumeAfter set to the created_timestamp of the
+   * last alert read: the ids query sorts created_timestamp ascending, so
+   * every alert created before that point has been read, and the poller
+   * moves its cursor there and starts the next query again at offset 0.
+   * Without it the poller re-read the same first 9,000 alerts forever
+   * (review finding connector-bound-hit-permanent-stall).
    */
   public async fetchEvents(
     settings: SecurityConnectorSettings,
@@ -464,6 +487,7 @@ export default class CrowdStrikeFalconConnector
       window.endTime,
     );
     const warnings: Array<string> = [];
+    // Alerts in the order the ids query listed them, i.e. creation order.
     const rawAlerts: Array<JSONObject> = [];
     /*
      * Offset paging runs over live data: an alert created between two
@@ -471,10 +495,8 @@ export default class CrowdStrikeFalconConnector
      * are dropped here rather than counted twice downstream.
      */
     const seenCompositeIds: Set<string> = new Set<string>();
-    let complete: boolean = true;
+    let boundWarning: string | null = null;
     let offset: number = 0;
-
-    const eventBoundWarning: string = `Stopped after collecting ${options.maxEvents} alerts; the window holds more. The poll cursor is held so the next poll continues from the same window.`;
 
     for (;;) {
       /*
@@ -485,21 +507,20 @@ export default class CrowdStrikeFalconConnector
       const requestsNeeded: number = client.getRequestCount() === 0 ? 3 : 2;
 
       if (client.getRequestCount() + requestsNeeded > options.maxRequests) {
-        complete = false;
-        warnings.push(
-          `Stopped after ${client.getRequestCount()} requests before reading the whole window. The poll cursor is held so the next poll continues from the same window.`,
-        );
+        boundWarning = `Stopped after ${client.getRequestCount()} requests before reading the whole window.`;
         break;
       }
 
+      /*
+       * Falcon's query index cannot page past 10,000 results. The window's
+       * remaining alerts are still reachable: the resume point lets the
+       * next poll query them from offset 0.
+       */
       if (
         offset + CROWDSTRIKE_ALERTS_PAGE_SIZE >
         CROWDSTRIKE_ALERTS_OFFSET_CEILING
       ) {
-        complete = false;
-        warnings.push(
-          `Falcon's alerts query cannot page past ${CROWDSTRIKE_ALERTS_OFFSET_CEILING} results and this window holds more. The poll cursor is held; shorten the poll interval or import the period with Import history in smaller ranges.`,
-        );
+        boundWarning = `Falcon's alerts query cannot page past ${CROWDSTRIKE_ALERTS_OFFSET_CEILING} results and this window holds more.`;
         break;
       }
 
@@ -530,12 +551,16 @@ export default class CrowdStrikeFalconConnector
       }
 
       if (idsToFetch.length > 0) {
-        rawAlerts.push(...(await client.getAlerts(idsToFetch)));
+        rawAlerts.push(
+          ...CrowdStrikeFalconConnector.inQueryOrder(
+            idsToFetch,
+            await client.getAlerts(idsToFetch),
+          ),
+        );
       }
 
       if (eventBoundHit) {
-        complete = false;
-        warnings.push(eventBoundWarning);
+        boundWarning = `Stopped after collecting ${options.maxEvents} alerts; the window holds more.`;
         break;
       }
 
@@ -555,14 +580,14 @@ export default class CrowdStrikeFalconConnector
       }
 
       if (rawAlerts.length >= options.maxEvents) {
-        complete = false;
-        warnings.push(eventBoundWarning);
+        boundWarning = `Stopped after collecting ${options.maxEvents} alerts; the window holds more.`;
         break;
       }
     }
 
     const events: Array<NormalizedSecurityEvent> = [];
     const samples: Array<SecurityConnectorSample> = [];
+    const failedAlerts: Set<JSONObject> = new Set<JSONObject>();
     let rejectedCount: number = 0;
     let failedCount: number = 0;
 
@@ -589,6 +614,30 @@ export default class CrowdStrikeFalconConnector
         }
       } catch {
         failedCount++;
+        failedAlerts.add(raw);
+      }
+    }
+
+    let resumeAfter: Date | undefined = undefined;
+
+    if (boundWarning !== null) {
+      const resume: ResumePoint = CrowdStrikeFalconConnector.findResumePoint(
+        rawAlerts,
+        failedAlerts,
+        window,
+      );
+      resumeAfter = resume.resumeAfter;
+
+      warnings.push(
+        resumeAfter
+          ? `${boundWarning} Alerts are read oldest first; every alert created before ${resumeAfter.toISOString()} was read.`
+          : boundWarning,
+      );
+
+      if (resume.outOfOrder) {
+        warnings.push(
+          "Falcon returned alerts out of created_timestamp order, so this run cannot name a point to resume from.",
+        );
       }
     }
 
@@ -597,10 +646,122 @@ export default class CrowdStrikeFalconConnector
       fetchedCount: rawAlerts.length,
       rejectedCount,
       failedCount,
-      complete,
+      complete: boundWarning === null,
       requestCount: client.getRequestCount(),
       warnings,
       samples,
+      resumeAfter,
     };
+  }
+
+  /*
+   * The entity fetch does not promise to answer in the order the ids were
+   * asked for, and the resume point depends on reading alerts in the ids
+   * query's created_timestamp order. Entities are put back in that order;
+   * one whose composite_id was not asked for keeps its response position
+   * after the rest, where it can only make the resume point more cautious.
+   */
+  private static inQueryOrder(
+    compositeIds: Array<string>,
+    entities: Array<JSONObject>,
+  ): Array<JSONObject> {
+    const positions: Map<string, number> = new Map<string, number>();
+
+    compositeIds.forEach((compositeId: string, index: number): void => {
+      if (!positions.has(compositeId)) {
+        positions.set(compositeId, index);
+      }
+    });
+
+    return entities
+      .map(
+        (
+          entity: JSONObject,
+          index: number,
+        ): { entity: JSONObject; index: number; rank: number } => {
+          const rank: number | undefined = positions.get(
+            readString(entity, "composite_id"),
+          );
+
+          return {
+            entity,
+            index,
+            rank: rank === undefined ? compositeIds.length : rank,
+          };
+        },
+      )
+      .sort(
+        (
+          left: { index: number; rank: number },
+          right: { index: number; rank: number },
+        ): number => {
+          return left.rank - right.rank || left.index - right.index;
+        },
+      )
+      .map((item: { entity: JSONObject }): JSONObject => {
+        return item.entity;
+      });
+  }
+
+  /*
+   * Where the next poll can resume after a bounded read: the
+   * created_timestamp of the last alert read. Two cases name no point, so
+   * the poller narrows its window instead of skipping anything:
+   *  - an alert created earlier than one read before it means Falcon did
+   *    not honour sort=created_timestamp.asc, and "everything before the
+   *    last one was read" no longer holds;
+   *  - an alert that failed normalization is never resumed past, since the
+   *    poller retries normalization failures; the point stops at that
+   *    alert's creation time (or is absent when it has none).
+   * Creation times outside the window are ignored: the FQL filter excludes
+   * them, so such a value cannot say anything about this window.
+   */
+  private static findResumePoint(
+    rawAlerts: Array<JSONObject>,
+    failedAlerts: Set<JSONObject>,
+    window: ConnectorFetchWindow,
+  ): ResumePoint {
+    const createdAtInWindow: (raw: JSONObject) => Date | null = (
+      raw: JSONObject,
+    ): Date | null => {
+      const createdAt: Date | null = parseEventTime(
+        readValue(raw, "created_timestamp"),
+      );
+
+      if (
+        createdAt &&
+        createdAt.getTime() >= window.startTime.getTime() &&
+        createdAt.getTime() < window.endTime.getTime()
+      ) {
+        return createdAt;
+      }
+
+      return null;
+    };
+
+    let latest: Date | null = null;
+
+    for (const raw of rawAlerts) {
+      const createdAt: Date | null = createdAtInWindow(raw);
+
+      if (createdAt && latest && createdAt.getTime() < latest.getTime()) {
+        return { resumeAfter: undefined, outOfOrder: true };
+      }
+
+      if (createdAt) {
+        latest = createdAt;
+      }
+    }
+
+    for (const raw of rawAlerts) {
+      if (failedAlerts.has(raw)) {
+        return {
+          resumeAfter: createdAtInWindow(raw) || undefined,
+          outOfOrder: false,
+        };
+      }
+    }
+
+    return { resumeAfter: latest || undefined, outOfOrder: false };
   }
 }

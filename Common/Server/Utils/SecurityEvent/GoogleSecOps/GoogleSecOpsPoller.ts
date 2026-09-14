@@ -2,6 +2,7 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import {
   GoogleSecOpsCreationLag,
   GoogleSecOpsDetectionSample,
+  GoogleSecOpsDiagnosticCheck,
   GoogleSecOpsRunOptions,
   GoogleSecOpsRunResult,
 } from "../../../../Types/SecurityEvent/GoogleSecOpsDiagnostics";
@@ -51,10 +52,29 @@ const SECOPS_VENDOR_NAME: string = "Google";
  * connector is broken" on the very first look.
  */
 const DEFAULT_LOOKBACK_IN_MINUTES: number = 24 * 60;
-const MAX_LOOKBACK_IN_MINUTES: number = 24 * 60;
+/*
+ * Adaptive catch-up. A scheduled poll reads at most MAX_CHUNK_MINUTES of
+ * created time past its cursor. A poll that cannot read its window in one
+ * run halves the next chunk and a complete poll doubles it back, because
+ * re-reading an identical window that never fits pinned the cursor forever
+ * and nothing new was ever imported. The chunk is measured from the cursor,
+ * not from the overlapped window start: a chunk no longer than the overlap
+ * would otherwise end at or before the cursor and never move it.
+ */
+const MAX_CHUNK_MINUTES: number = 24 * 60;
+const MIN_CHUNK_MINUTES: number = 1;
 const WINDOW_OVERLAP_IN_MINUTES: number = 1;
-const MAX_FETCH_REQUESTS: number = 12;
-const MAX_FETCH_DURATION_MS: number = 2 * 60 * 1000;
+/*
+ * Separate request budgets per kind of read. The two created-time search
+ * passes are the authoritative read of rule detections and share one page
+ * budget; the alerts view splits truncated windows and gets its own, so a
+ * burst that the alerts view has to split can no longer starve the searches
+ * (or the other way round).
+ */
+const MAX_SEARCH_PAGES_PER_POLL: number = 20;
+const MAX_ALERTS_VIEW_REQUESTS_PER_POLL: number = 16;
+// The worker job times out at ten minutes; normalizing and importing follow.
+const MAX_FETCH_DURATION_MS: number = 4 * 60 * 1000;
 const MAX_ALERTS_PER_REQUEST: number = 1000;
 const MAX_SEARCH_PAGE_SIZE: number = 1000;
 const MAX_DIAGNOSTIC_SAMPLES: number = 25;
@@ -73,8 +93,6 @@ const CREATION_LAG_GRACE_IN_MINUTES: number = 1;
  * failures still fail the run like any other pass.
  */
 const CURATED_OPTIONAL_STATUSES: Array<number> = [400, 403, 404];
-const BUDGET_EXHAUSTED_WARNING: string =
-  "The recovery request limit was reached. Narrow the time range; the poll cursor has not advanced.";
 export const GOOGLE_SECOPS_SOURCE_LOCK_NAMESPACE: string = "GoogleSecOpsSource";
 
 interface PollWindow {
@@ -82,6 +100,43 @@ interface PollWindow {
   endTime: Date;
   warnings: Array<string>;
   hasUsableCursor: boolean;
+  /*
+   * Scheduled polls only: the saved cursor this window reads past, or the
+   * window start when there is no usable cursor. chunkMinutes is the
+   * distance from there to endTime, rounded up; requestedChunkMinutes is
+   * the chunk the previous poll asked for, which is longer whenever this
+   * window was cut short by the present.
+   */
+  chunkBase?: Date | undefined;
+  chunkMinutes?: number | undefined;
+  requestedChunkMinutes?: number | undefined;
+}
+
+// Why a read pass stopped before it had read everything it was asked for.
+type PassStop = "requests" | "time" | null;
+
+interface PassOutcome {
+  // Records Google returned across every request of the pass.
+  returned: number;
+  requests: number;
+  stoppedBy: PassStop;
+  // Google itself left part of the window unread (truncation, unfinished stream).
+  leftUnread: boolean;
+}
+
+// The per-poll budgets: request counts per kind of read and the wall clock.
+interface PollBudget {
+  startedMs: number;
+  searchRequests: number;
+  alertsViewRequests: number;
+}
+
+// How a scheduled poll moves its cursor, decided once the passes are done.
+interface CursorDecision {
+  cursor?: string | undefined;
+  nextChunkMinutes: number;
+  forcedAdvance: boolean;
+  warning?: string | undefined;
 }
 
 class RecordedPollFailure extends Error {}
@@ -104,6 +159,8 @@ export default class GoogleSecOpsPoller {
           pollIntervalInMinutes: true,
           lastPolledAt: true,
           cursor: true,
+          // Carries nextChunkMinutes, the length of the next catch-up chunk.
+          lastPollResult: true,
           includeNonAlertingDetections: true,
         },
         skip: 0,
@@ -262,6 +319,11 @@ export default class GoogleSecOpsPoller {
               instanceResourceName: true,
               serviceAccountJson: true,
               cursor: true,
+              /*
+               * Reloaded with the cursor: the previous poll's result decides
+               * this poll's chunk and whether it resumes past a forced advance.
+               */
+              lastPollResult: true,
               pollIntervalInMinutes: true,
               includeNonAlertingDetections: true,
             },
@@ -328,35 +390,124 @@ export default class GoogleSecOpsPoller {
           "Select a valid past time range of at most seven days.",
         );
       }
-    } else if (options.type === "poll" && connection.cursor) {
-      const cursorTime: Date = new Date(connection.cursor);
-      if (!Number.isFinite(cursorTime.getTime())) {
+      return { startTime, endTime, warnings, hasUsableCursor };
+    }
+
+    if (options.type !== "poll") {
+      return { startTime, endTime, warnings, hasUsableCursor };
+    }
+
+    const chunk: number = this.getChunkMinutes(connection);
+    let cursorTime: Date | null = null;
+    if (connection.cursor) {
+      const parsed: Date = new Date(connection.cursor);
+      if (!Number.isFinite(parsed.getTime())) {
         warnings.push(
           "The saved cursor is unreadable; polling the default 24 hour window.",
         );
-      } else if (cursorTime >= now) {
+      } else if (parsed >= now) {
         warnings.push(
           "The saved cursor is in the future; polling the default 24 hour window.",
         );
       } else {
-        hasUsableCursor = true;
-        startTime = OneUptimeDate.addRemoveMinutes(
-          cursorTime,
-          -WINDOW_OVERLAP_IN_MINUTES,
-        );
-        const chunkEnd: Date = OneUptimeDate.addRemoveMinutes(
-          startTime,
-          MAX_LOOKBACK_IN_MINUTES,
-        );
-        if (chunkEnd < endTime) {
-          endTime = chunkEnd;
-          warnings.push(
-            "Catching up from the saved cursor in 24 hour windows. Later detections will be fetched by subsequent polls.",
-          );
-        }
+        cursorTime = parsed;
       }
     }
-    return { startTime, endTime, warnings, hasUsableCursor };
+
+    if (cursorTime) {
+      hasUsableCursor = true;
+      startTime = this.resumesFromForcedAdvance(connection, cursorTime)
+        ? cursorTime
+        : OneUptimeDate.addRemoveMinutes(
+            cursorTime,
+            -WINDOW_OVERLAP_IN_MINUTES,
+          );
+      const chunkEnd: Date = OneUptimeDate.addRemoveMinutes(cursorTime, chunk);
+      if (chunkEnd < endTime) {
+        endTime = chunkEnd;
+        warnings.push(
+          `Catching up from the saved cursor in ${this.describeChunk(chunk)} windows. Later detections will be fetched by subsequent polls.`,
+        );
+      }
+    } else {
+      // The first window keeps its 24 hour lookback; a narrowed chunk only shortens its end.
+      const chunkEnd: Date = OneUptimeDate.addRemoveMinutes(startTime, chunk);
+      if (chunkEnd < endTime) {
+        endTime = chunkEnd;
+        warnings.push(
+          `Reading the first ${chunk} minutes of the 24 hour lookback. Later detections will be fetched by subsequent polls.`,
+        );
+      }
+    }
+
+    const chunkBase: Date = cursorTime || startTime;
+    return {
+      startTime,
+      endTime,
+      warnings,
+      hasUsableCursor,
+      chunkBase,
+      requestedChunkMinutes: chunk,
+      chunkMinutes: Math.max(
+        MIN_CHUNK_MINUTES,
+        Math.ceil((endTime.getTime() - chunkBase.getTime()) / 60000),
+      ),
+    };
+  }
+
+  /*
+   * lastPollResult.nextChunkMinutes when it is a whole number of minutes
+   * inside the allowed range. Anything else (no previous poll, a hand-edited
+   * row, a result from before adaptive catch-up) reads the full 24 hours.
+   */
+  private static getChunkMinutes(connection: GoogleSecOpsConnection): number {
+    const stored: unknown = connection.lastPollResult
+      ? connection.lastPollResult["nextChunkMinutes"]
+      : undefined;
+    if (
+      typeof stored === "number" &&
+      Number.isInteger(stored) &&
+      stored >= MIN_CHUNK_MINUTES &&
+      stored <= MAX_CHUNK_MINUTES
+    ) {
+      return stored;
+    }
+    return MAX_CHUNK_MINUTES;
+  }
+
+  /*
+   * True when the saved cursor is the end of a minute that a forced advance
+   * skipped (or a poll that already started there and did not move the
+   * cursor). Such a poll starts at the cursor without the overlap: the
+   * overlap minute is exactly the minute that could not be read, and
+   * re-reading it would overflow again and force a second advance over a
+   * minute that was never the problem.
+   */
+  private static resumesFromForcedAdvance(
+    connection: GoogleSecOpsConnection,
+    cursorTime: Date,
+  ): boolean {
+    const stored: JSONObject | undefined = connection.lastPollResult;
+    if (!stored || stored["type"] !== "poll") {
+      return false;
+    }
+    const readTime: (key: string) => number = (key: string): number => {
+      const value: unknown = stored[key];
+      return typeof value === "string" ? Date.parse(value) : Number.NaN;
+    };
+    return (
+      (stored["forcedAdvance"] === true &&
+        readTime("windowEnd") === cursorTime.getTime()) ||
+      readTime("windowStart") === cursorTime.getTime()
+    );
+  }
+
+  private static describeChunk(minutes: number): string {
+    if (minutes % 60 === 0) {
+      const hours: number = minutes / 60;
+      return `${hours} hour`;
+    }
+    return `${minutes} minute`;
   }
 
   private static async executeUnlocked(
@@ -404,6 +555,14 @@ export default class GoogleSecOpsPoller {
       warnings: window.warnings,
       samples: [],
       checks: [],
+      ...(window.chunkMinutes !== undefined
+        ? { chunkMinutes: window.chunkMinutes }
+        : {}),
+    };
+    const budget: PollBudget = {
+      startedMs,
+      searchRequests: 0,
+      alertsViewRequests: 0,
     };
     let phase: string = "Validate configuration";
     let phaseStartedMs: number = Date.now();
@@ -444,39 +603,41 @@ export default class GoogleSecOpsPoller {
 
       phase = `Read rule detections by ${basisLabel}`;
       phaseStartedMs = Date.now();
-      const ruleDetections: number = await this.searchPass(
+      const rulePass: PassOutcome = await this.searchPass(
         client,
         window,
         result,
-        startedMs,
+        budget,
         seen,
         { curated: false, bases: searchBases },
       );
-      result.sourceCounts!.ruleDetections = ruleDetections;
-      result.checks.push({
+      result.sourceCounts!.ruleDetections = rulePass.returned;
+      this.recordPass({
+        result,
         name: phase,
-        status: "success",
-        durationMs: Date.now() - phaseStartedMs,
-        message: `${ruleDetections} rule detections returned for the window by ${basisLabel}.`,
+        startedMs: phaseStartedMs,
+        outcome: rulePass,
+        countMessage: `${rulePass.returned} rule detections returned for the window by ${basisLabel}.`,
       });
 
       phase = `Read curated rule detections by ${basisLabel}`;
       phaseStartedMs = Date.now();
       try {
-        const curatedDetections: number = await this.searchPass(
+        const curatedPass: PassOutcome = await this.searchPass(
           client,
           window,
           result,
-          startedMs,
+          budget,
           seen,
           { curated: true, bases: searchBases },
         );
-        result.sourceCounts!.curatedDetections = curatedDetections;
-        result.checks.push({
+        result.sourceCounts!.curatedDetections = curatedPass.returned;
+        this.recordPass({
+          result,
           name: phase,
-          status: "success",
-          durationMs: Date.now() - phaseStartedMs,
-          message: `${curatedDetections} curated rule detections returned for the window by ${basisLabel}.`,
+          startedMs: phaseStartedMs,
+          outcome: curatedPass,
+          countMessage: `${curatedPass.returned} curated rule detections returned for the window by ${basisLabel}.`,
         });
       } catch (curatedError) {
         /*
@@ -505,19 +666,21 @@ export default class GoogleSecOpsPoller {
 
       phase = "Read alerts view by detection time";
       phaseStartedMs = Date.now();
-      const alertsView: number = await this.fetchWindows(
+      const alertsPass: PassOutcome = await this.fetchWindows(
         client,
         window,
         result,
-        startedMs,
+        budget,
         seen,
       );
-      result.sourceCounts!.alertsView = alertsView;
-      result.checks.push({
+      result.sourceCounts!.alertsView = alertsPass.returned;
+      this.recordPass({
+        result,
         name: phase,
-        status: "success",
-        durationMs: Date.now() - phaseStartedMs,
-        message: `${alertsView} alerts returned by detection time. The configured Google SecOps instance is reachable and allows reading detections.`,
+        startedMs: phaseStartedMs,
+        outcome: alertsPass,
+        countMessage: `${alertsPass.returned} alerts returned by detection time.`,
+        successMessage: `${alertsPass.returned} alerts returned by detection time. The configured Google SecOps instance is reachable and allows reading detections.`,
       });
 
       const alerts: Array<JSONObject> = Array.from(seen.values());
@@ -556,7 +719,7 @@ export default class GoogleSecOpsPoller {
       }
       if (result.failedCount) {
         result.warnings.push(
-          `${result.failedCount} detections could not be normalized. The poll cursor is held for retry.`,
+          `${result.failedCount} detections could not be normalized, so this window is not fully imported.`,
         );
       }
       result.complete = result.complete && result.failedCount === 0;
@@ -600,6 +763,25 @@ export default class GoogleSecOpsPoller {
         message: result.error,
       });
     }
+    let decision: CursorDecision | null = null;
+    if (options.type === "poll") {
+      decision = this.decideCursor(window, result);
+      result.nextChunkMinutes = decision.nextChunkMinutes;
+      if (decision.forcedAdvance) {
+        result.forcedAdvance = true;
+      }
+      if (decision.warning) {
+        /*
+         * A forced advance leaves a reported gap, so it leads the warnings
+         * (and therefore lastError); narrowing follows the reasons for it.
+         */
+        if (decision.forcedAdvance) {
+          result.warnings.unshift(decision.warning);
+        } else {
+          result.warnings.push(decision.warning);
+        }
+      }
+    }
     result.completedAt = OneUptimeDate.getCurrentDate().toISOString();
     result.durationMs = Math.max(0, Date.now() - startedMs);
     for (const warning of result.warnings) {
@@ -611,19 +793,7 @@ export default class GoogleSecOpsPoller {
       `GoogleSecOpsPoller: connection ${connection.id!.toString()} fetched ${result.fetchedCount} alerts and ingested ${result.ingestedCount} security events for ${result.windowStart} to ${result.windowEnd}.`,
     );
 
-    if (options.type === "poll") {
-      /*
-       * A failed first poll must keep its original start. Otherwise the next
-       * default lookback would slide past records before we ever imported them.
-       */
-      const cursor: string | undefined = result.complete
-        ? result.windowEnd
-        : !window.hasUsableCursor
-          ? OneUptimeDate.addRemoveMinutes(
-              window.startTime,
-              WINDOW_OVERLAP_IN_MINUTES,
-            ).toISOString()
-          : undefined;
+    if (options.type === "poll" && decision) {
       await GoogleSecOpsConnectionService.updateOneById({
         id: connection.id!,
         data: {
@@ -633,8 +803,8 @@ export default class GoogleSecOpsPoller {
             (result.complete
               ? null
               : result.warnings.join(" ") ||
-                "Poll incomplete; retrying the same window.")) as unknown as string,
-          ...(cursor ? { cursor } : {}),
+                "Poll incomplete.")) as unknown as string,
+          ...(decision.cursor ? { cursor: decision.cursor } : {}),
           ...(result.complete
             ? { lastSuccessfulPollAt: new Date(result.completedAt) }
             : {}),
@@ -655,32 +825,177 @@ export default class GoogleSecOpsPoller {
   }
 
   /*
+   * Where a scheduled poll leaves its cursor and how long the next chunk is.
+   * Google's search endpoints return newest first, so a poll that stops
+   * early has no "everything before here was read" point to resume from;
+   * the only ways forward are a shorter window and, at one minute, moving
+   * past the minute and reporting it.
+   */
+  private static decideCursor(
+    window: PollWindow,
+    result: GoogleSecOpsRunResult,
+  ): CursorDecision {
+    const chunkMinutes: number = window.chunkMinutes || MAX_CHUNK_MINUTES;
+    const requestedChunkMinutes: number =
+      window.requestedChunkMinutes || MAX_CHUNK_MINUTES;
+    /*
+     * A first poll that does not finish keeps its original start. Otherwise
+     * the next default lookback would slide past records before we ever
+     * imported them.
+     */
+    const heldCursor: string | undefined = window.hasUsableCursor
+      ? undefined
+      : OneUptimeDate.addRemoveMinutes(
+          window.startTime,
+          WINDOW_OVERLAP_IN_MINUTES,
+        ).toISOString();
+
+    /*
+     * Failed and finished polls work from the requested chunk, not from the
+     * window read: a caught-up window is only as long as the gap to now, and
+     * keeping that as the next chunk would make polls after an outage or a
+     * failure fall behind the present for no reason.
+     */
+    if (result.status === "failed") {
+      // A failure says nothing about volume, so the chunk is kept as it was.
+      return {
+        cursor: heldCursor,
+        nextChunkMinutes: requestedChunkMinutes,
+        forcedAdvance: false,
+      };
+    }
+
+    if (result.complete) {
+      // A finished poll never shrinks the chunk; it doubles back after narrowing.
+      return {
+        cursor: result.windowEnd,
+        nextChunkMinutes: Math.min(
+          MAX_CHUNK_MINUTES,
+          Math.max(requestedChunkMinutes, chunkMinutes * 2),
+        ),
+        forcedAdvance: false,
+      };
+    }
+
+    if (chunkMinutes > MIN_CHUNK_MINUTES) {
+      const nextChunkMinutes: number = Math.max(
+        MIN_CHUNK_MINUTES,
+        Math.floor(chunkMinutes / 2),
+      );
+      return {
+        cursor: heldCursor,
+        nextChunkMinutes,
+        forcedAdvance: false,
+        warning: `This window holds more records than one poll can read; the next poll reads a ${nextChunkMinutes} minute window from the same starting point.`,
+      };
+    }
+
+    /*
+     * One minute that still cannot be read. Holding here would stall polling
+     * for good, so the cursor moves past the minute and the gap is reported
+     * loudly with the way to recover it.
+     */
+    const from: Date = window.chunkBase || window.startTime;
+    return {
+      cursor: result.windowEnd,
+      nextChunkMinutes: MIN_CHUNK_MINUTES,
+      forcedAdvance: true,
+      warning: `More records were created in the one minute from ${from.toISOString()} to ${result.windowEnd} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`,
+    };
+  }
+
+  /*
+   * One diagnostic check per read pass. A pass a budget stopped, or never
+   * let start, is a warning naming the budget, never a success: a green
+   * step that did not read its window hid which data went unread.
+   */
+  private static recordPass(data: {
+    result: GoogleSecOpsRunResult;
+    name: string;
+    startedMs: number;
+    outcome: PassOutcome;
+    // What the pass returned; the whole message when it read everything.
+    countMessage: string;
+    // Replaces countMessage when the pass read everything, if given.
+    successMessage?: string | undefined;
+  }): void {
+    const outcome: PassOutcome = data.outcome;
+    let status: GoogleSecOpsDiagnosticCheck["status"] = "success";
+    let message: string = data.successMessage || data.countMessage;
+    if (outcome.stoppedBy === "time" && outcome.requests === 0) {
+      status = "warn";
+      message = "Not run: the poll time budget was spent.";
+      this.addWarning(
+        data.result,
+        `${data.name} was not run: the poll time budget was spent.`,
+      );
+    } else if (outcome.stoppedBy) {
+      status = "warn";
+      const budgetName: string =
+        outcome.stoppedBy === "time" ? "poll time budget" : "request budget";
+      const stop: string = `stopped by the ${budgetName} after ${outcome.requests} ${outcome.requests === 1 ? "request" : "requests"}`;
+      message =
+        outcome.requests === 0
+          ? `Not run: ${stop}. The search passes share one page budget and it was spent before this pass started.`
+          : `${data.countMessage} The pass was ${stop}.`;
+      this.addWarning(data.result, `${data.name} was ${stop}.`);
+    } else if (outcome.leftUnread) {
+      status = "warn";
+      message = `${data.countMessage} Google did not return part of the window.`;
+    }
+    data.result.checks.push({
+      name: data.name,
+      status,
+      durationMs: Date.now() - data.startedMs,
+      message,
+    });
+  }
+
+  /*
    * The alerts-view pass (legacyFetchAlertsView, detection time). The
    * endpoint has no pagination, so a truncated window is split in half and
-   * both halves are re-read until they fit or the request budget runs out.
-   * Returns how many alerts Google handed back across every request.
+   * both halves are re-read until they fit or the alerts-view budget runs
+   * out.
    */
   private static async fetchWindows(
     client: GoogleSecOpsClient,
     window: PollWindow,
     result: GoogleSecOpsRunResult,
-    startedMs: number,
+    budget: PollBudget,
     seen: Map<string, JSONObject>,
-  ): Promise<number> {
-    const pending: Array<{ startTime: Date; endTime: Date }> = [window];
-    let returned: number = 0;
+  ): Promise<PassOutcome> {
+    const outcome: PassOutcome = {
+      returned: 0,
+      requests: 0,
+      stoppedBy: null,
+      leftUnread: false,
+    };
+    const pending: Array<{ startTime: Date; endTime: Date }> = [
+      { startTime: window.startTime, endTime: window.endTime },
+    ];
+    let splits: number = 0;
     while (pending.length > 0) {
-      if (this.isBudgetExhausted(result, startedMs)) {
+      const stop: PassStop = this.budgetStop(
+        budget,
+        budget.alertsViewRequests,
+        MAX_ALERTS_VIEW_REQUESTS_PER_POLL,
+      );
+      if (stop) {
+        outcome.stoppedBy = stop;
+        result.complete = false;
         break;
       }
       const current: { startTime: Date; endTime: Date } = pending.shift()!;
+      budget.alertsViewRequests++;
+      outcome.requests++;
       result.requestCount++;
       const fetched: FetchAlertsResult = await client.fetchDetectionAlerts({
-        ...current,
+        startTime: current.startTime,
+        endTime: current.endTime,
         maxAlerts: result.type === "test" ? 1 : MAX_ALERTS_PER_REQUEST,
         includeNonAlertingDetections: result.includeNonAlertingDetections,
       });
-      returned += fetched.alerts.length;
+      outcome.returned += fetched.alerts.length;
       for (const alert of fetched.alerts) {
         this.collect(seen, alert, result);
       }
@@ -715,48 +1030,68 @@ export default class GoogleSecOpsPoller {
         truncated &&
         current.endTime.getTime() - current.startTime.getTime() > 1000
       ) {
-        result.warnings.push(
-          `Google limited the response for ${current.startTime.toISOString()} to ${current.endTime.toISOString()}; retrying smaller windows.`,
-        );
+        splits++;
         pending.unshift(
           { startTime: current.startTime, endTime: new Date(midpoint) },
           { startTime: new Date(midpoint), endTime: current.endTime },
         );
       } else if (!fetched.complete || truncated) {
         result.complete = false;
-        result.warnings.push(
+        outcome.leftUnread = true;
+        this.addWarning(
+          result,
           truncated
-            ? "Google still truncated a one-second window. Some detections may be missing; the cursor has not advanced."
-            : "Google ended the response without confirming it was complete; the cursor has not advanced.",
+            ? "Google still truncated a one-second window of the alerts view, so some alerts in it were not read."
+            : "Google ended an alerts view response without confirming it was complete.",
         );
       }
     }
-    return returned;
+    if (splits > 0) {
+      // One line rather than one per split: lastError joins every warning.
+      result.warnings.push(
+        `Google limited the alerts view response for ${window.startTime.toISOString()} to ${window.endTime.toISOString()}, so it was split into smaller windows ${splits} ${splits === 1 ? "time" : "times"}.`,
+      );
+    }
+    return outcome;
   }
 
   /*
    * A detections-search pass (legacySearchDetections or the curated
-   * variant), one basis at a time, following nextPageToken under the
-   * shared request budget. Returns how many detections Google handed back.
+   * variant), one basis at a time, following nextPageToken under the page
+   * budget the two search passes share.
    */
   private static async searchPass(
     client: GoogleSecOpsClient,
     window: PollWindow,
     result: GoogleSecOpsRunResult,
-    startedMs: number,
+    budget: PollBudget,
     seen: Map<string, JSONObject>,
     options: { curated: boolean; bases: Array<GoogleSecOpsListBasis> },
-  ): Promise<number> {
+  ): Promise<PassOutcome> {
     const label: string = options.curated
       ? "curated rule detections"
       : "rule detections";
-    let returned: number = 0;
+    const outcome: PassOutcome = {
+      returned: 0,
+      requests: 0,
+      stoppedBy: null,
+      leftUnread: false,
+    };
     for (const listBasis of options.bases) {
       let pageToken: string | undefined = undefined;
       do {
-        if (this.isBudgetExhausted(result, startedMs)) {
-          return returned;
+        const stop: PassStop = this.budgetStop(
+          budget,
+          budget.searchRequests,
+          MAX_SEARCH_PAGES_PER_POLL,
+        );
+        if (stop) {
+          outcome.stoppedBy = stop;
+          result.complete = false;
+          return outcome;
         }
+        budget.searchRequests++;
+        outcome.requests++;
         result.requestCount++;
         const page: SearchDetectionsResult = await client.searchDetections({
           startTime: window.startTime,
@@ -767,7 +1102,7 @@ export default class GoogleSecOpsPoller {
           pageToken,
           curated: options.curated,
         });
-        returned += page.detections.length;
+        outcome.returned += page.detections.length;
         for (const detection of page.detections) {
           this.collect(seen, detection, result);
         }
@@ -779,40 +1114,49 @@ export default class GoogleSecOpsPoller {
            * window is not fully read.
            */
           result.complete = false;
-          result.warnings.push(
-            `Google truncated a page of ${label} by size for ${window.startTime.toISOString()} to ${window.endTime.toISOString()}; the cursor has not advanced.`,
+          outcome.leftUnread = true;
+          this.addWarning(
+            result,
+            `Google truncated a page of ${label} by size for ${window.startTime.toISOString()} to ${window.endTime.toISOString()}, so part of the window was not read.`,
           );
         }
         if (result.type === "test") {
           // One record per pass is all a permission probe needs.
-          return returned;
+          return outcome;
         }
         pageToken = page.nextPageToken || undefined;
       } while (pageToken);
     }
-    return returned;
+    return outcome;
   }
 
   /*
-   * One budget across all three passes: a poll is bounded in requests and
-   * in wall time whichever endpoint is slow. Exhausting it holds the cursor
-   * and is reported once.
+   * Whether a pass may make another request: each kind of read has its own
+   * request count, and all of them share the poll's wall-clock bound so a
+   * slow endpoint cannot run the worker job into its timeout.
    */
-  private static isBudgetExhausted(
+  private static budgetStop(
+    budget: PollBudget,
+    used: number,
+    limit: number,
+  ): PassStop {
+    if (used >= limit) {
+      return "requests";
+    }
+    if (Date.now() - budget.startedMs >= MAX_FETCH_DURATION_MS) {
+      return "time";
+    }
+    return null;
+  }
+
+  // Repeated conditions (every one-second window, every page) are said once.
+  private static addWarning(
     result: GoogleSecOpsRunResult,
-    startedMs: number,
-  ): boolean {
-    if (
-      result.requestCount < MAX_FETCH_REQUESTS &&
-      Date.now() - startedMs < MAX_FETCH_DURATION_MS
-    ) {
-      return false;
+    warning: string,
+  ): void {
+    if (!result.warnings.includes(warning)) {
+      result.warnings.push(warning);
     }
-    result.complete = false;
-    if (!result.warnings.includes(BUDGET_EXHAUSTED_WARNING)) {
-      result.warnings.push(BUDGET_EXHAUSTED_WARNING);
-    }
-    return true;
   }
 
   /*

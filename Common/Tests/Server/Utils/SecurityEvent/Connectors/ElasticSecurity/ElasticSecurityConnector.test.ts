@@ -1,6 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
 import ElasticSecurityConnector from "../../../../../../Server/Utils/SecurityEvent/Connectors/ElasticSecurity/ElasticSecurityConnector";
-import { ELASTIC_SECURITY_MAX_PAGE_SIZE } from "../../../../../../Server/Utils/SecurityEvent/Connectors/ElasticSecurity/ElasticSecurityClient";
+import {
+  ELASTIC_SECURITY_MAX_EXCLUDED_ID_BYTES,
+  ELASTIC_SECURITY_MAX_PAGE_SIZE,
+} from "../../../../../../Server/Utils/SecurityEvent/Connectors/ElasticSecurity/ElasticSecurityClient";
 import {
   ConnectorFetchOptions,
   ConnectorFetchResult,
@@ -11,7 +14,7 @@ import {
   DataSourceHttpResponse,
 } from "../../../../../../Server/Utils/DataSource/HttpFetch";
 import BadDataException from "../../../../../../Types/Exception/BadDataException";
-import { JSONObject } from "../../../../../../Types/JSON";
+import { JSONArray, JSONObject } from "../../../../../../Types/JSON";
 import NormalizedSecurityEvent from "../../../../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import {
   SecurityConnectorCheck,
@@ -28,9 +31,10 @@ import {
  * The connector as the poller and the tester see it: settings validation
  * in the catalog's vocabulary, the three provider checks with their
  * skip-on-earlier-failure rule, and a creation-time fetch that pages by
- * advancing the @timestamp lower bound, respects every bound and reports
- * a bound hit as incomplete. Transport is injected; nothing touches the
- * network.
+ * advancing the @timestamp lower bound while excluding the alerts already
+ * read at that instant, respects every bound, and reports a bound hit as
+ * incomplete with the resume point. Transport is injected; nothing
+ * touches the network.
  */
 
 const KIBANA_URL: string = "https://kibana.example.com";
@@ -206,9 +210,14 @@ function fetchOptions(
   };
 }
 
+/*
+ * Scripted responders are consumed in order; `kibana` answers every search
+ * request once they run out, for tests that simulate the index itself.
+ */
 function buildHarness(options: {
   status?: Responder | undefined;
   search?: Array<Responder> | undefined;
+  kibana?: Responder | undefined;
 }): Harness {
   const requests: Array<DataSourceHttpRequest> = [];
   const searchResponders: Array<Responder> = [...(options.search || [])];
@@ -226,7 +235,8 @@ function buildHarness(options: {
         return responder(request);
       }
 
-      const responder: Responder | undefined = searchResponders.shift();
+      const responder: Responder | undefined =
+        searchResponders.shift() || options.kibana;
 
       if (!responder) {
         throw new Error(`Unexpected request to ${request.url}`);
@@ -244,13 +254,104 @@ function parseBody(request: DataSourceHttpRequest): JSONObject {
   return JSON.parse(request.body as string) as JSONObject;
 }
 
+/*
+ * The range sits at the top of the query, or inside bool.filter when the
+ * request also excludes the ids already read at the lower bound.
+ */
 function rangeOf(request: DataSourceHttpRequest): { gte: string; lt: string } {
-  const body: JSONObject = parseBody(request);
-  const range: JSONObject = (
-    (body["query"] as JSONObject)["range"] as JSONObject
-  )["@timestamp"] as JSONObject;
+  const query: JSONObject = parseBody(request)["query"] as JSONObject;
+  const bool: JSONObject | undefined = query["bool"] as JSONObject | undefined;
+  const clause: JSONObject = bool
+    ? ((bool["filter"] as JSONArray)[0] as JSONObject)
+    : query;
+  const range: JSONObject = (clause["range"] as JSONObject)[
+    "@timestamp"
+  ] as JSONObject;
 
   return { gte: String(range["gte"]), lt: String(range["lt"]) };
+}
+
+function excludedIdsOf(request: DataSourceHttpRequest): Array<string> {
+  const query: JSONObject = parseBody(request)["query"] as JSONObject;
+  const bool: JSONObject | undefined = query["bool"] as JSONObject | undefined;
+
+  if (!bool) {
+    return [];
+  }
+
+  const mustNot: JSONArray = bool["must_not"] as JSONArray;
+  return (mustNot[0]!["ids"] as JSONObject)["values"] as Array<string>;
+}
+
+interface FakeAlert {
+  id: string;
+  timestamp: string;
+}
+
+/*
+ * A detection alerts index that answers the way Elasticsearch does: the
+ * range on @timestamp, the must_not ids exclusion, ascending @timestamp
+ * and the size. Elasticsearch promises no order among hits with equal
+ * sort values, so the tie order flips on every request: a connector that
+ * relied on it would re-read or skip alerts here.
+ */
+function fakeKibana(alerts: Array<FakeAlert>): Responder {
+  let requestNumber: number = 0;
+
+  return (request: DataSourceHttpRequest): DataSourceHttpResponse => {
+    requestNumber += 1;
+
+    const range: { gte: string; lt: string } = rangeOf(request);
+    const from: number = Date.parse(range.gte);
+    const to: number = Date.parse(range.lt);
+    const excluded: Set<string> = new Set<string>(excludedIdsOf(request));
+    const size: number = Number(parseBody(request)["size"]);
+    const tieDirection: number = requestNumber % 2 === 0 ? -1 : 1;
+
+    const matching: Array<FakeAlert> = alerts
+      .filter((alert: FakeAlert): boolean => {
+        const time: number = Date.parse(alert.timestamp);
+        return time >= from && time < to && !excluded.has(alert.id);
+      })
+      .sort((left: FakeAlert, right: FakeAlert): number => {
+        const byTime: number =
+          Date.parse(left.timestamp) - Date.parse(right.timestamp);
+
+        if (byTime !== 0) {
+          return byTime;
+        }
+
+        return tieDirection * left.id.localeCompare(right.id);
+      });
+
+    return ok(
+      searchBody(
+        matching.slice(0, size).map((alert: FakeAlert): JSONObject => {
+          return alertHit(alert.id, alert.timestamp);
+        }),
+      ),
+    );
+  };
+}
+
+function alertsAt(
+  prefix: string,
+  count: number,
+  timestamp: (index: number) => string,
+): Array<FakeAlert> {
+  const alerts: Array<FakeAlert> = [];
+
+  for (let index: number = 0; index < count; index++) {
+    alerts.push({ id: `${prefix}-${index}`, timestamp: timestamp(index) });
+  }
+
+  return alerts;
+}
+
+function eventUids(result: ConnectorFetchResult): Array<string> {
+  return result.events.map((event: NormalizedSecurityEvent): string => {
+    return event.eventUid;
+  });
 }
 
 function checkByKey(
@@ -762,6 +863,7 @@ describe("ElasticSecurityConnector", () => {
       );
 
       expect(result.complete).toBe(true);
+      expect(result.resumeAfter).toBeUndefined();
       expect(result.requestCount).toBe(1);
       expect(result.fetchedCount).toBe(2);
       expect(result.rejectedCount).toBe(0);
@@ -803,7 +905,7 @@ describe("ElasticSecurityConnector", () => {
       expect(parseBody(request)["sort"]).toEqual([{ "@timestamp": "asc" }]);
     });
 
-    test("pages by advancing the lower bound to the last hit's @timestamp and drops the re-read tie by id", async () => {
+    test("pages by advancing the lower bound to the last hit's @timestamp, excludes the alert read there, and reports where to resume", async () => {
       const harness: Harness = buildHarness({
         search: [
           (): DataSourceHttpResponse => {
@@ -836,21 +938,28 @@ describe("ElasticSecurityConnector", () => {
 
       expect(result.complete).toBe(false);
       expect(result.fetchedCount).toBe(2);
-      expect(
-        result.events.map((event: NormalizedSecurityEvent): string => {
-          return event.eventUid;
-        }),
-      ).toEqual(["a1", "a2"]);
+      expect(eventUids(result)).toEqual(["a1", "a2"]);
       expect(result.requestCount).toBe(2);
+      /*
+       * Review finding bound-hit-window-never-advances: the warning used to
+       * say the cursor is held, and the poller re-read the same alerts
+       * forever. The fetch now reports the last alert read as the resume
+       * point.
+       */
+      expect(result.resumeAfter?.toISOString()).toBe(
+        "2026-09-12T11:00:00.000Z",
+      );
       expect(result.warnings).toEqual([
-        "Stopped after collecting 2 alerts; the window holds more. The poll cursor is held so the next poll continues from the same window.",
+        "Stopped after collecting 2 alerts; the window holds more.",
       ]);
 
       expect(parseBody(harness.requests[0]!)["size"]).toBe(2);
+      expect(excludedIdsOf(harness.requests[0]!)).toEqual([]);
       expect(rangeOf(harness.requests[1]!)).toEqual({
         gte: "2026-09-12T11:00:00.000Z",
         lt: END.toISOString(),
       });
+      expect(excludedIdsOf(harness.requests[1]!)).toEqual(["a2"]);
     });
 
     test("reads a full page, then the rest from the last timestamp, and finishes complete on the short page", async () => {
@@ -882,6 +991,7 @@ describe("ElasticSecurityConnector", () => {
       );
 
       expect(result.complete).toBe(true);
+      expect(result.resumeAfter).toBeUndefined();
       expect(result.warnings).toEqual([]);
       expect(result.requestCount).toBe(2);
       expect(result.fetchedCount).toBe(ELASTIC_SECURITY_MAX_PAGE_SIZE + 1);
@@ -900,6 +1010,9 @@ describe("ElasticSecurityConnector", () => {
         gte: lastTimestamp,
         lt: END.toISOString(),
       });
+      expect(excludedIdsOf(harness.requests[1]!)).toEqual([
+        String(lastOfFirstPage["_id"]),
+      ]);
     });
 
     test("stops at the request bound and reports the window as incomplete", async () => {
@@ -926,13 +1039,24 @@ describe("ElasticSecurityConnector", () => {
       expect(result.requestCount).toBe(1);
       expect(result.fetchedCount).toBe(2);
       expect(result.events).toHaveLength(2);
+      expect(result.resumeAfter?.toISOString()).toBe(
+        "2026-09-12T11:00:00.000Z",
+      );
       expect(result.warnings).toEqual([
-        "Stopped after 1 requests with alerts still unread from 2026-09-12T11:00:00.000Z. The poll cursor is held so the next poll continues from the same window.",
+        "Stopped after 1 requests with alerts still unread from 2026-09-12T11:00:00.000Z.",
       ]);
       expect(harness.requests).toHaveLength(1);
     });
 
-    test("reports a full page sharing one creation time as incomplete instead of looping", async () => {
+    /*
+     * Review finding bound-hit-window-never-advances: this test used to
+     * assert that a full page sharing one creation time ends the fetch as
+     * incomplete. Nothing could ever read past it, so the poller stayed on
+     * that window (and a rule execution that wrote exactly a page of
+     * alerts was reported Partial with everything read). The next request
+     * now excludes the ids already read at that instant.
+     */
+    test("pages past a full page sharing one creation time by excluding the alerts already read there", async () => {
       const harness: Harness = buildHarness({
         search: [
           (): DataSourceHttpResponse => {
@@ -943,6 +1067,9 @@ describe("ElasticSecurityConnector", () => {
               ]),
             );
           },
+          (): DataSourceHttpResponse => {
+            return ok(searchBody([]));
+          },
         ],
       });
 
@@ -952,12 +1079,190 @@ describe("ElasticSecurityConnector", () => {
         fetchOptions({ maxEvents: 2 }),
       );
 
+      expect(result.complete).toBe(true);
+      expect(result.resumeAfter).toBeUndefined();
+      expect(result.warnings).toEqual([]);
+      expect(result.requestCount).toBe(2);
+      expect(eventUids(result)).toEqual(["a1", "a2"]);
+      expect(rangeOf(harness.requests[1]!)).toEqual({
+        gte: "2026-09-12T10:05:03.412Z",
+        lt: END.toISOString(),
+      });
+      expect(excludedIdsOf(harness.requests[1]!)).toEqual(["a1", "a2"]);
+    });
+
+    test("reads more than one page of alerts sharing one @timestamp without skipping or re-reading any", async () => {
+      const tie: string = "2026-09-12T12:00:00.000Z";
+      const alerts: Array<FakeAlert> = [
+        ...alertsAt("before", 10, (index: number): string => {
+          return new Date(START.getTime() + (index + 1) * 1000).toISOString();
+        }),
+        ...alertsAt("tie", 2500, (): string => {
+          return tie;
+        }),
+        ...alertsAt("after", 10, (index: number): string => {
+          return new Date(Date.parse(tie) + (index + 1) * 1000).toISOString();
+        }),
+      ];
+      const harness: Harness = buildHarness({ kibana: fakeKibana(alerts) });
+
+      const result: ConnectorFetchResult = await harness.connector.fetchEvents(
+        settings(),
+        { startTime: START, endTime: END },
+        fetchOptions(),
+      );
+
+      expect(result.complete).toBe(true);
+      expect(result.resumeAfter).toBeUndefined();
+      expect(result.warnings).toEqual([]);
+      expect(result.fetchedCount).toBe(alerts.length);
+
+      const uids: Array<string> = eventUids(result);
+      expect(new Set<string>(uids).size).toBe(alerts.length);
+      expect(uids.slice(-10)).toEqual(
+        alertsAt("after", 10, (): string => {
+          return "";
+        }).map((alert: FakeAlert): string => {
+          return alert.id;
+        }),
+      );
+
+      /*
+       * Page 1: 10 older alerts and 990 at the tie. Page 2: 1,000 more at
+       * the tie, excluding the 990. Page 3: the last 510 at the tie and the
+       * 10 newer alerts, excluding all 1,990 read at the tie.
+       */
+      expect(result.requestCount).toBe(3);
+      expect(
+        harness.requests.map((request: DataSourceHttpRequest): number => {
+          return excludedIdsOf(request).length;
+        }),
+      ).toEqual([0, 990, 1990]);
+      expect(rangeOf(harness.requests[1]!).gte).toBe(tie);
+      expect(rangeOf(harness.requests[2]!).gte).toBe(tie);
+    });
+
+    test("finishes complete when exactly one page of alerts shares a timestamp", async () => {
+      const tie: string = "2026-09-12T12:00:00.000Z";
+      const alerts: Array<FakeAlert> = alertsAt(
+        "tie",
+        ELASTIC_SECURITY_MAX_PAGE_SIZE,
+        (): string => {
+          return tie;
+        },
+      );
+      const harness: Harness = buildHarness({ kibana: fakeKibana(alerts) });
+
+      const result: ConnectorFetchResult = await harness.connector.fetchEvents(
+        settings(),
+        { startTime: START, endTime: END },
+        fetchOptions(),
+      );
+
+      expect(result.complete).toBe(true);
+      expect(result.resumeAfter).toBeUndefined();
+      expect(result.fetchedCount).toBe(ELASTIC_SECURITY_MAX_PAGE_SIZE);
+      expect(result.requestCount).toBe(2);
+    });
+
+    test("resumes from resumeAfter across fetches, the way the poller does, until every alert is read", async () => {
+      const firstTie: string = "2026-09-12T12:00:00.000Z";
+      const secondTie: string = "2026-09-12T15:00:00.000Z";
+      const alerts: Array<FakeAlert> = [
+        ...alertsAt("early", 300, (index: number): string => {
+          return new Date(START.getTime() + (index + 10) * 1000).toISOString();
+        }),
+        ...alertsAt("first-tie", 1500, (): string => {
+          return firstTie;
+        }),
+        ...alertsAt("middle", 700, (index: number): string => {
+          return new Date(
+            Date.parse(firstTie) + (index + 1) * 1000,
+          ).toISOString();
+        }),
+        ...alertsAt("second-tie", 1200, (): string => {
+          return secondTie;
+        }),
+        ...alertsAt("late", 100, (index: number): string => {
+          return new Date(
+            Date.parse(secondTie) + (index + 1) * 1000,
+          ).toISOString();
+        }),
+      ];
+      const harness: Harness = buildHarness({ kibana: fakeKibana(alerts) });
+      const overlapInMs: number = 60 * 1000;
+      const imported: Set<string> = new Set<string>();
+      let startTime: Date = START;
+      let polls: number = 0;
+      let complete: boolean = false;
+
+      while (!complete && polls < 10) {
+        polls += 1;
+
+        const result: ConnectorFetchResult =
+          await harness.connector.fetchEvents(
+            settings(),
+            { startTime, endTime: END },
+            fetchOptions({ maxEvents: 2000 }),
+          );
+
+        for (const uid of eventUids(result)) {
+          imported.add(uid);
+        }
+
+        complete = result.complete;
+
+        if (!complete) {
+          // The poller only moves on when the resume point is past the overlap.
+          expect(result.resumeAfter).toBeDefined();
+          expect(result.resumeAfter!.getTime()).toBeGreaterThan(
+            startTime.getTime() + overlapInMs,
+          );
+          startTime = new Date(result.resumeAfter!.getTime() - overlapInMs);
+        }
+      }
+
+      expect(complete).toBe(true);
+      expect(polls).toBe(2);
+      expect(imported.size).toBe(alerts.length);
+    });
+
+    test("stops as incomplete when the alerts sharing one timestamp are too many to exclude in one request", async () => {
+      const tie: string = "2026-09-12T12:00:00.000Z";
+      const padding: string = "x".repeat(600);
+      const alerts: Array<FakeAlert> = alertsAt(
+        `${padding}-tie`,
+        ELASTIC_SECURITY_MAX_PAGE_SIZE + 100,
+        (): string => {
+          return tie;
+        },
+      );
+      expect(
+        Buffer.byteLength(
+          JSON.stringify(
+            alerts
+              .slice(0, ELASTIC_SECURITY_MAX_PAGE_SIZE)
+              .map((alert: FakeAlert): string => {
+                return alert.id;
+              }),
+          ),
+        ),
+      ).toBeGreaterThan(ELASTIC_SECURITY_MAX_EXCLUDED_ID_BYTES);
+      const harness: Harness = buildHarness({ kibana: fakeKibana(alerts) });
+
+      const result: ConnectorFetchResult = await harness.connector.fetchEvents(
+        settings(),
+        { startTime: START, endTime: END },
+        fetchOptions(),
+      );
+
       expect(result.complete).toBe(false);
       expect(result.requestCount).toBe(1);
-      expect(result.events).toHaveLength(2);
-      expect(result.warnings[0]).toContain(
-        "More than 2 alerts share the creation time 2026-09-12T10:05:03.412Z",
-      );
+      expect(result.fetchedCount).toBe(ELASTIC_SECURITY_MAX_PAGE_SIZE);
+      expect(result.resumeAfter?.toISOString()).toBe(tie);
+      expect(result.warnings).toEqual([
+        `${ELASTIC_SECURITY_MAX_PAGE_SIZE} alerts read so far share the creation time ${tie}, more than one search request can exclude, so the rest of the alerts created at that instant were not read.`,
+      ]);
     });
 
     test("stops when a full page carries only already-read alerts instead of looping", async () => {
@@ -979,15 +1284,22 @@ describe("ElasticSecurityConnector", () => {
         fetchOptions(),
       );
 
+      const lastTimestamp: string = new Date(
+        START.getTime() + (ELASTIC_SECURITY_MAX_PAGE_SIZE - 1) * 1000,
+      ).toISOString();
+
       expect(result.complete).toBe(false);
       expect(result.requestCount).toBe(2);
       expect(result.fetchedCount).toBe(ELASTIC_SECURITY_MAX_PAGE_SIZE);
+      expect(result.resumeAfter?.toISOString()).toBe(lastTimestamp);
       expect(result.warnings).toEqual([
-        `A full page of alerts from ${new Date(
-          START.getTime() + (ELASTIC_SECURITY_MAX_PAGE_SIZE - 1) * 1000,
-        ).toISOString()} contained only alerts already read, so the window cannot be paged further. The poll cursor is held.`,
+        `A full page of alerts from ${lastTimestamp} contained only alerts already read, so the window cannot be paged further.`,
       ]);
       expect(harness.requests).toHaveLength(2);
+      // The scripted source ignored this exclusion; the id memory still held.
+      expect(excludedIdsOf(harness.requests[1]!)).toEqual([
+        `alert-${ELASTIC_SECURITY_MAX_PAGE_SIZE - 1}`,
+      ]);
     });
 
     test("counts documents the normalizer does not recognize as rejected and keeps going", async () => {

@@ -86,8 +86,10 @@ export default class SecurityEventConnectionAPI extends BaseAPI<
     /*
      * Synchronous connection test. Body is either
      *   { connectionId, config?, secrets? }  — a saved connection, optionally
-     *     with unsaved edits overlaid (blank secret values keep the stored
-     *     ones), or
+     *     with unsaved edits overlaid by the same rule a save applies (a
+     *     secret value replaces the stored one, "" or undefined keeps it,
+     *     null removes it, so the edit form can test a cleared optional
+     *     credential before saving), or
      *   { provider, config, secrets, alertingOnly? } — settings that were
      *     never saved, so the create form can test before storing anything.
      * Nothing is persisted except a run-history row for a saved connection.
@@ -175,15 +177,21 @@ export default class SecurityEventConnectionAPI extends BaseAPI<
                     "Credentials",
                   )
                 : {};
-            const secrets: JSONObject = { ...stored.secrets };
-
-            for (const key of Object.keys(overlay)) {
-              const value: JSONValue = overlay[key] as JSONValue;
-
-              if (value !== null && value !== undefined && value !== "") {
-                secrets[key] = value;
-              }
-            }
+            /*
+             * The merge a save would apply. Testing with a different rule
+             * would pass settings that cannot be stored, or report a
+             * cleared credential as still in use (review finding
+             * optional-secret-cannot-be-cleared).
+             */
+            const secrets: JSONObject =
+              SecurityEventConnectionServiceType.mergeSecrets({
+                definition:
+                  SecurityEventConnectionServiceType.getDefinitionOrThrow(
+                    loaded.provider,
+                  ),
+                stored: stored.secrets,
+                provided: overlay,
+              });
 
             settings =
               await SecurityEventConnectionServiceType.validateSettings({

@@ -22,9 +22,10 @@ import {
 /*
  * The Splunk connector as the framework calls it: settings validation
  * keyed by the catalog's field titles, the three test checks and their
- * remediation per failure mode, and a creation-time fetch that respects
- * the event and request bounds, marks itself incomplete when a bound
- * stops it, and never leaks a credential.
+ * remediation per failure mode, and a creation-time fetch that reads the
+ * window oldest first, respects the event and request bounds, marks
+ * itself incomplete with a resume point when a bound stops it, and never
+ * leaks a credential.
  */
 
 const BASE_URL: string = "https://splunk.example.com:8089";
@@ -329,6 +330,10 @@ describe("SplunkConnector", () => {
       // One context probe, a one-row read (head 2 = cap + 1), then two counts.
       expect(harness.requests).toHaveLength(4);
       expect(headSize(harness.requests[1]!)).toBe(2);
+      // Any row proves the search runs, so the probe does not sort a day.
+      expect((harness.requests[1]!.body as Dictionary<string>)["search"]).toBe(
+        "search index=notable | fields * | head 2",
+      );
       expect((harness.requests[2]!.body as Dictionary<string>)["search"]).toBe(
         "search index=notable | stats count",
       );
@@ -655,6 +660,7 @@ describe("SplunkConnector", () => {
       );
 
       expect(result.complete).toBe(true);
+      expect(result.resumeAfter).toBeUndefined();
       expect(result.warnings).toEqual([]);
       expect(result.requestCount).toBe(1);
       expect(result.fetchedCount).toBe(3);
@@ -696,14 +702,25 @@ describe("SplunkConnector", () => {
       ]);
       expect(body["earliest_time"]).toBe(String(START.getTime() / 1000));
       expect(body["latest_time"]).toBe(String(END.getTime() / 1000));
+      expect(body["search"]).toBe(
+        "search index=notable | fields * | sort 0 _time | head 101",
+      );
       expect(headSize(request)).toBe(101);
       expect(request.timeoutInMs).toBe(30000);
     });
 
-    test("stops at the event bound, marks the fetch incomplete and warns so the cursor is held", async () => {
+    /*
+     * Review finding bound-hit-window-never-advances: this test used to
+     * assert that a capped read only warned "the cursor is held", which
+     * re-read the same rows on every poll. A capped read now keeps the
+     * oldest rows (sorted ascending by Splunk) and reports the `_time` of
+     * the last one as the resume point.
+     */
+    test("stops at the event bound with the oldest rows and reports the last row's _time as the resume point", async () => {
       const harness: Harness = buildHarness({
         exports: [
           (): DataSourceHttpResponse => {
+            // Splunk answers in the order `sort 0 _time` produces.
             return ndjson([
               notable("A1", 0),
               notable("B2", 1),
@@ -726,13 +743,88 @@ describe("SplunkConnector", () => {
 
       expect(result.complete).toBe(false);
       expect(result.events).toHaveLength(2);
+      expect(
+        result.events.map((event: { eventUid: string }): string => {
+          return event.eventUid;
+        }),
+      ).toEqual(["A1", "B2"]);
       expect(result.fetchedCount).toBe(2);
-      expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0]).toContain(
-        "Stopped after collecting 2 records",
+      expect(result.resumeAfter?.toISOString()).toBe(
+        "2026-09-12T11:15:00.000Z",
       );
-      expect(result.warnings[0]).toContain("cursor is held");
+      expect(result.warnings).toEqual([
+        "Stopped after collecting 2 records; the window holds more. Records are read oldest first, and the last one read was created at 2026-09-12T11:15:00.000Z, where the next poll can resume.",
+      ]);
       expect(headSize(harness.requests[0]!)).toBe(3);
+      expect((harness.requests[0]!.body as Dictionary<string>)["search"]).toBe(
+        "search index=notable | fields * | sort 0 _time | head 3",
+      );
+    });
+
+    test("resumes from the last readable _time when the final row has none", async () => {
+      const withoutTime: JSONObject = notable("B2", 1);
+      delete withoutTime["_time"];
+
+      const harness: Harness = buildHarness({
+        exports: [
+          (): DataSourceHttpResponse => {
+            return ndjson([notable("A1", 0), withoutTime, notable("C3", 2)]);
+          },
+        ],
+      });
+
+      const result: ConnectorFetchResult = await harness.connector.fetchEvents(
+        settings(),
+        { startTime: START, endTime: END },
+        {
+          maxRequests: 20,
+          maxEvents: 2,
+          requestTimeoutInMs: 1000,
+          sampleLimit: 5,
+        },
+      );
+
+      expect(result.complete).toBe(false);
+      expect(result.resumeAfter?.toISOString()).toBe(
+        "2026-09-12T10:15:00.000Z",
+      );
+    });
+
+    test("reports no resume point when no row read carries a _time, or the last one lies past the window end", async () => {
+      const noTime: JSONObject = notable("A1", 0);
+      delete noTime["_time"];
+      const pastEnd: JSONObject = {
+        ...notable("B2", 1),
+        _time: "2026-09-14T10:15:00.000+00:00",
+      };
+
+      for (const rows of [
+        [noTime, { ...noTime, event_id: "A2" }, notable("C3", 2)],
+        [notable("A1", 0), pastEnd, notable("C3", 2)],
+      ]) {
+        const harness: Harness = buildHarness({
+          exports: [
+            (): DataSourceHttpResponse => {
+              return ndjson(rows);
+            },
+          ],
+        });
+
+        const result: ConnectorFetchResult =
+          await harness.connector.fetchEvents(
+            settings(),
+            { startTime: START, endTime: END },
+            {
+              maxRequests: 20,
+              maxEvents: 2,
+              requestTimeoutInMs: 1000,
+              sampleLimit: 5,
+            },
+          );
+
+        expect(result.complete).toBe(false);
+        expect(result.resumeAfter).toBeUndefined();
+      }
     });
 
     test("refuses to read with a zero request budget and reports it instead of exceeding it", async () => {
@@ -750,6 +842,7 @@ describe("SplunkConnector", () => {
       );
 
       expect(result.complete).toBe(false);
+      expect(result.resumeAfter).toBeUndefined();
       expect(result.requestCount).toBe(0);
       expect(result.warnings[0]).toContain("request budget");
       expect(harness.requests).toHaveLength(0);
@@ -779,6 +872,7 @@ describe("SplunkConnector", () => {
       );
 
       expect(result.complete).toBe(true);
+      expect(result.resumeAfter).toBeUndefined();
       expect(result.events).toHaveLength(1);
       expect(result.requestCount).toBe(2);
       expect(

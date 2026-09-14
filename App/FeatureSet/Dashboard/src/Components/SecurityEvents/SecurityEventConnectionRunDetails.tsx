@@ -6,6 +6,7 @@ import {
   SecurityConnectorTestReport,
 } from "Common/Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import { SecurityEventConnectionRunResult } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectionDiagnostics";
+import { getSecurityEventConnectorDefinition } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Link from "Common/UI/Components/Link/Link";
 import ConnectorTestReportView from "./ConnectorTestReportView";
@@ -15,8 +16,10 @@ import {
   connectorCheckStatusLabels,
   connectorProviderTitle,
   formatConnectionDate,
+  formatWindowMinutes,
   readSecurityConnectorTestReport,
   readSecurityEventConnectionResult,
+  readWindowMinutes,
   securityEventConnectionRunLabels,
 } from "./SecurityEventConnectionDiagnosticsUtil";
 
@@ -44,6 +47,147 @@ export const ConnectionTime: FunctionComponent<ConnectionTimeProps> = (
     <time dateTime={iso} title={connectionTimeTitle(props.value)}>
       {formatConnectionDate(props.value)}
     </time>
+  );
+};
+
+/*
+ * The adaptive catch-up fields a scheduled poll stores on its result. Typed
+ * structurally so the Google SecOps run details can render the same notice
+ * from a GoogleSecOpsRunResult.
+ */
+export interface ConnectionWindowProgressResult {
+  status: string;
+  complete: boolean;
+  windowEnd: string;
+  chunkMinutes?: number | undefined;
+  nextChunkMinutes?: number | undefined;
+  forcedAdvance?: boolean | undefined;
+}
+
+export function hasConnectionWindowProgress(
+  result: ConnectionWindowProgressResult,
+): boolean {
+  return (
+    result.forcedAdvance === true ||
+    readWindowMinutes(result.chunkMinutes) !== null ||
+    readWindowMinutes(result.nextChunkMinutes) !== null
+  );
+}
+
+export interface ConnectionWindowProgressProps {
+  result: ConnectionWindowProgressResult;
+  // Singular noun for what the source imports, e.g. "finding".
+  recordName?: string | undefined;
+}
+
+/*
+ * What a scheduled poll did with a window it could not read in one run.
+ * Polling never stays pinned on such a window: it resumes from the last
+ * record read, narrows the next window, or, when even one minute holds too
+ * much, moves past that minute. The last case loses records until someone
+ * imports that minute, so it is an alert with the exact range to import,
+ * not one more line in the warnings list.
+ */
+export const ConnectionWindowProgress: FunctionComponent<
+  ConnectionWindowProgressProps
+> = (props: ConnectionWindowProgressProps): ReactElement | null => {
+  const result: ConnectionWindowProgressResult = props.result;
+
+  if (!hasConnectionWindowProgress(result)) {
+    return null;
+  }
+
+  const recordName: string = props.recordName || "record";
+  const chunk: number | null = readWindowMinutes(result.chunkMinutes);
+  const next: number | null = readWindowMinutes(result.nextChunkMinutes);
+  const forced: boolean = result.forcedAdvance === true;
+  const unread: boolean = !result.complete && result.status !== "failed";
+  const recordTitle: string = `${recordName.charAt(0).toUpperCase()}${recordName.slice(1)}`;
+  const windowEnd: Date = new Date(result.windowEnd);
+  const hasWindowEnd: boolean = Number.isFinite(windowEnd.getTime());
+  /*
+   * The skipped minute ends at windowEnd. chunkMinutes is rounded up, so
+   * this start can be a few seconds before the cursor; a slightly wider
+   * import range is harmless because imports skip stored records.
+   */
+  const skippedStart: Date = new Date(
+    windowEnd.getTime() - Math.max(1, chunk || 1) * 60_000,
+  );
+
+  return (
+    <div className="space-y-3" data-testid="poll-window-progress">
+      <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+        {chunk !== null && (
+          <div>
+            <dt className="text-gray-500">Window read by this poll</dt>
+            <dd>{formatWindowMinutes(chunk)}</dd>
+          </div>
+        )}
+        {next !== null && (
+          <div>
+            <dt className="text-gray-500">Next scheduled poll reads</dt>
+            <dd>
+              {next === chunk
+                ? `${formatWindowMinutes(next)}, the same length`
+                : `Up to ${formatWindowMinutes(next)}`}
+            </dd>
+          </div>
+        )}
+      </dl>
+      {forced && (
+        <div
+          role="alert"
+          className="space-y-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900"
+        >
+          <h4 className="font-medium">Polling moved past one minute</h4>
+          <p>
+            More {recordName}s were created in one minute than one poll can
+            read. Polling moved past that minute so newer {recordName}s keep
+            arriving; the {recordName}s from it that this poll did not read were
+            not imported.
+          </p>
+          {hasWindowEnd ? (
+            <p>
+              To recover them, use Import this time range under Find historical{" "}
+              {recordName}s for <ConnectionTime value={skippedStart} /> →{" "}
+              <ConnectionTime value={windowEnd} />. {recordTitle}s already
+              imported are skipped.
+            </p>
+          ) : (
+            <p>
+              To recover them, use Import this time range under Find historical{" "}
+              {recordName}s on the minute named in the warnings. {recordTitle}s
+              already imported are skipped.
+            </p>
+          )}
+        </div>
+      )}
+      {!forced && unread && chunk !== null && next !== null && next < chunk && (
+        <p role="alert" className="text-sm text-amber-700">
+          This window held more {recordName}s than one poll can read, so the
+          cursor stayed where it was. The next scheduled poll reads a window of{" "}
+          {formatWindowMinutes(next)} from the same starting point and widens it
+          again as polls complete.
+        </p>
+      )}
+      {!forced &&
+        unread &&
+        chunk !== null &&
+        next !== null &&
+        next >= chunk && (
+          <p role="alert" className="text-sm text-amber-700">
+            This poll stopped before the end of its window and moved the cursor
+            to the last {recordName} it read. The next scheduled poll continues
+            from there with a window of {formatWindowMinutes(next)}.
+          </p>
+        )}
+      {result.status === "failed" && next !== null && (
+        <p className="text-sm text-gray-600">
+          A failed poll does not change the window: the next scheduled poll
+          retries from the same starting point.
+        </p>
+      )}
+    </div>
   );
 };
 
@@ -85,6 +229,9 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
   const providerTitle: string = connectorProviderTitle(
     result?.provider || report?.provider || "",
   );
+  const recordName: string =
+    getSecurityEventConnectorDefinition(result?.provider)?.importedRecordName ||
+    "record";
 
   return (
     <section
@@ -174,6 +321,7 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
               <dd>{(result.durationMs / 1000).toFixed(1)} seconds</dd>
             </div>
           </dl>
+          <ConnectionWindowProgress result={result} recordName={recordName} />
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {(
               [
@@ -218,12 +366,16 @@ const SecurityEventConnectionRunDetails: FunctionComponent<ComponentProps> = (
               to import.
             </p>
           )}
-          {!result.complete && run.type !== "test" && (
-            <p role="alert" className="text-sm text-amber-700">
-              This run did not finish processing every record in the window.
-              Review the checks and warnings before retrying.
-            </p>
-          )}
+          {!result.complete &&
+            run.type !== "test" &&
+            !hasConnectionWindowProgress(result) && (
+              <p role="alert" className="text-sm text-amber-700">
+                This run did not finish processing every record in the window.
+                {run.type === "preview" || run.type === "backfill"
+                  ? " Choose a shorter time range to read the rest; records already imported are skipped."
+                  : " Review the checks and warnings before retrying."}
+              </p>
+            )}
           {result.warnings.length > 0 && (
             <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-900">
               <h4 className="font-medium">Warnings</h4>

@@ -291,9 +291,9 @@ export function connectorHealthTooltip(health: string): string {
     case CONNECTOR_HEALTH_OVERDUE:
       return "The scheduler has not polled this connection when it was due. Use Test connection to check whether OneUptime's workers and scheduler are running.";
     case CONNECTOR_HEALTH_PARTIAL:
-      return "The last poll imported some records but could not process every one. Open Diagnostics for the warnings.";
+      return "The last poll could not read or process every record in its window. Scheduled polling continues on its own, from the last record read or with a shorter window; open Diagnostics for the warnings.";
     case CONNECTOR_HEALTH_CATCHING_UP:
-      return "The connection is working through a backlog in 24 hour windows.";
+      return "The connection is working through a backlog in windows of up to 24 hours.";
     case CONNECTOR_HEALTH_PAUSED:
       return "Scheduled polling is disabled. Run now still works.";
     case CONNECTOR_HEALTH_WAITING:
@@ -448,28 +448,38 @@ export const connectorCheckStatusLabels: Record<
 };
 
 /*
- * Human labels for the count keys testers emit. Unknown keys fall back to a
- * spaced-out version of the key so a new count is never silently hidden.
+ * Human labels for the count keys the testers emit. The generic connectors
+ * put { createdLast24h, createdLast7d, hasMoreLast24h, hasMoreLast7d } (plus
+ * Okta's usingDefaultFilter) in their detections-available check details;
+ * the Google SecOps tester emits report.counts with its own keys and a
+ * nested otherScope object. Unknown keys fall back to a spaced-out version
+ * of the key so a new count is never silently hidden.
  */
-export function connectorCountLabel(key: string): string {
-  const known: Record<string, string> = {
-    createdLast24h: "Created in the last 24 hours",
-    createdLast7d: "Created in the last 7 days",
-    ruleDetectionsLast24h: "Rule detections created in the last 24 hours",
-    ruleDetectionsLast7d: "Rule detections created in the last 7 days",
-    curatedDetectionsLast24h: "Curated detections created in the last 24 hours",
-    curatedDetectionsLast7d: "Curated detections created in the last 7 days",
-    baselineAlertsLast24h: "Alerts by detection time, last 24 hours",
-    baselineAlertsLast7d: "Alerts by detection time, last 7 days",
-    hasMoreLast24h: "More than one page in the last 24 hours",
-    hasMoreLast7d: "More than one page in the last 7 days",
-  };
+const CONNECTOR_COUNT_LABELS: Record<string, string> = {
+  createdLast24h: "Created in the last 24 hours",
+  createdLast7d: "Created in the last 7 days",
+  // True when the source capped the count, so the number is a lower bound.
+  hasMoreLast24h: "More than counted in the last 24 hours",
+  hasMoreLast7d: "More than counted in the last 7 days",
+  usingDefaultFilter: "Uses the default event filter",
+  scope: "Data to import",
+  otherScope: "Other Data to import choice",
+  alertsViewLast24h: "Alerts by detection time, last 24 hours",
+  alertsViewLast7d: "Alerts by detection time, last 7 days",
+  ruleDetectionsCreatedLast24h: "Rule detections created in the last 24 hours",
+  ruleDetectionsCreatedLast7d: "Rule detections created in the last 7 days",
+};
 
-  if (known[key]) {
-    return known[key] as string;
+export function connectorCountLabel(key: string): string {
+  const known: string | undefined = CONNECTOR_COUNT_LABELS[key];
+
+  if (known) {
+    return known;
   }
 
   return key
+    .replace(/Last24h$/, " in the last 24 hours")
+    .replace(/Last7d$/, " in the last 7 days")
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/[-_]/g, " ")
     .toLowerCase()
@@ -478,6 +488,20 @@ export function connectorCountLabel(key: string): string {
     });
 }
 
+function isPlainCountObject(value: unknown): value is JSONObject {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    !(value instanceof Date)
+  );
+}
+
+/*
+ * Never falls back to String() for an object: that is how a nested count
+ * rendered as "[object Object]". Arrays are listed; any other object is
+ * shown as compact JSON so its content is still readable.
+ */
 export function formatConnectorCountValue(value: unknown): string {
   if (typeof value === "boolean") {
     return value ? "Yes" : "No";
@@ -491,5 +515,143 @@ export function formatConnectorCountValue(value: unknown): string {
     return "Unknown";
   }
 
-  return String(value);
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.length === 0
+      ? "None"
+      : value
+          .map((item: unknown): string => {
+            return formatConnectorCountValue(item);
+          })
+          .join(", ");
+  }
+
+  if (value instanceof Date) {
+    return formatConnectionDate(value);
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return "Unknown";
+  }
+}
+
+/*
+ * The Google SecOps tester reports its scope as a machine value; show it in
+ * the form's own vocabulary (Data to import: Alerts always, Detections
+ * optional), worded as the tester's check messages word it.
+ */
+function formatConnectorCountEntry(key: string, value: unknown): string {
+  if (key === "scope") {
+    if (value === "alerts-only") {
+      return "Alerts only";
+    }
+
+    if (value === "alerts-and-detections") {
+      return "Alerts and Detections";
+    }
+  }
+
+  return formatConnectorCountValue(value);
+}
+
+export interface ConnectorCountRow {
+  // Dotted path of the count in the report, e.g. "otherScope.scope".
+  key: string;
+  label: string;
+  value: string;
+}
+
+// Deep enough for otherScope; anything deeper is shown as JSON.
+const MAX_COUNT_NESTING: number = 3;
+
+/*
+ * One row per leaf count. A nested object becomes labelled rows prefixed by
+ * its parent's label ("Other Data to import choice: rule detections created
+ * in the last 24 hours"); its own `scope` leaf takes the parent label alone
+ * because "Other Data to import choice: data to import" says it twice.
+ */
+export function connectorCountRows(
+  counts: JSONObject,
+  parent?: { key: string; label: string; depth: number } | undefined,
+): Array<ConnectorCountRow> {
+  const rows: Array<ConnectorCountRow> = [];
+
+  for (const key of Object.keys(counts)) {
+    const value: unknown = counts[key];
+    const ownLabel: string = connectorCountLabel(key);
+    const path: string = parent ? `${parent.key}.${key}` : key;
+    const label: string = !parent
+      ? ownLabel
+      : key === "scope"
+        ? parent.label
+        : `${parent.label}: ${ownLabel.charAt(0).toLowerCase()}${ownLabel.slice(1)}`;
+    const depth: number = parent ? parent.depth + 1 : 1;
+
+    if (isPlainCountObject(value) && depth < MAX_COUNT_NESTING) {
+      rows.push(
+        ...connectorCountRows(value, { key: path, label, depth: depth }),
+      );
+      continue;
+    }
+
+    rows.push({
+      key: path,
+      label,
+      value: formatConnectorCountEntry(key, value),
+    });
+  }
+
+  return rows;
+}
+
+/*
+ * The counts a report's "Availability counts" table shows. Google SecOps
+ * fills report.counts; the generic tester leaves it unset and each
+ * connector carries the same numbers in its detections-available check
+ * details, so those are used when the report has none.
+ */
+export function connectorTestReportCounts(
+  report: Pick<SecurityConnectorTestReport, "counts" | "checks">,
+): JSONObject {
+  if (isPlainCountObject(report.counts) && Object.keys(report.counts).length) {
+    return report.counts;
+  }
+
+  const availability: SecurityConnectorCheck | undefined = (
+    report.checks || []
+  ).find((check: SecurityConnectorCheck): boolean => {
+    return check.key === "detections-available";
+  });
+
+  if (
+    availability &&
+    isPlainCountObject(availability.details) &&
+    Object.keys(availability.details).length
+  ) {
+    return availability.details;
+  }
+
+  return {};
+}
+
+// A whole number of minutes from a run result, or null when absent or invalid.
+export function readWindowMinutes(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.max(1, Math.round(value))
+    : null;
+}
+
+// "1 minute", "45 minutes", "3 hours", "24 hours", "90 minutes".
+export function formatWindowMinutes(minutes: number): string {
+  if (minutes >= 60 && minutes % 60 === 0) {
+    const hours: number = minutes / 60;
+    return `${hours} hour${hours === 1 ? "" : "s"}`;
+  }
+
+  return `${minutes.toLocaleString()} minute${minutes === 1 ? "" : "s"}`;
 }

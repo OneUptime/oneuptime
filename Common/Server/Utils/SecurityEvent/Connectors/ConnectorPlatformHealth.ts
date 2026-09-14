@@ -25,13 +25,25 @@ import { makeCheck } from "./Types";
  */
 
 /*
- * RunCron registers the scheduler under the job name with ":" replaced by
- * "-" (Queue.sanitizeJobId). Both connector families' schedulers are
- * listed so the check reads "the poll scheduler" whichever family asked.
+ * The job names the two poll crons are registered under. Both connector
+ * families' schedulers are listed so the check reads "the poll scheduler"
+ * whichever family asked.
+ *
+ * These are the RAW names, colon included, because that is what BullMQ
+ * reports. RunCron goes through Queue.addJob, which calls
+ * queue.add(jobName, {}, { jobId, repeat: { pattern, jobId } }): BullMQ's
+ * legacy repeatable API, not upsertJobScheduler. BullMQ 5.x
+ * (Repeat.updateRepeatableJob, addRepeatableJob-2.lua) stores that
+ * repeatable under an md5 of "name:jobId:endDate:tz:pattern" and writes
+ * only `name` and `pattern` into its metadata hash, so getJobSchedulers()
+ * lists it as { key: "<md5>", name: "SecurityEvents:Poll...", next,
+ * pattern } with no `id`. Matching the sanitized "SecurityEvents-Poll..."
+ * id against `id` therefore failed the scheduler check on every healthy
+ * install (review finding scheduler-check-always-fails).
  */
-export const CONNECTOR_SCHEDULER_JOB_IDS: Array<string> = [
-  "SecurityEvents-PollGoogleSecOpsConnections",
-  "SecurityEvents-PollSecurityEventConnections",
+export const CONNECTOR_SCHEDULER_JOB_NAMES: Array<string> = [
+  "SecurityEvents:PollGoogleSecOpsConnections",
+  "SecurityEvents:PollSecurityEventConnections",
 ];
 
 // Two scheduler ticks of grace before a poll counts as overdue.
@@ -49,6 +61,18 @@ export interface ConnectorScheduleFacts {
   pendingRunCreatedAt?: Date | undefined;
 }
 
+/*
+ * The fields of BullMQ's JobSchedulerJson this probe reads. Optional and
+ * loosely typed on purpose: the value comes out of Redis, and
+ * getJobSchedulers() maps a repeat key whose metadata hash is gone to
+ * undefined instead of dropping it, so an entry may be missing entirely.
+ */
+export interface ConnectorSchedulerEntry {
+  key?: string | undefined;
+  name?: string | undefined;
+  next?: number | null | undefined;
+}
+
 interface QueueLike {
   getWorkersCount?: () => Promise<number>;
   getWorkers?: () => Promise<Array<unknown>>;
@@ -56,7 +80,7 @@ interface QueueLike {
     start?: number,
     end?: number,
     asc?: boolean,
-  ) => Promise<Array<{ id?: string | undefined; next?: number | undefined }>>;
+  ) => Promise<Array<ConnectorSchedulerEntry | null | undefined>>;
   getWaitingCount: () => Promise<number>;
   getFailedCount: () => Promise<number>;
 }
@@ -92,31 +116,24 @@ export default class ConnectorPlatformHealth {
 
       try {
         if (typeof queue.getJobSchedulers === "function") {
-          const schedulers: Array<{
-            id?: string | undefined;
-            next?: number | undefined;
-          }> = await queue.getJobSchedulers(0, 1000, true);
-          const matches: Array<{
-            id?: string | undefined;
-            next?: number | undefined;
-          }> = schedulers.filter(
-            (scheduler: {
-              id?: string | undefined;
-              next?: number | undefined;
-            }): boolean => {
-              return CONNECTOR_SCHEDULER_JOB_IDS.includes(scheduler.id || "");
-            },
-          );
+          const schedulers: Array<ConnectorSchedulerEntry | null | undefined> =
+            await queue.getJobSchedulers(0, 1000, true);
+          const matches: Array<ConnectorSchedulerEntry> = [];
+
+          for (const scheduler of schedulers) {
+            if (scheduler && this.isConnectorScheduler(scheduler)) {
+              matches.push(scheduler);
+            }
+          }
+
           status.schedulerRegistered = matches.length > 0;
           const nextRuns: Array<number> = matches
-            .map(
-              (scheduler: {
-                id?: string | undefined;
-                next?: number | undefined;
-              }): number => {
-                return typeof scheduler.next === "number" ? scheduler.next : 0;
-              },
-            )
+            .map((scheduler: ConnectorSchedulerEntry): number => {
+              return typeof scheduler.next === "number" &&
+                Number.isFinite(scheduler.next)
+                ? scheduler.next
+                : 0;
+            })
             .filter((value: number): boolean => {
               return value > 0;
             });
@@ -157,6 +174,28 @@ export default class ConnectorPlatformHealth {
     }
 
     return status;
+  }
+
+  /*
+   * Whether one getJobSchedulers() entry is a connector poll cron. `name`
+   * is the match for every registration BullMQ can describe (see
+   * CONNECTOR_SCHEDULER_JOB_NAMES). The key prefix covers the one shape
+   * where the name cannot be read back: a repeatable still kept under a
+   * pre-md5 concatenated key ("name:jobId:endDate:tz:pattern") whose
+   * metadata hash is gone. BullMQ then rebuilds the entry by splitting the
+   * key on ":", which cuts "SecurityEvents:Poll..." in half and reports the
+   * name as "SecurityEvents", but the key still starts with the full name.
+   */
+  public static isConnectorScheduler(
+    scheduler: ConnectorSchedulerEntry,
+  ): boolean {
+    const name: string =
+      typeof scheduler.name === "string" ? scheduler.name : "";
+    const key: string = typeof scheduler.key === "string" ? scheduler.key : "";
+
+    return CONNECTOR_SCHEDULER_JOB_NAMES.some((jobName: string): boolean => {
+      return name === jobName || key.startsWith(`${jobName}:`);
+    });
   }
 
   private static async probeWorkerCount(

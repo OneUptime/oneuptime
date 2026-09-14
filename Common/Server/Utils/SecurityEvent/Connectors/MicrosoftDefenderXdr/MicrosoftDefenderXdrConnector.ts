@@ -68,6 +68,13 @@ const TENANT_REGEX: RegExp = /^[A-Za-z0-9][A-Za-z0-9.-]{0,254}$/;
 
 const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
 
+/*
+ * Why a bounded Defender read names no resume point, appended to the
+ * bound warning so a Partial run explains itself.
+ */
+const UNORDERED_READ_NOTE: string =
+  "Microsoft Graph lists alerts newest first and documents no way to sort them oldest first, so this run cannot name a point to resume from.";
+
 export default class MicrosoftDefenderXdrConnector
   implements SecurityEventConnector
 {
@@ -406,8 +413,13 @@ export default class MicrosoftDefenderXdrConnector
       return "The token was minted but Microsoft Graph refused it. Check that the Cloud setting matches the tenant's cloud and that the app registration is enabled.";
     }
 
+    /*
+     * The production transport drops response headers on error statuses,
+     * so a Retry-After value is only in the message when the transport
+     * kept it; the advice must not depend on it being there.
+     */
     if (message.includes("(HTTP 429)")) {
-      return "Microsoft Graph is throttling this app. Wait for the Retry-After period and test again; scheduled polls retry automatically.";
+      return "Microsoft Graph is throttling this app. Wait a few minutes (at least the Retry-After period when the message names one) and test again; scheduled polls retry automatically.";
     }
 
     if (message.includes("did not complete")) {
@@ -420,8 +432,12 @@ export default class MicrosoftDefenderXdrConnector
   /*
    * Read every alert created in the window, page by page, within the
    * request and event budgets. A budget hit returns complete=false with a
-   * warning so the poller holds its cursor and the next poll re-reads the
-   * same window; nothing is silently dropped.
+   * warning and deliberately no resumeAfter: Graph lists alerts_v2 newest
+   * first and documents no $orderby, so the alerts read are not "every
+   * alert created before some point". The poller answers a bound hit
+   * without a resume point by narrowing the next window from the same
+   * start, which is what lets a busy tenant make progress (review finding
+   * connector-bound-hit-permanent-stall).
    */
   public async fetchEvents(
     settings: SecurityConnectorSettings,
@@ -455,7 +471,7 @@ export default class MicrosoftDefenderXdrConnector
       if (pageRequests >= maxRequests) {
         complete = false;
         warnings.push(
-          `Stopped after ${pageRequests} alerts requests (the per-run request limit). The window is not fully read; the poll cursor is held so the next poll continues from the same window.`,
+          `Stopped after ${pageRequests} alerts requests (the per-run request limit) before reading the whole window. ${UNORDERED_READ_NOTE}`,
         );
         break;
       }
@@ -477,7 +493,7 @@ export default class MicrosoftDefenderXdrConnector
       if (eventBoundHit || (page.nextLink && rawAlerts.length >= maxEvents)) {
         complete = false;
         warnings.push(
-          `Stopped after ${rawAlerts.length} alerts (the per-run record limit). The window is not fully read; the poll cursor is held so the next poll continues from the same window.`,
+          `Stopped after ${rawAlerts.length} alerts (the per-run record limit) before reading the whole window. ${UNORDERED_READ_NOTE}`,
         );
         break;
       }

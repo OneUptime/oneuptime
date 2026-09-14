@@ -19,18 +19,25 @@ import {
 import React from "react";
 import ConnectorTestReportView from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/ConnectorTestReportView";
 import {
+  ConnectorCountRow,
   connectorCheckGroup,
   connectorCountLabel,
+  connectorCountRows,
   connectorDocsUrl,
   connectorHealthPillColor,
   connectorHealthTone,
   connectorHealthTooltip,
+  connectorTestReportCounts,
   connectionTimeTitle,
   formatConnectionLocalDate,
+  formatConnectorCountValue,
+  formatWindowMinutes,
+  readWindowMinutes,
   CONNECTOR_HEALTH_NO_EVENTS_YET,
   CONNECTOR_HEALTH_SUCCEEDED,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionDiagnosticsUtil";
 import { Green, LightGray, Red, Yellow } from "../../../Types/BrandColors";
+import { JSONObject } from "../../../Types/JSON";
 import {
   SecurityConnectorCheck,
   SecurityConnectorTestReport,
@@ -57,6 +64,31 @@ function check(
     durationMs: 12,
     message: `${overrides.key} message`,
     ...overrides,
+  };
+}
+
+/*
+ * The counts GoogleSecOpsConnectionTester.availabilityCheck emits: the
+ * saved Data to import choice at the top level, the other choice nested
+ * under otherScope. Rule detection counts are strings because a full page
+ * is reported as "1000+".
+ */
+function googleCounts(): JSONObject {
+  return {
+    scope: "alerts-only",
+    alertsViewLast24h: 0,
+    alertsViewLast7d: 0,
+    ruleDetectionsCreatedLast24h: "0",
+    ruleDetectionsCreatedLast7d: "0",
+    hasMoreLast7d: false,
+    otherScope: {
+      scope: "alerts-and-detections",
+      alertsViewLast24h: 4,
+      alertsViewLast7d: 12,
+      ruleDetectionsCreatedLast24h: "3",
+      ruleDetectionsCreatedLast7d: "1000+",
+      hasMoreLast7d: true,
+    },
   };
 }
 
@@ -369,7 +401,12 @@ describe("ConnectorTestReportView", () => {
     });
     expect(counts).toHaveTextContent("Created in the last 24 hours");
     expect(counts).toHaveTextContent("Created in the last 7 days");
-    expect(counts).toHaveTextContent("More than one page in the last 7 days");
+    /*
+     * report-counts-nested-object: hasMore means the source capped the
+     * count (Elastic's track_total_hits, a full page elsewhere), not "more
+     * than one page", so the label now says the number is a lower bound.
+     */
+    expect(counts).toHaveTextContent("More than counted in the last 7 days");
     expect(within(counts).getAllByRole("row")).toHaveLength(4);
     expect(within(counts).getByText("No")).toBeVisible();
 
@@ -388,6 +425,86 @@ describe("ConnectorTestReportView", () => {
     );
     expect(created.getAttribute("title")).toMatch(/^Local time: /);
     expect(within(samples).getByText("2026-09-10 11:57:59 UTC")).toBeVisible();
+  });
+
+  test("Google SecOps nested counts render as labelled rows, never [object Object]", (): void => {
+    render(
+      <ConnectorTestReportView
+        report={report({ provider: "google-secops", counts: googleCounts() })}
+      />,
+    );
+
+    const counts: HTMLElement = screen.getByRole("region", {
+      name: "Availability counts",
+    });
+    expect(counts).not.toHaveTextContent("[object Object]");
+    expect(counts).not.toHaveTextContent("Other scope");
+
+    const valueOf: (key: string) => string = (key: string): string => {
+      const row: HTMLElement | null = counts.querySelector(
+        `tr[data-count-key="${key}"]`,
+      );
+      expect(row).not.toBeNull();
+      return (row as HTMLElement).querySelector("td")?.textContent || "missing";
+    };
+    const labelOf: (key: string) => string = (key: string): string => {
+      return (
+        counts.querySelector(`tr[data-count-key="${key}"] th`)?.textContent ||
+        "missing"
+      );
+    };
+
+    // Header row plus six saved-choice rows and six other-choice rows.
+    expect(within(counts).getAllByRole("row")).toHaveLength(13);
+    expect(labelOf("scope")).toBe("Data to import");
+    expect(valueOf("scope")).toBe("Alerts only");
+    expect(labelOf("ruleDetectionsCreatedLast24h")).toBe(
+      "Rule detections created in the last 24 hours",
+    );
+    expect(labelOf("alertsViewLast7d")).toBe(
+      "Alerts by detection time, last 7 days",
+    );
+    expect(labelOf("otherScope.scope")).toBe("Other Data to import choice");
+    expect(valueOf("otherScope.scope")).toBe("Alerts and Detections");
+    expect(labelOf("otherScope.ruleDetectionsCreatedLast7d")).toBe(
+      "Other Data to import choice: rule detections created in the last 7 days",
+    );
+    expect(valueOf("otherScope.ruleDetectionsCreatedLast7d")).toBe("1000+");
+    expect(valueOf("otherScope.alertsViewLast24h")).toBe("4");
+    expect(valueOf("otherScope.hasMoreLast7d")).toBe("Yes");
+  });
+
+  test("a generic report without counts shows its detections-available details", (): void => {
+    render(
+      <ConnectorTestReportView
+        report={report({
+          counts: undefined,
+          checks: [
+            check({
+              key: "detections-available",
+              name: "Events available to import",
+              status: "pass",
+              details: {
+                createdLast24h: 1200,
+                createdLast7d: 10000,
+                hasMoreLast24h: false,
+                hasMoreLast7d: true,
+                usingDefaultFilter: true,
+              },
+            }),
+          ],
+        })}
+      />,
+    );
+
+    const counts: HTMLElement = screen.getByRole("region", {
+      name: "Availability counts",
+    });
+    expect(within(counts).getAllByRole("row")).toHaveLength(6);
+    expect(counts).toHaveTextContent("Created in the last 24 hours");
+    expect(counts).toHaveTextContent("1,200");
+    expect(counts).toHaveTextContent("More than counted in the last 7 days");
+    expect(counts).toHaveTextContent("Uses the default event filter");
   });
 
   test("Copy report copies the JSON report verbatim and never a credential", async (): Promise<void> => {
@@ -484,14 +601,104 @@ describe("diagnostics util vocabulary", () => {
     }
   });
 
+  /*
+   * report-counts-nested-object: the known labels were keyed on
+   * ruleDetectionsLast24h and baselineAlertsLast24h, which no tester emits.
+   * They now match GoogleSecOpsConnectionTester's keys and the generic
+   * connectors' detections-available details, and the fallback spells out
+   * the Last24h / Last7d suffixes instead of printing "last7d".
+   */
   test("count labels are known for the tester keys and readable for new ones", (): void => {
-    expect(connectorCountLabel("ruleDetectionsLast24h")).toBe(
+    expect(connectorCountLabel("ruleDetectionsCreatedLast24h")).toBe(
       "Rule detections created in the last 24 hours",
     );
+    expect(connectorCountLabel("alertsViewLast24h")).toBe(
+      "Alerts by detection time, last 24 hours",
+    );
+    expect(connectorCountLabel("hasMoreLast24h")).toBe(
+      "More than counted in the last 24 hours",
+    );
+    expect(connectorCountLabel("scope")).toBe("Data to import");
+    expect(connectorCountLabel("usingDefaultFilter")).toBe(
+      "Uses the default event filter",
+    );
     expect(connectorCountLabel("incidentsCreatedLast7d")).toBe(
-      "Incidents created last7d",
+      "Incidents created in the last 7 days",
     );
     expect(connectorCountLabel("has-more")).toBe("Has more");
+  });
+
+  test("count values never print an object through String()", (): void => {
+    expect(formatConnectorCountValue(true)).toBe("Yes");
+    expect(formatConnectorCountValue(12000)).toBe((12000).toLocaleString());
+    expect(formatConnectorCountValue("1000+")).toBe("1000+");
+    expect(formatConnectorCountValue(null)).toBe("Unknown");
+    expect(formatConnectorCountValue(["analyst", "admin"])).toBe(
+      "analyst, admin",
+    );
+    expect(formatConnectorCountValue([])).toBe("None");
+    expect(formatConnectorCountValue({ a: 1 })).toBe('{"a":1}');
+  });
+
+  test("count rows flatten nesting with a bounded depth and keep dotted keys", (): void => {
+    const rows: Array<ConnectorCountRow> = connectorCountRows({
+      createdLast24h: 3,
+      outer: { inner: { deepest: { value: 1 } }, createdLast7d: 9 },
+    });
+
+    expect(rows).toEqual([
+      {
+        key: "createdLast24h",
+        label: "Created in the last 24 hours",
+        value: "3",
+      },
+      {
+        key: "outer.inner.deepest",
+        label: "Outer: inner: deepest",
+        value: '{"value":1}',
+      },
+      {
+        key: "outer.createdLast7d",
+        label: "Outer: created in the last 7 days",
+        value: "9",
+      },
+    ]);
+  });
+
+  test("report counts prefer report.counts and fall back to the availability check details", (): void => {
+    expect(
+      connectorTestReportCounts(report({ counts: { createdLast24h: 1 } })),
+    ).toEqual({ createdLast24h: 1 });
+    expect(
+      connectorTestReportCounts(
+        report({
+          counts: {},
+          checks: [
+            check({
+              key: "detections-available",
+              status: "pass",
+              details: { createdLast7d: 2 },
+            }),
+          ],
+        }),
+      ),
+    ).toEqual({ createdLast7d: 2 });
+    expect(
+      connectorTestReportCounts(report({ counts: undefined, checks: [] })),
+    ).toEqual({});
+  });
+
+  test("window lengths read whole minutes and print hours when they divide evenly", (): void => {
+    expect(readWindowMinutes(30)).toBe(30);
+    expect(readWindowMinutes(0)).toBeNull();
+    expect(readWindowMinutes(Number.NaN)).toBeNull();
+    expect(readWindowMinutes("30")).toBeNull();
+    expect(readWindowMinutes(undefined)).toBeNull();
+    expect(formatWindowMinutes(1)).toBe("1 minute");
+    expect(formatWindowMinutes(45)).toBe("45 minutes");
+    expect(formatWindowMinutes(60)).toBe("1 hour");
+    expect(formatWindowMinutes(90)).toBe("90 minutes");
+    expect(formatWindowMinutes(1440)).toBe("24 hours");
   });
 
   test("health tone, colour and tooltip agree on the no-events-yet state", (): void => {

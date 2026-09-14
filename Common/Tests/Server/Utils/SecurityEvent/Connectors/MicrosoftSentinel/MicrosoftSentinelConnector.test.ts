@@ -27,7 +27,8 @@ import SecurityEventConnectorProvider from "../../../../../../Types/SecurityEven
  * the catalog's keys, the test checklist carries the fixed keys with a
  * remediation per failure mode, and fetchEvents walks nextLink within the
  * request and record bounds, holding `complete` false whenever a bound
- * stopped it. The transport is injected; nothing touches the network.
+ * stopped it and naming the creation time of the last incident read as
+ * `resumeAfter`. The transport is injected; nothing touches the network.
  */
 
 const TENANT_ID: string = "b3c1b5fc-828c-45fa-a1e1-10d74f6d6e9c";
@@ -120,14 +121,18 @@ function tokenResponse(): DataSourceHttpResponse {
   });
 }
 
-function incident(name: string, severity: string = "High"): JSONObject {
+function incident(
+  name: string,
+  severity: string = "High",
+  createdTimeUtc: string = "2026-09-12T13:15:30Z",
+): JSONObject {
   return {
     id: `${INCIDENTS_PATH}/${name}`,
     name,
     type: "Microsoft.SecurityInsights/incidents",
     properties: {
       lastModifiedTimeUtc: "2026-09-12T13:15:30Z",
-      createdTimeUtc: "2026-09-12T13:15:30Z",
+      createdTimeUtc,
       firstActivityTimeUtc: "2026-09-12T13:00:30Z",
       title: `Incident ${name}`,
       severity,
@@ -714,6 +719,7 @@ describe("MicrosoftSentinelConnector", () => {
       expect(result.rejectedCount).toBe(0);
       expect(result.failedCount).toBe(0);
       expect(result.complete).toBe(true);
+      expect(result.resumeAfter).toBeUndefined();
       expect(result.requestCount).toBe(1);
       expect(result.warnings).toEqual([]);
 
@@ -777,6 +783,8 @@ describe("MicrosoftSentinelConnector", () => {
       ).toEqual(["i1", "i2", "i3"]);
       expect(result.requestCount).toBe(3);
       expect(result.complete).toBe(true);
+      // A window read to its end names no resume point: the cursor moves to its end.
+      expect(result.resumeAfter).toBeUndefined();
 
       const reads: Array<DataSourceHttpRequest> = incidentRequests(
         harness.requests,
@@ -786,14 +794,31 @@ describe("MicrosoftSentinelConnector", () => {
       expect(harness.requests).toHaveLength(4);
     });
 
-    test("stops at the request bound with complete=false and a warning, leaving the rest for the next poll", async () => {
+    /*
+     * Review finding connector-bound-hit-permanent-stall: a bound hit used to
+     * return complete=false with nothing to resume from, and the warning
+     * promised "the poll cursor is held so the next poll continues from the
+     * same window". The poller then re-read the same first 1,000 incidents
+     * forever. The fetch now reports the creation time of the last incident
+     * read so the poller can move past what it already has.
+     */
+    test("stops at the request bound with complete=false, resumeAfter at the last incident read, and a warning naming it", async () => {
       const harness: Harness = buildHarness({
         incidents: [
           (): DataSourceHttpResponse => {
-            return ok({ value: [incident("i1")], nextLink: nextLink("p2") });
+            return ok({
+              value: [
+                incident("i1", "High", "2026-09-12T11:00:00Z"),
+                incident("i2", "High", "2026-09-12T11:30:00.1234567Z"),
+              ],
+              nextLink: nextLink("p2"),
+            });
           },
           (): DataSourceHttpResponse => {
-            return ok({ value: [incident("i2")], nextLink: nextLink("p3") });
+            return ok({
+              value: [incident("i3", "High", "2026-09-12T12:45:10Z")],
+              nextLink: nextLink("p3"),
+            });
           },
           (): DataSourceHttpResponse => {
             throw new Error("the third page must not be requested");
@@ -807,21 +832,27 @@ describe("MicrosoftSentinelConnector", () => {
         fetchOptions({ maxRequests: 2 }),
       );
 
-      expect(result.events).toHaveLength(2);
+      expect(result.events).toHaveLength(3);
       expect(result.requestCount).toBe(2);
       expect(result.complete).toBe(false);
-      expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0]).toContain("per-run request limit");
-      expect(result.warnings[0]).toContain("cursor is held");
+      expect(result.resumeAfter).toEqual(new Date("2026-09-12T12:45:10Z"));
+      expect(result.warnings).toEqual([
+        "Stopped after 2 incidents requests (the per-run request limit) before reading the whole window. Incidents are read oldest first; every incident created before 2026-09-12T12:45:10.000Z was read.",
+      ]);
+      expect(result.warnings[0]).not.toContain("cursor is held");
       expect(incidentRequests(harness.requests)).toHaveLength(2);
     });
 
-    test("stops at the record bound mid-page with complete=false and a warning", async () => {
+    test("stops at the record bound mid-page with complete=false and resumeAfter at the last incident kept, not the last one on the page", async () => {
       const harness: Harness = buildHarness({
         incidents: [
           (): DataSourceHttpResponse => {
             return ok({
-              value: [incident("i1"), incident("i2"), incident("i3")],
+              value: [
+                incident("i1", "High", "2026-09-12T11:00:00Z"),
+                incident("i2", "High", "2026-09-12T11:05:00Z"),
+                incident("i3", "High", "2026-09-12T11:10:00Z"),
+              ],
               nextLink: nextLink("p2"),
             });
           },
@@ -841,8 +872,10 @@ describe("MicrosoftSentinelConnector", () => {
       ).toEqual(["i1", "i2"]);
       expect(result.fetchedCount).toBe(2);
       expect(result.complete).toBe(false);
+      expect(result.resumeAfter).toEqual(new Date("2026-09-12T11:05:00Z"));
       expect(result.requestCount).toBe(1);
       expect(result.warnings[0]).toContain("per-run record limit");
+      expect(result.warnings[0]).toContain("2026-09-12T11:05:00.000Z");
     });
 
     test("treats reaching the record bound exactly as incomplete only when more pages exist", async () => {
@@ -850,7 +883,10 @@ describe("MicrosoftSentinelConnector", () => {
         incidents: [
           (): DataSourceHttpResponse => {
             return ok({
-              value: [incident("i1"), incident("i2")],
+              value: [
+                incident("i1", "High", "2026-09-12T11:00:00Z"),
+                incident("i2", "High", "2026-09-12T11:01:00Z"),
+              ],
               nextLink: nextLink("p2"),
             });
           },
@@ -864,6 +900,7 @@ describe("MicrosoftSentinelConnector", () => {
         );
       expect(incomplete.complete).toBe(false);
       expect(incomplete.events).toHaveLength(2);
+      expect(incomplete.resumeAfter).toEqual(new Date("2026-09-12T11:01:00Z"));
 
       const lastPage: Harness = buildHarness({
         incidents: [
@@ -879,7 +916,125 @@ describe("MicrosoftSentinelConnector", () => {
           fetchOptions({ maxEvents: 2 }),
         );
       expect(complete.complete).toBe(true);
+      expect(complete.resumeAfter).toBeUndefined();
       expect(complete.warnings).toEqual([]);
+    });
+
+    test("names no resume point when the request bound stops the read before any incident was returned", async () => {
+      const harness: Harness = buildHarness({
+        incidents: [
+          (): DataSourceHttpResponse => {
+            return ok({ value: [], nextLink: nextLink("p2") });
+          },
+        ],
+      });
+
+      const result: ConnectorFetchResult = await harness.connector.fetchEvents(
+        settings(),
+        { startTime: START, endTime: END },
+        fetchOptions({ maxRequests: 1 }),
+      );
+
+      expect(result.complete).toBe(false);
+      expect(result.resumeAfter).toBeUndefined();
+      expect(result.warnings).toEqual([
+        "Stopped after 1 incidents requests (the per-run request limit) before reading the whole window.",
+      ]);
+    });
+
+    test("names no resume point, and says why, when the API returns incidents out of creation-time order", async () => {
+      const harness: Harness = buildHarness({
+        incidents: [
+          (): DataSourceHttpResponse => {
+            return ok({
+              value: [
+                incident("i1", "High", "2026-09-12T12:00:00Z"),
+                incident("i2", "High", "2026-09-12T11:00:00Z"),
+              ],
+              nextLink: nextLink("p2"),
+            });
+          },
+        ],
+      });
+
+      const result: ConnectorFetchResult = await harness.connector.fetchEvents(
+        settings(),
+        { startTime: START, endTime: END },
+        fetchOptions({ maxRequests: 1 }),
+      );
+
+      expect(result.complete).toBe(false);
+      expect(result.resumeAfter).toBeUndefined();
+      expect(result.warnings).toEqual([
+        "Stopped after 1 incidents requests (the per-run request limit) before reading the whole window.",
+        "Microsoft Sentinel returned incidents out of creation-time order, so this run cannot name a point to resume from.",
+      ]);
+    });
+
+    test("never resumes past an incident that failed normalization, so the poller can retry it", async () => {
+      const harness: Harness = buildHarness({
+        incidents: [
+          (): DataSourceHttpResponse => {
+            return ok({
+              value: [
+                incident("i1", "High", "2026-09-12T11:00:00Z"),
+                incident("i2", "High", "2026-09-12T11:20:00Z"),
+                incident("i3", "High", "2026-09-12T11:40:00Z"),
+              ],
+              nextLink: nextLink("p2"),
+            });
+          },
+        ],
+      });
+
+      const original: (
+        raw: JSONObject,
+      ) => ReturnType<typeof MicrosoftSentinelNormalizer.normalize> =
+        MicrosoftSentinelNormalizer.normalize.bind(MicrosoftSentinelNormalizer);
+      jest
+        .spyOn(MicrosoftSentinelNormalizer, "normalize")
+        .mockImplementation((raw: JSONObject) => {
+          if (raw["name"] === "i2") {
+            throw new Error("boom");
+          }
+
+          return original(raw);
+        });
+
+      const result: ConnectorFetchResult = await harness.connector.fetchEvents(
+        settings(),
+        { startTime: START, endTime: END },
+        fetchOptions({ maxRequests: 1 }),
+      );
+
+      expect(result.complete).toBe(false);
+      expect(result.failedCount).toBe(1);
+      expect(result.resumeAfter).toEqual(new Date("2026-09-12T11:20:00Z"));
+    });
+
+    test("ignores creation times outside the window when naming the resume point", async () => {
+      const harness: Harness = buildHarness({
+        incidents: [
+          (): DataSourceHttpResponse => {
+            return ok({
+              value: [
+                incident("i1", "High", "2026-09-12T11:00:00Z"),
+                incident("i2", "High", "2026-09-14T00:00:00Z"),
+              ],
+              nextLink: nextLink("p2"),
+            });
+          },
+        ],
+      });
+
+      const result: ConnectorFetchResult = await harness.connector.fetchEvents(
+        settings(),
+        { startTime: START, endTime: END },
+        fetchOptions({ maxRequests: 1 }),
+      );
+
+      expect(result.complete).toBe(false);
+      expect(result.resumeAfter).toEqual(new Date("2026-09-12T11:00:00Z"));
     });
 
     test("counts unrecognized records as rejected and normalization throws as failed, without stopping the page", async () => {
@@ -927,6 +1082,7 @@ describe("MicrosoftSentinelConnector", () => {
         }),
       ).toEqual(["i1", "i3"]);
       expect(result.complete).toBe(true);
+      expect(result.resumeAfter).toBeUndefined();
     });
 
     test("returns no samples when the sample limit is zero", async () => {

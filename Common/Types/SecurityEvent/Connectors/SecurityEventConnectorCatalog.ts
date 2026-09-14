@@ -69,6 +69,16 @@ export interface SecurityEventConnectorDefinition {
   supportsAlertingOnlyToggle: boolean;
   // What one imported record is, in the customer's own vocabulary.
   importedRecordName: string;
+  /*
+   * How far before the saved cursor each poll starts. The creation
+   * timestamp a source filters on is not always the moment the record
+   * became readable: AWS Security Hub filters on the provider's CreatedAt,
+   * which can precede delivery to Security Hub by many minutes, and Okta
+   * documents that bounded System Log requests can omit delayed events.
+   * Records re-read inside the overlap are dropped by the id dedupe, so a
+   * generous overlap costs requests, never duplicates.
+   */
+  cursorOverlapInMinutes: number;
 }
 
 const MICROSOFT_CLOUD_OPTIONS: Array<ConnectorFieldOption> = [
@@ -91,6 +101,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       defaultPollIntervalInMinutes: 5,
       supportsAlertingOnlyToggle: false,
       importedRecordName: "incident",
+      cursorOverlapInMinutes: 1,
       configFields: [
         {
           key: "tenantId",
@@ -166,6 +177,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       defaultPollIntervalInMinutes: 5,
       supportsAlertingOnlyToggle: false,
       importedRecordName: "alert",
+      cursorOverlapInMinutes: 1,
       configFields: [
         {
           key: "tenantId",
@@ -219,6 +231,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       defaultPollIntervalInMinutes: 5,
       supportsAlertingOnlyToggle: false,
       importedRecordName: "alert",
+      cursorOverlapInMinutes: 1,
       configFields: [
         {
           key: "clientId",
@@ -271,6 +284,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       defaultPollIntervalInMinutes: 5,
       supportsAlertingOnlyToggle: false,
       importedRecordName: "notable event",
+      cursorOverlapInMinutes: 1,
       configFields: [
         {
           key: "url",
@@ -332,6 +346,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       defaultPollIntervalInMinutes: 5,
       supportsAlertingOnlyToggle: false,
       importedRecordName: "alert",
+      cursorOverlapInMinutes: 1,
       configFields: [
         {
           key: "kibanaUrl",
@@ -374,6 +389,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       defaultPollIntervalInMinutes: 5,
       supportsAlertingOnlyToggle: false,
       importedRecordName: "finding",
+      cursorOverlapInMinutes: 30,
       configFields: [
         {
           key: "region",
@@ -426,6 +442,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       defaultPollIntervalInMinutes: 5,
       supportsAlertingOnlyToggle: false,
       importedRecordName: "log event",
+      cursorOverlapInMinutes: 15,
       configFields: [
         {
           key: "orgUrl",

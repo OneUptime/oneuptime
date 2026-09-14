@@ -257,6 +257,63 @@ export class Service extends DatabaseService<Model> {
     return settings;
   }
 
+  /*
+   * Secrets are write-only, so an edit form cannot echo them back and a
+   * rotation may replace only one key. Each submitted key is read as:
+   *   - a non-empty value: replaces the stored one;
+   *   - "" or undefined: keeps the stored one (an untouched password input);
+   *   - null: removes the stored key.
+   * Without the null case nothing could ever clear an optional credential,
+   * and a stale one keeps winning downstream: a leftover AWS session token
+   * is sent with a new long-lived key, a revoked Splunk token outranks the
+   * username and password now on the form (review finding
+   * optional-secret-cannot-be-cleared).
+   *
+   * The result is not validated here. Callers validate the merged object,
+   * so clearing a required secret fails with that field's "is required"
+   * message. A null for a key that is neither a credential of this
+   * provider nor stored is refused, so a typo in a clear request is not
+   * silently a no-op that leaves the credential in place.
+   */
+  public static mergeSecrets(data: {
+    definition: SecurityEventConnectorDefinition;
+    stored: JSONObject;
+    provided: JSONObject;
+  }): JSONObject {
+    const knownKeys: Set<string> = new Set(
+      data.definition.secretFields.map((field: ConnectorField): string => {
+        return field.key;
+      }),
+    );
+    const merged: JSONObject = { ...data.stored };
+
+    for (const key of Object.keys(data.provided)) {
+      const value: JSONValue | undefined = data.provided[key];
+
+      if (value === null) {
+        if (
+          !knownKeys.has(key) &&
+          !Object.prototype.hasOwnProperty.call(data.stored, key)
+        ) {
+          throw new BadDataException(
+            `Credentials contains an unknown setting "${key}" for ${data.definition.title}.`,
+          );
+        }
+
+        delete merged[key];
+        continue;
+      }
+
+      if (value === undefined || value === "") {
+        continue;
+      }
+
+      merged[key] = value;
+    }
+
+    return merged;
+  }
+
   private static validatePollInterval(value: unknown): void {
     if (value === undefined) {
       return;
@@ -320,10 +377,9 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Secrets are write-only, so an edit form cannot echo them back and a
-   * rotation may replace only one key. Provided keys overlay the stored
-   * object; blank values keep what is stored; the merged object is what
-   * gets validated and re-encrypted.
+   * Provided secrets are merged over the stored ones by mergeSecrets (a
+   * value replaces, "" or undefined keeps, null removes); the merged object
+   * is what gets validated and re-encrypted.
    */
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
@@ -403,17 +459,11 @@ export class Service extends DatabaseService<Model> {
         ? Service.parseJsonObject(incoming["secrets"], "Credentials")
         : {};
 
-    const mergedSecrets: JSONObject = { ...storedSecrets };
-
-    for (const key of Object.keys(providedSecrets)) {
-      const value: JSONValue = providedSecrets[key] as JSONValue;
-
-      if (value === null || value === undefined || value === "") {
-        continue;
-      }
-
-      mergedSecrets[key] = value;
-    }
+    const mergedSecrets: JSONObject = Service.mergeSecrets({
+      definition: Service.getDefinitionOrThrow(current.provider),
+      stored: storedSecrets,
+      provided: providedSecrets,
+    });
 
     await Service.validateSettings({
       provider: current.provider,

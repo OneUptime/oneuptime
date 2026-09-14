@@ -73,12 +73,26 @@ export interface ConnectorFetchResult {
   failedCount: number;
   /*
    * False when a bound (requests, events) or a partial source response
-   * left part of the window unread. The poller holds its cursor.
+   * left part of the window unread.
    */
   complete: boolean;
   requestCount: number;
   warnings: Array<string>;
   samples: Array<SecurityConnectorSample>;
+  /*
+   * Where the next poll can resume when this fetch stopped on a bound.
+   *
+   * Set it only when the connector reads records in ASCENDING creation
+   * order: it is the creation time of the last record read, so every
+   * record created strictly before it inside the window has been read.
+   * The poller moves its cursor here instead of re-reading the same
+   * window, and its overlap plus dedupe re-reads the records that share
+   * this timestamp. Leave it undefined when the source returns records in
+   * any other order; the poller then narrows the next window instead.
+   * Without either, a window holding more records than one run can read
+   * would be re-read forever and nothing new would ever be imported.
+   */
+  resumeAfter?: Date | undefined;
 }
 
 export interface ConnectorTestOptions {

@@ -12,11 +12,11 @@ The connector reads the System Log through Okta's management API on a schedule a
 
 - A OneUptime project where you are a **project owner**, **project admin** or **security admin** (the roles that can create connections). Security members and viewers can read connections but not create them.
 - An Okta org, and an administrator account to create the API token with. Okta API tokens **inherit the privileges of the administrator who creates them**, so create the token as:
-  - a **Read-only Administrator** — the standard role that can read the System Log and nothing else. This is the recommended choice; the connector never writes to Okta.
-  - or a **Super Administrator**, if your org has no read-only admin. This works but grants the token far more than it needs.
-  - Roles scoped to users, groups or applications (Help Desk, Group or Application Administrator) do not include System Log access; a token created by one authenticates but answers `403`. Okta's [Administrators](https://help.okta.com/okta_help.htm?id=ext_Security_Administrators) page lists which roles can view the System Log.
+  - a **Read-only Administrator** — the least-privileged standard role for this job: it can view the System Log and cannot change anything in the org. This is the recommended choice; the connector never writes to Okta. Read-only is not logs-only, though: a read-only administrator can also view users, groups, applications, reports, policies and org settings, so the token can read all of that through the Okta API. Store and share it with that in mind.
+  - or a **Super Administrator**, if your org has no read-only admin. This works but grants the token far more than it needs, including write access to the whole org.
+  - Other roles are not recommended. Help Desk, Group and Application Administrators can change users, groups or applications, which the connector never needs. A token whose administrator cannot view the System Log authenticates but answers `403`. Okta's [Administrators](https://help.okta.com/okta_help.htm?id=ext_Security_Administrators) page lists which roles can view the System Log.
 - Prefer a **dedicated service account** for the token: an Okta API token is **deprovisioned when the administrator who created it is deactivated or loses the role**, and it **expires after 30 days without use** (the connector's polling keeps it in use as long as the connection is enabled).
-- If your org restricts API tokens to a **network zone** (the *API calls made with this token must originate from* setting), that zone must allow the addresses OneUptime calls from. For OneUptime Cloud this is the public egress of the OneUptime API and worker processes; for a self-hosted deployment it is the public address of the hosts running the `app` and `worker` containers.
+- If your org restricts API tokens to a **network zone** (the _API calls made with this token must originate from_ setting), that zone must allow the addresses OneUptime calls from. For OneUptime Cloud this is the public egress of the OneUptime API and worker processes; for a self-hosted deployment it is the public address of the hosts running the `app` and `worker` containers.
 - Network reachability from the OneUptime API and worker processes to your org URL over HTTPS. Okta is a public SaaS, so OneUptime Cloud reaches it directly; a self-hosted OneUptime behind an egress proxy must allow `https://<your org>` (for example `*.okta.com`, `*.oktapreview.com` or `*.okta-emea.com`, or your custom domain).
 
 ## Create an API token
@@ -27,7 +27,7 @@ Following [Okta's instructions](https://developer.okta.com/docs/guides/create-an
 2. Open **Security → API** and select the **Tokens** tab.
 3. Select **Create token**.
 4. Enter a name that identifies the integration, for example `OneUptime security events`.
-5. Under *API calls made with this token must originate from*, keep **Any IP** unless your org requires a zone; if you pick a zone, make sure it includes OneUptime's egress addresses (see Prerequisites).
+5. Under _API calls made with this token must originate from_, keep **Any IP** unless your org requires a zone; if you pick a zone, make sure it includes OneUptime's egress addresses (see Prerequisites).
 6. Select **Create token** and copy the **Token Value**. Okta shows it only once; if you close the dialog without copying, revoke that token and create a new one.
 
 Paste the token value on its own. The connector adds the `SSWS` scheme to the `Authorization` header itself, so a value pasted as `SSWS 00abc...` is rejected before anything is contacted.
@@ -38,12 +38,12 @@ Each token is capped at a **percentage of the org's API rate limit**, editable f
 
 In OneUptime, open **Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), select **Add connection**, and choose **Okta System Log**.
 
-| Field | Required | What to enter |
-| --- | --- | --- |
-| **Okta organization URL** | Yes | The URL your users sign in to, without a path, for example `https://acme.okta.com`, `https://acme.oktapreview.com` or `https://login.example.com` for a custom domain. It must be `https`, with no path, query string or fragment. Do not use the Admin Console's `-admin` URL (`https://acme-admin.okta.com`): the API is not served there. |
-| **Event filter** | No | An optional Okta System Log [filter expression](https://developer.okta.com/docs/reference/core-okta-api/#filter) that selects which events to import. Leave it empty to import the connector's default event families (listed below). Operators are `eq`, `ne`, `co`, `sw`, `ew`, `pr`, `gt`, `ge`, `lt` and `le`, joined with `and` / `or`, with string values in double quotes, on one line, at most 2000 characters. Example: `eventType sw "user.session" or eventType sw "security"`. Do not filter on `published`; the connector sets the time range itself. |
-| **API token** | Yes | The token value from the previous section, without the `SSWS` prefix and without spaces. It is write-only: encrypted at rest, never returned by the API, and never shown back to you on the page. To rotate it later, use the connection's **Update credentials** action. |
-| **Poll interval (minutes)** | Yes | A whole number from `1` to `1440`, default `5`. |
+| Field                       | Required | What to enter                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Okta organization URL**   | Yes      | The URL your users sign in to, without a path, for example `https://acme.okta.com`, `https://acme.oktapreview.com` or `https://login.example.com` for a custom domain. It must be `https`, with no path, query string or fragment. Do not use the Admin Console's `-admin` URL (`https://acme-admin.okta.com`): the API is not served there.                                                                                                                                                                                                                       |
+| **Event filter**            | No       | An optional Okta System Log [filter expression](https://developer.okta.com/docs/reference/core-okta-api/#filter) that selects which events to import. Leave it empty to import the connector's default event families (listed below). Operators are `eq`, `ne`, `co`, `sw`, `ew`, `pr`, `gt`, `ge`, `lt` and `le`, joined with `and` / `or`, with string values in double quotes, on one line, at most 2000 characters. Example: `eventType sw "user.session" or eventType sw "security"`. Do not filter on `published`; the connector sets the time range itself. |
+| **API token**               | Yes      | The token value from the previous section, without the `SSWS` prefix and without spaces. It is write-only: encrypted at rest, never returned by the API, and never shown back to you on the page. To rotate it later, use the connection's **Update credentials** action.                                                                                                                                                                                                                                                                                          |
+| **Poll interval (minutes)** | Yes      | A whole number from `1` to `1440`, default `5`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 Use **Test these settings** on the credentials step before saving; it runs the checklist below against the unsaved settings without storing anything.
 
@@ -51,18 +51,18 @@ Use **Test these settings** on the credentials step before saving; it runs the c
 
 When the **Event filter** is empty, the connector sends its own filter that selects the event families a security team watches, by `eventType` prefix:
 
-| Prefix | Events |
-| --- | --- |
-| `user.session` | Sign-ins, sign-outs, Admin Console access, impersonation |
-| `user.authentication` | Authentication outcomes, including MFA-backed sign-ins and SSO |
-| `user.mfa` | Factor enrollment, verification, resets and push challenges |
-| `user.account` | Password changes and resets, lockouts, profile updates, privilege grants |
-| `user.lifecycle` | Create, activate, suspend, deactivate, delete |
-| `security.` | Okta ThreatInsight, suspicious activity reports, session hijacking and other detections |
-| `policy.` | Sign-on and authentication policy evaluations, policy and rule changes |
-| `system.api_token` | API token creation and revocation |
-| `application.user_membership` | Application assignments |
-| `group.user_membership` | Group membership changes |
+| Prefix                        | Events                                                                                  |
+| ----------------------------- | --------------------------------------------------------------------------------------- |
+| `user.session`                | Sign-ins, sign-outs, Admin Console access, impersonation                                |
+| `user.authentication`         | Authentication outcomes, including MFA-backed sign-ins and SSO                          |
+| `user.mfa`                    | Factor enrollment, verification, resets and push challenges                             |
+| `user.account`                | Password changes and resets, lockouts, profile updates, privilege grants                |
+| `user.lifecycle`              | Create, activate, suspend, deactivate, delete                                           |
+| `security.`                   | Okta ThreatInsight, suspicious activity reports, session hijacking and other detections |
+| `policy.`                     | Sign-on and authentication policy evaluations, policy and rule changes                  |
+| `system.api_token`            | API token creation and revocation                                                       |
+| `application.user_membership` | Application assignments                                                                 |
+| `group.user_membership`       | Group membership changes                                                                |
 
 Everything else in the System Log — application lifecycle, profile mapping, import and rate-limit chatter — is left out unless your own **Event filter** asks for it. A custom filter replaces the default entirely; it is not combined with it.
 
@@ -70,34 +70,34 @@ Everything else in the System Log — application lifecycle, profile mapping, im
 
 Each System Log event becomes one OCSF event with vendor `Okta` and product `Okta System Log`. The OCSF class is chosen from the event's `eventType`, the attribute Okta itself uses to categorize events:
 
-| `eventType` | OCSF class | Activity |
-| --- | --- | --- |
-| `user.session.start` | **Authentication** (`3002`) | Logon |
-| `user.session.end` | Authentication (`3002`) | Logoff |
-| `user.authentication.*` | Authentication (`3002`) | Logon |
-| `user.mfa.*` | Authentication (`3002`) | Authentication Ticket |
-| other `user.session.*` (Admin Console access, impersonation) | Authentication (`3002`) | Other |
-| `user.account.*`, `user.lifecycle.*` | **Account Change** (`3001`) | The last segment of the event type, for example *Update Password*, *Deactivate* |
-| `group.*` | Group Management (`3006`) | The last segment, for example *Add*, *Remove* |
-| `security.*` | **Detection Finding** (`2004`) | Create; the event type is stored as the rule name |
-| `policy.evaluate_sign_on` with outcome `DENY` | Detection Finding (`2004`) | Create; `policy.evaluate_sign_on` is stored as the rule name |
-| everything else (`policy.*` that allowed, `system.*`, `application.*`, ...) | Base Event (`0`) with a class name derived from the event type, for example *System Api Token Create* | The last segment |
+| `eventType`                                                                 | OCSF class                                                                                            | Activity                                                                        |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `user.session.start`                                                        | **Authentication** (`3002`)                                                                           | Logon                                                                           |
+| `user.session.end`                                                          | Authentication (`3002`)                                                                               | Logoff                                                                          |
+| `user.authentication.*`                                                     | Authentication (`3002`)                                                                               | Logon                                                                           |
+| `user.mfa.*`                                                                | Authentication (`3002`)                                                                               | Authentication Ticket                                                           |
+| other `user.session.*` (Admin Console access, impersonation)                | Authentication (`3002`)                                                                               | Other                                                                           |
+| `user.account.*`, `user.lifecycle.*`                                        | **Account Change** (`3001`)                                                                           | The last segment of the event type, for example _Update Password_, _Deactivate_ |
+| `group.*`                                                                   | Group Management (`3006`)                                                                             | The last segment, for example _Add_, _Remove_                                   |
+| `security.*`                                                                | **Detection Finding** (`2004`)                                                                        | Create; the event type is stored as the rule name                               |
+| `policy.evaluate_sign_on` with outcome `DENY`                               | Detection Finding (`2004`)                                                                            | Create; `policy.evaluate_sign_on` is stored as the rule name                    |
+| everything else (`policy.*` that allowed, `system.*`, `application.*`, ...) | Base Event (`0`) with a class name derived from the event type, for example _System Api Token Create_ | The last segment                                                                |
 
 Only detections and denials are findings: an allowed sign-on policy evaluation happens on every sign-in and is imported as a plain event, not as a Detection Finding. Nothing is dropped for not mapping — an unmapped event keeps class `0` and stays searchable through every one of its fields.
 
-| OneUptime column | System Log field |
-| --- | --- |
-| Event id (dedupe key) | `uuid`; a hash of the event when it is missing |
-| Time | `published` — the moment Okta wrote the event, which for the System Log is the event itself |
-| Message | `displayMessage`, else `eventType: outcome.reason`, else the event type |
-| Severity | `severity`: `DEBUG` and `INFO` → Informational, `WARN` → Medium, `ERROR` → High. A **failed** or **denied** authentication at `INFO` is raised to Low, so failed sign-ins are distinguishable from successful ones at the severity column. |
-| Status | `outcome.result`: `SUCCESS`, `FAILURE`, `SKIPPED`, `ALLOW` (Allowed), `DENY` (Denied), `CHALLENGE`, `RATE_LIMIT` (Rate Limited), ... |
-| Rule name | The event type, for Detection Finding events only |
-| Principal user / IP | `actor.alternateId` (else `actor.displayName`); `client.ipAddress` |
-| Target user | The `target[]` entry of type `User`: its `alternateId`, or its `displayName` when Okta stamped the `unknown` placeholder |
-| Resource | The `target[]` entry of type `AppInstance`: its `alternateId` |
-| Observables | The actor, every target's `alternateId` (placeholders excluded) and the client IP |
-| Attributes | Every field of the event, flattened to dotted keys: `actor.id`, `client.userAgent.browser`, `client.geographicalContext.city`, `authenticationContext.credentialType`, `debugContext.debugData.requestUri`, `securityContext.asNumber`, `request.ipChain.0.ip`, `target.0.type`, ... |
+| OneUptime column      | System Log field                                                                                                                                                                                                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Event id (dedupe key) | `uuid`; a hash of the event when it is missing                                                                                                                                                                                                                                       |
+| Time                  | `published` — the event's timestamp in the System Log; a System Log event _is_ the activity, so this is also when it happened                                                                                                                                                        |
+| Message               | `displayMessage`, else `eventType: outcome.reason`, else the event type                                                                                                                                                                                                              |
+| Severity              | `severity`: `DEBUG` and `INFO` → Informational, `WARN` → Medium, `ERROR` → High. A **failed** or **denied** authentication at `INFO` is raised to Low, so failed sign-ins are distinguishable from successful ones at the severity column.                                           |
+| Status                | `outcome.result`: `SUCCESS`, `FAILURE`, `SKIPPED`, `ALLOW` (Allowed), `DENY` (Denied), `CHALLENGE`, `RATE_LIMIT` (Rate Limited), ...                                                                                                                                                 |
+| Rule name             | The event type, for Detection Finding events only                                                                                                                                                                                                                                    |
+| Principal user / IP   | `actor.alternateId` (else `actor.displayName`); `client.ipAddress`                                                                                                                                                                                                                   |
+| Target user           | The `target[]` entry of type `User`: its `alternateId`, or its `displayName` when Okta stamped the `unknown` placeholder                                                                                                                                                             |
+| Resource              | The `target[]` entry of type `AppInstance`: its `alternateId`                                                                                                                                                                                                                        |
+| Observables           | The actor, every target's `alternateId` (placeholders excluded) and the client IP                                                                                                                                                                                                    |
+| Attributes            | Every field of the event, flattened to dotted keys: `actor.id`, `client.userAgent.browser`, `client.geographicalContext.city`, `authenticationContext.credentialType`, `debugContext.debugData.requestUri`, `securityContext.asNumber`, `request.ipChain.0.ip`, `target.0.type`, ... |
 
 MITRE ATT&CK columns stay empty: the System Log does not carry ATT&CK references.
 
@@ -105,11 +105,15 @@ MITRE ATT&CK columns stay empty: the System Log does not carry ATT&CK references
 
 The connector ticks once a minute and polls every enabled connection that is due on its own interval. Each poll requests `GET <Okta organization URL>/api/v1/logs?since=<start>&until=<end>&sortOrder=ASCENDING&limit=1000&filter=<filter>` and follows the `Link: <...>; rel="next"` response header page by page, exactly as Okta returns it, until the last page (which carries no next link) or an empty page.
 
-- **Time basis is `published`**, the time Okta wrote the event to the System Log. Unlike a SIEM detection, a System Log event *is* the activity, so `published` is both the poll window's basis and the event's time. Both `since` and `until` are always set — Okta's *bounded request* form, which orders results by `published` and has a finite number of pages — so a forward-moving cursor is safe.
-- **The first poll looks back 24 hours**, so a new connection imports the last day of events immediately.
-- Every later poll resumes from the connection's stored cursor with a **1 minute overlap**, so an event on a window boundary is never missed. Each scheduled poll covers at most 24 hours; a connection with an older cursor catches up in consecutive windows.
-- **Duplicates are dropped by `uuid`.** Events already stored in the project with the same `uuid` are skipped, so the overlap and the catch-up never import an event twice. Within one poll, an event Okta re-sends on a later page is also collapsed.
-- **Bounds.** A poll makes at most 20 requests of up to 1,000 events each and collects at most 10,000 events. When a window holds more, the run is recorded as **Partial** with the warning `Stopped after collecting 10000 events; the window holds more` (or `Stopped after 20 requests with events still unread`), the cursor is held, and the next poll re-reads the same window. Narrow the **Event filter** or shorten the poll interval if a busy org stays partial.
+- **Time basis is `published`.** Unlike a SIEM detection, a System Log event _is_ the activity, so `published` is both the poll window's basis and the event's time. Both `since` and `until` are always set: this is Okta's _bounded request_ form, which returns events in `published` order and has a finite number of pages, so every window has a definite end.
+- **Delayed events and the 15 minute overlap.** Okta's [System Log query guide](https://developer.okta.com/docs/reference/system-log-query/) warns that a bounded request may not return every event in its range, because some events are delayed (Okta calls this rare but possible). An event that becomes readable after a poll has already covered its `published` time would fall behind a cursor that only moves forward. So every poll after the first starts **15 minutes before the stored cursor**: an event that becomes readable up to 15 minutes after its `published` time is still imported by the next poll, and the events re-read inside the overlap are dropped as duplicates. An event delayed by more than 15 minutes can be missed by scheduled polling; **Import history** over its time range recovers it.
+- **The first poll looks back 24 hours**, so a new connection imports the last day of events immediately. Each scheduled poll covers at most 24 hours; a connection with an older cursor catches up in consecutive windows.
+- **Duplicates are dropped by `uuid`.** Events already stored in the project with the same `uuid` are skipped, so the overlap, a resumed window and the catch-up never import an event twice. Within one poll, an event Okta re-sends on a later page is also collapsed.
+- **Bounds.** A poll makes at most 20 requests of up to 1,000 events each and collects at most 10,000 events. When a window holds more, the run is recorded as **Partial** with the warning `Stopped after collecting 10000 events; the window holds more` (or `Stopped after 20 requests with events still unread in the window ...`), followed by `The last event read was published at <time>`. What the next poll does depends on how far the run got:
+  - **It read past the stored cursor.** Bounded requests return events in `published` order, so every event before that time has been read. The cursor moves to it, and the next poll starts exactly there, without the 15 minute overlap, and reads the same length of time past it. A backlog is worked through over consecutive polls instead of being re-read; the overlap returns once the cursor has moved 15 minutes past the resume point.
+  - **It did not read past the stored cursor**, for example because the overlap alone held more than one poll can read. The cursor stays where it was, and the next poll reads half as far past it, down to one minute. The run's warning says `This window holds more records than one poll can read; the next poll reads a <n> minute window from the same starting point.` Each poll that then reads its whole window doubles the length again, back up to 24 hours.
+  - **Even a one-minute window is too much.** Polling moves past that minute so newer events keep arriving, later polls' overlap no longer reaches back into it, and the run records this warning, also stored as the connection's **Last Error**: `More records were created in the one minute from <start> to <end> than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Run **Import history** on that minute, or narrow the **Event filter**.
+  - A poll that **fails** with an HTTP error keeps both the cursor and the window length, and the next poll retries the same window. A poll whose request **timed out** keeps the cursor but halves the next window, since a window too heavy to answer in time would otherwise time out on every retry.
 - **Retention.** Okta keeps System Log events for 90 days and rejects a `since` older than 180 days with `400`. **Import history** can reach back as far as Okta still holds events.
 
 Use **Preview** and **Import history** in the connection's **Diagnostics** to read or import a chosen range without moving the live cursor.
@@ -118,11 +122,11 @@ Use **Preview** and **Import history** in the connection's **Diagnostics** to re
 
 **Test connection** (on the connections table, or **Test these settings** in the form) runs synchronously in the API process — no worker is involved — and returns a checklist. The Okta-side checks are:
 
-| Check | What it does | Passes when |
-| --- | --- | --- |
-| **Authenticate with Okta** | `GET /api/v1/logs?limit=1` with the `SSWS` token — one event, no bounds, no filter | Okta answers `200` with a JSON array. The message names the org host the token was accepted by. |
-| **Read System Log events** | A one-event read over the last 24 hours through the filter polling will use (yours, or the default) | Okta runs the filtered request. The message names the filter in use and the `eventType` of the event returned, or says that nothing matched in the last 24 hours. An invalid **Event filter** fails here with `400` and its own remediation, instead of on the first poll. |
-| **Events available to import** | One page of up to 1,000 events over the last 24 hours and over the last 7 days | At least one event exists. Counts are bounded to one page: `1000+` means Okta offered a next page. Zero events in 7 days is a **warning**: with the default filter an active org publishes sign-ins constantly, so an empty week usually means the org URL points at a sandbox or an unused org; with a custom filter it means the expression matched nothing. |
+| Check                          | What it does                                                                                        | Passes when                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------------------ | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Authenticate with Okta**     | `GET /api/v1/logs?limit=1` with the `SSWS` token — one event, no bounds, no filter                  | Okta answers `200` with a JSON array. The message names the org host the token was accepted by.                                                                                                                                                                                                                                                                |
+| **Read System Log events**     | A one-event read over the last 24 hours through the filter polling will use (yours, or the default) | Okta runs the filtered request. The message names the filter in use and the `eventType` of the event returned, or says that nothing matched in the last 24 hours. An invalid **Event filter** fails here with `400` and its own remediation, instead of on the first poll.                                                                                     |
+| **Events available to import** | One page of up to 1,000 events over the last 24 hours and over the last 7 days                      | At least one event exists. Counts are bounded to one page: `1000+` means Okta offered a next page. Zero events in 7 days is a **warning**: with the default filter an active org publishes sign-ins constantly, so an empty week usually means the org URL points at a sandbox or an unused org; with a custom filter it means the expression matched nothing. |
 
 Each later check is skipped, not failed, when an earlier one fails, so the report names one root cause. The report also includes OneUptime's own checks — worker consumers on the Worker queue, the poll scheduler, the connection's schedule and the event store — so "credentials accepted but nothing ingests" points at the actual cause. A failed check shows a remediation; the sections below explain the messages.
 
@@ -143,7 +147,7 @@ Every error the connector records — in a run, in a failed check, or in the con
 - `Okta System Log events request did not complete` — the request never got an answer: a timeout, DNS failure, a certificate OneUptime does not trust, or the egress guard refusing the address. Check that the OneUptime API and worker processes can open a TLS connection to the org URL; on a self-hosted deployment check the egress proxy allows your Okta cell.
 - **Last Polled is `Never` and Last Error is empty** — the background worker has not executed the poll job at all, so nothing has ever reached Okta. On self-hosted deployments the usual cause is `DISABLE_QUEUE_WORKERS=true` on the app container with no separate worker deployment draining the queues. Either set `DISABLE_QUEUE_WORKERS=false` (the `config.example.env` default that Docker Compose ships with), or run the dedicated worker deployment (Helm: `worker.enabled: true`, which is `false` by default). **Test connection** reports this as a failed worker or scheduler check.
 - **Test connection passes but nothing appears** — open **Events available to import** in the report. Zero events in the last 7 days means the filter matched nothing on Okta's side: with the default filter, check the org URL points at the org your users actually sign in to; with a custom **Event filter**, compare it with the `eventType` values in the Admin Console's System Log. Events older than 24 hours at the time the connection was created are not imported by scheduled polling; use **Import history**.
-- **Health is Partial** — the last poll hit the 10,000 event or 20 request bound and held its cursor; read the run's warnings in **Diagnostics**. A connection that is Partial on every poll needs a narrower **Event filter** or a shorter poll interval.
+- **Health is Partial** — the last poll hit the 10,000 event or 20 request bound; read the run's warnings in **Diagnostics**. A warning that names `The last event read was published at <time>` means polling is working through a backlog from that point and needs no action. A warning that the next poll reads a shorter window means the window is being narrowed until one poll can read it. If **Last Error** says polling moved past a minute, events from that minute were left behind: run **Import history** on it. A connection that is Partial on every poll has more matching events than its polls can read: narrow the **Event filter**, or shorten the **Poll interval (minutes)** so more bounded polls run per hour (see **Bounds** under _How polling works_).
 
 ## What you get
 

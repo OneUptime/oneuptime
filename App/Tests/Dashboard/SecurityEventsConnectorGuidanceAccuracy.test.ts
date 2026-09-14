@@ -1407,3 +1407,81 @@ describe('"Never" really means the poll was never attempted', () => {
     );
   });
 });
+
+/*
+ * Review findings alerts-view-budget-pins-cursor-forever and
+ * partial-poll-permanent-stall-docs-remediation-false. A window holding
+ * more detections than one poll can read used to pin the cursor forever,
+ * and the guidance told the reader to narrow the time range or shorten the
+ * poll interval, neither of which a scheduled poll can act on. Polling now
+ * narrows its window from the same starting point and, for a single minute
+ * that still cannot be read, moves past it and names it in Last Error. Both
+ * texts must quote those warnings as the poller words them (the FIXES
+ * contract's exact text) and must not bring back the old advice or the
+ * scope control the form no longer shows.
+ */
+const NARROWING_WARNING_FRAGMENTS: Array<string> = [
+  "This window holds more records than one poll can read; the next poll reads a ",
+  " minute window from the same starting point.",
+];
+const FORCED_ADVANCE_WARNING_FRAGMENTS: Array<string> = [
+  "More records were created in the one minute from ",
+  " than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.",
+];
+/* Imperative interval advice ("Shorten the poll interval"), not a denial of it. */
+const SHORTEN_INTERVAL_ADVICE_PATTERN: RegExp =
+  /\bshorten the (?:\*\*)?poll interval|shorter poll interval/i;
+const SWITCH_SCOPE_PATTERN: RegExp = /switch the scope/i;
+const OLD_SCOPE_OPTION_PATTERN: RegExp = /\*\*Alerts and detections\*\*/;
+
+describe("Partial-poll guidance matches what polling does", () => {
+  /*
+   * The quoted warnings are only true while the poller emits them, so the
+   * same fragments are read off the producing source.
+   */
+  test("the Google SecOps poller emits the warnings the guidance quotes", () => {
+    for (const fragment of NARROWING_WARNING_FRAGMENTS.concat(
+      FORCED_ADVANCE_WARNING_FRAGMENTS,
+    )) {
+      expect({ fragment, emitted: pollerSource.includes(fragment) }).toEqual({
+        fragment,
+        emitted: true,
+      });
+    }
+  });
+
+  const partialGuidanceTexts: Array<{ name: string; text: string }> = [
+    { name: "the integration doc", text: docsSource },
+    { name: "the in-product help", text: pageGuidance },
+  ];
+
+  for (const guidance of partialGuidanceTexts) {
+    test(`${guidance.name} quotes the narrowing and forced-advance warnings`, () => {
+      for (const fragment of NARROWING_WARNING_FRAGMENTS.concat(
+        FORCED_ADVANCE_WARNING_FRAGMENTS,
+      )) {
+        expect({ fragment, quoted: guidance.text.includes(fragment) }).toEqual({
+          fragment,
+          quoted: true,
+        });
+      }
+    });
+
+    test(`${guidance.name} sends a skipped minute to the import control that ships`, () => {
+      expect(guidance.text).toContain("**Import this time range**");
+      expect(guidance.text).toMatch(/local time[^.]*UTC/);
+    });
+
+    test(`${guidance.name} does not bring back advice polling cannot act on`, () => {
+      expect(guidance.text).not.toMatch(SHORTEN_INTERVAL_ADVICE_PATTERN);
+      expect(guidance.text).not.toContain(
+        "The recovery request limit was reached",
+      );
+      expect(guidance.text).not.toMatch(SWITCH_SCOPE_PATTERN);
+      expect(guidance.text).not.toMatch(OLD_SCOPE_OPTION_PATTERN);
+      expect(guidance.text).toContain(
+        "select **Detections** under **Data to import**",
+      );
+    });
+  }
+});

@@ -18,6 +18,7 @@ import {
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
+import SecurityEventConnectionRunDetails from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionRunDetails";
 import SecurityEventConnectionsTable from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionsTable";
 import {
   CONNECTOR_HEALTH_NO_EVENTS_YET,
@@ -34,6 +35,8 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import GoogleSecOpsConnection from "../../../Models/DatabaseModels/GoogleSecOpsConnection";
 import Project from "../../../Models/DatabaseModels/Project";
 import SecurityEventConnection from "../../../Models/DatabaseModels/SecurityEventConnection";
+import SecurityEventConnectionRun from "../../../Models/DatabaseModels/SecurityEventConnectionRun";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import { JSONObject } from "../../../Types/JSON";
@@ -211,7 +214,7 @@ function row(name: string = "Acme Okta"): HTMLElement {
 }
 
 function postCall(index: number = 0): JSONObject {
-  return jest.mocked(API.post).mock.calls[index]?.[0] as JSONObject;
+  return jest.mocked(API.post).mock.calls[index]?.[0] as unknown as JSONObject;
 }
 
 describe("SecurityEventConnectionsTable", () => {
@@ -489,6 +492,52 @@ describe("SecurityEventConnectionsTable", () => {
     expect(API.post).not.toHaveBeenCalled();
   });
 
+  /*
+   * stale-report-after-failed-rerun: Diagnostics kept the previous
+   * checklist when a later Test connection request failed.
+   */
+  test("Diagnostics Test connection clears the previous checklist when a re-run fails", async (): Promise<void> => {
+    renderTable([connection()]);
+
+    fireEvent.click(within(row()).getByRole("button", { name: "Diagnostics" }));
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      name: "Connection diagnostics: Acme Okta",
+    });
+    const checks: HTMLElement = within(dialog).getByRole("region", {
+      name: "On-demand checks",
+    });
+
+    fireEvent.click(
+      within(checks).getByRole("button", { name: "Test connection" }),
+    );
+    expect(
+      await within(checks).findByText("Passed with warnings"),
+    ).toBeVisible();
+
+    jest
+      .mocked(API.post)
+      .mockResolvedValue(
+        new HTTPErrorResponse(
+          502,
+          { message: "The API could not reach Okta." },
+          {},
+        ),
+      );
+    fireEvent.click(
+      within(checks).getByRole("button", { name: "Test connection" }),
+    );
+
+    expect(
+      await within(checks).findByText("The API could not reach Okta."),
+    ).toBeVisible();
+    expect(
+      within(checks).queryByText("Passed with warnings"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(checks).queryByRole("region", { name: "Connection test report" }),
+    ).not.toBeInTheDocument();
+  });
+
   test("Edit and Update credentials open the form modal in the matching mode", async (): Promise<void> => {
     renderTable([connection()]);
 
@@ -516,6 +565,156 @@ describe("SecurityEventConnectionsTable", () => {
     );
     expect(
       within(credentials).queryByLabelText(/^Okta organization URL/),
+    ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * A window that cannot be read in one poll no longer pins polling (review
+ * findings bound-hit-window-never-advances and
+ * alerts-view-budget-pins-cursor-forever). The poller records what it did
+ * in chunkMinutes, nextChunkMinutes and forcedAdvance; run details must say
+ * it plainly, and a forced advance must name the range to import.
+ */
+describe("run details for a window one poll could not read", () => {
+  function run(
+    overrides: Partial<SecurityEventConnectionRunResult>,
+    type: SecurityEventConnectionRun["type"] = "poll",
+  ): SecurityEventConnectionRun {
+    const value: SecurityEventConnectionRun = new SecurityEventConnectionRun();
+    value._id = "77777777-7777-4777-8777-777777777777";
+    value.securityEventConnectionId = new ObjectID(CONNECTION_ID);
+    value.type = type;
+    value.status = overrides.status || "partial";
+    value.startedAt = new Date("2026-09-10T12:00:00Z");
+    value.completedAt = new Date("2026-09-10T12:00:05Z");
+    value.result = pollResult({
+      type: type || "poll",
+      provider: SecurityEventConnectorProvider.AwsSecurityHub,
+      status: "partial",
+      complete: false,
+      windowStart: "2026-09-10T11:29:00Z",
+      windowEnd: "2026-09-10T12:00:00Z",
+      ...overrides,
+    }) as unknown as JSONObject;
+    return value;
+  }
+
+  function renderRun(value: SecurityEventConnectionRun): HTMLElement {
+    render(
+      <MemoryRouter>
+        <SecurityEventConnectionRunDetails run={value} />
+      </MemoryRouter>,
+    );
+    return screen.getByRole("region", { name: "Run details" });
+  }
+
+  afterEach((): void => {
+    cleanup();
+  });
+
+  test("a forced advance is an alert naming the minute to import", (): void => {
+    const details: HTMLElement = renderRun(
+      run({
+        chunkMinutes: 1,
+        nextChunkMinutes: 1,
+        forcedAdvance: true,
+        warnings: [
+          "More records were created in the one minute from 2026-09-10T11:59:00.000Z to 2026-09-10T12:00:00.000Z than one poll can read.",
+        ],
+      }),
+    );
+
+    const alert: HTMLElement = within(details)
+      .getAllByRole("alert")
+      .find((element: HTMLElement): boolean => {
+        return /Polling moved past one minute/.test(element.textContent || "");
+      }) as HTMLElement;
+    expect(alert).toBeVisible();
+    expect(alert).toHaveTextContent(
+      "More findings were created in one minute than one poll can read.",
+    );
+    expect(alert).toHaveTextContent(
+      "use Import this time range under Find historical findings for 2026-09-10 11:59:00 UTC → 2026-09-10 12:00:00 UTC",
+    );
+    expect(details).toHaveTextContent("Window read by this poll1 minute");
+    // The specific notice replaces the generic "did not finish" line.
+    expect(details).not.toHaveTextContent("did not finish processing");
+    // The poller's own warning is still listed verbatim.
+    expect(details).toHaveTextContent(
+      "More records were created in the one minute from",
+    );
+  });
+
+  test("a narrowed window says the next poll reads a shorter window from the same start", (): void => {
+    const details: HTMLElement = renderRun(
+      run({ chunkMinutes: 1440, nextChunkMinutes: 720 }),
+    );
+
+    expect(details).toHaveTextContent("Window read by this poll24 hours");
+    expect(details).toHaveTextContent(
+      "Next scheduled poll readsUp to 12 hours",
+    );
+    expect(details).toHaveTextContent(
+      "The next scheduled poll reads a window of 12 hours from the same starting point",
+    );
+    expect(details).not.toHaveTextContent("Polling moved past one minute");
+    expect(details).not.toHaveTextContent("moved the cursor to the last");
+  });
+
+  test("a resumed window says the cursor moved to the last record read", (): void => {
+    const details: HTMLElement = renderRun(
+      run({ chunkMinutes: 60, nextChunkMinutes: 60 }),
+    );
+
+    expect(details).toHaveTextContent("1 hour, the same length");
+    expect(details).toHaveTextContent(
+      "moved the cursor to the last finding it read. The next scheduled poll continues from there with a window of 1 hour.",
+    );
+    expect(details).not.toHaveTextContent("from the same starting point");
+  });
+
+  test("a complete poll widens the next window without any alert", (): void => {
+    const details: HTMLElement = renderRun(
+      run({
+        status: "success",
+        complete: true,
+        chunkMinutes: 30,
+        nextChunkMinutes: 60,
+      }),
+    );
+
+    expect(details).toHaveTextContent("Next scheduled poll readsUp to 1 hour");
+    expect(within(details).queryAllByRole("alert")).toHaveLength(0);
+  });
+
+  test("a failed poll keeps its window and raises no volume notice", (): void => {
+    const details: HTMLElement = renderRun(
+      run({
+        status: "failed",
+        chunkMinutes: 30,
+        nextChunkMinutes: 30,
+        error: "AWS Security Hub request failed (HTTP 503)",
+      }),
+    );
+
+    expect(details).toHaveTextContent(
+      "A failed poll does not change the window",
+    );
+    expect(details).not.toHaveTextContent("moved the cursor to the last");
+    // A failure is not a volume signal: no narrowing notice.
+    expect(details).not.toHaveTextContent("reads a window of");
+    expect(details).not.toHaveTextContent("than one poll can read");
+  });
+
+  test("runs without window fields keep the generic notice, with range advice for imports", (): void => {
+    const details: HTMLElement = renderRun(run({}, "backfill"));
+
+    expect(details).toHaveTextContent(
+      "This run did not finish processing every record in the window. Choose a shorter time range to read the rest",
+    );
+    expect(
+      within(details).queryByTestId("poll-window-progress"),
     ).not.toBeInTheDocument();
   });
 });

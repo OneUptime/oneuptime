@@ -27,6 +27,7 @@ import AwsSecurityHubClient, {
   AWS_SECURITY_HUB_DEFAULT_PAGE_SIZE,
   AwsSecurityHubFindingCount,
   AwsSecurityHubFindingsPage,
+  AwsSecurityHubHttpError,
 } from "./AwsSecurityHubClient";
 
 /*
@@ -36,11 +37,19 @@ import AwsSecurityHubClient, {
  * OCSF Detection Findings, or Compliance Findings for control checks.
  *
  * Polling is by the finding's CreatedAt (see Connectors/Types.ts for why
- * creation time is the only safe cursor basis). A GuardDuty finding is
- * created when GuardDuty has evaluated enough activity to raise it, and a
- * control finding when Security Hub first evaluates the resource — both
- * can be long after FirstObservedAt, so a cursor over observation time
- * would skip them.
+ * creation time is the cursor basis). A GuardDuty finding is created when
+ * GuardDuty has evaluated enough activity to raise it, and a control
+ * finding when Security Hub first evaluates the resource — both can be
+ * long after FirstObservedAt, so a cursor over observation time would
+ * skip them. CreatedAt is still the PROVIDER's timestamp, and delivery to
+ * Security Hub lags it by minutes, so the catalog gives this provider a 30
+ * minute cursor overlap; the dedupe by finding Id drops what the overlap
+ * re-reads.
+ *
+ * GetFindings is sorted by CreatedAt ascending, so when a request or
+ * record bound stops a fetch, every finding created before the last one
+ * read has been read: fetchEvents reports that CreatedAt as resumeAfter
+ * and the poller moves on from there instead of re-reading the window.
  *
  * Security Hub has no notion of "alerting" findings, so the connection's
  * alertingOnly flag is not consulted (the catalog marks the toggle as
@@ -125,6 +134,19 @@ export default class AwsSecurityHubConnector implements SecurityEventConnector {
         "Session token is required for a temporary access key (an Access key ID starting with ASIA).",
       );
     }
+
+    /*
+     * The reverse mistake: a long-lived AKIA... key with a session token
+     * left over from earlier temporary credentials. AWS signs the token in
+     * and rejects every request with "The security token included in the
+     * request is invalid", which reads like a wrong key. Name both fields
+     * so the person editing knows which one to clear.
+     */
+    if (resolved.accessKeyId.startsWith("AKIA") && resolved.sessionToken) {
+      throw new BadDataException(
+        "Session token must be empty for a long-lived access key (an Access key ID starting with AKIA). Remove the stored Session token, or enter the temporary Access key ID (starting with ASIA) that the token was issued with.",
+      );
+    }
   }
 
   private createClient(
@@ -154,9 +176,11 @@ export default class AwsSecurityHubConnector implements SecurityEventConnector {
    * AWS has no separate token step: a single signed GetFindings for one
    * finding over the last day answers both "are the credentials right"
    * and "may this identity read findings", because AWS verifies the
-   * signature before Security Hub evaluates the IAM policy. A signature
-   * rejection fails authentication; an AccessDenied after a verified
-   * signature passes authentication and fails the read permission.
+   * signature before Security Hub evaluates the IAM policy. Only an
+   * AccessDeniedException or InvalidAccessException proves the signature
+   * was verified, so only those pass authentication and fail the read
+   * permission; every other failure, a code-less 403 included, fails
+   * authentication.
    */
   public async testConnection(
     settings: SecurityConnectorSettings,
@@ -240,7 +264,7 @@ export default class AwsSecurityHubConnector implements SecurityEventConnector {
         ConnectorErrorMessage.toMessage(error),
       );
 
-      if (AwsSecurityHubConnector.isPermissionFailure(message)) {
+      if (AwsSecurityHubConnector.isPermissionFailure(error)) {
         checks.push(
           makeCheck({
             key: "authentication",
@@ -257,7 +281,10 @@ export default class AwsSecurityHubConnector implements SecurityEventConnector {
             status: "fail",
             startedAtMs: probeStartedMs,
             message,
-            remediation: AwsSecurityHubConnector.readRemediation(message),
+            remediation: AwsSecurityHubConnector.readRemediation(
+              error,
+              message,
+            ),
           }),
         );
         checks.push(
@@ -277,8 +304,10 @@ export default class AwsSecurityHubConnector implements SecurityEventConnector {
           status: "fail",
           startedAtMs: probeStartedMs,
           message,
-          remediation:
-            AwsSecurityHubConnector.authenticationRemediation(message),
+          remediation: AwsSecurityHubConnector.authenticationRemediation(
+            error,
+            message,
+          ),
         }),
       );
       checks.push(
@@ -357,7 +386,7 @@ export default class AwsSecurityHubConnector implements SecurityEventConnector {
           status: "fail",
           startedAtMs: countStartedMs,
           message,
-          remediation: AwsSecurityHubConnector.readRemediation(message),
+          remediation: AwsSecurityHubConnector.readRemediation(error, message),
         }),
       );
     }
@@ -394,21 +423,24 @@ export default class AwsSecurityHubConnector implements SecurityEventConnector {
   }
 
   /*
-   * A 403 whose body names AccessDeniedException or InvalidAccessException
-   * came from Security Hub's authorization, after AWS verified the
-   * signature. Every signature error is also a 403 (or 400) but carries
-   * its own code, which the client's hint text names.
+   * A failure whose recovered error code is AccessDeniedException or
+   * InvalidAccessException came from Security Hub's authorization, after
+   * AWS verified the signature. The decision reads the code the client
+   * recovered (header, body, or AWS's message wording), never the hint
+   * text: a hint naming securityhub:GetFindings once turned a wrong secret
+   * behind the header-dropping production transport into "the access key
+   * and secret are valid".
    */
-  private static isPermissionFailure(message: string): boolean {
-    if (AwsSecurityHubConnector.statusFromMessage(message) !== 403) {
-      return false;
-    }
-
+  private static isPermissionFailure(error: unknown): boolean {
     return (
-      message.includes("AccessDeniedException") ||
-      message.includes("InvalidAccessException") ||
-      message.includes("securityhub:GetFindings")
+      error instanceof AwsSecurityHubHttpError &&
+      error.failureKind === "authorization"
     );
+  }
+
+  // The AWS error code the client recovered, or "" for other failures.
+  private static errorCodeOf(error: unknown): string {
+    return error instanceof AwsSecurityHubHttpError ? error.errorCode : "";
   }
 
   /*
@@ -431,19 +463,29 @@ export default class AwsSecurityHubConnector implements SecurityEventConnector {
     return "Security Hub could not be reached or did not answer in time. Check outbound HTTPS access (DNS, firewall, proxy) from the OneUptime app and worker processes to securityhub.<region>.amazonaws.com and test again.";
   }
 
-  private static authenticationRemediation(message: string): string {
+  private static authenticationRemediation(
+    error: unknown,
+    message: string,
+  ): string {
     const status: number | null =
       AwsSecurityHubConnector.statusFromMessage(message);
+    const code: string = AwsSecurityHubConnector.errorCodeOf(error);
 
     if (AwsSecurityHubConnector.isConnectivityFailure(message)) {
       return AwsSecurityHubConnector.connectivityRemediation();
     }
 
-    if (message.includes("ExpiredToken")) {
+    if (
+      code === "ExpiredTokenException" ||
+      code === "ExpiredToken" ||
+      message.includes("ExpiredToken")
+    ) {
       return "The temporary credentials have expired. Issue new credentials with STS and use Update credentials on the connection, or switch to a long-lived access key.";
     }
 
     if (
+      code === "RequestExpired" ||
+      code === "RequestTimeTooSkewed" ||
       message.includes("RequestExpired") ||
       message.includes("RequestTimeTooSkewed") ||
       message.includes("Signature expired") ||
@@ -464,22 +506,42 @@ export default class AwsSecurityHubConnector implements SecurityEventConnector {
       return "Security Hub reported a server-side problem. Test again in a few minutes; polling retries on its own.";
     }
 
-    return "Open IAM > Users > the connector user > Security credentials and compare the Access key ID with the connection, then create a new access key and paste its Secret access key. For temporary credentials also paste the Session token, and use the Region where Security Hub is enabled.";
+    /*
+     * A 403 with no recoverable code: the response did not say whether
+     * the signature or the IAM policy refused it, so point at both, the
+     * credentials first because that is what an unnamed rejection usually
+     * is.
+     */
+    if (
+      status === 403 &&
+      !(
+        error instanceof AwsSecurityHubHttpError &&
+        error.failureKind === "authentication"
+      )
+    ) {
+      return "AWS answered 403 without an error code, so the response does not say whether the credentials or the IAM policy refused the request. First compare the Access key ID in IAM > Users > the connector user > Security credentials with the connection and paste a fresh Secret access key (plus the Session token for an ASIA key, none for an AKIA key). If the credentials are right, allow securityhub:GetFindings for that user or role.";
+    }
+
+    return "Open IAM > Users > the connector user > Security credentials and compare the Access key ID with the connection, then create a new access key and paste its Secret access key. For temporary credentials also paste the Session token (leave it empty for a long-lived AKIA key), and use the Region where Security Hub is enabled.";
   }
 
-  private static readRemediation(message: string): string {
+  private static readRemediation(error: unknown, message: string): string {
     const status: number | null =
       AwsSecurityHubConnector.statusFromMessage(message);
+    const code: string = AwsSecurityHubConnector.errorCodeOf(error);
 
     if (AwsSecurityHubConnector.isConnectivityFailure(message)) {
       return AwsSecurityHubConnector.connectivityRemediation();
     }
 
-    if (message.includes("InvalidAccessException")) {
+    if (
+      code === "InvalidAccessException" ||
+      message.includes("InvalidAccessException")
+    ) {
       return "Enable Security Hub in this Region for this account (Security Hub > Get started), or point the connection at the delegated administrator account's home Region where findings are aggregated.";
     }
 
-    if (status === 403) {
+    if (code === "AccessDeniedException" || status === 403) {
       return "Allow securityhub:GetFindings for the IAM identity: attach the AWSSecurityHubReadOnlyAccess managed policy, or an inline policy with Action securityhub:GetFindings on Resource *, to the user or role whose access key the connection uses. To see member accounts' findings, use a key from the Security Hub delegated administrator account in its home (aggregation) Region.";
     }
 
@@ -534,12 +596,19 @@ export default class AwsSecurityHubConnector implements SecurityEventConnector {
     const sampleLimit: number = Math.max(0, Math.floor(options.sampleLimit));
 
     let nextToken: string | null = null;
+    /*
+     * CreatedAt of the last finding read, in the API's ascending order.
+     * Every finding read counts, including ones the normalizer rejects:
+     * the point is how far through the window the read got.
+     */
+    let lastCreatedAt: Date | undefined = undefined;
 
     while (true) {
       if (result.requestCount >= maxRequests) {
         result.complete = false;
+        result.resumeAfter = lastCreatedAt;
         result.warnings.push(
-          `Stopped after ${result.requestCount} findings requests (the per-run request limit). The window is not fully read; the poll cursor is held so the next poll continues from the same window.`,
+          `Stopped after ${result.requestCount} findings requests (the per-run request limit) before the window was fully read. ${AwsSecurityHubConnector.progressSentence(lastCreatedAt)}`,
         );
         break;
       }
@@ -564,6 +633,13 @@ export default class AwsSecurityHubConnector implements SecurityEventConnector {
       for (const raw of findings) {
         result.fetchedCount++;
 
+        const createdAt: Date | undefined =
+          AwsSecurityHubConnector.readCreatedAt(raw);
+
+        if (createdAt) {
+          lastCreatedAt = createdAt;
+        }
+
         if (!AwsSecurityHubNormalizer.isRecognized(raw)) {
           result.rejectedCount++;
           continue;
@@ -587,8 +663,9 @@ export default class AwsSecurityHubConnector implements SecurityEventConnector {
         (page.nextToken && result.fetchedCount >= maxEvents)
       ) {
         result.complete = false;
+        result.resumeAfter = lastCreatedAt;
         result.warnings.push(
-          `Stopped after ${result.fetchedCount} findings (the per-run record limit). The window is not fully read; the poll cursor is held so the next poll continues from the same window.`,
+          `Stopped after ${result.fetchedCount} findings (the per-run record limit) before the window was fully read. ${AwsSecurityHubConnector.progressSentence(lastCreatedAt)}`,
         );
         break;
       }
@@ -601,6 +678,34 @@ export default class AwsSecurityHubConnector implements SecurityEventConnector {
     }
 
     return result;
+  }
+
+  /*
+   * A finding's CreatedAt as a Date, or undefined when it is missing or
+   * unparseable. ASFF allows up to nine fractional digits; Date keeps
+   * milliseconds, which only ever rounds the resume point earlier, so the
+   * next poll re-reads (and dedupes) rather than skips.
+   */
+  private static readCreatedAt(raw: JSONObject): Date | undefined {
+    const value: unknown = raw["CreatedAt"];
+
+    if (typeof value !== "string" || !value.trim()) {
+      return undefined;
+    }
+
+    const parsed: Date = new Date(value.trim());
+
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+  }
+
+  /*
+   * How far a stopped read got, in the warning the run records. The
+   * poller decides what the next poll does with it and says so itself.
+   */
+  private static progressSentence(lastCreatedAt: Date | undefined): string {
+    return lastCreatedAt
+      ? `The last finding read was created at ${lastCreatedAt.toISOString()}.`
+      : "No finding read carried a readable CreatedAt, so no resume point is reported.";
   }
 
   private static toSample(

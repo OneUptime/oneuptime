@@ -19,6 +19,7 @@ import ThreatIntelEnricher, {
   EnrichmentResult,
 } from "../../../../Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelEnricher";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
+import OneUptimeDate from "../../../../Types/Date";
 import GoogleSecOpsAlertNormalizer from "../../../../Utils/SecurityEvent/GoogleSecOpsAlertNormalizer";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -692,6 +693,16 @@ describe("GoogleSecOpsPoller over a real streaming response", () => {
     expect(written["lastError"]).toBeTruthy();
     expect(written["lastSuccessfulPollAt"]).toBeUndefined();
     expect(requests.length).toBeGreaterThan(2);
+    /*
+     * F1: holding the first window is no longer the whole answer. The next
+     * poll keeps the same start and reads half the day, so a window that
+     * never fits cannot pin the connection.
+     */
+    expect(result.chunkMinutes).toBe(24 * 60);
+    expect(result.nextChunkMinutes).toBe(12 * 60);
+    expect(String(written["lastError"])).toContain(
+      "the next poll reads a 720 minute window from the same starting point",
+    );
   });
 });
 
@@ -1046,6 +1057,14 @@ describe("GoogleSecOpsPoller poll window arithmetic", () => {
 
   test("an unreadable cursor polls the default 24 hour window, exactly like a first poll", async () => {
     stubPollPath();
+    /*
+     * One clock for all three polls: the end times below are compared to
+     * the millisecond, and a real clock that ticks between polls made this
+     * comparison depend on how long the poll in between took.
+     */
+    getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(
+      new Date(Date.now()),
+    );
 
     /*
      * Derived rather than pasted: a first poll IS the default window and a
@@ -1062,7 +1081,12 @@ describe("GoogleSecOpsPoller poll window arithmetic", () => {
     const garbage: RecordedWindow = await pollWindow("garbage");
 
     expect(durationInMs(firstPoll)).toBe(DAY_IN_MS);
-    expect(durationInMs(stale)).toBe(DAY_IN_MS);
+    /*
+     * Review finding alerts-view-budget-pins-cursor-forever (F1): a catch-up
+     * chunk is measured from the cursor, so the stale window is a day of new
+     * time plus the one minute overlap in front of the cursor.
+     */
+    expect(durationInMs(stale)).toBe(DAY_IN_MS + MINUTE_IN_MS);
 
     /*
      * An unreadable cursor means "no usable cursor", which is what a first
@@ -1105,7 +1129,9 @@ describe("GoogleSecOpsPoller poll window arithmetic", () => {
     const harness: PollHarness = stubPollPath();
     const cursor: string = new Date(Date.now() - 7 * DAY_IN_MS).toISOString();
     const stale: RecordedWindow = await pollWindow(cursor);
-    expect(durationInMs(stale)).toBe(DAY_IN_MS);
+    // F1: a day past the cursor, plus the overlap minute before it.
+    expect(durationInMs(stale)).toBe(DAY_IN_MS + MINUTE_IN_MS);
+    expect(stale.endTime.getTime()).toBe(Date.parse(cursor) + DAY_IN_MS);
     expect(stale.startTime.getTime()).toBe(Date.parse(cursor) - MINUTE_IN_MS);
     expect(stale.endTime.getTime()).toBeLessThan(Date.now() - 5 * DAY_IN_MS);
     const written: JSONObject = onlyUpdate(harness);
@@ -1262,6 +1288,8 @@ describe("GoogleSecOpsPoller.pollAllDueConnections scheduling", () => {
       "pollIntervalInMinutes",
       "lastPolledAt",
       "cursor",
+      // F1: the previous result carries the next catch-up chunk length.
+      "lastPollResult",
     ]) {
       expect(select[field]).toBe(true);
     }

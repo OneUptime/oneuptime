@@ -60,4 +60,28 @@ export interface SecurityEventConnectionRunResult {
   eventTimeStart?: string | undefined;
   eventTimeEnd?: string | undefined;
   error?: string | undefined;
+  /*
+   * Adaptive catch-up, scheduled polls only. chunkMinutes is the minutes of
+   * creation time this poll read past the saved cursor (from the window
+   * start when there was no usable cursor); the overlap before the cursor is
+   * not counted. nextChunkMinutes is the chunk the next scheduled poll is
+   * given. A poll that could not read its window halves it (or, when the
+   * source reads in ascending creation order, resumes from the last record
+   * read); a complete poll never shrinks it and doubles it back towards the
+   * 24 hour maximum; a failed poll keeps it. forcedAdvance records a one
+   * minute window that still could not be read completely and was skipped
+   * past so polling keeps moving.
+   */
+  chunkMinutes?: number | undefined;
+  nextChunkMinutes?: number | undefined;
+  forcedAdvance?: boolean | undefined;
+  /*
+   * ISO time no scheduled window may start before. Set to the window end of
+   * a forced advance and carried forward while cursor minus the provider's
+   * overlap is still earlier than it: without it, a 15 or 30 minute overlap
+   * drags every following window back over the minute that overflowed,
+   * each of those polls overflows on the same records, and polling skips
+   * one more minute per poll for the whole overlap.
+   */
+  overlapFloor?: string | undefined;
 }

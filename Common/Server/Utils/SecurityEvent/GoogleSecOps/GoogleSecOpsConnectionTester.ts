@@ -42,8 +42,14 @@ const WEEK_IN_MS: number = 7 * DAY_IN_MS;
 const AVAILABILITY_PAGE_SIZE: number = 1000;
 // Same rule as the poller: these statuses mean "no curated rule access", not "broken".
 const CURATED_OPTIONAL_STATUSES: Array<number> = [400, 403, 404];
+/*
+ * Names the form control as it ships: a "Data to import" group where Alerts
+ * is fixed and a Detections checkbox widens the import. The earlier
+ * "switch the scope to Alerts and detections" named a control that no
+ * longer exists.
+ */
 const SCOPE_MISMATCH_REMEDIATION: string =
-  "Your rules create detections but alerting is not enabled on them; switch the scope to Alerts and detections or enable alerting in Google SecOps.";
+  "Your rules create detections but alerting is not enabled on them. Edit the connection and select Detections under Data to import, or enable alerting on the rules in Google SecOps.";
 const NO_DETECTIONS_MESSAGE: string =
   "No detections were created in the last 7 days. Polling will import new detections as Google creates them.";
 
@@ -80,11 +86,12 @@ interface ReadProbeOutcome {
  * queue" instead of spinning in "queued".
  *
  * The provider checks mirror the poller's three read passes, then count
- * what is available to import under BOTH scopes, because "connected but
- * nothing ingests" is very often "the rules create detections, none of
- * them alert, and the scope is Alerts only". Platform and schedule checks
- * are shared with every other connector. The tester never writes to
- * ClickHouse and never moves the cursor.
+ * what is available to import with AND without Detections selected under
+ * Data to import, because "connected but nothing ingests" is very often
+ * "the rules create detections, none of them alert, and only Alerts are
+ * imported". Platform and schedule checks are shared with every other
+ * connector. The tester never writes to ClickHouse and never moves the
+ * cursor.
  */
 export default class GoogleSecOpsConnectionTester {
   public static async test(data: {
@@ -92,6 +99,13 @@ export default class GoogleSecOpsConnectionTester {
     clientOverride?: GoogleSecOpsClient | undefined;
     platformOverride?: ConnectorPlatformStatus | undefined;
     now?: Date | undefined;
+    /*
+     * False when the connection carries unsaved edits (the API overlays
+     * the edit form's values onto the stored row): a run-history row would
+     * then describe settings the connection does not have. A connection
+     * without an id is never recorded, whatever this says.
+     */
+    recordRun?: boolean | undefined;
   }): Promise<SecurityConnectorTestReport> {
     const startedMs: number = Date.now();
     const now: Date = data.now || OneUptimeDate.getCurrentDate();
@@ -223,7 +237,7 @@ export default class GoogleSecOpsConnectionTester {
       ...(samples.length > 0 ? { samples } : {}),
     };
 
-    if (connection.id && connection.projectId) {
+    if (connection.id && connection.projectId && data.recordRun !== false) {
       await this.recordRun(connection, report);
     }
 
@@ -440,10 +454,10 @@ export default class GoogleSecOpsConnectionTester {
   }
 
   /*
-   * Counts under the saved scope AND the other one, over 24 hours and 7
-   * days. The mismatch this exists to catch: rules create detections, none
-   * of them alert, the scope is Alerts only, and every poll is honestly
-   * empty.
+   * Counts under the saved Data to import selection AND the other one, over
+   * 24 hours and 7 days. The mismatch this exists to catch: rules create
+   * detections, none of them alert, Detections is not selected, and every
+   * poll is honestly empty.
    */
   private static async availabilityCheck(
     client: GoogleSecOpsClient,
@@ -487,7 +501,7 @@ export default class GoogleSecOpsConnectionTester {
             name: "Detections available to import",
             status: "pass",
             startedAtMs,
-            message: `Under the saved scope (${this.describeScope(saved.scope)}): last 24 hours ${saved.ruleDetectionsCreatedLast24h} rule detections created and ${saved.alertsViewLast24h} alerts in the alerts view; last 7 days ${saved.ruleDetectionsCreatedLast7d} and ${saved.alertsViewLast7d}.`,
+            message: `With the saved Data to import (${this.describeScope(saved.scope)}): last 24 hours ${saved.ruleDetectionsCreatedLast24h} rule detections created and ${saved.alertsViewLast24h} alerts in the alerts view; last 7 days ${saved.ruleDetectionsCreatedLast7d} and ${saved.alertsViewLast7d}.`,
             details: counts,
           }),
         );
@@ -498,11 +512,11 @@ export default class GoogleSecOpsConnectionTester {
             name: "Detections available to import",
             status: "warn",
             startedAtMs,
-            message: `Nothing is available under the saved scope (${this.describeScope(saved.scope)}) in the last 7 days, but ${other.ruleDetectionsCreatedLast7d} rule detections and ${other.alertsViewLast7d} alerts-view records exist under ${this.describeScope(other.scope)}.`,
+            message: `Nothing is available with the saved Data to import (${this.describeScope(saved.scope)}) in the last 7 days, but ${other.ruleDetectionsCreatedLast7d} rule detections and ${other.alertsViewLast7d} alerts-view records exist with ${this.describeScope(other.scope)}.`,
             remediation:
               saved.scope === "alerts-only"
                 ? SCOPE_MISMATCH_REMEDIATION
-                : "The alerts-only scope returned records the wider scope did not; re-run the test, and if it persists inspect the tenant's alerting configuration.",
+                : "Reading Alerts only returned records that reading Alerts and Detections did not; re-run the test, and if it persists inspect the tenant's alerting configuration.",
             details: counts,
           }),
         );
@@ -614,8 +628,15 @@ export default class GoogleSecOpsConnectionTester {
     return String(page.detections.length);
   }
 
+  /*
+   * Read as "with <this>" in the messages above, so it names what the Data
+   * to import group has checked rather than a scope label the form no
+   * longer shows.
+   */
   private static describeScope(scope: ScopeLabel): string {
-    return scope === "alerts-only" ? "Alerts only" : "Alerts and detections";
+    return scope === "alerts-only"
+      ? "Alerts only"
+      : "Alerts and Detections selected";
   }
 
   private static toSample(

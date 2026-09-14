@@ -18,9 +18,11 @@ import {
 } from "@testing-library/react";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
+import { INLINE_TEST_SETTINGS_CHANGED_MESSAGE } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/ConnectionTestModal";
 import SecurityEventConnectionFormModal, {
   configFieldName,
   readSecurityEventConnectionForm,
+  removeSecretFieldName,
   secretFieldName,
   securityEventConnectionTestBody,
   securityEventConnectionUpdatePayload,
@@ -52,6 +54,9 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const CONNECTION_ID: string = "22222222-2222-4222-8222-222222222222";
 const OKTA_ORG_URL: string = "https://acme.okta.com";
 const OKTA_TOKEN: string = "00abcDEFghiJKLmnoPQRstuVWXyz-synthetic";
+const AWS_TEMPORARY_KEY_ID: string = "ASIASYNTHETIC0000001";
+const AWS_LONG_LIVED_KEY_ID: string = "AKIASYNTHETIC0000002";
+const AWS_SECRET: string = "aws-secret-access-key-synthetic";
 
 function report(): SecurityConnectorTestReport {
   return {
@@ -84,6 +89,46 @@ function oktaConnection(): SecurityEventConnection {
   connection.pollIntervalInMinutes = 10;
   connection.alertingOnly = true;
   return connection;
+}
+
+/*
+ * Created with temporary STS credentials, so a session token is stored.
+ * The optional-secret-cannot-be-cleared scenario starts here.
+ */
+function awsConnection(): SecurityEventConnection {
+  const connection: SecurityEventConnection = new SecurityEventConnection();
+  connection._id = CONNECTION_ID;
+  connection.projectId = PROJECT_ID;
+  connection.name = "Org Security Hub";
+  connection.provider = SecurityEventConnectorProvider.AwsSecurityHub;
+  connection.config = {
+    region: "us-east-1",
+    accessKeyId: AWS_TEMPORARY_KEY_ID,
+  };
+  connection.isEnabled = true;
+  connection.pollIntervalInMinutes = 5;
+  connection.alertingOnly = true;
+  return connection;
+}
+
+function splunkConnection(): SecurityEventConnection {
+  const connection: SecurityEventConnection = new SecurityEventConnection();
+  connection._id = CONNECTION_ID;
+  connection.projectId = PROJECT_ID;
+  connection.name = "Splunk ES";
+  connection.provider = SecurityEventConnectorProvider.SplunkEnterpriseSecurity;
+  connection.config = {
+    url: "https://splunk.example.com:8089",
+    searchString: "index=notable",
+  };
+  connection.isEnabled = true;
+  connection.pollIntervalInMinutes = 5;
+  connection.alertingOnly = true;
+  return connection;
+}
+
+function removeToggles(): Array<HTMLElement> {
+  return screen.queryAllByRole("switch", { name: /^Remove the stored/ });
 }
 
 function dialog(): HTMLElement {
@@ -308,7 +353,7 @@ describe("SecurityEventConnectionFormModal (create)", () => {
     expect(await screen.findByText("All checks passed")).toBeVisible();
     expect(API.post).toHaveBeenCalledTimes(1);
     const call: JSONObject = jest.mocked(API.post).mock
-      .calls[0]?.[0] as JSONObject;
+      .calls[0]?.[0] as unknown as JSONObject;
     expect(call["data"]).toEqual({
       provider: "okta",
       config: { orgUrl: OKTA_ORG_URL },
@@ -321,6 +366,67 @@ describe("SecurityEventConnectionFormModal (create)", () => {
     );
     expect(ModelAPI.create).not.toHaveBeenCalled();
     expect(ModelAPI.updateById).not.toHaveBeenCalled();
+  });
+
+  test("editing a tested credential hides the earlier report until it is tested again", async (): Promise<void> => {
+    await renderModal();
+    await chooseProvider("Okta System Log");
+    await next();
+    fill(/^Okta organization URL/, OKTA_ORG_URL);
+    await next();
+    fireEvent.change(screen.getByLabelText(/^API token/), {
+      target: { value: OKTA_TOKEN },
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Test these settings" }),
+      );
+    });
+    expect(await screen.findByText("All checks passed")).toBeVisible();
+
+    /*
+     * stale-report-after-failed-rerun: a green report for token A must not
+     * stay next to token B.
+     */
+    await act(async (): Promise<void> => {
+      fireEvent.change(screen.getByLabelText(/^API token/), {
+        target: { value: `${OKTA_TOKEN}-replaced` },
+      });
+    });
+    expect(screen.queryByText("All checks passed")).not.toBeInTheDocument();
+    expect(
+      screen.getByText(INLINE_TEST_SETTINGS_CHANGED_MESSAGE),
+    ).toBeVisible();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Test these settings" }),
+      );
+    });
+    expect(await screen.findByText("All checks passed")).toBeVisible();
+    expect(API.post).toHaveBeenCalledTimes(2);
+    const call: JSONObject = jest.mocked(API.post).mock
+      .calls[1]?.[0] as unknown as JSONObject;
+    expect(call["data"]).toEqual({
+      provider: "okta",
+      config: { orgUrl: OKTA_ORG_URL },
+      secrets: { apiToken: `${OKTA_TOKEN}-replaced` },
+      alertingOnly: true,
+    });
+  });
+
+  test("the create form never offers to remove a stored credential", async (): Promise<void> => {
+    await renderModal();
+    await chooseProvider("AWS Security Hub");
+    await next();
+    fill(/^Region/, "us-east-1");
+    fill(/^Access key ID/, AWS_LONG_LIVED_KEY_ID);
+    await next();
+
+    expect(activeStep()).toBe("Credentials");
+    expect(screen.getByLabelText(/^Session token/)).toBeVisible();
+    expect(removeToggles()).toHaveLength(0);
   });
 
   test("a rejected test shows the server's message inline and the form stays editable", async (): Promise<void> => {
@@ -570,7 +676,7 @@ describe("SecurityEventConnectionFormModal (edit and credentials)", () => {
 
     expect(await screen.findByText("All checks passed")).toBeVisible();
     const call: JSONObject = jest.mocked(API.post).mock
-      .calls[0]?.[0] as JSONObject;
+      .calls[0]?.[0] as unknown as JSONObject;
     expect(call["data"]).toEqual({
       connectionId: CONNECTION_ID,
       config: { orgUrl: OKTA_ORG_URL, filter: 'eventType sw "security"' },
@@ -622,6 +728,122 @@ describe("SecurityEventConnectionFormModal (edit and credentials)", () => {
       .calls[0]?.[0] as { data: JSONObject };
     expect(update.data).toEqual({
       secrets: JSON.stringify({ apiToken: OKTA_TOKEN }),
+    });
+    expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * optional-secret-cannot-be-cleared: switching AWS from temporary to a
+   * long-lived key left the stale session token merged back in, so every
+   * request failed. The Remove toggle sends null, which deletes the key.
+   */
+  test("an optional secret gets a Remove toggle on edit that tests and saves it as null", async (): Promise<void> => {
+    const { onSaved }: { onSaved: jest.Mock } = await renderModal({
+      connection: awsConnection(),
+    });
+
+    fill(/^Access key ID/, AWS_LONG_LIVED_KEY_ID);
+    await next();
+    expect(activeStep()).toBe("Credentials");
+
+    // Only the optional session token can be removed.
+    expect(
+      removeToggles().map((toggle: HTMLElement): string => {
+        return toggle.getAttribute("aria-checked") || "";
+      }),
+    ).toEqual(["false"]);
+    const removeToken: HTMLElement = screen.getByRole("switch", {
+      name: /^Remove the stored Session token/,
+    });
+
+    fireEvent.change(screen.getByLabelText(/^Secret access key/), {
+      target: { value: AWS_SECRET },
+    });
+    // Typed before the toggle is turned on: the toggle wins and this is ignored.
+    fireEvent.change(screen.getByLabelText(/^Session token/), {
+      target: { value: "typed-token-ignored" },
+    });
+    await act(async (): Promise<void> => {
+      fireEvent.click(removeToken);
+    });
+    expect(removeToken).toHaveAttribute("aria-checked", "true");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Test these settings" }),
+      );
+    });
+    expect(await screen.findByText("All checks passed")).toBeVisible();
+    const testCall: JSONObject = jest.mocked(API.post).mock
+      .calls[0]?.[0] as unknown as JSONObject;
+    expect(testCall["data"]).toEqual({
+      connectionId: CONNECTION_ID,
+      config: { region: "us-east-1", accessKeyId: AWS_LONG_LIVED_KEY_ID },
+      secrets: { secretAccessKey: AWS_SECRET, sessionToken: null },
+    });
+
+    await next();
+    expect(activeStep()).toBe("Polling");
+    await act(async (): Promise<void> => {
+      fireEvent.click(footerButton("Save changes"));
+    });
+
+    await waitFor((): void => {
+      expect(ModelAPI.updateById).toHaveBeenCalledTimes(1);
+    });
+    const update: { data: JSONObject } = jest.mocked(ModelAPI.updateById).mock
+      .calls[0]?.[0] as { data: JSONObject };
+    expect(update.data["config"]).toEqual({
+      region: "us-east-1",
+      accessKeyId: AWS_LONG_LIVED_KEY_ID,
+    });
+    expect(JSON.parse(update.data["secrets"] as string)).toEqual({
+      secretAccessKey: AWS_SECRET,
+      sessionToken: null,
+    });
+    expect(update.data["secrets"]).not.toContain("typed-token-ignored");
+    expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+
+  test("a required secret has no Remove toggle", async (): Promise<void> => {
+    await renderModal({ connection: oktaConnection() });
+    await next();
+
+    expect(activeStep()).toBe("Credentials");
+    expect(screen.getByLabelText(/^API token/)).toBeVisible();
+    expect(removeToggles()).toHaveLength(0);
+  });
+
+  test("Update credentials can remove an optional credential without entering a new one", async (): Promise<void> => {
+    const { onSaved }: { onSaved: jest.Mock } = await renderModal({
+      connection: splunkConnection(),
+      credentialsOnly: true,
+    });
+
+    expect(dialog()).toHaveTextContent(
+      "Turn on a Remove toggle to delete an optional one.",
+    );
+    expect(removeToggles()).toHaveLength(2);
+
+    // Switching from a revoked token to username and password.
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        screen.getByRole("switch", {
+          name: /^Remove the stored Authentication token/,
+        }),
+      );
+    });
+    await act(async (): Promise<void> => {
+      fireEvent.click(footerButton("Update credentials"));
+    });
+
+    await waitFor((): void => {
+      expect(ModelAPI.updateById).toHaveBeenCalledTimes(1);
+    });
+    const update: { data: JSONObject } = jest.mocked(ModelAPI.updateById).mock
+      .calls[0]?.[0] as { data: JSONObject };
+    expect(update.data).toEqual({
+      secrets: JSON.stringify({ apiToken: null }),
     });
     expect(onSaved).toHaveBeenCalledTimes(1);
   });
@@ -730,6 +952,43 @@ describe("form value mapping", () => {
       connectionId: CONNECTION_ID,
       secrets: { apiToken: OKTA_TOKEN },
     });
+  });
+
+  test("a Remove toggle maps an optional secret to null and is ignored for a required one", (): void => {
+    const submission: ReturnType<typeof readSecurityEventConnectionForm> =
+      readSecurityEventConnectionForm({
+        provider: aws,
+        [configFieldName(aws, "region")]: "us-east-1",
+        [configFieldName(aws, "accessKeyId")]: AWS_LONG_LIVED_KEY_ID,
+        [secretFieldName(aws, "secretAccessKey")]: AWS_SECRET,
+        [removeSecretFieldName(aws, "secretAccessKey")]: true,
+        [secretFieldName(aws, "sessionToken")]: "typed-token-ignored",
+        [removeSecretFieldName(aws, "sessionToken")]: true,
+      });
+
+    expect(submission.secrets).toEqual({
+      secretAccessKey: AWS_SECRET,
+      sessionToken: null,
+    });
+
+    // A removal alone is a change worth sending.
+    expect(
+      securityEventConnectionUpdatePayload(
+        { ...submission, secrets: { sessionToken: null } },
+        false,
+      )["secrets"],
+    ).toBe(JSON.stringify({ sessionToken: null }));
+
+    // A create body has nothing stored to remove, so a null never leaves.
+    expect(
+      securityEventConnectionTestBody({
+        values: {
+          provider: aws,
+          [secretFieldName(aws, "secretAccessKey")]: AWS_SECRET,
+          [removeSecretFieldName(aws, "sessionToken")]: true,
+        },
+      })["secrets"],
+    ).toEqual({ secretAccessKey: AWS_SECRET });
   });
 
   test("the update payload omits secrets when none were entered", (): void => {

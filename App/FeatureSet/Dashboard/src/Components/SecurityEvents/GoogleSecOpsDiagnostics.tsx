@@ -14,6 +14,7 @@ import URL from "Common/Types/API/URL";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject } from "Common/Types/JSON";
+import { SecurityConnectorTestReport } from "Common/Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import {
   GoogleSecOpsRunType,
   GoogleSecOpsRunResult,
@@ -25,6 +26,12 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import {
+  CONNECTION_TEST_PROGRESS_MESSAGE,
+  runConnectionTestRequest,
+} from "./ConnectionTestModal";
+import ConnectorTestReportView from "./ConnectorTestReportView";
+import {
+  GOOGLE_SECOPS_CONNECTION_TEST_ROUTE,
   formatGoogleSecOpsDate,
   googleSecOpsHealth,
   googleSecOpsNextPoll,
@@ -40,6 +47,10 @@ export interface ComponentProps {
   disabledReason?: string | undefined;
   onClose: () => void;
   onUpdated: () => void;
+  /*
+   * "poll" queues a poll as soon as the modal opens (the table's Run now
+   * action); "test" runs the synchronous connection test on open.
+   */
   initialAction?: "test" | "poll" | undefined;
 }
 
@@ -49,6 +60,14 @@ function localDateInput(date: Date): string {
     .slice(0, 16);
 }
 
+/*
+ * Test connection here is synchronous (review finding
+ * google-diagnostics-test-still-queued): it posts to the same
+ * /google-secops-connection/test endpoint as the row action and renders the
+ * checklist inline. It used to queue a worker run, which hung at "queued" in
+ * exactly the deployment it exists to diagnose (no worker consuming the
+ * queue) and locked every other action in this modal while it waited.
+ */
 const GoogleSecOpsDiagnostics: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -59,6 +78,10 @@ const GoogleSecOpsDiagnostics: FunctionComponent<ComponentProps> = (
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isTesting, setIsTesting] = useState<boolean>(false);
+  const [testReport, setTestReport] =
+    useState<SecurityConnectorTestReport | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [pollingRevision, setPollingRevision] = useState<number>(0);
@@ -162,6 +185,43 @@ const GoogleSecOpsDiagnostics: FunctionComponent<ComponentProps> = (
       props.connection.projectId?.toString(),
     ]);
 
+  const runTest: () => Promise<void> = async (): Promise<void> => {
+    if (!props.canRun || isTesting) {
+      return;
+    }
+    setIsTesting(true);
+    setTestError(null);
+    /*
+     * Cleared as the new test starts so a failed re-run never shows the
+     * previous run's green checklist beside its error.
+     */
+    setTestReport(null);
+    try {
+      const report: SecurityConnectorTestReport =
+        await runConnectionTestRequest({
+          route: GOOGLE_SECOPS_CONNECTION_TEST_ROUTE,
+          body: { connectionId: props.connection.id!.toString() },
+        });
+      if (!mounted.current) {
+        return;
+      }
+      setTestReport(report);
+      // The API records the test as a run row; show it in history now.
+      setPollingRevision((value: number): number => {
+        return value + 1;
+      });
+      updatedCallback.current();
+    } catch (err) {
+      if (mounted.current) {
+        setTestError(API.getFriendlyErrorMessage(err as Error));
+      }
+    } finally {
+      if (mounted.current) {
+        setIsTesting(false);
+      }
+    }
+  };
+
   const submitRun: (type: GoogleSecOpsRunType) => Promise<void> = async (
     type: GoogleSecOpsRunType,
   ): Promise<void> => {
@@ -253,7 +313,11 @@ const GoogleSecOpsDiagnostics: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     if (props.initialAction && !initialActionStarted.current) {
       initialActionStarted.current = true;
-      void submitRun(props.initialAction);
+      if (props.initialAction === "test") {
+        void runTest();
+      } else {
+        void submitRun(props.initialAction);
+      }
     }
   }, []);
 
@@ -340,7 +404,7 @@ const GoogleSecOpsDiagnostics: FunctionComponent<ComponentProps> = (
               </dd>
             </div>
             <div>
-              <dt className="text-gray-500">Scope</dt>
+              <dt className="text-gray-500">Data to import</dt>
               <dd>
                 {connection.includeNonAlertingDetections
                   ? "Alerts and detections"
@@ -350,8 +414,9 @@ const GoogleSecOpsDiagnostics: FunctionComponent<ComponentProps> = (
           </dl>
           <p className="mt-3 text-xs text-gray-500">
             Enabled controls the schedule. Poll outcomes include Run now; review
-            scheduled runs in history to confirm recurring polling. Change the
-            scope using Edit connection.
+            scheduled runs in history to confirm recurring polling. To import
+            non-alerting rule matches too, select Detections under Data to
+            import using Edit connection.
           </p>
         </section>
 
@@ -360,10 +425,11 @@ const GoogleSecOpsDiagnostics: FunctionComponent<ComponentProps> = (
             <Button
               title="Test connection"
               buttonStyle={ButtonStyleType.OUTLINE}
-              disabled={disableActions}
+              disabled={!props.canRun || isTesting}
+              isLoading={isTesting}
               tooltip={props.disabledReason}
               onClick={(): void => {
-                void submitRun("test");
+                void runTest();
               }}
             />
             <Button
@@ -377,7 +443,10 @@ const GoogleSecOpsDiagnostics: FunctionComponent<ComponentProps> = (
             />
           </div>
           <p className="text-sm text-gray-600">
-            Test connection checks credentials and API access. Run now imports
+            Test connection checks access to Google SecOps, what it has
+            available to import with and without Detections, and whether
+            OneUptime&apos;s workers and scheduler are running. It runs
+            immediately, without a worker, and imports nothing. Run now imports
             the next poll window immediately, including when the schedule is
             paused.
           </p>
@@ -386,6 +455,18 @@ const GoogleSecOpsDiagnostics: FunctionComponent<ComponentProps> = (
               {props.disabledReason ||
                 "Only project owners, project administrators, and security administrators can start runs. You can still review run history."}
             </p>
+          )}
+          {isTesting && (
+            <p role="status" className="text-sm text-gray-600">
+              {CONNECTION_TEST_PROGRESS_MESSAGE}
+            </p>
+          )}
+          {testError && !isTesting && <ErrorMessage message={testError} />}
+          {testReport && !isTesting && (
+            <ConnectorTestReportView
+              report={testReport}
+              providerTitle="Google SecOps"
+            />
           )}
           {isSubmitting && (
             <p role="status" className="text-sm text-gray-600">
@@ -417,9 +498,11 @@ const GoogleSecOpsDiagnostics: FunctionComponent<ComponentProps> = (
             Find historical detections
           </h3>
           <p className="text-sm text-gray-600">
-            Preview a window before importing. First scheduled polls look back
-            15 minutes; older detections need a historical import. Choose up to
-            7 days per run.
+            Preview a window before importing. The first scheduled poll reads
+            detections created in the last 24 hours; older detections need a
+            historical import. Choose up to 7 days per run. When Last Error says
+            polling moved past a minute it could not read in full, import that
+            minute here to recover what one run can read.
           </p>
           <label
             className="block text-sm font-medium text-gray-700"
