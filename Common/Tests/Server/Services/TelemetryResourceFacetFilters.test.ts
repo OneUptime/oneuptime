@@ -4,9 +4,21 @@
  * on a reachable Postgres.
  */
 const kubernetesClusterFindBy: jest.Mock = jest.fn();
+const proxmoxClusterFindBy: jest.Mock = jest.fn();
+const serverlessFunctionFindBy: jest.Mock = jest.fn();
+const rumApplicationFindBy: jest.Mock = jest.fn();
 
 jest.mock("../../../Server/Services/KubernetesClusterService", () => {
   return { __esModule: true, default: { findBy: kubernetesClusterFindBy } };
+});
+jest.mock("../../../Server/Services/ProxmoxClusterService", () => {
+  return { __esModule: true, default: { findBy: proxmoxClusterFindBy } };
+});
+jest.mock("../../../Server/Services/ServerlessFunctionService", () => {
+  return { __esModule: true, default: { findBy: serverlessFunctionFindBy } };
+});
+jest.mock("../../../Server/Services/RumApplicationService", () => {
+  return { __esModule: true, default: { findBy: rumApplicationFindBy } };
 });
 
 import LogAggregationService from "../../../Server/Services/LogAggregationService";
@@ -18,7 +30,10 @@ import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import { ResourceEntityScope } from "../../../Server/Utils/Telemetry/ResourceEntityFilter";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import { keyForKubernetesCluster } from "../../../Utils/Telemetry/EntityKey";
+import {
+  keyForKubernetesCluster,
+  keyForProxmoxCluster,
+} from "../../../Utils/Telemetry/EntityKey";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -54,6 +69,18 @@ const clusterScope: ResourceEntityScope = {
 };
 
 /*
+ * A resource type with a resource attribute but no signal entity key
+ * (Serverless function / IoT fleet): the scope carries no `entityKeys`.
+ */
+const functionId: string = ObjectID.generate().toString();
+const functionScope: ResourceEntityScope = {
+  entityIds: [functionId],
+  entityKeys: [],
+  attributeKey: "resource.faas.name",
+  attributeValues: ["checkout-handler"],
+};
+
+/*
  * Capture the statements a service builds instead of running them. The
  * assertions are about the SQL shape (which branches, how they are combined),
  * which is what decides whether a row matches.
@@ -85,6 +112,14 @@ describe("resource facet filters reach the telemetry read path", () => {
     kubernetesClusterFindBy.mockResolvedValue([
       { clusterIdentifier: "prod-eu" },
     ]);
+    proxmoxClusterFindBy.mockReset();
+    proxmoxClusterFindBy.mockResolvedValue([{ name: "pve-lab" }]);
+    serverlessFunctionFindBy.mockReset();
+    serverlessFunctionFindBy.mockResolvedValue([
+      { functionIdentifier: "checkout-handler" },
+    ]);
+    rumApplicationFindBy.mockReset();
+    rumApplicationFindBy.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -151,6 +186,49 @@ describe("resource facet filters reach the telemetry read path", () => {
       expect(captured[0]!.query).toContain("hasAny(entityKeys,");
     });
 
+    test("an attribute-only scope matches by id or attribute and never emits hasAny", async () => {
+      const captured: Array<Statement> = captureStatements(LogService);
+
+      await LogAggregationService.getHistogram({
+        projectId,
+        startTime,
+        endTime,
+        bucketSizeInMinutes: 5,
+        resourceScopes: [functionScope],
+      });
+
+      const query: string = captured[0]!.query;
+
+      expect(query).toContain("AND (primaryEntityId IN");
+      expect(query).toContain("attributes[");
+      expect(query).not.toContain("hasAny(entityKeys,");
+      expect(Object.values(captured[0]!.query_params)).toContainEqual([
+        "checkout-handler",
+      ]);
+    });
+
+    test("facet counts for a newly counted resource type carry the other facets' scopes", async () => {
+      const captured: Array<Statement> = captureStatements(LogService);
+
+      await LogAggregationService.getFacetValues({
+        projectId,
+        startTime,
+        endTime,
+        facetKey: "dockerSwarmClusterId",
+        resourceScopes: [clusterScope],
+      });
+
+      const query: string = captured[0]!.query;
+
+      expect(query).toContain("toString(primaryEntityId) AS val");
+      expect(query).toContain("AND primaryEntityType = ");
+      expect(query).not.toContain("mapContains(attributes");
+      expect(Object.values(captured[0]!.query_params)).toContain(
+        "DockerSwarmCluster",
+      );
+      expect(query).toContain("hasAny(entityKeys,");
+    });
+
     test("no resource scope leaves the statement exactly as it was", async () => {
       const captured: Array<Statement> = captureStatements(LogService);
 
@@ -182,6 +260,24 @@ describe("resource facet filters reach the telemetry read path", () => {
 
       expect(query).toContain("primaryEntityId IN");
       expect(query).toContain("hasAny(entityKeys,");
+    });
+
+    test("the span histogram honours an attribute-only scope without hasAny", async () => {
+      const captured: Array<Statement> = captureStatements(SpanService);
+
+      await TraceAggregationService.getHistogram({
+        projectId,
+        startTime,
+        endTime,
+        bucketSizeInMinutes: 5,
+        resourceScopes: [functionScope],
+      });
+
+      const query: string = captured[0]!.query;
+
+      expect(query).toContain("primaryEntityId IN");
+      expect(query).toContain("attributes[");
+      expect(query).not.toContain("hasAny(entityKeys,");
     });
 
     test("no resource scope leaves the span statement unchanged", async () => {
@@ -247,6 +343,64 @@ describe("resource facet filters reach the telemetry read path", () => {
 
       expect(findBy.query["resourceFilters"]).toBeUndefined();
       expect(findBy.query["resourceEntityScopes"]).toBeDefined();
+    });
+
+    test("LogService resolves a Proxmox cluster selection to its entity key and attribute", async () => {
+      const proxmoxId: string = ObjectID.generate().toString();
+      const findBy: FindByShape = {
+        query: { resourceFilters: { proxmoxClusterId: [proxmoxId] } },
+        props: { tenantId: projectId },
+      };
+
+      await (
+        LogService as unknown as {
+          onBeforeFind: (input: FindByShape) => Promise<unknown>;
+        }
+      ).onBeforeFind(findBy);
+
+      expect(findBy.query["resourceFilters"]).toBeUndefined();
+      expect(findBy.query["resourceEntityScopes"]).toEqual([
+        {
+          entityIds: [proxmoxId],
+          entityKeys: [keyForProxmoxCluster(projectId.toString(), "pve-lab")],
+          attributeKey: "resource.proxmox.cluster.name",
+          attributeValues: ["pve-lab"],
+        },
+      ]);
+    });
+
+    test("SpanService resolves a serverless function selection to an attribute-only scope", async () => {
+      const findBy: FindByShape = {
+        query: { resourceFilters: { serverlessFunctionId: [functionId] } },
+        props: { tenantId: projectId },
+      };
+
+      await (
+        SpanService as unknown as {
+          onBeforeFind: (input: FindByShape) => Promise<unknown>;
+        }
+      ).onBeforeFind(findBy);
+
+      expect(findBy.query["resourceEntityScopes"]).toEqual([functionScope]);
+    });
+
+    test("a RUM application selection stays primaryEntityId-only with no Postgres lookup", async () => {
+      const appId: string = ObjectID.generate().toString();
+      const findBy: FindByShape = {
+        query: { resourceFilters: { rumApplicationId: [appId] } },
+        props: { tenantId: projectId },
+      };
+
+      await (
+        SpanService as unknown as {
+          onBeforeFind: (input: FindByShape) => Promise<unknown>;
+        }
+      ).onBeforeFind(findBy);
+
+      expect(findBy.query["resourceEntityScopes"]).toEqual([
+        { entityIds: [appId], entityKeys: [] },
+      ]);
+      expect(rumApplicationFindBy).not.toHaveBeenCalled();
     });
 
     test("a query without resource filters is handed through untouched", async () => {

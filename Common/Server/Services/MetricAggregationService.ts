@@ -12,6 +12,7 @@ import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import { getResourceFacetServiceTypeMap } from "../../Types/Telemetry/ResourceFacetCatalog";
 
 export interface FacetValue {
   value: string;
@@ -85,8 +86,8 @@ export interface MetricForTraceItem {
  * Facet aggregation for the Metrics page sidebar. Same shape as
  * TraceAggregationService / LogAggregationService — per-facet GROUP BY on
  * the analytics table, with a `primaryEntityType` discriminator that lets
- * the `primaryEntityId` column carry Host / DockerHost / KubernetesCluster
- * ids for the corresponding virtual facets.
+ * the `primaryEntityId` column carry Host / DockerHost / KubernetesCluster /
+ * ... ids (one virtual facet per ResourceFacetCatalog resource type).
  */
 export class MetricAggregationService {
   private static readonly DEFAULT_FACET_LIMIT: number = 500;
@@ -98,18 +99,7 @@ export class MetricAggregationService {
     "name",
   ]);
   private static readonly RESOURCE_FACET_KEYS: Map<string, ServiceType> =
-    new Map([
-      ["hostId", ServiceType.Host],
-      ["dockerHostId", ServiceType.DockerHost],
-      ["podmanHostId", ServiceType.PodmanHost],
-      ["kubernetesClusterId", ServiceType.KubernetesCluster],
-      ["proxmoxClusterId", ServiceType.ProxmoxCluster],
-      ["vmwareVCenterId", ServiceType.VMwareVCenter],
-      ["cephClusterId", ServiceType.CephCluster],
-      ["serverlessFunctionId", ServiceType.ServerlessFunction],
-      ["cloudResourceId", ServiceType.CloudResource],
-      ["rumApplicationId", ServiceType.RealUserMonitor],
-    ]);
+    getResourceFacetServiceTypeMap();
   private static readonly ATTRIBUTE_KEY_PATTERN: RegExp = /^[a-zA-Z0-9._:/-]+$/;
   private static readonly MAX_FACET_KEY_LENGTH: number = 256;
   /**

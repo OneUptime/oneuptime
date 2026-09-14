@@ -15,6 +15,7 @@ import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import { getResourceFacetServiceTypeMap } from "../../Types/Telemetry/ResourceFacetCatalog";
 import {
   appendResourceScopeFilters,
   ResourceEntityScope,
@@ -55,8 +56,9 @@ export interface HistogramRequest {
   serviceIds?: Array<ObjectID> | undefined;
   entityKeys?: Array<string> | undefined;
   /*
-   * Resource-facet selections (Kubernetes cluster / host / docker host /
-   * podman host) already resolved to their entity keys. One scope per
+   * Resource-facet selections (host / Kubernetes cluster / Proxmox
+   * cluster / ... — any ResourceFacetCatalog type) already resolved to
+   * their entity keys and resource attributes. One scope per
    * facet: the branches inside a scope OR (a row proves membership either
    * by being primary-keyed on the resource or by carrying its entity key),
    * and the scopes AND with each other so two facets intersect. See
@@ -86,8 +88,9 @@ export interface FacetRequest {
   serviceIds?: Array<ObjectID> | undefined;
   entityKeys?: Array<string> | undefined;
   /*
-   * Resource-facet selections (Kubernetes cluster / host / docker host /
-   * podman host) already resolved to their entity keys. One scope per
+   * Resource-facet selections (host / Kubernetes cluster / Proxmox
+   * cluster / ... — any ResourceFacetCatalog type) already resolved to
+   * their entity keys and resource attributes. One scope per
    * facet: the branches inside a scope OR (a row proves membership either
    * by being primary-keyed on the resource or by carrying its entity key),
    * and the scopes AND with each other so two facets intersect. See
@@ -116,8 +119,9 @@ export interface AnalyticsRequest {
   aggregationField?: string | undefined;
   serviceIds?: Array<ObjectID> | undefined;
   /*
-   * Resource-facet selections (Kubernetes cluster / host / docker host /
-   * podman host) already resolved to their entity keys. One scope per
+   * Resource-facet selections (host / Kubernetes cluster / Proxmox
+   * cluster / ... — any ResourceFacetCatalog type) already resolved to
+   * their entity keys and resource attributes. One scope per
    * facet: the branches inside a scope OR (a row proves membership either
    * by being primary-keyed on the resource or by carrying its entity key),
    * and the scopes AND with each other so two facets intersect. See
@@ -265,24 +269,14 @@ export class LogAggregationService {
   /*
    * Virtual facet keys that don't correspond to real ClickHouse columns —
    * they all read out of `primaryEntityId` filtered by `primaryEntityType`.
-   * The discriminator was added so host / docker host / k8s cluster
-   * telemetry could reuse the `primaryEntityId` slot instead of synthesising
-   * phantom Service rows; these facets surface each resource type
-   * independently.
+   * The discriminator was added so resource telemetry (host / docker host /
+   * k8s cluster / proxmox / ...) could reuse the `primaryEntityId` slot
+   * instead of synthesising phantom Service rows; these facets surface each
+   * resource type independently. One entry per ResourceFacetCatalog
+   * resource type, so every type the explorers offer is counted.
    */
   private static readonly RESOURCE_FACET_KEYS: Map<string, ServiceType> =
-    new Map([
-      ["hostId", ServiceType.Host],
-      ["dockerHostId", ServiceType.DockerHost],
-      ["podmanHostId", ServiceType.PodmanHost],
-      ["kubernetesClusterId", ServiceType.KubernetesCluster],
-      ["proxmoxClusterId", ServiceType.ProxmoxCluster],
-      ["vmwareVCenterId", ServiceType.VMwareVCenter],
-      ["cephClusterId", ServiceType.CephCluster],
-      ["serverlessFunctionId", ServiceType.ServerlessFunction],
-      ["cloudResourceId", ServiceType.CloudResource],
-      ["rumApplicationId", ServiceType.RealUserMonitor],
-    ]);
+    getResourceFacetServiceTypeMap();
   private static readonly ATTRIBUTE_KEY_PATTERN: RegExp = /^[a-zA-Z0-9._:/-]+$/;
   private static readonly MAX_FACET_KEY_LENGTH: number = 256;
   /*
@@ -443,7 +437,7 @@ export class LogAggregationService {
       /*
        * Virtual facet — group primaryEntityId values whose row carries the
        * matching ServiceType discriminator (Host / DockerHost /
-       * KubernetesCluster).
+       * KubernetesCluster / ... — see ResourceFacetCatalog).
        */
       statement.append(
         SQL`SELECT toString(primaryEntityId) AS val, count() AS cnt FROM ${LogAggregationService.TABLE_NAME}`,
